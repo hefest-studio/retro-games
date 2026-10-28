@@ -237,6 +237,7 @@ async function main() {
       await sleep(600);
     }
 
+    let evalResult;
     if (args.eval) {
       const result = await cdp.send('Runtime.evaluate', {
         expression: args.eval,
@@ -244,6 +245,7 @@ async function main() {
         returnByValue: true,
       });
       if (result.exceptionDetails) throw new Error(result.exceptionDetails.text || 'eval failed');
+      evalResult = result.result ? result.result.value : undefined;
     }
 
     const metrics = await cdp.send('Page.getLayoutMetrics');
@@ -272,6 +274,7 @@ async function main() {
       page: info?.result?.value ? JSON.parse(info.result.value) : null,
       consoleErrors,
       pageErrors,
+      ...(evalResult === undefined ? {} : { evalResult }),
     }, null, 2));
   } finally {
     cdp?.close();
