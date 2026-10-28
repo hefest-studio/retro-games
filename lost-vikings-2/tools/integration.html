@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#05070f">
+  <title>LV2 · integration</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-screen="boot" class="mode-aurora" data-lang="ru">
+  <div id="stage">
+    <canvas id="game" width="1024" height="576" role="img" aria-label="Игровое поле"></canvas>
+    <div id="ui" class="ui"></div>
+  </div>
+  <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+  <div id="touch" class="touch-layer"></div>
+
+  <script src="../js/i18n.js"></script>
+  <script src="dev-level.js"></script>
+  <script src="../js/audio.js"></script>
+  <script src="../js/render.js"></script>
+  <script src="../js/game.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru" data-gfx="retro" data-lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#04070c" />
+<title>RIVER RAID · РЕЧНОЙ РЕЙД — HTML5</title>
+<meta name="description" content="Браузерный ремейк аркады River Raid (Activision, 1982): река, мосты, заправки, два режима графики и 8-битная музыка." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23050b12'/%3E%3Cpath d='M16 5l4 12-4-2-4 2z' fill='%2339f0d0'/%3E%3Cpath d='M6 18l10 3-4 6z' fill='%234cc9ff'/%3E%3Cpath d='M26 18l-10 3 4 6z' fill='%23ff4f9a'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body data-state="menu">
+<div class="page">
+  <div class="bg" aria-hidden="true">
+    <div class="orb orb-a"></div>
+    <div class="orb orb-b"></div>
+    <div class="stars"></div>
+    <div class="grid"></div>
+  </div>
+
+  <aside class="rail rail-left" aria-hidden="true">
+    <span class="rail-top">ACTIVISION</span>
+    <span class="rail-line"></span>
+    <span class="rail-mid">1982</span>
+    <span class="rail-line"></span>
+    <span class="rail-bot">HTML5 PORT</span>
+  </aside>
+
+  <main class="frame" id="frame">
+    <header class="frame-top">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">RIVER RAID</span>
+        <span class="brand-year">1982</span>
+        <span class="chip" id="gfxTag">РЕТРО</span>
+      </div>
+      <div class="quick" role="group" aria-label="Быстрые настройки" data-i18n-aria="quickGroup">
+        <button class="qbtn" id="quickGfx" data-action="graphics" data-i18n-title="graphics" data-i18n-aria="graphics" title="G">8-BIT</button>
+        <button class="qbtn" id="quickLang" data-action="lang" data-i18n-title="language" data-i18n-aria="language" title="L">RU</button>
+        <button class="qbtn" id="quickSound" data-action="sound" data-i18n-title="sound" data-i18n-aria="sound" title="M">♪</button>
+        <button class="qbtn" data-action="fullscreen" data-i18n-title="fullscreen" data-i18n-aria="fullscreen" title="F">⛶</button>
+      </div>
+    </header>
+
+    <div class="stage" id="stage">
+      <canvas id="game" width="360" height="540" aria-label="Игровое поле River Raid" data-i18n-aria="gameField"></canvas>
+
+      <div class="fx grain" aria-hidden="true"></div>
+      <div class="fx scan" aria-hidden="true"></div>
+      <div class="fx vig" aria-hidden="true"></div>
+
+      <!-- МЕНЮ -->
+      <div class="overlay ov-menu is-open" id="ov-menu">
+        <div class="menu">
+          <div class="logo">
+            <div class="logo-kicker">
+              <span>ACTIVISION</span><i>1982</i><b>→</b><span>HTML5</span>
+            </div>
+            <h1 class="logo-title"><span>RIVER</span><span>RAID</span></h1>
+            <div class="logo-ru" data-i18n="title"></div>
+            <p class="logo-sub" data-i18n="subtitle"></p>
+          </div>
+
+          <nav class="menu-list" id="menuList" aria-label="Главное меню" data-i18n-aria="mainMenu">
+            <button class="m-item is-active" data-action="play">
+              <span class="m-num">01</span><span class="m-label" data-i18n="play"></span><span class="m-arrow" aria-hidden="true">→</span>
+            </button>
+            <button class="m-item" data-action="howto">
+              <span class="m-num">02</span><span class="m-label" data-i18n="howto"></span><span class="m-arrow" aria-hidden="true">→</span>
+            </button>
+            <button class="m-item" data-action="graphics" data-kind="toggle">
+              <span class="m-num">03</span><span class="m-label" data-i18n="graphics"></span><span class="m-value" id="valGfx"></span>
+            </button>
+            <button class="m-item" data-action="sound" data-kind="toggle">
+              <span class="m-num">04</span><span class="m-label" data-i18n="sound"></span><span class="m-value" id="valSound"></span>
+            </button>
+            <button class="m-item" data-action="lang" data-kind="toggle">
+              <span class="m-num">05</span><span class="m-label" data-i18n="language"></span><span class="m-value" id="valLang"></span>
+            </button>
+          </nav>
+
+          <div class="menu-foot">
+            <div class="hs">
+              <span class="hs-label" data-i18n="record"></span>
+              <b id="menuRecord">000000</b>
+            </div>
+            <div class="start-hint" data-i18n="startHint"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ИНСТРУКЦИЯ -->
+      <div class="overlay ov-help" id="ov-help">
+        <div class="panel help">
+          <div class="ov-kicker">RIVER RAID</div>
+          <h2 data-i18n="howtoTitle"></h2>
+          <div class="help-body">
+          <p class="lead" data-i18n="howtoLead"></p>
+          <div class="keylist">
+            <div><kbd>←</kbd><kbd>→</kbd><span data-i18n="ctrlMove"></span></div>
+            <div><kbd>↑</kbd><kbd>↓</kbd><span data-i18n="ctrlSpeed"></span></div>
+            <div><kbd>SPACE</kbd><span data-i18n="ctrlFire"></span></div>
+            <div><kbd>P</kbd><kbd>ESC</kbd><span data-i18n="ctrlPause"></span></div>
+            <div><kbd>M</kbd><span data-i18n="ctrlSound"></span></div>
+            <div><kbd>G</kbd><span data-i18n="ctrlGfx"></span></div>
+            <div><kbd>L</kbd><span data-i18n="ctrlLang"></span></div>
+            <div><kbd>F</kbd><span data-i18n="ctrlFull"></span></div>
+            <div><kbd>☰</kbd><span data-i18n="ctrlTouch"></span></div>
+          </div>
+          <div class="tips">
+            <h3 data-i18n="tipsTitle"></h3>
+            <ul>
+              <li data-i18n="tip1"></li>
+              <li data-i18n="tip2"></li>
+              <li data-i18n="tip3"></li>
+              <li data-i18n="tip4"></li>
+              <li data-i18n="tip5"></li>
+            </ul>
+          </div>
+          </div>
+          <button class="btn ghost" data-action="back" data-i18n="back"></button>
+        </div>
+      </div>
+
+      <!-- ПАУЗА -->
+      <div class="overlay ov-pause" id="ov-pause">
+        <div class="panel small">
+          <div class="ov-kicker">RIVER RAID</div>
+          <h2 data-i18n="paused"></h2>
+          <div class="btn-col">
+            <button class="btn primary" data-action="resume" data-i18n="resume"></button>
+            <button class="btn" data-action="restart" data-i18n="restart"></button>
+            <button class="btn ghost" data-action="menu" data-i18n="toMenu"></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ФИНАЛ -->
+      <div class="overlay ov-over" id="ov-over">
+        <div class="panel small over">
+          <div class="ov-kicker">RIVER RAID</div>
+          <h2 id="overTitle" data-i18n="gameOver"></h2>
+          <div class="scoreblock">
+            <span data-i18n="score"></span>
+            <b id="scoreOver">000000</b>
+          </div>
+          <div class="recordline">
+            <span data-i18n="record"></span>
+            <b id="hiOver">000000</b>
+          </div>
+          <div class="reason" id="reasonOver"></div>
+          <div class="accuracy" id="accuracyOver"></div>
+          <div class="btn-col">
+            <button class="btn primary" data-action="restart" data-i18n="again"></button>
+            <button class="btn ghost" data-action="menu" data-i18n="toMenu"></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ЭКРАННОЕ УПРАВЛЕНИЕ -->
+      <div class="touch" id="touch" role="group" aria-label="Экранное управление" data-i18n-aria="touchPad">
+        <div class="tgroup tmove">
+          <button data-key="left" aria-label="Влево" data-i18n-aria="touchLeft">◀</button>
+          <button data-key="right" aria-label="Вправо" data-i18n-aria="touchRight">▶</button>
+        </div>
+        <div class="tgroup tspeed">
+          <button data-key="up" aria-label="Быстрее" data-i18n-aria="touchUp">▲</button>
+          <button data-key="down" aria-label="Медленнее" data-i18n-aria="touchDown">▼</button>
+        </div>
+        <div class="tgroup tfire">
+          <button data-key="fire" class="fire" aria-label="Огонь" data-i18n-aria="touchFire">●</button>
+        </div>
+        <button class="tbtn tpause" data-key="pause" aria-label="Пауза" data-i18n-aria="touchPause">❚❚</button>
+      </div>
+    </div>
+
+    <footer class="frame-foot">
+      <span class="foot-note" data-i18n="sideNote"></span>
+      <span class="foot-keys">
+        <kbd>←</kbd><kbd>→</kbd>·<kbd>↑</kbd><kbd>↓</kbd>·<kbd>SPACE</kbd>·<kbd>P</kbd>·<kbd>G</kbd>
+      </span>
+    </footer>
+  </main>
+
+  <aside class="rail rail-right" aria-hidden="true">
+    <span class="rail-top">8-BIT</span>
+    <span class="rail-line"></span>
+    <span class="rail-mid">60 FPS</span>
+    <span class="rail-line"></span>
+    <span class="rail-bot">NO ASSETS</span>
+  </aside>
+</div>
+
+<noscript>
+  <div class="noscript">Для игры нужен JavaScript. Включите его и перезагрузите страницу. / JavaScript is required to play. Enable it and reload the page.</div>
+</noscript>
+
+<script src="js/core.js"></script>
+<script src="js/lang.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/render.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

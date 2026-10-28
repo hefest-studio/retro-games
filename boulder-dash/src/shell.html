@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ru" data-gfx="retro" data-lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#060911">
+<title>BOULDER DASH · Кристальные глубины</title>
+<meta name="description" content="Boulder Dash — браузерный ремейк легендарной аркады 1984 года. Восемь уровней, алмазы, камни, светлячки, 8-битная музыка и переключение между ретро- и нео-графикой.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070b13'/%3E%3Cpath d='M32 8 54 24 32 56 10 24Z' fill='%234ff2d0'/%3E%3Cpath d='M32 8v48M10 24h44M22 18l10 6 10-6' stroke='%2303171d' stroke-width='2.5' fill='none'/%3E%3C/svg%3E">
+<style>
+/*__INLINE_CSS__*/
+</style>
+</head>
+<body>
+
+<div class="ambient" aria-hidden="true">
+  <div class="ambient-grid"></div>
+  <div class="orb orb-a"></div>
+  <div class="orb orb-b"></div>
+  <div class="orb orb-c"></div>
+  <div class="ambient-noise"></div>
+</div>
+
+<header class="topbar">
+  <button class="brand" id="brandHome" type="button" aria-label="Boulder Dash — в главное меню">
+    <span class="brand-gem" aria-hidden="true"><i></i></span>
+    <span class="brand-copy">
+      <span class="brand-name">BOULDER <em>DASH</em></span>
+      <span class="brand-sub" data-i18n="brand.sub">КРИСТАЛЬНЫЕ ГЛУБИНЫ</span>
+    </span>
+  </button>
+
+  <div class="top-actions">
+    <button class="graphics-btn" id="btnGraphics" type="button" title="Переключить графику (G)" aria-label="Переключить графику">
+      <span class="graphics-icon" aria-hidden="true">◈</span>
+      <span class="graphics-copy">
+        <span data-i18n="ui.graphics">ГРАФИКА</span>
+        <b id="graphicsLabel">РЕТРО</b>
+      </span>
+      <span class="graphics-toggle" aria-hidden="true"><i></i></span>
+    </button>
+    <button class="icon-btn" id="btnMusic" type="button" aria-pressed="true" title="Музыка (M)" aria-label="Музыка">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18.5" r="2.7" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17.5" cy="16.5" r="2.7" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+      <span class="off-slash" aria-hidden="true"></span>
+    </button>
+    <button class="icon-btn" id="btnSound" type="button" aria-pressed="true" title="Звуки (V)" aria-label="Звуковые эффекты">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path class="sound-wave" d="M16.2 8.4a5 5 0 0 1 0 7.2M18.7 6a8.3 8.3 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span class="off-slash" aria-hidden="true"></span>
+    </button>
+    <button class="lang-btn" id="btnLang" type="button" title="Сменить язык (L)" aria-label="Сменить язык"><span id="langLabel">RU</span></button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="play-col">
+    <div class="console" id="console">
+      <div class="console-top">
+        <div class="leds" aria-hidden="true"><i class="led led-a"></i><i class="led led-b"></i><i class="led led-c"></i></div>
+        <div class="console-id"><span data-i18n="console.unit">DEEP CRYSTAL MINING UNIT</span><b>BD-84</b></div>
+        <div class="console-badge" id="modeChip">РЕТРО-РЕНДЕР</div>
+      </div>
+
+      <div class="screen" id="screen">
+        <canvas id="game" width="1280" height="704" aria-label="Игровое поле Boulder Dash"></canvas>
+        <div class="crt" aria-hidden="true"></div>
+        <div class="screen-vignette" aria-hidden="true"></div>
+        <div class="overlay" id="overlay" data-screen="menu">
+          <div class="menu-screen">
+            <div class="menu-copy">
+              <div class="kicker"><i class="live-dot"></i> 1984 · HTML5 REMAKE · 2026</div>
+              <h1 class="game-title">BOULDER<br><em>DASH</em></h1>
+              <div class="game-subtitle">КРИСТАЛЬНЫЕ ГЛУБИНЫ</div>
+              <p class="lede" data-i18n="menu.lede">Копай породу, собирай алмазы и уходи глубже. Только не стой под камнями.</p>
+              <div class="menu-actions">
+                <button class="btn btn-primary" type="button" data-action="start"><span data-i18n="menu.start">Начать спуск</span><kbd>ENTER</kbd></button>
+                <button class="btn btn-ghost" type="button" data-action="levels"><span data-i18n="menu.levels">Выбрать уровень</span><span class="arr">→</span></button>
+              </div>
+              <div class="menu-facts">
+                <span><b>08</b> <span data-i18n="menu.fact.levels">уровней</span></span>
+                <span><b>∞</b> <span data-i18n="menu.fact.rocks">камней</span></span>
+                <span><b>1</b> <span data-i18n="menu.fact.mission">миссия</span></span>
+              </div>
+            </div>
+            <div class="menu-side" aria-hidden="true">
+              <div class="menu-side-label">DEEP<br>CRYSTAL<br>MINING</div>
+              <div class="menu-side-line"></div>
+              <div class="menu-side-code">BD-84 / SECTOR 07</div>
+            </div>
+          </div>
+        </div>
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      </div>
+
+      <div class="console-bottom">
+        <div class="cb-block cb-level">
+          <span class="cb-label" data-i18n="console.level">УРОВЕНЬ</span>
+          <b id="barLevel">01</b>
+          <span class="cb-name" id="barLevelName">Первый спуск</span>
+          <span class="cb-hearts" id="barLives">♥♥♥</span>
+        </div>
+        <div class="cb-block cb-gems">
+          <span class="gem-mark" aria-hidden="true">◆</span>
+          <div class="gem-meter"><i id="barMeter"></i></div>
+          <span class="gem-count"><b id="barGems">0</b><span>/</span><span id="barQuota">8</span></span>
+        </div>
+        <div class="cb-block cb-live">
+          <span class="cb-score" id="barScore">000000</span>
+          <span class="cb-sep"></span>
+          <span class="timer" id="barTimer">00:00</span>
+          <span class="cb-sep"></span>
+          <i class="live-dot"></i>
+          <span class="cb-label">LIVE</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="touch-pad" id="touchPad" aria-label="Сенсорное управление">
+      <button class="tp-btn tp-up" type="button" data-dir="0" aria-label="Вверх">▲</button>
+      <button class="tp-btn tp-pause" type="button" data-action="pause" aria-label="Пауза">Ⅱ</button>
+      <button class="tp-btn tp-left" type="button" data-dir="3" aria-label="Влево">◀</button>
+      <button class="tp-btn tp-down" type="button" data-dir="2" aria-label="Вниз">▼</button>
+      <button class="tp-btn tp-right" type="button" data-dir="1" aria-label="Вправо">▶</button>
+    </div>
+
+    <div class="key-strip" aria-label="Горячие клавиши">
+      <span><kbd>←↑↓→</kbd><em>/</em><kbd>WASD</kbd> <i data-i18n="keys.move">двигаться</i></span>
+      <span><kbd>G</kbd> <i data-i18n="keys.gfx">графика</i></span>
+      <span><kbd>M</kbd> <i data-i18n="keys.music">музыка</i></span>
+      <span><kbd>V</kbd> <i data-i18n="keys.sfx">звук</i></span>
+      <span><kbd>Esc</kbd> <i data-i18n="keys.pause">пауза</i></span>
+      <span><kbd>R</kbd> <i data-i18n="keys.restart">заново</i></span>
+    </div>
+  </section>
+
+  <aside class="sidebar">
+    <section class="panel stats-panel">
+      <div class="panel-head"><span data-i18n="panel.mission">МИССИЯ</span><i class="panel-dot"></i></div>
+      <div class="stat-grid">
+        <div class="stat"><span data-i18n="stat.level">УРОВЕНЬ</span><strong id="statLevel">01</strong></div>
+        <div class="stat"><span data-i18n="stat.gems">АЛМАЗЫ</span><strong id="statGems">0</strong><em id="statQuota">/ 8</em></div>
+        <div class="stat"><span data-i18n="stat.lives">ЖИЗНИ</span><strong class="lives" id="statLives">♥♥♥</strong></div>
+        <div class="stat"><span data-i18n="stat.score">СЧЁТ</span><strong id="statScore">000000</strong></div>
+      </div>
+      <div class="best-row"><span data-i18n="stat.best">РЕКОРД</span><b id="statBest">000000</b></div>
+      <div class="mission-card">
+        <div class="mission-tag"><i></i><span data-i18n="panel.brief">БРИФИНГ</span></div>
+        <h3 id="missionTitle">Первый спуск</h3>
+        <p id="missionText">Мягкий грунт, немного камней и щедрая жила кристаллов. Отличный момент, чтобы вспомнить, как работает гравитация.</p>
+      </div>
+    </section>
+
+    <section class="panel controls-panel">
+      <div class="panel-head"><span data-i18n="panel.controls">УПРАВЛЕНИЕ</span><i class="panel-dot"></i></div>
+      <dl class="controls-list">
+        <div><dt><kbd>←↑↓→</kbd></dt><dd data-i18n="ctrl.move">Двигаться / копать</dd></div>
+        <div><dt><kbd>WASD</kbd></dt><dd data-i18n="ctrl.push">Толкать камни</dd></div>
+        <div><dt><kbd>Esc</kbd><kbd>P</kbd></dt><dd data-i18n="ctrl.pause">Пауза</dd></div>
+        <div><dt><kbd>G</kbd></dt><dd data-i18n="ctrl.gfx">Нео / ретро графика</dd></div>
+        <div><dt><kbd>L</kbd></dt><dd data-i18n="ctrl.lang">Русский / English</dd></div>
+      </dl>
+      <div class="hint-box"><span class="hint-icon">!</span><p data-i18n="hint.gravity">Камень падает, если под ним пусто. Алмазы тоже. Не копайте под собой слишком долго.</p></div>
+    </section>
+
+    <section class="panel levels-panel">
+      <div class="panel-head"><span data-i18n="panel.levels">УРОВНИ</span><span class="panel-finish" id="finishCount">0 / 8</span></div>
+      <div class="level-grid" id="levelGrid"></div>
+    </section>
+  </aside>
+</main>
+
+<footer class="footer">
+  <span data-i18n="footer.made">Дань уважения аркаде 1984 года. Сделано на Canvas + WebAudio, без внешних библиотек.</span>
+  <span class="footer-tech"><i>HTML5</i><i>CANVAS</i><i>8-BIT</i></span>
+</footer>
+
+<script>
+/*__INLINE_JS__*/
+</script>
+</body>
+</html>

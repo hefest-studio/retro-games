@@ -1,0 +1,34 @@
+DIGGER QA · 2026-10-28 09:26:04
+Chrome: Chrome/156.0.8078.74 (CDP, headless=new)
+index.html: /Users/sergio/My/code/projects/music_book/digger/index.html
+Скриншоты: /Users/sergio/My/code/projects/music_book/digger/screenshots
+
+# самопроверки страницы (#test)
+ok   DIGGER TESTS 13/13 PASS  (title=DIGGER TESTS 13/13 PASS)
+
+# desktop-скриншоты (§7.2 + ready/levelclear/pause), 1280×760
+ok   title_classic          165.2 KB 1280×760  титул, 8-бит
+ok   title_modern           341.9 KB 1280×760  титул, неон
+ok   play_classic           192.1 KB 1280×760  игра, 8-бит
+ok   play_modern            941.3 KB 1280×760  игра, неон
+ok   bonus_modern           976.7 KB 1280×760  бонус-режим, неон
+ok   gameover_modern        342.9 KB 1280×760  game over, неон
+ok   help_modern            296.0 KB 1280×760  справка, неон
+ok   settings_classic       169.2 KB 1280×760  настройки, 8-бит
+ok   play_classic_en        190.6 KB 1280×760  игра, 8-бит, English
+ok   ready_classic          162.2 KB 1280×760  баннер уровня, 8-бит
+ok   levelclear_modern      892.3 KB 1280×760  уровень пройден, неон
+ok   pause_modern           303.2 KB 1280×760  пауза, неон
+
+# мобильные размеры (CDP Emulation.setDeviceMetricsOverride, mobile:true)
+ok   mobile_title           130.4 KB 390×844  портрет 390×844, титул  scroll=390×844 / 390×844
+ok   mobile_play            134.0 KB 390×844  портрет 390×844, игра  scroll=390×844 / 390×844
+ok   mobile_settings        104.1 KB 390×844  портрет 390×844, настройки  scroll=390×844 / 390×844
+ok   landscape_title         66.1 KB 844×390  ландшафт 844×390, титул  scroll=844×390 / 844×390
+ok   landscape_play         303.7 KB 844×390  ландшафт 844×390, игра  scroll=844×390 / 844×390
+
+# консоль: все #shot=… режимы, обе графики (без скриншотов)
+ok   режимы без ошибок: 22/22
+
+РЕЗУЛЬТАТ: PASS
+Скриншоты: 17/17 (desktop 12, mobile 5), #test: PASS, консоль-аудит: OK

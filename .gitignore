@@ -1,0 +1,17 @@
+# Служебные и временные каталоги разработки
+tmp/
+reports/
+.devhome/
+.npmcache/
+.chrome-tmp/
+node_modules/
+.vercel/
+
+# Служебные файлы ОС/редакторов
+.DS_Store
+*.log
+
+# Локальные секреты и окружение
+.env
+.env.*
+!.env.example

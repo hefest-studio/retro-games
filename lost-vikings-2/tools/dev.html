@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>LV2 · engine dev</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #05070f; overflow: hidden; }
+  #wrap { position: fixed; inset: 0; display: grid; place-items: center; }
+  canvas { width: min(100vw, 177.78vh); height: min(56.25vw, 100vh); background: #0b1226;
+    image-rendering: auto; box-shadow: 0 0 60px #000a; }
+  #hud { position: fixed; left: 10px; top: 10px; color: #7cf8ff; font: 12px/1.45 ui-monospace, monospace;
+    background: #05070fcc; padding: 8px 10px; border: 1px solid #7cf8ff33; border-radius: 8px;
+    white-space: pre; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" width="1024" height="576"></canvas></div>
+<div id="hud"></div>
+<script src="dev-level.js"></script>
+<script src="../js/game.js"></script>
+<script>
+(function () {
+  'use strict';
+  var LV = window.LV;
+  var canvas = document.getElementById('game');
+  var ctx = canvas.getContext('2d');
+  var hud = document.getElementById('hud');
+  var game = new LV.Game({
+    levels: LV.LEVELS,
+    onEvent: function (ev) {
+      if (ev.type === 'toast') console.log('[toast]', ev.text);
+    },
+    onLevelComplete: function (stats) { console.log('COMPLETE', JSON.stringify(stats)); }
+  });
+  LV.game = game;
+  game.loadLevel(0);
+  var input = LV.input = { left: false, right: false, up: false, down: false, jump: false, action: false, special: false, hook: false };
+  game.setInput(input);
+
+  var keys = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', Space: 'jump', KeyJ: 'action', KeyK: 'special', KeyL: 'hook' };
+  window.addEventListener('keydown', function (e) {
+    if (keys[e.code]) { input[keys[e.code]] = true; e.preventDefault(); }
+    if (e.code === 'Digit1') game.switchTo('erik');
+    if (e.code === 'Digit2') game.switchTo('baleog');
+    if (e.code === 'Digit3') game.switchTo('olaf');
+    if (e.code === 'Tab') { e.preventDefault(); game.nextActor(); }
+    if (e.code === 'KeyR') game.restartLevel();
+  });
+  window.addEventListener('keyup', function (e) {
+    if (keys[e.code]) { input[keys[e.code]] = false; e.preventDefault(); }
+  });
+
+  var COL = { erik: '#7cf8ff', baleog: '#ffc857', olaf: '#45f0b5' };
+  var TILE = 32;
+  function rr(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); }
+
+  function drawTiles(w) {
+    var c0 = Math.max(0, Math.floor(w.camera.x / TILE) - 1);
+    var c1 = Math.min(w.cols - 1, Math.ceil((w.camera.x + w.camera.w) / TILE) + 1);
+    var r0 = Math.max(0, Math.floor(w.camera.y / TILE) - 1);
+    var r1 = Math.min(w.rows - 1, Math.ceil((w.camera.y + w.camera.h) / TILE) + 1);
+    for (var row = r0; row <= r1; row++) {
+      for (var col = c0; col <= c1; col++) {
+        var ch = game.getTile(col, row);
+        if (ch === '#') { rr(col * TILE, row * TILE, TILE, TILE, '#1b2a4a'); rr(col * TILE, row * TILE, TILE, 3, '#3b6ea5'); }
+        else if (ch === '=') { rr(col * TILE, row * TILE, TILE, TILE, '#6fc3df'); }
+        else if (ch === '^') { rr(col * TILE, row * TILE + 20, TILE, 12, '#d94a6a'); }
+        else if (ch === '~') { rr(col * TILE, row * TILE, TILE, TILE, '#a33b1f'); }
+        else if (ch === 'L') { rr(col * TILE + 12, row * TILE, 8, TILE, '#a56b2b'); }
+        else if (ch === 'G') { rr(col * TILE + 8, row * TILE + 8, 16, 16, '#ffc857'); }
+        else if (ch === 'T') { rr(col * TILE + 13, row * TILE + 13, 6, 6, '#ffc857'); }
+      }
+    }
+  }
+
+  function drawProps(w) {
+    w.props.forEach(function (p) {
+      if (p.type === 'plate') { rr(p.x - p.w / 2, p.y - 6, p.w, 6, p.pressed ? '#45f0b5' : '#7a2a5a'); }
+      else if (p.type === 'door') { ctx.globalAlpha = 0.25 + 0.6 * (1 - p.open); rr(p.x, p.y, p.w, p.h, '#ff3d8b'); ctx.globalAlpha = 1; }
+      else if (p.type === 'lever') { rr(p.x - 3, p.y - 26, 6, 26, p.on ? '#45f0b5' : '#e0b35a'); }
+      else if (p.type === 'platform') { rr(p.x, p.y, p.w, p.h, '#5a8f3d'); }
+      else if (p.type === 'rune') { if (!p.taken) { ctx.beginPath(); ctx.arc(p.x, p.y, 11, 0, 7); ctx.fillStyle = '#8b5cf6'; ctx.fill(); } }
+      else if (p.type === 'checkpoint') { rr(p.x - 3, p.y - 56, 6, 56, p.active ? '#45f0b5' : '#2d4a22'); }
+      else if (p.type === 'exit') { ctx.globalAlpha = 0.7; rr(p.x, p.y, p.w, p.h, '#7cf8ff'); ctx.globalAlpha = 1; }
+      else if (p.type === 'sign') { rr(p.x - 10, p.y - 40, 20, 40, '#5a3a1b'); }
+      else if (p.type === 'torch') { rr(p.x - 3, p.y - 12, 6, 12, '#a56b2b'); ctx.beginPath(); ctx.arc(p.x, p.y - 16, 5, 0, 7); ctx.fillStyle = '#ffc857'; ctx.fill(); }
+      else if (p.type === 'anchor') { rr(p.x - 8, p.y - 8, 16, 16, '#e0b35a'); }
+      else if (p.type === 'enemy') {
+        if (!p.active) return;
+        rr(p.x - p.w / 2, p.y - p.h, p.w, p.h, p.hurtTimer > 0 ? '#fff' : '#d94a6a');
+      }
+    });
+  }
+
+  function drawActors(w) {
+    w.actors.forEach(function (a) {
+      if (a.exited) return;
+      ctx.globalAlpha = a.dead ? 0.25 : (a.active ? 1 : 0.5);
+      rr(a.x - a.w / 2, a.y - a.h, a.w, a.h, COL[a.id]);
+      if (a.shieldUp) rr(a.x - 20, a.y - a.h - 6, 40, 6, '#45f0b5');
+      if (a.hook) {
+        ctx.strokeStyle = '#ffc857'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(a.hook.ax, a.hook.ay); ctx.lineTo(a.hook.bx, a.hook.by); ctx.stroke();
+        ctx.beginPath(); ctx.arc(a.hook.bx, a.hook.by, 4, 0, 7); ctx.fillStyle = '#ffc857'; ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#05070f'; ctx.font = 'bold 11px ui-monospace,monospace';
+      ctx.fillText(a.id[0].toUpperCase(), a.x - 4, a.y - a.h / 2 + 4);
+      if (a.invuln > 0) { ctx.strokeStyle = '#fff'; ctx.strokeRect(a.x - a.w / 2, a.y - a.h, a.w, a.h); }
+    });
+    w.projectiles.forEach(function (p) {
+      rr(p.x - 3, p.y - 4, 10, 3, p.kind === 'arrow' ? '#ffc857' : '#ff3d8b');
+    });
+  }
+
+  function draw() {
+    var w = game.world;
+    if (!w) return;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#05070f'; ctx.fillRect(0, 0, 1024, 576);
+    var sh = w.camera.shake || 0;
+    var sx = (Math.random() - 0.5) * sh * 16;
+    var sy = (Math.random() - 0.5) * sh * 16;
+    ctx.save();
+    ctx.translate(-Math.round(w.camera.x) + sx, -Math.round(w.camera.y) + sy);
+    drawTiles(w); drawProps(w); drawActors(w);
+    ctx.restore();
+
+    var act = game.getUIState();
+    var lines = [
+      'FPS/dev  LV ' + (act.levelIndex + 1) + '/' + act.levelCount + '  ' + act.name,
+      'active: ' + act.active + '   time: ' + act.time.toFixed(1) + '   deaths: ' + act.deaths,
+      'runes: ' + act.runes + '/' + act.runesTotal + '   score: ' + act.score + '   exit: ' + act.exitCollected + '/3',
+      act.actors.map(function (a) { return a.id + ' hp' + a.hp + (a.dead ? ' DEAD' : '') + (a.exited ? ' OUT' : ''); }).join('  '),
+      'keys: arrows move · space jump · J action · K bow · L hook · 1/2/3 switch · R restart'
+    ];
+    hud.textContent = lines.join('\n');
+  }
+
+  var last = 0;
+  function loop(ts) {
+    var dt = last ? (ts - last) / 1000 : 0;
+    last = ts;
+    var acc = Math.min(dt, 0.1);
+    var steps = 0;
+    while (acc >= 1 / 60 && steps < 5) { game.update(1 / 60); acc -= 1 / 60; steps++; }
+    draw();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+  window.__game = game;
+})();
+</script>
+</body>
+</html>

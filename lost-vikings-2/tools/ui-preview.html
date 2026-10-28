@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#05070f">
+  <title>UI SANDBOX · Lost Vikings II</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    /* Панель песочницы — только для tools/ui-preview.html */
+    .sandbox {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      gap: 7px;
+      width: min(860px, 96vw);
+      padding: 11px 13px;
+      border: 1px solid rgba(124, 248, 255, .3);
+      border-radius: 12px;
+      background: rgba(4, 8, 16, .94);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .6);
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    }
+    body.sandbox-open .sandbox { display: flex; }
+    .sandbox__row { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+    .sandbox__label {
+      font-size: 8px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: rgba(124, 248, 255, .55);
+      min-width: 58px;
+    }
+    .sandbox button {
+      padding: 5px 8px;
+      border: 1px solid rgba(124, 248, 255, .26);
+      border-radius: 5px;
+      background: rgba(124, 248, 255, .07);
+      color: #eaf6ff;
+      font: inherit;
+      font-size: 9.5px;
+      letter-spacing: .04em;
+      cursor: pointer;
+    }
+    .sandbox button:hover { background: rgba(124, 248, 255, .18); }
+    .sandbox button.is-active {
+      border-color: #45f0b5;
+      background: rgba(69, 240, 181, .2);
+      color: #d9fff4;
+    }
+    .sandbox__hint {
+      font-size: 8px;
+      letter-spacing: .1em;
+      color: rgba(234, 246, 255, .4);
+    }
+    .sandbox__status {
+      font-size: 8px;
+      letter-spacing: .06em;
+      color: rgba(69, 240, 181, .85);
+      min-height: 10px;
+    }
+    .noscript {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      margin: 0;
+      background: #05070f;
+      color: #eaf6ff;
+      font-family: sans-serif;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body data-screen="boot" class="mode-aurora" data-lang="ru">
+
+  <div id="stage">
+    <canvas id="game" width="1024" height="576" role="img" aria-label="Макет игрового поля"></canvas>
+    <div id="ui" class="ui"></div>
+  </div>
+
+  <div id="toasts" class="toasts" role="status" aria-live="polite" aria-atomic="false"></div>
+  <div id="touch" class="touch-layer"></div>
+
+  <div class="sandbox" id="sandbox" aria-label="Панель песочницы">
+    <div class="sandbox__row">
+      <span class="sandbox__label">Экраны</span>
+      <button data-sandbox-screen="title">title</button>
+      <button data-sandbox-screen="levels">levels</button>
+      <button data-sandbox-screen="brief">brief</button>
+      <button data-sandbox-screen="play">play</button>
+      <button data-sandbox-screen="pause">pause</button>
+      <button data-sandbox-screen="complete">complete</button>
+      <button data-sandbox-screen="ending">ending</button>
+      <button data-sandbox-screen="help">help</button>
+    </div>
+    <div class="sandbox__row">
+      <span class="sandbox__label">Режим</span>
+      <button data-sandbox-mode="aurora">AURORA</button>
+      <button data-sandbox-mode="retro">8-BIT</button>
+      <span class="sandbox__label" style="min-width:auto;margin-left:10px">Язык</span>
+      <button data-sandbox-lang="ru">RU</button>
+      <button data-sandbox-lang="en">EN</button>
+      <span class="sandbox__label" style="min-width:auto;margin-left:10px">Звук</span>
+      <button data-sandbox-mute="0">ON</button>
+      <button data-sandbox-mute="1">OFF</button>
+      <span class="sandbox__label" style="min-width:auto;margin-left:10px">Тач</span>
+      <button data-sandbox-touch="1">ON</button>
+      <button data-sandbox-touch="0">OFF</button>
+    </div>
+    <div class="sandbox__row">
+      <span class="sandbox__label">HUD</span>
+      <button data-sandbox-hud="rune">+руна</button>
+      <button data-sandbox-hud="death">+смерть</button>
+      <button data-sandbox-hud="hurt">−HP</button>
+      <button data-sandbox-hud="exit">+выход</button>
+      <button data-sandbox-hud="switch">смена</button>
+      <button data-sandbox-hud="reset">сброс</button>
+      <button data-sandbox-toast="info">тост</button>
+      <button data-sandbox-toast="warn">тост warn</button>
+      <button data-sandbox-toast="success">тост success</button>
+    </div>
+    <div class="sandbox__row">
+      <span class="sandbox__hint">` — скрыть/показать панель · ?screen=play&amp;mode=retro&amp;lang=en&amp;touch=1&amp;panel=1</span>
+      <span class="sandbox__status" id="sandbox-status"></span>
+    </div>
+  </div>
+
+  <noscript><p class="noscript">Для превью нужен JavaScript.</p></noscript>
+
+  <script src="../js/i18n.js"></script>
+  <script>
+    /* Мок уровней: в реальной игре их даёт js/levels.js (level-smith). */
+    window.LV = window.LV || {};
+    LV.LEVELS = [
+      {
+        name: 'Пробуждение', nameEn: 'Awakening', music: 0,
+        hint: 'Эрик ломает лёд тараном, Балеог рубит мечом, Олаф держит щит. Начните с простого.',
+        hintEn: 'Erik headbutts ice, Baleog swings his sword, Olaf raises his shield. Start simple.'
+      },
+      {
+        name: 'Ледяной путь', nameEn: 'The Ice Road', music: 0,
+        hint: 'Крюк Балеога цепляется за любой твёрдый потолок. Парение Эрика продлевает прыжок.',
+        hintEn: "Baleog's hook grabs any solid ceiling. Erik's glide stretches every jump."
+      },
+      {
+        name: 'Огненный разлом', nameEn: 'Fire Rift', music: 1,
+        hint: 'Лава губит мгновенно. Плиты открывают двери, а платформы перевозят всех троих.',
+        hintEn: 'Lava kills instantly. Plates open doors, and platforms carry all three.'
+      },
+      {
+        name: 'Небесные врата', nameEn: 'Skyward Gates', music: 1,
+        hint: 'Вертикаль: щит Олафа — платформа для остальных, крюк и парение держат высоту.',
+        hintEn: "Verticality: Olaf's shield is a platform, hook and glide hold the height."
+      },
+      {
+        name: 'Холодная кузня', nameEn: 'The Cold Forge', music: 2,
+        hint: 'Комбинируйте крюк, щит и таран. Рычаги переключаются мечом и стрелами.',
+        hintEn: 'Combine hook, shield and headbutt. Levers flip from sword and arrows.'
+      },
+      {
+        name: 'Нордвест', nameEn: 'Norse by Norsewest', music: 2,
+        hint: 'Финальная мозаика механик. Три руны, трое у портала — не оставляйте никого позади.',
+        hintEn: 'A final mosaic. Three runes, three at the portal — leave no one behind.'
+      }
+    ];
+  </script>
+  <script src="../js/ui.js"></script>
+  <script>
+    /* ---------- мок-состояние и песочница ---------- */
+    (function () {
+      'use strict';
+
+      var params = new URLSearchParams(location.search);
+      var p = function (name, def) {
+        var v = params.get(name);
+        return v == null ? def : v;
+      };
+
+      var MAX_LEVEL = 6;
+      var LEVEL_INDEX = 1;
+      var mock = {
+        levelIndex: LEVEL_INDEX,
+        levelCount: MAX_LEVEL,
+        name: LV.LEVELS[LEVEL_INDEX].name,
+        nameEn: LV.LEVELS[LEVEL_INDEX].nameEn,
+        hint: LV.LEVELS[LEVEL_INDEX].hint,
+        hintEn: LV.LEVELS[LEVEL_INDEX].hintEn,
+        time: 83.6,
+        deaths: 1,
+        levelDeaths: 1,
+        runes: 2,
+        runesTotal: 3,
+        score: 1800,
+        active: 'baleog',
+        actors: [
+          { id: 'erik', hp: 2, maxHp: 3, dead: false, exited: false, active: false },
+          { id: 'baleog', hp: 1, maxHp: 3, dead: false, exited: false, active: true },
+          { id: 'olaf', hp: 3, maxHp: 3, dead: false, exited: false, active: false }
+        ],
+        exitCollected: 1,
+        exitTotal: 3,
+        paused: false,
+        completed: false,
+        music: 0
+      };
+
+      var saved = {
+        unlocked: 3,
+        hasProgress: true,
+        levels: {
+          0: { runes: 3, time: 101, deaths: 1, score: 1800 },
+          1: { runes: 2, time: 143, deaths: 2, score: 1200 }
+        }
+      };
+
+      var resultMock = { levelIndex: 1, time: 143, deaths: 2, runes: { got: 2, total: 3 }, score: 2140 };
+      var endingMock = {
+        totalTime: 1213, totalDeaths: 9, totalRunes: 14, totalScore: 24380,
+        levelsCompleted: 6
+      };
+
+      var playing = false;
+      var tick = null;
+      var panelOpen = p('panel', '0') === '1';
+      var statusEl = document.getElementById('sandbox-status');
+
+      function status(text) {
+        if (statusEl) statusEl.textContent = text || '';
+      }
+
+      function levelData(i) {
+        return LV.LEVELS[Math.max(0, Math.min(MAX_LEVEL - 1, i))];
+      }
+
+      function applyMockLevel(i) {
+        i = Math.max(0, Math.min(MAX_LEVEL - 1, i));
+        mock.levelIndex = i;
+        mock.name = levelData(i).name;
+        mock.nameEn = levelData(i).nameEn;
+        mock.hint = levelData(i).hint;
+        mock.hintEn = levelData(i).hintEn;
+        mock.music = levelData(i).music || 0;
+        mock.time = 83.6;
+        mock.deaths = 1;
+        mock.runes = 2;
+        mock.exitCollected = 1;
+        mock.actors[0].hp = 3; mock.actors[0].dead = false; mock.actors[0].exited = false;
+        mock.actors[1].hp = 1;
+        mock.actors[2].hp = 3;
+        setActive(mock.active);
+      }
+
+      function setActive(id) {
+        mock.active = id;
+        for (var i = 0; i < mock.actors.length; i++) {
+          mock.actors[i].active = mock.actors[i].id === id;
+        }
+      }
+
+      function nextActive() {
+        var order = ['erik', 'baleog', 'olaf'];
+        var i = order.indexOf(mock.active);
+        setActive(order[(i + 1) % order.length]);
+        LV.ui.updateHud(mock);
+        status('active: ' + mock.active);
+      }
+
+      /* ---------- тикер мок-игры ---------- */
+      function startTick() {
+        playing = true;
+        if (tick) return;
+        tick = setInterval(function () {
+          if (!playing) return;
+          mock.time += 0.25;
+          LV.ui.updateHud(mock);
+          paintMockWorld();
+        }, 250);
+      }
+      function stopTick() { playing = false; }
+
+      /* ---------- мок-поле, чтобы HUD смотрелся в контексте ---------- */
+      var cv = document.getElementById('game');
+      var ctx = cv.getContext('2d');
+      function paintMockWorld() {
+        if (!ctx) return;
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        var W = cv.clientWidth || window.innerWidth;
+        var H = cv.clientHeight || window.innerHeight;
+        if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) {
+          cv.width = Math.round(W * dpr);
+          cv.height = Math.round(H * dpr);
+        }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        var g = ctx.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0, '#061021');
+        g.addColorStop(.55, '#08182b');
+        g.addColorStop(1, '#04070f');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+
+        var aur = ctx.createRadialGradient(W * .22, H * .18, 10, W * .22, H * .18, W * .5);
+        aur.addColorStop(0, 'rgba(69,240,181,.24)');
+        aur.addColorStop(1, 'rgba(69,240,181,0)');
+        ctx.fillStyle = aur;
+        ctx.fillRect(0, 0, W, H);
+        var aur2 = ctx.createRadialGradient(W * .78, H * .1, 10, W * .78, H * .1, W * .44);
+        aur2.addColorStop(0, 'rgba(139,92,246,.26)');
+        aur2.addColorStop(1, 'rgba(139,92,246,0)');
+        ctx.fillStyle = aur2;
+        ctx.fillRect(0, 0, W, H);
+
+        // горы
+        ctx.fillStyle = 'rgba(10,20,38,.9)';
+        ctx.beginPath();
+        ctx.moveTo(0, H * .72);
+        ctx.lineTo(W * .16, H * .54);
+        ctx.lineTo(W * .3, H * .68);
+        ctx.lineTo(W * .45, H * .46);
+        ctx.lineTo(W * .6, H * .66);
+        ctx.lineTo(W * .76, H * .5);
+        ctx.lineTo(W * .9, H * .64);
+        ctx.lineTo(W, H * .52);
+        ctx.lineTo(W, H);
+        ctx.lineTo(0, H);
+        ctx.closePath();
+        ctx.fill();
+
+        // платформы
+        var platforms = [
+          [0.06, 0.76, 0.22, 0.028],
+          [0.34, 0.66, 0.18, 0.026],
+          [0.6, 0.78, 0.24, 0.03],
+          [0.74, 0.58, 0.16, 0.026],
+          [0.12, 0.56, 0.14, 0.024]
+        ];
+        for (var i = 0; i < platforms.length; i++) {
+          var pl = platforms[i];
+          var x = pl[0] * W, y = pl[1] * H, w = pl[2] * W, h = Math.max(8, pl[3] * H);
+          var pg = ctx.createLinearGradient(0, y, 0, y + h);
+          pg.addColorStop(0, 'rgba(38,56,86,.95)');
+          pg.addColorStop(1, 'rgba(14,22,38,.98)');
+          ctx.fillStyle = pg;
+          ctx.fillRect(x, y, w, h);
+          ctx.strokeStyle = 'rgba(124,248,255,.16)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x, y + 1);
+          ctx.lineTo(x + w, y + 1);
+          ctx.stroke();
+        }
+
+        // портал
+        var px = W * .86, py = H * .78;
+        var pg2 = ctx.createRadialGradient(px, py - 24, 4, px, py - 24, 70);
+        pg2.addColorStop(0, 'rgba(255,200,87,.5)');
+        pg2.addColorStop(1, 'rgba(255,200,87,0)');
+        ctx.fillStyle = pg2;
+        ctx.beginPath();
+        ctx.arc(px, py - 24, 70, 0, Math.PI * 2);
+        ctx.fill();
+
+        // викинги-силуэты
+        var actors = [
+          ['#7cf8ff', .2, .76],
+          ['#ff3d8b', .44, .66],
+          ['#ffc857', .64, .78]
+        ];
+        for (var a = 0; a < actors.length; a++) {
+          var ax = actors[a][1] * W, ay = actors[a][2] * H;
+          ctx.fillStyle = actors[a][0];
+          ctx.globalAlpha = .8;
+          ctx.fillRect(ax - 7, ay - 30, 14, 30);
+          ctx.beginPath();
+          ctx.arc(ax, ay - 36, 7, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+
+        // сетка/виньетка
+        var vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .32, W / 2, H / 2, Math.max(W, H) * .8);
+        vg.addColorStop(0, 'rgba(0,0,0,0)');
+        vg.addColorStop(1, 'rgba(2,4,9,.72)');
+        ctx.fillStyle = vg;
+        ctx.fillRect(0, 0, W, H);
+      }
+
+      /* ---------- экраны ---------- */
+      function startLevel(i) {
+        applyMockLevel(i);
+        LV.ui.screen('play', { levelIndex: i });
+        LV.ui.updateHud(mock);
+        startTick();
+        paintMockWorld();
+        status('play level ' + (i + 1));
+      }
+
+      function applyScreen(name) {
+        var n = String(name || 'title');
+        if (n === 'title') {
+          stopTick();
+          LV.ui.screen('title');
+        } else if (n === 'levels') {
+          stopTick();
+          LV.ui.screen('levels');
+        } else if (n === 'brief') {
+          stopTick();
+          LV.ui.screen('brief', { index: mock.levelIndex });
+        } else if (n === 'play') {
+          startLevel(mock.levelIndex);
+          return;
+        } else if (n === 'pause') {
+          stopTick();
+          LV.ui.screen('play', { levelIndex: mock.levelIndex });
+          LV.ui.updateHud(mock);
+          paintMockWorld();
+          LV.ui.screen('pause', { levelIndex: mock.levelIndex });
+        } else if (n === 'complete') {
+          stopTick();
+          LV.ui.screen('play', { levelIndex: mock.levelIndex });
+          LV.ui.updateHud(mock);
+          paintMockWorld();
+          LV.ui.screen('complete', resultMock);
+        } else if (n === 'ending') {
+          stopTick();
+          LV.ui.screen('ending', endingMock);
+        } else if (n === 'help') {
+          LV.ui.screen('title');
+          LV.ui.screen('help');
+        }
+        updatePanelState(n);
+      }
+
+      /* ---------- колбэки main.js (мок) ---------- */
+      var callbacks = {
+        onStartNew: function () { applyScreen('brief'); status('callback: onStartNew'); },
+        onContinue: function () {
+          var i = Math.max(0, Math.min(MAX_LEVEL - 1, saved.unlocked - 1));
+          mock.levelIndex = i;
+          applyScreen('brief');
+          status('callback: onContinue → saga ' + (i + 1));
+        },
+        onSelectLevel: function (i) {
+          if (typeof i !== 'number') i = mock.levelIndex;
+          startLevel(i);
+          status('callback: onSelectLevel(' + i + ')');
+        },
+        onResume: function () {
+          LV.ui.screen('play', { levelIndex: mock.levelIndex });
+          LV.ui.updateHud(mock);
+          startTick();
+          status('callback: onResume');
+          updatePanelState('play');
+        },
+        onRestart: function () {
+          mock.time = 0;
+          mock.deaths += 1;
+          LV.ui.screen('play', { levelIndex: mock.levelIndex });
+          LV.ui.updateHud(mock);
+          startTick();
+          LV.ui.toast('Сага начата заново', { tone: 'info' });
+          status('callback: onRestart');
+          updatePanelState('play');
+        },
+        onNextLevel: function () {
+          var next = mock.levelIndex + 1;
+          if (next >= MAX_LEVEL) {
+            applyScreen('ending');
+          } else {
+            mock.levelIndex = next;
+            applyScreen('brief');
+          }
+          status('callback: onNextLevel');
+        },
+        onReplay: function () {
+          startLevel(mock.levelIndex);
+          status('callback: onReplay');
+        },
+        onQuitToTitle: function () {
+          stopTick();
+          if (LV.ui.isHelpOpen && LV.ui.isHelpOpen()) LV.ui.screen('title');
+          LV.ui.screen('title');
+          updatePanelState('title');
+          status('callback: onQuitToTitle');
+        },
+        onToggleGraphics: function () {
+          var next = document.body.classList.contains('mode-retro') ? 'aurora' : 'retro';
+          // UI уже переключил локально — просто сообщаем режим, как это сделал бы main
+          status('callback: onToggleGraphics → ' + next);
+          paintMockWorld();
+        },
+        onToggleLang: function () {
+          status('callback: onToggleLang → ' + LV.i18n.getLang());
+        },
+        onToggleMute: function () { status('callback: onToggleMute'); },
+        onOpenHelp: function () { status('callback: onOpenHelp'); },
+        onCloseHelp: function () { status('callback: onCloseHelp'); },
+        onPause: function () {
+          stopTick();
+          LV.ui.screen('pause', { levelIndex: mock.levelIndex });
+          status('callback: onPause');
+          updatePanelState('pause');
+        },
+        onInput: function (action, down) {
+          if (!down) return;
+          status('onInput("' + action + '", true)');
+          if (action === 'switch') {
+            nextActive();
+          } else if (action === 'jump') {
+            LV.ui.toast('Прыжок · мок', { tone: 'info', duration: 1200 });
+          }
+        }
+      };
+
+      LV.ui.init({ callbacks: callbacks, getState: function () { return mock; } });
+      LV.ui.setSaveInfo(saved);
+      LV.ui.setMode(p('mode', 'aurora'));
+      LV.ui.setLang(p('lang', 'ru'));
+      LV.ui.setMuted(p('mute', '0') === '1');
+
+      /* ---------- панель песочницы ---------- */
+      function updatePanelState(name) {
+        var current = name || (document.body.getAttribute('data-screen') || 'title');
+        var screenButtons = document.querySelectorAll('[data-sandbox-screen]');
+        for (var i = 0; i < screenButtons.length; i++) {
+          screenButtons[i].classList.toggle('is-active', screenButtons[i].getAttribute('data-sandbox-screen') === current);
+        }
+        var modeButtons = document.querySelectorAll('[data-sandbox-mode]');
+        for (var m = 0; m < modeButtons.length; m++) {
+          modeButtons[m].classList.toggle('is-active', modeButtons[m].getAttribute('data-sandbox-mode') === LV.ui.getMode());
+        }
+        var langButtons = document.querySelectorAll('[data-sandbox-lang]');
+        for (var l = 0; l < langButtons.length; l++) {
+          langButtons[l].classList.toggle('is-active', langButtons[l].getAttribute('data-sandbox-lang') === LV.ui.getLang());
+        }
+      }
+
+      function togglePanel(force) {
+        panelOpen = force == null ? !panelOpen : !!force;
+        document.body.classList.toggle('sandbox-open', panelOpen);
+      }
+
+      document.addEventListener('click', function (ev) {
+        var target = ev.target;
+        if (!target || !target.getAttribute) return;
+        var s = target.getAttribute('data-sandbox-screen');
+        if (s) { applyScreen(s); return; }
+        var m = target.getAttribute('data-sandbox-mode');
+        if (m) { LV.ui.setMode(m); paintMockWorld(); updatePanelState(); return; }
+        var l = target.getAttribute('data-sandbox-lang');
+        if (l) { LV.ui.setLang(l); updatePanelState(); return; }
+        var mu = target.getAttribute('data-sandbox-mute');
+        if (mu) { LV.ui.setMuted(mu === '1'); return; }
+        var t = target.getAttribute('data-sandbox-touch');
+        if (t) {
+          var url = location.pathname + '?touch=' + t + (p('screen') ? '&screen=' + p('screen') : '');
+          status('touch=' + t + ' · перезагружено');
+          location.href = url;
+          return;
+        }
+        var hud = target.getAttribute('data-sandbox-hud');
+        if (hud) {
+          if (hud === 'rune') { mock.runes = Math.min(mock.runesTotal, mock.runes + 1); LV.ui.toast('Руна ' + mock.runes + ' из 3', { tone: 'success' }); }
+          else if (hud === 'death') { mock.deaths += 1; mock.actors[1].hp = 0; mock.actors[1].dead = true; }
+          else if (hud === 'hurt') { mock.actors[0].hp = Math.max(0, mock.actors[0].hp - 1); }
+          else if (hud === 'exit') { mock.exitCollected = Math.min(3, mock.exitCollected + 1); }
+          else if (hud === 'switch') { nextActive(); }
+          else if (hud === 'reset') { applyMockLevel(mock.levelIndex); }
+          LV.ui.updateHud(mock);
+          updatePanelState();
+          return;
+        }
+        var toastTone = target.getAttribute('data-sandbox-toast');
+        if (toastTone) {
+          var texts = {
+            info: 'Подсказка: ищите руны в разломах',
+            warn: 'Осторожно: лава впереди',
+            success: 'Руна 3 из 3 · +150 очков'
+          };
+          LV.ui.toast(texts[toastTone] || 'Тост', { tone: toastTone });
+        }
+      });
+
+      document.addEventListener('keydown', function (ev) {
+        if (ev.key === '`' || ev.key === 'ё' || ev.key === '~') {
+          ev.preventDefault();
+          togglePanel();
+        }
+      });
+
+      /* ---------- старт ---------- */
+      togglePanel(panelOpen);
+      var initialScreen = p('screen', 'title');
+      if (initialScreen === 'play') {
+        startLevel(LEVEL_INDEX);
+      } else {
+        applyScreen(initialScreen);
+      }
+      paintMockWorld();
+      window.addEventListener('resize', function () { paintMockWorld(); });
+
+      // для отладки из cdp.mjs
+      window.__sandbox = {
+        applyScreen: applyScreen,
+        mock: mock,
+        saved: saved,
+        startTick: startTick,
+        stopTick: stopTick,
+        setPanel: togglePanel
+      };
+      console.log('[ui-preview] sandbox ready · ` — панель');
+    })();
+  </script>
+</body>
+</html>

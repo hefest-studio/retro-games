@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>River Raid — audio.js test</title>
+</head>
+<body>
+  <h1>river-raid: тест audio.js</h1>
+  <p>Служебная страница для headless-пробы (<code>tools/cdp.mjs</code>). В игру не входит.</p>
+  <script>
+    // Считаем создания AudioContext: до Chiptune.init() их быть не должно.
+    (function () {
+      var Orig = window.AudioContext;
+      window.__acCalls = 0;
+      if (Orig) {
+        window.AudioContext = function () {
+          window.__acCalls += 1;
+          return new Orig(...arguments);
+        };
+        window.AudioContext.prototype = Orig.prototype;
+      }
+    })();
+  </script>
+  <script src="../js/audio.js"></script>
+</body>
+</html>

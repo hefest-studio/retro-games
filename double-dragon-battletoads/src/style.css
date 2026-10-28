@@ -1,0 +1,611 @@
+/* ============================================================
+   DOUBLE DRAGON × BATTLE TOADS: NEON RAGE — оболочка страницы
+   ------------------------------------------------------------
+   Один полноэкранный <canvas id="stage"> в «тёмном неоновом зале».
+   Без внешних шрифтов, картинок и ассетов — только CSS.
+
+   Что здесь есть:
+   • сцена 100vw × 100vh, без прокрутки и выделения текста;
+   • фон-«комната»: rich neon glow для data-gfx="modern",
+     тёмный CRT с скан-линиями для data-gfx="retro";
+   • лёгкая виньетка поверх сцены (не мешает кадру);
+   • #err — красный monospace-оверлей (main включает style.display);
+   • #testout — скрытый вывод автотестов;
+   • #hint — стеклянный тост снизу по центру, виден только с .show;
+   • тач-управление (#touch): крестовина слева + 2×2 экшена справа,
+     только при body.touch, таргеты 52–64 px, safe-area iOS;
+   • @media (prefers-reduced-motion: reduce) — без анимации фона.
+   ============================================================ */
+
+/* ---------- корень и фон ---------- */
+:root {
+  color-scheme: dark;
+  --dd-bg: #07060f;
+  --dd-ink: #f4f0ff;
+  --dd-dim: #7d86c4;
+  --dd-magenta: #ff2e88;
+  --dd-cyan: #22e6ff;
+  --dd-lime: #b6ff3a;
+  --dd-amber: #ffb300;
+  --dd-btn: 64px;
+  --dd-safe-b: env(safe-area-inset-bottom, 0px);
+  --dd-safe-l: env(safe-area-inset-left, 0px);
+  --dd-safe-r: env(safe-area-inset-right, 0px);
+  --dd-safe-t: env(safe-area-inset-top, 0px);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--dd-bg);
+  overscroll-behavior: none;
+}
+
+body {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: var(--dd-ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+}
+
+::selection {
+  background: rgba(34, 230, 255, 0.35);
+  color: #ffffff;
+}
+
+/* «неоновая комната» лежит под canvas — видна в letterbox и до первого кадра */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: #07060f;
+}
+
+/* ---------- modern: объёмный неон, градиенты, медленная «аврора» ---------- */
+html[data-gfx="modern"] body::before {
+  background-image:
+    radial-gradient(58% 46% at 16% 8%, rgba(255, 46, 136, 0.22), transparent 72%),
+    radial-gradient(52% 44% at 84% 14%, rgba(34, 230, 255, 0.18), transparent 72%),
+    radial-gradient(66% 56% at 50% 112%, rgba(182, 255, 58, 0.10), transparent 72%),
+    linear-gradient(158deg, #0a0718 0%, #07060f 44%, #0b0820 100%);
+  background-size: 160% 160%, 160% 160%, 160% 160%, 100% 100%;
+  background-position: 0% 0%, 100% 0%, 50% 100%, 0 0;
+  animation: dd-aurora 26s ease-in-out infinite alternate;
+}
+
+html[data-gfx="modern"] body {
+  background:
+    radial-gradient(1000px 640px at 50% -12%, rgba(255, 46, 136, 0.12), transparent 66%),
+    #07060f;
+}
+
+@keyframes dd-aurora {
+  from { background-position: 0% 0%, 100% 0%, 50% 100%, 0 0; }
+  to   { background-position: 22% 12%, 78% 16%, 44% 88%, 0 0; }
+}
+
+/* ---------- retro: тёмный CRT, скан-линии, глухие тени ---------- */
+html[data-gfx="retro"] body {
+  background-color: #05030d;
+}
+
+html[data-gfx="retro"] body::before {
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.26) 0,
+      rgba(0, 0, 0, 0.26) 1px,
+      rgba(255, 255, 255, 0.012) 1px,
+      rgba(255, 255, 255, 0.012) 2px
+    ),
+    radial-gradient(70% 46% at 50% -8%, rgba(34, 230, 255, 0.07), transparent 70%),
+    radial-gradient(80% 60% at 50% 116%, rgba(255, 46, 136, 0.06), transparent 70%),
+    linear-gradient(180deg, #05030d 0%, #08040f 55%, #04020a 100%);
+}
+
+/* ---------- сцена ---------- */
+#stage {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  touch-action: none;
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+
+#stage:focus,
+#stage:focus-visible {
+  outline: none;
+}
+
+/* ---------- виньетка поверх кадра: премиальная глубина ---------- */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(132% 96% at 50% 44%, transparent 62%, rgba(2, 1, 8, 0.24) 100%),
+    linear-gradient(to bottom, rgba(2, 1, 8, 0.16) 0%, transparent 12%, transparent 88%, rgba(2, 1, 8, 0.20) 100%);
+}
+
+html[data-gfx="modern"] body::after {
+  background:
+    radial-gradient(132% 96% at 50% 44%, transparent 64%, rgba(2, 1, 8, 0.26) 100%),
+    radial-gradient(80% 44% at 50% 0%, rgba(34, 230, 255, 0.045), transparent 70%),
+    linear-gradient(to bottom, rgba(2, 1, 8, 0.14) 0%, transparent 14%, transparent 86%, rgba(2, 1, 8, 0.20) 100%);
+}
+
+/* ---------- тач-управление ---------- */
+#touch {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  display: none;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding:
+    0 max(14px, var(--dd-safe-r))
+    calc(14px + var(--dd-safe-b))
+    max(14px, var(--dd-safe-l));
+  pointer-events: none;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body.touch.in-game #touch {
+  display: flex;
+}
+
+/* крестовина: 3×3 grid, кнопки в форме креста */
+.dpad {
+  display: grid;
+  grid-template-columns: repeat(3, var(--dd-btn));
+  grid-template-rows: repeat(3, var(--dd-btn));
+  gap: 6px;
+  pointer-events: none;
+}
+
+.dpad .tbtn {
+  width: var(--dd-btn);
+  height: var(--dd-btn);
+}
+
+.dpad-up    { grid-area: 1 / 2 / 2 / 3; }
+.dpad-left  { grid-area: 2 / 1 / 3 / 2; }
+.dpad-right { grid-area: 2 / 3 / 3 / 4; }
+.dpad-down  { grid-area: 3 / 2 / 4 / 3; }
+
+/* экшены: 2×2, спец — звезда в акценте */
+.tacts {
+  display: grid;
+  grid-template-columns: repeat(2, var(--dd-btn));
+  grid-template-rows: repeat(2, var(--dd-btn));
+  gap: 8px;
+  pointer-events: none;
+}
+
+.tacts .tbtn {
+  width: var(--dd-btn);
+  height: var(--dd-btn);
+}
+
+.act-punch   { grid-area: 1 / 1 / 2 / 2; }
+.act-kick    { grid-area: 1 / 2 / 2 / 3; }
+.act-jump    { grid-area: 2 / 1 / 3 / 2; }
+.act-special { grid-area: 2 / 2 / 3 / 3; }
+
+/* общий вид кнопки — стекло с неоновой кромкой */
+.tbtn {
+  -webkit-appearance: none;
+  appearance: none;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 2px solid rgba(34, 230, 255, 0.42);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0) 48%),
+    rgba(9, 7, 22, 0.56);
+  color: var(--dd-ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: clamp(18px, calc(var(--dd-btn) * 0.30), 22px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-shadow: 0 0 8px rgba(34, 230, 255, 0.75), 0 1px 0 rgba(0, 0, 0, 0.65);
+  box-shadow:
+    inset 0 0 14px rgba(34, 230, 255, 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.48);
+  -webkit-backdrop-filter: blur(7px) saturate(1.2);
+  backdrop-filter: blur(7px) saturate(1.2);
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.08s ease,
+    background-color 0.08s ease,
+    border-color 0.08s ease,
+    box-shadow 0.12s ease,
+    color 0.08s ease;
+}
+
+.tbtn > span {
+  font-size: 0.56em;
+  font-weight: 600;
+  opacity: 0.72;
+  margin-left: 0.16em;
+}
+
+/* стрелки крестовины — крупные, «пиксельные» */
+.dpad .tbtn {
+  border-radius: 16px;
+  font-size: clamp(20px, calc(var(--dd-btn) * 0.38), 30px);
+  text-shadow: 0 0 10px rgba(34, 230, 255, 0.85), 0 1px 0 rgba(0, 0, 0, 0.7);
+}
+
+.act-jump {
+  font-size: clamp(11px, calc(var(--dd-btn) * 0.20), 14px);
+  letter-spacing: 0.06em;
+}
+
+/* спецприём: акцент маджента/янтарь, звезда */
+.act-special {
+  border-color: rgba(255, 46, 136, 0.66);
+  color: #ffd9ea;
+  font-size: clamp(22px, calc(var(--dd-btn) * 0.36), 30px);
+  text-shadow: 0 0 12px rgba(255, 46, 136, 0.95), 0 1px 0 rgba(0, 0, 0, 0.7);
+  box-shadow:
+    inset 0 0 16px rgba(255, 46, 136, 0.18),
+    0 0 18px rgba(255, 46, 136, 0.22),
+    0 4px 16px rgba(0, 0, 0, 0.5);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0) 48%),
+    rgba(30, 7, 26, 0.58);
+}
+
+.act-special > span {
+  color: var(--dd-amber);
+  text-shadow: 0 0 8px rgba(255, 179, 0, 0.9);
+  opacity: 0.95;
+}
+
+/* нажатие: вспыхивает неоном */
+.tbtn:active,
+.tbtn.active,
+.tbtn.is-down {
+  transform: translateY(1px) scale(0.96);
+  background: rgba(34, 230, 255, 0.30);
+  border-color: var(--dd-cyan);
+  color: #ffffff;
+  box-shadow:
+    0 0 26px rgba(34, 230, 255, 0.55),
+    inset 0 0 20px rgba(34, 230, 255, 0.38);
+}
+
+.act-special:active,
+.act-special.active,
+.act-special.is-down {
+  background: rgba(255, 46, 136, 0.36);
+  border-color: var(--dd-magenta);
+  color: #ffffff;
+  box-shadow:
+    0 0 30px rgba(255, 46, 136, 0.66),
+    inset 0 0 20px rgba(255, 46, 136, 0.42);
+}
+
+.tbtn:focus-visible {
+  outline: 2px solid var(--dd-lime);
+  outline-offset: 3px;
+}
+
+/* retro-кнопки: жёстче, квадратнее, «железные» */
+html[data-gfx="retro"] .tbtn {
+  border-radius: 6px;
+  background: rgba(14, 10, 30, 0.80);
+  box-shadow:
+    4px 4px 0 rgba(0, 0, 0, 0.62),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.32);
+  text-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html[data-gfx="retro"] .dpad .tbtn {
+  border-radius: 4px;
+}
+
+html[data-gfx="retro"] .act-special {
+  border-color: var(--dd-amber);
+  color: #ffe9b0;
+  background: rgba(38, 20, 6, 0.82);
+  box-shadow:
+    4px 4px 0 rgba(0, 0, 0, 0.62),
+    inset 0 0 0 2px rgba(255, 179, 0, 0.22);
+}
+
+html[data-gfx="retro"] .tbtn:active,
+html[data-gfx="retro"] .tbtn.active,
+html[data-gfx="retro"] .tbtn.is-down {
+  background: rgba(34, 230, 255, 0.36);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.7);
+}
+
+/* ---------- тост-подсказка ---------- */
+#hint {
+  position: fixed;
+  left: 50%;
+  bottom: calc(18px + var(--dd-safe-b));
+  z-index: 6;
+  max-width: min(92vw, 620px);
+  margin: 0;
+  padding: 9px 16px;
+  border: 1px solid rgba(34, 230, 255, 0.34);
+  border-radius: 999px;
+  background: rgba(12, 10, 28, 0.76);
+  color: var(--dd-ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(34, 230, 255, 0.35);
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 0 22px rgba(34, 230, 255, 0.10);
+  -webkit-backdrop-filter: blur(10px) saturate(1.25);
+  backdrop-filter: blur(10px) saturate(1.25);
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 10px);
+  pointer-events: none;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease,
+    visibility 0.22s ease;
+  will-change: opacity, transform;
+}
+
+#hint.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+
+/* на тач-экранах тост поднимается над кнопками */
+body.touch #hint {
+  bottom: calc(14px + var(--dd-safe-b) + var(--dd-btn) * 3 + 22px);
+}
+
+/* ---------- оверлей ошибки (main выставляет style.display) ---------- */
+#err {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  margin: 0;
+  padding:
+    calc(18px + var(--dd-safe-t))
+    max(18px, var(--dd-safe-r))
+    calc(18px + var(--dd-safe-b))
+    max(18px, var(--dd-safe-l));
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  background:
+    radial-gradient(90% 70% at 50% 0%, rgba(255, 46, 136, 0.14), transparent 70%),
+    rgba(16, 2, 9, 0.95);
+  color: #ff5c7a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-shadow: 0 0 10px rgba(255, 46, 136, 0.35);
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+
+/* ---------- скрытый отладочный вывод ---------- */
+#testout {
+  display: none !important;
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: pre;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 1px;
+  color: transparent;
+  pointer-events: none;
+}
+
+/* ---------- «JS выключен» ---------- */
+.noscript {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 28px;
+  background:
+    radial-gradient(70% 52% at 50% 38%, rgba(255, 46, 136, 0.16), transparent 72%),
+    rgba(7, 6, 15, 0.97);
+  color: var(--dd-ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-shadow:
+    0 0 14px rgba(34, 230, 255, 0.55),
+    0 0 28px rgba(255, 46, 136, 0.35);
+}
+
+/* ---------- адаптив: портрет, ландшафт, узкие экраны ---------- */
+@media (orientation: portrait) and (max-width: 620px) {
+  :root {
+    --dd-btn: 54px;
+  }
+
+  .dpad {
+    gap: 5px;
+  }
+
+  .tacts {
+    gap: 6px;
+  }
+
+  #touch {
+    padding-left: max(10px, var(--dd-safe-l));
+    padding-right: max(10px, var(--dd-safe-r));
+    padding-bottom: calc(12px + var(--dd-safe-b));
+  }
+}
+
+@media (orientation: landscape) and (max-height: 460px) {
+  :root {
+    --dd-btn: 52px;
+  }
+
+  #touch {
+    padding-bottom: calc(8px + var(--dd-safe-b));
+  }
+
+  body.touch #hint {
+    bottom: calc(8px + var(--dd-safe-b) + var(--dd-btn) * 3 + 14px);
+    font-size: 11px;
+    padding: 6px 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  :root {
+    --dd-btn: 52px;
+  }
+
+  .dpad {
+    gap: 4px;
+  }
+
+  .tacts {
+    gap: 5px;
+  }
+
+  #touch {
+    padding-left: max(8px, var(--dd-safe-l));
+    padding-right: max(8px, var(--dd-safe-r));
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  #stage {
+    cursor: default;
+  }
+}
+
+/* ---------- уважение к reduced-motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html[data-gfx="modern"] body::before {
+    animation: none !important;
+  }
+
+  #hint,
+  .tbtn {
+    transition-duration: 0.01ms !important;
+  }
+
+  body::after {
+    background:
+      radial-gradient(132% 96% at 50% 44%, transparent 62%, rgba(2, 1, 8, 0.24) 100%);
+  }
+}
+
+
+/* ---------- тач-пауза: доступна на телефоне всегда ---------- */
+#tpause {
+  display: none;
+}
+
+body.touch.pausable #tpause {
+  display: grid;
+  place-items: center;
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  bottom: calc(10px + var(--dd-safe-b));
+  transform: translateX(-50%);
+  width: 46px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid rgba(244, 240, 255, 0.22);
+  border-radius: 10px;
+  background: rgba(9, 7, 22, 0.52);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: rgba(244, 240, 255, 0.72);
+  font: 800 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 8px rgba(34, 230, 255, 0.6);
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.touch #tpause:active {
+  color: #fff;
+  border-color: rgba(34, 230, 255, 0.72);
+  background: rgba(12, 10, 30, 0.78);
+}

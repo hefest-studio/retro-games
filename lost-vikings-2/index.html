@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#05070f">
+  <meta name="description" content="Фанатский браузерный ремейк The Lost Vikings 2 · Norse by Norsewest: «Северное сияние». Три викинга, шесть саг, два режима графики.">
+  <title>Lost Vikings II · Северное сияние</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-screen="boot" class="mode-retro" data-lang="ru">
+
+  <div id="stage">
+    <canvas id="game" width="1024" height="576" role="img"
+      aria-label="Игровое поле: платформенные головоломки с тремя викингами"></canvas>
+    <div id="ui" class="ui"></div>
+  </div>
+
+  <div id="toasts" class="toasts" role="status" aria-live="polite" aria-atomic="false"></div>
+  <div id="touch" class="touch-layer"></div>
+
+  <noscript>
+    <p class="noscript">Для игры нужен JavaScript. Включите его и перезагрузите страницу.</p>
+  </noscript>
+
+  <!-- Порядок скриптов строго по CONTRACT.md §0 -->
+  <script src="js/i18n.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

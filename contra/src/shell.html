@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#04060e" />
+<title>CONTRA: НЕОНОВЫЙ РАССВЕТ — HTML5</title>
+<style>
+/* ============================================================
+   CONTRA: NEON DAWN — design system
+   Two skins: modern "NEON" (default) and "8-BIT" (1988)
+   ============================================================ */
+:root{
+  --ink:#04060e;
+  --ink-2:#070b18;
+  --panel:rgba(9,15,32,.86);
+  --line:rgba(100,247,255,.26);
+  --line-soft:rgba(160,210,255,.12);
+  --cyan:#64f7ff;
+  --cyan-dim:#2ba6c4;
+  --magenta:#ff2f9c;
+  --amber:#ffb347;
+  --violet:#8b6bff;
+  --green:#8ef07a;
+  --text:#e8f6ff;
+  --muted:#8ea8c4;
+  --danger:#ff4d5e;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:"Arial Black","Helvetica Neue",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  --body:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+  --glow-cyan:0 0 18px rgba(100,247,255,.55),0 0 50px rgba(100,247,255,.22);
+  --glow-magenta:0 0 18px rgba(255,47,156,.5),0 0 54px rgba(255,47,156,.2);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:#000;color:var(--text);font-family:var(--body);
+  overflow:hidden;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  user-select:none;-webkit-user-select:none;touch-action:none;
+}
+button{font:inherit;color:inherit}
+::selection{background:var(--magenta);color:#fff}
+
+#app{
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(120% 90% at 50% -10%,#0d1a3c 0%,#050812 46%,#010204 100%);
+  isolation:isolate;
+}
+#app::before{
+  content:"";position:absolute;inset:-20%;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(38% 30% at 18% 22%,rgba(255,47,156,.16),transparent 70%),
+    radial-gradient(44% 34% at 82% 16%,rgba(100,247,255,.14),transparent 72%),
+    radial-gradient(50% 38% at 62% 92%,rgba(139,107,255,.11),transparent 72%);
+  filter:blur(24px);animation:aurora 22s ease-in-out infinite alternate;
+}
+@keyframes aurora{
+  0%{transform:translate3d(-1.5%,-1%,0) scale(1)}
+  100%{transform:translate3d(1.5%,1.5%,0) scale(1.06)}
+}
+#stage{
+  position:relative;z-index:1;overflow:hidden;background:#000;
+  width:min(100vw,calc(100vh * 16 / 9));
+  height:min(100vh,calc(100vw * 9 / 16));
+  box-shadow:0 0 0 1px rgba(120,190,255,.16),0 30px 120px rgba(0,0,0,.85);
+}
+#game{display:block;width:100%;height:100%;background:#04060e;image-rendering:pixelated;image-rendering:crisp-edges}
+body.modern #game{image-rendering:auto}
+
+/* ---------- post FX ---------- */
+.fx{position:absolute;inset:0;pointer-events:none;z-index:2}
+.scan{
+  opacity:.15;mix-blend-mode:overlay;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.42) 0 1px,transparent 1px 3px);
+}
+.vignette{background:radial-gradient(ellipse at 50% 48%,transparent 54%,rgba(0,0,0,.42) 88%,rgba(0,0,0,.72) 100%)}
+.glowline{background:linear-gradient(180deg,transparent 62%,rgba(100,247,255,.05) 88%,transparent 100%)}
+body.retro .scan{opacity:.42;mix-blend-mode:normal;background:repeating-linear-gradient(0deg,rgba(0,0,0,.5) 0 2px,transparent 2px 4px)}
+body.retro .vignette{background:radial-gradient(ellipse at center,transparent 62%,rgba(0,0,0,.55) 100%)}
+
+/* ---------- generic type ---------- */
+.eyebrow{
+  display:flex;align-items:center;gap:.7em;font-family:var(--mono);
+  font-size:clamp(9px,1.02vw,13px);letter-spacing:.32em;text-transform:uppercase;
+  color:var(--cyan);text-shadow:0 0 14px rgba(100,247,255,.4);
+}
+.eyebrow .dot{
+  width:.62em;height:.62em;border-radius:50%;background:var(--cyan);
+  box-shadow:0 0 10px var(--cyan),0 0 24px rgba(100,247,255,.6);flex:none;
+  animation:blink 2.6s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.tag{
+  display:inline-flex;align-items:center;gap:.55em;padding:.42em .8em;border-radius:999px;
+  border:1px solid rgba(100,247,255,.32);background:rgba(100,247,255,.07);
+  font-family:var(--mono);font-size:clamp(9px,.95vw,12px);letter-spacing:.18em;
+  text-transform:uppercase;color:var(--cyan);white-space:nowrap;
+}
+.tag.danger{border-color:rgba(255,77,94,.5);background:rgba(255,77,94,.1);color:#ff8b96}
+.tag.magenta{border-color:rgba(255,47,156,.45);background:rgba(255,47,156,.08);color:#ff8bcb}
+kbd{
+  display:inline-flex;align-items:center;justify-content:center;min-width:2.2em;
+  padding:.34em .52em;border-radius:5px;border:1px solid rgba(160,210,255,.3);
+  background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.02));
+  box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 2px 0 rgba(0,0,0,.45);
+  font-family:var(--mono);font-size:.78em;letter-spacing:.08em;color:#dff8ff;white-space:nowrap;
+}
+.hidden{display:none !important}
+
+/* ============================================================
+   TITLE
+   ============================================================ */
+.screen{position:absolute;inset:0;z-index:5;display:none}
+.screen.on{display:flex}
+#screen-title{
+  flex-direction:column;justify-content:space-between;
+  padding:clamp(16px,3.4vh,40px) clamp(16px,4.4vw,64px);
+  background:
+    linear-gradient(90deg,rgba(2,4,12,.94) 0%,rgba(2,4,12,.72) 34%,rgba(2,4,12,.22) 66%,rgba(2,4,12,.42) 100%),
+    linear-gradient(0deg,rgba(2,4,12,.9) 0%,rgba(2,4,12,.1) 42%,transparent 70%);
+}
+.title-top{display:flex;justify-content:space-between;align-items:flex-start;gap:2vw}
+.title-meta{display:flex;flex-direction:column;align-items:flex-end;gap:.55em;font-family:var(--mono);
+  font-size:clamp(8px,.9vw,11px);letter-spacing:.26em;text-transform:uppercase;color:var(--muted);text-align:right}
+.title-meta b{color:var(--text);font-weight:600}
+.title-main{display:flex;flex-direction:column;align-items:flex-start;margin-top:auto;margin-bottom:auto;max-width:min(560px,58%)}
+.logo-wrap{position:relative;line-height:.8;margin:0 0 clamp(4px,.8vh,10px)}
+.logo{
+  position:relative;margin:0;font-family:var(--sans);font-weight:900;font-size:clamp(54px,11.6vw,158px);
+  letter-spacing:-.055em;line-height:.82;
+  background:linear-gradient(178deg,#ffffff 0%,#d8fbff 26%,#65e6ff 52%,#2b8dff 76%,#1b3cff 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 0 rgba(0,0,0,.5)) drop-shadow(0 0 26px rgba(60,210,255,.42)) drop-shadow(0 0 90px rgba(43,141,255,.26));
+}
+.logo::before,.logo::after{
+  content:attr(data-text);position:absolute;inset:0;z-index:-1;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  pointer-events:none;
+}
+.logo::before{
+  background-image:linear-gradient(178deg,rgba(255,47,156,.95),rgba(139,107,255,.4));
+  transform:translate(.028em,-.012em);opacity:.55;filter:blur(.3px);
+  animation:chroma 7s steps(1,end) infinite;
+}
+.logo::after{
+  background-image:linear-gradient(178deg,rgba(100,247,255,.9),rgba(100,247,255,.2));
+  transform:translate(-.022em,.012em);opacity:.5;filter:blur(.4px);
+  animation:chroma2 7s steps(1,end) infinite;
+}
+@keyframes chroma{
+  0%,92%,100%{transform:translate(.028em,-.012em);opacity:.2}
+  93%{transform:translate(.05em,-.02em);opacity:.7}
+  95%{transform:translate(-.01em,.01em);opacity:.35}
+  97%{transform:translate(.035em,0);opacity:.6}
+}
+@keyframes chroma2{
+  0%,91%,100%{transform:translate(-.022em,.012em);opacity:.18}
+  92%{transform:translate(-.045em,.018em);opacity:.6}
+  95%{transform:translate(.02em,-.01em);opacity:.3}
+  98%{transform:translate(-.03em,0);opacity:.55}
+}
+.subtitle{
+  font-family:var(--mono);font-weight:700;font-size:clamp(15px,2.7vw,38px);
+  letter-spacing:.42em;line-height:1.05;text-transform:uppercase;color:#ff5fb2;
+  text-shadow:0 0 22px rgba(255,47,156,.55),0 0 64px rgba(255,47,156,.22);
+  margin:clamp(6px,1.2vh,14px) 0 0 .08em;
+}
+.tagline{
+  margin:clamp(10px,1.8vh,22px) 0 0;font-family:var(--body);font-size:clamp(10px,1.15vw,15px);
+  letter-spacing:.16em;text-transform:uppercase;color:#b9d3e8;max-width:34em;line-height:1.7;
+  border-left:2px solid rgba(255,47,156,.65);padding-left:clamp(10px,1.2vw,16px);
+}
+.tagline b{color:var(--cyan);font-weight:600}
+
+/* menu panel */
+.menu-panel{
+  width:min(430px,44vw);min-width:300px;display:flex;flex-direction:column;gap:2px;
+  padding:clamp(10px,1.4vw,16px);border-radius:16px;
+  background:linear-gradient(155deg,rgba(10,19,40,.82),rgba(4,7,16,.9));
+  border:1px solid rgba(100,247,255,.24);
+  box-shadow:0 24px 70px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.08);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+}
+.menu-panel .menu-head{
+  display:flex;justify-content:space-between;align-items:center;padding:2px 8px 8px;
+  font-family:var(--mono);font-size:clamp(8px,.85vw,10px);letter-spacing:.28em;color:var(--muted);
+  text-transform:uppercase;border-bottom:1px solid rgba(160,210,255,.1);margin-bottom:6px;
+}
+.menu-item{
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:clamp(10px,1.2vw,16px);
+  width:100%;padding:clamp(7px,1.1vh,11px) clamp(8px,.9vw,12px);
+  border:0;border-radius:9px;background:transparent;cursor:pointer;text-align:left;
+  color:#cfe6f7;font-family:var(--mono);font-size:clamp(10px,1.12vw,14px);
+  letter-spacing:.15em;text-transform:uppercase;
+  transition:background .14s,transform .14s,color .14s,box-shadow .14s;
+}
+.menu-item .mi-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.menu-item .mi-arrow{font-size:1.35em;line-height:1;color:var(--cyan);opacity:.25;transition:opacity .14s,transform .14s}
+.menu-item:hover,.menu-item.sel{
+  background:linear-gradient(90deg,rgba(100,247,255,.15),rgba(100,247,255,.02));
+  color:#fff;transform:translateX(3px);box-shadow:inset 2px 0 0 var(--cyan),0 0 24px rgba(100,247,255,.08)
+}
+.menu-item:hover .mi-arrow,.menu-item.sel .mi-arrow{opacity:1;transform:translateX(2px)}
+.menu-item kbd{font-size:.78em;min-width:3.6em;color:var(--cyan);border-color:rgba(100,247,255,.3)}
+.menu-item .mi-sub{display:block;font-size:.72em;letter-spacing:.1em;color:var(--muted);margin-top:.28em;text-transform:none}
+.title-bottom{
+  display:flex;justify-content:space-between;align-items:flex-end;gap:2vw;margin-top:clamp(8px,1.6vh,20px);
+  font-family:var(--mono);font-size:clamp(8px,.92vw,11px);letter-spacing:.2em;text-transform:uppercase;color:var(--muted);
+}
+.record{display:flex;align-items:baseline;gap:.9em;white-space:nowrap}
+.record .k{font-size:.82em;letter-spacing:.28em;color:var(--muted)}
+.record .v{font-size:clamp(15px,1.8vw,24px);letter-spacing:.14em;color:var(--cyan);text-shadow:var(--glow-cyan);font-weight:700}
+.quick-toggles{display:flex;gap:clamp(8px,1.2vw,18px);flex-wrap:wrap}
+.quick-toggles button{
+  display:inline-flex;align-items:center;gap:.55em;border:0;background:transparent;color:#b9d3e8;
+  font:inherit;letter-spacing:inherit;cursor:pointer;padding:2px 0;text-transform:inherit;
+}
+.quick-toggles button:hover{color:#fff}
+.quick-toggles b{color:var(--cyan);font-weight:600}
+.build-tag{opacity:.55;font-size:.86em;letter-spacing:.16em}
+.title-side{
+  position:absolute;right:clamp(14px,3.4vw,46px);bottom:clamp(76px,13vh,138px);
+  writing-mode:vertical-rl;font-family:var(--mono);font-size:clamp(8px,.9vw,11px);
+  letter-spacing:.46em;text-transform:uppercase;color:rgba(180,220,255,.45);pointer-events:none;
+}
+.title-side b{color:var(--magenta);font-weight:600}
+
+/* ============================================================
+   GENERIC PANELS (brief / howto / settings / pause / over / clear / win)
+   ============================================================ */
+.dimmer{
+  flex-direction:column;align-items:center;justify-content:center;padding:clamp(12px,3vh,40px);
+  background:
+    radial-gradient(90% 80% at 50% 0%,rgba(25,40,90,.3),transparent 70%),
+    rgba(2,4,10,.72);
+  backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(9px);
+}
+.panel{
+  width:min(760px,100%);max-height:100%;overflow:auto;overscroll-behavior:contain;
+  padding:clamp(16px,2.6vw,34px) clamp(16px,3vw,38px);
+  background:linear-gradient(158deg,rgba(11,20,42,.94),rgba(4,7,16,.96));
+  border:1px solid var(--line);border-radius:18px;
+  box-shadow:0 40px 120px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.08),0 0 70px rgba(43,141,255,.07);
+  scrollbar-width:thin;scrollbar-color:rgba(100,247,255,.3) transparent;
+}
+.panel::-webkit-scrollbar{width:6px}
+.panel::-webkit-scrollbar-thumb{background:rgba(100,247,255,.3);border-radius:3px}
+.panel-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:clamp(10px,1.6vh,18px)}
+.panel h2{margin:0;font-family:var(--sans);font-weight:900;font-size:clamp(24px,4.2vw,52px);line-height:.98;letter-spacing:-.02em;color:#f2fbff}
+.panel h2 .accent{
+  background:linear-gradient(180deg,#fff,#7cefff 52%,#2b8dff);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 18px rgba(100,247,255,.3));
+}
+.panel .lede{margin:clamp(8px,1.4vh,16px) 0 0;color:#b7cee0;font-size:clamp(12px,1.15vw,15px);line-height:1.75;max-width:60ch}
+.panel h3{
+  margin:clamp(14px,2.2vh,24px) 0 .6em;font-family:var(--mono);font-size:clamp(9px,.95vw,11px);
+  letter-spacing:.3em;text-transform:uppercase;color:var(--cyan);font-weight:600;
+}
+.panel-actions{display:flex;gap:clamp(8px,1vw,14px);flex-wrap:wrap;margin-top:clamp(16px,2.6vh,28px)}
+.btn{
+  display:inline-flex;align-items:center;gap:.7em;padding:clamp(9px,1.35vh,13px) clamp(12px,1.5vw,20px);
+  border-radius:10px;border:1px solid rgba(100,247,255,.3);cursor:pointer;
+  background:linear-gradient(180deg,rgba(100,247,255,.14),rgba(100,247,255,.04));
+  color:#e9fdff;font-family:var(--mono);font-size:clamp(10px,1.02vw,13px);
+  letter-spacing:.16em;text-transform:uppercase;transition:.15s;
+}
+.btn:hover,.btn.sel{background:linear-gradient(180deg,rgba(100,247,255,.24),rgba(100,247,255,.08));border-color:rgba(100,247,255,.6);box-shadow:0 0 28px rgba(100,247,255,.18);transform:translateY(-1px)}
+.btn.ghost{background:transparent;border-color:rgba(160,210,255,.22);color:#a9c4d8}
+.btn.ghost:hover{background:rgba(160,210,255,.08);border-color:rgba(160,210,255,.4);box-shadow:none}
+.btn.primary{border-color:rgba(255,47,156,.45);background:linear-gradient(180deg,rgba(255,47,156,.2),rgba(255,47,156,.05));color:#ffe4f3}
+.btn.primary:hover,.btn.primary.sel{border-color:rgba(255,47,156,.8);box-shadow:0 0 30px rgba(255,47,156,.22)}
+.btn kbd{font-size:.82em;border-color:rgba(255,255,255,.2)}
+.panel .hint-line{margin:clamp(12px,2vh,20px) 0 0;font-family:var(--mono);font-size:clamp(8px,.88vw,10px);letter-spacing:.16em;text-transform:uppercase;color:rgba(142,168,196,.75);line-height:1.8}
+
+/* brief */
+.brief-grid{display:grid;grid-template-columns:1.35fr .9fr;gap:clamp(14px,2.2vw,30px);margin-top:clamp(10px,1.8vh,18px)}
+.objectives{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.55em}
+.objectives li{display:flex;align-items:flex-start;gap:.7em;color:#c9dded;font-size:clamp(11px,1.05vw,14px);line-height:1.55}
+.objectives li::before{
+  content:"";flex:none;width:.55em;height:.55em;margin-top:.48em;transform:rotate(45deg);
+  background:var(--cyan);box-shadow:0 0 10px rgba(100,247,255,.8);
+}
+.stage-card{
+  border:1px solid rgba(160,210,255,.16);border-radius:12px;padding:clamp(10px,1.4vw,16px);
+  background:linear-gradient(160deg,rgba(100,247,255,.06),rgba(255,47,156,.04));
+}
+.stage-card .row{display:flex;justify-content:space-between;gap:1em;padding:.48em 0;border-bottom:1px dashed rgba(160,210,255,.1);font-family:var(--mono);font-size:clamp(9px,.92vw,11px);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.stage-card .row:last-child{border:0}
+.stage-card .row b{color:#eaf9ff;font-weight:600;text-align:right}
+.stage-card .row b.hot{color:var(--magenta)}
+
+/* howto */
+.ctl-list{display:flex;flex-direction:column;border-top:1px dashed rgba(160,210,255,.12)}
+.ctl-row{display:grid;grid-template-columns:minmax(120px,190px) 1fr;gap:clamp(10px,2vw,24px);align-items:center;padding:clamp(6px,.95vh,10px) 0;border-bottom:1px dashed rgba(160,210,255,.1)}
+.ctl-row .keys{display:flex;gap:.35em;flex-wrap:wrap;align-items:center}
+.ctl-row .keys span{font-family:var(--mono);font-size:clamp(8px,.8vw,10px);letter-spacing:.14em;color:var(--muted)}
+.ctl-row .what{font-size:clamp(11px,1.02vw,14px);color:#c9dded;line-height:1.5}
+.ctl-row .what b{color:#fff;font-weight:600}
+.tips{display:grid;grid-template-columns:1fr 1fr;gap:.6em 1.6em;margin:0;padding:0;list-style:none}
+.tips li{position:relative;padding-left:1.15em;color:#a9c4d8;font-size:clamp(10px,.98vw,13px);line-height:1.6}
+.tips li::before{content:"›";position:absolute;left:0;top:0;color:var(--magenta);font-weight:700}
+.tips li b{color:#eaf9ff}
+
+/* settings */
+.set-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.set-row{
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:clamp(10px,1.4vw,18px);
+  width:100%;padding:clamp(9px,1.3vh,13px) clamp(10px,1.2vw,14px);border:1px solid rgba(160,210,255,.12);
+  border-radius:10px;background:rgba(255,255,255,.02);cursor:pointer;text-align:left;transition:.14s;
+}
+.set-row:hover,.set-row.sel{background:rgba(100,247,255,.07);border-color:rgba(100,247,255,.35)}
+.set-row .si{width:1.5em;height:1.5em;border-radius:6px;border:1px solid rgba(100,247,255,.3);display:grid;place-items:center;color:var(--cyan);font-family:var(--mono);font-size:.8em}
+.set-row .sl{font-family:var(--mono);font-size:clamp(9px,.92vw,11px);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.set-row .sl b{display:block;color:#ecfaff;font-size:1.18em;letter-spacing:.12em;margin-top:.25em}
+.set-row .sv{font-family:var(--mono);font-size:clamp(10px,1vw,13px);letter-spacing:.14em;color:var(--cyan);text-transform:uppercase;white-space:nowrap}
+.set-row .sv .sw{display:inline-flex;gap:4px;margin-right:.6em}
+.set-row .sv .sw i{width:1.35em;height:.7em;border-radius:2px;background:rgba(255,255,255,.12)}
+.set-row .sv .sw i.on{background:var(--cyan);box-shadow:0 0 10px rgba(100,247,255,.5)}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(8px,1.4vw,16px);margin-top:clamp(12px,2vh,22px)}
+.stat{padding:clamp(10px,1.5vw,16px);border:1px solid rgba(160,210,255,.14);border-radius:12px;background:linear-gradient(160deg,rgba(100,247,255,.05),transparent)}
+.stat .k{display:block;font-family:var(--mono);font-size:clamp(8px,.82vw,10px);letter-spacing:.24em;color:var(--muted);text-transform:uppercase}
+.stat .v{display:block;margin-top:.35em;font-family:var(--mono);font-size:clamp(20px,2.8vw,36px);font-weight:700;letter-spacing:.06em;color:#f2fbff;text-shadow:0 0 22px rgba(100,247,255,.25)}
+.stat .v.hot{color:var(--magenta);text-shadow:var(--glow-magenta)}
+.big-title{font-size:clamp(28px,5.4vw,64px);margin:0}
+.big-title.fail{background:linear-gradient(180deg,#ffdbe1,#ff4d5e 60%,#8b0f1f);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 24px rgba(255,77,94,.3))}
+.big-title.hero{background:linear-gradient(180deg,#fff,#a6f7ff 48%,#38b6ff 72%,#175cff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 26px rgba(100,247,255,.35))}
+.epilogue{margin:clamp(10px,1.8vh,18px) 0 0;color:#b7cee0;font-size:clamp(12px,1.15vw,15px);line-height:1.8;max-width:62ch}
+.epilogue b{color:var(--cyan);font-weight:600}
+.badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+/* ============================================================
+   HUD
+   ============================================================ */
+#hud{
+  position:absolute;inset:0;z-index:3;pointer-events:none;opacity:0;transition:opacity .18s;
+  padding:clamp(9px,1.9vh,20px) clamp(11px,2.2vw,24px);
+  display:flex;flex-direction:column;justify-content:space-between;
+  font-family:var(--mono);
+}
+#hud.on{opacity:1}
+.hud-top{display:flex;align-items:flex-start;gap:clamp(7px,1.3vw,18px);flex-wrap:wrap}
+.hud-chip{
+  padding:clamp(4px,.7vh,7px) clamp(7px,1vw,12px);border-radius:8px;
+  background:linear-gradient(160deg,rgba(6,12,26,.7),rgba(6,12,26,.38));
+  border:1px solid rgba(160,210,255,.14);border-left:2px solid var(--cyan);
+  box-shadow:0 6px 20px rgba(0,0,0,.3);backdrop-filter:blur(6px);
+  min-width:clamp(54px,5.6vw,86px);
+}
+.hud-chip .k{display:block;font-size:clamp(7px,.62vw,9px);letter-spacing:.26em;color:#7f9db8;text-transform:uppercase;margin-bottom:.25em}
+.hud-chip .v{display:block;font-size:clamp(12px,1.45vw,20px);font-weight:700;letter-spacing:.08em;color:#f4fcff;line-height:1;text-shadow:0 0 16px rgba(100,247,255,.35);white-space:nowrap}
+.hud-chip.weapon{border-left-color:var(--magenta);min-width:clamp(86px,9.5vw,150px)}
+.hud-chip.weapon .v{color:#ffd9ec;text-shadow:0 0 16px rgba(255,47,156,.35);font-size:clamp(10px,1.15vw,16px);letter-spacing:.1em}
+.hud-chip.lives .v{color:#fff}
+.hud-chip.lives .v .x{color:var(--magenta);font-size:.8em;margin-right:.15em}
+.hud-stage{
+  margin-left:auto;text-align:right;padding-top:.35em;font-size:clamp(8px,.82vw,11px);
+  letter-spacing:.22em;text-transform:uppercase;color:#bcd6e8;line-height:1.7;
+  text-shadow:0 1px 8px rgba(0,0,0,.8);
+}
+.hud-stage b{color:var(--cyan);font-weight:600}
+#bossbar{
+  position:absolute;left:50%;top:clamp(52px,9.5vh,100px);transform:translateX(-50%);
+  width:min(520px,66%);opacity:0;transition:opacity .25s;pointer-events:none;text-align:center;
+}
+#bossbar.on{opacity:1}
+#bossbar .bn{font-size:clamp(8px,.85vw,11px);letter-spacing:.3em;text-transform:uppercase;color:#ff9db0;text-shadow:0 0 14px rgba(255,77,94,.6);margin-bottom:.55em}
+#bossbar .bar{height:6px;border-radius:3px;border:1px solid rgba(255,77,94,.4);background:rgba(20,4,8,.7);overflow:hidden;box-shadow:0 0 24px rgba(255,77,94,.18)}
+#bossbar .bar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ff2f9c,#ff4d5e,#ffb347);box-shadow:0 0 16px rgba(255,77,94,.7);transition:width .18s}
+.hud-bottom{display:flex;align-items:flex-end;justify-content:space-between;gap:1em;font-size:clamp(7px,.78vw,10px);letter-spacing:.18em;text-transform:uppercase;color:rgba(205,230,245,.66);text-shadow:0 1px 6px #000}
+.hud-bottom .left{display:flex;gap:1.2em;flex-wrap:wrap;line-height:1.8;max-width:78%}
+.hud-bottom b{color:#eaf9ff;font-weight:600}
+#gfx-tag{white-space:nowrap;color:var(--cyan);opacity:.8}
+#gfx-tag::before{content:"";display:inline-block;width:.6em;height:.6em;border-radius:50%;background:currentColor;margin-right:.6em;box-shadow:0 0 10px currentColor;vertical-align:.05em}
+#toast{
+  position:absolute;left:50%;top:18%;transform:translate(-50%,-8px);z-index:4;pointer-events:none;
+  opacity:0;transition:opacity .2s,transform .2s;text-align:center;max-width:80%;
+  font-family:var(--mono);font-size:clamp(14px,2.2vw,30px);font-weight:700;letter-spacing:.24em;
+  text-transform:uppercase;color:#fff;text-shadow:0 0 22px rgba(100,247,255,.8),0 2px 0 rgba(0,0,0,.6);
+}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#toast small{display:block;margin-top:.6em;font-size:.42em;letter-spacing:.3em;color:var(--cyan);text-shadow:none}
+#toast.warn{color:#ffd0d6;text-shadow:0 0 26px rgba(255,77,94,.9),0 2px 0 #000}
+
+/* touch */
+#touch{position:absolute;inset:0;z-index:3;display:none;pointer-events:none}
+body.touch.playing #touch{display:block}
+.touch-pad{position:absolute;bottom:clamp(10px,3vh,34px);display:grid;gap:8px;pointer-events:auto}
+.touch-pad.left{left:clamp(10px,3vw,40px);grid-template-columns:repeat(3,1fr);grid-template-areas:". up ." "left down right"}
+.touch-pad.right{right:clamp(10px,3vw,40px);display:flex;gap:10px;align-items:flex-end}
+.tbtn{
+  width:clamp(46px,8vh,68px);height:clamp(46px,8vh,68px);border-radius:50%;
+  border:1px solid rgba(100,247,255,.35);background:rgba(6,14,28,.55);color:var(--cyan);
+  display:grid;place-items:center;font-family:var(--mono);font-size:clamp(14px,2.4vh,22px);
+  backdrop-filter:blur(6px);box-shadow:0 0 24px rgba(0,0,0,.4);pointer-events:auto;touch-action:none;
+}
+.tbtn:active{background:rgba(100,247,255,.25);border-color:rgba(100,247,255,.8);transform:scale(.96)}
+.tbtn[data-touch="up"]{grid-area:up}.tbtn[data-touch="left"]{grid-area:left}
+.tbtn[data-touch="down"]{grid-area:down}.tbtn[data-touch="right"]{grid-area:right}
+.tbtn.fire{width:clamp(58px,10vh,84px);height:clamp(58px,10vh,84px);border-color:rgba(255,47,156,.5);color:#ffd9ec;background:rgba(40,6,22,.6)}
+.tbtn.jump{width:clamp(58px,10vh,84px);height:clamp(58px,10vh,84px)}
+
+/* ============================================================
+   RETRO SKIN — 8-BIT / 1988
+   ============================================================ */
+body.retro{--cyan:#9ef07a;--cyan-dim:#4f9a35;--magenta:#ff8b3d;--amber:#ffd166;--line:rgba(158,240,122,.32);--text:#e9ffdd}
+body.retro #app{background:#000}
+body.retro #app::before{display:none}
+body.retro #stage{box-shadow:0 0 0 2px #142414,0 24px 80px rgba(0,0,0,.9)}
+body.retro .screen{backdrop-filter:none;-webkit-backdrop-filter:none}
+body.retro #screen-title{
+  background:
+    repeating-linear-gradient(0deg,rgba(0,0,0,.2) 0 1px,transparent 1px 3px),
+    linear-gradient(90deg,rgba(1,5,1,.95) 0%,rgba(1,5,1,.7) 34%,rgba(1,5,1,.16) 68%,rgba(1,5,1,.3) 100%),
+    linear-gradient(0deg,rgba(1,5,1,.72) 0%,rgba(1,5,1,.1) 34%,transparent 62%);
+}
+body.retro .logo{
+  background:none;color:var(--amber);-webkit-text-fill-color:var(--amber);
+  filter:none;text-shadow:3px 3px 0 #8a2b1c,6px 6px 0 #000,0 0 0 #000;
+  letter-spacing:.02em;font-family:var(--mono);font-weight:700;
+}
+body.retro .logo::before,body.retro .logo::after{display:none}
+body.retro .subtitle{color:var(--green);text-shadow:none;letter-spacing:.3em}
+body.retro .tagline{border-left:2px solid var(--green);color:#b9d8a4}
+body.retro .tagline b{color:var(--amber)}
+body.retro .eyebrow{color:var(--green);text-shadow:none}
+body.retro .eyebrow .dot{background:var(--green);box-shadow:none;animation:none}
+body.retro .tag{border-radius:0;border-color:var(--green);background:#061006;color:var(--green)}
+body.retro .tag.danger{border-color:#ff6b6b;color:#ff9a9a;background:#140505}
+body.retro .tag.magenta{border-color:var(--amber);color:var(--amber);background:#120c02}
+body.retro kbd{border-radius:0;border-color:#5d8f4a;background:#0a160a;box-shadow:none;color:var(--green)}
+body.retro .menu-panel{border-radius:0;border:2px solid #3f6f30;background:#040a04;box-shadow:6px 6px 0 #000;backdrop-filter:none}
+body.retro .menu-item{border-radius:0;color:#c9e8b8;font-family:var(--mono);letter-spacing:.08em}
+body.retro .menu-item:hover,body.retro .menu-item.sel{
+  background:#0f240f;color:#fff;box-shadow:inset 3px 0 0 var(--amber),3px 3px 0 #000;transform:none
+}
+body.retro .menu-item kbd{color:var(--amber);border-color:#8a6a2a}
+body.retro .menu-item .mi-arrow{color:var(--amber)}
+body.retro .record .v{color:var(--amber);text-shadow:none}
+body.retro .title-meta,body.retro .title-bottom{color:#7fa06c}
+body.retro .quick-toggles b{color:var(--amber)}
+body.retro .title-side{color:#4f6b3f}body.retro .title-side b{color:var(--amber)}
+body.retro .scan{display:block}
+body.retro .panel{
+  border-radius:0;border:2px solid #4f8f3e;background:#040a04;
+  box-shadow:8px 8px 0 #000;backdrop-filter:none
+}
+body.retro .panel h2{font-family:var(--mono);font-size:clamp(20px,3.6vw,40px);color:var(--amber);letter-spacing:.02em}
+body.retro .panel h2 .accent{background:none;color:var(--green);-webkit-text-fill-color:var(--green);filter:none}
+body.retro .panel h3{color:var(--amber)}
+body.retro .panel .lede,body.retro .epilogue,body.retro .objectives li,body.retro .ctl-row .what,body.retro .tips li{color:#b9d8a4}
+body.retro .stat{border-radius:0;border-color:#3f6f30;background:#061006}
+body.retro .stat .v{color:var(--amber);text-shadow:none}
+body.retro .stat .v.hot{color:#ff6b6b;text-shadow:none}
+body.retro .stage-card{border-radius:0;border-color:#3f6f30;background:#061006}
+body.retro .set-row{border-radius:0;border-color:#3f6f30;background:#040a04}
+body.retro .set-row:hover,body.retro .set-row.sel{background:#0f240f;border-color:var(--green)}
+body.retro .btn{border-radius:0;border-color:#5d8f4a;background:#0a160a;color:var(--green);box-shadow:3px 3px 0 #000}
+body.retro .btn:hover,body.retro .btn.sel{background:#12260f;border-color:var(--amber);color:var(--amber);box-shadow:3px 3px 0 #000;transform:none}
+body.retro .btn.primary{border-color:#a3562f;background:#160b04;color:var(--amber)}
+body.retro .dimmer{backdrop-filter:none;background:rgba(1,4,1,.9)}
+body.retro .hud-chip{border-radius:0;background:#040a04;border:1px solid #2f5f24;border-left:2px solid var(--green);box-shadow:none;backdrop-filter:none}
+body.retro .hud-chip .v{color:var(--amber);text-shadow:none}
+body.retro .hud-chip.weapon{border-left-color:var(--amber)}
+body.retro .hud-chip.weapon .v{color:var(--green)}
+body.retro .hud-stage b{color:var(--amber)}
+body.retro .hud-bottom{color:#8aa878}
+body.retro #gfx-tag{color:var(--amber)}
+body.retro #bossbar .bn{color:#ff9a9a;text-shadow:none}
+body.retro #bossbar .bar{border-radius:0;border-color:#8a2b2b;background:#120404}
+body.retro #bossbar .bar i{background:#ff4d5e;box-shadow:none}
+body.retro .big-title.fail{background:none;color:#ff4d5e;-webkit-text-fill-color:#ff4d5e;filter:none;text-shadow:3px 3px 0 #4a0a12}
+body.retro .big-title.hero{background:none;color:var(--amber);-webkit-text-fill-color:var(--amber);filter:none;text-shadow:3px 3px 0 #4a3a0a}
+body.retro #toast{color:var(--amber);text-shadow:2px 2px 0 #000}
+body.retro #toast small{color:var(--green)}
+body.retro .tbtn{border-radius:50%;border-color:#4f8f3e;background:rgba(2,8,2,.6);color:var(--green)}
+body.retro .tbtn.fire{border-color:#a3562f;color:var(--amber);background:rgba(20,8,2,.6)}
+body.retro .fx .glowline{display:none}
+
+/* ---------- responsive ---------- */
+@media (max-width: 860px), (max-height: 520px){
+  .title-main{max-width:74%}
+  .menu-panel{width:min(360px,52vw);min-width:250px}
+  .title-side{display:none}
+  .brief-grid{grid-template-columns:1fr}
+  .tips{grid-template-columns:1fr}
+  .hud-bottom .left{display:none}
+  #screen-title{padding:12px 16px}
+  .tagline{font-size:9px}
+}
+@media (max-width: 600px){
+  .title-main{max-width:100%}
+  .menu-panel{width:100%;min-width:0}
+  .title-bottom{flex-direction:column;align-items:flex-start;gap:8px}
+  .quick-toggles{gap:8px}
+  .logo{font-size:clamp(44px,17vw,80px)}
+  .subtitle{font-size:clamp(11px,3.6vw,18px);letter-spacing:.26em}
+  .title-meta{display:none}
+  .panel{padding:14px}
+  .ctl-row{grid-template-columns:1fr;gap:4px}
+  .stats{grid-template-columns:1fr}
+  .panel-actions .btn{flex:1 1 auto;justify-content:center}
+  .hud-chip{min-width:0}
+  #bossbar{width:84%}
+  .title-side{display:none}
+}
+@media (orientation: portrait) and (max-width: 860px){
+  #screen-title{overflow-y:auto;justify-content:flex-start;gap:10px}
+  .title-main{max-width:100%;margin:8px 0 0}
+  .logo{font-size:clamp(42px,15vw,74px)}
+  .subtitle{font-size:clamp(9px,2.8vw,14px);letter-spacing:.24em}
+  .tagline{font-size:9px;line-height:1.6;margin-top:8px;max-width:none}
+  .title-meta{display:none}
+  .menu-panel{width:100%;min-width:0}
+  .title-bottom{flex-direction:column;align-items:flex-start;gap:6px}
+  .title-side{display:none}
+  .panel{max-height:calc(100% - 12px)}
+  .screen.dimmer{padding:6px}
+}
+/* ---------- portrait rotate hint ---------- */
+#rotate-hint{display:none;position:fixed;inset:0;z-index:80;align-items:center;justify-content:center;
+  flex-direction:column;gap:clamp(12px,2.6vh,22px);text-align:center;padding:28px;
+  background:radial-gradient(60% 50% at 50% 40%,#0b1734 0%,#04060e 68%,#010204 100%);
+  font-family:var(--mono);color:#e8f6ff}
+.rotate-mark{font-size:clamp(46px,14vw,86px);line-height:1;color:var(--cyan);
+  text-shadow:0 0 24px rgba(100,247,255,.65),0 0 70px rgba(43,141,255,.3);
+  animation:rotateHint 2.6s ease-in-out infinite}
+@keyframes rotateHint{0%,100%{transform:rotate(-10deg) scale(1)}50%{transform:rotate(80deg) scale(1.06)}}
+#rotate-hint b{font-size:clamp(13px,4vw,19px);letter-spacing:.26em;font-weight:700}
+#rotate-hint span{font-size:clamp(10px,2.7vw,13px);letter-spacing:.08em;line-height:1.8;color:#9fb8cc;max-width:26em}
+#rotate-hint .rotate-sub{margin-top:1.4em;font-size:clamp(8px,2vw,10px);letter-spacing:.4em;color:rgba(255,47,156,.8)}
+@media (orientation: portrait) and (max-width: 900px){#rotate-hint{display:flex}}
+body.retro #rotate-hint{background:radial-gradient(60% 50% at 50% 40%,#0a1a0a 0%,#020602 70%,#000 100%);color:#e9ffdd}
+body.retro #rotate-hint .rotate-mark{color:var(--amber);text-shadow:3px 3px 0 #6b3a12}
+body.retro #rotate-hint b{color:var(--amber)}
+body.retro #rotate-hint span{color:#8fb07a}
+@media (prefers-reduced-motion: reduce){.rotate-mark{animation:none}}
+
+@media (prefers-reduced-motion: reduce){
+  #app::before,.eyebrow .dot,.logo::before,.logo::after{animation:none}
+}
+</style>
+</head>
+<body class="retro">
+<div id="app">
+  <div id="stage">
+    <canvas id="game" width="1440" height="810" aria-label="Игровое поле Contra"></canvas>
+    <div class="fx">
+      <div class="scan"></div>
+      <div class="glowline"></div>
+      <div class="vignette"></div>
+    </div>
+
+    <!-- ================= HUD ================= -->
+    <div id="hud">
+      <div class="hud-top">
+        <div class="hud-chip lives"><span class="k" data-i18n="hudLives">ЖИЗНИ</span><span class="v" id="hud-lives"><span class="x">×</span>3</span></div>
+        <div class="hud-chip"><span class="k" data-i18n="hudScore">СЧЁТ</span><span class="v" id="hud-score">000000</span></div>
+        <div class="hud-chip weapon"><span class="k" data-i18n="hudWeapon">ОРУЖИЕ</span><span class="v" id="hud-weapon">ВИНТОВКА</span></div>
+        <div class="hud-chip" id="shield-chip" style="display:none"><span class="k" data-i18n="hudShield">ЩИТ</span><span class="v" id="hud-shield">•••</span></div>
+        <div class="hud-stage"><b id="hud-stage">ЭТАП 01 · ДЖУНГЛИ</b><br><span id="hud-check">КОНТРОЛЬНАЯ ТОЧКА: СТАРТ</span></div>
+      </div>
+      <div id="bossbar"><div class="bn" id="boss-name">ВЕРТОЛЁТ «СТРАЖ»</div><div class="bar"><i id="boss-fill"></i></div></div>
+      <div class="hud-bottom">
+        <span class="left"><span><b>← →</b> БЕГ</span><span><b>↑ ↓</b> ПРИЦЕЛ</span><span><b>ПРОБЕЛ</b> ПРЫЖОК</span><span><b>J</b> ОГОНЬ</span><span><b>P</b> ПАУЗА</span></span>
+        <span id="gfx-tag">NEON</span>
+      </div>
+    </div>
+    <div id="toast"></div>
+
+    <!-- ================= TOUCH ================= -->
+    <div id="touch">
+      <div class="touch-pad left">
+        <button class="tbtn" data-touch="up" aria-label="Вверх">▲</button>
+        <button class="tbtn" data-touch="left" aria-label="Влево">◀</button>
+        <button class="tbtn" data-touch="down" aria-label="Вниз">▼</button>
+        <button class="tbtn" data-touch="right" aria-label="Вправо">▶</button>
+      </div>
+      <div class="touch-pad right">
+        <button class="tbtn jump" data-touch="jump" aria-label="Прыжок">A</button>
+        <button class="tbtn fire" data-touch="fire" aria-label="Огонь">B</button>
+      </div>
+    </div>
+
+    <!-- ================= TITLE ================= -->
+    <section id="screen-title" class="screen on">
+      <div class="title-top">
+        <span class="eyebrow"><span class="dot"></span><span data-i18n="eyebrow">ФАНАТСКИЙ РЕМЕЙК · 1988 / 20XX</span></span>
+        <div class="title-meta">
+          <span>OPERATION <b>NEON DAWN</b></span>
+          <span>1 PLAYER · ARCADE</span>
+        </div>
+      </div>
+
+      <div class="title-main">
+        <div class="logo-wrap"><h1 class="logo" data-text="CONTRA">CONTRA</h1></div>
+        <div class="subtitle" data-i18n="subtitle">НЕОНОВЫЙ РАССВЕТ</div>
+        <p class="tagline" data-i18n="tagline">Джунгли горят. Крепость ждёт. Ты — последний шанс человечества. Прорвись сквозь ад и вырви сердце «Гелиоса».</p>
+      </div>
+
+      <div>
+        <div class="menu-panel">
+          <div class="menu-head"><span data-i18n="menuHead">ГЛАВНОЕ МЕНЮ</span><span>V1.0</span></div>
+          <button class="menu-item sel" data-action="start">
+            <kbd>ENTER</kbd><span class="mi-label" data-i18n="menuStart">Начать операцию</span><span class="mi-arrow">›</span>
+          </button>
+          <button class="menu-item" data-action="howto">
+            <kbd>I</kbd><span class="mi-label" data-i18n="menuHowto">Как играть</span><span class="mi-arrow">›</span>
+          </button>
+          <button class="menu-item" data-action="settings">
+            <kbd>O</kbd><span class="mi-label" data-i18n="menuSettings">Настройки</span><span class="mi-arrow">›</span>
+          </button>
+        </div>
+        <div class="title-bottom">
+          <div class="record"><span class="k" data-i18n="record">РЕКОРД</span><span class="v js-best">000000</span></div>
+          <div class="quick-toggles">
+            <button data-action="gfx"><span data-i18n="graphicsShort">ГРАФИКА</span> <b class="js-gfx">НЕОН</b></button>
+            <button data-action="lang"><span data-i18n="languageShort">ЯЗЫК</span> <b class="js-lang">РУС</b></button>
+            <button data-action="sound"><span data-i18n="soundShort">ЗВУК</span> <b class="js-sound">ВКЛ</b></button>
+            <span class="build-tag">G · L · M</span>
+          </div>
+        </div>
+      </div>
+      <div class="title-side"><b>OPERATION NEON DAWN</b> · RUN &amp; GUN · 20XX</div>
+    </section>
+
+    <!-- ================= BRIEF ================= -->
+    <section id="screen-brief" class="screen dimmer">
+      <div class="panel">
+        <div class="panel-top">
+          <span class="tag" id="brief-stage">ЭТАП 01</span>
+          <span class="tag danger" data-i18n="opName">ОПЕРАЦИЯ «РАССВЕТ»</span>
+        </div>
+        <h2><span class="accent" id="brief-title">ДЖУНГЛИ</span></h2>
+        <p class="lede" id="brief-text">Отряд «Контра» высажен на побережье. Прорвись через джунгли, уничтожь вертолёт «Страж» и захвати плацдарм у крепости.</p>
+        <div class="brief-grid">
+          <div>
+            <h3 data-i18n="objectives">ЗАДАЧИ</h3>
+            <ul class="objectives" id="brief-objectives"></ul>
+          </div>
+          <div class="stage-card">
+            <div class="row"><span data-i18n="briefZone">ЗОНА</span><b id="brief-zone">ДЖУНГЛИ</b></div>
+            <div class="row"><span data-i18n="briefBoss">ЦЕЛЬ</span><b class="hot" id="brief-boss">«СТРАЖ»</b></div>
+            <div class="row"><span data-i18n="briefWeapons">АРСЕНАЛ</span><b>S · M · L · B</b></div>
+            <div class="row"><span data-i18n="briefLives">ЖИЗНИ</span><b>3</b></div>
+          </div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn primary" data-action="brief-go"><kbd>ENTER</kbd><span data-i18n="beginOperation">НАЧАТЬ ОПЕРАЦИЮ</span></button>
+          <button class="btn ghost" data-action="brief-back"><kbd>ESC</kbd><span data-i18n="back">НАЗАД</span></button>
+        </div>
+        <p class="hint-line" data-i18n="briefHint">СОВЕТ: ДЕРЖИ ↑ ИЛИ ↓, ЧТОБЫ СТРЕЛЯТЬ ПО ДИАГОНАЛИ. ↓ НА ЗЕМЛЕ — ЛОЖИТЬСЯ.</p>
+      </div>
+    </section>
+
+    <!-- ================= HOWTO ================= -->
+    <section id="screen-howto" class="screen dimmer">
+      <div class="panel">
+        <div class="panel-top">
+          <span class="tag" data-i18n="training">ПОДГОТОВКА</span>
+          <span class="tag magenta" data-i18n="oneHit">ОДИН УДАР — СМЕРТЬ</span>
+        </div>
+        <h2><span class="accent" data-i18n="howtoTitle">КАК ИГРАТЬ</span></h2>
+        <p class="lede" data-i18n="howtoLede">Классический run-and-gun: беги вправо, стреляй в восьми направлениях, собирай оружие и не дай врагам зажать тебя в углу. Один контакт с пулей или телом врага — потеря жизни.</p>
+        <h3 data-i18n="controls">УПРАВЛЕНИЕ</h3>
+        <div class="ctl-list">
+          <div class="ctl-row"><div class="keys"><kbd>←</kbd><kbd>→</kbd><span>/</span><kbd>A</kbd><kbd>D</kbd></div><div class="what" data-i18n="ctlMove"><b>Бег</b> влево и вправо</div></div>
+          <div class="ctl-row"><div class="keys"><kbd>↑</kbd><kbd>↓</kbd><span>/</span><kbd>W</kbd><kbd>S</kbd></div><div class="what" data-i18n="ctlAim"><b>Прицел</b> вверх, вниз и по диагонали; <b>↓</b> на земле — лечь</div></div>
+          <div class="ctl-row"><div class="keys"><kbd>ПРОБЕЛ</kbd><span>/</span><kbd>Z</kbd></div><div class="what" data-i18n="ctlJump"><b>Прыжок</b>; держи дольше — прыгнешь выше. <b>↓ + прыжок</b> — спрыгнуть с платформы</div></div>
+          <div class="ctl-row"><div class="keys"><kbd>J</kbd><span>/</span><kbd>X</kbd></div><div class="what" data-i18n="ctlFire"><b>Огонь</b>. Удерживай для автоматической стрельбы</div></div>
+          <div class="ctl-row"><div class="keys"><kbd>P</kbd><span>/</span><kbd>ESC</kbd></div><div class="what" data-i18n="ctlPause"><b>Пауза</b> и меню</div></div>
+          <div class="ctl-row"><div class="keys"><kbd>G</kbd><kbd>L</kbd><kbd>M</kbd></div><div class="what" data-i18n="ctlToggles"><b>Графика</b> (неон / 8-бит), <b>язык</b>, <b>звук</b> — работают в любой момент</div></div>
+        </div>
+        <h3 data-i18n="fieldNotes">ЗАМЕТКИ С ФРОНТА</h3>
+        <ul class="tips">
+          <li data-i18n="tip1">Бей <b>летающие капсулы</b>: из них выпадает оружие <b>S</b> (дробовик), <b>M</b> (пулемёт), <b>L</b> (лазер) и <b>B</b> (щит).</li>
+          <li data-i18n="tip2">У каждого босса есть <b>слабое место</b> и свой ритм атаки. Учись, умирай, повторяй — это Contra.</li>
+          <li data-i18n="tip3">Прыжок <b>гасится</b>, если отпустить кнопку раньше. Это спасает от пуль.</li>
+          <li data-i18n="tip4">Секрет: на титуле попробуй <b>↑ ↑ ↓ ↓ ← → ← → B A</b>.</li>
+        </ul>
+        <div class="panel-actions">
+          <button class="btn" data-action="howto-back"><kbd>ESC</kbd><span data-i18n="back">НАЗАД</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SETTINGS ================= -->
+    <section id="screen-settings" class="screen dimmer">
+      <div class="panel">
+        <div class="panel-top">
+          <span class="tag" data-i18n="system">СИСТЕМА</span>
+          <span class="tag magenta" data-i18n="offline">РАБОТАЕТ ОФЛАЙН</span>
+        </div>
+        <h2><span class="accent" data-i18n="settingsTitle">НАСТРОЙКИ</span></h2>
+        <p class="lede" data-i18n="settingsLede">Игра сохраняет выбор автоматически. Переключай стиль на лету — геймплей не меняется, меняется только мир вокруг.</p>
+        <div class="set-list">
+          <button class="set-row" data-action="gfx">
+            <span class="si">G</span>
+            <span class="sl"><span data-i18n="graphics">ГРАФИКА</span><b class="js-gfx-long">НЕОН · 20XX</b></span>
+            <span class="sv"><span class="sw"><i class="on"></i><i></i></span><span class="js-gfx">НЕОН</span></span>
+          </button>
+          <button class="set-row" data-action="lang">
+            <span class="si">L</span>
+            <span class="sl"><span data-i18n="language">ЯЗЫК</span><b class="js-lang-long">РУССКИЙ</b></span>
+            <span class="sv"><span class="js-lang">РУС</span></span>
+          </button>
+          <button class="set-row" data-action="sound">
+            <span class="si">M</span>
+            <span class="sl"><span data-i18n="sound">ЗВУК</span><b class="js-sound-long">ВКЛЮЧЁН</b></span>
+            <span class="sv"><span class="sw"><i class="on js-sound-dot"></i></span><span class="js-sound">ВКЛ</span></span>
+          </button>
+        </div>
+        <h3 data-i18n="audioNote">ЗВУК</h3>
+        <p class="epilogue" data-i18n="audioDesc">Оригинальный чиптюн-саундтрек: четыре канала, живой секвенсор WebAudio, никаких файлов. Музыка включается после первого нажатия клавиши — так требуют браузеры.</p>
+        <div class="panel-actions">
+          <button class="btn" data-action="settings-back"><kbd>ESC</kbd><span data-i18n="back">НАЗАД</span></button>
+          <button class="btn ghost" data-action="howto-from-settings"><kbd>I</kbd><span data-i18n="menuHowto">КАК ИГРАТЬ</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PAUSE ================= -->
+    <section id="screen-pause" class="screen dimmer">
+      <div class="panel" style="max-width:560px">
+        <div class="panel-top">
+          <span class="tag" data-i18n="pauseTag">ПАУЗА</span>
+          <span class="tag magenta" id="pause-stage">ЭТАП 01 · ДЖУНГЛИ</span>
+        </div>
+        <h2><span class="accent" data-i18n="pauseTitle">ПЕРЕДЫШКА</span></h2>
+        <p class="lede" data-i18n="pauseLede">Война подождёт. Но недолго.</p>
+        <div class="panel-actions" style="flex-direction:column;align-items:stretch">
+          <button class="btn primary" data-action="resume"><kbd>P</kbd><span data-i18n="resume">ПРОДОЛЖИТЬ</span></button>
+          <button class="btn" data-action="pause-howto"><kbd>I</kbd><span data-i18n="menuHowto">КАК ИГРАТЬ</span></button>
+          <button class="btn" data-action="pause-settings"><kbd>O</kbd><span data-i18n="menuSettings">НАСТРОЙКИ</span></button>
+          <button class="btn ghost" data-action="menu"><kbd>ESC</kbd><span data-i18n="toMenu">В ГЛАВНОЕ МЕНЮ</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= GAME OVER ================= -->
+    <section id="screen-over" class="screen dimmer">
+      <div class="panel" style="max-width:640px">
+        <div class="panel-top">
+          <span class="tag danger" data-i18n="missionFailed">СИГНАЛ ПОТЕРЯН</span>
+          <span class="tag" id="over-stage">ЭТАП 01</span>
+        </div>
+        <h2 class="big-title fail" data-i18n="gameOverTitle">ОПЕРАЦИЯ ПРОВАЛЕНА</h2>
+        <p class="lede" data-i18n="gameOverLede">Отряд «Контра» потерял связь. Но у тебя ещё есть шанс — перегруппируйся и войди снова.</p>
+        <div class="stats">
+          <div class="stat"><span class="k" data-i18n="hudScore">СЧЁТ</span><span class="v" id="over-score">000000</span></div>
+          <div class="stat"><span class="k" data-i18n="record">РЕКОРД</span><span class="v hot js-best">000000</span></div>
+          <div class="stat"><span class="k" data-i18n="stage">ЭТАП</span><span class="v" id="over-stage-num">01</span></div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn primary" data-action="retry"><kbd>ENTER</kbd><span data-i18n="retry">ПОВТОРИТЬ ЭТАП</span></button>
+          <button class="btn ghost" data-action="menu"><kbd>ESC</kbd><span data-i18n="toMenu">В ГЛАВНОЕ МЕНЮ</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= STAGE CLEAR ================= -->
+    <section id="screen-clear" class="screen dimmer">
+      <div class="panel" style="max-width:680px">
+        <div class="panel-top">
+          <span class="tag" data-i18n="stageClearTag">СЕКТОР ЗАЧИЩЕН</span>
+          <span class="tag magenta" id="clear-stage">ЭТАП 01</span>
+        </div>
+        <h2 class="big-title hero" data-i18n="stageClearTitle">ЭТАП ПРОЙДЕН</h2>
+        <p class="lede" data-i18n="stageClearLede">Вертолёт «Страж» рухнул в джунгли. Дорога к крепости открыта — но это только начало.</p>
+        <div class="stats">
+          <div class="stat"><span class="k" data-i18n="hudScore">СЧЁТ</span><span class="v" id="clear-score">000000</span></div>
+          <div class="stat"><span class="k" data-i18n="time">ВРЕМЯ</span><span class="v" id="clear-time">00:00</span></div>
+          <div class="stat"><span class="k" data-i18n="lives">ЖИЗНИ</span><span class="v" id="clear-lives">×3</span></div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn primary" data-action="clear-next"><kbd>ENTER</kbd><span data-i18n="continueOp">ПРОДОЛЖИТЬ ОПЕРАЦИЮ</span></button>
+          <button class="btn ghost" data-action="menu"><kbd>ESC</kbd><span data-i18n="toMenu">В ГЛАВНОЕ МЕНЮ</span></button>
+        </div>
+        <p class="hint-line" data-i18n="nextHint">СЛЕДУЮЩАЯ ЦЕЛЬ: КРЕПОСТЬ «ГЕЛИОС»</p>
+      </div>
+    </section>
+
+    <!-- ================= WIN ================= -->
+    <section id="screen-win" class="screen dimmer">
+      <div class="panel" style="max-width:720px">
+        <div class="panel-top">
+          <span class="tag" data-i18n="missionComplete">МИССИЯ ВЫПОЛНЕНА</span>
+          <span class="tag magenta">CONTRA · 20XX</span>
+        </div>
+        <h2 class="big-title hero" data-i18n="winTitle">РАССВЕТ</h2>
+        <p class="epilogue" data-i18n="winText">Ядро «Гелиос» погасло. Крепость пала. Над джунглями впервые за десять лет встаёт солнце — и ты встречаешь его стоя. Легенда «Контры» вернулась.</p>
+        <div class="stats">
+          <div class="stat"><span class="k" data-i18n="hudScore">СЧЁТ</span><span class="v" id="win-score">000000</span></div>
+          <div class="stat"><span class="k" data-i18n="record">РЕКОРД</span><span class="v hot js-best">000000</span></div>
+          <div class="stat"><span class="k" data-i18n="time">ВРЕМЯ</span><span class="v" id="win-time">00:00</span></div>
+        </div>
+        <div class="badge-row">
+          <span class="tag hidden" id="badge-nodeath" data-i18n="badgeNoDeath">БЕЗ ПОТЕРЬ</span>
+          <span class="tag hidden" id="badge-speed" data-i18n="badgeSpeed">СКОРОСТНОЙ ПРОРЫВ</span>
+          <span class="tag magenta hidden" id="badge-code" data-i18n="badgeCode">КОД КОНАМИ</span>
+        </div>
+        <div class="panel-actions">
+          <button class="btn primary" data-action="menu"><kbd>ENTER</kbd><span data-i18n="toMenu">В ГЛАВНОЕ МЕНЮ</span></button>
+          <button class="btn ghost" data-action="retry"><kbd>R</kbd><span data-i18n="newRun">НОВЫЙ ЗАБЕГ</span></button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+<div id="rotate-hint" role="status" aria-live="polite">
+  <div class="rotate-mark">⟳</div>
+  <b data-i18n="rotateTitle">ПОВЕРНИ УСТРОЙСТВО</b>
+  <span data-i18n="rotateText">Contra играется в горизонтальной ориентации. Поверни телефон — и в бой.</span>
+  <span class="rotate-sub">CONTRA · NEON DAWN · 20XX</span>
+</div>
+<noscript><div style="position:fixed;inset:0;display:grid;place-items:center;background:#04060e;color:#64f7ff;font-family:monospace;font-size:16px;text-align:center;padding:24px">Для игры нужен JavaScript. Включите его и обновите страницу.<br>Contra needs JavaScript.</div></noscript>
+<pre id="testout" class="hidden" style="position:fixed;left:0;top:0;z-index:99;max-width:100vw;max-height:100vh;overflow:auto;margin:0;padding:10px;background:#01060a;color:#8ef07a;font:11px/1.45 ui-monospace,Menlo,monospace;white-space:pre"></pre>
+<!--AUDIO-->
+<!--GAME-->
+</body>
+</html>

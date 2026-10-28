@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#05060a" />
+<meta name="color-scheme" content="dark" />
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CjxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgcng9IjE0IiBmaWxsPSIjMDcwOTEwIi8+CjxyZWN0IHg9IjYiIHk9IjYiIHdpZHRoPSI1MiIgaGVpZ2h0PSI1MiIgcng9IjEwIiBmaWxsPSJub25lIiBzdHJva2U9IiMxYzI2MzciIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIzMiIgY3k9IjIwIiByPSI0IiBmaWxsPSIjZmYyZjljIi8+CjxwYXRoIGQ9Ik0yOCAyMCBMMzYgMjAiIHN0cm9rZT0iI2ZmMmY5YyIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPHBhdGggZD0iTTE0IDMwIEwyMiAzMCBMMjYgMzYgTDUwIDM2IEw1MiA0MCBMMjYgNDQgTDIyIDQwIEwxNCA0MCBaIiBmaWxsPSIjMzllN2ZmIi8+CjxwYXRoIGQ9Ik0xMiAyNCBMNTIgMjQiIHN0cm9rZT0iI2VhZjZmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9IjAuODUiLz4KPHBhdGggZD0iTTQwIDM2IEw0NiA0NiIgc3Ryb2tlPSIjMzllN2ZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC42Ii8+CjxjaXJjbGUgY3g9IjUyIiBjeT0iNDYiIHI9IjQiIGZpbGw9IiNmZmQxNjYiLz4KPC9zdmc+" />
+<title>SILKWORM · ШЕЛКОПРЯД · HTML5</title>
+<meta name="description" content="SILKWORM (Tecmo, 1988) — браузерный порт классической аркады: русский интерфейс, 8-битная музыка и переключение на современную графику." />
+<style>
+  :root{
+    --bg:#04050a; --ink:#e9eef8; --dim:#7c8598; --cyan:#39e7ff; --magenta:#ff2f9c;
+    --gold:#ffc857; --line:rgba(255,255,255,.09); --panel:rgba(255,255,255,.035);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%}
+  body{
+    background:
+      radial-gradient(1200px 700px at 12% -10%, rgba(57,231,255,.13), transparent 60%),
+      radial-gradient(1000px 600px at 92% 8%, rgba(255,47,156,.12), transparent 60%),
+      radial-gradient(900px 900px at 50% 120%, rgba(120,80,255,.10), transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{ /* faint moving aurora */
+    content:""; position:fixed; inset:-20%; pointer-events:none; z-index:0;
+    background:
+      radial-gradient(40% 30% at 30% 40%, rgba(57,231,255,.10), transparent 70%),
+      radial-gradient(35% 28% at 70% 60%, rgba(255,47,156,.09), transparent 70%);
+    filter: blur(30px); animation: drift 26s ease-in-out infinite alternate;
+  }
+  @keyframes drift{ from{transform:translate3d(-2%,-1%,0) scale(1)} to{transform:translate3d(2%,2%,0) scale(1.08)} }
+
+  #app{position:relative; z-index:1; height:100%; display:flex; flex-direction:column; padding:14px clamp(10px,2.4vw,26px) 10px}
+  header.bar, footer.bar{display:flex; align-items:center; gap:14px; flex:0 0 auto; min-height:30px}
+  header.bar{justify-content:space-between; padding-bottom:10px}
+  footer.bar{justify-content:space-between; padding-top:9px; color:var(--dim); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase}
+  .brand{display:flex; align-items:baseline; gap:12px; min-width:0}
+  .brand b{
+    font-size:13px; letter-spacing:.34em; font-weight:700;
+    background:linear-gradient(90deg,#9ff6ff,#fff 40%,#ff9ad6 85%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow:0 0 22px rgba(57,231,255,.22);
+  }
+  .brand span{font-size:9.5px; color:var(--dim); letter-spacing:.22em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .chips{display:flex; align-items:center; gap:8px}
+  .chip{
+    display:inline-flex; align-items:center; gap:7px; height:24px; padding:0 10px;
+    border:1px solid var(--line); border-radius:999px; background:var(--panel);
+    color:var(--dim); font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; white-space:nowrap;
+  }
+  .chip b{color:var(--ink); font-weight:600}
+  .chip .dot{width:6px; height:6px; border-radius:50%; background:var(--cyan); box-shadow:0 0 10px var(--cyan)}
+  .chip.warn .dot{background:var(--gold); box-shadow:0 0 10px var(--gold)}
+
+  #stage{flex:1 1 auto; position:relative; display:flex; align-items:center; justify-content:center; min-height:0}
+  #frame{position:relative; line-height:0; border-radius:14px; overflow:hidden;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,.10),
+      0 0 0 7px rgba(255,255,255,.022),
+      0 26px 80px rgba(0,0,0,.75),
+      0 0 60px rgba(57,231,255,.10),
+      0 0 140px rgba(255,47,156,.07);
+    background:#000;
+    transform:translateZ(0);
+  }
+  canvas#game{display:block; width:100%; height:100%; background:#000; touch-action:none}
+  body.retro canvas#game{image-rendering:pixelated; image-rendering:crisp-edges}
+  body.modern canvas#game{image-rendering:auto}
+
+  /* very light CRT texture, only in 8-bit mode */
+  #crt{position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .25s ease;
+       background:
+        repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, rgba(0,0,0,0) 1px 3px),
+        radial-gradient(120% 100% at 50% 50%, transparent 55%, rgba(0,0,0,.42) 100%);
+       mix-blend-mode:multiply; border-radius:inherit}
+  body.retro #crt{opacity:.55}
+  #scan{position:absolute; inset:0; pointer-events:none; border-radius:inherit;
+        background:linear-gradient(180deg, rgba(255,255,255,.045), transparent 22%); opacity:0; transition:opacity .25s ease}
+  body.modern #scan{opacity:.6}
+
+
+  /* ---------- 8-битный режим: страница выглядит как аркадный автомат ---------- */
+  body.retro{
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, rgba(0,0,0,0) 1px 3px),
+      radial-gradient(1000px 560px at 50% -4%, #0d1119 0%, #050609 72%);
+  }
+  body.retro::before{display:none}
+  body.retro .brand b{
+    background:none; -webkit-background-clip:border-box; background-clip:border-box;
+    -webkit-text-fill-color:#ffd166; color:#ffd166; text-shadow:none;
+  }
+  body.retro header.bar .brand span{color:#66758c}
+  body.retro .chip{border-radius:3px; background:#0a0d13; border-color:#232c3a; color:#8fa0b8}
+  body.retro .chip b{color:#ffd166}
+  body.retro .chip .dot{background:#ffd166; box-shadow:none}
+  body.retro .chip.warn .dot{background:#6fe3ff; box-shadow:none}
+  body.retro #frame{
+    border-radius:2px;
+    box-shadow:0 0 0 1px #2b3444, 0 0 0 6px #0a0d13, 0 20px 60px rgba(0,0,0,.85);
+  }
+  body.retro #scan{opacity:0}
+  body.retro footer.bar{color:#66758c}
+  body.retro kbd{background:#0b0e14; border-color:#232c3a; border-bottom-color:#0b0e14; border-radius:2px; color:#ffd166}
+  body.retro #mobile-hero b{
+    background:none; -webkit-text-fill-color:#ffd166; color:#ffd166; text-shadow:none;
+  }
+  body.retro #mobile-hero span{color:#66758c}
+  body.retro #toast{border-radius:3px; border-color:#232c3a; background:#070910}
+
+  .key{display:inline-flex; align-items:center; gap:4px; margin:0 1px}
+  kbd{
+    font:inherit; font-size:9.5px; color:#cfd8ea; background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.13); border-bottom-color:rgba(255,255,255,.06);
+    border-radius:4px; padding:1px 5px; line-height:1.5;
+  }
+  .sep{opacity:.35; padding:0 4px}
+
+  #toast{
+    position:fixed; left:50%; bottom:52px; transform:translateX(-50%) translateY(8px);
+    background:rgba(8,10,16,.9); border:1px solid var(--line); color:var(--ink);
+    padding:8px 14px; border-radius:10px; font-size:11px; letter-spacing:.06em;
+    opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease; z-index:9;
+    backdrop-filter: blur(6px);
+  }
+  #toast.on{opacity:1; transform:translateX(-50%) translateY(0)}
+
+  #err{position:fixed; inset:0; z-index:20; display:none; overflow:auto; margin:0; padding:18px;
+       background:#05060a; color:#ff7a8a; font:12px/1.45 ui-monospace, monospace; white-space:pre-wrap}
+  #testout{position:fixed; inset:0; z-index:19; display:none; overflow:auto; margin:0; padding:16px;
+       background:rgba(4,5,10,.96); color:#8dffb0; font:11px/1.5 ui-monospace, monospace; white-space:pre}
+
+  #mobile-hero{display:none; flex:0 0 auto; text-align:center; padding:2px 0 0}
+  #mobile-hero b{display:block; font-size:21px; letter-spacing:.28em; font-weight:800;
+    background:linear-gradient(90deg,#9ff6ff,#fff 45%,#ff9ad6);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow:0 0 26px rgba(57,231,255,.25)}
+  #mobile-hero span{display:block; margin-top:5px; font-size:8.5px; letter-spacing:.28em; color:var(--dim); text-transform:uppercase}
+  #mobile-hint{display:none; text-align:center; color:var(--dim); font-size:9.5px; letter-spacing:.12em;
+    text-transform:uppercase; padding:6px 4px 2px; flex:0 0 auto}
+  @media (max-width: 720px){
+    #mobile-hero{display:block}
+    #mobile-hint{display:block}
+    header.bar .brand span, footer.bar .wide, .chip.optional{display:none}
+    #app{padding:9px 9px 7px}
+    .brand b{font-size:11px; letter-spacing:.24em}
+  }
+  @media (max-height: 520px){ footer.bar{display:none} }
+</style>
+</head>
+<body class="retro">
+<div id="app">
+  <header class="bar">
+    <div class="brand">
+      <b>SILKWORM</b>
+      <span data-ru="ШЕЛКОПРЯД · TECMO 1988 · БРАУЗЕРНЫЙ ПОРТ" data-en="SILKWORM · TECMO 1988 · BROWSER PORT">ШЕЛКОПРЯД · TECMO 1988 · БРАУЗЕРНЫЙ ПОРТ</span>
+    </div>
+    <div class="chips">
+      <span class="chip optional" id="chip-mode"><span class="dot"></span><b>8-БИТ</b> ГРАФИКА</span>
+      <span class="chip optional"><span class="dot"></span><b>RU</b> <span data-ru="ЯЗЫК" data-en="LANGUAGE">ЯЗЫК</span></span>
+      <span class="chip warn optional" id="chip-audio"><span class="dot"></span><b>M</b> <span data-ru="ЗВУК" data-en="SOUND">ЗВУК</span></span>
+    </div>
+  </header>
+
+  <div id="mobile-hero">
+    <b>SILKWORM</b>
+    <span data-ru="ШЕЛКОПРЯД · АРКАДА 1988" data-en="SILKWORM · ARCADE 1988">ШЕЛКОПРЯД · АРКАДА 1988</span>
+  </div>
+
+  <div id="stage">
+    <div id="frame">
+      <canvas id="game" width="320" height="224" aria-label="SILKWORM — игра"></canvas>
+      <div id="crt"></div>
+      <div id="scan"></div>
+    </div>
+  </div>
+
+  <div id="mobile-hint" data-ru="ВЕДИТЕ ПАЛЬЦЕМ · ОГОНЬ АВТОМАТИЧЕСКИ · ПАУЗА — ПРАВЫЙ ВЕРХНИЙ УГОЛ" data-en="DRAG TO FLY · AUTO-FIRE · PAUSE — TOP-RIGHT CORNER">ВЕДИТЕ ПАЛЬЦЕМ · ОГОНЬ АВТОМАТИЧЕСКИ · ПАУЗА — ПРАВЫЙ ВЕРХНИЙ УГОЛ</div>
+
+  <footer class="bar">
+    <div class="wide">
+      <span class="key"><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> / <kbd>WASD</kbd> <span data-ru="движение" data-en="move">движение</span></span>
+      <span class="sep">·</span>
+      <span class="key"><kbd>Space</kbd> <span data-ru="огонь" data-en="fire">огонь</span></span>
+      <span class="sep">·</span>
+      <span class="key"><kbd>B</kbd> <span data-ru="бомба" data-en="bomb">бомба</span></span>
+      <span class="sep">·</span>
+      <span class="key"><kbd>P</kbd> <span data-ru="пауза" data-en="pause">пауза</span></span>
+    </div>
+    <div>
+      <span class="key"><kbd>G</kbd> <span data-ru="графика" data-en="graphics">графика</span></span>
+      <span class="sep">·</span>
+      <span class="key"><kbd>L</kbd> <span data-ru="язык" data-en="language">язык</span></span>
+      <span class="sep">·</span>
+      <span class="key"><kbd>M</kbd> <span data-ru="музыка" data-en="sound">музыка</span></span>
+      <span class="sep">·</span>
+      <span class="key"><kbd>Enter</kbd> <span data-ru="старт" data-en="start">старт</span></span>
+    </div>
+  </footer>
+</div>
+<div id="toast"></div>
+<pre id="err"></pre>
+<pre id="testout"></pre>
+
+<!--AUDIO-->
+<!--GAME-->
+</body>
+</html>

@@ -1,0 +1,10 @@
+import { openQa } from "./lib.mjs";
+const qa = await openQa({ page: "index.html", width: 1440, height: 900 });
+await qa.send("Page.bringToFront"); qa.clearLogs();
+await qa.navigate("index.html?lang=en&mode=aurora", 900);
+await qa.shot("tmp/qa/check_title_en.png", 300);
+const r = await qa.eval(`LV.debug.startLevel(2); await sleep(300); const b=document.querySelector('[data-focus="hud-help"]'); if(b) b.click(); await sleep(500); const m=document.querySelector('.help-modal'); return { screen:document.body.dataset.screen, helpOpen:document.body.classList.contains('help-open'), text:(m||{}).innerText };`);
+await qa.shot("tmp/qa/check_help_en.png", 300);
+console.log(JSON.stringify(r,null,1).slice(0,2500));
+console.log('errors', JSON.stringify(qa.state.errors.slice(0,5)));
+await qa.close();

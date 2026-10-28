@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOST VIKINGS 2 · render preview (visuals-smith)</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #04060c; overflow: hidden; }
+  #game { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+  #hint {
+    position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+    font: 12px/1.5 "Inter", "SF Pro Display", -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: #cfe4f5; background: rgba(6, 12, 22, 0.62); border: 1px solid rgba(124, 248, 255, 0.22);
+    border-radius: 10px; padding: 8px 14px; letter-spacing: 0.04em; white-space: nowrap;
+    opacity: 0; transition: opacity 0.45s ease; pointer-events: none; backdrop-filter: blur(6px);
+  }
+  #hint.show { opacity: 0.92; }
+  #hint b { color: #7cf8ff; font-weight: 600; }
+  #hint i { color: #ffc857; font-style: normal; }
+  body.retro #hint { background: rgba(11, 15, 26, 0.9); border-color: rgba(111, 195, 223, 0.5); border-radius: 0; font-family: monospace; }
+  body.retro #hint b { color: #6fc3df; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hint"><b>G</b> — AURORA / 8-BIT &nbsp;·&nbsp; <b>← →</b> камера &nbsp;·&nbsp; <b>SPACE</b> — эффекты &nbsp;·&nbsp; <b>1 2 3</b> — викинг &nbsp;·&nbsp; <i>render.js preview</i></div>
+<script src="../js/render.js"></script>
+<script>
+(function () {
+  'use strict';
+  var COLS = 40, ROWS = 18, TILE = 32;
+  var canvas = document.getElementById('game');
+  var hintEl = document.getElementById('hint');
+  var hash = (location.hash || '').replace('#', '');
+  var opts = {};
+  hash.split('&').forEach(function (kv) {
+    var p = kv.split('=');
+    if (p[0]) opts[p[0]] = p[1] === undefined ? true : p[1];
+  });
+
+  /* ---------- мок-уровень 40×18 ---------- */
+  var grid = [];
+  (function buildGrid() {
+    var r, c, row;
+    for (r = 0; r < ROWS; r++) { row = []; for (c = 0; c < COLS; c++) row.push('.'); grid.push(row); }
+    function rect(c0, r0, c1, r1, ch) {
+      for (var rr = r0; rr <= r1; rr++) for (var cc = c0; cc <= c1; cc++) grid[rr][cc] = ch;
+    }
+    rect(0, 16, 39, 17, '#');        // земля
+    rect(15, 16, 18, 17, '~');       // лава
+    rect(20, 16, 21, 16, '^');       // шипы
+    rect(0, 12, 3, 15, '#');         // левый утёс
+    rect(4, 12, 4, 15, 'L');         // лестница на утёс
+    rect(7, 11, 10, 11, '#');        // парящая плита
+    rect(11, 12, 11, 15, '=');       // ломаемый лёд
+    rect(24, 13, 28, 14, '#');       // правая полка
+    rect(23, 13, 23, 15, 'L');       // лестница на полку
+    rect(30, 12, 33, 15, '#');       // правый утёс
+    rect(35, 0, 39, 2, '#');         // нависающая скала
+    rect(0, 0, 1, 1, '#');
+    grid[7][13] = 'G'; grid[9][19] = 'G'; grid[5][26] = 'G'; // якоря крюка
+    grid[11][3] = 'T'; grid[13][12] = 'T';                   // факелы (тайлы)
+  })();
+
+  var props = [
+    { type: 'plate', x: 8 * TILE, y: 15 * TILE, w: 32, h: 32, group: 'a', pressed: true },
+    { type: 'door', x: 12 * TILE, y: 12 * TILE, w: 32, h: 96, group: 'a', open: 0.36 },
+    { type: 'lever', x: 28 * TILE, y: 12 * TILE, w: 32, h: 32, group: 'b', on: true },
+    { type: 'platform', x: 16 * TILE, y: 10 * TILE, w: 96, h: 13, ox: 16 * TILE, oy: 10 * TILE },
+    { type: 'rune', x: 8 * TILE + 16, y: 9 * TILE, w: 32, h: 32, taken: false },
+    { type: 'rune', x: 22 * TILE + 16, y: 6 * TILE, w: 32, h: 32, taken: false },
+    { type: 'rune', x: 36 * TILE, y: 3 * TILE, w: 32, h: 32, taken: true },
+    { type: 'checkpoint', x: 2 * TILE, y: 11 * TILE, w: 32, h: 32, active: true },
+    { type: 'checkpoint', x: 25 * TILE, y: 12 * TILE, w: 32, h: 32, active: false },
+    { type: 'exit', x: 34 * TILE, y: 14 * TILE, w: 64, h: 64, collected: 1, total: 3 },
+    { type: 'sign', x: 6 * TILE, y: 15 * TILE, w: 32, h: 32 },
+    { type: 'sign', x: 31 * TILE, y: 15 * TILE, w: 32, h: 32 },
+    { type: 'anchor', x: 17 * TILE, y: 8 * TILE, w: 32, h: 32 },
+    { type: 'torch', x: 5 * TILE, y: 15 * TILE, w: 32, h: 32, seed: 1 },
+    { type: 'torch', x: 19 * TILE, y: 15 * TILE, w: 32, h: 32, seed: 2 },
+    { type: 'torch', x: 30 * TILE, y: 12 * TILE, w: 32, h: 32, seed: 3 },
+    { type: 'torch', x: 36 * TILE, y: 15 * TILE, w: 32, h: 32, seed: 4 }
+  ];
+
+  function actor(id, col, row, extra) {
+    var w = id === 'olaf' ? 32 : id === 'baleog' ? 26 : 24;
+    var h = id === 'olaf' ? 40 : id === 'baleog' ? 46 : 44;
+    var a = {
+      id: id, active: false, exited: false, dead: false,
+      x: col * TILE + TILE / 2, y: (row + 1) * TILE, w: w, h: h,
+      dir: 1, vx: 0, vy: 0, onGround: true, state: 'idle', anim: Math.random() * 3,
+      hp: 3, maxHp: 3, invuln: 0, shieldUp: false, glide: false,
+      attack: null, aimUp: false, hook: null
+    };
+    if (extra) for (var k in extra) if (extra.hasOwnProperty(k)) a[k] = extra[k];
+    return a;
+  }
+
+  var actors = [
+    actor('erik', 6, 15, { state: 'run', dir: 1, active: true }),
+    actor('baleog', 26, 12, { state: 'shoot', dir: 1 }),
+    actor('olaf', 1, 11, { state: 'idle', shieldUp: true })
+  ];
+
+  var enemies = [
+    { kind: 'grunt', x: 19 * TILE + 16, y: 16 * TILE, w: 24, h: 28, dir: -1, state: 'walk', anim: 0, hp: 2, active: true },
+    { kind: 'grunt', x: 26 * TILE + 16, y: 16 * TILE, w: 24, h: 28, dir: 1, state: 'idle', anim: 0, hp: 2, active: true },
+    { kind: 'thrower', x: 22 * TILE + 16, y: 16 * TILE, w: 26, h: 40, dir: -1, state: 'throw', anim: 0.2, hp: 3, active: true },
+    { kind: 'bat', x: 20 * TILE, y: 5 * TILE, w: 26, h: 18, dir: 1, state: 'fly', anim: 0, hp: 1, active: true }
+  ];
+
+  var projectiles = [
+    { kind: 'arrow', x: 27 * TILE, y: 11 * TILE, vx: 620, vy: 0, dir: 1 },
+    { kind: 'rock', x: 21 * TILE, y: 6 * TILE, vx: -120, vy: 90 }
+  ];
+
+  var world = {
+    levelIndex: 0, levelCount: 6, cols: COLS, rows: ROWS, tile: TILE,
+    width: COLS * TILE, height: ROWS * TILE,
+    time: 0, globalTime: 0,
+    camera: { x: 0, y: 0, w: 1024, h: 576, shake: 0 },
+    actors: actors, enemies: enemies, props: props, projectiles: projectiles,
+    exit: props[9], runes: { got: 1, total: 3 }, messages: []
+  };
+  var game = {
+    world: world,
+    getTile: function (c, r) {
+      if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return '#';
+      return grid[r][c];
+    }
+  };
+
+  /* ---------- режим и камера из hash ---------- */
+  var mode = opts.retro ? 'retro' : 'aurora';
+  var camMode = opts.c ? parseInt(opts.c, 10) : 0;
+  var play2 = opts.p === '2';
+  var nohud = !!opts.nohud;
+  if (play2) {
+    world.camera.x = 250;
+    world.camera.shake = 0.12;
+    actors[0].active = false;
+    actors[1].active = true;
+    actors[1].hook = { state: 'attached', ax: actors[1].x - 8, ay: actors[1].y - 40, bx: 27 * TILE, by: 6 * TILE };
+    actors[1].state = 'hook';
+    actors[1].shieldUp = false;
+    actors[0].state = 'jump';
+    actors[0].y = 13 * TILE - 10;
+    actors[0].anim = 0.4;
+    actors[2].state = 'idle';
+    actors[2].shieldUp = true;
+    world.camera.x = 250;
+    props[3].y = 9 * TILE;
+    projectiles[0].x = 30 * TILE;
+    projectiles[0].y = 9 * TILE;
+  } else {
+    world.camera.x = camMode;
+  }
+
+  if (typeof LV === 'undefined' || !LV.render) return;
+  LV.render.setMode(mode);
+  LV.render.init(canvas);
+
+  /* ---------- анимация мока ---------- */
+  var t0 = 0, paused = false;
+  function step(dt) {
+    t0 += dt;
+    world.time += dt; world.globalTime += dt;
+    // Эрик бежит
+    if (actors[0].state === 'run') {
+      actors[0].anim += dt * 3.2;
+      actors[0].x = 6 * TILE + 16 + Math.sin(t0 * 0.55) * 46;
+      actors[0].dir = Math.cos(t0 * 0.55) >= 0 ? 1 : -1;
+    } else {
+      actors[0].anim += dt;
+    }
+    // Балеог: лук
+    actors[1].anim += dt;
+    if (play2) {
+      actors[1].anim += dt * 0.5;
+    } else {
+      actors[1].attack = null;
+      actors[1].state = (Math.sin(t0 * 0.4) > -0.6) ? 'shoot' : 'idle';
+    }
+    // Олаф
+    actors[2].anim += dt;
+    // враги
+    var i;
+    for (i = 0; i < enemies.length; i++) {
+      var e = enemies[i];
+      e.anim += dt;
+      if (e.kind === 'grunt' && e.state === 'walk') {
+        e.x += e.dir * 26 * dt;
+        if (e.x < 16 * TILE) { e.dir = 1; }
+        if (e.x > 22 * TILE) { e.dir = -1; }
+      }
+      if (e.kind === 'bat') {
+        e.x += Math.sin(t0 * 0.7) * 22 * dt;
+        e.y = 5 * TILE + Math.sin(t0 * 1.1) * 12;
+      }
+    }
+    // снаряды
+    for (i = 0; i < projectiles.length; i++) {
+      var p = projectiles[i];
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.kind === 'arrow') {
+        if (p.x > 32 * TILE) { p.x = 24 * TILE; }
+      } else {
+        if (p.y > 16 * TILE) { p.y = 6 * TILE; p.x = 21 * TILE; }
+      }
+    }
+    // движущаяся платформа
+    var pl = props[3];
+    pl.y = pl.oy - 64 - Math.sin(t0 * 0.8) * 40;
+    // камера
+    if (LV.render.getMode() === 'aurora') world.camera.shake = play2 ? 0.12 : 0;
+  }
+
+  function camClamp() {
+    var maxX = world.width - 1024;
+    if (world.camera.x < 0) world.camera.x = 0;
+    if (world.camera.x > maxX) world.camera.x = maxX;
+  }
+
+  /* ---------- прогрев + эффекты ---------- */
+  var WARM = 72;
+  for (var wi = 0; wi < WARM; wi++) { step(1 / 60); LV.render.draw(game, 1 / 60); }
+
+  function demoBurst() {
+    var cx = world.camera.x;
+    var kinds = ['rune', 'headbutt', 'break', 'sword', 'arrowHit', 'hookHit', 'plateOn', 'land', 'checkpoint'];
+    var ev = kinds[(Math.random() * kinds.length) | 0];
+    var ex = cx + 120 + Math.random() * 760;
+    var ey = 100 + Math.random() * 380;
+    if (ev === 'headbutt' || ev === 'land') { ex = actors[0].x; ey = actors[0].y; }
+    if (ev === 'rune') { ex = 8 * TILE + 32; ey = 9 * TILE + 20; }
+    if (ev === 'checkpoint') { ex = 2 * TILE + 16; ey = 11 * TILE; }
+    if (ev === 'break') { ex = 11 * TILE + 16; ey = 13 * TILE; }
+    if (ev === 'sword') { ex = actors[1].x; ey = actors[1].y; }
+    if (ev === 'plateOn') { ex = 8 * TILE + 16; ey = 15 * TILE; }
+    LV.render.addFx({ type: ev, x: ex, y: ey, dir: 1 });
+  }
+  demoBurst();
+
+  /* ---------- ввод ---------- */
+  var hintTimer = 0, firstInput = false;
+  function showHint() {
+    if (nohud) return;
+    hintEl.classList.add('show');
+  }
+  function scheduleHint() {
+    if (nohud) return;
+    setTimeout(function () { if (!firstInput) showHint(); }, 2000);
+  }
+  document.addEventListener('keydown', function (e) {
+    var k = e.key;
+    firstInput = true;
+    showHint();
+    if (k === 'g' || k === 'G' || k === 'п' || k === 'П') {
+      var next = LV.render.getMode() === 'aurora' ? 'retro' : 'aurora';
+      LV.render.setMode(next);
+      document.body.classList.toggle('retro', next === 'retro');
+      hintEl.innerHTML = next === 'retro'
+        ? '<b>8-BIT</b> · 512×288 · палитра 16 · CRT &nbsp;·&nbsp; <b>G</b> — обратно'
+        : '<b>AURORA</b> · северное сияние &nbsp;·&nbsp; <b>G</b> — 8-BIT';
+    } else if (k === 'ArrowLeft') { world.camera.x -= 24; camClamp(); }
+    else if (k === 'ArrowRight') { world.camera.x += 24; camClamp(); }
+    else if (k === 'ArrowUp') { world.camera.y = Math.max(0, world.camera.y - 24); }
+    else if (k === 'ArrowDown') { world.camera.y = Math.min(world.height - 576, world.camera.y + 24); }
+    else if (k === ' ') { demoBurst(); e.preventDefault(); }
+    else if (k === '1' || k === '2' || k === '3') {
+      var idx = parseInt(k, 10) - 1;
+      for (var i = 0; i < actors.length; i++) actors[i].active = (i === idx);
+    } else if (k === 'r' || k === 'R') { world.camera.x = 0; world.camera.y = 0; }
+    else if (k === 'p' || k === 'P') { paused = !paused; }
+  });
+  canvas.addEventListener('mousemove', showHint);
+
+  /* ---------- главный цикл ---------- */
+  var last = performance.now();
+  var acc = 0, demoT = 0;
+  document.body.classList.toggle('retro', mode === 'retro');
+  window.addEventListener('resize', function () { LV.render.resize(); });
+  scheduleHint();
+
+  function frame(now) {
+    var dt = Math.min(0.1, (now - last) / 1000);
+    last = now;
+    if (!paused) {
+      step(dt);
+      acc += dt; demoT += dt;
+      if (acc > 0.2) { acc = 0; camClamp(); }
+      if (demoT > 1.15) { demoT = 0; demoBurst(); }
+    }
+    LV.render.draw(game, dt);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  /* отладочный доступ */
+  window.__preview = { world: world, game: game, opts: opts, render: LV.render };
+})();
+</script>
+</body>
+</html>

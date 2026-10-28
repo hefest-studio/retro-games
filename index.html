@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="retro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Зал ретро-игр — каталог браузерных ремейков аркад (1982–1997)</title>
+  <meta name="description" content="11 браузерных ремейков классических аркад 1982–1997 годов: River Raid, Digger, Contra, Boulder Dash, Lode Runner, Exolon, Silkworm, The Last Mission, The Lost Vikings и другие. Два стиля графики — 8-бит и неон. Работает офлайн, без сборки и зависимостей.">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#06070b">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2306070b'/%3E%3Crect x='3.5' y='3.5' width='25' height='25' fill='none' stroke='%23ffb648' stroke-width='3'/%3E%3Crect x='9' y='12' width='14' height='8' fill='%235cf2bd'/%3E%3Crect x='12' y='24' width='8' height='3' fill='%23ffb648'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/catalog/catalog.css">
+  <script>
+    /* Тему применяем до первой отрисовки, чтобы не мигало белым/ретро при перезагрузке. */
+    (function () {
+      try {
+        var stored = localStorage.getItem('retro-games-catalog-theme');
+        if (stored === 'modern') document.documentElement.setAttribute('data-theme', 'modern');
+      } catch (e) { /* приватный режим / file:// */ }
+    }());
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#games">Перейти к каталогу</a>
+
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="./" aria-label="Зал ретро-игр — на главную">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-text">
+          <span class="brand-title">Зал ретро-игр</span>
+          <span class="brand-sub">arcade hall · 11 games</span>
+        </span>
+      </a>
+      <div class="topbar-side">
+        <span class="key-hint"><kbd>G</kbd><span class="key-hint-text">сменить графику</span></span>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false" aria-label="Сейчас включён 8-битный ретро-стиль. Переключить на неоновый стиль (клавиша G)">
+          <span class="tt-icon" aria-hidden="true"></span>
+          <span class="tt-copy">
+            <span class="tt-label">графика</span>
+            <span class="tt-mode" id="theme-mode">8-бит</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-glow" aria-hidden="true"></div>
+
+  <main class="main">
+    <section class="hero container" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>Аркадный каталог · 1982–1997</p>
+        <h1 class="hero-title" id="hero-title">Зал<br>ретро-игр</h1>
+        <p class="lede">
+          Одиннадцать браузерных ремейков классических аркад и платформеров.
+          Выберите игру, вставьте монетку — и переключайте графику между
+          8-битным ретро и неоновым ремастером в любой момент.
+        </p>
+        <ul class="hero-stats">
+          <li class="hero-stat">
+            <strong id="hero-games">11 игр</strong>
+            <span>1982–1997</span>
+          </li>
+          <li class="hero-stat">
+            <strong>2 стиля</strong>
+            <span>8-бит / неон</span>
+          </li>
+          <li class="hero-stat">
+            <strong>Офлайн</strong>
+            <span>без CDN и сборки</span>
+          </li>
+        </ul>
+        <div class="hero-actions">
+          <button class="btn btn-primary" id="random-game" type="button">
+            <span class="btn-icon" aria-hidden="true">▶</span>Случайная игра
+          </button>
+          <a class="btn btn-ghost" href="#games">
+            Смотреть каталог <span class="btn-icon" aria-hidden="true">↓</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="hero-art" aria-hidden="true">
+        <div class="cabinet">
+          <p class="cabinet-marquee">Retro Hall</p>
+          <div class="cabinet-screen">
+            <div class="screen-inner">
+              <p class="screen-kicker">select a game</p>
+              <p class="screen-big">11<span>игр</span></p>
+              <p class="screen-press">press <b>start</b></p>
+            </div>
+          </div>
+          <div class="cabinet-deck">
+            <span class="deck-stick"><i></i></span>
+            <span class="deck-buttons">
+              <i class="deck-btn deck-btn-a"></i>
+              <i class="deck-btn deck-btn-b"></i>
+              <i class="deck-btn deck-btn-c"></i>
+            </span>
+            <span class="deck-plate">player 1 <em>· insert coin</em></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="catalog container" id="games" aria-labelledby="games-title">
+      <div class="catalog-head">
+        <div class="catalog-head-copy">
+          <p class="catalog-kicker">
+            <span id="catalog-count">11 игр</span>
+            <span aria-hidden="true">·</span>
+            <span id="catalog-years">1982–1997</span>
+          </p>
+          <h2 class="catalog-title" id="games-title">Выберите игру</h2>
+        </div>
+        <label class="search-field">
+          <svg class="search-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <circle cx="9" cy="9" r="5.6" fill="none" stroke="currentColor" stroke-width="2"></circle>
+            <path d="M13.2 13.2 17 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+          </svg>
+          <input id="game-search" type="search" placeholder="Поиск по названию…" aria-label="Поиск игры по названию" autocomplete="off" spellcheck="false">
+        </label>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters" id="genre-filters" role="group" aria-label="Фильтр по жанрам"></div>
+        <p class="results" id="results" role="status" aria-live="polite">Показано 11 из 11</p>
+      </div>
+
+      <ol class="grid" id="game-grid" aria-busy="true"></ol>
+
+      <div class="empty" id="empty-state" hidden>
+        <p class="empty-face" aria-hidden="true">:(</p>
+        <p class="empty-title">Ничего не найдено</p>
+        <p class="empty-hint">Попробуйте другой жанр или очистите поиск.</p>
+        <button class="btn btn-ghost" id="reset-filters" type="button">Сбросить фильтры</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-copy">
+        <p class="footer-brand">Зал ретро-игр <span>· 1982–1997</span></p>
+        <p class="footer-text">
+          Все игры в каталоге — неофициальные фанатские ремейки классических аркад
+          и платформеров. Проект не связан с правообладателями и не преследует
+          коммерческих целей. Каждая игра работает офлайн: чистый HTML, CSS и
+          JavaScript, без сборки, CDN и внешних зависимостей.
+        </p>
+        <p class="footer-note">Локальный запуск: <code>python3 -m http.server 8080</code></p>
+      </div>
+      <div class="footer-links">
+        <p class="footer-col-title">Проект</p>
+        <ul class="footer-list">
+          <li><a class="footer-link" href="https://github.com/sergio-zerg/retro-games" target="_blank" rel="noopener noreferrer">GitHub-репозиторий <span aria-hidden="true">↗</span></a></li>
+          <li><a class="footer-link" href="#games">Каталог игр <span aria-hidden="true">↓</span></a></li>
+          <li><a class="footer-link" href="#hero-title">Наверх <span aria-hidden="true">↑</span></a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>© 2026 · фанатский проект</p>
+      <p>Сделано на чистом HTML / CSS / JS</p>
+    </div>
+  </footer>
+
+  <noscript>
+    <p class="noscript-note container">Для каталога нужен JavaScript: он собирает карточки из <code>assets/catalog/games.json</code> и включает фильтры. Сами игры работают и без него.</p>
+  </noscript>
+
+  <script src="assets/catalog/catalog.js" defer></script>
+</body>
+</html>
