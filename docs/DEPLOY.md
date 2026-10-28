@@ -8,6 +8,8 @@
 - Vercel-проект: `retro-games` (<https://vercel.com/sergio-zerg/retro-games>),
   `projectId: prj_wQgRI2z86E6wl4pNtWx6SVinyRRo`
 - GitHub: `sergio-zerg/retro-games` (private)
+- Интеграция: GitHub → Vercel привязана (`Production Branch = main`), пуш в `main`
+  запускает автодеплой; CLI-деплой (`npx vercel --prod`) тоже работает.
 - Проверка прода: `/` → 200, все 11 игр → 200, `/digger/css/style.css` → 200,
   `/contra` → 308 на `/contra/`, служебные пути (`/tools/`, `/reports/`, `*/src/`) → 404.
 

@@ -103,7 +103,9 @@ npx vercel link      # привязать папку к проекту retro-gam
 npx vercel --prod    # задеплоить статику из корня
 ```
 
-GitHub-интеграция Vercel (по желанию): **Project → Settings → Git → Connect Git Repository**.
+Vercel-проект привязан к GitHub-репозиторию (`Production Branch = main`):
+пуш в `main` запускает автодеплой на <https://retro-games-psi.vercel.app>.
+Ручной деплой из CLI работает параллельно.
 
 ## Дисклеймер
 
