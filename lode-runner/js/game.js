@@ -19,6 +19,17 @@
   var ESCAPE_TIME = 0.4;  // сколько сидим в яме, прежде чем можно выпрыгнуть
   var FREEZE_TIME = 0.7;  // пауза на старте уровня
 
+  /* Цены шагов для поиска пути врага (Дейкстра, см. _pathTo).
+   * Падение на одну клетку стоит заметно дороже шага/лестницы: иначе враг
+   * считает «прыжок в шахту на 6–10 клеток» одним дешёвым действием и уходит
+   * вниз напрямик вместо спуска по лестнице — со стороны это выглядит как
+   * бессмысленное самоубийство с платформы. */
+  var COST_STEP = 1;
+  var COST_CLIMB = 1.1;
+  var COST_FALL_CELL = 3;
+  var ENEMY_RETRY = 0.12;         // пауза перед повторной попыткой, если шаг сорвался
+  var ENEMY_FALLBACK_RETRY = 0.3; // пауза, когда игрок недостижим (враг караулит у ямы)
+
   var DIRS = {
     left: { dx: -1, dy: 0 },
     right: { dx: 1, dy: 0 },
@@ -49,7 +60,11 @@
       digSide: 0,
       digT: 0,
       dug: false,
-      wander: 0
+      // ИИ врага: cooldown до следующего решения и закэшированный маршрут.
+      actCooldown: 0,
+      path: null,
+      pathKey: '',
+      pathHoles: ''
     };
   }
 
@@ -363,6 +378,9 @@
     ent.hole = key(ent.x, ent.y);
     ent.escape = 0;
     if (ent.kind === 'enemy') {
+      // пока враг в яме, маршрут не нужен — сбрасываем кэш
+      ent.path = null;
+      ent.pathKey = '';
       this._sfx('trap');
       this._burst(ent.x, ent.y, 10, '#ff5c8a');
     } else {
@@ -555,82 +573,126 @@
   /*  Враги                                                                */
   /* --------------------------------------------------------------------- */
 
+  // Клетки, куда враг может шагнуть из (x, y), и цена такого шага.
+  // Общая логика для поиска пути и для «достижимой компоненты».
+  Game.prototype._enemyMoves = function (x, y) {
+    var moves = [];
+    var self = this;
+    function add(ax, ay, baseCost) {
+      var nx = x + ax, ny = y + ay;
+      var land = self.landing(nx, ny);
+      if (!land || land.hole) return; // в открытую яму враг сам не полезет
+      var fallCells = Math.max(0, land.y - ny); // сколько клеток летим после шага
+      moves.push({
+        land: land,
+        action: { dx: ax, dy: ay },
+        cost: baseCost + fallCells * COST_FALL_CELL
+      });
+    }
+    if (this.isPassable(x - 1, y) && !this.isHole(x - 1, y)) add(-1, 0, COST_STEP);
+    if (this.isPassable(x + 1, y) && !this.isHole(x + 1, y)) add(1, 0, COST_STEP);
+    if (this.isLadder(x, y) && this.isPassable(x, y - 1) && !this.isHole(x, y - 1)) add(0, -1, COST_CLIMB);
+    var ladderDown = this.isLadder(x, y) || this.isLadder(x, y + 1);
+    if (ladderDown && this.isPassable(x, y + 1) && !this.isHole(x, y + 1)) add(0, 1, COST_CLIMB);
+    return moves;
+  };
+
   Game.prototype._enemyReachable = function (sx, sy) {
-    // Узлы (x,y) — позиции с опорой; рёбра: шаг влево/вправо (с падением),
-    // вверх/вниз по лестнице. Ямы избегаем.
-    var seen = new Map();
-    var q = [{ x: sx, y: sy }];
+    // Узлы (x,y) — позиции с опорой; рёбра — _enemyMoves. Ямы недостижимы.
     var startK = key(sx, sy);
-    seen.set(startK, { from: null, action: null });
-    var nodes = [];
+    var seen = new Set([startK]);
+    var nodes = [{ x: sx, y: sy }];
+    var q = [{ x: sx, y: sy }];
     var head = 0;
     while (head < q.length) {
       var cur = q[head++];
-      nodes.push(cur);
-      var dirs = [];
-      if (this.isPassable(cur.x - 1, cur.y) && !this.isHole(cur.x - 1, cur.y)) dirs.push({ type: 'walk', dx: -1, dy: 0 });
-      if (this.isPassable(cur.x + 1, cur.y) && !this.isHole(cur.x + 1, cur.y)) dirs.push({ type: 'walk', dx: 1, dy: 0 });
-      if (this.isLadder(cur.x, cur.y) && this.isPassable(cur.x, cur.y - 1) && !this.isHole(cur.x, cur.y - 1)) dirs.push({ type: 'climb', dx: 0, dy: -1 });
-      var ladderDown = this.isLadder(cur.x, cur.y) || this.isLadder(cur.x, cur.y + 1);
-      if (ladderDown && this.isPassable(cur.x, cur.y + 1) && !this.isHole(cur.x, cur.y + 1)) dirs.push({ type: 'climb', dx: 0, dy: 1 });
-
-      for (var i = 0; i < dirs.length; i++) {
-        var d = dirs[i];
-        var nx = cur.x + d.dx, ny = cur.y + d.dy;
-        var land = this.landing(nx, ny);
-        if (!land || land.hole) continue;
-        // Если шаг по горизонтали был в воздух, приземление ниже: это валидное ребро.
+      var moves = this._enemyMoves(cur.x, cur.y);
+      for (var i = 0; i < moves.length; i++) {
+        var land = moves[i].land;
         var nk = key(land.x, land.y);
         if (seen.has(nk)) continue;
-        seen.set(nk, { from: cur, action: d });
+        seen.add(nk);
+        nodes.push(land);
         q.push(land);
       }
     }
     return { seen: seen, nodes: nodes, startK: startK };
   };
 
+  // --- маленькая двоичная куча для Дейкстры ---------------------------------
+  function heapPush(h, item) {
+    h.push(item);
+    var i = h.length - 1;
+    while (i > 0) {
+      var p = (i - 1) >> 1;
+      if (h[p].c <= h[i].c) break;
+      var t = h[p]; h[p] = h[i]; h[i] = t;
+      i = p;
+    }
+  }
+  function heapPop(h) {
+    var top = h[0];
+    var last = h.pop();
+    if (h.length) {
+      h[0] = last;
+      var i = 0;
+      for (;;) {
+        var l = i * 2 + 1, r = l + 1, m = i;
+        if (l < h.length && h[l].c < h[m].c) m = l;
+        if (r < h.length && h[r].c < h[m].c) m = r;
+        if (m === i) break;
+        var t = h[m]; h[m] = h[i]; h[i] = t;
+        i = m;
+      }
+    }
+    return top;
+  }
+
+  /* Маршрут врага. Раньше это был BFS «по числу действий»: длинное падение
+   * считалось одним дешёвым действием, поэтому враг регулярно выбирал не
+   * лестницу, а «прыжок в шахту» на 6–10 клеток — со стороны это выглядело
+   * как бессмысленное падение с платформы. Теперь — Дейкстра по стоимости,
+   * где каждая клетка падения добавляет штраф (COST_FALL_CELL). */
   Game.prototype._pathTo = function (sx, sy, targets) {
     if (!targets || !targets.length) return null;
-    var startSupported = this.isSupported(sx, sy) || this.isLadder(sx, sy) || this.isRope(sx, sy);
-    var start = { x: sx, y: sy };
-    var seen = new Map();
-    seen.set(key(sx, sy), { from: null, action: null });
-    var q = [start], head = 0;
+    var startK = key(sx, sy);
     var targetSet = new Set();
     for (var t = 0; t < targets.length; t++) targetSet.add(key(targets[t].x, targets[t].y));
 
-    while (head < q.length) {
-      var cur = q[head++];
+    var best = new Map();
+    var prev = new Map();
+    var heap = [];
+    best.set(startK, 0);
+    prev.set(startK, null);
+    heapPush(heap, { x: sx, y: sy, c: 0 });
+
+    while (heap.length) {
+      var cur = heapPop(heap);
       var curK = key(cur.x, cur.y);
-      if (curK !== key(sx, sy) && targetSet.has(curK)) {
+      if (cur.c > (best.has(curK) ? best.get(curK) : Infinity)) continue;
+
+      if (curK !== startK && targetSet.has(curK)) {
         var actions = [];
-        var node = cur;
-        var info = seen.get(key(node.x, node.y));
+        var node = { x: cur.x, y: cur.y };
+        var info = prev.get(key(node.x, node.y));
         while (info && info.from) {
           actions.push({ dx: info.action.dx, dy: info.action.dy });
           node = info.from;
-          info = seen.get(key(node.x, node.y));
+          info = prev.get(key(node.x, node.y));
         }
         actions.reverse();
         return actions;
       }
 
-      var dirs = [];
-      if (this.isPassable(cur.x - 1, cur.y) && !this.isHole(cur.x - 1, cur.y)) dirs.push({ dx: -1, dy: 0 });
-      if (this.isPassable(cur.x + 1, cur.y) && !this.isHole(cur.x + 1, cur.y)) dirs.push({ dx: 1, dy: 0 });
-      if (this.isLadder(cur.x, cur.y) && this.isPassable(cur.x, cur.y - 1) && !this.isHole(cur.x, cur.y - 1)) dirs.push({ dx: 0, dy: -1 });
-      var ld = this.isLadder(cur.x, cur.y) || this.isLadder(cur.x, cur.y + 1);
-      if (ld && this.isPassable(cur.x, cur.y + 1) && !this.isHole(cur.x, cur.y + 1)) dirs.push({ dx: 0, dy: 1 });
-
-      for (var i = 0; i < dirs.length; i++) {
-        var d = dirs[i];
-        var nx = cur.x + d.dx, ny = cur.y + d.dy;
-        var land = this.landing(nx, ny);
-        if (!land || land.hole) continue;
-        var nk = key(land.x, land.y);
-        if (seen.has(nk)) continue;
-        seen.set(nk, { from: cur, action: d });
-        q.push({ x: land.x, y: land.y });
+      var moves = this._enemyMoves(cur.x, cur.y);
+      for (var i = 0; i < moves.length; i++) {
+        var mv = moves[i];
+        var nk = key(mv.land.x, mv.land.y);
+        var nc = cur.c + mv.cost;
+        if (nc >= (best.has(nk) ? best.get(nk) : Infinity)) continue;
+        best.set(nk, nc);
+        prev.set(nk, { from: { x: cur.x, y: cur.y }, action: mv.action });
+        heapPush(heap, { x: mv.land.x, y: mv.land.y, c: nc });
       }
     }
     return null;
@@ -640,57 +702,102 @@
     var p = this.player;
     var targets = [];
     if (this.state === 'playing' && p.state !== 'dead') targets.push({ x: p.x, y: p.y });
-    if (!targets.length) return [];
     return targets;
   };
 
+  /* Одно решение врага. Вызывается только когда враг стоит на опоре.
+   * Держит закэшированный маршрут к игроку и продолжает его от шага к шагу:
+   * пока игрок стоит на месте, враг не пересчитывает путь и не «передумывает»
+   * на каждой клетке. */
   Game.prototype._enemyAct = function (en) {
     if (en.move || en.state === 'hole' || en.state === 'dead' || en.state === 'spawn') return;
     if (!this._entitySupported(en)) {
       this._beginFall(en);
       return;
     }
-    var path = this._pathTo(en.x, en.y, this._enemyPickTarget(en));
-    if (!path || !path.length) {
-      // Игрок недостижим: бродим к золоту / выходу / по компоненте
-      var rewards = [];
-      this.gold.forEach(function (v) {
-        var p2 = v.split(',');
-        rewards.push({ x: +p2[0], y: +p2[1] });
-      });
-      if (this.exit.open) rewards.push({ x: this.exit.x, y: this.exit.y });
-      var pth = this._pathTo(en.x, en.y, rewards);
-      if (pth && pth.length) { this._enemyStep(en, pth[0]); return; }
-      // случайное блуждание по достижимым клеткам
-      var comp = this._enemyReachable(en.x, en.y);
-      var choices = [];
-      comp.nodes.forEach(function (n) {
-        if (n.x !== en.x || n.y !== en.y) choices.push(n);
-      });
-      if (choices.length) {
-        var randomNode = choices[(Math.random() * choices.length) | 0];
-        var rp = this._pathTo(en.x, en.y, [randomNode]);
-        if (rp && rp.length) { this._enemyStep(en, rp[0]); return; }
+
+    var targets = this._enemyPickTarget(en);
+    var playerReachableTarget = targets.length > 0;
+    // Маршрут валиден, пока цель (клетка игрока) и состояние ям/золота не менялись.
+    var goalKey = playerReachableTarget ? ('p:' + targets[0].x + ',' + targets[0].y) : 'none';
+    var worldKey = this.holes.size + ':' + this.gold.size + ':' + (this.exit.open ? 1 : 0);
+    if (!en.path || en.pathKey !== goalKey || en.pathHoles !== worldKey) {
+      en.path = playerReachableTarget ? (this._pathTo(en.x, en.y, targets) || []) : [];
+      en.pathKey = goalKey;
+      en.pathHoles = worldKey;
+    }
+
+    var hadPath = false;
+    while (en.path && en.path.length) {
+      hadPath = true;
+      var action = en.path.shift();
+      if (this._enemyStep(en, action)) {
+        en.actCooldown = 0;
+        return;
       }
-      if (Math.random() < 0.3) en.dir = -en.dir;
+      // Шаг сорвался (яма/кирпич появились после расчёта) — пересчитаем путь.
+      en.path = null;
+      en.pathKey = '';
+    }
+    en.path = null;
+    en.pathKey = '';
+    if (hadPath) {
+      // Маршрут к игроку был, но шаг не начался: короткая пауза и пересчёт,
+      // чтобы не гонять Дейкстру каждый кадр.
+      en.actCooldown = ENEMY_RETRY;
       return;
     }
-    this._enemyStep(en, path[0]);
+
+    // Игрок недостижим (например, сидит в яме). Без случайного блуждания:
+    // 1) подходим как можно ближе к игроку по достижимой части уровня;
+    // 2) если ближе некуда — идём к награде (золото/открытый выход);
+    // 3) иначе караулим на месте.
+    var px = this.player.px, py = this.player.py;
+    var myDist = Math.abs(en.x - px) + Math.abs(en.y - py);
+    var comp = this._enemyReachable(en.x, en.y);
+    var bestNode = null, bestDist = Infinity;
+    for (var i = 0; i < comp.nodes.length; i++) {
+      var n = comp.nodes[i];
+      if (n.x === en.x && n.y === en.y) continue;
+      var d = Math.abs(n.x - px) + Math.abs(n.y - py);
+      if (d < bestDist) { bestDist = d; bestNode = n; }
+    }
+    if (bestNode && bestDist < myDist) {
+      var bp = this._pathTo(en.x, en.y, [bestNode]);
+      if (bp && bp.length && this._enemyStep(en, bp[0])) { en.actCooldown = 0; return; }
+    }
+
+    var rewards = [];
+    this.gold.forEach(function (v) {
+      var p2 = v.split(',');
+      rewards.push({ x: +p2[0], y: +p2[1] });
+    });
+    if (this.exit.open) rewards.push({ x: this.exit.x, y: this.exit.y });
+    var rp = this._pathTo(en.x, en.y, rewards);
+    if (rp && rp.length && this._enemyStep(en, rp[0])) { en.actCooldown = 0; return; }
+
+    en.actCooldown = ENEMY_FALLBACK_RETRY;
   };
 
+  // Возвращает true, если шаг реально начался.
   Game.prototype._enemyStep = function (en, action) {
-    if (!action) return;
+    if (!action) return false;
     if (action.dy === -1) {
-      if (this.canUp(en)) this._startMove(en, 0, -1, CLIMB_MS + 20, 'climb');
-      return;
+      if (!this.canUp(en)) return false;
+      this._startMove(en, 0, -1, CLIMB_MS + 20, 'climb');
+      return true;
     }
     if (action.dy === 1) {
-      if (this.canDown(en)) this._startMove(en, 0, 1, CLIMB_MS + 20, 'climb');
-      return;
+      if (!this.canDown(en)) return false;
+      this._startMove(en, 0, 1, CLIMB_MS + 20, 'climb');
+      return true;
     }
     if (action.dx !== 0) {
-      if (this.canWalk(en, action.dx)) this._startMove(en, action.dx, 0, WALK_MS + 45, 'walk');
+      if (!this.canWalk(en, action.dx)) return false;
+      this._startMove(en, action.dx, 0, WALK_MS + 45, 'walk');
+      return true;
     }
+    return false;
   };
 
   Game.prototype.updateEnemies = function (dt) {
@@ -700,19 +807,12 @@
 
       if (en.state === 'dead') {
         en.deadTimer -= dt;
-        if (en.deadTimer <= 0) {
-          en.x = en.spawnX; en.y = en.spawnY;
-          en.px = en.x; en.py = en.y;
-          en.state = 'spawn';
-          en.spawnTimer = 0.55;
-          en.move = null;
-          en.hole = null;
-        }
+        if (en.deadTimer <= 0) this._enemyRespawn(en);
         continue;
       }
       if (en.state === 'spawn') {
         en.spawnTimer -= dt;
-        if (en.spawnTimer <= 0) en.state = 'idle';
+        if (en.spawnTimer <= 0) { en.state = 'idle'; en.actCooldown = 0; }
         continue;
       }
       if (en.state === 'hole') {
@@ -725,6 +825,13 @@
         this._progressMove(en, dt);
         if (en.move) continue;
         this._arrive(en);
+        // Прибыли в клетку — сразу продолжаем маршрут в этом же кадре.
+        // Раньше здесь была случайная пауза 20–120 мс перед каждым шагом,
+        // из-за неё враг «дёргался»: шаг — стоп — шаг.
+        if (!en.move && en.state !== 'hole' && en.state !== 'dead' &&
+            en.state !== 'spawn' && en.actCooldown <= 0) {
+          this._enemyAct(en);
+        }
         continue;
       }
       if (en.state === 'fall') {
@@ -735,12 +842,47 @@
         this._beginFall(en);
         continue;
       }
-      en.wander -= dt;
-      if (en.wander <= 0) {
-        en.wander = rand(0.02, 0.12);
-        this._enemyAct(en);
+      if (en.actCooldown > 0) { en.actCooldown -= dt; continue; }
+      this._enemyAct(en);
+    }
+  };
+
+  /* Возрождение врага: возвращаем на его точку старта, но только если она
+   * всё ещё пригодна (игрок мог выкопать под ней яму или застроить проход).
+   * Иначе ищем ближайшую опорную клетку рядом — враг не должен появляться
+   * внутри кирпича или ямы. */
+  Game.prototype._enemyRespawn = function (en) {
+    var sx = en.spawnX, sy = en.spawnY;
+    var ok = function (x, y) {
+      return this.isPassable(x, y) && !this.isHole(x, y) && this.isSupported(x, y);
+    }.bind(this);
+    if (!ok(sx, sy)) {
+      var found = null;
+      for (var r = 1; r <= 4 && !found; r++) {
+        for (var dy = -r; dy <= r && !found; dy++) {
+          for (var dx = -r; dx <= r && !found; dx++) {
+            if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+            if (ok(sx + dx, sy + dy)) found = { x: sx + dx, y: sy + dy };
+          }
+        }
+      }
+      if (found) {
+        sx = found.x; sy = found.y;
+      } else {
+        // Совсем некуда поставить — попробуем позже, но не спавним в стене.
+        en.deadTimer = 0.5;
+        return;
       }
     }
+    en.x = sx; en.y = sy;
+    en.px = sx; en.py = sy;
+    en.state = 'spawn';
+    en.spawnTimer = 0.55;
+    en.move = null;
+    en.hole = null;
+    en.path = null;
+    en.pathKey = '';
+    en.actCooldown = 0.2;
   };
 
   Game.prototype._enemyDie = function (en) {
@@ -748,6 +890,8 @@
     en.state = 'dead';
     en.deadTimer = RESPAWN_TIME;
     en.move = null;
+    en.path = null;
+    en.pathKey = '';
     this.score += 150;
     this._sfx('trap');
     this._burst(en.px + 0.5, en.py + 0.5, 22, '#ff5c8a');

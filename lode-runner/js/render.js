@@ -409,7 +409,9 @@
     var spawning = en.state === 'spawn';
     var phase = en.stepPhase + (en.move ? en.move.t / en.move.dur : 0);
     var leg = Math.sin(phase * Math.PI * 2) > 0 ? 1 : -1;
-    var bob = Math.sin(t * 6 + (en.id || 0)) > 0 ? 0 : 1;
+    // Пока враг идёт, корпус не «прыгает» на пиксель — покачивание только
+    // в покое, иначе движение выглядит дёрганым.
+    var bob = en.move ? 0 : (Math.sin(t * 6 + (en.id || 0)) > 0 ? 0 : 1);
 
     if (spawning && Math.floor(t * 20) % 2 === 0) {
       g.globalAlpha = 0.55;

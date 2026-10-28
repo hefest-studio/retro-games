@@ -982,6 +982,9 @@
     var p = G.player;
     if (!p) return;
     p.t += dt;
+    /* Перезарядка оружия. Без этого shootCd навсегда оставался равен rate
+       после первого выстрела — стрельба «не работала». */
+    if (p.shootCd > 0) p.shootCd = Math.max(0, p.shootCd - dt);
     p.shootFlash = Math.max(0, p.shootFlash - dt);
     p.recoil = Math.max(0, p.recoil - dt * 6);
     if (p.invuln > 0) p.invuln -= dt;

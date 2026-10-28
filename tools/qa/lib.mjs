@@ -35,8 +35,8 @@ export function parseArgs(argv, defaults = {}) {
     const arg = argv[i];
     if (!arg.startsWith('--')) throw new Error(`Неожиданный аргумент: ${arg}`);
     const key = arg.slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-    if (key === 'help') {
-      out.help = true;
+    if (key === 'help' || key === 'skipProd') {
+      out[key] = true;
       continue;
     }
     const next = argv[++i];
