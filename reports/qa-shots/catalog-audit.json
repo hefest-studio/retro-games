@@ -1,0 +1,4597 @@
+{
+  "when": "2026-10-28T14:15:36.869Z",
+  "base": "http://127.0.0.1:8098",
+  "catalogUrl": "http://127.0.0.1:8098/",
+  "gamesJson": {
+    "status": 200,
+    "count": 11,
+    "slugs": [
+      "river-raid",
+      "digger",
+      "lode-runner",
+      "boulder-dash",
+      "contra",
+      "exolon",
+      "the-last-mission",
+      "silkworm",
+      "lost-vikings",
+      "double-dragon-battletoads",
+      "lost-vikings-2"
+    ],
+    "error": null
+  },
+  "schema": {
+    "ok": true,
+    "issues": [],
+    "orderByYearOk": true,
+    "gamesCount": 11
+  },
+  "phases": {
+    "retro": {
+      "url": "http://127.0.0.1:8098/",
+      "title": "Зал ретро-игр — каталог браузерных ремейков аркад (1982–1997)",
+      "lang": "ru",
+      "h1": [
+        "ЗАЛ РЕТРО-ИГР"
+      ],
+      "bodyTextLen": 2692,
+      "bodyTextHead": "ПЕРЕЙТИ К КАТАЛОГУ ЗАЛ РЕТРО-ИГР ARCADE HALL · 11 GAMES G СМЕНИТЬ ГРАФИКУ ГРАФИКА 8-БИТ АРКАДНЫЙ КАТАЛОГ · 1982–1997 ЗАЛ РЕТРО-ИГР Одиннадцать браузерных ремейков классических аркад и платформеров. Выберите игру, вставьте монетку — и переключайте графику между 8-битным ретро и неоновым ремастером в любой момент. 11 ИГР 1982–1997 2 СТИЛЯ 8-БИТ / НЕОН ОФЛАЙН БЕЗ CDN И СБОРКИ ▶ СЛУЧАЙНАЯ ИГРА СМОТРЕТЬ КАТАЛОГ ↓ RETRO HALL SELECT A GAME 11 ИГР PRESS START PLAYER 1 · INSERT COIN 11 ИГР · 1982–1997 ВЫ",
+      "hasCounter11": true,
+      "yearsMentioned": true,
+      "themeNodes": [
+        {
+          "on": "html",
+          "attr": "data-theme",
+          "value": "retro"
+        },
+        {
+          "on": "html",
+          "attr": "datasetKeys",
+          "value": "theme"
+        }
+      ],
+      "themeProbe": {
+        "bodyBg": "rgb(6, 7, 11)",
+        "htmlBg": "rgba(0, 0, 0, 0)",
+        "bodyColor": "rgb(243, 238, 226)",
+        "firstCardImg": "assets/catalog/thumbs/river-raid-retro.webp",
+        "accent": "#ffb648"
+      },
+      "toggles": [
+        {
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "ГРАФИКА 8-БИТ",
+          "ariaLabel": "Сейчас включён 8-битный ретро-стиль. Переключить на неоновый стиль (клавиша G)",
+          "ariaPressed": "false",
+          "title": "",
+          "id": "theme-toggle",
+          "className": "theme-toggle",
+          "rect": {
+            "x": 1201,
+            "y": 12,
+            "w": 109,
+            "h": 44,
+            "right": 1310,
+            "bottom": 56
+          }
+        }
+      ],
+      "cards": [
+        {
+          "slug": "river-raid",
+          "hrefAttr": "river-raid/",
+          "resolved": "http://127.0.0.1:8098/river-raid/",
+          "text": "#01 SHOOT'EM-UP 1982 ВСТАВЬ МОНЕТКУ River Raid РЕЧНОЙ РЕЙД Вертикальный скролл над рекой: катера, мосты и топливо. ACTIVISION ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 844,
+            "w": 377,
+            "h": 396,
+            "right": 507,
+            "bottom": 1240
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/river-raid-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/river-raid-retro.webp",
+            "alt": "River Raid — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "digger",
+          "hrefAttr": "digger/",
+          "resolved": "http://127.0.0.1:8098/digger/",
+          "text": "#02 АРКАДА 1983 ВСТАВЬ МОНЕТКУ Digger ПОДЗЕМНЫЕ ТУННЕЛИ Копайте туннели, собирайте алмазы и роняйте мешки золота. WINDMILL SOFTWARE ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 844,
+            "w": 377,
+            "h": 396,
+            "right": 909,
+            "bottom": 1240
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/digger-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/digger-retro.webp",
+            "alt": "Digger — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "lode-runner",
+          "hrefAttr": "lode-runner/",
+          "resolved": "http://127.0.0.1:8098/lode-runner/",
+          "text": "#03 ГОЛОВОЛОМКА 1983 ВСТАВЬ МОНЕТКУ Lode Runner ПОГРУЖЕНИЕ Золото, лестницы и ямы-ловушки: соберите всё и уйдите от стражи. DOUGLAS E. SMITH ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 933,
+            "y": 844,
+            "w": 377,
+            "h": 396,
+            "right": 1310,
+            "bottom": 1240
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/lode-runner-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/lode-runner-retro.webp",
+            "alt": "Lode Runner — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "boulder-dash",
+          "hrefAttr": "boulder-dash/",
+          "resolved": "http://127.0.0.1:8098/boulder-dash/",
+          "text": "#04 ГОЛОВОЛОМКА 1984 ВСТАВЬ МОНЕТКУ Boulder Dash КРИСТАЛЬНЫЕ ГЛУБИНЫ Копайте грунт, собирайте алмазы и уворачивайтесь от камней. FIRST STAR SOFTWARE ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 1266,
+            "w": 377,
+            "h": 396,
+            "right": 507,
+            "bottom": 1661
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/boulder-dash-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/boulder-dash-retro.webp",
+            "alt": "Boulder Dash — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "contra",
+          "hrefAttr": "contra/",
+          "resolved": "http://127.0.0.1:8098/contra/",
+          "text": "#05 RUN-AND-GUN 1987 ВСТАВЬ МОНЕТКУ Contra НЕОНОВЫЙ РАССВЕТ Бег, прыжки и огонь в восьми направлениях: два этапа и два босса. KONAMI ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 1266,
+            "w": 377,
+            "h": 396,
+            "right": 909,
+            "bottom": 1661
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/contra-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/contra-retro.webp",
+            "alt": "Contra — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "exolon",
+          "hrefAttr": "exolon/",
+          "resolved": "http://127.0.0.1:8098/exolon/",
+          "text": "#06 RUN-AND-GUN 1987 ВСТАВЬ МОНЕТКУ Exolon ШТУРМОВИК ВИТОРК Пять секторов: бластер по органике, граната по броне, уйдите живым. HEWSON CONSULTANTS ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 933,
+            "y": 1266,
+            "w": 377,
+            "h": 396,
+            "right": 1310,
+            "bottom": 1661
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/exolon-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/exolon-retro.webp",
+            "alt": "Exolon — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "the-last-mission",
+          "hrefAttr": "the-last-mission/",
+          "resolved": "http://127.0.0.1:8098/the-last-mission/",
+          "text": "#07 АРКАДА 1987 ВСТАВЬ МОНЕТКУ The Last Mission РОБОТ OR-CABE-3 Робот OR-CABE-3: отделяйте башню и поднимайтесь с дна базы наверх. OPERA SOFT ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 1687,
+            "w": 377,
+            "h": 396,
+            "right": 507,
+            "bottom": 2083
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/the-last-mission-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/the-last-mission-retro.webp",
+            "alt": "The Last Mission — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "silkworm",
+          "hrefAttr": "silkworm/",
+          "resolved": "http://127.0.0.1:8098/silkworm/",
+          "text": "#08 SHOOT'EM-UP 1988 ВСТАВЬ МОНЕТКУ Silkworm ШЕЛКОПРЯД Горизонтальный скролл-шутер: вертолёт, четыре зоны и четыре босса. TECMO ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 1687,
+            "w": 377,
+            "h": 396,
+            "right": 909,
+            "bottom": 2083
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/silkworm-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/silkworm-retro.webp",
+            "alt": "Silkworm — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "lost-vikings",
+          "hrefAttr": "lost-vikings/",
+          "resolved": "http://127.0.0.1:8098/lost-vikings/",
+          "text": "#09 ПЛАТФОРМЕР 1992 ВСТАВЬ МОНЕТКУ The Lost Vikings ПОТЕРЯННЫЕ ВИКИНГИ Три викинга, плиты, рычаги и три двери: проведите всех. INTERPLAY / SILICON & SYNAPSE ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 933,
+            "y": 1687,
+            "w": 377,
+            "h": 396,
+            "right": 1310,
+            "bottom": 2083
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/lost-vikings-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/lost-vikings-retro.webp",
+            "alt": "The Lost Vikings — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "double-dragon-battletoads",
+          "hrefAttr": "double-dragon-battletoads/",
+          "resolved": "http://127.0.0.1:8098/double-dragon-battletoads/",
+          "text": "#10 BEAT'EM-UP 1993 ВСТАВЬ МОНЕТКУ Double Dragon × Battle Toads NEON RAGE Дракон Кай и жаба Рок выбивают чип NEON-8 из лап «ТОКСИК». TECHNŌS JAPAN / RARE ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 2109,
+            "w": 377,
+            "h": 395,
+            "right": 507,
+            "bottom": 2504
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/double-dragon-battletoads-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/double-dragon-battletoads-retro.webp",
+            "alt": "Double Dragon × Battle Toads — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "lost-vikings-2",
+          "hrefAttr": "lost-vikings-2/",
+          "resolved": "http://127.0.0.1:8098/lost-vikings-2/",
+          "text": "#11 ПЛАТФОРМЕР 1997 ВСТАВЬ МОНЕТКУ The Lost Vikings 2 СЕВЕРНОЕ СИЯНИЕ Шесть саг, три героя и полярная ночь: соберите руны и драккар. INTERPLAY / SILICON & SYNAPSE ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 2109,
+            "w": 377,
+            "h": 395,
+            "right": 909,
+            "bottom": 2504
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/lost-vikings-2-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/lost-vikings-2-retro.webp",
+            "alt": "The Lost Vikings 2 — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        }
+      ],
+      "filters": [
+        {
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "ВСЕ",
+          "ariaPressed": "true",
+          "ariaSelected": null,
+          "dataGenre": "all",
+          "className": "chip is-active",
+          "rect": {
+            "x": 130,
+            "y": 782,
+            "w": 52,
+            "h": 38,
+            "right": 182,
+            "bottom": 820
+          }
+        },
+        {
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "SHOOT'EM-UP",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Shoot'em-up",
+          "className": "chip",
+          "rect": {
+            "x": 190,
+            "y": 782,
+            "w": 109,
+            "h": 38,
+            "right": 299,
+            "bottom": 820
+          }
+        },
+        {
+          "index": 2,
+          "tag": "BUTTON",
+          "text": "АРКАДА",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Аркада",
+          "className": "chip",
+          "rect": {
+            "x": 307,
+            "y": 782,
+            "w": 73,
+            "h": 38,
+            "right": 380,
+            "bottom": 820
+          }
+        },
+        {
+          "index": 3,
+          "tag": "BUTTON",
+          "text": "ГОЛОВОЛОМКА",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Головоломка",
+          "className": "chip",
+          "rect": {
+            "x": 388,
+            "y": 782,
+            "w": 109,
+            "h": 38,
+            "right": 498,
+            "bottom": 820
+          }
+        },
+        {
+          "index": 4,
+          "tag": "BUTTON",
+          "text": "RUN-AND-GUN",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Run-and-gun",
+          "className": "chip",
+          "rect": {
+            "x": 506,
+            "y": 782,
+            "w": 109,
+            "h": 38,
+            "right": 615,
+            "bottom": 820
+          }
+        },
+        {
+          "index": 5,
+          "tag": "BUTTON",
+          "text": "ПЛАТФОРМЕР",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Платформер",
+          "className": "chip",
+          "rect": {
+            "x": 623,
+            "y": 782,
+            "w": 102,
+            "h": 38,
+            "right": 726,
+            "bottom": 820
+          }
+        },
+        {
+          "index": 6,
+          "tag": "BUTTON",
+          "text": "BEAT'EM-UP",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Beat'em-up",
+          "className": "chip",
+          "rect": {
+            "x": 734,
+            "y": 782,
+            "w": 102,
+            "h": 38,
+            "right": 836,
+            "bottom": 820
+          }
+        }
+      ],
+      "search": {
+        "placeholder": "Поиск по названию…",
+        "ariaLabel": "Поиск игры по названию",
+        "type": "search"
+      },
+      "regions": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "w": 1440,
+          "h": 69,
+          "right": 1440,
+          "bottom": 69
+        },
+        "hero": {
+          "x": 130,
+          "y": 69,
+          "w": 1180,
+          "h": 579,
+          "right": 1310,
+          "bottom": 648
+        },
+        "filters": {
+          "x": 130,
+          "y": 782,
+          "w": 706,
+          "h": 38,
+          "right": 836,
+          "bottom": 820
+        },
+        "grid": {
+          "x": 130,
+          "y": 648,
+          "w": 1180,
+          "h": 1868,
+          "right": 1310,
+          "bottom": 2516
+        },
+        "footer": {
+          "x": 0,
+          "y": 2588,
+          "w": 1440,
+          "h": 282,
+          "right": 1440,
+          "bottom": 2870
+        }
+      },
+      "animatedCount": 2,
+      "animatedSample": [
+        {
+          "tag": "SPAN",
+          "cls": "eyebrow-dot",
+          "name": "blink",
+          "duration": "2.4s"
+        },
+        {
+          "tag": "DIV",
+          "cls": "cabinet-screen",
+          "name": "crt-flicker",
+          "duration": "6s"
+        }
+      ],
+      "reducedMotionRules": {
+        "count": 1,
+        "sample": [
+          {
+            "media": "(prefers-reduced-motion: reduce)",
+            "css": "@media (prefers-reduced-motion: reduce) {\n  html { scroll-behavior: auto; }\n  *, ::before, ::after { animation: auto ease 0s 1 normal none running none !important; transition-duration: 0s !important; "
+          }
+        ]
+      },
+      "contrast": {
+        "checked": 115,
+        "unknownBg": 7,
+        "violations": []
+      },
+      "layout": {
+        "innerWidth": 1440,
+        "innerHeight": 900,
+        "scrollWidth": 1440,
+        "scrollHeight": 2870,
+        "hscroll": false,
+        "cardOverlaps": [],
+        "offscreen": [],
+        "textOverflow": []
+      },
+      "cssVars": {
+        "--bg": "#06070b",
+        "--ink": "#f3eee2",
+        "--accent": "#ffb648"
+      },
+      "sheets": [
+        "http://127.0.0.1:8098/assets/catalog/catalog.css"
+      ],
+      "localStorage": {},
+      "counts": {
+        "gameLinks": 11,
+        "images": 11,
+        "buttons": 10,
+        "focusables": 28
+      },
+      "activeElement": "BODY",
+      "shotTop": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-retro-1440.png",
+      "shotGrid": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-retro-1440-grid.png"
+    },
+    "modern": {
+      "url": "http://127.0.0.1:8098/",
+      "title": "Зал ретро-игр — каталог браузерных ремейков аркад (1982–1997)",
+      "lang": "ru",
+      "h1": [
+        "ЗАЛ РЕТРО-ИГР"
+      ],
+      "bodyTextLen": 2691,
+      "bodyTextHead": "Перейти к каталогу Зал ретро-игр ARCADE HALL · 11 GAMES G СМЕНИТЬ ГРАФИКУ ГРАФИКА НЕОН АРКАДНЫЙ КАТАЛОГ · 1982–1997 ЗАЛ РЕТРО-ИГР Одиннадцать браузерных ремейков классических аркад и платформеров. Выберите игру, вставьте монетку — и переключайте графику между 8-битным ретро и неоновым ремастером в любой момент. 11 игр 1982–1997 2 стиля 8-бит / неон Офлайн без CDN и сборки ▶ Случайная игра Смотреть каталог ↓ RETRO HALL SELECT A GAME 11 ИГР PRESS START player 1 · insert coin 11 ИГР · 1982–1997 Выб",
+      "hasCounter11": true,
+      "yearsMentioned": true,
+      "themeNodes": [
+        {
+          "on": "html",
+          "attr": "data-theme",
+          "value": "modern"
+        },
+        {
+          "on": "html",
+          "attr": "datasetKeys",
+          "value": "theme"
+        }
+      ],
+      "themeProbe": {
+        "bodyBg": "rgb(7, 9, 18)",
+        "htmlBg": "rgba(0, 0, 0, 0)",
+        "bodyColor": "rgb(238, 241, 255)",
+        "firstCardImg": "assets/catalog/thumbs/river-raid-modern.webp",
+        "accent": "#8aa4ff"
+      },
+      "toggles": [
+        {
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "ГРАФИКА НЕОН",
+          "ariaLabel": "Сейчас включён неоновый стиль. Переключить на 8-битный ретро-стиль (клавиша G)",
+          "ariaPressed": "true",
+          "title": "",
+          "id": "theme-toggle",
+          "className": "theme-toggle",
+          "rect": {
+            "x": 1203,
+            "y": 12,
+            "w": 107,
+            "h": 44,
+            "right": 1310,
+            "bottom": 56
+          }
+        }
+      ],
+      "cards": [
+        {
+          "slug": "river-raid",
+          "hrefAttr": "river-raid/",
+          "resolved": "http://127.0.0.1:8098/river-raid/",
+          "text": "#01 Shoot'em-up 1982 Вставь монетку River Raid РЕЧНОЙ РЕЙД Вертикальный скролл над рекой: катера, мосты и топливо. Activision Играть",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 845,
+            "w": 377,
+            "h": 410,
+            "right": 507,
+            "bottom": 1255
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/river-raid-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/river-raid-modern.webp",
+            "alt": "River Raid — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "digger",
+          "hrefAttr": "digger/",
+          "resolved": "http://127.0.0.1:8098/digger/",
+          "text": "#02 Аркада 1983 Вставь монетку Digger ПОДЗЕМНЫЕ ТУННЕЛИ Копайте туннели, собирайте алмазы и роняйте мешки золота. Windmill Software Играть",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 845,
+            "w": 377,
+            "h": 410,
+            "right": 909,
+            "bottom": 1255
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/digger-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/digger-modern.webp",
+            "alt": "Digger — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "lode-runner",
+          "hrefAttr": "lode-runner/",
+          "resolved": "http://127.0.0.1:8098/lode-runner/",
+          "text": "#03 Головоломка 1983 Вставь монетку Lode Runner ПОГРУЖЕНИЕ Золото, лестницы и ямы-ловушки: соберите всё и уйдите от стражи. Douglas E. Smith Играть",
+          "visible": true,
+          "rect": {
+            "x": 933,
+            "y": 845,
+            "w": 377,
+            "h": 410,
+            "right": 1310,
+            "bottom": 1255
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/lode-runner-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/lode-runner-modern.webp",
+            "alt": "Lode Runner — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "boulder-dash",
+          "hrefAttr": "boulder-dash/",
+          "resolved": "http://127.0.0.1:8098/boulder-dash/",
+          "text": "#04 Головоломка 1984 Вставь монетку Boulder Dash КРИСТАЛЬНЫЕ ГЛУБИНЫ Копайте грунт, собирайте алмазы и уворачивайтесь от камней. First Star Software Играть",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 1279,
+            "w": 377,
+            "h": 410,
+            "right": 507,
+            "bottom": 1689
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/boulder-dash-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/boulder-dash-modern.webp",
+            "alt": "Boulder Dash — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "contra",
+          "hrefAttr": "contra/",
+          "resolved": "http://127.0.0.1:8098/contra/",
+          "text": "#05 Run-and-gun 1987 Вставь монетку Contra НЕОНОВЫЙ РАССВЕТ Бег, прыжки и огонь в восьми направлениях: два этапа и два босса. Konami Играть",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 1279,
+            "w": 377,
+            "h": 410,
+            "right": 909,
+            "bottom": 1689
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/contra-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/contra-modern.webp",
+            "alt": "Contra — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "exolon",
+          "hrefAttr": "exolon/",
+          "resolved": "http://127.0.0.1:8098/exolon/",
+          "text": "#06 Run-and-gun 1987 Вставь монетку Exolon ШТУРМОВИК ВИТОРК Пять секторов: бластер по органике, граната по броне, уйдите живым. Hewson Consultants Играть",
+          "visible": true,
+          "rect": {
+            "x": 933,
+            "y": 1279,
+            "w": 377,
+            "h": 410,
+            "right": 1310,
+            "bottom": 1689
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/exolon-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/exolon-modern.webp",
+            "alt": "Exolon — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "the-last-mission",
+          "hrefAttr": "the-last-mission/",
+          "resolved": "http://127.0.0.1:8098/the-last-mission/",
+          "text": "#07 Аркада 1987 Вставь монетку The Last Mission РОБОТ OR-CABE-3 Робот OR-CABE-3: отделяйте башню и поднимайтесь с дна базы наверх. Opera Soft Играть",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 1713,
+            "w": 377,
+            "h": 410,
+            "right": 507,
+            "bottom": 2122
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/the-last-mission-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/the-last-mission-modern.webp",
+            "alt": "The Last Mission — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "silkworm",
+          "hrefAttr": "silkworm/",
+          "resolved": "http://127.0.0.1:8098/silkworm/",
+          "text": "#08 Shoot'em-up 1988 Вставь монетку Silkworm ШЕЛКОПРЯД Горизонтальный скролл-шутер: вертолёт, четыре зоны и четыре босса. Tecmo Играть",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 1713,
+            "w": 377,
+            "h": 410,
+            "right": 909,
+            "bottom": 2122
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/silkworm-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/silkworm-modern.webp",
+            "alt": "Silkworm — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "lost-vikings",
+          "hrefAttr": "lost-vikings/",
+          "resolved": "http://127.0.0.1:8098/lost-vikings/",
+          "text": "#09 Платформер 1992 Вставь монетку The Lost Vikings ПОТЕРЯННЫЕ ВИКИНГИ Три викинга, плиты, рычаги и три двери: проведите всех. Interplay / Silicon & Synapse Играть",
+          "visible": true,
+          "rect": {
+            "x": 933,
+            "y": 1713,
+            "w": 377,
+            "h": 410,
+            "right": 1310,
+            "bottom": 2122
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/lost-vikings-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/lost-vikings-modern.webp",
+            "alt": "The Lost Vikings — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "double-dragon-battletoads",
+          "hrefAttr": "double-dragon-battletoads/",
+          "resolved": "http://127.0.0.1:8098/double-dragon-battletoads/",
+          "text": "#10 Beat'em-up 1993 Вставь монетку Double Dragon × Battle Toads NEON RAGE Дракон Кай и жаба Рок выбивают чип NEON-8 из лап «ТОКСИК». Technōs Japan / Rare Играть",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 2146,
+            "w": 377,
+            "h": 410,
+            "right": 507,
+            "bottom": 2556
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/double-dragon-battletoads-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/double-dragon-battletoads-modern.webp",
+            "alt": "Double Dragon × Battle Toads — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "lost-vikings-2",
+          "hrefAttr": "lost-vikings-2/",
+          "resolved": "http://127.0.0.1:8098/lost-vikings-2/",
+          "text": "#11 Платформер 1997 Вставь монетку The Lost Vikings 2 СЕВЕРНОЕ СИЯНИЕ Шесть саг, три героя и полярная ночь: соберите руны и драккар. Interplay / Silicon & Synapse Играть",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 2146,
+            "w": 377,
+            "h": 410,
+            "right": 909,
+            "bottom": 2556
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/lost-vikings-2-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/lost-vikings-2-modern.webp",
+            "alt": "The Lost Vikings 2 — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        }
+      ],
+      "filters": [
+        {
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Все",
+          "ariaPressed": "true",
+          "ariaSelected": null,
+          "dataGenre": "all",
+          "className": "chip is-active",
+          "rect": {
+            "x": 130,
+            "y": 783,
+            "w": 57,
+            "h": 38,
+            "right": 187,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Shoot'em-up",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Shoot'em-up",
+          "className": "chip",
+          "rect": {
+            "x": 195,
+            "y": 783,
+            "w": 113,
+            "h": 38,
+            "right": 308,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 2,
+          "tag": "BUTTON",
+          "text": "Аркада",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Аркада",
+          "className": "chip",
+          "rect": {
+            "x": 316,
+            "y": 783,
+            "w": 80,
+            "h": 38,
+            "right": 396,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 3,
+          "tag": "BUTTON",
+          "text": "Головоломка",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Головоломка",
+          "className": "chip",
+          "rect": {
+            "x": 404,
+            "y": 783,
+            "w": 116,
+            "h": 38,
+            "right": 520,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 4,
+          "tag": "BUTTON",
+          "text": "Run-and-gun",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Run-and-gun",
+          "className": "chip",
+          "rect": {
+            "x": 528,
+            "y": 783,
+            "w": 114,
+            "h": 38,
+            "right": 642,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 5,
+          "tag": "BUTTON",
+          "text": "Платформер",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Платформер",
+          "className": "chip",
+          "rect": {
+            "x": 650,
+            "y": 783,
+            "w": 114,
+            "h": 38,
+            "right": 764,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 6,
+          "tag": "BUTTON",
+          "text": "Beat'em-up",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Beat'em-up",
+          "className": "chip",
+          "rect": {
+            "x": 772,
+            "y": 783,
+            "w": 105,
+            "h": 38,
+            "right": 877,
+            "bottom": 821
+          }
+        }
+      ],
+      "search": {
+        "placeholder": "Поиск по названию…",
+        "ariaLabel": "Поиск игры по названию",
+        "type": "search"
+      },
+      "regions": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "w": 1440,
+          "h": 69,
+          "right": 1440,
+          "bottom": 69
+        },
+        "hero": {
+          "x": 130,
+          "y": 69,
+          "w": 1180,
+          "h": 580,
+          "right": 1310,
+          "bottom": 649
+        },
+        "filters": {
+          "x": 130,
+          "y": 783,
+          "w": 747,
+          "h": 38,
+          "right": 877,
+          "bottom": 821
+        },
+        "grid": {
+          "x": 130,
+          "y": 649,
+          "w": 1180,
+          "h": 1918,
+          "right": 1310,
+          "bottom": 2568
+        },
+        "footer": {
+          "x": 0,
+          "y": 2640,
+          "w": 1440,
+          "h": 266,
+          "right": 1440,
+          "bottom": 2906
+        }
+      },
+      "animatedCount": 2,
+      "animatedSample": [
+        {
+          "tag": "SPAN",
+          "cls": "eyebrow-dot",
+          "name": "pulse-dot",
+          "duration": "2.8s"
+        },
+        {
+          "tag": "DIV",
+          "cls": "cabinet-screen",
+          "name": "screen-glow",
+          "duration": "6s"
+        }
+      ],
+      "reducedMotionRules": {
+        "count": 1,
+        "sample": [
+          {
+            "media": "(prefers-reduced-motion: reduce)",
+            "css": "@media (prefers-reduced-motion: reduce) {\n  html { scroll-behavior: auto; }\n  *, ::before, ::after { animation: auto ease 0s 1 normal none running none !important; transition-duration: 0s !important; "
+          }
+        ]
+      },
+      "contrast": {
+        "checked": 25,
+        "unknownBg": 95,
+        "violations": []
+      },
+      "layout": {
+        "innerWidth": 1440,
+        "innerHeight": 900,
+        "scrollWidth": 1440,
+        "scrollHeight": 2906,
+        "hscroll": false,
+        "cardOverlaps": [],
+        "offscreen": [],
+        "textOverflow": []
+      },
+      "cssVars": {
+        "--bg": "#070912",
+        "--ink": "#eef1ff",
+        "--accent": "#8aa4ff"
+      },
+      "sheets": [
+        "http://127.0.0.1:8098/assets/catalog/catalog.css"
+      ],
+      "localStorage": {
+        "retro-games-catalog-theme": "modern"
+      },
+      "counts": {
+        "gameLinks": 11,
+        "images": 11,
+        "buttons": 10,
+        "focusables": 28
+      },
+      "activeElement": "BODY",
+      "shotTop": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-modern-1440.png",
+      "shotGrid": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-modern-1440-grid.png"
+    },
+    "afterToggleClick": {
+      "url": "http://127.0.0.1:8098/",
+      "title": "Зал ретро-игр — каталог браузерных ремейков аркад (1982–1997)",
+      "lang": "ru",
+      "h1": [
+        "ЗАЛ РЕТРО-ИГР"
+      ],
+      "bodyTextLen": 2692,
+      "bodyTextHead": "ПЕРЕЙТИ К КАТАЛОГУ ЗАЛ РЕТРО-ИГР ARCADE HALL · 11 GAMES G СМЕНИТЬ ГРАФИКУ ГРАФИКА 8-БИТ АРКАДНЫЙ КАТАЛОГ · 1982–1997 ЗАЛ РЕТРО-ИГР Одиннадцать браузерных ремейков классических аркад и платформеров. Выберите игру, вставьте монетку — и переключайте графику между 8-битным ретро и неоновым ремастером в любой момент. 11 ИГР 1982–1997 2 СТИЛЯ 8-БИТ / НЕОН ОФЛАЙН БЕЗ CDN И СБОРКИ ▶ СЛУЧАЙНАЯ ИГРА СМОТРЕТЬ КАТАЛОГ ↓ RETRO HALL SELECT A GAME 11 ИГР PRESS START PLAYER 1 · INSERT COIN 11 ИГР · 1982–1997 ВЫ",
+      "hasCounter11": true,
+      "yearsMentioned": true,
+      "themeNodes": [
+        {
+          "on": "html",
+          "attr": "data-theme",
+          "value": "retro"
+        },
+        {
+          "on": "html",
+          "attr": "datasetKeys",
+          "value": "theme"
+        }
+      ],
+      "themeProbe": {
+        "bodyBg": "rgb(6, 7, 11)",
+        "htmlBg": "rgba(0, 0, 0, 0)",
+        "bodyColor": "rgb(243, 238, 226)",
+        "firstCardImg": "assets/catalog/thumbs/river-raid-retro.webp",
+        "accent": "#ffb648"
+      },
+      "toggles": [
+        {
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "ГРАФИКА 8-БИТ",
+          "ariaLabel": "Сейчас включён 8-битный ретро-стиль. Переключить на неоновый стиль (клавиша G)",
+          "ariaPressed": "false",
+          "title": "",
+          "id": "theme-toggle",
+          "className": "theme-toggle",
+          "rect": {
+            "x": 1201,
+            "y": 12,
+            "w": 109,
+            "h": 44,
+            "right": 1310,
+            "bottom": 56
+          }
+        }
+      ],
+      "cards": [
+        {
+          "slug": "river-raid",
+          "hrefAttr": "river-raid/",
+          "resolved": "http://127.0.0.1:8098/river-raid/",
+          "text": "#01 SHOOT'EM-UP 1982 ВСТАВЬ МОНЕТКУ River Raid РЕЧНОЙ РЕЙД Вертикальный скролл над рекой: катера, мосты и топливо. ACTIVISION ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 844,
+            "w": 377,
+            "h": 396,
+            "right": 507,
+            "bottom": 1240
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/river-raid-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/river-raid-retro.webp",
+            "alt": "River Raid — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "digger",
+          "hrefAttr": "digger/",
+          "resolved": "http://127.0.0.1:8098/digger/",
+          "text": "#02 АРКАДА 1983 ВСТАВЬ МОНЕТКУ Digger ПОДЗЕМНЫЕ ТУННЕЛИ Копайте туннели, собирайте алмазы и роняйте мешки золота. WINDMILL SOFTWARE ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 844,
+            "w": 377,
+            "h": 396,
+            "right": 909,
+            "bottom": 1240
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/digger-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/digger-retro.webp",
+            "alt": "Digger — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "lode-runner",
+          "hrefAttr": "lode-runner/",
+          "resolved": "http://127.0.0.1:8098/lode-runner/",
+          "text": "#03 ГОЛОВОЛОМКА 1983 ВСТАВЬ МОНЕТКУ Lode Runner ПОГРУЖЕНИЕ Золото, лестницы и ямы-ловушки: соберите всё и уйдите от стражи. DOUGLAS E. SMITH ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 933,
+            "y": 844,
+            "w": 377,
+            "h": 396,
+            "right": 1310,
+            "bottom": 1240
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/lode-runner-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/lode-runner-retro.webp",
+            "alt": "Lode Runner — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "boulder-dash",
+          "hrefAttr": "boulder-dash/",
+          "resolved": "http://127.0.0.1:8098/boulder-dash/",
+          "text": "#04 ГОЛОВОЛОМКА 1984 ВСТАВЬ МОНЕТКУ Boulder Dash КРИСТАЛЬНЫЕ ГЛУБИНЫ Копайте грунт, собирайте алмазы и уворачивайтесь от камней. FIRST STAR SOFTWARE ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 1266,
+            "w": 377,
+            "h": 396,
+            "right": 507,
+            "bottom": 1661
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/boulder-dash-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/boulder-dash-retro.webp",
+            "alt": "Boulder Dash — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "contra",
+          "hrefAttr": "contra/",
+          "resolved": "http://127.0.0.1:8098/contra/",
+          "text": "#05 RUN-AND-GUN 1987 ВСТАВЬ МОНЕТКУ Contra НЕОНОВЫЙ РАССВЕТ Бег, прыжки и огонь в восьми направлениях: два этапа и два босса. KONAMI ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 1266,
+            "w": 377,
+            "h": 396,
+            "right": 909,
+            "bottom": 1661
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/contra-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/contra-retro.webp",
+            "alt": "Contra — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "exolon",
+          "hrefAttr": "exolon/",
+          "resolved": "http://127.0.0.1:8098/exolon/",
+          "text": "#06 RUN-AND-GUN 1987 ВСТАВЬ МОНЕТКУ Exolon ШТУРМОВИК ВИТОРК Пять секторов: бластер по органике, граната по броне, уйдите живым. HEWSON CONSULTANTS ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 933,
+            "y": 1266,
+            "w": 377,
+            "h": 396,
+            "right": 1310,
+            "bottom": 1661
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/exolon-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/exolon-retro.webp",
+            "alt": "Exolon — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "the-last-mission",
+          "hrefAttr": "the-last-mission/",
+          "resolved": "http://127.0.0.1:8098/the-last-mission/",
+          "text": "#07 АРКАДА 1987 ВСТАВЬ МОНЕТКУ The Last Mission РОБОТ OR-CABE-3 Робот OR-CABE-3: отделяйте башню и поднимайтесь с дна базы наверх. OPERA SOFT ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 1687,
+            "w": 377,
+            "h": 396,
+            "right": 507,
+            "bottom": 2083
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/the-last-mission-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/the-last-mission-retro.webp",
+            "alt": "The Last Mission — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "silkworm",
+          "hrefAttr": "silkworm/",
+          "resolved": "http://127.0.0.1:8098/silkworm/",
+          "text": "#08 SHOOT'EM-UP 1988 ВСТАВЬ МОНЕТКУ Silkworm ШЕЛКОПРЯД Горизонтальный скролл-шутер: вертолёт, четыре зоны и четыре босса. TECMO ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 1687,
+            "w": 377,
+            "h": 396,
+            "right": 909,
+            "bottom": 2083
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/silkworm-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/silkworm-retro.webp",
+            "alt": "Silkworm — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "lost-vikings",
+          "hrefAttr": "lost-vikings/",
+          "resolved": "http://127.0.0.1:8098/lost-vikings/",
+          "text": "#09 ПЛАТФОРМЕР 1992 ВСТАВЬ МОНЕТКУ The Lost Vikings ПОТЕРЯННЫЕ ВИКИНГИ Три викинга, плиты, рычаги и три двери: проведите всех. INTERPLAY / SILICON & SYNAPSE ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 933,
+            "y": 1687,
+            "w": 377,
+            "h": 396,
+            "right": 1310,
+            "bottom": 2083
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/lost-vikings-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/lost-vikings-retro.webp",
+            "alt": "The Lost Vikings — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "double-dragon-battletoads",
+          "hrefAttr": "double-dragon-battletoads/",
+          "resolved": "http://127.0.0.1:8098/double-dragon-battletoads/",
+          "text": "#10 BEAT'EM-UP 1993 ВСТАВЬ МОНЕТКУ Double Dragon × Battle Toads NEON RAGE Дракон Кай и жаба Рок выбивают чип NEON-8 из лап «ТОКСИК». TECHNŌS JAPAN / RARE ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 2109,
+            "w": 377,
+            "h": 395,
+            "right": 507,
+            "bottom": 2504
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/double-dragon-battletoads-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/double-dragon-battletoads-retro.webp",
+            "alt": "Double Dragon × Battle Toads — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "lost-vikings-2",
+          "hrefAttr": "lost-vikings-2/",
+          "resolved": "http://127.0.0.1:8098/lost-vikings-2/",
+          "text": "#11 ПЛАТФОРМЕР 1997 ВСТАВЬ МОНЕТКУ The Lost Vikings 2 СЕВЕРНОЕ СИЯНИЕ Шесть саг, три героя и полярная ночь: соберите руны и драккар. INTERPLAY / SILICON & SYNAPSE ИГРАТЬ",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 2109,
+            "w": 377,
+            "h": 395,
+            "right": 909,
+            "bottom": 2504
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/lost-vikings-2-retro.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/lost-vikings-2-retro.webp",
+            "alt": "The Lost Vikings 2 — превью игры в ретро-стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        }
+      ],
+      "filters": [
+        {
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "ВСЕ",
+          "ariaPressed": "true",
+          "ariaSelected": null,
+          "dataGenre": "all",
+          "className": "chip is-active",
+          "rect": {
+            "x": 130,
+            "y": 782,
+            "w": 52,
+            "h": 38,
+            "right": 182,
+            "bottom": 820
+          }
+        },
+        {
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "SHOOT'EM-UP",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Shoot'em-up",
+          "className": "chip",
+          "rect": {
+            "x": 190,
+            "y": 782,
+            "w": 109,
+            "h": 38,
+            "right": 299,
+            "bottom": 820
+          }
+        },
+        {
+          "index": 2,
+          "tag": "BUTTON",
+          "text": "АРКАДА",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Аркада",
+          "className": "chip",
+          "rect": {
+            "x": 307,
+            "y": 782,
+            "w": 73,
+            "h": 38,
+            "right": 380,
+            "bottom": 820
+          }
+        },
+        {
+          "index": 3,
+          "tag": "BUTTON",
+          "text": "ГОЛОВОЛОМКА",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Головоломка",
+          "className": "chip",
+          "rect": {
+            "x": 388,
+            "y": 782,
+            "w": 109,
+            "h": 38,
+            "right": 498,
+            "bottom": 820
+          }
+        },
+        {
+          "index": 4,
+          "tag": "BUTTON",
+          "text": "RUN-AND-GUN",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Run-and-gun",
+          "className": "chip",
+          "rect": {
+            "x": 506,
+            "y": 782,
+            "w": 109,
+            "h": 38,
+            "right": 615,
+            "bottom": 820
+          }
+        },
+        {
+          "index": 5,
+          "tag": "BUTTON",
+          "text": "ПЛАТФОРМЕР",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Платформер",
+          "className": "chip",
+          "rect": {
+            "x": 623,
+            "y": 782,
+            "w": 102,
+            "h": 38,
+            "right": 726,
+            "bottom": 820
+          }
+        },
+        {
+          "index": 6,
+          "tag": "BUTTON",
+          "text": "BEAT'EM-UP",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Beat'em-up",
+          "className": "chip",
+          "rect": {
+            "x": 734,
+            "y": 782,
+            "w": 102,
+            "h": 38,
+            "right": 836,
+            "bottom": 820
+          }
+        }
+      ],
+      "search": {
+        "placeholder": "Поиск по названию…",
+        "ariaLabel": "Поиск игры по названию",
+        "type": "search"
+      },
+      "regions": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "w": 1440,
+          "h": 69,
+          "right": 1440,
+          "bottom": 69
+        },
+        "hero": {
+          "x": 130,
+          "y": 69,
+          "w": 1180,
+          "h": 579,
+          "right": 1310,
+          "bottom": 648
+        },
+        "filters": {
+          "x": 130,
+          "y": 782,
+          "w": 706,
+          "h": 38,
+          "right": 836,
+          "bottom": 820
+        },
+        "grid": {
+          "x": 130,
+          "y": 648,
+          "w": 1180,
+          "h": 1868,
+          "right": 1310,
+          "bottom": 2516
+        },
+        "footer": {
+          "x": 0,
+          "y": 2588,
+          "w": 1440,
+          "h": 282,
+          "right": 1440,
+          "bottom": 2870
+        }
+      },
+      "animatedCount": 2,
+      "animatedSample": [
+        {
+          "tag": "SPAN",
+          "cls": "eyebrow-dot",
+          "name": "blink",
+          "duration": "2.4s"
+        },
+        {
+          "tag": "DIV",
+          "cls": "cabinet-screen",
+          "name": "crt-flicker",
+          "duration": "6s"
+        }
+      ],
+      "reducedMotionRules": {
+        "count": 1,
+        "sample": [
+          {
+            "media": "(prefers-reduced-motion: reduce)",
+            "css": "@media (prefers-reduced-motion: reduce) {\n  html { scroll-behavior: auto; }\n  *, ::before, ::after { animation: auto ease 0s 1 normal none running none !important; transition-duration: 0s !important; "
+          }
+        ]
+      },
+      "contrast": {
+        "checked": 115,
+        "unknownBg": 7,
+        "violations": []
+      },
+      "layout": {
+        "innerWidth": 1440,
+        "innerHeight": 900,
+        "scrollWidth": 1440,
+        "scrollHeight": 2870,
+        "hscroll": false,
+        "cardOverlaps": [],
+        "offscreen": [],
+        "textOverflow": []
+      },
+      "cssVars": {
+        "--bg": "#06070b",
+        "--ink": "#f3eee2",
+        "--accent": "#ffb648"
+      },
+      "sheets": [
+        "http://127.0.0.1:8098/assets/catalog/catalog.css"
+      ],
+      "localStorage": {
+        "retro-games-catalog-theme": "retro"
+      },
+      "counts": {
+        "gameLinks": 11,
+        "images": 11,
+        "buttons": 10,
+        "focusables": 28
+      },
+      "activeElement": "BUTTON"
+    },
+    "beforeReload": {
+      "url": "http://127.0.0.1:8098/",
+      "title": "Зал ретро-игр — каталог браузерных ремейков аркад (1982–1997)",
+      "lang": "ru",
+      "h1": [
+        "ЗАЛ РЕТРО-ИГР"
+      ],
+      "bodyTextLen": 2691,
+      "bodyTextHead": "Перейти к каталогу Зал ретро-игр ARCADE HALL · 11 GAMES G СМЕНИТЬ ГРАФИКУ ГРАФИКА НЕОН АРКАДНЫЙ КАТАЛОГ · 1982–1997 ЗАЛ РЕТРО-ИГР Одиннадцать браузерных ремейков классических аркад и платформеров. Выберите игру, вставьте монетку — и переключайте графику между 8-битным ретро и неоновым ремастером в любой момент. 11 игр 1982–1997 2 стиля 8-бит / неон Офлайн без CDN и сборки ▶ Случайная игра Смотреть каталог ↓ RETRO HALL SELECT A GAME 11 ИГР PRESS START player 1 · insert coin 11 ИГР · 1982–1997 Выб",
+      "hasCounter11": true,
+      "yearsMentioned": true,
+      "themeNodes": [
+        {
+          "on": "html",
+          "attr": "data-theme",
+          "value": "modern"
+        },
+        {
+          "on": "html",
+          "attr": "datasetKeys",
+          "value": "theme"
+        }
+      ],
+      "themeProbe": {
+        "bodyBg": "rgb(7, 9, 18)",
+        "htmlBg": "rgba(0, 0, 0, 0)",
+        "bodyColor": "rgb(238, 241, 255)",
+        "firstCardImg": "assets/catalog/thumbs/river-raid-modern.webp",
+        "accent": "#8aa4ff"
+      },
+      "toggles": [
+        {
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "ГРАФИКА НЕОН",
+          "ariaLabel": "Сейчас включён неоновый стиль. Переключить на 8-битный ретро-стиль (клавиша G)",
+          "ariaPressed": "true",
+          "title": "",
+          "id": "theme-toggle",
+          "className": "theme-toggle",
+          "rect": {
+            "x": 1203,
+            "y": 12,
+            "w": 107,
+            "h": 44,
+            "right": 1310,
+            "bottom": 56
+          }
+        }
+      ],
+      "cards": [
+        {
+          "slug": "river-raid",
+          "hrefAttr": "river-raid/",
+          "resolved": "http://127.0.0.1:8098/river-raid/",
+          "text": "#01 Shoot'em-up 1982 Вставь монетку River Raid РЕЧНОЙ РЕЙД Вертикальный скролл над рекой: катера, мосты и топливо. Activision Играть",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 845,
+            "w": 377,
+            "h": 410,
+            "right": 507,
+            "bottom": 1255
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/river-raid-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/river-raid-modern.webp",
+            "alt": "River Raid — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "digger",
+          "hrefAttr": "digger/",
+          "resolved": "http://127.0.0.1:8098/digger/",
+          "text": "#02 Аркада 1983 Вставь монетку Digger ПОДЗЕМНЫЕ ТУННЕЛИ Копайте туннели, собирайте алмазы и роняйте мешки золота. Windmill Software Играть",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 845,
+            "w": 377,
+            "h": 410,
+            "right": 909,
+            "bottom": 1255
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/digger-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/digger-modern.webp",
+            "alt": "Digger — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "lode-runner",
+          "hrefAttr": "lode-runner/",
+          "resolved": "http://127.0.0.1:8098/lode-runner/",
+          "text": "#03 Головоломка 1983 Вставь монетку Lode Runner ПОГРУЖЕНИЕ Золото, лестницы и ямы-ловушки: соберите всё и уйдите от стражи. Douglas E. Smith Играть",
+          "visible": true,
+          "rect": {
+            "x": 933,
+            "y": 845,
+            "w": 377,
+            "h": 410,
+            "right": 1310,
+            "bottom": 1255
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/lode-runner-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/lode-runner-modern.webp",
+            "alt": "Lode Runner — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "boulder-dash",
+          "hrefAttr": "boulder-dash/",
+          "resolved": "http://127.0.0.1:8098/boulder-dash/",
+          "text": "#04 Головоломка 1984 Вставь монетку Boulder Dash КРИСТАЛЬНЫЕ ГЛУБИНЫ Копайте грунт, собирайте алмазы и уворачивайтесь от камней. First Star Software Играть",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 1279,
+            "w": 377,
+            "h": 410,
+            "right": 507,
+            "bottom": 1689
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/boulder-dash-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/boulder-dash-modern.webp",
+            "alt": "Boulder Dash — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "contra",
+          "hrefAttr": "contra/",
+          "resolved": "http://127.0.0.1:8098/contra/",
+          "text": "#05 Run-and-gun 1987 Вставь монетку Contra НЕОНОВЫЙ РАССВЕТ Бег, прыжки и огонь в восьми направлениях: два этапа и два босса. Konami Играть",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 1279,
+            "w": 377,
+            "h": 410,
+            "right": 909,
+            "bottom": 1689
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/contra-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/contra-modern.webp",
+            "alt": "Contra — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "exolon",
+          "hrefAttr": "exolon/",
+          "resolved": "http://127.0.0.1:8098/exolon/",
+          "text": "#06 Run-and-gun 1987 Вставь монетку Exolon ШТУРМОВИК ВИТОРК Пять секторов: бластер по органике, граната по броне, уйдите живым. Hewson Consultants Играть",
+          "visible": true,
+          "rect": {
+            "x": 933,
+            "y": 1279,
+            "w": 377,
+            "h": 410,
+            "right": 1310,
+            "bottom": 1689
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/exolon-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/exolon-modern.webp",
+            "alt": "Exolon — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "the-last-mission",
+          "hrefAttr": "the-last-mission/",
+          "resolved": "http://127.0.0.1:8098/the-last-mission/",
+          "text": "#07 Аркада 1987 Вставь монетку The Last Mission РОБОТ OR-CABE-3 Робот OR-CABE-3: отделяйте башню и поднимайтесь с дна базы наверх. Opera Soft Играть",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 1713,
+            "w": 377,
+            "h": 410,
+            "right": 507,
+            "bottom": 2122
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/the-last-mission-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/the-last-mission-modern.webp",
+            "alt": "The Last Mission — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "silkworm",
+          "hrefAttr": "silkworm/",
+          "resolved": "http://127.0.0.1:8098/silkworm/",
+          "text": "#08 Shoot'em-up 1988 Вставь монетку Silkworm ШЕЛКОПРЯД Горизонтальный скролл-шутер: вертолёт, четыре зоны и четыре босса. Tecmo Играть",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 1713,
+            "w": 377,
+            "h": 410,
+            "right": 909,
+            "bottom": 2122
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/silkworm-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/silkworm-modern.webp",
+            "alt": "Silkworm — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "lost-vikings",
+          "hrefAttr": "lost-vikings/",
+          "resolved": "http://127.0.0.1:8098/lost-vikings/",
+          "text": "#09 Платформер 1992 Вставь монетку The Lost Vikings ПОТЕРЯННЫЕ ВИКИНГИ Три викинга, плиты, рычаги и три двери: проведите всех. Interplay / Silicon & Synapse Играть",
+          "visible": true,
+          "rect": {
+            "x": 933,
+            "y": 1713,
+            "w": 377,
+            "h": 410,
+            "right": 1310,
+            "bottom": 2122
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/lost-vikings-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/lost-vikings-modern.webp",
+            "alt": "The Lost Vikings — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "double-dragon-battletoads",
+          "hrefAttr": "double-dragon-battletoads/",
+          "resolved": "http://127.0.0.1:8098/double-dragon-battletoads/",
+          "text": "#10 Beat'em-up 1993 Вставь монетку Double Dragon × Battle Toads NEON RAGE Дракон Кай и жаба Рок выбивают чип NEON-8 из лап «ТОКСИК». Technōs Japan / Rare Играть",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 2146,
+            "w": 377,
+            "h": 410,
+            "right": 507,
+            "bottom": 2556
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/double-dragon-battletoads-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/double-dragon-battletoads-modern.webp",
+            "alt": "Double Dragon × Battle Toads — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "lost-vikings-2",
+          "hrefAttr": "lost-vikings-2/",
+          "resolved": "http://127.0.0.1:8098/lost-vikings-2/",
+          "text": "#11 Платформер 1997 Вставь монетку The Lost Vikings 2 СЕВЕРНОЕ СИЯНИЕ Шесть саг, три героя и полярная ночь: соберите руны и драккар. Interplay / Silicon & Synapse Играть",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 2146,
+            "w": 377,
+            "h": 410,
+            "right": 909,
+            "bottom": 2556
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/lost-vikings-2-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/lost-vikings-2-modern.webp",
+            "alt": "The Lost Vikings 2 — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "eager",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        }
+      ],
+      "filters": [
+        {
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Все",
+          "ariaPressed": "true",
+          "ariaSelected": null,
+          "dataGenre": "all",
+          "className": "chip is-active",
+          "rect": {
+            "x": 130,
+            "y": 783,
+            "w": 57,
+            "h": 38,
+            "right": 187,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Shoot'em-up",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Shoot'em-up",
+          "className": "chip",
+          "rect": {
+            "x": 195,
+            "y": 783,
+            "w": 113,
+            "h": 38,
+            "right": 308,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 2,
+          "tag": "BUTTON",
+          "text": "Аркада",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Аркада",
+          "className": "chip",
+          "rect": {
+            "x": 316,
+            "y": 783,
+            "w": 80,
+            "h": 38,
+            "right": 396,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 3,
+          "tag": "BUTTON",
+          "text": "Головоломка",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Головоломка",
+          "className": "chip",
+          "rect": {
+            "x": 404,
+            "y": 783,
+            "w": 116,
+            "h": 38,
+            "right": 520,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 4,
+          "tag": "BUTTON",
+          "text": "Run-and-gun",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Run-and-gun",
+          "className": "chip",
+          "rect": {
+            "x": 528,
+            "y": 783,
+            "w": 114,
+            "h": 38,
+            "right": 642,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 5,
+          "tag": "BUTTON",
+          "text": "Платформер",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Платформер",
+          "className": "chip",
+          "rect": {
+            "x": 650,
+            "y": 783,
+            "w": 114,
+            "h": 38,
+            "right": 764,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 6,
+          "tag": "BUTTON",
+          "text": "Beat'em-up",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Beat'em-up",
+          "className": "chip",
+          "rect": {
+            "x": 772,
+            "y": 783,
+            "w": 105,
+            "h": 38,
+            "right": 877,
+            "bottom": 821
+          }
+        }
+      ],
+      "search": {
+        "placeholder": "Поиск по названию…",
+        "ariaLabel": "Поиск игры по названию",
+        "type": "search"
+      },
+      "regions": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "w": 1440,
+          "h": 69,
+          "right": 1440,
+          "bottom": 69
+        },
+        "hero": {
+          "x": 130,
+          "y": 69,
+          "w": 1180,
+          "h": 580,
+          "right": 1310,
+          "bottom": 649
+        },
+        "filters": {
+          "x": 130,
+          "y": 783,
+          "w": 747,
+          "h": 38,
+          "right": 877,
+          "bottom": 821
+        },
+        "grid": {
+          "x": 130,
+          "y": 649,
+          "w": 1180,
+          "h": 1918,
+          "right": 1310,
+          "bottom": 2568
+        },
+        "footer": {
+          "x": 0,
+          "y": 2640,
+          "w": 1440,
+          "h": 266,
+          "right": 1440,
+          "bottom": 2906
+        }
+      },
+      "animatedCount": 2,
+      "animatedSample": [
+        {
+          "tag": "SPAN",
+          "cls": "eyebrow-dot",
+          "name": "pulse-dot",
+          "duration": "2.8s"
+        },
+        {
+          "tag": "DIV",
+          "cls": "cabinet-screen",
+          "name": "screen-glow",
+          "duration": "6s"
+        }
+      ],
+      "reducedMotionRules": {
+        "count": 1,
+        "sample": [
+          {
+            "media": "(prefers-reduced-motion: reduce)",
+            "css": "@media (prefers-reduced-motion: reduce) {\n  html { scroll-behavior: auto; }\n  *, ::before, ::after { animation: auto ease 0s 1 normal none running none !important; transition-duration: 0s !important; "
+          }
+        ]
+      },
+      "contrast": {
+        "checked": 25,
+        "unknownBg": 95,
+        "violations": []
+      },
+      "layout": {
+        "innerWidth": 1440,
+        "innerHeight": 900,
+        "scrollWidth": 1440,
+        "scrollHeight": 2906,
+        "hscroll": false,
+        "cardOverlaps": [],
+        "offscreen": [],
+        "textOverflow": []
+      },
+      "cssVars": {
+        "--bg": "#070912",
+        "--ink": "#eef1ff",
+        "--accent": "#8aa4ff"
+      },
+      "sheets": [
+        "http://127.0.0.1:8098/assets/catalog/catalog.css"
+      ],
+      "localStorage": {
+        "retro-games-catalog-theme": "modern"
+      },
+      "counts": {
+        "gameLinks": 11,
+        "images": 11,
+        "buttons": 10,
+        "focusables": 28
+      },
+      "activeElement": "BUTTON"
+    },
+    "afterReload": {
+      "url": "http://127.0.0.1:8098/",
+      "title": "Зал ретро-игр — каталог браузерных ремейков аркад (1982–1997)",
+      "lang": "ru",
+      "h1": [
+        "ЗАЛ РЕТРО-ИГР"
+      ],
+      "bodyTextLen": 2691,
+      "bodyTextHead": "Перейти к каталогу Зал ретро-игр ARCADE HALL · 11 GAMES G СМЕНИТЬ ГРАФИКУ ГРАФИКА НЕОН АРКАДНЫЙ КАТАЛОГ · 1982–1997 ЗАЛ РЕТРО-ИГР Одиннадцать браузерных ремейков классических аркад и платформеров. Выберите игру, вставьте монетку — и переключайте графику между 8-битным ретро и неоновым ремастером в любой момент. 11 игр 1982–1997 2 стиля 8-бит / неон Офлайн без CDN и сборки ▶ Случайная игра Смотреть каталог ↓ RETRO HALL SELECT A GAME 11 ИГР PRESS START player 1 · insert coin 11 ИГР · 1982–1997 Выб",
+      "hasCounter11": true,
+      "yearsMentioned": true,
+      "themeNodes": [
+        {
+          "on": "html",
+          "attr": "data-theme",
+          "value": "modern"
+        },
+        {
+          "on": "html",
+          "attr": "datasetKeys",
+          "value": "theme"
+        }
+      ],
+      "themeProbe": {
+        "bodyBg": "rgb(7, 9, 18)",
+        "htmlBg": "rgba(0, 0, 0, 0)",
+        "bodyColor": "rgb(238, 241, 255)",
+        "firstCardImg": "assets/catalog/thumbs/river-raid-modern.webp",
+        "accent": "#8aa4ff"
+      },
+      "toggles": [
+        {
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "ГРАФИКА НЕОН",
+          "ariaLabel": "Сейчас включён неоновый стиль. Переключить на 8-битный ретро-стиль (клавиша G)",
+          "ariaPressed": "true",
+          "title": "",
+          "id": "theme-toggle",
+          "className": "theme-toggle",
+          "rect": {
+            "x": 1203,
+            "y": 12,
+            "w": 107,
+            "h": 44,
+            "right": 1310,
+            "bottom": 56
+          }
+        }
+      ],
+      "cards": [
+        {
+          "slug": "river-raid",
+          "hrefAttr": "river-raid/",
+          "resolved": "http://127.0.0.1:8098/river-raid/",
+          "text": "#01 Shoot'em-up 1982 Вставь монетку River Raid РЕЧНОЙ РЕЙД Вертикальный скролл над рекой: катера, мосты и топливо. Activision Играть",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 845,
+            "w": 377,
+            "h": 410,
+            "right": 507,
+            "bottom": 1255
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/river-raid-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/river-raid-modern.webp",
+            "alt": "River Raid — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "lazy",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "digger",
+          "hrefAttr": "digger/",
+          "resolved": "http://127.0.0.1:8098/digger/",
+          "text": "#02 Аркада 1983 Вставь монетку Digger ПОДЗЕМНЫЕ ТУННЕЛИ Копайте туннели, собирайте алмазы и роняйте мешки золота. Windmill Software Играть",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 845,
+            "w": 377,
+            "h": 410,
+            "right": 909,
+            "bottom": 1255
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/digger-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/digger-modern.webp",
+            "alt": "Digger — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "lazy",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "lode-runner",
+          "hrefAttr": "lode-runner/",
+          "resolved": "http://127.0.0.1:8098/lode-runner/",
+          "text": "#03 Головоломка 1983 Вставь монетку Lode Runner ПОГРУЖЕНИЕ Золото, лестницы и ямы-ловушки: соберите всё и уйдите от стражи. Douglas E. Smith Играть",
+          "visible": true,
+          "rect": {
+            "x": 933,
+            "y": 845,
+            "w": 377,
+            "h": 410,
+            "right": 1310,
+            "bottom": 1255
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/lode-runner-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/lode-runner-modern.webp",
+            "alt": "Lode Runner — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "lazy",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "boulder-dash",
+          "hrefAttr": "boulder-dash/",
+          "resolved": "http://127.0.0.1:8098/boulder-dash/",
+          "text": "#04 Головоломка 1984 Вставь монетку Boulder Dash КРИСТАЛЬНЫЕ ГЛУБИНЫ Копайте грунт, собирайте алмазы и уворачивайтесь от камней. First Star Software Играть",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 1279,
+            "w": 377,
+            "h": 410,
+            "right": 507,
+            "bottom": 1689
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/boulder-dash-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/boulder-dash-modern.webp",
+            "alt": "Boulder Dash — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "lazy",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "contra",
+          "hrefAttr": "contra/",
+          "resolved": "http://127.0.0.1:8098/contra/",
+          "text": "#05 Run-and-gun 1987 Вставь монетку Contra НЕОНОВЫЙ РАССВЕТ Бег, прыжки и огонь в восьми направлениях: два этапа и два босса. Konami Играть",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 1279,
+            "w": 377,
+            "h": 410,
+            "right": 909,
+            "bottom": 1689
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/contra-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/contra-modern.webp",
+            "alt": "Contra — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "lazy",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "exolon",
+          "hrefAttr": "exolon/",
+          "resolved": "http://127.0.0.1:8098/exolon/",
+          "text": "#06 Run-and-gun 1987 Вставь монетку Exolon ШТУРМОВИК ВИТОРК Пять секторов: бластер по органике, граната по броне, уйдите живым. Hewson Consultants Играть",
+          "visible": true,
+          "rect": {
+            "x": 933,
+            "y": 1279,
+            "w": 377,
+            "h": 410,
+            "right": 1310,
+            "bottom": 1689
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/exolon-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/exolon-modern.webp",
+            "alt": "Exolon — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "lazy",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "the-last-mission",
+          "hrefAttr": "the-last-mission/",
+          "resolved": "http://127.0.0.1:8098/the-last-mission/",
+          "text": "#07 Аркада 1987 Вставь монетку The Last Mission РОБОТ OR-CABE-3 Робот OR-CABE-3: отделяйте башню и поднимайтесь с дна базы наверх. Opera Soft Играть",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 1713,
+            "w": 377,
+            "h": 410,
+            "right": 507,
+            "bottom": 2122
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/the-last-mission-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/the-last-mission-modern.webp",
+            "alt": "The Last Mission — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "lazy",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "silkworm",
+          "hrefAttr": "silkworm/",
+          "resolved": "http://127.0.0.1:8098/silkworm/",
+          "text": "#08 Shoot'em-up 1988 Вставь монетку Silkworm ШЕЛКОПРЯД Горизонтальный скролл-шутер: вертолёт, четыре зоны и четыре босса. Tecmo Играть",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 1713,
+            "w": 377,
+            "h": 410,
+            "right": 909,
+            "bottom": 2122
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/silkworm-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/silkworm-modern.webp",
+            "alt": "Silkworm — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "lazy",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "lost-vikings",
+          "hrefAttr": "lost-vikings/",
+          "resolved": "http://127.0.0.1:8098/lost-vikings/",
+          "text": "#09 Платформер 1992 Вставь монетку The Lost Vikings ПОТЕРЯННЫЕ ВИКИНГИ Три викинга, плиты, рычаги и три двери: проведите всех. Interplay / Silicon & Synapse Играть",
+          "visible": true,
+          "rect": {
+            "x": 933,
+            "y": 1713,
+            "w": 377,
+            "h": 410,
+            "right": 1310,
+            "bottom": 2122
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/lost-vikings-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/lost-vikings-modern.webp",
+            "alt": "The Lost Vikings — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "lazy",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "double-dragon-battletoads",
+          "hrefAttr": "double-dragon-battletoads/",
+          "resolved": "http://127.0.0.1:8098/double-dragon-battletoads/",
+          "text": "#10 Beat'em-up 1993 Вставь монетку Double Dragon × Battle Toads NEON RAGE Дракон Кай и жаба Рок выбивают чип NEON-8 из лап «ТОКСИК». Technōs Japan / Rare Играть",
+          "visible": true,
+          "rect": {
+            "x": 130,
+            "y": 2146,
+            "w": 377,
+            "h": 410,
+            "right": 507,
+            "bottom": 2556
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/double-dragon-battletoads-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/double-dragon-battletoads-modern.webp",
+            "alt": "Double Dragon × Battle Toads — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "lazy",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        },
+        {
+          "slug": "lost-vikings-2",
+          "hrefAttr": "lost-vikings-2/",
+          "resolved": "http://127.0.0.1:8098/lost-vikings-2/",
+          "text": "#11 Платформер 1997 Вставь монетку The Lost Vikings 2 СЕВЕРНОЕ СИЯНИЕ Шесть саг, три героя и полярная ночь: соберите руны и драккар. Interplay / Silicon & Synapse Играть",
+          "visible": true,
+          "rect": {
+            "x": 531,
+            "y": 2146,
+            "w": 377,
+            "h": 410,
+            "right": 909,
+            "bottom": 2556
+          },
+          "img": {
+            "srcAttr": "assets/catalog/thumbs/lost-vikings-2-modern.webp",
+            "currentSrc": "http://127.0.0.1:8098/assets/catalog/thumbs/lost-vikings-2-modern.webp",
+            "alt": "The Lost Vikings 2 — превью игры в неоновом стиле",
+            "naturalWidth": 720,
+            "naturalHeight": 405,
+            "complete": true,
+            "loading": "lazy",
+            "decoding": "async",
+            "widthAttr": "720",
+            "heightAttr": "405",
+            "visible": true
+          },
+          "buttonTexts": [],
+          "dataGenre": ""
+        }
+      ],
+      "filters": [
+        {
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Все",
+          "ariaPressed": "true",
+          "ariaSelected": null,
+          "dataGenre": "all",
+          "className": "chip is-active",
+          "rect": {
+            "x": 130,
+            "y": 783,
+            "w": 57,
+            "h": 38,
+            "right": 187,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Shoot'em-up",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Shoot'em-up",
+          "className": "chip",
+          "rect": {
+            "x": 195,
+            "y": 783,
+            "w": 113,
+            "h": 38,
+            "right": 308,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 2,
+          "tag": "BUTTON",
+          "text": "Аркада",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Аркада",
+          "className": "chip",
+          "rect": {
+            "x": 316,
+            "y": 783,
+            "w": 80,
+            "h": 38,
+            "right": 396,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 3,
+          "tag": "BUTTON",
+          "text": "Головоломка",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Головоломка",
+          "className": "chip",
+          "rect": {
+            "x": 404,
+            "y": 783,
+            "w": 116,
+            "h": 38,
+            "right": 520,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 4,
+          "tag": "BUTTON",
+          "text": "Run-and-gun",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Run-and-gun",
+          "className": "chip",
+          "rect": {
+            "x": 528,
+            "y": 783,
+            "w": 114,
+            "h": 38,
+            "right": 642,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 5,
+          "tag": "BUTTON",
+          "text": "Платформер",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Платформер",
+          "className": "chip",
+          "rect": {
+            "x": 650,
+            "y": 783,
+            "w": 114,
+            "h": 38,
+            "right": 764,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 6,
+          "tag": "BUTTON",
+          "text": "Beat'em-up",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Beat'em-up",
+          "className": "chip",
+          "rect": {
+            "x": 772,
+            "y": 783,
+            "w": 105,
+            "h": 38,
+            "right": 877,
+            "bottom": 821
+          }
+        }
+      ],
+      "search": {
+        "placeholder": "Поиск по названию…",
+        "ariaLabel": "Поиск игры по названию",
+        "type": "search"
+      },
+      "regions": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "w": 1440,
+          "h": 69,
+          "right": 1440,
+          "bottom": 69
+        },
+        "hero": {
+          "x": 130,
+          "y": 69,
+          "w": 1180,
+          "h": 580,
+          "right": 1310,
+          "bottom": 649
+        },
+        "filters": {
+          "x": 130,
+          "y": 783,
+          "w": 747,
+          "h": 38,
+          "right": 877,
+          "bottom": 821
+        },
+        "grid": {
+          "x": 130,
+          "y": 649,
+          "w": 1180,
+          "h": 1918,
+          "right": 1310,
+          "bottom": 2568
+        },
+        "footer": {
+          "x": 0,
+          "y": 2640,
+          "w": 1440,
+          "h": 266,
+          "right": 1440,
+          "bottom": 2906
+        }
+      },
+      "animatedCount": 2,
+      "animatedSample": [
+        {
+          "tag": "SPAN",
+          "cls": "eyebrow-dot",
+          "name": "pulse-dot",
+          "duration": "2.8s"
+        },
+        {
+          "tag": "DIV",
+          "cls": "cabinet-screen",
+          "name": "screen-glow",
+          "duration": "6s"
+        }
+      ],
+      "reducedMotionRules": {
+        "count": 1,
+        "sample": [
+          {
+            "media": "(prefers-reduced-motion: reduce)",
+            "css": "@media (prefers-reduced-motion: reduce) {\n  html { scroll-behavior: auto; }\n  *, ::before, ::after { animation: auto ease 0s 1 normal none running none !important; transition-duration: 0s !important; "
+          }
+        ]
+      },
+      "contrast": {
+        "checked": 25,
+        "unknownBg": 95,
+        "violations": []
+      },
+      "layout": {
+        "innerWidth": 1440,
+        "innerHeight": 900,
+        "scrollWidth": 1440,
+        "scrollHeight": 2906,
+        "hscroll": false,
+        "cardOverlaps": [],
+        "offscreen": [],
+        "textOverflow": []
+      },
+      "cssVars": {
+        "--bg": "#070912",
+        "--ink": "#eef1ff",
+        "--accent": "#8aa4ff"
+      },
+      "sheets": [
+        "http://127.0.0.1:8098/assets/catalog/catalog.css"
+      ],
+      "localStorage": {
+        "retro-games-catalog-theme": "modern"
+      },
+      "counts": {
+        "gameLinks": 11,
+        "images": 11,
+        "buttons": 10,
+        "focusables": 28
+      },
+      "activeElement": "BODY",
+      "shot": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-modern-after-reload-1440.png"
+    },
+    "toggleTests": {
+      "gChangedTheme": true,
+      "toggleClick": {
+        "ok": true,
+        "signatureDiffersFromModern": true,
+        "equalsRetro": true,
+        "ariaPressed": "false"
+      },
+      "persistedAfterReload": true,
+      "localStorageAfterSwitch": {
+        "retro-games-catalog-theme": "modern"
+      },
+      "localStorageAfterReload": {
+        "retro-games-catalog-theme": "modern"
+      },
+      "retrofit": {
+        "retroSignatureSample": [
+          {
+            "on": "html",
+            "attr": "data-theme",
+            "value": "retro"
+          },
+          {
+            "on": "html",
+            "attr": "datasetKeys",
+            "value": "theme"
+          }
+        ],
+        "modernSignatureSample": [
+          {
+            "on": "html",
+            "attr": "data-theme",
+            "value": "modern"
+          },
+          {
+            "on": "html",
+            "attr": "datasetKeys",
+            "value": "theme"
+          }
+        ]
+      }
+    },
+    "filtersHost": {
+      "filters": [
+        {
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Все",
+          "ariaPressed": "true",
+          "ariaSelected": null,
+          "dataGenre": "all",
+          "className": "chip is-active",
+          "rect": {
+            "x": 130,
+            "y": 783,
+            "w": 57,
+            "h": 38,
+            "right": 187,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Shoot'em-up",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Shoot'em-up",
+          "className": "chip",
+          "rect": {
+            "x": 195,
+            "y": 783,
+            "w": 113,
+            "h": 38,
+            "right": 308,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 2,
+          "tag": "BUTTON",
+          "text": "Аркада",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Аркада",
+          "className": "chip",
+          "rect": {
+            "x": 316,
+            "y": 783,
+            "w": 80,
+            "h": 38,
+            "right": 396,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 3,
+          "tag": "BUTTON",
+          "text": "Головоломка",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Головоломка",
+          "className": "chip",
+          "rect": {
+            "x": 404,
+            "y": 783,
+            "w": 116,
+            "h": 38,
+            "right": 520,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 4,
+          "tag": "BUTTON",
+          "text": "Run-and-gun",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Run-and-gun",
+          "className": "chip",
+          "rect": {
+            "x": 528,
+            "y": 783,
+            "w": 114,
+            "h": 38,
+            "right": 642,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 5,
+          "tag": "BUTTON",
+          "text": "Платформер",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Платформер",
+          "className": "chip",
+          "rect": {
+            "x": 650,
+            "y": 783,
+            "w": 114,
+            "h": 38,
+            "right": 764,
+            "bottom": 821
+          }
+        },
+        {
+          "index": 6,
+          "tag": "BUTTON",
+          "text": "Beat'em-up",
+          "ariaPressed": "false",
+          "ariaSelected": null,
+          "dataGenre": "Beat'em-up",
+          "className": "chip",
+          "rect": {
+            "x": 772,
+            "y": 783,
+            "w": 105,
+            "h": 38,
+            "right": 877,
+            "bottom": 821
+          }
+        }
+      ],
+      "search": {
+        "placeholder": "Поиск по названию…",
+        "ariaLabel": "Поиск игры по названию",
+        "type": "search"
+      },
+      "cards": 11
+    },
+    "mobileRetro": {
+      "themeNodes": [
+        {
+          "on": "html",
+          "attr": "data-theme",
+          "value": "retro"
+        },
+        {
+          "on": "html",
+          "attr": "datasetKeys",
+          "value": "theme"
+        }
+      ],
+      "toggles": [
+        {
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "8-БИТ",
+          "ariaLabel": "Сейчас включён 8-битный ретро-стиль. Переключить на неоновый стиль (клавиша G)",
+          "ariaPressed": "false",
+          "title": "",
+          "id": "theme-toggle",
+          "className": "theme-toggle",
+          "rect": {
+            "x": 272,
+            "y": 9,
+            "w": 98,
+            "h": 44,
+            "right": 370,
+            "bottom": 53
+          }
+        }
+      ],
+      "themeProbe": {
+        "bodyBg": "rgb(6, 7, 11)",
+        "htmlBg": "rgba(0, 0, 0, 0)",
+        "bodyColor": "rgb(243, 238, 226)",
+        "firstCardImg": "assets/catalog/thumbs/river-raid-retro.webp",
+        "accent": "#ffb648"
+      },
+      "localStorage": {
+        "riverraid.gfx": "\"retro\"",
+        "retro-games-catalog-theme": "retro"
+      },
+      "signature": "{\"nodes\":[\"html:data-theme:retro\",\"html:datasetKeys:theme\"],\"pressed\":[\"false\"],\"probe\":{\"bodyBg\":\"rgb(6, 7, 11)\",\"htmlBg\":\"rgba(0, 0, 0, 0)\",\"bodyColor\":\"rgb(243, 238, 226)\",\"firstCardImg\":\"assets/catalog/thumbs/river-raid-retro.webp\",\"accent\":\"#ffb648\"}}"
+    },
+    "mobileModern": {
+      "themeNodes": [
+        {
+          "on": "html",
+          "attr": "data-theme",
+          "value": "modern"
+        },
+        {
+          "on": "html",
+          "attr": "datasetKeys",
+          "value": "theme"
+        }
+      ],
+      "toggles": [
+        {
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "НЕОН",
+          "ariaLabel": "Сейчас включён неоновый стиль. Переключить на 8-битный ретро-стиль (клавиша G)",
+          "ariaPressed": "true",
+          "title": "",
+          "id": "theme-toggle",
+          "className": "theme-toggle",
+          "rect": {
+            "x": 283,
+            "y": 9,
+            "w": 87,
+            "h": 44,
+            "right": 370,
+            "bottom": 53
+          }
+        }
+      ],
+      "themeProbe": {
+        "bodyBg": "rgb(7, 9, 18)",
+        "htmlBg": "rgba(0, 0, 0, 0)",
+        "bodyColor": "rgb(238, 241, 255)",
+        "firstCardImg": "assets/catalog/thumbs/river-raid-modern.webp",
+        "accent": "#8aa4ff"
+      },
+      "localStorage": {
+        "riverraid.gfx": "\"retro\"",
+        "retro-games-catalog-theme": "modern"
+      },
+      "signature": "{\"nodes\":[\"html:data-theme:modern\",\"html:datasetKeys:theme\"],\"pressed\":[\"true\"],\"probe\":{\"bodyBg\":\"rgb(7, 9, 18)\",\"htmlBg\":\"rgba(0, 0, 0, 0)\",\"bodyColor\":\"rgb(238, 241, 255)\",\"firstCardImg\":\"assets/catalog/thumbs/river-raid-modern.webp\",\"accent\":\"#8aa4ff\"}}"
+    },
+    "desktopRetroSig": "{\"nodes\":[\"html:data-theme:retro\",\"html:datasetKeys:theme\"],\"pressed\":[\"false\"],\"probe\":{\"bodyBg\":\"rgb(6, 7, 11)\",\"htmlBg\":\"rgba(0, 0, 0, 0)\",\"bodyColor\":\"rgb(243, 238, 226)\",\"firstCardImg\":\"assets/catalog/thumbs/river-raid-retro.webp\",\"accent\":\"#ffb648\"}}",
+    "desktopModernSig": "{\"nodes\":[\"html:data-theme:modern\",\"html:datasetKeys:theme\"],\"pressed\":[\"true\"],\"probe\":{\"bodyBg\":\"rgb(7, 9, 18)\",\"htmlBg\":\"rgba(0, 0, 0, 0)\",\"bodyColor\":\"rgb(238, 241, 255)\",\"firstCardImg\":\"assets/catalog/thumbs/river-raid-modern.webp\",\"accent\":\"#8aa4ff\"}}"
+  },
+  "links": [
+    {
+      "slug": "river-raid",
+      "hrefAttr": "river-raid/",
+      "resolved": "http://127.0.0.1:8098/river-raid/",
+      "status": 200,
+      "ok": true,
+      "relative": true,
+      "trailingSlash": true
+    },
+    {
+      "slug": "digger",
+      "hrefAttr": "digger/",
+      "resolved": "http://127.0.0.1:8098/digger/",
+      "status": 200,
+      "ok": true,
+      "relative": true,
+      "trailingSlash": true
+    },
+    {
+      "slug": "lode-runner",
+      "hrefAttr": "lode-runner/",
+      "resolved": "http://127.0.0.1:8098/lode-runner/",
+      "status": 200,
+      "ok": true,
+      "relative": true,
+      "trailingSlash": true
+    },
+    {
+      "slug": "boulder-dash",
+      "hrefAttr": "boulder-dash/",
+      "resolved": "http://127.0.0.1:8098/boulder-dash/",
+      "status": 200,
+      "ok": true,
+      "relative": true,
+      "trailingSlash": true
+    },
+    {
+      "slug": "contra",
+      "hrefAttr": "contra/",
+      "resolved": "http://127.0.0.1:8098/contra/",
+      "status": 200,
+      "ok": true,
+      "relative": true,
+      "trailingSlash": true
+    },
+    {
+      "slug": "exolon",
+      "hrefAttr": "exolon/",
+      "resolved": "http://127.0.0.1:8098/exolon/",
+      "status": 200,
+      "ok": true,
+      "relative": true,
+      "trailingSlash": true
+    },
+    {
+      "slug": "the-last-mission",
+      "hrefAttr": "the-last-mission/",
+      "resolved": "http://127.0.0.1:8098/the-last-mission/",
+      "status": 200,
+      "ok": true,
+      "relative": true,
+      "trailingSlash": true
+    },
+    {
+      "slug": "silkworm",
+      "hrefAttr": "silkworm/",
+      "resolved": "http://127.0.0.1:8098/silkworm/",
+      "status": 200,
+      "ok": true,
+      "relative": true,
+      "trailingSlash": true
+    },
+    {
+      "slug": "lost-vikings",
+      "hrefAttr": "lost-vikings/",
+      "resolved": "http://127.0.0.1:8098/lost-vikings/",
+      "status": 200,
+      "ok": true,
+      "relative": true,
+      "trailingSlash": true
+    },
+    {
+      "slug": "double-dragon-battletoads",
+      "hrefAttr": "double-dragon-battletoads/",
+      "resolved": "http://127.0.0.1:8098/double-dragon-battletoads/",
+      "status": 200,
+      "ok": true,
+      "relative": true,
+      "trailingSlash": true
+    },
+    {
+      "slug": "lost-vikings-2",
+      "hrefAttr": "lost-vikings-2/",
+      "resolved": "http://127.0.0.1:8098/lost-vikings-2/",
+      "status": 200,
+      "ok": true,
+      "relative": true,
+      "trailingSlash": true
+    }
+  ],
+  "thumbs": {
+    "http": [
+      {
+        "slug": "river-raid",
+        "kind": "retro",
+        "rel": "assets/catalog/thumbs/river-raid-retro.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 13758,
+        "ok": true
+      },
+      {
+        "slug": "river-raid",
+        "kind": "modern",
+        "rel": "assets/catalog/thumbs/river-raid-modern.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 9093,
+        "ok": true
+      },
+      {
+        "slug": "digger",
+        "kind": "retro",
+        "rel": "assets/catalog/thumbs/digger-retro.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 58500,
+        "ok": true
+      },
+      {
+        "slug": "digger",
+        "kind": "modern",
+        "rel": "assets/catalog/thumbs/digger-modern.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 18568,
+        "ok": true
+      },
+      {
+        "slug": "lode-runner",
+        "kind": "retro",
+        "rel": "assets/catalog/thumbs/lode-runner-retro.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 14351,
+        "ok": true
+      },
+      {
+        "slug": "lode-runner",
+        "kind": "modern",
+        "rel": "assets/catalog/thumbs/lode-runner-modern.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 14433,
+        "ok": true
+      },
+      {
+        "slug": "boulder-dash",
+        "kind": "retro",
+        "rel": "assets/catalog/thumbs/boulder-dash-retro.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 14817,
+        "ok": true
+      },
+      {
+        "slug": "boulder-dash",
+        "kind": "modern",
+        "rel": "assets/catalog/thumbs/boulder-dash-modern.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 17737,
+        "ok": true
+      },
+      {
+        "slug": "contra",
+        "kind": "retro",
+        "rel": "assets/catalog/thumbs/contra-retro.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 9587,
+        "ok": true
+      },
+      {
+        "slug": "contra",
+        "kind": "modern",
+        "rel": "assets/catalog/thumbs/contra-modern.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 17900,
+        "ok": true
+      },
+      {
+        "slug": "exolon",
+        "kind": "retro",
+        "rel": "assets/catalog/thumbs/exolon-retro.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 31197,
+        "ok": true
+      },
+      {
+        "slug": "exolon",
+        "kind": "modern",
+        "rel": "assets/catalog/thumbs/exolon-modern.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 13937,
+        "ok": true
+      },
+      {
+        "slug": "the-last-mission",
+        "kind": "retro",
+        "rel": "assets/catalog/thumbs/the-last-mission-retro.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 26543,
+        "ok": true
+      },
+      {
+        "slug": "the-last-mission",
+        "kind": "modern",
+        "rel": "assets/catalog/thumbs/the-last-mission-modern.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 7099,
+        "ok": true
+      },
+      {
+        "slug": "silkworm",
+        "kind": "retro",
+        "rel": "assets/catalog/thumbs/silkworm-retro.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 10881,
+        "ok": true
+      },
+      {
+        "slug": "silkworm",
+        "kind": "modern",
+        "rel": "assets/catalog/thumbs/silkworm-modern.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 13038,
+        "ok": true
+      },
+      {
+        "slug": "lost-vikings",
+        "kind": "retro",
+        "rel": "assets/catalog/thumbs/lost-vikings-retro.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 21481,
+        "ok": true
+      },
+      {
+        "slug": "lost-vikings",
+        "kind": "modern",
+        "rel": "assets/catalog/thumbs/lost-vikings-modern.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 20010,
+        "ok": true
+      },
+      {
+        "slug": "double-dragon-battletoads",
+        "kind": "retro",
+        "rel": "assets/catalog/thumbs/double-dragon-battletoads-retro.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 46946,
+        "ok": true
+      },
+      {
+        "slug": "double-dragon-battletoads",
+        "kind": "modern",
+        "rel": "assets/catalog/thumbs/double-dragon-battletoads-modern.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 32946,
+        "ok": true
+      },
+      {
+        "slug": "lost-vikings-2",
+        "kind": "retro",
+        "rel": "assets/catalog/thumbs/lost-vikings-2-retro.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 29904,
+        "ok": true
+      },
+      {
+        "slug": "lost-vikings-2",
+        "kind": "modern",
+        "rel": "assets/catalog/thumbs/lost-vikings-2-modern.webp",
+        "status": 200,
+        "contentType": "image/webp",
+        "bytes": 19550,
+        "ok": true
+      }
+    ],
+    "retro": {
+      "count": 11,
+      "withImg": 11,
+      "loaded": 11,
+      "problems": []
+    },
+    "modern": {
+      "count": 11,
+      "withImg": 11,
+      "loaded": 11,
+      "problems": []
+    },
+    "altsAllSet": true
+  },
+  "filters": [
+    {
+      "text": "Все",
+      "ariaPressed": "true",
+      "visibleCount": 11,
+      "visibleSlugs": [
+        "river-raid",
+        "digger",
+        "lode-runner",
+        "boulder-dash",
+        "contra",
+        "exolon",
+        "the-last-mission",
+        "silkworm",
+        "lost-vikings",
+        "double-dragon-battletoads",
+        "lost-vikings-2"
+      ],
+      "expectedFromGamesJson": [],
+      "matchesExpected": null
+    },
+    {
+      "text": "Shoot'em-up",
+      "ariaPressed": "false",
+      "visibleCount": 2,
+      "visibleSlugs": [
+        "river-raid",
+        "silkworm"
+      ],
+      "expectedFromGamesJson": [
+        "river-raid",
+        "silkworm"
+      ],
+      "matchesExpected": true
+    },
+    {
+      "text": "Аркада",
+      "ariaPressed": "false",
+      "visibleCount": 5,
+      "visibleSlugs": [
+        "river-raid",
+        "digger",
+        "boulder-dash",
+        "contra",
+        "the-last-mission"
+      ],
+      "expectedFromGamesJson": [
+        "river-raid",
+        "digger",
+        "boulder-dash",
+        "contra",
+        "the-last-mission"
+      ],
+      "matchesExpected": true
+    },
+    {
+      "text": "Головоломка",
+      "ariaPressed": "false",
+      "visibleCount": 4,
+      "visibleSlugs": [
+        "lode-runner",
+        "boulder-dash",
+        "lost-vikings",
+        "lost-vikings-2"
+      ],
+      "expectedFromGamesJson": [
+        "lode-runner",
+        "boulder-dash",
+        "lost-vikings",
+        "lost-vikings-2"
+      ],
+      "matchesExpected": true
+    },
+    {
+      "text": "Run-and-gun",
+      "ariaPressed": "false",
+      "visibleCount": 2,
+      "visibleSlugs": [
+        "contra",
+        "exolon"
+      ],
+      "expectedFromGamesJson": [
+        "contra",
+        "exolon"
+      ],
+      "matchesExpected": true
+    },
+    {
+      "text": "Платформер",
+      "ariaPressed": "false",
+      "visibleCount": 6,
+      "visibleSlugs": [
+        "lode-runner",
+        "contra",
+        "exolon",
+        "the-last-mission",
+        "lost-vikings",
+        "lost-vikings-2"
+      ],
+      "expectedFromGamesJson": [
+        "lode-runner",
+        "contra",
+        "exolon",
+        "the-last-mission",
+        "lost-vikings",
+        "lost-vikings-2"
+      ],
+      "matchesExpected": true
+    },
+    {
+      "text": "Beat'em-up",
+      "ariaPressed": "false",
+      "visibleCount": 1,
+      "visibleSlugs": [
+        "double-dragon-battletoads"
+      ],
+      "expectedFromGamesJson": [
+        "double-dragon-battletoads"
+      ],
+      "matchesExpected": true
+    },
+    {
+      "text": "Все",
+      "visibleCount": 11,
+      "isReset": true
+    }
+  ],
+  "search": {
+    "River Raid": {
+      "query": "River Raid",
+      "title": "River Raid",
+      "visibleCount": 1,
+      "includesExpected": true,
+      "visible": [
+        "river-raid"
+      ],
+      "shot": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-search-river-raid.png"
+    },
+    "Digger": {
+      "query": "Digger",
+      "title": "Digger",
+      "visibleCount": 1,
+      "includesExpected": true,
+      "visible": [
+        "digger"
+      ],
+      "shot": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-search-digger.png"
+    },
+    "Lode Runner": {
+      "query": "Lode Runner",
+      "title": "Lode Runner",
+      "visibleCount": 1,
+      "includesExpected": true,
+      "visible": [
+        "lode-runner"
+      ],
+      "shot": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-search-lode-runner.png"
+    },
+    "Boulder Dash": {
+      "query": "Boulder Dash",
+      "title": "Boulder Dash",
+      "visibleCount": 1,
+      "includesExpected": true,
+      "visible": [
+        "boulder-dash"
+      ],
+      "shot": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-search-boulder-dash.png"
+    },
+    "Contra": {
+      "query": "Contra",
+      "title": "Contra",
+      "visibleCount": 1,
+      "includesExpected": true,
+      "visible": [
+        "contra"
+      ],
+      "shot": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-search-contra.png"
+    },
+    "Exolon": {
+      "query": "Exolon",
+      "title": "Exolon",
+      "visibleCount": 1,
+      "includesExpected": true,
+      "visible": [
+        "exolon"
+      ],
+      "shot": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-search-exolon.png"
+    },
+    "The Last Mission": {
+      "query": "The Last Mission",
+      "title": "The Last Mission",
+      "visibleCount": 1,
+      "includesExpected": true,
+      "visible": [
+        "the-last-mission"
+      ],
+      "shot": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-search-the-last-mission.png"
+    },
+    "Silkworm": {
+      "query": "Silkworm",
+      "title": "Silkworm",
+      "visibleCount": 1,
+      "includesExpected": true,
+      "visible": [
+        "silkworm"
+      ],
+      "shot": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-search-silkworm.png"
+    },
+    "The Lost Vikings": {
+      "query": "The Lost Vikings",
+      "title": "The Lost Vikings",
+      "visibleCount": 2,
+      "includesExpected": true,
+      "visible": [
+        "lost-vikings",
+        "lost-vikings-2"
+      ],
+      "shot": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-search-lost-vikings.png"
+    },
+    "Double Dragon × Battle Toads": {
+      "query": "Double Dragon × Battle Toads",
+      "title": "Double Dragon × Battle Toads",
+      "visibleCount": 1,
+      "includesExpected": true,
+      "visible": [
+        "double-dragon-battletoads"
+      ],
+      "shot": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-search-double-dragon-battletoads.png"
+    },
+    "The Lost Vikings 2": {
+      "query": "The Lost Vikings 2",
+      "title": "The Lost Vikings 2",
+      "visibleCount": 1,
+      "includesExpected": true,
+      "visible": [
+        "lost-vikings-2"
+      ],
+      "shot": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-search-lost-vikings-2.png"
+    },
+    "__afterClear": {
+      "visibleCount": 11,
+      "shot": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-search-cleared.png"
+    },
+    "__gibberish": {
+      "visibleCount": 0,
+      "shot": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-search-empty.png"
+    }
+  },
+  "keyboard": {
+    "tabStops": 14,
+    "themeReached": true,
+    "cardReached": true,
+    "focusedCardSlug": "river-raid",
+    "enterNav": {
+      "from": "http://127.0.0.1:8098/",
+      "expectedSlug": "river-raid",
+      "url": "http://127.0.0.1:8098/river-raid/",
+      "title": "RIVER RAID · РЕЧНОЙ РЕЙД — HTML5",
+      "navigated": true,
+      "navigatedToExpected": true
+    },
+    "tabOrderSample": [
+      {
+        "tag": "A",
+        "text": "Перейти к каталогу",
+        "slug": "games",
+        "ariaLabel": "",
+        "ariaPressed": null,
+        "href": "#games",
+        "isTheme": false,
+        "inCard": false,
+        "outline": "solid 2px rgb(94, 240, 224)",
+        "boxShadow": ""
+      },
+      {
+        "tag": "A",
+        "text": "Зал ретро-игр ARCADE HALL · 11 GAMES",
+        "slug": "",
+        "ariaLabel": "Зал ретро-игр — на главную",
+        "ariaPressed": null,
+        "href": "./",
+        "isTheme": false,
+        "inCard": false,
+        "outline": "solid 2px rgb(94, 240, 224)",
+        "boxShadow": ""
+      },
+      {
+        "tag": "BUTTON",
+        "text": "ГРАФИКА НЕОН",
+        "slug": "",
+        "ariaLabel": "Сейчас включён неоновый стиль. Переключить на 8-битный ретро-стиль (клавиша G)",
+        "ariaPressed": "true",
+        "href": "",
+        "isTheme": true,
+        "inCard": false,
+        "outline": "solid 2px rgb(94, 240, 224)",
+        "boxShadow": "rgba(0, 0, 0, 0.9) 0px 10px 26px -18px"
+      },
+      {
+        "tag": "BUTTON",
+        "text": "▶ Случайная игра",
+        "slug": "",
+        "ariaLabel": "",
+        "ariaPressed": null,
+        "href": "",
+        "isTheme": false,
+        "inCard": false,
+        "outline": "solid 2px rgb(94, 240, 224)",
+        "boxShadow": "rgba(94, 240, 224, 0.55) 0px 14px 34px -14px"
+      },
+      {
+        "tag": "A",
+        "text": "Смотреть каталог ↓",
+        "slug": "games",
+        "ariaLabel": "",
+        "ariaPressed": null,
+        "href": "#games",
+        "isTheme": false,
+        "inCard": false,
+        "outline": "solid 2px rgb(94, 240, 224)",
+        "boxShadow": "rgba(0, 0, 0, 0.9) 0px 12px 30px -18px"
+      },
+      {
+        "tag": "INPUT",
+        "text": "Поиск игры по названию",
+        "slug": "",
+        "ariaLabel": "Поиск игры по названию",
+        "ariaPressed": null,
+        "href": "",
+        "isTheme": false,
+        "inCard": false,
+        "outline": "none 0px rgb(238, 241, 255)",
+        "boxShadow": ""
+      },
+      {
+        "tag": "BUTTON",
+        "text": "Все",
+        "slug": "",
+        "ariaLabel": "",
+        "ariaPressed": "true",
+        "href": "",
+        "isTheme": false,
+        "inCard": false,
+        "outline": "solid 2px rgb(94, 240, 224)",
+        "boxShadow": "rgba(94, 240, 224, 0.55) 0px 10px 26px -12px"
+      },
+      {
+        "tag": "BUTTON",
+        "text": "Shoot'em-up",
+        "slug": "",
+        "ariaLabel": "",
+        "ariaPressed": "false",
+        "href": "",
+        "isTheme": false,
+        "inCard": false,
+        "outline": "solid 2px rgb(94, 240, 224)",
+        "boxShadow": ""
+      },
+      {
+        "tag": "BUTTON",
+        "text": "Аркада",
+        "slug": "",
+        "ariaLabel": "",
+        "ariaPressed": "false",
+        "href": "",
+        "isTheme": false,
+        "inCard": false,
+        "outline": "solid 2px rgb(94, 240, 224)",
+        "boxShadow": ""
+      },
+      {
+        "tag": "BUTTON",
+        "text": "Головоломка",
+        "slug": "",
+        "ariaLabel": "",
+        "ariaPressed": "false",
+        "href": "",
+        "isTheme": false,
+        "inCard": false,
+        "outline": "solid 2px rgb(94, 240, 224)",
+        "boxShadow": ""
+      },
+      {
+        "tag": "BUTTON",
+        "text": "Run-and-gun",
+        "slug": "",
+        "ariaLabel": "",
+        "ariaPressed": "false",
+        "href": "",
+        "isTheme": false,
+        "inCard": false,
+        "outline": "solid 2px rgb(94, 240, 224)",
+        "boxShadow": ""
+      },
+      {
+        "tag": "BUTTON",
+        "text": "Платформер",
+        "slug": "",
+        "ariaLabel": "",
+        "ariaPressed": "false",
+        "href": "",
+        "isTheme": false,
+        "inCard": false,
+        "outline": "solid 2px rgb(94, 240, 224)",
+        "boxShadow": ""
+      },
+      {
+        "tag": "BUTTON",
+        "text": "Beat'em-up",
+        "slug": "",
+        "ariaLabel": "",
+        "ariaPressed": "false",
+        "href": "",
+        "isTheme": false,
+        "inCard": false,
+        "outline": "solid 2px rgb(94, 240, 224)",
+        "boxShadow": ""
+      },
+      {
+        "tag": "A",
+        "text": "#01 Shoot'em-up 1982 Вставь монетку River Raid РЕЧНОЙ РЕЙД Вертикальный скролл н",
+        "slug": "river-raid",
+        "ariaLabel": "River Raid — Речной рейд. Shoot'em-up, 1982. Играть",
+        "ariaPressed": null,
+        "href": "river-raid/",
+        "isTheme": false,
+        "inCard": true,
+        "outline": "solid 2px rgb(94, 240, 224)",
+        "boxShadow": "rgba(93, 110, 171, 0.33) 0px 26.7977px 57.5953px -30px, rgba(138, 164, 255, 0.22"
+      }
+    ]
+  },
+  "a11y": {
+    "rootLang": "ru",
+    "h1Count": 1,
+    "h1": [
+      "ЗАЛ РЕТРО-ИГР"
+    ],
+    "themeToggles": [
+      {
+        "text": "ГРАФИКА НЕОН",
+        "ariaLabel": "Сейчас включён неоновый стиль. Переключить на 8-битный ретро-стиль (клавиша G)",
+        "ariaPressed": "true",
+        "title": ""
+      }
+    ],
+    "togglesHaveAriaLabel": true,
+    "togglesHaveAriaPressed": true,
+    "filters": [
+      {
+        "text": "Все",
+        "ariaPressed": "true",
+        "ariaSelected": null
+      },
+      {
+        "text": "Shoot'em-up",
+        "ariaPressed": "false",
+        "ariaSelected": null
+      },
+      {
+        "text": "Аркада",
+        "ariaPressed": "false",
+        "ariaSelected": null
+      },
+      {
+        "text": "Головоломка",
+        "ariaPressed": "false",
+        "ariaSelected": null
+      },
+      {
+        "text": "Run-and-gun",
+        "ariaPressed": "false",
+        "ariaSelected": null
+      },
+      {
+        "text": "Платформер",
+        "ariaPressed": "false",
+        "ariaSelected": null
+      },
+      {
+        "text": "Beat'em-up",
+        "ariaPressed": "false",
+        "ariaSelected": null
+      }
+    ],
+    "cardsHaveAlt": true,
+    "contrast": {
+      "checked": 25,
+      "unknownBg": 95,
+      "violations": []
+    },
+    "focusables": 28,
+    "ariaPressedAfterSwitch": "false",
+    "ariaPressedChanged": true
+  },
+  "reducedMotion": {
+    "before": {
+      "matches": false,
+      "animated": 2,
+      "samples": [
+        {
+          "tag": "SPAN",
+          "cls": "eyebrow-dot",
+          "name": "pulse-dot",
+          "duration": "2.8s"
+        },
+        {
+          "tag": "DIV",
+          "cls": "cabinet-screen",
+          "name": "screen-glow",
+          "duration": "6s"
+        }
+      ]
+    },
+    "after": {
+      "matches": true,
+      "animated": 0,
+      "samples": [],
+      "totalTransitions": 313,
+      "zeroTransitions": 313
+    },
+    "cssRules": {
+      "count": 1,
+      "sample": [
+        {
+          "media": "(prefers-reduced-motion: reduce)",
+          "css": "@media (prefers-reduced-motion: reduce) {\n  html { scroll-behavior: auto; }\n  *, ::before, ::after { animation: auto ease 0s 1 normal none running none !important; transition-duration: 0s !important; "
+        }
+      ]
+    },
+    "emulationMatched": true,
+    "animationsReduced": true,
+    "transitionsZeroed": 1,
+    "shot": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-reduced-motion-1440.png"
+  },
+  "layout": {
+    "mobile": {
+      "retro": {
+        "viewport": {
+          "innerWidth": 390,
+          "innerHeight": 844,
+          "scrollWidth": 390,
+          "scrollHeight": 6159,
+          "hscroll": false,
+          "cardOverlaps": [],
+          "offscreen": [],
+          "textOverflow": []
+        },
+        "cards": [
+          {
+            "slug": "river-raid",
+            "rect": {
+              "x": 20,
+              "y": 1254,
+              "w": 350,
+              "h": 380,
+              "right": 370,
+              "bottom": 1634
+            },
+            "imgW": 720
+          },
+          {
+            "slug": "digger",
+            "rect": {
+              "x": 20,
+              "y": 1654,
+              "w": 350,
+              "h": 380,
+              "right": 370,
+              "bottom": 2034
+            },
+            "imgW": 720
+          },
+          {
+            "slug": "lode-runner",
+            "rect": {
+              "x": 20,
+              "y": 2054,
+              "w": 350,
+              "h": 380,
+              "right": 370,
+              "bottom": 2434
+            },
+            "imgW": 720
+          },
+          {
+            "slug": "boulder-dash",
+            "rect": {
+              "x": 20,
+              "y": 2454,
+              "w": 350,
+              "h": 380,
+              "right": 370,
+              "bottom": 2835
+            },
+            "imgW": 720
+          },
+          {
+            "slug": "contra",
+            "rect": {
+              "x": 20,
+              "y": 2855,
+              "w": 350,
+              "h": 380,
+              "right": 370,
+              "bottom": 3235
+            },
+            "imgW": 720
+          },
+          {
+            "slug": "exolon",
+            "rect": {
+              "x": 20,
+              "y": 3255,
+              "w": 350,
+              "h": 380,
+              "right": 370,
+              "bottom": 3635
+            },
+            "imgW": 720
+          },
+          {
+            "slug": "the-last-mission",
+            "rect": {
+              "x": 20,
+              "y": 3655,
+              "w": 350,
+              "h": 380,
+              "right": 370,
+              "bottom": 4035
+            },
+            "imgW": 720
+          },
+          {
+            "slug": "silkworm",
+            "rect": {
+              "x": 20,
+              "y": 4055,
+              "w": 350,
+              "h": 380,
+              "right": 370,
+              "bottom": 4435
+            },
+            "imgW": 720
+          },
+          {
+            "slug": "lost-vikings",
+            "rect": {
+              "x": 20,
+              "y": 4455,
+              "w": 350,
+              "h": 380,
+              "right": 370,
+              "bottom": 4835
+            },
+            "imgW": 720
+          },
+          {
+            "slug": "double-dragon-battletoads",
+            "rect": {
+              "x": 20,
+              "y": 4855,
+              "w": 350,
+              "h": 380,
+              "right": 370,
+              "bottom": 5235
+            },
+            "imgW": 720
+          },
+          {
+            "slug": "lost-vikings-2",
+            "rect": {
+              "x": 20,
+              "y": 5255,
+              "w": 350,
+              "h": 380,
+              "right": 370,
+              "bottom": 5635
+            },
+            "imgW": 720
+          }
+        ],
+        "filtersWrap": [
+          {
+            "text": "ВСЕ",
+            "rect": {
+              "x": 20,
+              "y": 1077,
+              "w": 52,
+              "h": 38,
+              "right": 72,
+              "bottom": 1115
+            }
+          },
+          {
+            "text": "SHOOT'EM-UP",
+            "rect": {
+              "x": 80,
+              "y": 1077,
+              "w": 109,
+              "h": 38,
+              "right": 189,
+              "bottom": 1115
+            }
+          },
+          {
+            "text": "АРКАДА",
+            "rect": {
+              "x": 197,
+              "y": 1077,
+              "w": 73,
+              "h": 38,
+              "right": 270,
+              "bottom": 1115
+            }
+          },
+          {
+            "text": "ГОЛОВОЛОМКА",
+            "rect": {
+              "x": 20,
+              "y": 1123,
+              "w": 109,
+              "h": 38,
+              "right": 129,
+              "bottom": 1161
+            }
+          },
+          {
+            "text": "RUN-AND-GUN",
+            "rect": {
+              "x": 137,
+              "y": 1123,
+              "w": 109,
+              "h": 38,
+              "right": 247,
+              "bottom": 1161
+            }
+          },
+          {
+            "text": "ПЛАТФОРМЕР",
+            "rect": {
+              "x": 255,
+              "y": 1123,
+              "w": 102,
+              "h": 38,
+              "right": 357,
+              "bottom": 1161
+            }
+          },
+          {
+            "text": "BEAT'EM-UP",
+            "rect": {
+              "x": 20,
+              "y": 1169,
+              "w": 102,
+              "h": 38,
+              "right": 122,
+              "bottom": 1207
+            }
+          }
+        ],
+        "shotTop": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-retro-390.png",
+        "shotGrid": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-retro-390-grid.png"
+      },
+      "modern": {
+        "viewport": {
+          "innerWidth": 390,
+          "innerHeight": 844,
+          "scrollWidth": 390,
+          "scrollHeight": 6339,
+          "hscroll": false,
+          "cardOverlaps": [],
+          "offscreen": [],
+          "textOverflow": []
+        },
+        "shotTop": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-modern-390.png",
+        "shotGrid": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-modern-390-grid.png",
+        "thumbs": {
+          "count": 11,
+          "withImg": 11,
+          "loaded": 11,
+          "problems": []
+        }
+      },
+      "themeChangedOnMobile": true
+    },
+    "desktop": {
+      "retro": {
+        "viewport": {
+          "innerWidth": 1440,
+          "innerHeight": 900,
+          "scrollWidth": 1440,
+          "scrollHeight": 2870,
+          "hscroll": false,
+          "cardOverlaps": [],
+          "offscreen": [],
+          "textOverflow": []
+        },
+        "regions": {
+          "header": {
+            "x": 0,
+            "y": 0,
+            "w": 1440,
+            "h": 69,
+            "right": 1440,
+            "bottom": 69
+          },
+          "hero": {
+            "x": 130,
+            "y": 69,
+            "w": 1180,
+            "h": 579,
+            "right": 1310,
+            "bottom": 648
+          },
+          "filters": {
+            "x": 130,
+            "y": 782,
+            "w": 706,
+            "h": 38,
+            "right": 836,
+            "bottom": 820
+          },
+          "grid": {
+            "x": 130,
+            "y": 648,
+            "w": 1180,
+            "h": 1868,
+            "right": 1310,
+            "bottom": 2516
+          },
+          "footer": {
+            "x": 0,
+            "y": 2588,
+            "w": 1440,
+            "h": 282,
+            "right": 1440,
+            "bottom": 2870
+          }
+        },
+        "shotTop": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-retro-1440.png",
+        "shotGrid": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-retro-1440-grid.png"
+      },
+      "modern": {
+        "viewport": {
+          "innerWidth": 1440,
+          "innerHeight": 900,
+          "scrollWidth": 1440,
+          "scrollHeight": 2906,
+          "hscroll": false,
+          "cardOverlaps": [],
+          "offscreen": [],
+          "textOverflow": []
+        },
+        "regions": {
+          "header": {
+            "x": 0,
+            "y": 0,
+            "w": 1440,
+            "h": 69,
+            "right": 1440,
+            "bottom": 69
+          },
+          "hero": {
+            "x": 130,
+            "y": 69,
+            "w": 1180,
+            "h": 580,
+            "right": 1310,
+            "bottom": 649
+          },
+          "filters": {
+            "x": 130,
+            "y": 783,
+            "w": 747,
+            "h": 38,
+            "right": 877,
+            "bottom": 821
+          },
+          "grid": {
+            "x": 130,
+            "y": 649,
+            "w": 1180,
+            "h": 1918,
+            "right": 1310,
+            "bottom": 2568
+          },
+          "footer": {
+            "x": 0,
+            "y": 2640,
+            "w": 1440,
+            "h": 266,
+            "right": 1440,
+            "bottom": 2906
+          }
+        },
+        "shotTop": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-modern-1440.png",
+        "shotGrid": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-modern-1440-grid.png"
+      }
+    }
+  },
+  "external": [],
+  "errors": [],
+  "missing404": {
+    "url": "http://127.0.0.1:8098/qa-missing-page-1793196994942/",
+    "status": 404,
+    "hasCustomPage": false,
+    "shot": "/Users/sergio/My/code/projects/retro_games/reports/qa-shots/catalog-404.png"
+  },
+  "verdictHints": {
+    "httpRootOk": true,
+    "titleOk": true,
+    "notDirectoryListing": true,
+    "freshProfileNoThemeStorage": true,
+    "defaultStateMentionsRetro": true,
+    "defaultRetro": true,
+    "allLinks200": true,
+    "all11Cards": true,
+    "thumbsRetroOk": true,
+    "thumbsModernOk": true,
+    "altsSet": true,
+    "consoleOk": true,
+    "externalOk": true,
+    "noHscrollDesktop": true,
+    "noHscrollMobile": true,
+    "noCardOverlap": true,
+    "keyboardOk": true,
+    "enterNavigates": true,
+    "ariaOk": true,
+    "reducedMotionHandled": true,
+    "gamesJsonOk": true,
+    "thumbsHttpOk": true,
+    "linksRelativeTrailingSlash": true
+  },
+  "linksSummary": {
+    "count": 11,
+    "expected": 11,
+    "missing": [],
+    "extra": [],
+    "non200": [],
+    "hrefIssues": []
+  }
+}

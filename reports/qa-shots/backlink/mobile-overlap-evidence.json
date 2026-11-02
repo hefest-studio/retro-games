@@ -1,0 +1,645 @@
+{
+  "when": "2026-10-28T15:28:34.988Z",
+  "pages": [
+    {
+      "page": "river-raid",
+      "viewport": "390x844",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 409,
+        "w": 79,
+        "h": 27
+      },
+      "hits": [
+        {
+          "element": "01\nИГРАТЬ\n→",
+          "rect": {
+            "x": 30,
+            "y": 416,
+            "w": 330,
+            "h": 31
+          },
+          "overlap": {
+            "x": 49,
+            "y": 19
+          },
+          "center": {
+            "x": 195,
+            "y": 432
+          },
+          "centerBlockedByBacklink": false,
+          "centerHits": "SPAN.m-label"
+        }
+      ]
+    },
+    {
+      "page": "digger",
+      "viewport": "390x844",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 409,
+        "w": 79,
+        "h": 27
+      },
+      "hits": [
+        {
+          "element": "НАСТРОЙКИ",
+          "rect": {
+            "x": 16,
+            "y": 399,
+            "w": 116,
+            "h": 29
+          },
+          "overlap": {
+            "x": 63,
+            "y": 19
+          },
+          "center": {
+            "x": 73,
+            "y": 413
+          },
+          "centerBlockedByBacklink": true,
+          "centerHits": "A."
+        }
+      ]
+    },
+    {
+      "page": "lode-runner",
+      "viewport": "390x844",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 409,
+        "w": 79,
+        "h": 27
+      },
+      "hits": [
+        {
+          "element": "НАЧАТЬ ПОГРУЖЕНИЕ\nENTER",
+          "rect": {
+            "x": 40,
+            "y": 430,
+            "w": 310,
+            "h": 44
+          },
+          "overlap": {
+            "x": 39,
+            "y": 6
+          },
+          "center": {
+            "x": 195,
+            "y": 452
+          },
+          "centerBlockedByBacklink": false,
+          "centerHits": "SPAN."
+        }
+      ]
+    },
+    {
+      "page": "boulder-dash",
+      "viewport": "390x844",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 409,
+        "w": 79,
+        "h": 27
+      },
+      "hits": []
+    },
+    {
+      "page": "contra",
+      "viewport": "390x844",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 409,
+        "w": 79,
+        "h": 27
+      },
+      "hits": []
+    },
+    {
+      "page": "exolon",
+      "viewport": "390x844",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 409,
+        "w": 79,
+        "h": 27
+      },
+      "hits": []
+    },
+    {
+      "page": "the-last-mission",
+      "viewport": "390x844",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 409,
+        "w": 79,
+        "h": 27
+      },
+      "hits": []
+    },
+    {
+      "page": "silkworm",
+      "viewport": "390x844",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 409,
+        "w": 79,
+        "h": 27
+      },
+      "hits": []
+    },
+    {
+      "page": "lost-vikings",
+      "viewport": "390x844",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 409,
+        "w": 79,
+        "h": 27
+      },
+      "hits": []
+    },
+    {
+      "page": "double-dragon-battletoads",
+      "viewport": "390x844",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 409,
+        "w": 79,
+        "h": 27
+      },
+      "hits": []
+    },
+    {
+      "page": "lost-vikings-2",
+      "viewport": "390x844",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 409,
+        "w": 79,
+        "h": 27
+      },
+      "hits": []
+    },
+    {
+      "page": "lode-runner/lode-runner.html",
+      "viewport": "390x844",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 409,
+        "w": 79,
+        "h": 27
+      },
+      "hits": [
+        {
+          "element": "НАЧАТЬ ПОГРУЖЕНИЕ\nENTER",
+          "rect": {
+            "x": 40,
+            "y": 430,
+            "w": 310,
+            "h": 44
+          },
+          "overlap": {
+            "x": 39,
+            "y": 6
+          },
+          "center": {
+            "x": 195,
+            "y": 452
+          },
+          "centerBlockedByBacklink": false,
+          "centerHits": "SPAN."
+        }
+      ]
+    },
+    {
+      "page": "river-raid",
+      "viewport": "844x390",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 179,
+        "w": 91,
+        "h": 31
+      },
+      "hits": []
+    },
+    {
+      "page": "digger",
+      "viewport": "844x390",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 179,
+        "w": 91,
+        "h": 31
+      },
+      "hits": []
+    },
+    {
+      "page": "lode-runner",
+      "viewport": "844x390",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 179,
+        "w": 91,
+        "h": 31
+      },
+      "hits": []
+    },
+    {
+      "page": "boulder-dash",
+      "viewport": "844x390",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 179,
+        "w": 91,
+        "h": 31
+      },
+      "hits": []
+    },
+    {
+      "page": "contra",
+      "viewport": "844x390",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 179,
+        "w": 91,
+        "h": 31
+      },
+      "hits": []
+    },
+    {
+      "page": "exolon",
+      "viewport": "844x390",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 179,
+        "w": 91,
+        "h": 31
+      },
+      "hits": []
+    },
+    {
+      "page": "the-last-mission",
+      "viewport": "844x390",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 179,
+        "w": 91,
+        "h": 31
+      },
+      "hits": []
+    },
+    {
+      "page": "silkworm",
+      "viewport": "844x390",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 179,
+        "w": 91,
+        "h": 31
+      },
+      "hits": []
+    },
+    {
+      "page": "lost-vikings",
+      "viewport": "844x390",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 179,
+        "w": 91,
+        "h": 31
+      },
+      "hits": []
+    },
+    {
+      "page": "double-dragon-battletoads",
+      "viewport": "844x390",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 179,
+        "w": 91,
+        "h": 31
+      },
+      "hits": []
+    },
+    {
+      "page": "lost-vikings-2",
+      "viewport": "844x390",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 179,
+        "w": 91,
+        "h": 31
+      },
+      "hits": []
+    },
+    {
+      "page": "lode-runner/lode-runner.html",
+      "viewport": "844x390",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 179,
+        "w": 91,
+        "h": 31
+      },
+      "hits": []
+    }
+  ],
+  "diggerWidths": [
+    {
+      "base": "local",
+      "viewport": "360x640",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 307,
+        "w": 79,
+        "h": 27
+      },
+      "targetRect": {
+        "x": 14,
+        "y": 295,
+        "w": 106,
+        "h": 29
+      },
+      "overlap": {
+        "x": 65,
+        "y": 17
+      },
+      "center": {
+        "x": 68,
+        "y": 309
+      },
+      "centerBlockedByBacklink": true,
+      "centerHits": "A."
+    },
+    {
+      "base": "local",
+      "viewport": "375x667",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 320,
+        "w": 79,
+        "h": 27
+      },
+      "targetRect": {
+        "x": 15,
+        "y": 309,
+        "w": 111,
+        "h": 29
+      },
+      "overlap": {
+        "x": 64,
+        "y": 18
+      },
+      "center": {
+        "x": 71,
+        "y": 324
+      },
+      "centerBlockedByBacklink": true,
+      "centerHits": "A."
+    },
+    {
+      "base": "local",
+      "viewport": "390x844",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 409,
+        "w": 79,
+        "h": 27
+      },
+      "targetRect": {
+        "x": 16,
+        "y": 399,
+        "w": 116,
+        "h": 29
+      },
+      "overlap": {
+        "x": 63,
+        "y": 19
+      },
+      "center": {
+        "x": 73,
+        "y": 413
+      },
+      "centerBlockedByBacklink": true,
+      "centerHits": "A."
+    },
+    {
+      "base": "local",
+      "viewport": "414x896",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 435,
+        "w": 79,
+        "h": 27
+      },
+      "targetRect": {
+        "x": 17,
+        "y": 411,
+        "w": 123,
+        "h": 36
+      },
+      "overlap": {
+        "x": 62,
+        "y": 12
+      },
+      "center": {
+        "x": 78,
+        "y": 428
+      },
+      "centerBlockedByBacklink": false,
+      "centerHits": "BUTTON.dg-btn"
+    },
+    {
+      "base": "local",
+      "viewport": "430x932",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 453,
+        "w": 79,
+        "h": 27
+      },
+      "targetRect": {
+        "x": 17,
+        "y": 429,
+        "w": 128,
+        "h": 36
+      },
+      "overlap": {
+        "x": 62,
+        "y": 13
+      },
+      "center": {
+        "x": 81,
+        "y": 448
+      },
+      "centerBlockedByBacklink": false,
+      "centerHits": "BUTTON.dg-btn"
+    },
+    {
+      "base": "prod",
+      "viewport": "360x640",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 307,
+        "w": 79,
+        "h": 27
+      },
+      "targetRect": {
+        "x": 14,
+        "y": 295,
+        "w": 106,
+        "h": 29
+      },
+      "overlap": {
+        "x": 65,
+        "y": 17
+      },
+      "center": {
+        "x": 68,
+        "y": 309
+      },
+      "centerBlockedByBacklink": true,
+      "centerHits": "A."
+    },
+    {
+      "base": "prod",
+      "viewport": "375x667",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 320,
+        "w": 79,
+        "h": 27
+      },
+      "targetRect": {
+        "x": 15,
+        "y": 309,
+        "w": 111,
+        "h": 29
+      },
+      "overlap": {
+        "x": 64,
+        "y": 18
+      },
+      "center": {
+        "x": 71,
+        "y": 324
+      },
+      "centerBlockedByBacklink": true,
+      "centerHits": "A."
+    },
+    {
+      "base": "prod",
+      "viewport": "390x844",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 409,
+        "w": 79,
+        "h": 27
+      },
+      "targetRect": {
+        "x": 16,
+        "y": 399,
+        "w": 116,
+        "h": 29
+      },
+      "overlap": {
+        "x": 63,
+        "y": 19
+      },
+      "center": {
+        "x": 73,
+        "y": 413
+      },
+      "centerBlockedByBacklink": true,
+      "centerHits": "A."
+    },
+    {
+      "base": "prod",
+      "viewport": "414x896",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 435,
+        "w": 79,
+        "h": 27
+      },
+      "targetRect": {
+        "x": 17,
+        "y": 411,
+        "w": 123,
+        "h": 36
+      },
+      "overlap": {
+        "x": 62,
+        "y": 12
+      },
+      "center": {
+        "x": 78,
+        "y": 428
+      },
+      "centerBlockedByBacklink": false,
+      "centerHits": "BUTTON.dg-btn"
+    },
+    {
+      "base": "prod",
+      "viewport": "430x932",
+      "found": true,
+      "backlinkRect": {
+        "x": 0,
+        "y": 453,
+        "w": 79,
+        "h": 27
+      },
+      "targetRect": {
+        "x": 17,
+        "y": 429,
+        "w": 128,
+        "h": 36
+      },
+      "overlap": {
+        "x": 62,
+        "y": 13
+      },
+      "center": {
+        "x": 81,
+        "y": 448
+      },
+      "centerBlockedByBacklink": false,
+      "centerHits": "BUTTON.dg-btn"
+    }
+  ]
+}

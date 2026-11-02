@@ -1,31 +1,6 @@
-# На Vercel уезжает только то, что нужно сайту:
-# каталог (index.html + assets/catalog) и сами игры (index.html + css/js).
-# Исходники, документация, тесты и превью-скриншоты остаются в git.
-
-# Разработка и QA
-tools/
-reports/
-docs/
-tmp/
-.devhome/
-.npmcache/
 .chrome-tmp/
-node_modules/
-.vercel/
-.git/
-
-# Исходники и служебные файлы игр
-**/src/
-**/screenshots/
-**/tests/
-**/tools/
-**/reports/
-**/tmp/
-**/docs/
-**/*.md
-
-# Прочее
-.DS_Store
-*.log
-.env
-.env.*
+.devhome/
+chrome-export/
+reports/
+tools/
+docs/
