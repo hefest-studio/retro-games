@@ -4,3 +4,6 @@ chrome-export/
 .DS_Store
 *.log
 .chrome-fix/
+.npmcache/
+node_modules/
+.vercel
