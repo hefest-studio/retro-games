@@ -3,3 +3,4 @@
 chrome-export/
 .DS_Store
 *.log
+.chrome-fix/
