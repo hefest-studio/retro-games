@@ -14,7 +14,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function main() {
   const args = parseArgs(process.argv.slice(2), {
-    catalog: resolve('/Users/sergio/My/code/projects/retro_games/index.html'),
+    catalog: resolve('index.html'),
     outDir: 'reports/qa-shots',
   });
   if (!existsSync(args.catalog)) throw new Error(`Нет файла ${args.catalog}`);

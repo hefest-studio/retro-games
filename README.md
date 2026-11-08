@@ -6,7 +6,7 @@
 HTML/CSS/JS, без сборки, CDN, npm-зависимостей и внешних ассетов.
 
 - **Прод (Vercel):** <https://retro-games-psi.vercel.app>
-- **GitHub:** <https://github.com/sergio-zerg/retro-games> (приватный)
+- **GitHub:** <https://github.com/hefest-studio/retro-games> (приватный)
 
 ## Игры
 
@@ -124,3 +124,14 @@ Vercel-проект привязан к GitHub-репозиторию (`Producti
 
 ---
 *Работа студии «Гефест» · [works.hefest.ru](https://works.hefest.ru)*
+
+## QA (визуальные аудиты)
+
+Аудиты в `tools/qa/*.mjs` запускают headless-браузер, поэтому нужен Chrome:
+```bash
+export CHROME_BIN=/путь/к/chrome   # или установленный Google Chrome / Chromium
+node tools/qa/audit-catalog.mjs    # каталог
+node tools/qa/audit-games.mjs      # игры
+node tools/qa/check-file-proto.mjs # режим file:// (double-click)
+```
+Без Chrome аудиты падают с `Chrome не найден. Задайте CHROME_BIN`.
