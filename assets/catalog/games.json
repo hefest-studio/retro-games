@@ -45,11 +45,7 @@
         "modern": "Модерн"
       },
       "languages": "RU / EN",
-      "accent": "#3ce6a8",
-      "thumb": {
-        "retro": "assets/catalog/thumbs/river-raid-retro.webp",
-        "modern": "assets/catalog/thumbs/river-raid-modern.webp"
-      }
+      "accent": "#3ce6a8"
     },
     {
       "slug": "krot",
@@ -78,11 +74,7 @@
         "modern": "Неон"
       },
       "languages": "RU / EN",
-      "accent": "#e8833a",
-      "thumb": {
-        "retro": "assets/catalog/thumbs/digger-retro.webp",
-        "modern": "assets/catalog/thumbs/digger-modern.webp"
-      }
+      "accent": "#e8833a"
     },
     {
       "slug": "staratel",
@@ -111,11 +103,7 @@
         "modern": "НЕОН"
       },
       "languages": "RU / EN",
-      "accent": "#f0b429",
-      "thumb": {
-        "retro": "assets/catalog/thumbs/lode-runner-retro.webp",
-        "modern": "assets/catalog/thumbs/lode-runner-modern.webp"
-      }
+      "accent": "#f0b429"
     },
     {
       "slug": "obval",
@@ -144,11 +132,7 @@
         "modern": "Нео"
       },
       "languages": "RU / EN",
-      "accent": "#f2c14e",
-      "thumb": {
-        "retro": "assets/catalog/thumbs/boulder-dash-retro.webp",
-        "modern": "assets/catalog/thumbs/boulder-dash-modern.webp"
-      }
+      "accent": "#f2c14e"
     },
     {
       "slug": "kaskad",
@@ -194,11 +178,7 @@
         "modern": "NEON"
       },
       "languages": "RU / EN",
-      "accent": "#ff4d9d",
-      "thumb": {
-        "retro": "assets/catalog/thumbs/contra-retro.webp",
-        "modern": "assets/catalog/thumbs/contra-modern.webp"
-      }
+      "accent": "#ff4d9d"
     },
     {
       "slug": "proryv",
@@ -227,11 +207,7 @@
         "modern": "NEON 2026"
       },
       "languages": "RU / EN",
-      "accent": "#22e6ff",
-      "thumb": {
-        "retro": "assets/catalog/thumbs/exolon-retro.webp",
-        "modern": "assets/catalog/thumbs/exolon-modern.webp"
-      }
+      "accent": "#22e6ff"
     },
     {
       "slug": "rubikon",
@@ -260,11 +236,7 @@
         "modern": "NEON"
       },
       "languages": "RU / EN",
-      "accent": "#ff4fd8",
-      "thumb": {
-        "retro": "assets/catalog/thumbs/the-last-mission-retro.webp",
-        "modern": "assets/catalog/thumbs/the-last-mission-modern.webp"
-      }
+      "accent": "#ff4fd8"
     },
     {
       "slug": "vihr",
@@ -293,11 +265,7 @@
         "modern": "Современная"
       },
       "languages": "RU / EN",
-      "accent": "#ff8a3d",
-      "thumb": {
-        "retro": "assets/catalog/thumbs/silkworm-retro.webp",
-        "modern": "assets/catalog/thumbs/silkworm-modern.webp"
-      }
+      "accent": "#ff8a3d"
     },
     {
       "slug": "saga",
@@ -326,11 +294,7 @@
         "modern": "Современный"
       },
       "languages": "RU / EN",
-      "accent": "#5eead4",
-      "thumb": {
-        "retro": "assets/catalog/thumbs/lost-vikings-retro.webp",
-        "modern": "assets/catalog/thumbs/lost-vikings-modern.webp"
-      }
+      "accent": "#5eead4"
     },
     {
       "slug": "neon-rage",
@@ -359,11 +323,7 @@
         "modern": "НЕОН"
       },
       "languages": "RU / EN",
-      "accent": "#ff2e88",
-      "thumb": {
-        "retro": "assets/catalog/thumbs/double-dragon-battletoads-retro.webp",
-        "modern": "assets/catalog/thumbs/double-dragon-battletoads-modern.webp"
-      }
+      "accent": "#ff2e88"
     },
     {
       "slug": "saga-2",
@@ -392,11 +352,7 @@
         "modern": "AURORA"
       },
       "languages": "RU / EN",
-      "accent": "#56e0b0",
-      "thumb": {
-        "retro": "assets/catalog/thumbs/lost-vikings-2-retro.webp",
-        "modern": "assets/catalog/thumbs/lost-vikings-2-modern.webp"
-      }
+      "accent": "#56e0b0"
     }
   ]
 }
