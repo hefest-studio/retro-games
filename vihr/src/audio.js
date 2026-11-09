@@ -1,5 +1,5 @@
 /*!
- * SILKWORM (1988 Tecmo) — HTML5 remake · 8-bit audio engine.
+ * ВИХРЬ (1988 Гефест) — HTML5 original · 8-bit audio engine.
  * Classic script, no modules, no assets, no network: defines window.SWAudio.
  * Everything is synthesised with WebAudio (pulse / triangle / noise).
  *
