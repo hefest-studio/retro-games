@@ -20,11 +20,11 @@ window.LV = window.LV || {};
     '#b8d96a', '#5a3a1b', '#a56b2b', '#e0b35a', '#3a1a3a', '#7a2a5a', '#d94a6a', '#f2f2f2', '#111111'];
 
   var VIK = {
-    erik: { main: '#7cf8ff', dark: '#2b86a8', cloth: '#2f6f9e', cloth2: '#1d4666', skin: '#f2cda9', hair: '#c9a15a', cape: '#17435f', cape2: '#2a6f92', num: 1, horn: 1.0 },
-    baleog: { main: '#ff3d8b', dark: '#8f1f4d', cloth: '#a8325c', cloth2: '#6d1f3c', skin: '#e9b992', hair: '#e0b35a', cape: '#5e1a33', cape2: '#93264b', num: 2, horn: 0.86 },
+    erik: { main: '#ff6b8a', dark: '#8a2e46', cloth: '#a8325c', cloth2: '#6d1f3c', skin: '#f2cda9', hair: '#c9a15a', cape: '#5e1a33', cape2: '#93264b', num: 1, horn: 1.0 },
+    baleog: { main: '#5fd0d2', dark: '#1e6a6c', cloth: '#2f7f82', cloth2: '#1d4e52', skin: '#e9b992', hair: '#c9a15a', cape: '#174f52', cape2: '#2a8f92', num: 2, horn: 0.86 },
     olaf: { main: '#ffc857', dark: '#9a6a1e', cloth: '#b3812e', cloth2: '#7a4a1c', skin: '#e9b992', hair: '#cfd8e8', cape: '#4a3216', cape2: '#78521f', num: 3, horn: 0.74 }
   };
-  var R8VIK = { erik: 3, baleog: 13, olaf: 10 }; // индексы цветов R8
+  var R8VIK = { erik: 13, baleog: 3, olaf: 10 }; // индексы цветов R8
 
   /* ---------- состояние ---------- */
   var st = {
