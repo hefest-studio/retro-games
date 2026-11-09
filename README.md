@@ -21,7 +21,7 @@ HTML/CSS/JS, без сборки, CDN, npm-зависимостей и внеш�
 | 04 | [СТАРАТЕЛЬ — Погружение](staratel/) | Гефест | 1983 | Головоломка | 8-бит / Неон |
 | 05 | [ОБВАЛ — Кристальные глубины](obval/) | Гефест | 1984 | Головоломка | 8-бит / Неон |
 | 06 | [КАСКАД — Головоломка](kaskad/) | Гефест | 1984 | Головоломка | 8-бит / Неон |
-| 07 | [Contra — Неоновый рассвет](contra/) | Konami | 1987 | Run-and-gun | 8-BIT / NEON |
+| 07 | [РУБЕЖ — Неоновый рассвет](rubezh/) | Гефест | 1987 | Run-and-gun | 8-бит / Неон |
 | 08 | [Exolon — Штурмовик Виторк](exolon/) | Hewson Consultants | 1987 | Run-and-gun | RETRO ZX / NEON 2026 |
 | 09 | [The Last Mission — Робот OR-CABE-3](the-last-mission/) | Opera Soft | 1987 | Аркада | CGA / NEON |
 | 10 | [Silkworm — Шелкопряд](silkworm/) | Tecmo | 1988 | Shoot'em-up | 8-бит / Современная |
