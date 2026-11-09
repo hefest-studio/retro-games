@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>THE LAST MISSION · HTML5</title>
+<title>РУБИКОН · HTML5</title>
 <style>
   html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}
   body{display:flex;align-items:center;justify-content:center;
@@ -30,7 +30,7 @@
 window.addEventListener('error', function(ev){ try{ reportError(String(ev.message||ev.error||'error')); }catch(e){} });
 window.addEventListener('unhandledrejection', function(ev){ try{ reportError('promise: '+String(ev.reason)); }catch(e){} });
 /* ==========================================================================
-   THE LAST MISSION — HTML5 port of the 1987 Opera Soft game
+   РУБИКОН — HTML5 port of the 1987 студия «Гефест» game
    Internal resolution 320x200, CGA four-colour palette.
    ========================================================================== */
 
@@ -1947,7 +1947,7 @@ function fmtTime(t){
 const L10N = {
 ru: {
   title1:'ПОСЛЕДНЯЯ', title2:'МИССИЯ',
-  subtitle:'1987 OPERA SOFT · ВЕБ-РЕМЕЙК',
+  subtitle:'1987 ГЕФЕСТ · ВЕБ-ОРИГИНАЛ',
   start:'ENTER - СТАРТ',
   brief:'I - БРИФИНГ',
   lang:'L - ЯЗЫК: РУС',
@@ -1964,7 +1964,7 @@ ru: {
   sound_off:'M - ЗВУК: ВЫКЛ',
   record:'РЕКОРД',
   credits:'ФАН-ПОРТ 2025',
-  footer:'ВЕБ-РЕМЕЙК · OPERA SOFT 1987',
+  footer:'ВЕБ-ОРИГИНАЛ · ГЕФЕСТ 1987',
   hud_level:'УРОВЕНЬ', hud_power:'ЭНЕРГИЯ', hud_points:'ОЧКИ',
   hud_lives:'ЖИЗНИ', hud_laser:'ЛАЗЕР', hud_record:'РЕКОРД',
   base:'БАЗА', dock:'ДОК', lift:'ЛИФТ',
@@ -1992,7 +1992,7 @@ ru: {
   over_title:'ИГРА ОКОНЧЕНА',
   st_score:'ОЧКИ', st_level:'УРОВЕНЬ', st_kills:'ВРАГОВ',
   st_record:'РЕКОРД', st_time:'ВРЕМЯ',
-  gameover_foot:'OPERA SOFT · 1987',
+  gameover_foot:'ГЕФЕСТ · 1987',
   win_title:'МИССИЯ ВЫПОЛНЕНА',
   win_lines:[
     'OR-CABE-3 ВЫБРАЛСЯ НА ПОВЕРХНОСТЬ.',
@@ -2031,7 +2031,7 @@ ru: {
 },
 en: {
   title1:'THE LAST', title2:'MISSION',
-  subtitle:'1987 OPERA SOFT · HTML5 REMAKE',
+  subtitle:'ОРИГИНАЛ · ГЕФЕСТ',
   start:'ENTER - START',
   brief:'I - BRIEFING',
   lang:'L - LANGUAGE: ENG',
@@ -2048,7 +2048,7 @@ en: {
   sound_off:'M - SOUND: OFF',
   record:'RECORD',
   credits:'FAN PORT 2025',
-  footer:'HTML5 REMAKE · OPERA SOFT 1987',
+  footer:'ОРИГИНАЛ · ГЕФЕСТ',
   hud_level:'LEVEL', hud_power:'POWER', hud_points:'POINTS',
   hud_lives:'LIVES', hud_laser:'LASER', hud_record:'RECORD',
   base:'BASE', dock:'DOCK', lift:'LIFT',
@@ -2076,7 +2076,7 @@ en: {
   over_title:'GAME OVER',
   st_score:'SCORE', st_level:'LEVEL', st_kills:'KILLS',
   st_record:'RECORD', st_time:'TIME',
-  gameover_foot:'OPERA SOFT · 1987',
+  gameover_foot:'ГЕФЕСТ · 1987',
   win_title:'MISSION COMPLETE',
   win_lines:[
     'OR-CABE-3 REACHED THE SURFACE.',
@@ -3109,7 +3109,7 @@ function mTitle(){
   const t2 = LANG === 'ru' ? 'МИССИЯ' : 'MISSION';
 
   mBadge(L.neon_badge || 'NEON EDITION', 16, 14, MC.cyan);
-  mTxt('OPERA SOFT · 1987', 304, 14, 3.2, MC.dim, {align:'right', sp:1.4});
+  mTxt('ГЕФЕСТ · 1987', 304, 14, 3.2, MC.dim, {align:'right', sp:1.4});
 
   ctx.save();
   ctx.textAlign = 'left';

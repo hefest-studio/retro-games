@@ -23,7 +23,7 @@ HTML/CSS/JS, без сборки, CDN, npm-зависимостей и внеш�
 | 06 | [КАСКАД — Головоломка](kaskad/) | Гефест | 1984 | Головоломка | 8-бит / Неон |
 | 07 | [РУБЕЖ — Неоновый рассвет](rubezh/) | Гефест | 1987 | Run-and-gun | 8-бит / Неон |
 | 08 | [ПРОРЫВ — Штурмовик](proryv/) | Гефест | 1987 | Run-and-gun | 8-бит / Неон |
-| 09 | [The Last Mission — Робот OR-CABE-3](the-last-mission/) | Opera Soft | 1987 | Аркада | CGA / NEON |
+| 09 | [РУБИКОН — Робот ОР-КАБЕ](rubikon/) | Гефест | 1987 | Аркада | 8-бит / Неон |
 | 10 | [Silkworm — Шелкопряд](silkworm/) | Tecmo | 1988 | Shoot'em-up | 8-бит / Современная |
 | 11 | [The Lost Vikings — Потерянные викинги](lost-vikings/) | Interplay / Silicon & Synapse | 1992 | Платформер | 8-бит / Современный |
 | 12 | [Double Dragon × Battle Toads — Neon Rage](double-dragon-battletoads/) | Technōs Japan / Rare | 1993 | Beat'em-up | 8-БИТ / НЕОН |
