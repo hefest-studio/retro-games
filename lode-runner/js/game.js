@@ -709,12 +709,32 @@
    * Держит закэшированный маршрут к игроку и продолжает его от шага к шагу:
    * пока игрок стоит на месте, враг не пересчитывает путь и не «передумывает»
    * на каждой клетке. */
+  Game.prototype._enemyClassicStep = function (en) {
+    var p = this.player;
+    var dx = p.x > en.x ? 1 : (p.x < en.x ? -1 : 0);
+    var dy = p.y > en.y ? 1 : (p.y < en.y ? -1 : 0);
+    // 1) к ряду игрока по лестнице
+    if (dy > 0 && this.canDown(en)) return this._enemyStep(en, { dx: 0, dy: 1 });
+    if (dy < 0 && this.canUp(en)) return this._enemyStep(en, { dx: 0, dy: -1 });
+    // 2) к колонне игрока по горизонтали (сход с края = падение к игроку)
+    if (dx !== 0 && this.canWalk(en, dx)) return this._enemyStep(en, { dx: dx, dy: 0 });
+    // 3) затык: любая доступная вертикаль к игроку, затем обход в сторону
+    if (dy >= 0 && this.canDown(en)) return this._enemyStep(en, { dx: 0, dy: 1 });
+    if (dy <= 0 && this.canUp(en)) return this._enemyStep(en, { dx: 0, dy: -1 });
+    if (dx !== 0 && this.canWalk(en, -dx)) return this._enemyStep(en, { dx: -dx, dy: 0 });
+    return false;
+  };
+
   Game.prototype._enemyAct = function (en) {
     if (en.move || en.state === 'hole' || en.state === 'dead' || en.state === 'spawn') return;
     if (!this._entitySupported(en)) {
       this._beginFall(en);
       return;
     }
+
+    // Классическая эвристика Lode Runner: читаемое преследование.
+    // Если ничего не вышло (тупик) — ниже фолбэк на поиск пути, чтобы страж не зависал.
+    if (this._enemyClassicStep(en)) { en.actCooldown = 0; return; }
 
     var targets = this._enemyPickTarget(en);
     var playerReachableTarget = targets.length > 0;
