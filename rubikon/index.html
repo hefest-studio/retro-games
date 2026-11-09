@@ -1946,7 +1946,7 @@ function fmtTime(t){
    ========================================================================== */
 const L10N = {
 ru: {
-  title1:'ПОСЛЕДНЯЯ', title2:'МИССИЯ',
+  title1:'РУБИКОН', title2:'',
   subtitle:'1987 ГЕФЕСТ · ВЕБ-ОРИГИНАЛ',
   start:'ENTER - СТАРТ',
   brief:'I - БРИФИНГ',
@@ -2030,7 +2030,7 @@ ru: {
   mute_off:'ЗВУК ВЫКЛ'
 },
 en: {
-  title1:'THE LAST', title2:'MISSION',
+  title1:'RUBICON', title2:'',
   subtitle:'ОРИГИНАЛ · ГЕФЕСТ',
   start:'ENTER - START',
   brief:'I - BRIEFING',
@@ -3105,8 +3105,8 @@ function mPause(){
 function mTitle(){
   mMenuBg();
   const L = L10N[LANG];
-  const t1 = LANG === 'ru' ? 'ПОСЛЕДНЯЯ' : 'THE LAST';
-  const t2 = LANG === 'ru' ? 'МИССИЯ' : 'MISSION';
+  const t1 = LANG === 'ru' ? 'РУБИКОН' : 'RUBICON';
+  const t2 = LANG === 'ru' ? '' : '';
 
   mBadge(L.neon_badge || 'NEON EDITION', 16, 14, MC.cyan);
   mTxt('ГЕФЕСТ · 1987', 304, 14, 3.2, MC.dim, {align:'right', sp:1.4});
