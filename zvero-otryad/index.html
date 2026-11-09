@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ЗВЕРО-ОТРЯД · Спасатели — HTML5</title>
+<meta name="description" content="ЗВЕРО-ОТРЯД — оригинальный ко-оп платформер студии «Гефест» на чистом HTML5/Canvas. Ёж Пыж и заяц Тяпа хватают ящики и швыряют их во врагов. 1–2 игрока, 8-бит и неон, RU/EN, офлайн.">
+<meta name="theme-color" content="#120a06">
+<link rel="canonical" href="https://arcade.hefest.ru/zvero-otryad/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect x='4' y='4' width='40' height='40' rx='11' fill='%23f5a33c'/%3E%3Cpath d='M24 12 l3 7 7 .5 -5.5 4.5 2 7 -6.5-4 -6.5 4 2-7 -5.5-4.5 7-.5 Z' fill='%23161210'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Гефест · Зал ретро-игр">
+<meta property="og:title" content="ЗВЕРО-ОТРЯД · Спасатели">
+<meta property="og:description" content="Оригинальный ко-оп платформер студии «Гефест»: ёж Пыж и заяц Тяпа хватают ящики и швыряют их во врагов. 1–2 игрока, 8-бит и неон, RU/EN, офлайн.">
+<meta property="og:url" content="https://arcade.hefest.ru/zvero-otryad/">
+<meta property="og:image" content="https://arcade.hefest.ru/zvero-otryad/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ЗВЕРО-ОТРЯД · Спасатели">
+<meta name="twitter:description" content="Ко-оп платформер на чистом HTML5: хватай ящики и швыряй во врагов. 1–2 игрока, 8-бит и неон, RU/EN, офлайн.">
+<meta name="twitter:image" content="https://arcade.hefest.ru/zvero-otryad/og.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"ЗВЕРО-ОТРЯД · Спасатели","url":"https://arcade.hefest.ru/zvero-otryad/","image":"https://arcade.hefest.ru/zvero-otryad/og.png","description":"Оригинальный ко-оп платформер студии «Гефест» на чистом HTML5/Canvas: ёж Пыж и заяц Тяпа расчищают Старую Мастерскую, хватая ящики и швыряя их во врагов. 1–2 игрока, два режима графики (8-бит и неон), RU/EN, офлайн.","genre":"Аркада","applicationCategory":"Game","operatingSystem":"Web","inLanguage":["ru","en"],"author":{"@type":"Organization","name":"Гефест"},"offers":{"@type":"Offer","price":"0","priceCurrency":"RUB"}}</script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-gfx="retro">
+  <div class="shell">
+    <header class="bar">
+      <a class="logo" href="../"><span class="mk"></span><b>ЗВЕРО-ОТРЯД</b><i>спасатели</i></a>
+      <nav class="ctl">
+        <button id="btnGfx" class="b" title="Графика (G)"><span id="lblGfx">ГРАФИКА</span> <em id="valGfx">8-БИТ</em></button>
+        <button id="btnMode" class="b" title="Игроки (C / 1 / 2)"><span id="lblMode">ИГРОКИ</span> <em id="valMode">1</em></button>
+        <button id="btnLang" class="b" title="Язык (L)"><em id="valLang">RU</em></button>
+        <button id="btnSnd" class="b" title="Звук (M)"><span id="lblSnd">ЗВУК</span> <em id="valSnd">ВКЛ</em></button>
+        <button id="btnPause" class="b" title="Пауза (P)">II</button>
+      </nav>
+    </header>
+
+    <a id="backLink" class="backlink" href="../" data-catalog-back="1">&larr; Каталог</a>
+
+    <div class="stage">
+      <canvas id="game" width="960" height="600" aria-label="Игровое поле ко-оп платформера ЗВЕРО-ОТРЯД"></canvas>
+
+      <div id="ovTitle" class="ov" style="display:flex">
+        <div class="box">
+          <div class="kick">КО-ОП ПЛАТФОРМЕР · ОРИГИНАЛ · 1–2 ИГРОКА</div>
+          <h1>ЗВЕРО<span>-ОТРЯД</span></h1>
+          <div class="sub" id="tSub">СПАСАТЕЛИ</div>
+          <p id="tTagline">Ёж Пыж и заяц Тяпа расчищают Старую Мастерскую. Хватай ящики — и швыряй во врагов!</p>
+          <div class="row">
+            <button id="btnStart" class="big">НАЧАТЬ <kbd>Enter</kbd></button>
+            <button id="btnHow" class="ghost">КАК ИГРАТЬ</button>
+          </div>
+          <div id="helpBox" class="helpbox" style="display:none"><ul id="helpList"></ul></div>
+          <div class="hint">Enter — старт · C — 1/2 игрока · G — графика · M — звук · L — язык · P — пауза</div>
+        </div>
+      </div>
+
+      <div id="ovPause" class="ov" style="display:none">
+        <div class="box">
+          <h2 id="tPause">ПАУЗА</h2>
+          <button id="btnResume" class="big">ПРОДОЛЖИТЬ</button>
+        </div>
+      </div>
+
+      <div id="ovOver" class="ov" style="display:none">
+        <div class="box">
+          <h2 id="tOver">ОТРЯД ПОВЕРЖЕН</h2>
+          <div class="stats"><span>ОЧКИ <b id="overScore">0</b></span><span>РЕКОРД <b id="overBest">0</b></span></div>
+          <button id="btnAgain" class="big">ЕЩЁ РАЗ</button>
+        </div>
+      </div>
+
+      <div id="ovWin" class="ov" style="display:none">
+        <div class="box">
+          <h2 id="tWin">МАСТЕРСКАЯ СПАСЕНА!</h2>
+          <p id="tWinSub">Пыж и Тяпа вывели всех друзей наружу.</p>
+          <div class="stats"><span>ОЧКИ <b id="winScore">0</b></span><span>РЕКОРД <b id="winBest">0</b></span></div>
+          <button id="btnWinAgain" class="big">ЕЩЁ РАЗ</button>
+        </div>
+      </div>
+
+      <div class="touch" aria-hidden="true">
+        <div class="tpad">
+          <button id="tLeft" class="tbtn">&larr;</button>
+          <button id="tRight" class="tbtn">&rarr;</button>
+        </div>
+        <div class="tpad">
+          <button id="tGrab" class="tbtn fire">✊</button>
+          <button id="tJump" class="tbtn jump">&uarr;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/classic.js"></script>
+  <script src="js/modern.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
