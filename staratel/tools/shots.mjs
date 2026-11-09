@@ -15,7 +15,7 @@ const OUT = join(ROOT, "screenshots");
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const PORT = 9451;
 const PAGE = `file://${join(ROOT, "index.html")}`;
-const profile = mkdtempSync(join(tmpdir(), "lode-runner-shots-"));
+const profile = mkdtempSync(join(tmpdir(), "staratel-shots-"));
 mkdirSync(OUT, { recursive: true });
 
 const chrome = spawn(CHROME, [

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   LODE RUNNER · Погружение — интерфейс, меню, i18n, ввод
+   СТАРАТЕЛЬ · Погружение — интерфейс, меню, i18n, ввод
    ========================================================================== */
 (function () {
   'use strict';
@@ -79,7 +79,7 @@
       hint_dig: 'копать',
       hint_pause: 'пауза',
       hint_gfx: 'графика',
-      footer_left: 'LODE RUNNER · ремейк без единой картинки: canvas + WebAudio',
+      footer_left: 'СТАРАТЕЛЬ · ни единой картинки: canvas + WebAudio',
       footer_right: 'Классика 1983 · Браузер · Русский язык',
       toast_exit: 'ВЫХОД ОТКРЫТ — УХОДИ НАВЕРХ',
       toast_death: 'ВАС ПОЙМАЛИ',
@@ -155,7 +155,7 @@
       hint_dig: 'dig',
       hint_pause: 'pause',
       hint_gfx: 'graphics',
-      footer_left: 'LODE RUNNER · a remake with zero images: canvas + WebAudio',
+      footer_left: 'СТАРАТЕЛЬ · zero images: canvas + WebAudio',
       footer_right: 'Classic 1983 · Browser · Russian & English',
       toast_exit: 'EXIT OPEN — HEAD UP',
       toast_death: 'YOU GOT CAUGHT',

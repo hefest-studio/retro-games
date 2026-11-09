@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Собирает автономный lode-runner.html: инлайнит css/style.css и все js-файлы.
+/* Собирает автономный staratel.html: инлайнит css/style.css и все js-файлы.
  * Запуск: node tools/build-single.mjs
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -21,6 +21,6 @@ html = html.replace(scriptRe, (_, file) => {
 if (/<script src=|<link rel="stylesheet"/.test(html)) {
   throw new Error('Остались внешние ссылки — сборка неполная');
 }
-const out = join(ROOT, 'lode-runner.html');
+const out = join(ROOT, 'staratel.html');
 writeFileSync(out, html);
 console.log('→', out, (html.length / 1024).toFixed(1) + ' KiB');

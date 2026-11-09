@@ -1,5 +1,5 @@
 /*!
- * Lode Runner — 8-bit audio engine.
+ * Старатель — 8-bit audio engine.
  * Classic script (no ES modules, no assets): defines window.LR.audio.
  *
  * Everything is synthesised on the fly with WebAudio:
@@ -8,7 +8,7 @@
  *   - noise drums,
  *   - lookahead step sequencer with seamless 8-bar loops.
  *
- * All melodies below are original (do not copy Lode Runner or other games).
+ * All melodies below are original (do not copy Старатель or other games).
  */
 (function () {
   'use strict';

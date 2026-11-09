@@ -1,12 +1,12 @@
 /* ==========================================================================
-   LODE RUNNER · Погружение — точка входа
+   СТАРАТЕЛЬ · Погружение — точка входа
    ========================================================================== */
 (function () {
   'use strict';
 
   function fatal(message) {
     try {
-      console.error('[LODE RUNNER]', message);
+      console.error('[СТАРАТЕЛЬ]', message);
       var box = document.getElementById('fatal');
       if (!box) {
         box = document.createElement('pre');
@@ -15,7 +15,7 @@
           'background:#20040c;color:#ff9fbc;font:12px/1.5 monospace;white-space:pre-wrap;border-top:2px solid #ff4d6d';
         document.body.appendChild(box);
       }
-      box.textContent = 'LODE RUNNER: ' + message;
+      box.textContent = 'СТАРАТЕЛЬ: ' + message;
     } catch (e) { /* никак */ }
   }
 

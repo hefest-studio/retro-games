@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /* ==========================================================================
-   LODE RUNNER · приёмочный QA-прогон через Chrome DevTools Protocol.
-   Запуск:  node lode-runner/tools/qa.mjs
-   Пишет:   lode-runner/screenshots/qa/*.png + results.json
+   СТАРАТЕЛЬ · приёмочный QA-прогон через Chrome DevTools Protocol.
+   Запуск:  node staratel/tools/qa.mjs
+   Пишет:   staratel/screenshots/qa/*.png + results.json
    Игровые файлы НЕ меняет. Chrome — headless, file://, отдельный профиль.
    ========================================================================== */
 import { spawn } from "node:child_process";
@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const ROOT = "/Users/sergio/My/code/projects/music_book/lode-runner";
+const ROOT = "/Users/sergio/My/code/projects/music_book/staratel";
 const OUT = join(ROOT, "screenshots/qa");
 let devtoolsUrl = null;
 const PAGE = `file://${ROOT}/index.html`;
@@ -1134,9 +1134,9 @@ async function phaseMobile() {
   }
 }
 
-const STANDALONE = `file://${ROOT}/lode-runner.html`;
+const STANDALONE = `file://${ROOT}/staratel.html`;
 async function phaseStandalone() {
-  section("5. АВТОНОМНЫЙ lode-runner.html (инлайн css/js)");
+  section("5. АВТОНОМНЫЙ staratel.html (инлайн css/js)");
   await send("Emulation.setTouchEmulationEnabled", { enabled: false });
   try { await send("Emulation.setEmulatedMedia", { features: [] }); } catch { /* ok */ }
   await setDesktop();
@@ -1155,7 +1155,7 @@ async function phaseStandalone() {
     };
   })()`);
   const errBefore = ev.exceptions.length;
-  check("standalone.boot", "Автономный lode-runner.html: 10 уровней, title, 0 внешних ссылок, без fatal",
+  check("standalone.boot", "Автономный staratel.html: 10 уровней, title, 0 внешних ссылок, без fatal",
     boot.levels === 10 && boot.screen === "title" && boot.external === 0 && boot.inlineScripts >= 6 && !boot.fatal, boot);
   await shot("standalone-neon");
   await press("Enter");
