@@ -16,7 +16,8 @@
       "players": "1",
       "summary": "Собери все кристаллы в лабиринте, уворачивайся от врагов, лови усилители.",
       "description": "Оригинальная аркада-лабиринт студии «Гефест» по мотивам жанра 1980-х: герой-грызун собирает кристаллы и убегает от врагов-кристаллов, усилитель делает врагов уязвимыми. Четыре врага с разным поведением (разгон/погоня/испуг), туннель, уровни, жизни. Два режима графики (8-бит и неон), RU/EN, оригинальный чиптюн и SFX на WebAudio.",
-      "accent": "#ffd34d"
+      "accent": "#ffd34d",
+      "version": "1.0.0"
     },
     {
       "slug": "ruslo",
@@ -45,7 +46,8 @@
         "modern": "Модерн"
       },
       "languages": "RU / EN",
-      "accent": "#3ce6a8"
+      "accent": "#3ce6a8",
+      "version": "1.0.0"
     },
     {
       "slug": "krot",
@@ -74,7 +76,8 @@
         "modern": "Неон"
       },
       "languages": "RU / EN",
-      "accent": "#e8833a"
+      "accent": "#e8833a",
+      "version": "1.0.0"
     },
     {
       "slug": "staratel",
@@ -103,7 +106,8 @@
         "modern": "НЕОН"
       },
       "languages": "RU / EN",
-      "accent": "#f0b429"
+      "accent": "#f0b429",
+      "version": "1.0.0"
     },
     {
       "slug": "obval",
@@ -132,7 +136,8 @@
         "modern": "Нео"
       },
       "languages": "RU / EN",
-      "accent": "#f2c14e"
+      "accent": "#f2c14e",
+      "version": "1.0.0"
     },
     {
       "slug": "kaskad",
@@ -149,7 +154,8 @@
       "players": "1",
       "summary": "Складывай падающие фигуры в линии — и не дай стакану переполниться.",
       "description": "Оригинальная головоломка студии «Гефест» по мотивам жанра: семь фигур из четырёх клеток, вращение с отбросом от стен, запас фигуры, уровни и ускорение. Два режима графики (8-бит и неон), RU/EN, оригинальный чиптюн и SFX на WebAudio.",
-      "accent": "#36d6ff"
+      "accent": "#36d6ff",
+      "version": "1.0.0"
     },
     {
       "slug": "rubezh",
@@ -178,7 +184,8 @@
         "modern": "NEON"
       },
       "languages": "RU / EN",
-      "accent": "#ff4d9d"
+      "accent": "#ff4d9d",
+      "version": "1.0.0"
     },
     {
       "slug": "proryv",
@@ -207,7 +214,8 @@
         "modern": "NEON 2026"
       },
       "languages": "RU / EN",
-      "accent": "#22e6ff"
+      "accent": "#22e6ff",
+      "version": "1.0.0"
     },
     {
       "slug": "rubikon",
@@ -236,7 +244,8 @@
         "modern": "NEON"
       },
       "languages": "RU / EN",
-      "accent": "#ff4fd8"
+      "accent": "#ff4fd8",
+      "version": "1.0.0"
     },
     {
       "slug": "vihr",
@@ -265,7 +274,8 @@
         "modern": "Современная"
       },
       "languages": "RU / EN",
-      "accent": "#ff8a3d"
+      "accent": "#ff8a3d",
+      "version": "1.0.0"
     },
     {
       "slug": "saga",
@@ -294,7 +304,8 @@
         "modern": "Современный"
       },
       "languages": "RU / EN",
-      "accent": "#5eead4"
+      "accent": "#5eead4",
+      "version": "1.0.0"
     },
     {
       "slug": "neon-rage",
@@ -323,7 +334,8 @@
         "modern": "НЕОН"
       },
       "languages": "RU / EN",
-      "accent": "#ff2e88"
+      "accent": "#ff2e88",
+      "version": "1.0.0"
     },
     {
       "slug": "saga-2",
@@ -352,7 +364,8 @@
         "modern": "AURORA"
       },
       "languages": "RU / EN",
-      "accent": "#56e0b0"
+      "accent": "#56e0b0",
+      "version": "1.0.0"
     },
     {
       "slug": "bolt",
@@ -382,7 +395,8 @@
         "modern": "НЕОН"
       },
       "languages": "RU / EN",
-      "accent": "#EA6A12"
+      "accent": "#EA6A12",
+      "version": "1.0.0"
     }
   ]
 }
