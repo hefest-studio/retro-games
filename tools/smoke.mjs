@@ -35,8 +35,10 @@ for (const g of games) {
     try { new vm.Script(fs.readFileSync(f, 'utf8'), { filename: f }); checkedJs++; }
     catch (e) { problems.push(`${s}: ${e.message.split('\n')[0]}`); }
   }
-  // инлайновые <script> без src
-  const inline = [...html.matchAll(/<script(?![^>]*\ssrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
+  // инлайновые <script> без src (кроме не-JS типов: application/ld+json и т.п.)
+  const inline = [...html.matchAll(/<script((?![^>]*\ssrc=)[^>]*)>([\s\S]*?)<\/script>/gi)]
+    .filter(m => { const t = (/\stype=["']([^"']+)["']/i.exec(m[1]) || [])[1]; return !t || /(text|application)\/(java|ecma)script|module/i.test(t); })
+    .map(m => m[2]);
   inline.forEach((code, i) => {
     if (!code.trim()) return;
     try { new vm.Script(code, { filename: `${g}/index.html#inline${i}` }); checkedJs++; }
