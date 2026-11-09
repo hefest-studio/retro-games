@@ -1,6 +1,6 @@
 # Зал ретро-игр · Retro Games
 
-Каталог из **11 браузерных ремейков классических аркад и платформеров** (1982–1997)
+Каталог из **12 браузерных ремейков классических аркад и платформеров** (1982–1997)
 с единой стартовой страницей. Каталог умеет переключаться между **8-битным ретро-стилем**
 и **современным неоновым** — так же, как сами игры. Всё работает офлайн: чистый
 HTML/CSS/JS, без сборки, CDN, npm-зависимостей и внешних ассетов.
@@ -19,13 +19,14 @@ HTML/CSS/JS, без сборки, CDN, npm-зависимостей и внеш�
 | 02 | [Digger — Подземные туннели](digger/) | Windmill Software | 1983 | Аркада | 8-бит / Неон |
 | 03 | [Lode Runner — Погружение](lode-runner/) | Douglas E. Smith | 1983 | Головоломка | 8-БИТ / НЕОН |
 | 04 | [Boulder Dash — Кристальные глубины](boulder-dash/) | First Star Software | 1984 | Головоломка | Ретро / Нео |
-| 05 | [Contra — Неоновый рассвет](contra/) | Konami | 1987 | Run-and-gun | 8-BIT / NEON |
-| 06 | [Exolon — Штурмовик Виторк](exolon/) | Hewson Consultants | 1987 | Run-and-gun | RETRO ZX / NEON 2026 |
-| 07 | [The Last Mission — Робот OR-CABE-3](the-last-mission/) | Opera Soft | 1987 | Аркада | CGA / NEON |
-| 08 | [Silkworm — Шелкопряд](silkworm/) | Tecmo | 1988 | Shoot'em-up | 8-бит / Современная |
-| 09 | [The Lost Vikings — Потерянные викинги](lost-vikings/) | Interplay / Silicon & Synapse | 1992 | Платформер | 8-бит / Современный |
-| 10 | [Double Dragon × Battle Toads — Neon Rage](double-dragon-battletoads/) | Technōs Japan / Rare | 1993 | Beat'em-up | 8-БИТ / НЕОН |
-| 11 | [The Lost Vikings 2 — Северное сияние](lost-vikings-2/) | Interplay / Silicon & Synapse | 1997 | Платформер | 8-BIT / AURORA |
+| 05 | [Tetris — Каскад](tetris/) | Алексей Пажитнов | 1984 | Головоломка | 8-бит / Неон |
+| 06 | [Contra — Неоновый рассвет](contra/) | Konami | 1987 | Run-and-gun | 8-BIT / NEON |
+| 07 | [Exolon — Штурмовик Виторк](exolon/) | Hewson Consultants | 1987 | Run-and-gun | RETRO ZX / NEON 2026 |
+| 08 | [The Last Mission — Робот OR-CABE-3](the-last-mission/) | Opera Soft | 1987 | Аркада | CGA / NEON |
+| 09 | [Silkworm — Шелкопряд](silkworm/) | Tecmo | 1988 | Shoot'em-up | 8-бит / Современная |
+| 10 | [The Lost Vikings — Потерянные викинги](lost-vikings/) | Interplay / Silicon & Synapse | 1992 | Платформер | 8-бит / Современный |
+| 11 | [Double Dragon × Battle Toads — Neon Rage](double-dragon-battletoads/) | Technōs Japan / Rare | 1993 | Beat'em-up | 8-БИТ / НЕОН |
+| 12 | [The Lost Vikings 2 — Северное сияние](lost-vikings-2/) | Interplay / Silicon & Synapse | 1997 | Платформер | 8-BIT / AURORA |
 
 Точные описания, управление и особенности каждой игры — в её `README.md`.
 
