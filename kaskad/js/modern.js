@@ -1,4 +1,4 @@
-/* TETRIS · рендер неон (modern). TT.modern.draw(ctx, st, G) */
+/* КАСКАД · рендер неон (modern). TT.modern.draw(ctx, st, G) */
 (function (global) {
   'use strict';
   var TT = global.TT = global.TT || {};

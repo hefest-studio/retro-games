@@ -1,5 +1,5 @@
-/* TETRIS · tests/engine.test.mjs — автотесты логики (Node, без зависимостей).
-   Запуск: node tetris/tests/engine.test.mjs. Движок в node:vm с шимом window. */
+/* КАСКАД · tests/engine.test.mjs — автотесты логики (Node, без зависимостей).
+   Запуск: node kaskad/tests/engine.test.mjs. Движок в node:vm с шимом window. */
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -55,10 +55,10 @@ test('очистка заполненной линии: +1 линия, счёт 
   let bottomFilled=0; for(let x=0;x<10;x++) if(S.board[19][x]) bottomFilled++; eq(bottomFilled,0,'ряд не сдвинулся');
 });
 
-test('double/triple/tetris по таблице счёта (×уровень+1)', () => {
+test('double/triple/quad по таблице счёта (×уровень+1)', () => {
   const g=TT.Game(); g.start(); const S=g._S; S.score=0; S.lines=0; S.level=0;
   for(let y=16;y<20;y++) for(let x=0;x<10;x++) S.board[y][x]=1;  // 4 полные линии
-  g._clearLines(); eq(S.score, 800, 'tetris (4 линии) должен дать 800 на уровне 0');
+  g._clearLines(); eq(S.score, 800, 'quad (4 линии) должен дать 800 на уровне 0');
 });
 
 test('game over: спавн в занятую зону → over', () => {

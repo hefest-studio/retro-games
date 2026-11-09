@@ -1,4 +1,4 @@
-/* TETRIS · i18n (RU/EN). TT.i18n / TT.t */
+/* КАСКАД · i18n (RU/EN). TT.i18n / TT.t */
 (function (global) {
   'use strict';
   var TT = global.TT = global.TT || {};

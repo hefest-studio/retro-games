@@ -1,4 +1,4 @@
-/* TETRIS · рендер 8-бит (classic). TT.classic.draw(ctx, st, G) */
+/* КАСКАД · рендер 8-бит (classic). TT.classic.draw(ctx, st, G) */
 (function (global) {
   'use strict';
   var TT = global.TT = global.TT || {};

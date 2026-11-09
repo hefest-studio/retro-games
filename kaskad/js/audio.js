@@ -1,4 +1,4 @@
-/* TETRIS · аудио: оригинальный чиптюн + SFX на WebAudio (без внешних файлов). TT.audio */
+/* КАСКАД · аудио: оригинальный чиптюн + SFX на WebAudio (без внешних файлов). TT.audio */
 (function (global) {
   'use strict';
   var TT = global.TT = global.TT || {};
@@ -44,7 +44,7 @@
         case 'rotate': beep(440, 0.05, 'square', 0.3); break;
         case 'lock': beep(160, 0.06, 'triangle', 0.35); break;
         case 'clear': beep(660, 0.08, 'square', 0.4); beep(880, 0.12, 'square', 0.3); break;
-        case 'tetris': [523,659,784,1047].forEach(function (f, i) { setTimeout(function(){ beep(f,0.12,'square',0.4); }, i*60); }); break;
+        case 'quad': [523,659,784,1047].forEach(function (f, i) { setTimeout(function(){ beep(f,0.12,'square',0.4); }, i*60); }); break;
         case 'level': [392,523,659].forEach(function (f, i) { setTimeout(function(){ beep(f,0.1,'square',0.35); }, i*70); }); break;
         case 'drop': beep(120, 0.07, 'sawtooth', 0.3); break;
         case 'hold': beep(520, 0.05, 'triangle', 0.3); break;

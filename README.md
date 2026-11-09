@@ -20,7 +20,7 @@ HTML/CSS/JS, без сборки, CDN, npm-зависимостей и внеш�
 | 03 | [Digger — Подземные туннели](digger/) | Windmill Software | 1983 | Аркада | 8-бит / Неон |
 | 04 | [Lode Runner — Погружение](lode-runner/) | Douglas E. Smith | 1983 | Головоломка | 8-БИТ / НЕОН |
 | 05 | [Boulder Dash — Кристальные глубины](boulder-dash/) | First Star Software | 1984 | Головоломка | Ретро / Нео |
-| 06 | [Tetris — Каскад](tetris/) | Алексей Пажитнов | 1984 | Головоломка | 8-бит / Неон |
+| 06 | [КАСКАД — Головоломка](kaskad/) | Гефест | 1984 | Головоломка | 8-бит / Неон |
 | 07 | [Contra — Неоновый рассвет](contra/) | Konami | 1987 | Run-and-gun | 8-BIT / NEON |
 | 08 | [Exolon — Штурмовик Виторк](exolon/) | Hewson Consultants | 1987 | Run-and-gun | RETRO ZX / NEON 2026 |
 | 09 | [The Last Mission — Робот OR-CABE-3](the-last-mission/) | Opera Soft | 1987 | Аркада | CGA / NEON |

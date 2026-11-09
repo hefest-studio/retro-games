@@ -1,4 +1,4 @@
-/* TETRIS · DOM-оверлеи. TT.ui */
+/* КАСКАД · DOM-оверлеи. TT.ui */
 (function (global) {
   'use strict';
   var TT = global.TT = global.TT || {};

@@ -1,4 +1,4 @@
-/* TETRIS · boot, цикл, ввод, настройки. Владелец: Lead. */
+/* КАСКАД · boot, цикл, ввод, настройки. Владелец: Lead. */
 (function (global) {
   'use strict';
   var TT = global.TT;
@@ -33,7 +33,7 @@
       case 'harddrop': TT.audio.sfx('drop'); break;
       case 'hold': TT.audio.sfx('hold'); break;
       case 'levelup': TT.audio.sfx('level'); break;
-      case 'clear': TT.audio.sfx(d.count >= 4 ? 'tetris' : 'clear'); break;
+      case 'clear': TT.audio.sfx(d.count >= 4 ? 'quad' : 'clear'); break;
       case 'gameover':
         TT.audio.sfx('over'); TT.audio.stopMusic(); running = false;
         if (d.score > hi) { hi = d.score; put(LS.hi, hi); }
