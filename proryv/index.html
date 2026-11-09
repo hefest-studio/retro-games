@@ -4,11 +4,11 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="color-scheme" content="dark" />
-<title>EXOLON · HTML5</title>
-<meta name="description" content="Exolon (Hewson, 1987) — браузерный порт: 8-битная графика ZX Spectrum, неоновая современная графика, 8-bit музыка, русский язык." />
+<title>ПРОРЫВ · HTML5</title>
+<meta name="description" content="ПРОРЫВ (Гефест, 1987) — браузерный порт: 8-битная графика ZX Spectrum, неоновая современная графика, 8-bit музыка, русский язык." />
 <style>
 /* ============================================================
-   EXOLON HTML5 — оболочка страницы
+   ПРОРЫВ HTML5 — оболочка страницы
    Вся игра рисуется на #stage; здесь только холст, фон, служебные слои.
    ============================================================ */
 html, body {
@@ -72,16 +72,16 @@ body {
 </style>
 </head>
 <body>
-<canvas id="stage" width="1280" height="800" aria-label="EXOLON — аркада"></canvas>
+<canvas id="stage" width="1280" height="800" aria-label="ПРОРЫВ — аркада"></canvas>
 <pre id="err"></pre>
 <pre id="testout"></pre>
 <noscript><p class="noscript">Для игры нужен JavaScript.</p></noscript>
 <script>
-/* EXOLON HTML5 — сгенерировано tools/build.mjs, не редактировать вручную */
+/* ПРОРЫВ HTML5 — сгенерировано tools/build.mjs, не редактировать вручную */
 'use strict';
 /* ==== src/font.js ==== */
 /* ============================================================
-   EXOLON HTML5 — пиксельный моноширинный шрифт 6×8 с кириллицей
+   ПРОРЫВ HTML5 — пиксельный моноширинный шрифт 6×8 с кириллицей
    ------------------------------------------------------------
    Знакоместо 6×8: 5 px на глиф (колонки 0–4) + 1 px пробела (колонка 5).
    Заглавные и цифры занимают 7 px (строки 0–6), строчные — 5 px
@@ -325,17 +325,17 @@ body {
 
 /* ==== src/i18n.js ==== */
 /* ============================================================
-   EXOLON HTML5 — локализация RU / EN
+   ПРОРЫВ HTML5 — локализация RU / EN
    EX_I18N.ручные строки; EX_T(key, vars) — доступ с подстановкой {var}.
    ============================================================ */
 (function () {
   'use strict';
 
   const RU = {
-    'brand': 'EXOLON',
+    'brand': 'ПРОРЫВ',
     'brand.ru': 'ЭКЗОЛОН',
     'tagline': 'ПОРТ 1987 → 2026',
-    'tagline.full': 'аркада Hewson 1987 · браузерный порт',
+    'tagline.full': 'оригинал студии «Гефест»',
     'loading': 'ЗАГРУЗКА...',
 
     /* ---- меню ---- */
@@ -446,9 +446,9 @@ body {
     'msg.shield': 'БРОНЯ {n}',
 
     /* ---- настройки / прочее ---- */
-    'credits.original': 'RAFFAELE CECCO · HEWSON 1987',
+    'credits.original': 'ОРИГИНАЛ · ГЕФЕСТ',
     'credits.port': 'HTML5 CANVAS · WEB AUDIO · 2026',
-    'credits.fan': 'Неофициальный фанатский ремейк. Не связан с Hewson Consultants.',
+    'credits.fan': 'Оригинальная игра студии «Гефест» по мотивам жанра.',
     'credits.thanks': 'Графика и музыка — из кода. Внешних файлов нет.',
     'about.goal': 'Сюжет',
     'about.text': 'Планета Эксолон — каторжная колония корпорации. Виторк, штурмовик-одиночка, пробивается через пять секторов: периметр, пещеры, реактор, улей и ядро. Бластер — против органики, гранаты — против брони. В середине каждого сектора ждёт капсула гиперсплавного экзоскелета: он держит удар, но лишает выходного бонуса.',
@@ -467,16 +467,16 @@ body {
     'pause.lang': 'ЯЗЫК: {v}',
 
     /* ---- тесты ---- */
-    'test.title': 'EXOLON TESTS',
+    'test.title': 'ПРОРЫВ TESTS',
     'test.ok': 'OK',
     'test.fail': 'FAIL'
   };
 
   const EN = {
-    'brand': 'EXOLON',
-    'brand.ru': 'EXOLON',
+    'brand': 'ПРОРЫВ',
+    'brand.ru': 'ПРОРЫВ',
     'tagline': 'PORT 1987 → 2026',
-    'tagline.full': 'Hewson 1987 arcade · browser port',
+    'tagline.full': 'original by Hefest studio',
     'loading': 'LOADING...',
 
     'menu.play': 'PLAY',
@@ -528,7 +528,7 @@ body {
     'key.enter': 'ENTER', 'key.enter.act': 'confirm · start',
 
     'hint.title': 'OBJECTIVE',
-    'hint.goal': 'Fight through 5 sectors of Exolon: kill everything, grab ammo packs and reach the right edge of the screen.',
+    'hint.goal': 'Fight through 5 sectors of ПРОРЫВ: kill everything, grab ammo packs and reach the right edge of the screen.',
     'hint.exo': 'The exoskeleton pod mid-sector gives armour and double fire rate — but costs the 10000 bonus.',
     'hint.grenade': 'The blaster kills organics. Guns, tanks and pods are armoured — grenades only.',
     'hint.teleport': 'Stand on a teleporter and press ↓ to warp to its twin. Usually a reward there.',
@@ -566,7 +566,7 @@ body {
     'msg.bonus.pick2': 'HIT SPACE ON THE HIGHEST',
     'msg.gameover': 'GAME OVER',
     'msg.continue': 'ENTER — RETRY',
-    'msg.win': 'EXOLON HAS FALLEN',
+    'msg.win': 'ПРОРЫВ HAS FALLEN',
     'msg.win.sub': 'VITORC BROKE THROUGH 5 SECTORS',
     'msg.newrecord': 'NEW RECORD!',
     'msg.record': 'RECORD',
@@ -579,12 +579,12 @@ body {
     'msg.togo': 'TO EXIT',
     'msg.shield': 'ARMOUR {n}',
 
-    'credits.original': 'RAFFAELE CECCO · HEWSON 1987',
+    'credits.original': 'ОРИГИНАЛ · ГЕФЕСТ',
     'credits.port': 'HTML5 CANVAS · WEB AUDIO · 2026',
-    'credits.fan': 'Unofficial fan remake. Not affiliated with Hewson Consultants.',
+    'credits.fan': 'An original game by Hefest studio.',
     'credits.thanks': 'Graphics & music from code only.',
     'about.goal': 'Story',
-    'about.text': 'The planet Exolon is a corporate penal colony. Vitorc, a lone stormtrooper, cuts through five sectors: perimeter, caves, reactor, hive and core. Blaster for organics, grenades for armour. Mid-sector a hyper-alloy exoskeleton pod waits: it soaks damage but forfeits the end bonus.',
+    'about.text': 'The planet ПРОРЫВ is a corporate penal colony. Vitorc, a lone stormtrooper, cuts through five sectors: perimeter, caves, reactor, hive and core. Blaster for organics, grenades for armour. Mid-sector a hyper-alloy exoskeleton pod waits: it soaks damage but forfeits the end bonus.',
     'record.new': 'NEW RECORD',
     'record.beaten': 'RECORD BEATEN',
     'touch.left': '◄', 'touch.right': '►', 'touch.jump': '▲', 'touch.fire': '●', 'touch.duck': '▼',
@@ -598,7 +598,7 @@ body {
     'pause.sfx': 'SFX: {v}',
     'pause.lang': 'LANGUAGE: {v}',
 
-    'test.title': 'EXOLON TESTS',
+    'test.title': 'ПРОРЫВ TESTS',
     'test.ok': 'OK',
     'test.fail': 'FAIL'
   };
@@ -627,7 +627,7 @@ body {
 
 /* ==== src/audio.js ==== */
 /* ============================================================
-   EXOLON HTML5 — 8-битный звуковой движок (WebAudio, без сэмплов)
+   ПРОРЫВ HTML5 — 8-битный звуковой движок (WebAudio, без сэмплов)
    API: docs/CONTRACT.md §2, музыка: docs/MUSIC.md.
 
    4 канала, как на NES/ZX:
@@ -2123,7 +2123,7 @@ body {
 
 /* ==== src/levels.js ==== */
 /* ============================================================
-   EXOLON HTML5 — данные уровней
+   ПРОРЫВ HTML5 — данные уровней
    5 секторов × 5 экранов = 25 экранов по 32×24 тайла (256×192 px).
    Механика флип-скрина: ушёл за правый край — следующий экран.
 
@@ -3291,8 +3291,8 @@ body {
 
 /* ==== src/game.js ==== */
 /* ============================================================
-   EXOLON HTML5 — ядро игры
-   Порт аркады Exolon (Raffaele Cecco / Hewson, 1987)
+   ПРОРЫВ HTML5 — ядро игры
+   Оригинальная механика жанра (студия «Гефест»)
    256×192 поле + 16 px HUD, тайл 8 px, 32×24 тайла.
    Здесь: настройки, уровни/экраны, физика, враги, оружие,
    состояние (меню/брифинг/игра/бонус), ввод, счёт, тесты.
@@ -5119,7 +5119,7 @@ body {
 
 /* ==== src/render-retro.js ==== */
 /* ============================================================
-   EXOLON HTML5 — RETRO-рендерер (ZX Spectrum 1987)
+   ПРОРЫВ HTML5 — RETRO-рендерер (ZX Spectrum 1987)
    Рисует всё в логическом пространстве 256×208, 1 px = 1 пиксель.
    Стиль: чёрный фон, насыщенные цвета, 8×8 «атрибутные» блоки,
    пиксельный шрифт 6×8, минимум сглаживания.
@@ -5712,7 +5712,7 @@ body {
   function drawTitle() {
     const st = EX.state;
     background(themeOf({ theme: 'space' }));
-    const logo = 'EXOLON';
+    const logo = 'ПРОРЫВ';
     const colors = [P.byellow, P.bcyan, P.bmagenta, P.bgreen, P.bcyan, P.bwhite];
     const sc = 4;
     const tw = textW(logo, sc);
@@ -5744,7 +5744,7 @@ body {
     }
     /* рекорд */
     text(EX.t('msg.record') + ' ' + String(st.record).padStart(6, '0'), W - 4, 2, P.byellow, 1, 'right');
-    text('HEWSON 1987', 4, 2, P.blue, 1);
+    text('ГЕФЕСТ', 4, 2, P.blue, 1);
     text(EX.t('menu.hint.quick'), W / 2, VH - 9, P.blue, 1, 'center');
     if (EX.BUILD) text(EX.t('settings.build.short', { v: EX.BUILD }), W / 2, 76, P.bblue, 1, 'center');
   }
@@ -6048,7 +6048,7 @@ body {
       case 'win': drawWin(); break;
       default:
         px('#000000', 0, 0, W, VH);
-        text('EXOLON', W / 2, 90, P.bwhite, 3, 'center');
+        text('ПРОРЫВ', W / 2, 90, P.bwhite, 3, 'center');
         break;
     }
     g.restore();
@@ -6066,7 +6066,7 @@ body {
 
 /* ==== src/render-modern.js ==== */
 /* ============================================================
-   EXOLON HTML5 — MODERN-рендерер «NEON 2026»
+   ПРОРЫВ HTML5 — MODERN-рендерер «NEON 2026»
    Тот же мир 256×208, но векторная неоновая графика: свечение,
    параллакс, частицы, стеклянный HUD, современная типографика.
    Координаты — логические (1 юнит = 1 «пиксель» ZX), масштаб
@@ -6914,9 +6914,9 @@ body {
     const lv = EX.levelData(st.level);
     const inRun = ['play', 'paused', 'dead', 'bonus', 'levelclear', 'briefing', 'gameover', 'win'].indexOf(st.mode) >= 0;
     const label = inRun
-      ? 'EXOLON // ' + EX.t('hud.sector') + ' ' + String(st.level + 1).padStart(2, '0') +
+      ? 'ПРОРЫВ // ' + EX.t('hud.sector') + ' ' + String(st.level + 1).padStart(2, '0') +
         (lv ? ' · ' + (lv.name[EX.settings.lang] || lv.name.ru) : '')
-      : 'EXOLON // ' + EX.t('tagline');
+      : 'ПРОРЫВ // ' + EX.t('tagline');
     g.font = '600 ' + Math.max(10, s.h * 0.016) + 'px ' + UI_FONT;
     const above = s.y > 26;
     const ty = above ? s.y - 8 : s.y + 12;
@@ -6964,7 +6964,7 @@ body {
       g.font = '800 ' + Math.round(side * 0.36) + 'px ' + HEAD_FONT;
       g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillStyle = 'rgba(160,175,255,0.10)';
-      g.fillText('EXOLON', 0, 0);
+      g.fillText('ПРОРЫВ', 0, 0);
       g.restore();
     }
 
@@ -7068,18 +7068,18 @@ body {
     lg.addColorStop(1, '#ff3ff0');
     /* хроматическая аберрация */
     try { g.letterSpacing = '4px'; } catch (e) { /* ok */ }
-    g.globalAlpha = 0.5; g.fillStyle = 'rgba(255,63,240,0.55)'; g.fillText('EXOLON', W / 2 - 1.4, 41);
-    g.fillStyle = 'rgba(57,246,255,0.55)'; g.fillText('EXOLON', W / 2 + 1.4, 42);
+    g.globalAlpha = 0.5; g.fillStyle = 'rgba(255,63,240,0.55)'; g.fillText('ПРОРЫВ', W / 2 - 1.4, 41);
+    g.fillStyle = 'rgba(57,246,255,0.55)'; g.fillText('ПРОРЫВ', W / 2 + 1.4, 42);
     g.globalAlpha = 1;
     g.save();
     g.shadowColor = 'rgba(57,246,255,0.65)';
     g.shadowBlur = 22;
     g.fillStyle = lg;
-    g.fillText('EXOLON', W / 2, 41.5);
+    g.fillText('ПРОРЫВ', W / 2, 41.5);
     g.restore();
     g.fillStyle = 'rgba(255,255,255,0.85)';
     g.globalAlpha = 0.9;
-    g.fillText('EXOLON', W / 2, 41.5 - 0.35);
+    g.fillText('ПРОРЫВ', W / 2, 41.5 - 0.35);
     g.globalAlpha = 1;
     try { g.letterSpacing = '0px'; } catch (e) { /* ok */ }
 
@@ -7188,7 +7188,7 @@ body {
     g.font = '800 16px ' + HEAD_FONT;
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillStyle = lg;
-    g.fillText('EXOLON', W / 2, 24);
+    g.fillText('ПРОРЫВ', W / 2, 24);
     text(EX.t('tagline'), W / 2, 38, 3.4, 'rgba(235,235,255,0.8)', 'center', '500', 1);
     g.fillStyle = 'rgba(255,63,240,0.3)'; g.fillRect(30, 45, W - 60, 0.7);
     let y = 53;
@@ -7454,7 +7454,7 @@ body {
 
 /* ==== src/main.js ==== */
 /* ============================================================
-   EXOLON HTML5 — оболочка: загрузка, масштабирование, цикл,
+   ПРОРЫВ HTML5 — оболочка: загрузка, масштабирование, цикл,
    ввод, звук, отладочные режимы (#test, #shot=...).
    ============================================================ */
 (function () {
@@ -7693,10 +7693,10 @@ body {
     const res = EX.runTests();
     const fails = res.filter(function (r) { return !r.ok; });
     const lines = res.map(function (r) { return (r.ok ? '  ok  ' : ' FAIL ') + r.name; });
-    document.title = 'EXOLON TESTS ' + (res.length - fails.length) + '/' + res.length + (fails.length ? ' FAIL' : ' PASS');
+    document.title = 'ПРОРЫВ TESTS ' + (res.length - fails.length) + '/' + res.length + (fails.length ? ' FAIL' : ' PASS');
     if (testBox) {
       testBox.style.display = 'block';
-      testBox.textContent = 'EXOLON TESTS\n' + lines.join('\n') + '\n\n' +
+      testBox.textContent = 'ПРОРЫВ TESTS\n' + lines.join('\n') + '\n\n' +
         (fails.length ? 'ПРОВАЛЕНО: ' + fails.length : 'ВСЁ ПРОШЛО: ' + res.length + '/' + res.length) +
         (EX.state.debug.missingGlyphs ? '\nнет глифов: ' + EX.state.debug.missingGlyphs : '');
     }
