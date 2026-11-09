@@ -1,5 +1,5 @@
 /* ============================================================================
- * RIVER RAID · HTML5 — локализация RU/EN.
+ * RUSLO · HTML5 — локализация RU/EN.
  * Русский — по умолчанию. Переключение клавишей L, кнопкой или через меню.
  * ========================================================================== */
 'use strict';
@@ -8,16 +8,16 @@ window.RR = window.RR || {};
   const DICT = {
     ru: {
       /* оболочка */
-      title: 'РЕЧНОЙ РЕЙД',
-      titleLatin: 'RIVER RAID',
-      subtitle: 'Браузерный ремейк аркады Activision · 1982',
+      title: 'РУСЛО',
+      titleLatin: 'RUSLO',
+      subtitle: 'Оригинальная аркада студии «Гефест»',
       sideNote: 'ВЕРТИКАЛЬНЫЙ СКРОЛЛ · 8-БИТ · HTML5',
       tagRetro: 'РЕТРО',
       tagModern: 'МОДЕРН',
-      pageTitle: 'RIVER RAID · РЕЧНОЙ РЕЙД — HTML5',
-      metaDescription: 'Браузерный ремейк River Raid (Activision, 1982): река, мосты, заправки, два режима графики и 8-битная музыка.',
+      pageTitle: 'РУСЛО · Над рекой — HTML5',
+      metaDescription: 'Браузерный ремейк оригинальная аркада студии «Гефест»: река, мосты, заправки, два режима графики и 8-битная музыка.',
       quickGroup: 'Быстрые настройки',
-      gameField: 'Игровое поле River Raid',
+      gameField: 'Игровое поле РУСЛО',
       mainMenu: 'Главное меню',
       touchPad: 'Экранное управление',
       touchLeft: 'Влево',
@@ -97,16 +97,16 @@ window.RR = window.RR || {};
       accuracy: 'ТОЧНОСТЬ',
     },
     en: {
-      title: 'RIVER RAID',
-      titleLatin: 'RIVER RAID',
-      subtitle: 'A browser remake of the Activision arcade · 1982',
+      title: 'RUSLO',
+      titleLatin: 'RUSLO',
+      subtitle: 'An original arcade by Hefest studio',
       sideNote: 'VERTICAL SCROLLER · 8-BIT · HTML5',
       tagRetro: 'RETRO',
       tagModern: 'MODERN',
-      pageTitle: 'RIVER RAID · HTML5',
-      metaDescription: 'A browser remake of River Raid (Activision, 1982): river, bridges, fuel depots, two graphics modes and 8-bit music.',
+      pageTitle: 'RUSLO · Over the river — HTML5',
+      metaDescription: 'A browser remake of оригинальная аркада студии «Гефест»: river, bridges, fuel depots, two graphics modes and 8-bit music.',
       quickGroup: 'Quick settings',
-      gameField: 'River Raid playfield',
+      gameField: 'RUSLO playfield',
       mainMenu: 'Main menu',
       touchPad: 'On-screen controls',
       touchLeft: 'Left',
