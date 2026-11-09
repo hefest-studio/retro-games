@@ -19,7 +19,7 @@ HTML/CSS/JS, без сборки, CDN, npm-зависимостей и внеш�
 | 02 | [РУСЛО — Над рекой](ruslo/) | Гефест | 1982 | Shoot'em-up | Ретро / Модерн |
 | 03 | [КРОТ — Подземные туннели](krot/) | Гефест | 1983 | Аркада | 8-бит / Неон |
 | 04 | [СТАРАТЕЛЬ — Погружение](staratel/) | Гефест | 1983 | Головоломка | 8-бит / Неон |
-| 05 | [Boulder Dash — Кристальные глубины](boulder-dash/) | First Star Software | 1984 | Головоломка | Ретро / Нео |
+| 05 | [ОБВАЛ — Кристальные глубины](obval/) | Гефест | 1984 | Головоломка | 8-бит / Неон |
 | 06 | [КАСКАД — Головоломка](kaskad/) | Гефест | 1984 | Головоломка | 8-бит / Неон |
 | 07 | [Contra — Неоновый рассвет](contra/) | Konami | 1987 | Run-and-gun | 8-BIT / NEON |
 | 08 | [Exolon — Штурмовик Виторк](exolon/) | Hewson Consultants | 1987 | Run-and-gun | RETRO ZX / NEON 2026 |
@@ -66,7 +66,7 @@ python3 -m http.server 8080
 .
 ├── index.html                    # стартовая страница-каталог (ретро/современный стиль)
 ├── assets/catalog/               # CSS/JS каталога, games.json и превью (webp)
-├── boulder-dash/                 # каждая игра — самодостаточная папка
+├── obval/                         # каждая игра — самодостаточная папка
 ├── contra/                       #   index.html + css/js (или один index.html)
 ├── digger/
 ├── double-dragon-battletoads/
