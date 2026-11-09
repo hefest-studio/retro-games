@@ -1,5 +1,5 @@
 /* ==========================================================================
-   LOST VIKINGS 2 · NORSE BY NORSEWEST — склейка
+   СЕВЕРНАЯ САГА 2 · NORSE BY NORSEWEST — склейка
    Экраны, ввод, музыка, localStorage, фиксированный цикл 60 Гц.
    ========================================================================== */
 (function () {
@@ -575,7 +575,7 @@
       document.body.setAttribute('data-screen', 'title');
       var msg = document.createElement('div');
       msg.style.cssText = 'position:fixed;inset:0;display:grid;place-items:center;background:#05070f;color:#eaf6ff;font:16px system-ui;padding:24px;text-align:center;z-index:9999';
-      msg.textContent = 'LOST VIKINGS 2: не загрузились уровни (js/levels.js).';
+      msg.textContent = 'СЕВЕРНАЯ САГА 2: не загрузились уровни (js/levels.js).';
       document.body.appendChild(msg);
       return;
     }

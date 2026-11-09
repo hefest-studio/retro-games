@@ -27,7 +27,7 @@ HTML/CSS/JS, без сборки, CDN, npm-зависимостей и внеш�
 | 10 | [ВИХРЬ — Над полем боя](vihr/) | Гефест | 1988 | Shoot'em-up | 8-бит / Неон |
 | 11 | [СЕВЕРНАЯ САГА — Сага о трёх](saga/) | Гефест | 1992 | Платформер | 8-бит / Неон |
 | 12 | [Double Dragon × Battle Toads — Neon Rage](double-dragon-battletoads/) | Technōs Japan / Rare | 1993 | Beat'em-up | 8-БИТ / НЕОН |
-| 13 | [The Lost Vikings 2 — Северное сияние](lost-vikings-2/) | Interplay / Silicon & Synapse | 1997 | Платформер | 8-BIT / AURORA |
+| 13 | [СЕВЕРНАЯ САГА 2 — Северное сияние](saga-2/) | Гефест | 1997 | Платформер | 8-бит / Неон |
 
 Точные описания, управление и особенности каждой игры — в её `README.md`.
 

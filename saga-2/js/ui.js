@@ -1,4 +1,4 @@
-/* ui.js — LOST VIKINGS 2 · NORSE BY NORSEWEST
+/* ui.js — СЕВЕРНАЯ САГА 2 · NORSE BY NORSEWEST
    Интерфейс: экраны, HUD, тосты, справка, чипы настроек, сенсорное управление.
    Правила: DOM трогаем только из init(); игру не трогаем — только callbacks и getState.
    API §7: LV.ui {init, screen, updateHud, toast, setMode, setLang, setMuted, setSaveInfo}. */
@@ -412,7 +412,7 @@ window.LV = window.LV || {};
     return h('div', { 'class': 'brand', 'aria-hidden': 'true' }, [
       h('span', { 'class': 'brand__mark' }, [svgEl('rune', { 'class': 'brand__rune', weight: 1.7 })]),
       h('span', { 'class': 'brand__lines' }, [
-        h('span', { 'class': 'brand__name', text: 'LOST VIKINGS' }),
+        h('span', { 'class': 'brand__name', text: 'СЕВЕРНАЯ САГА' }),
         h('span', { 'class': 'brand__sub', text: 'II · ' + T('brand.norse') })
       ])
     ]);
@@ -951,7 +951,7 @@ window.LV = window.LV || {};
     var unlocked = saveInfo.unlocked;
     var hasProgress = saveInfo.hasProgress;
 
-    var logo = h('h1', { 'class': 'logo', 'aria-label': 'LOST VIKINGS II · NORSE BY NORSEWEST' }, [
+    var logo = h('h1', { 'class': 'logo', 'aria-label': 'СЕВЕРНАЯ САГА II · NORSE BY NORSEWEST' }, [
       h('span', { 'class': 'logo__line logo__line--lost', text: T('brand.lost'), 'aria-hidden': 'true' }),
       h('span', { 'class': 'logo__line logo__line--vikings' }, [
         h('span', { 'class': 'logo__word', text: T('brand.vikings') }),

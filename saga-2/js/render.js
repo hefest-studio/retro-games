@@ -1,4 +1,4 @@
-/* render.js — LOST VIKINGS 2 · NORSE BY NORSEWEST
+/* render.js — СЕВЕРНАЯ САГА 2 · NORSE BY NORSEWEST
    Вся графика игры: AURORA («Северное сияние») и RETRO 8-BIT.
    Только canvas 2D, ноль внешних ассетов. Читает game.world (§3), не мутирует его. */
 window.LV = window.LV || {};
@@ -2484,7 +2484,7 @@ window.LV = window.LV || {};
       g.quadraticCurveTo(0, headY + headR * 1.55, headR * 0.42, headY + headR * 1.5);
       g.stroke();
     } else {
-      // усы Эрика
+      // усы Снорриа
       g.strokeStyle = v.hair; g.lineWidth = 1.6; g.lineCap = 'round';
       g.beginPath();
       g.moveTo(-headR * 0.1, headY + headR * 0.62);

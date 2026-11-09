@@ -1,5 +1,5 @@
 /* ==========================================================================
-   LOST VIKINGS 2 · NORSE BY NORSEWEST — игровой движок
+   СЕВЕРНАЯ САГА 2 · NORSE BY NORSEWEST — игровой движок
    Платформер-головоломка: три викинга, переключение, способности сиквела.
    Координаты: x — центр, y — ноги (низ AABB). Тайл 32 px, экран 1024×576.
    Классические скрипты, без ES-модулей (работает по file://).
@@ -51,7 +51,7 @@
       id: id,
       x: x, y: y, w: c.w, h: c.h,
       dir: 1, vx: 0, vy: 0,
-      onGround: false, onOlaf: false, groundProp: null,
+      onGround: false, onBjorn: false, groundProp: null,
       state: 'idle', anim: Math.random() * 6,
       hp: MAX_HP, maxHp: MAX_HP, invuln: 0,
       active: false, exited: false, dead: false,
@@ -693,7 +693,7 @@
   };
 
   Game.prototype.moveActor = function (a, dt) {
-    a.onOlaf = false;
+    a.onBjorn = false;
     var dx = a.vx * dt;
     if (dx !== 0) {
       a.x += dx;
@@ -711,7 +711,7 @@
         a.y = op.t;
         a.vy = 0;
         a.onGround = true;
-        a.onOlaf = true;
+        a.onBjorn = true;
         dy = 0;
       }
     }
@@ -804,9 +804,9 @@
     var plat = this.olafPlatform();
     for (var i = 0; i < this.actors.length; i++) {
       var a = this.actors[i];
-      if (a === o || !a.onOlaf || a.dead || a.exited) continue;
+      if (a === o || !a.onBjorn || a.dead || a.exited) continue;
       if (!plat) {
-        a.onOlaf = false;
+        a.onBjorn = false;
         continue;
       }
       a.x += dx;

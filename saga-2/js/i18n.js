@@ -1,4 +1,4 @@
-/* i18n.js — LOST VIKINGS 2 · NORSE BY NORSEWEST
+/* i18n.js — СЕВЕРНАЯ САГА 2 · NORSE BY NORSEWEST
    Все строки интерфейса: RU (по умолчанию) и EN. Только этот файл хранит тексты UI.
    API: LV.i18n {t, list, setLang, getLang, LANGS}. */
 window.LV = window.LV || {};
@@ -8,7 +8,7 @@ window.LV = window.LV || {};
   var DICT = {
     ru: {
       /* ---------- общее ---------- */
-      'app.title': 'Lost Vikings II · Северное сияние',
+      'app.title': 'СЕВЕРНАЯ САГА 2 · Северное сияние',
       'common.back': 'Назад',
       'common.close': 'Закрыть',
       'common.on': 'Вкл',
@@ -28,8 +28,8 @@ window.LV = window.LV || {};
       'common.dash': '—',
 
       /* ---------- шапка / бренд ---------- */
-      'brand.lost': 'LOST',
-      'brand.vikings': 'VIKINGS',
+      'brand.lost': 'СЕВЕРНАЯ',
+      'brand.vikings': 'САГА II',
       'brand.ii': 'II',
       'brand.norse': 'NORSE BY NORSEWEST',
       'meta.aurora': 'СЕВЕРНОЕ СИЯНИЕ',
@@ -50,7 +50,7 @@ window.LV = window.LV || {};
       'chip.group': 'Настройки',
 
       /* ---------- экран title ---------- */
-      'title.kicker': 'Фанатский браузерный ремейк · 1997',
+      'title.kicker': 'Оригинальная браузерная игра · 1997',
       'title.subtitle': 'СЕВЕРНОЕ СИЯНИЕ',
       'title.tagline': 'Три викинга. Полярная ночь. Шесть саг.',
       'title.menu': 'Выберите путь',
@@ -61,7 +61,7 @@ window.LV = window.LV || {};
       'title.progress': 'Открыто саг: {n} из {total}',
       'title.fresh': 'Прогресса пока нет — начните первую сагу',
       'title.keys': '1–3 — викинги · G — графика · Y — язык · M — звук',
-      'title.attribution': 'Фанатский ремейк The Lost Vikings 2 · Norse by Norsewest (1997)',
+      'title.attribution': 'Оригинал The Северная сага 2 · Гефест (1997)',
       'title.build': 'без внешних ассетов · всё нарисовано кодом',
       'title.stats': '6 саг · 3 викинга · 2 режима графики',
       'title.feature1': 'Полярная ночь',
@@ -108,13 +108,13 @@ window.LV = window.LV || {};
       'brief.diff.4': 'Комбинация',
       'brief.diff.5': 'Финал',
       'brief.mech.0': [
-        'Эрик таранит лёд и стены',
-        'Балеог рубит мечом и бьёт из лука',
-        'Олаф держит щит — по нему можно ходить'
+        'Снорри таранит лёд и стены',
+        'Гуннар рубит мечом и бьёт из лука',
+        'Бьорн держит щит — по нему можно ходить'
       ],
       'brief.mech.1': [
-        'Новый крюк Балеога цепляется за потолок',
-        'Парение Эрика продлевает прыжок',
+        'Новый крюк Гуннара цепляется за потолок',
+        'Парение Снорриа продлевает прыжок',
         'Стрелы зажигают и переключают рычаги'
       ],
       'brief.mech.2': [
@@ -124,7 +124,7 @@ window.LV = window.LV || {};
       ],
       'brief.mech.3': [
         'Вертикальные подъёмы: крюк и парение',
-        'Щит Олафа — платформа для остальных',
+        'Щит Бьорна — платформа для остальных',
         'Проверьте путь для каждого викинга'
       ],
       'brief.mech.4': [
@@ -170,18 +170,18 @@ window.LV = window.LV || {};
       'hud.exitPip': 'Слот выхода {n}',
 
       /* ---------- викинги и способности ---------- */
-      'viking.erik': 'Эрик',
+      'viking.erik': 'Снорри',
       'viking.erik.role': 'Быстрый',
-      'viking.baleog': 'Балеог',
+      'viking.baleog': 'Гуннар',
       'viking.baleog.role': 'Свирепый',
-      'viking.olaf': 'Олаф',
+      'viking.olaf': 'Бьорн',
       'viking.olaf.role': 'Могучий',
       'ability.headbutt': 'Таран',
       'ability.headbutt.key': 'J',
       'ability.headbutt.hint': 'Ломает лёд и бьёт врагов',
       'ability.glide': 'Парение',
       'ability.glide.key': 'Space',
-      'ability.glide.hint': 'Держите Space в падении — Эрик планирует',
+      'ability.glide.hint': 'Держите Space в падении — Снорри планирует',
       'ability.sword': 'Меч',
       'ability.sword.key': 'J',
       'ability.sword.hint': 'Урон вблизи и переключение рычага',
@@ -231,7 +231,7 @@ window.LV = window.LV || {};
       'ending.credit1': 'Дизайн и код — в духе «Северного сияния», 1997',
       'ending.credit2': 'Музыка — оригинальный чиптюн на WebAudio',
       'ending.credit3': 'Графика — вектор и пиксели, нарисованные кодом',
-      'ending.credit4': 'The Lost Vikings — торговая марка Blizzard Entertainment',
+      'ending.credit4': 'The Северная сага — торговая марка Гефест Entertainment',
       'ending.again': 'Пройти снова',
       'ending.back': 'В главное меню',
 
@@ -270,7 +270,7 @@ window.LV = window.LV || {};
       'help.abilitiesTitle': 'Способности викингов',
       'help.tipsTitle': 'Советы',
       'help.tip1': 'Неактивные викинги замирают — стройте маршрут по очереди.',
-      'help.tip2': 'Щит Олафа — платформа: поставьте его и поднимите остальных.',
+      'help.tip2': 'Щит Бьорна — платформа: поставьте его и поднимите остальных.',
       'help.tip3': 'Крюк цепляется за любой твёрдый потолок и за якоря.',
       'help.tip4': 'Руны не обязательны для выхода, но щедро платят очками.',
       'help.tip5': 'Смерть не заканчивает сагу: викинг вернётся у чекпоинта.',
@@ -324,7 +324,7 @@ window.LV = window.LV || {};
 
     en: {
       /* ---------- common ---------- */
-      'app.title': 'Lost Vikings II · Nordic Aurora',
+      'app.title': 'СЕВЕРНАЯ САГА 2 · Nordic Aurora',
       'common.back': 'Back',
       'common.close': 'Close',
       'common.on': 'On',
@@ -344,8 +344,8 @@ window.LV = window.LV || {};
       'common.dash': '—',
 
       /* ---------- brand ---------- */
-      'brand.lost': 'LOST',
-      'brand.vikings': 'VIKINGS',
+      'brand.lost': 'СЕВЕРНАЯ',
+      'brand.vikings': 'САГА II',
       'brand.ii': 'II',
       'brand.norse': 'NORSE BY NORSEWEST',
       'meta.aurora': 'NORDIC AURORA',
@@ -366,7 +366,7 @@ window.LV = window.LV || {};
       'chip.group': 'Settings',
 
       /* ---------- title ---------- */
-      'title.kicker': 'A fan-made browser remake · 1997',
+      'title.kicker': 'A fan-made browser original · 1997',
       'title.subtitle': 'NORDIC AURORA',
       'title.tagline': 'Three vikings. One polar night. Six sagas.',
       'title.menu': 'Choose your path',
@@ -377,7 +377,7 @@ window.LV = window.LV || {};
       'title.progress': 'Sagas unlocked: {n} of {total}',
       'title.fresh': 'No progress yet — begin the first saga',
       'title.keys': '1–3 vikings · G graphics · Y language · M sound',
-      'title.attribution': 'A fan remake of The Lost Vikings 2 · Norse by Norsewest (1997)',
+      'title.attribution': 'A original of The Северная сага 2 · Гефест (1997)',
       'title.build': 'no external assets · everything drawn in code',
       'title.stats': '6 sagas · 3 vikings · 2 graphics modes',
       'title.feature1': 'Polar night',
@@ -424,13 +424,13 @@ window.LV = window.LV || {};
       'brief.diff.4': 'Combination',
       'brief.diff.5': 'Finale',
       'brief.mech.0': [
-        'Erik headbutts ice and walls',
-        'Baleog swings his sword and shoots',
-        'Olaf raises his shield — you can stand on it'
+        'Snorri headbutts ice and walls',
+        'Gunnar swings his sword and shoots',
+        'Bjorn raises his shield — you can stand on it'
       ],
       'brief.mech.1': [
-        "Baleog's new hook grabs the ceiling",
-        "Erik's glide stretches the jump",
+        "Gunnar's new hook grabs the ceiling",
+        "Snorri's glide stretches the jump",
         'Arrows ignite and flip levers'
       ],
       'brief.mech.2': [
@@ -440,7 +440,7 @@ window.LV = window.LV || {};
       ],
       'brief.mech.3': [
         'Vertical climbs: hook and glide',
-        "Olaf's shield is a platform for the others",
+        "Bjorn's shield is a platform for the others",
         'Check the route for every viking'
       ],
       'brief.mech.4': [
@@ -486,18 +486,18 @@ window.LV = window.LV || {};
       'hud.exitPip': 'Exit slot {n}',
 
       /* ---------- vikings ---------- */
-      'viking.erik': 'Erik',
+      'viking.erik': 'Snorri',
       'viking.erik.role': 'Swift',
-      'viking.baleog': 'Baleog',
+      'viking.baleog': 'Gunnar',
       'viking.baleog.role': 'Fierce',
-      'viking.olaf': 'Olaf',
+      'viking.olaf': 'Bjorn',
       'viking.olaf.role': 'Mighty',
       'ability.headbutt': 'Headbutt',
       'ability.headbutt.key': 'J',
       'ability.headbutt.hint': 'Breaks ice and hits enemies',
       'ability.glide': 'Glide',
       'ability.glide.key': 'Space',
-      'ability.glide.hint': 'Hold Space while falling — Erik glides',
+      'ability.glide.hint': 'Hold Space while falling — Snorri glides',
       'ability.sword': 'Sword',
       'ability.sword.key': 'J',
       'ability.sword.hint': 'Melee damage and lever flips',
@@ -547,7 +547,7 @@ window.LV = window.LV || {};
       'ending.credit1': 'Design and code — in the spirit of Nordic Aurora, 1997',
       'ending.credit2': 'Music — original chiptune on WebAudio',
       'ending.credit3': 'Art — vector and pixels, drawn in code',
-      'ending.credit4': 'The Lost Vikings is a trademark of Blizzard Entertainment',
+      'ending.credit4': 'The Северная сага is a trademark of Гефест Entertainment',
       'ending.again': 'Play again',
       'ending.back': 'Main menu',
 
@@ -586,7 +586,7 @@ window.LV = window.LV || {};
       'help.abilitiesTitle': 'Viking abilities',
       'help.tipsTitle': 'Tips',
       'help.tip1': 'Inactive vikings freeze — plan the route one at a time.',
-      'help.tip2': "Olaf's shield is a platform: park him and lift the others.",
+      'help.tip2': "Bjorn's shield is a platform: park him and lift the others.",
       'help.tip3': 'The hook grabs any solid ceiling and every anchor.',
       'help.tip4': 'Runes are optional for the exit, but they pay well.',
       'help.tip5': 'Death never ends the saga: the viking returns at a checkpoint.',
