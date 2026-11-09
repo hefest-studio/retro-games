@@ -1,5 +1,5 @@
 /* ============================================================
-   DOUBLE DRAGON × BATTLE TOADS: NEON RAGE — 8-bit / synthwave audio engine
+   НЕОН × ЯРОСТЬ: NEON RAGE — 8-bit / synthwave audio engine
    ------------------------------------------------------------
    One classic script, no modules, no assets, no network: defines window.DD_AUDIO.
    Everything is synthesised with WebAudio (pulse / triangle / noise / saw),

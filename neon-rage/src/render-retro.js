@@ -1,5 +1,5 @@
 /* ============================================================
-   DOUBLE DRAGON × BATTLE TOADS: NEON RAGE — RETRO 8-BIT RENDERER
+   НЕОН × ЯРОСТЬ: NEON RAGE — RETRO 8-BIT RENDERER
    ------------------------------------------------------------
    window.DD_RENDER_RETRO = { draw(ctx, view) }
 
@@ -1520,7 +1520,7 @@
   }
 
   function ensureLogo() {
-    var title = T('app.title') || 'DOUBLE DRAGON × BATTLE TOADS';
+    var title = T('app.title') || 'НЕОН × ЯРОСТЬ';
     var sub = T('app.subtitle') || 'NEON RAGE';
     var sig = title + '|' + sub;
     if (logoCanvas && logoSig === sig) return logoCanvas;
@@ -1530,8 +1530,8 @@
     var g = cv.getContext('2d');
     g.imageSmoothingEnabled = false;
     var parts = title.split('×');
-    var left = (parts[0] || 'DOUBLE DRAGON').trim();
-    var right = (parts[1] || 'BATTLE TOADS').trim();
+    var left = (parts[0] || 'НЕОН').trim();
+    var right = (parts[1] || 'ЯРОСТЬ').trim();
     if (!right) {
       var ws = left.split(' ');
       var mid = Math.ceil(ws.length / 2);
@@ -1652,7 +1652,7 @@
     }
     drawTitleSparkles(ctx, t);
 
-    /* подпись «фанатский трибьют» */
+    /* подпись «оригинал» */
     textC(ctx, T('app.tribute'), 240, 121, 1, C.lav, { outline: C.ink, outlineW: 1 });
 
     /* рекорд слева сверху */

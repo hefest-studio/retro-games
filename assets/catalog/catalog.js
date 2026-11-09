@@ -39,7 +39,7 @@
     { slug: 'rubikon', title: 'РУБИКОН', subtitle: 'Робот ОР-КАБЕ', year: 1987, developer: 'Гефест', genre: 'Аркада', tags: ['аркада', 'робот', 'оригинал'], summary: 'Проведи робота сквозь уровни подземелья к поверхности.', accent: '#c792ea' },
     { slug: 'vihr', title: 'ВИХРЬ', subtitle: 'Над полем боя', year: 1988, developer: 'Гефест', genre: "Shoot'em-up", tags: ['shoot’em-up', 'экшен', 'оригинал'], summary: 'Вертолёт и джип против волн техники — расчищай небо и землю.', accent: '#ffcf3a' },
     { slug: 'saga', title: 'СЕВЕРНАЯ САГА', subtitle: 'Сага о трёх', year: 1992, developer: 'Гефест', genre: 'Платформер', tags: ['головоломка', 'платформер', 'оригинал'], summary: 'Три викинга с разными умениями — проведи всех троих к выходу.', accent: '#7cc6ff' },
-    { slug: 'double-dragon-battletoads', title: 'Double Dragon × Battle Toads', subtitle: 'Neon Rage', year: 1993, developer: 'Technōs Japan / Rare', genre: "Beat'em-up", tags: ["beat'em-up", 'кроссовер', 'неон'], summary: 'Дракон Кай и жаба Рок выбивают чип NEON-8 из лап «ТОКСИК».', accent: '#ff2e88' },
+    { slug: 'neon-rage', title: 'НЕОН × ЯРОСТЬ', subtitle: 'Neon Rage', year: 1993, developer: 'Гефест', genre: "Beat'em-up", tags: ["beat'em-up", 'экшен', 'оригинал'], summary: 'Дракон Кай и жаба Рок пробиваются сквозь банду в неоновом городе.', accent: '#ff3bd0' },
     { slug: 'saga-2', title: 'СЕВЕРНАЯ САГА 2', subtitle: 'Северное сияние', year: 1997, developer: 'Гефест', genre: 'Платформер', tags: ['головоломка', 'платформер', 'оригинал'], summary: 'Шесть саг полярной ночи: три викинга, новые умения, лёд и механизмы.', accent: '#9ad0ff' },
   ];
 

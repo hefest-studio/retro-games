@@ -1,5 +1,5 @@
 /* ============================================================
-   DOUBLE DRAGON × BATTLE TOADS: NEON RAGE
+   НЕОН × ЯРОСТЬ: NEON RAGE
    src/render-modern.js — «неоновый ремастер»: Canvas 2D, 480×270
    ------------------------------------------------------------
    window.DD_RENDER_MODERN = { draw(ctx, view) }
@@ -4257,8 +4257,8 @@
     });
 
     // логотип
-    var l1 = 'DOUBLE DRAGON';
-    var l2 = '× BATTLE TOADS';
+    var l1 = 'НЕОН';
+    var l2 = '× ЯРОСТЬ';
     var s1 = fitSize(ctx, l1, 404, 44, 900, F_DISPLAY, 24);
     var s2 = fitSize(ctx, l2, 404, 40, 900, F_DISPLAY, 22);
     drawPosterLine(ctx, l1, W / 2, 48, {

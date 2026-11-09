@@ -26,7 +26,7 @@ HTML/CSS/JS, без сборки, CDN, npm-зависимостей и внеш�
 | 09 | [РУБИКОН — Робот ОР-КАБЕ](rubikon/) | Гефест | 1987 | Аркада | 8-бит / Неон |
 | 10 | [ВИХРЬ — Над полем боя](vihr/) | Гефест | 1988 | Shoot'em-up | 8-бит / Неон |
 | 11 | [СЕВЕРНАЯ САГА — Сага о трёх](saga/) | Гефест | 1992 | Платформер | 8-бит / Неон |
-| 12 | [Double Dragon × Battle Toads — Neon Rage](double-dragon-battletoads/) | Technōs Japan / Rare | 1993 | Beat'em-up | 8-БИТ / НЕОН |
+| 12 | [НЕОН × ЯРОСТЬ — Neon Rage](neon-rage/) | Гефест | 1993 | Beat'em-up | 8-бит / Неон |
 | 13 | [СЕВЕРНАЯ САГА 2 — Северное сияние](saga-2/) | Гефест | 1997 | Платформер | 8-бит / Неон |
 
 Точные описания, управление и особенности каждой игры — в её `README.md`.
@@ -69,7 +69,7 @@ python3 -m http.server 8080
 ├── obval/                         # каждая игра — самодостаточная папка
 ├── contra/                       #   index.html + css/js (или один index.html)
 ├── digger/
-├── double-dragon-battletoads/
+├── neon-rage/        
 ├── exolon/
 ├── lode-runner/
 ├── lost-vikings/

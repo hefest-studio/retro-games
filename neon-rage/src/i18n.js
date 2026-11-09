@@ -1,5 +1,5 @@
 /* ============================================================
-   DOUBLE DRAGON × BATTLE TOADS: NEON RAGE — локализация RU/EN
+   НЕОН × ЯРОСТЬ: NEON RAGE — локализация RU/EN
    ------------------------------------------------------------
    Канонические ключи — docs/CONTRACT.md §9. Наборы ключей в `ru` и `en`
    обязаны совпадать: tmp/check-i18n.mjs проверяет паритет, плейсхолдеры
@@ -20,9 +20,9 @@
 
   var ru = {
     /* ---------- приложение ---------- */
-    'app.title': 'DOUBLE DRAGON × BATTLE TOADS',
+    'app.title': 'НЕОН × ЯРОСТЬ',
     'app.subtitle': 'NEON RAGE',
-    'app.tribute': 'неофициальный фанатский трибьют',
+    'app.tribute': 'оригинал студии «Гефест»',
     'app.footer': 'Canvas 2D · WebAudio · один HTML-файл',
     'app.loading': 'ЗАГРУЗКА НЕОНА…',
 
@@ -199,7 +199,7 @@
 
     /* ---------- об игре ---------- */
     'about.title': 'ОБ ИГРЕ',
-    'about.text1': 'Фанатский трибьют кроссоверу Double Dragon × Battletoads (1993).',
+    'about.text1': 'Оригинальный beat'em-up студии «Гефест».',
     'about.text2': 'Все персонажи, графика и музыка оригинальны и созданы кодом — без внешних ассетов.',
     'about.text3': 'Ретро- и неон-рендеры рисуют один и тот же бой, а музыка синтезируется в WebAudio.',
     'about.tech': 'Canvas 2D · WebAudio · ES2019 · 0 внешних файлов',
@@ -209,9 +209,9 @@
 
   var en = {
     /* ---------- app ---------- */
-    'app.title': 'DOUBLE DRAGON × BATTLE TOADS',
+    'app.title': 'НЕОН × ЯРОСТЬ',
     'app.subtitle': 'NEON RAGE',
-    'app.tribute': 'an unofficial fan tribute',
+    'app.tribute': 'an original by Hefest studio',
     'app.footer': 'Canvas 2D · WebAudio · one HTML file',
     'app.loading': 'LOADING NEON…',
 
@@ -388,7 +388,7 @@
 
     /* ---------- about ---------- */
     'about.title': 'ABOUT',
-    'about.text1': 'A fan tribute to the Double Dragon × Battletoads crossover (1993).',
+    'about.text1': 'An original beat'em-up by Hefest studio.',
     'about.text2': 'Every character, sprite and note is original and made in code — no external assets.',
     'about.text3': 'The retro and modern renderers draw the same fight; the music is synthesized in WebAudio.',
     'about.tech': 'Canvas 2D · WebAudio · ES2019 · zero external files',
