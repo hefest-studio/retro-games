@@ -1,5 +1,5 @@
 /* ============================================================================
-   DIGGER · main.js — сборка: цикл, ввод, настройки, события движка, debug-хеши
+   КРОТ · main.js — сборка: цикл, ввод, настройки, события движка, debug-хеши
    Владелец: Lead. См. CONTRACT.md §6.5.
    ========================================================================== */
 (function (global) {
@@ -47,7 +47,7 @@
   function showError(err) {
     if (!errBox) return;
     errBox.style.display = 'block';
-    errBox.textContent = 'DIGGER error:\n' + (err && (err.stack || err.message || String(err)));
+    errBox.textContent = 'КРОТ error:\n' + (err && (err.stack || err.message || String(err)));
   }
   global.addEventListener('error', function (ev) { showError(ev.error || ev.message); });
   global.addEventListener('unhandledrejection', function (ev) { showError(ev.reason); });
@@ -473,7 +473,7 @@
     ctx.fillStyle = '#7dd3fc';
     ctx.font = '600 28px ui-monospace, Menlo, Consolas, monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('DIGGER · renderer "' + settings.gfx + '" is not loaded', 480, 300);
+    ctx.fillText('КРОТ · renderer "' + settings.gfx + '" is not loaded', 480, 300);
     ctx.textAlign = 'left';
   }
 
@@ -627,7 +627,7 @@
     });
     var passed = results.filter(function (r) { return r.ok; }).length;
     var lines = results.map(function (r) { return (r.ok ? 'PASS  ' : 'FAIL  ') + r.name + (r.detail ? '  — ' + r.detail : ''); });
-    var report = 'DIGGER TESTS ' + passed + '/' + results.length + (passed === results.length ? ' PASS' : ' FAIL');
+    var report = 'КРОТ TESTS ' + passed + '/' + results.length + (passed === results.length ? ' PASS' : ' FAIL');
     doc.title = report;
     if (testBox) { testBox.style.display = 'block'; testBox.textContent = lines.join('\n') + '\n\n' + report; }
     return passed === results.length;

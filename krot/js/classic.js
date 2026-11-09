@@ -1,5 +1,5 @@
 /* ============================================================================
-   DIGGER · classic.js — аутентичный 8-битный рендерер (EGA/CGA-палитра)
+   КРОТ · classic.js — аутентичный 8-битный рендерер (EGA/CGA-палитра)
    Владелец: pixel-viz. Контракт: CONTRACT.md §5, §5.1.
 
    Идея: рисуем «мир» во внутреннем буфере 320×200 честными пикселями
@@ -1015,7 +1015,7 @@
     txt(ctx, up(tr('hiscore')), 936, 9, 15, C.ltGray, 'right', alpha);
     txt(ctx, hi, 936, 27, 27, C.ltGreen, 'right', alpha);
     // «бренд» по центру
-    txt(ctx, 'DIGGER', 480, 15, 21, C.mag, 'center', alpha);
+    txt(ctx, 'КРОТ', 480, 15, 21, C.mag, 'center', alpha);
     txt(ctx, '\u25C6', 480 - 73, 17, 15, C.cyan, 'center', alpha);
     txt(ctx, '\u25C6', 480 + 73, 17, 15, C.cyan, 'center', alpha);
 
