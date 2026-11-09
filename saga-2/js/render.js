@@ -2797,62 +2797,18 @@ window.LV = window.LV || {};
     g.save();
     g.translate(q(a.x), q(a.y));
     if ((a.dir || 1) < 0) g.scale(-1, 1);
-    g.globalAlpha = a.active ? 1 : 0.42;
-    if (dead) { g.rotate(-Math.PI / 2); g.globalAlpha = 0.5; }
+    g.globalAlpha = 1;
+    if (dead) { g.globalAlpha = 0.6; }
 
     var hw = e(W2 / 2);
-    var bodyTop = -H;
-    var step = moving ? ((Math.sin(ph) > 0) ? 2 : -2) : 0;
-    var legH = e(H * 0.42);
     // тень
-    if (!dead) {
-      g.fillStyle = R8[0];
-      g.fillRect(-hw, 0, hw * 2, 2);
-    }
-    // ноги
-    g.fillStyle = R8[0];
-    g.fillRect(-hw + 2, -legH, 4, legH);
-    g.fillRect(hw - 6 + step, -legH, 4, legH - Math.abs(step));
-    // торс
-    g.fillStyle = col;
-    g.fillRect(-hw + 1, bodyTop + e(H * 0.2), W2 - 2, e(H * 0.42));
-    g.fillStyle = R8[0];
-    g.fillRect(-hw + 1, -e(H * 0.26), W2 - 2, 2);
-    // плащ
-    g.fillStyle = R8[0];
-    g.fillRect(-hw - 2, bodyTop + e(H * 0.24), 3, e(H * 0.3));
-    // голова
-    g.fillStyle = R8[10];
-    g.fillRect(-4, bodyTop + 2, 8, e(H * 0.22));
-    // борода
-    if (a.id !== 'erik') { g.fillStyle = R8[10]; g.fillRect(-4, bodyTop + e(H * 0.16), 8, e(H * 0.1)); }
-    // шлем
-    g.fillStyle = R8[3];
-    g.fillRect(-6, bodyTop - 2, 12, 4);
-    g.fillRect(-6, bodyTop - 6, 2, 5);
-    g.fillRect(4, bodyTop - 6, 2, 5);
-    // глаз
-    g.fillStyle = R8[0];
-    g.fillRect(2, bodyTop + 4, 2, 2);
-    // рука
-    g.fillStyle = col;
-    g.fillRect(hw - 2, bodyTop + e(H * 0.26) + (moving ? Math.round(Math.sin(ph) * 2) : 0), 4, e(H * 0.28));
-    if (a.id === 'baleog') {
-      g.fillStyle = R8[14];
-      g.fillRect(hw + 2, bodyTop + (stt === 'shoot' ? 8 : 16), 2, 12);
-      if (stt === 'shoot') { g.fillStyle = R8[10]; g.fillRect(hw + 4, bodyTop + 12, 8, 2); }
-    }
-    if (a.id === 'olaf' && a.shieldUp) {
-      g.fillStyle = R8[10];
-      g.fillRect(-8, bodyTop - 14, 16, 4);
-      g.fillStyle = R8[14];
-      g.fillRect(-8, bodyTop - 14, 16, 2);
-    }
-    if (a.active) {
-      g.fillStyle = R8[4];
-      g.fillRect(-2, bodyTop - 10, 4, 2);
-    }
+    if (!dead) { g.fillStyle = R8[0]; g.fillRect(-hw, 0, hw * 2, 2); }
+    // тело — пиксель-арт викинга из саги 1 (LVVIK); 1 арт-пиксель = 2 мировых px
+    g.scale(2, 2);
+    if (dead) LVVIK.drawDead(g, a.id, a.active);
+    else LVVIK.drawChar(g, a.id, LVVIK.mapState(a), anim, t, a.active);
     g.restore();
+    if (a.active && !dead) { g.fillStyle = R8[4]; g.fillRect(q(a.x) - 2, q(a.y) - (a.h || 44) - 12, 4, 2); }
 
     // маркер неактивного
     if (!a.active && !dead) {
@@ -3376,24 +3332,16 @@ window.LV = window.LV || {};
       g.setTransform(1, 0, 0, 1, 0, 0);
       g.clearRect(0, 0, W, H);
       if (st.mode === 'retro') {
-        var s = Math.max(1, Math.floor(Math.min(W / 32, H / 32)));
+        // бюст викинга тем же арт-кодом, что и в мире (LVVIK) — единые спрайты
         g.save();
-        g.translate(W / 2, H / 2);
-        g.scale(s, s);
-        g.translate(-16, -16);
-        g.fillStyle = R8[1]; g.fillRect(0, 0, 32, 32);
-        g.fillStyle = R8[0]; g.fillRect(0, 24, 32, 8);
-        g.fillStyle = (R8VIK[actorId] !== undefined) ? R8[R8VIK[actorId]] : R8[3];
-        g.fillRect(4, 22, 24, 10);
-        g.fillStyle = R8[3];
-        g.fillRect(10, 24, 12, 8);
-        g.fillStyle = R8[10]; g.fillRect(10, 8, 12, 12);
-        g.fillStyle = R8[3]; g.fillRect(8, 4, 16, 4);
-        g.fillRect(8, 0, 3, 5); g.fillRect(21, 0, 3, 5);
-        if (actorId !== 'erik') { g.fillStyle = R8[10]; g.fillRect(10, 16, 12, 8); }
-        g.fillStyle = R8[0]; g.fillRect(13, 11, 2, 2); g.fillRect(18, 11, 2, 2);
-        g.fillStyle = (R8VIK[actorId] !== undefined) ? R8[R8VIK[actorId]] : R8[3];
-        g.fillRect(2, 30, 28, 2);
+        g.beginPath(); g.rect(0, 0, W, H); g.clip();
+        g.imageSmoothingEnabled = false;
+        g.fillStyle = R8[1]; g.fillRect(0, 0, W, H);
+        g.fillStyle = R8[0]; g.fillRect(0, Math.round(H * 0.72), W, H - Math.round(H * 0.72));
+        var sc = H / 26;
+        g.translate(Math.round(W / 2), Math.round(H * 1.15));
+        g.scale(sc, sc);
+        LVVIK.drawChar(g, actorId, 'idle', 0, 0, true);
         g.restore();
         return;
       }
