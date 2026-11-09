@@ -1,4 +1,4 @@
-/* ui.js — СЕВЕРНАЯ САГА 2 · NORSE BY NORSEWEST
+/* ui.js — СЕВЕРНАЯ САГА 2 · СТУДИЯ ГЕФЕСТ
    Интерфейс: экраны, HUD, тосты, справка, чипы настроек, сенсорное управление.
    Правила: DOM трогаем только из init(); игру не трогаем — только callbacks и getState.
    API §7: LV.ui {init, screen, updateHud, toast, setMode, setLang, setMuted, setSaveInfo}. */
@@ -951,7 +951,7 @@ window.LV = window.LV || {};
     var unlocked = saveInfo.unlocked;
     var hasProgress = saveInfo.hasProgress;
 
-    var logo = h('h1', { 'class': 'logo', 'aria-label': 'СЕВЕРНАЯ САГА II · NORSE BY NORSEWEST' }, [
+    var logo = h('h1', { 'class': 'logo', 'aria-label': 'СЕВЕРНАЯ САГА II · СТУДИЯ ГЕФЕСТ' }, [
       h('span', { 'class': 'logo__line logo__line--lost', text: T('brand.lost'), 'aria-hidden': 'true' }),
       h('span', { 'class': 'logo__line logo__line--vikings' }, [
         h('span', { 'class': 'logo__word', text: T('brand.vikings') }),

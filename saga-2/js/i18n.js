@@ -1,4 +1,4 @@
-/* i18n.js — СЕВЕРНАЯ САГА 2 · NORSE BY NORSEWEST
+/* i18n.js — СЕВЕРНАЯ САГА 2 · СТУДИЯ ГЕФЕСТ
    Все строки интерфейса: RU (по умолчанию) и EN. Только этот файл хранит тексты UI.
    API: LV.i18n {t, list, setLang, getLang, LANGS}. */
 window.LV = window.LV || {};
@@ -31,7 +31,7 @@ window.LV = window.LV || {};
       'brand.lost': 'СЕВЕРНАЯ',
       'brand.vikings': 'САГА II',
       'brand.ii': 'II',
-      'brand.norse': 'NORSE BY NORSEWEST',
+      'brand.norse': 'СТУДИЯ ГЕФЕСТ',
       'meta.aurora': 'СЕВЕРНОЕ СИЯНИЕ',
       'meta.genre': 'NORDIC AURORA',
 
@@ -61,7 +61,7 @@ window.LV = window.LV || {};
       'title.progress': 'Открыто саг: {n} из {total}',
       'title.fresh': 'Прогресса пока нет — начните первую сагу',
       'title.keys': '1–3 — викинги · G — графика · Y — язык · M — звук',
-      'title.attribution': 'Оригинал The Северная сага 2 · Гефест (1997)',
+      'title.attribution': 'Оригинал студии «Гефест» · 1997',
       'title.build': 'без внешних ассетов · всё нарисовано кодом',
       'title.stats': '6 саг · 3 викинга · 2 режима графики',
       'title.feature1': 'Полярная ночь',
@@ -231,7 +231,7 @@ window.LV = window.LV || {};
       'ending.credit1': 'Дизайн и код — в духе «Северного сияния», 1997',
       'ending.credit2': 'Музыка — оригинальный чиптюн на WebAudio',
       'ending.credit3': 'Графика — вектор и пиксели, нарисованные кодом',
-      'ending.credit4': 'The Северная сага — торговая марка Гефест Entertainment',
+      'ending.credit4': 'СЕВЕРНАЯ САГА — оригинал студии «Гефест»',
       'ending.again': 'Пройти снова',
       'ending.back': 'В главное меню',
 
@@ -347,7 +347,7 @@ window.LV = window.LV || {};
       'brand.lost': 'СЕВЕРНАЯ',
       'brand.vikings': 'САГА II',
       'brand.ii': 'II',
-      'brand.norse': 'NORSE BY NORSEWEST',
+      'brand.norse': 'СТУДИЯ ГЕФЕСТ',
       'meta.aurora': 'NORDIC AURORA',
       'meta.genre': 'СЕВЕРНОЕ СИЯНИЕ',
 
@@ -377,7 +377,7 @@ window.LV = window.LV || {};
       'title.progress': 'Sagas unlocked: {n} of {total}',
       'title.fresh': 'No progress yet — begin the first saga',
       'title.keys': '1–3 vikings · G graphics · Y language · M sound',
-      'title.attribution': 'A original of The Северная сага 2 · Гефест (1997)',
+      'title.attribution': 'A original of СЕВЕРНАЯ САГА 2 · Гефест (1997)',
       'title.build': 'no external assets · everything drawn in code',
       'title.stats': '6 sagas · 3 vikings · 2 graphics modes',
       'title.feature1': 'Polar night',
@@ -547,7 +547,7 @@ window.LV = window.LV || {};
       'ending.credit1': 'Design and code — in the spirit of Nordic Aurora, 1997',
       'ending.credit2': 'Music — original chiptune on WebAudio',
       'ending.credit3': 'Art — vector and pixels, drawn in code',
-      'ending.credit4': 'The Северная сага is a trademark of Гефест Entertainment',
+      'ending.credit4': 'СЕВЕРНАЯ САГА is a an original by Hefest studio',
       'ending.again': 'Play again',
       'ending.back': 'Main menu',
 

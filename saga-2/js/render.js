@@ -1,4 +1,4 @@
-/* render.js — СЕВЕРНАЯ САГА 2 · NORSE BY NORSEWEST
+/* render.js — СЕВЕРНАЯ САГА 2 · СТУДИЯ ГЕФЕСТ
    Вся графика игры: AURORA («Северное сияние») и RETRO 8-BIT.
    Только canvas 2D, ноль внешних ассетов. Читает game.world (§3), не мутирует его. */
 window.LV = window.LV || {};
