@@ -1,5 +1,5 @@
 /* ХРУМ · «Лабиринт» — движок (DOM-free). PM.Game / PM.consts / PM.validate
-   Чистая логика: лабиринт, точки, Пакман, 4 призрака с классическим ИИ (scatter/chase/fright).
+   Чистая логика: лабиринт, точки, Хрумик, 4 призрака с классическим ИИ (scatter/chase/fright).
    Запускается и в браузере, и в node (node:vm с шимом window) — без DOM и внешних зависимостей. */
 (function (global) {
   'use strict';
@@ -61,7 +61,7 @@
   function isWall(ch) { return ch === '#' || ch === ' '; }
   function isDot(ch) { return ch === '.' || ch === 'o'; }
 
-  // Проходимо ли из клетки (cx,cy) в сторону dir. Пакман не ходит сквозь ворота '='.
+  // Проходимо ли из клетки (cx,cy) в сторону dir. Хрумик не ходит сквозь ворота '='.
   function canGo(maze, cx, cy, dir, ghost) {
     var tx = cx + DIRS[dir].x, ty = cy + DIRS[dir].y;
     if (ty === TUNNEL_ROW && (tx < 0 || tx >= COLS)) return true; // туннель
@@ -92,7 +92,7 @@
   PM.validate = function () {
     var maze = buildMaze(), problems = [];
     for (var y = 0; y < maze.length; y++) if (maze[y].length !== COLS) problems.push('строка ' + y + ' ширина ' + maze[y].length);
-    // flood fill из старта Пакмана (13,23)
+    // flood fill из старта Хрумика (13,23)
     var seen = {}, stack = [[13, 23]], dots = 0, reachDots = 0;
     for (var yy = 0; yy < ROWS; yy++) for (var xx = 0; xx < COLS; xx++) if (isDot(maze[yy][xx])) dots++;
     function key(x, y) { return x + ',' + y; }
@@ -196,7 +196,7 @@
       if (g.name === 'blinky') return [pcx, pcy];
       if (g.name === 'pinky') return [pcx + DIRS[p.dir].x * 4, pcy + DIRS[p.dir].y * 4];
       if (g.name === 'clyde') return (dist2(g.x, g.y, pcx, pcy) > 64) ? [pcx, pcy] : consts.SCATTER.clyde;
-      // inky: вектор от Блинки к точке в 2 клетки перед Пакманом, удвоенный
+      // inky: вектор от Блинки к точке в 2 клетки перед Хрумиком, удвоенный
       var b = S.ghosts[0], ax = pcx + DIRS[p.dir].x * 2, ay = pcy + DIRS[p.dir].y * 2;
       return [ax + (ax - b.x), ay + (ay - b.y)];
     }
@@ -290,7 +290,7 @@
 
       S.anim += dt;
       S.pac.mouth += dt * 10;
-      // Пакман
+      // Хрумик
       moveActor(S.pac, speedPac() * dt, decidePac, false);
       eatAt(Math.round(S.pac.x), Math.round(S.pac.y));
       collide();

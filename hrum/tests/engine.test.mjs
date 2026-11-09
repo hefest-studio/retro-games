@@ -24,9 +24,9 @@ test('карта валидна: 28×31, 254 точки, все достижим
 
 test('размеры поля 28×31', () => { const g = PM.Game(); eq(g.COLS, 28); eq(g.ROWS, 31); });
 
-test('старт: Пакман, 3 жизни, все точки на месте', () => {
+test('старт: Хрумик, 3 жизни, все точки на месте', () => {
   const g = PM.Game(); g.start(); const s = g.state();
-  ok(s.pac, 'нет Пакмана'); eq(s.lives, 3); eq(s.dotsLeft, s.dotsTotal); eq(s.dotsTotal, 254); eq(s.level, 1);
+  ok(s.pac, 'нет Хрумика'); eq(s.lives, 3); eq(s.dotsLeft, s.dotsTotal); eq(s.dotsTotal, 254); eq(s.level, 1);
 });
 
 test('canGo: стена блокирует, коридор проходим', () => {
@@ -35,17 +35,17 @@ test('canGo: стена блокирует, коридор проходим', ()
   ok(g._canGo(1, 1, 'right', false), 'по верхнему коридору можно');
 });
 
-test('ворота дома: Пакману нельзя, призраку можно', () => {
+test('ворота дома: Хрумику нельзя, призраку можно', () => {
   const g = PM.Game(); g.start(); const s = g.state();
   // найдём клетку над воротами '='
   let gx = -1, gy = -1;
   for (let y = 0; y < s.ROWS; y++) for (let x = 0; x < s.COLS; x++) if (s.maze[y][x] === '=') { gx = x; gy = y; }
   ok(gx >= 0, 'ворота не найдены');
-  ok(!g._canGo(gx, gy - 1, 'down', false), 'Пакман не должен проходить ворота');
+  ok(!g._canGo(gx, gy - 1, 'down', false), 'Хрумик не должен проходить ворота');
   ok(g._canGo(gx, gy - 1, 'down', true), 'призрак должен проходить ворота');
 });
 
-test('движение влево: Пакман ест точку, +10 очков', () => {
+test('движение влево: Хрумик ест точку, +10 очков', () => {
   const g = PM.Game(); g.start(); const s = g.state(); s.mode = 'play';
   const before = s.dotsLeft; s.pac.dir = 'left'; s.pac.next = 'left';
   for (let i = 0; i < 40; i++) g.step(1 / 60);
@@ -60,7 +60,7 @@ test('энергетик: испуг включается, +50', () => {
   ok(s.fright, 'испуг не включился'); ok(s.score >= 50, 'очки за энергетик');
 });
 
-// пин Пакмана в угол (1,1) мордой в стену — не двигается, призрак кладём туда же
+// пин Хрумика в угол (1,1) мордой в стену — не двигается, призрак кладём туда же
 function pinCorner(s) { s.pac.x = 1; s.pac.y = 1; s.pac.dir = 'up'; s.pac.next = 'up'; }
 
 test('съесть испуганного призрака: +200, призрак → глаза', () => {
@@ -85,7 +85,7 @@ test('победа: съедена последняя точка → win', () =>
   eq(won, 1, 'win не сработал'); eq(s.dotsLeft, 0);
 });
 
-test('цель Блинки в режиме chase — клетка Пакмана', () => {
+test('цель Блинки в режиме chase — клетка Хрумика', () => {
   const g = PM.Game(); g.start(); const s = g.state(); s.globalMode = 'chase';
   const t = g._ghostTarget(s.ghosts[0]); // blinky
   eq(t[0], Math.round(s.pac.x)); eq(t[1], Math.round(s.pac.y));
@@ -95,7 +95,7 @@ test('туннель: выход слева появляется справа', 
   const g = PM.Game(); g.start(); const s = g.state(); s.mode = 'play';
   s.pac.x = 1; s.pac.y = PM.consts.TUNNEL_ROW; s.pac.dir = 'left'; s.pac.next = 'left';
   for (let i = 0; i < 80; i++) g.step(1 / 60);
-  ok(s.pac.x > 20, 'Пакман не телепортировался через туннель, x=' + s.pac.x.toFixed(1));
+  ok(s.pac.x > 20, 'Хрумик не телепортировался через туннель, x=' + s.pac.x.toFixed(1));
 });
 
 console.log('\n' + (failed ? 'НЕУСПЕХ' : 'OK') + ' ' + passed + '/' + (passed + failed));

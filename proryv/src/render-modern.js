@@ -1022,7 +1022,7 @@
     lg2.addColorStop(0.5, 'rgba(57,246,255,0.9)');
     lg2.addColorStop(1, 'rgba(255,63,240,0)');
     g.fillStyle = lg2; g.fillRect(30, 63, W - 60, 0.8);
-    text('ЭКЗОЛОН', W / 2, 74, 9, 'rgba(240,238,255,0.92)', 'center', '700', 3.5, HEAD_FONT);
+    text('ШТУРМОВИК', W / 2, 74, 9, 'rgba(240,238,255,0.92)', 'center', '700', 3.5, HEAD_FONT);
     text(EX.t('tagline.full'), W / 2, 87, 4, T.a, 'center', '500', 0.8);
 
     menuDraw(T.a, null, 'menu.hint');

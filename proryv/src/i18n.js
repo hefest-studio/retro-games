@@ -7,7 +7,7 @@
 
   const RU = {
     'brand': 'EXOLON',
-    'brand.ru': 'ЭКЗОЛОН',
+    'brand.ru': 'ШТУРМОВИК',
     'tagline': 'ПОРТ 1987 → 2026',
     'tagline.full': 'аркада Hewson 1987 · браузерный порт',
     'loading': 'ЗАГРУЗКА...',
