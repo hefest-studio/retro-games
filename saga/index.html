@@ -6,11 +6,11 @@
 <meta name="color-scheme" content="dark" />
 <meta name="theme-color" content="#05070e" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070b14'/%3E%3Cpath d='M12 44 L32 14 L52 44 Z' fill='%236ff2c6'/%3E%3Cpath d='M22 44 L32 28 L42 44 Z' fill='%238b7bff'/%3E%3C/svg%3E" />
-<title>ПОТЕРЯННЫЕ ВИКИНГИ · HTML5</title>
-<meta name="description" content="The Lost Vikings (Interplay, 1992) — браузерный ремейк: три викинга, головоломки, 8-битная музыка, два режима графики, русский и английский." />
+<title>СЕВЕРНАЯ САГА · HTML5</title>
+<meta name="description" content="The Северная сага (Гефест, 1992) — оригинал: три викинга, головоломки, 8-битная музыка, два режима графики, русский и английский." />
 <style>
 /* ═══════════════════════════════════════════════════════════════
-   LOST VIKINGS · style.css — две визуальные темы (modern / retro)
+   СЕВЕРНАЯ САГА · style.css — две визуальные темы (modern / retro)
    Владелец: Lead
    ═══════════════════════════════════════════════════════════════ */
 
@@ -993,28 +993,28 @@ kbd {
       <!-- ───────────── HUD ───────────── -->
       <header class="hud" id="hud" hidden>
         <div class="hud__team" id="hud-team">
-          <button class="viking-tab" type="button" data-char="erik" aria-label="Эрик">
+          <button class="viking-tab" type="button" data-char="erik" aria-label="Снорри">
             <span class="viking-tab__face"><canvas class="portrait" data-portrait="erik"></canvas></span>
             <span class="viking-tab__meta">
-              <span class="viking-tab__name" data-i18n="char.erik">Эрик</span>
+              <span class="viking-tab__name" data-i18n="char.erik">Снорри</span>
               <span class="viking-tab__role" data-i18n="char.erik.role">Быстрый</span>
             </span>
             <span class="viking-tab__key">1</span>
             <span class="viking-tab__state" data-i18n="hud.ready">готов</span>
           </button>
-          <button class="viking-tab" type="button" data-char="baleog" aria-label="Балеог">
+          <button class="viking-tab" type="button" data-char="baleog" aria-label="Гуннар">
             <span class="viking-tab__face"><canvas class="portrait" data-portrait="baleog"></canvas></span>
             <span class="viking-tab__meta">
-              <span class="viking-tab__name" data-i18n="char.baleog">Балеог</span>
+              <span class="viking-tab__name" data-i18n="char.baleog">Гуннар</span>
               <span class="viking-tab__role" data-i18n="char.baleog.role">Свирепый</span>
             </span>
             <span class="viking-tab__key">2</span>
             <span class="viking-tab__state" data-i18n="hud.ready">готов</span>
           </button>
-          <button class="viking-tab" type="button" data-char="olaf" aria-label="Олаф">
+          <button class="viking-tab" type="button" data-char="olaf" aria-label="Бьорн">
             <span class="viking-tab__face"><canvas class="portrait" data-portrait="olaf"></canvas></span>
             <span class="viking-tab__meta">
-              <span class="viking-tab__name" data-i18n="char.olaf">Олаф</span>
+              <span class="viking-tab__name" data-i18n="char.olaf">Бьорн</span>
               <span class="viking-tab__role" data-i18n="char.olaf.role">Стойкий</span>
             </span>
             <span class="viking-tab__key">3</span>
@@ -1064,10 +1064,10 @@ kbd {
             <div class="brand">
               <p class="brand__kicker" data-i18n="brand.kicker">Сага о трёх</p>
               <h1 class="brand__logo">
-                <span class="brand__line" data-i18n="brand.l1">ПОТЕРЯННЫЕ</span>
-                <span class="brand__line brand__line--accent" data-i18n="brand.l2">ВИКИНГИ</span>
+                <span class="brand__line" data-i18n="brand.l1">СЕВЕРНАЯ</span>
+                <span class="brand__line brand__line--accent" data-i18n="brand.l2">САГА</span>
               </h1>
-              <p class="brand__sub" data-i18n="brand.sub">Головоломка-платформер · 1992 → сейчас</p>
+              <p class="brand__sub" data-i18n="brand.sub">Головоломка-платформер · оригинал студии «Гефест»</p>
               <p class="brand__lead" data-i18n="brand.lead">Один герой за раз, три характера, десять земель. Переключайтесь, комбинируйте способности и выведите всех троих.</p>
               <div class="brand__badges">
                 <span class="badge"><b>10</b><i data-i18n="brand.badge.levels">земель</i></span>
@@ -1103,17 +1103,17 @@ kbd {
           <div class="viking-lineup" aria-hidden="true">
             <article class="viking-card viking-card--erik">
               <canvas class="viking-card__art" data-portrait-big="erik"></canvas>
-              <h3 data-i18n="char.erik">Эрик</h3>
+              <h3 data-i18n="char.erik">Снорри</h3>
               <p data-i18n="char.erik.tag">Быстрый · таран</p>
             </article>
             <article class="viking-card viking-card--baleog">
               <canvas class="viking-card__art" data-portrait-big="baleog"></canvas>
-              <h3 data-i18n="char.baleog">Балеог</h3>
+              <h3 data-i18n="char.baleog">Гуннар</h3>
               <p data-i18n="char.baleog.tag">Свирепый · лук</p>
             </article>
             <article class="viking-card viking-card--olaf">
               <canvas class="viking-card__art" data-portrait-big="olaf"></canvas>
-              <h3 data-i18n="char.olaf">Олаф</h3>
+              <h3 data-i18n="char.olaf">Бьорн</h3>
               <p data-i18n="char.olaf.tag">Стойкий · щит</p>
             </article>
           </div>
@@ -1130,7 +1130,7 @@ kbd {
               <button class="chip" type="button" data-tool="lang"><span data-i18n="chip.lang">Язык:</span> <b id="chip-lang">RU</b></button>
               <button class="chip" type="button" data-tool="mute"><span data-i18n="chip.sound">Звук:</span> <b id="chip-sound">вкл</b></button>
             </div>
-            <p class="title-foot__note" data-i18n="foot.note">Фанатский ремейк. Оригинальные ассеты не использованы: вся графика и музыка сгенерированы кодом.</p>
+            <p class="title-foot__note" data-i18n="foot.note">Фанатский оригинал. Оригинальные ассеты не использованы: вся графика и музыка сгенерированы кодом.</p>
           </footer>
         </div>
       </section>
@@ -1143,17 +1143,17 @@ kbd {
           <div class="story-roster">
             <article class="roster-card">
               <canvas class="portrait" data-portrait-big="erik"></canvas>
-              <h3 data-i18n="char.erik">Эрик</h3>
+              <h3 data-i18n="char.erik">Снорри</h3>
               <p data-i18n="char.erik.ability">Прыгает выше всех и пробивает головой ветхие стены.</p>
             </article>
             <article class="roster-card">
               <canvas class="portrait" data-portrait-big="baleog"></canvas>
-              <h3 data-i18n="char.baleog">Балеог</h3>
+              <h3 data-i18n="char.baleog">Гуннар</h3>
               <p data-i18n="char.baleog.ability">Стреляет из лука: враги и рычаги не устоят.</p>
             </article>
             <article class="roster-card">
               <canvas class="portrait" data-portrait-big="olaf"></canvas>
-              <h3 data-i18n="char.olaf">Олаф</h3>
+              <h3 data-i18n="char.olaf">Бьорн</h3>
               <p data-i18n="char.olaf.ability">Держит щит над головой: ступень для друзей и защита от стрел.</p>
             </article>
           </div>
@@ -1188,18 +1188,18 @@ kbd {
           <div class="help-grid">
             <div class="help-card">
               <h3 data-i18n="help.objective.title">Цель</h3>
-              <p data-i18n="help.objective.text">Доведите Эрика, Балеога и Олафа до трёх дверей-выходов. Двери занимаются по одной на викинга. Все трое ушли — уровень пройден.</p>
+              <p data-i18n="help.objective.text">Доведите Снорриа, Гуннара и Бьорна до трёх дверей-выходов. Двери занимаются по одной на викинга. Все трое ушли — уровень пройден.</p>
             </div>
             <div class="help-card">
-              <h3 data-i18n="help.erik.title">Эрик · таран</h3>
+              <h3 data-i18n="help.erik.title">Снорри · таран</h3>
               <p data-i18n="help.erik.text">Самый быстрый и высокий прыжок. «Действие» у ветхой стены — пробить проход.</p>
             </div>
             <div class="help-card">
-              <h3 data-i18n="help.baleog.title">Балеог · лук</h3>
+              <h3 data-i18n="help.baleog.title">Гуннар · лук</h3>
               <p data-i18n="help.baleog.text">Стрела убивает пещерных врагов и переключает рычаги. Меч бьёт вплотную.</p>
             </div>
             <div class="help-card">
-              <h3 data-i18n="help.olaf.title">Олаф · щит</h3>
+              <h3 data-i18n="help.olaf.title">Бьорн · щит</h3>
               <p data-i18n="help.olaf.text">Держите «действие»: щит над головой — платформа для друзей и защита от вражеских стрел.</p>
             </div>
             <div class="help-card">
@@ -1354,7 +1354,7 @@ kbd {
     </main>
 
     <footer class="site-foot" id="site-foot">
-      <span>LOST VIKINGS · HTML5 fan remake</span>
+      <span>СЕВЕРНАЯ САГА · HTML5</span>
       <span class="site-foot__sep">·</span>
       <span data-i18n="foot.controls">← → идти · Space прыжок · J действие · 1/2/3 смена</span>
       <span class="site-foot__sep">·</span>
@@ -1367,16 +1367,16 @@ kbd {
 </div>
 <noscript><p class="noscript">Для игры нужен JavaScript. / JavaScript is required.</p></noscript>
 <script>
-/* LOST VIKINGS HTML5 — сгенерировано tools/build.mjs, не редактировать вручную */
+/* СЕВЕРНАЯ САГА HTML5 — сгенерировано tools/build.mjs, не редактировать вручную */
 'use strict';
 /* ==== src/i18n.js ==== */
-/* LOST VIKINGS · i18n — русский по умолчанию, English переключается */
+/* СЕВЕРНАЯ САГА · i18n — русский по умолчанию, English переключается */
 (function () {
   "use strict";
 
   var DICT = {
     ru: {
-      brand: { kicker: "Сага о трёх", l1: "ПОТЕРЯННЫЕ", l2: "ВИКИНГИ", sub: "Головоломка-платформер · 1992 → сейчас",
+      brand: { kicker: "Сага о трёх", l1: "СЕВЕРНАЯ", l2: "САГА", sub: "Головоломка-платформер · оригинал студии «Гефест»",
         lead: "Один герой за раз, три характера, десять земель. Переключайтесь, комбинируйте способности и выведите всех троих.",
         badge: { levels: "земель", heroes: "викинга", styles: "стиля графики", music: "музыка", bit: "8-бит" } },
       menu: {
@@ -1386,16 +1386,16 @@ kbd {
         settings: "Настройки", "settings.hint": "графика · язык"
       },
       char: {
-        erik: "Эрик", "erik.role": "Быстрый", "erik.tag": "Быстрый · таран",
+        erik: "Снорри", "erik.role": "Быстрый", "erik.tag": "Быстрый · таран",
         "erik.ability": "Прыгает выше всех и пробивает головой ветхие стены.",
-        baleog: "Балеог", "baleog.role": "Свирепый", "baleog.tag": "Свирепый · лук",
+        baleog: "Гуннар", "baleog.role": "Свирепый", "baleog.tag": "Свирепый · лук",
         "baleog.ability": "Стреляет из лука: враги и рычаги не устоят.",
-        olaf: "Олаф", "olaf.role": "Стойкий", "olaf.tag": "Стойкий · щит",
+        olaf: "Бьорн", "olaf.role": "Стойкий", "olaf.tag": "Стойкий · щит",
         "olaf.ability": "Держит щит над головой: ступень для друзей и защита от стрел."
       },
       foot: {
         move: "идти", jump: "прыжок", action: "действие", switch: "сменить",
-        note: "Фанатский ремейк. Оригинальные ассеты не использованы: вся графика и музыка сгенерированы кодом.",
+        note: "Фанатский оригинал. Оригинальные ассеты не использованы: вся графика и музыка сгенерированы кодом.",
         controls: "← → идти · Space прыжок · J действие · 1/2/3 смена",
         help: "Помощь", gfx: "Графика", lang: "Язык", sound: "Звук"
       },
@@ -1426,9 +1426,9 @@ kbd {
         lead: "Ведите всех трёх викингов к выходам. Активен один — переключайтесь и используйте способности каждого.",
         "objective.title": "Цель",
         "objective.text": "У каждого викинга своя дверь — она подсвечена цветом героя. Доведите каждого до его двери; чужая не откроется. Все трое ушли — уровень пройден.",
-        "erik.title": "Эрик · таран", "erik.text": "Самый быстрый и высокий прыжок. «Действие» у ветхой стены — пробить проход.",
-        "baleog.title": "Балеог · лук", "baleog.text": "Стрела убивает пещерных врагов и переключает рычаги. Меч бьёт вплотную.",
-        "olaf.title": "Олаф · щит", "olaf.text": "Держите «действие»: щит над головой — платформа для друзей и защита от вражеских стрел.",
+        "erik.title": "Снорри · таран", "erik.text": "Самый быстрый и высокий прыжок. «Действие» у ветхой стены — пробить проход.",
+        "baleog.title": "Гуннар · лук", "baleog.text": "Стрела убивает пещерных врагов и переключает рычаги. Меч бьёт вплотную.",
+        "olaf.title": "Бьорн · щит", "olaf.text": "Держите «действие»: щит над головой — платформа для друзей и защита от вражеских стрел.",
         "gate.title": "Плиты и ворота", "gate.text": "Плита открывает ворота, пока на ней кто-то стоит. Оставьте викинга на плите и переключитесь на другого.",
         "death.title": "Смерть", "death.text": "Шипы, враги и вражеские стрелы смертельны. Любая смерть — рестарт уровня; сокровища сбрасываются.",
         "key.move": "идти", "key.jump": "прыжок", "key.action": "действие", "key.switch": "сменить викинга",
@@ -1468,7 +1468,7 @@ kbd {
       rotate: { note: "Поверните устройство горизонтально" }
     },
     en: {
-      brand: { kicker: "A saga of three", l1: "THE LOST", l2: "VIKINGS", sub: "Puzzle platformer · 1992 → now",
+      brand: { kicker: "A saga of three", l1: "NORTHERN", l2: "SAGA", sub: "Puzzle platformer · original by Hefest studio",
         lead: "One hero at a time, three characters, ten lands. Switch, combine their skills and bring all three home.",
         badge: { levels: "lands", heroes: "vikings", styles: "graphics styles", music: "music", bit: "8-bit" } },
       menu: {
@@ -1478,16 +1478,16 @@ kbd {
         settings: "Settings", "settings.hint": "graphics · language"
       },
       char: {
-        erik: "Erik", "erik.role": "Swift", "erik.tag": "Swift · headbutt",
+        erik: "Snorri", "erik.role": "Swift", "erik.tag": "Swift · headbutt",
         "erik.ability": "Jumps the highest and smashes through crumbling walls.",
-        baleog: "Baleog", "baleog.role": "Fierce", "baleog.tag": "Fierce · bow",
+        baleog: "Gunnar", "baleog.role": "Fierce", "baleog.tag": "Fierce · bow",
         "baleog.ability": "Looses arrows: enemies and levers stand no chance.",
-        olaf: "Olaf", "olaf.role": "Stout", "olaf.tag": "Stout · shield",
+        olaf: "Bjorn", "olaf.role": "Stout", "olaf.tag": "Stout · shield",
         "olaf.ability": "Raises his shield: a step for friends and cover from arrows."
       },
       foot: {
         move: "move", jump: "jump", action: "action", switch: "switch",
-        note: "Fan remake. No original assets: all art and music generated in code.",
+        note: "Fan original. No original assets: all art and music generated in code.",
         controls: "← → move · Space jump · J action · 1/2/3 switch",
         help: "Help", gfx: "Graphics", lang: "Language", sound: "Sound"
       },
@@ -1518,9 +1518,9 @@ kbd {
         lead: "Guide all three vikings to the exits. One is active at a time — switch and use each one's skill.",
         "objective.title": "Objective",
         "objective.text": "Each viking has his own door, tinted with his colour. Bring each one to his door; another's door will not open. All three out — level cleared.",
-        "erik.title": "Erik · headbutt", "erik.text": "Fastest, highest jump. Use Action at a crumbling wall to smash through.",
-        "baleog.title": "Baleog · bow", "baleog.text": "Arrows kill cave foes and toggle levers. The sword strikes at close range.",
-        "olaf.title": "Olaf · shield", "olaf.text": "Hold Action: the shield above his head is a platform for friends and cover from enemy arrows.",
+        "erik.title": "Snorri · headbutt", "erik.text": "Fastest, highest jump. Use Action at a crumbling wall to smash through.",
+        "baleog.title": "Gunnar · bow", "baleog.text": "Arrows kill cave foes and toggle levers. The sword strikes at close range.",
+        "olaf.title": "Bjorn · shield", "olaf.text": "Hold Action: the shield above his head is a platform for friends and cover from enemy arrows.",
         "gate.title": "Plates & gates", "gate.text": "A plate keeps gates open while someone stands on it. Leave a viking on the plate and switch to another.",
         "death.title": "Death", "death.text": "Spikes, foes and enemy arrows are deadly. Any death restarts the level; treasure resets.",
         "key.move": "move", "key.jump": "jump", "key.action": "action", "key.switch": "switch viking",
@@ -1609,15 +1609,15 @@ kbd {
 })();
 
 /* ==== src/levels.js ==== */
-/* LOST VIKINGS — 10 уровней 24×15 (владелец: level-architect).
+/* СЕВЕРНАЯ САГА — 10 уровней 24×15 (владелец: level-architect).
  *
  * Символы: . пусто, # камень, B ломаемый кирпич, = односторонняя платформа,
  * ^ шипы, a-d ворота, 1-4 плиты, 5-8 рычаги, < > ловушки, M враг, * сокровище,
- * E/&/O старты (Эрик/Балеог/Олаф), X выход (ровно 3).
+ * E/&/O старты (Снорри/Гуннар/Бьорн), X выход (ровно 3).
  *
  * Правила раскладки: строки 0-1 — только стены/декор (их перекрывает HUD);
  * критичные клетки (старты, выходы, рычаги, плиты) не в нижних углах (мобильный HUD);
- * рычаг 5-8 стоит в клетке НАД полом (стрела Балеога летит в строке пола-1);
+ * рычаг 5-8 стоит в клетке НАД полом (стрела Гуннара летит в строке пола-1);
  * плита 1-4 стоит на твёрдой опоре (под ней #/B); старты и выходы — на опоре.
  */
 (function () {
@@ -1629,7 +1629,7 @@ kbd {
       theme: "cave",
       exitFor: ["erik", "baleog", "olaf"],
       name: { ru: "Пробуждение", en: "Awakening" },
-      hint: { ru: "Трое викингов, три двери. Переключайтесь: 1, 2, 3. Кирпич ломает только Эрик.", en: "Three vikings, three doors. Switch with 1, 2, 3. Only Erik breaks bricks." },
+      hint: { ru: "Трое викингов, три двери. Переключайтесь: 1, 2, 3. Кирпич ломает только Снорри.", en: "Three vikings, three doors. Switch with 1, 2, 3. Only Erik breaks bricks." },
       rows: [
         "########################",
         "#......................#",
@@ -1653,7 +1653,7 @@ kbd {
       theme: "cave",
       exitFor: ["erik", "baleog", "olaf"],
       name: { ru: "Первый рычаг", en: "The First Lever" },
-      hint: { ru: "Стрела Балеога будит древние механизмы. Стреляйте по рычагу.", en: "Baleog's arrow wakes ancient mechanisms. Shoot the lever." },
+      hint: { ru: "Стрела Гуннара будит древние механизмы. Стреляйте по рычагу.", en: "Baleog's arrow wakes ancient mechanisms. Shoot the lever." },
       rows: [
         "########################",
         "#......................#",
@@ -1677,7 +1677,7 @@ kbd {
       theme: "forge",
       exitFor: ["erik", "baleog", "olaf"],
       name: { ru: "Кузня", en: "The Forge" },
-      hint: { ru: "Олаф подставит щит — прыгайте с него выше. Наверху ждёт дверь.", en: "Olaf raises his shield — jump higher from it. A door waits above." },
+      hint: { ru: "Бьорн подставит щит — прыгайте с него выше. Наверху ждёт дверь.", en: "Olaf raises his shield — jump higher from it. A door waits above." },
       rows: [
         "########################",
         "#......................#",
@@ -1749,7 +1749,7 @@ kbd {
       theme: "ice",
       exitFor: ["erik", "baleog", "olaf"],
       name: { ru: "Вертикаль", en: "The Ascent" },
-      hint: { ru: "Вверх по уступам. Кирпич ломает только Эрик, врага снимает Балеог.", en: "Climb the ledges. Only Erik breaks bricks; Baleog drops the foe." },
+      hint: { ru: "Вверх по уступам. Кирпич ломает только Снорри, врага снимает Гуннар.", en: "Climb the ledges. Only Erik breaks bricks; Baleog drops the foe." },
       rows: [
         "########################",
         "#......................#",
@@ -1868,7 +1868,7 @@ kbd {
 })();
 
 /* ==== src/audio.js ==== */
-/* LOST VIKINGS · audio — оригинальный чиптюн и SFX на WebAudio (audio-smith)
+/* СЕВЕРНАЯ САГА · audio — оригинальный чиптюн и SFX на WebAudio (audio-smith)
  *
  * window.LV_AUDIO:
  *   unlock(), startMusic('title'|'game'), stopMusic(), setGameTrack(0|1),
@@ -3063,7 +3063,7 @@ kbd {
 })();
 
 /* ==== src/game.js ==== */
-/* LOST VIKINGS · game core — физика, три викинга, головоломки.
+/* СЕВЕРНАЯ САГА · game core — физика, три викинга, головоломки.
    Владелец: Lead. Контракт: CONTRACT.md §§1–2, 6. */
 (function () {
   "use strict";
@@ -3550,7 +3550,7 @@ kbd {
         if (G.held.right) move += 1;
       }
     } else if (a.id === "olaf") {
-      // Олаф держит щит, даже когда управляем другим викингом.
+      // Бьорн держит щит, даже когда управляем другим викингом.
       if (!a.onGround) a.braced = false;
     }
 
@@ -4124,7 +4124,7 @@ kbd {
 })();
 
 /* ==== src/render-retro.js ==== */
-/* LOST VIKINGS — src/render-retro.js
+/* СЕВЕРНАЯ САГА — src/render-retro.js
    8-bit NES/Amiga pixel-art renderer. Owner: retro-artist.
    window.LV_RETRO = { init(canvas), draw(view), drawPortrait(canvas,id,t), drawTitle(canvas,t) }
    ES2019, IIFE, no external assets, no game logic, never mutates `view`. */
@@ -4931,8 +4931,8 @@ kbd {
   var RUNE_FALLBACK = ["##.", "#.#", "##.", "#.#", "#.#"];
 
   /* each viking has a personal door: colour + carved rune (view.exits[i].who) */
-  var OWNER_COLOR = { erik: "#ff8a5c", baleog: "#6ee06e", olaf: "#8a8aff" };
-  var OWNER_DARK = { erik: "#8a3a1e", baleog: "#2f7a36", olaf: "#3a3a8a" };
+  var OWNER_COLOR = { erik: "#ff6b8a", baleog: "#5ccfe0", olaf: "#e0b85c" };
+  var OWNER_DARK = { erik: "#8a1e3a", baleog: "#1e6a7a", olaf: "#7a5a1e" };
   var OWNER_RUNE = {
     erik: ["#..", "#..", "###", "#..", "#.."],
     baleog: ["##.", "#.#", "##.", "#.#", "##."],
@@ -5077,7 +5077,7 @@ kbd {
   }
   /* ───────────────────────── vikings ───────────────────────── */
 
-  var CHAR_COLOR = { erik: "#e2622c", baleog: "#3f9e4d", olaf: "#2f6fd0" };
+  var CHAR_COLOR = { erik: "#d94f6b", baleog: "#3f9ea0", olaf: "#d0a52f" };
 
   var CHARS = {
     erik: {
@@ -6190,7 +6190,7 @@ kbd {
 
 /* ==== src/render-modern.js ==== */
 /* ============================================================================
- * LOST VIKINGS — MODERN RENDERER  (window.LV_MODERN)
+ * СЕВЕРНАЯ САГА — MODERN RENDERER  (window.LV_MODERN)
  * "nordic neon": deep gradients, aurora veils, glass tiles, soft bloom.
  * Draws the whole 384x240 world scaled 3x into a 1152x720 canvas.
  * No game logic, no view mutation, no external assets. ES2019, IIFE.
@@ -10200,7 +10200,7 @@ kbd {
 })();
 
 /* ==== src/ui.js ==== */
-/* LOST VIKINGS · UI — экраны, HUD, i18n, настройки, прогресс, ввод.
+/* СЕВЕРНАЯ САГА · UI — экраны, HUD, i18n, настройки, прогресс, ввод.
    Владелец: Lead. Контракт: CONTRACT.md §7. */
 (function () {
   "use strict";
@@ -11021,7 +11021,7 @@ kbd {
 })();
 
 /* ==== src/main.js ==== */
-/* LOST VIKINGS · main — запуск, rAF-цикл, URL-параметры для скриншотов/тестов. */
+/* СЕВЕРНАЯ САГА · main — запуск, rAF-цикл, URL-параметры для скриншотов/тестов. */
 (function () {
   "use strict";
 

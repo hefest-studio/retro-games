@@ -25,7 +25,7 @@ HTML/CSS/JS, без сборки, CDN, npm-зависимостей и внеш�
 | 08 | [ПРОРЫВ — Штурмовик](proryv/) | Гефест | 1987 | Run-and-gun | 8-бит / Неон |
 | 09 | [РУБИКОН — Робот ОР-КАБЕ](rubikon/) | Гефест | 1987 | Аркада | 8-бит / Неон |
 | 10 | [ВИХРЬ — Над полем боя](vihr/) | Гефест | 1988 | Shoot'em-up | 8-бит / Неон |
-| 11 | [The Lost Vikings — Потерянные викинги](lost-vikings/) | Interplay / Silicon & Synapse | 1992 | Платформер | 8-бит / Современный |
+| 11 | [СЕВЕРНАЯ САГА — Сага о трёх](saga/) | Гефест | 1992 | Платформер | 8-бит / Неон |
 | 12 | [Double Dragon × Battle Toads — Neon Rage](double-dragon-battletoads/) | Technōs Japan / Rare | 1993 | Beat'em-up | 8-БИТ / НЕОН |
 | 13 | [The Lost Vikings 2 — Северное сияние](lost-vikings-2/) | Interplay / Silicon & Synapse | 1997 | Платформер | 8-BIT / AURORA |
 
