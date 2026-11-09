@@ -1,4 +1,4 @@
-/* PAC-MAN · рендер 8-бит (classic). PM.classic.draw(ctx, st, G) */
+/* ХРУМ · рендер 8-бит (classic). PM.classic.draw(ctx, st, G) */
 (function (global) {
   'use strict';
   var PM = global.PM = global.PM || {};
@@ -17,13 +17,22 @@
     ctx.textAlign = align || 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(s, x, y);
   }
 
-  function drawPac(ctx, g, p, r) {
-    var a = Math.abs(Math.sin(p.mouth)) * 0.33 * Math.PI, base = DIRA[p.dir] || 0;
+  var LOOK = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+  // Герой «Хрумик»: грызущий диск со своим глазом (свой образ)
+  function drawHero(ctx, g, p, r) {
+    var a = Math.abs(Math.sin(p.mouth)) * 0.30 * Math.PI, base = DIRA[p.dir] || 0;
     ctx.fillStyle = '#ffe300';
     ctx.beginPath(); ctx.moveTo(cx(g, p.x), cy(g, p.y));
     ctx.arc(cx(g, p.x), cy(g, p.y), r, base + a, base + 2 * Math.PI - a); ctx.closePath(); ctx.fill();
+    // глаз смещён «вверх-назад» относительно направления
+    var lk = LOOK[p.dir] || [0, 0];
+    var ex = cx(g, p.x) - lk[0] * r * 0.25 - (p.dir === 'up' || p.dir === 'down' ? r * 0.3 : 0);
+    var ey = cy(g, p.y) - r * 0.4 + (p.dir === 'down' ? r * 0.2 : 0);
+    if (p.dir === 'left' || p.dir === 'right') { ex = cx(g, p.x) - lk[0] * r * 0.15; ey = cy(g, p.y) - r * 0.42; }
+    ctx.fillStyle = '#0a1030'; ctx.beginPath(); ctx.arc(ex, ey, r * 0.16, 0, 7); ctx.fill();
   }
-  function drawGhost(ctx, g, gh, r, st) {
+  // Враг-«кристалл»: ромбо-тело с зубчатым низом и одним глазом (свой образ, не призрак)
+  function drawFoe(ctx, g, gh, r, st) {
     var px = cx(g, gh.x), py = cy(g, gh.y), col;
     if (gh.mode === 'eyes') col = null;
     else if (gh.mode === 'fright') col = (st.frightT < 2 && Math.floor(st.time * 6) % 2) ? '#ffffff' : '#2a4bff';
@@ -31,20 +40,21 @@
     if (col) {
       ctx.fillStyle = col;
       ctx.beginPath();
-      ctx.arc(px, py - r * 0.1, r, Math.PI, 0); // купол
-      ctx.lineTo(px + r, py + r * 0.7);
-      var feet = 4, fw = (2 * r) / feet;
-      for (var i = 0; i < feet; i++) { var x0 = px + r - i * fw; ctx.lineTo(x0 - fw / 2, py + r * 0.4); ctx.lineTo(x0 - fw, py + r * 0.7); }
+      ctx.moveTo(px, py - r);            // вершина
+      ctx.lineTo(px + r, py - r * 0.1);  // правый угол
+      var teeth = 3, step = (2 * r) / (teeth * 2);
+      for (var i = 0; i < teeth * 2; i++) { var x0 = px + r - step * (i + 1); ctx.lineTo(x0, (i % 2 === 0) ? py + r * 0.55 : py + r); }
+      ctx.lineTo(px - r, py - r * 0.1);  // левый угол
       ctx.closePath(); ctx.fill();
+      // грань-блик
+      ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(px, py - r); ctx.lineTo(px - r, py - r * 0.1); ctx.stroke();
     }
-    // глаза (и у призрака, и в режиме «глаза»)
-    var look = PM.consts && { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[gh.dir] || [0, 0];
-    var ex = r * 0.38, ey = -r * 0.12, er = r * 0.34, pr = r * 0.16;
-    [[-ex, ey], [ex, ey]].forEach(function (e) {
-      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(px + e[0], py + e[1], er, 0, 7); ctx.fill();
-      ctx.fillStyle = (gh.mode === 'fright') ? '#2a4bff' : '#0a1030';
-      ctx.beginPath(); ctx.arc(px + e[0] + look[0] * pr, py + e[1] + look[1] * pr, pr, 0, 7); ctx.fill();
-    });
+    // один глаз (и в режиме «глаза» — только он)
+    var look = LOOK[gh.dir] || [0, 0];
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(px, py - r * 0.1, r * 0.4, 0, 7); ctx.fill();
+    ctx.fillStyle = (gh.mode === 'fright') ? '#2a4bff' : '#0a1030';
+    ctx.beginPath(); ctx.arc(px + look[0] * r * 0.18, py - r * 0.1 + look[1] * r * 0.18, r * 0.2, 0, 7); ctx.fill();
   }
 
   PM.classic = {
@@ -61,10 +71,10 @@
         else if (ch === '.') { ctx.fillStyle = '#ffd9a0'; var s = Math.max(2, cell * 0.16); ctx.fillRect(X + cell / 2 - s / 2, Y + cell / 2 - s / 2, s, s); }
         else if (ch === 'o') { if (Math.floor(st.time * 5) % 2) { ctx.fillStyle = '#ffd9a0'; ctx.beginPath(); ctx.arc(X + cell / 2, Y + cell / 2, cell * 0.36, 0, 7); ctx.fill(); } }
       }
-      // призраки
-      for (var i = 0; i < st.ghosts.length; i++) drawGhost(ctx, g, st.ghosts[i], cell * 0.46, st);
-      // Пакман
-      if (st.pac.alive || st.mode === 'dying') drawPac(ctx, g, st.pac, cell * 0.46);
+      // враги
+      for (var i = 0; i < st.ghosts.length; i++) drawFoe(ctx, g, st.ghosts[i], cell * 0.46, st);
+      // герой
+      if (st.pac.alive || st.mode === 'dying') drawHero(ctx, g, st.pac, cell * 0.46);
 
       // HUD
       var hx = g.hudX;

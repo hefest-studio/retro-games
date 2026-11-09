@@ -1,4 +1,4 @@
-/* PAC-MAN · DOM-оверлеи. PM.ui */
+/* ХРУМ · DOM-оверлеи. PM.ui */
 (function (global) {
   'use strict';
   var PM = global.PM = global.PM || {};

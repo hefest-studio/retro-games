@@ -1,4 +1,4 @@
-/* PAC-MAN · i18n (RU/EN). PM.i18n / PM.t */
+/* ХРУМ · i18n (RU/EN). PM.i18n / PM.t */
 (function (global) {
   'use strict';
   var PM = global.PM = global.PM || {};

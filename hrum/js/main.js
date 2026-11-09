@@ -1,4 +1,4 @@
-/* PAC-MAN · boot, цикл, ввод, настройки. Владелец: Lead. */
+/* ХРУМ · boot, цикл, ввод, настройки. Владелец: Lead. */
 (function (global) {
   'use strict';
   var PM = global.PM;

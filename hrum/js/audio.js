@@ -1,4 +1,4 @@
-/* PAC-MAN · аудио: оригинальный чиптюн + SFX на WebAudio (без внешних файлов). PM.audio */
+/* ХРУМ · аудио: оригинальный чиптюн + SFX на WebAudio (без внешних файлов). PM.audio */
 (function (global) {
   'use strict';
   var PM = global.PM = global.PM || {};

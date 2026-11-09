@@ -1,4 +1,4 @@
-/* PAC-MAN · рендер неон (modern). PM.modern.draw(ctx, st, G) */
+/* ХРУМ · рендер неон (modern). PM.modern.draw(ctx, st, G) */
 (function (global) {
   'use strict';
   var PM = global.PM = global.PM || {};
@@ -46,33 +46,35 @@
         else if (ch === 'o') { ctx.save(); ctx.shadowColor = '#ffd34d'; ctx.shadowBlur = 12; ctx.fillStyle = '#ffd34d'; var pr = cell * (0.3 + 0.06 * Math.sin(st.time * 6)); ctx.beginPath(); ctx.arc(cx(g, x2), cy(g, y2), pr, 0, 7); ctx.fill(); ctx.restore(); }
       }
 
-      // призраки
+      // враги-«кристаллы» (неон)
+      var LK = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
       for (var i = 0; i < st.ghosts.length; i++) {
         var gh = st.ghosts[i], px = cx(g, gh.x), py = cy(g, gh.y), r = cell * 0.46, col;
         if (gh.mode === 'eyes') col = null;
         else if (gh.mode === 'fright') col = (st.frightT < 2 && Math.floor(st.time * 6) % 2) ? '#eaf0ff' : '#2a4bff';
         else col = PM.consts.COLORS[gh.name];
         if (col) {
-          ctx.save(); ctx.shadowColor = col; ctx.shadowBlur = 12; ctx.fillStyle = col;
-          ctx.beginPath(); ctx.arc(px, py - r * 0.1, r, Math.PI, 0); ctx.lineTo(px + r, py + r * 0.7);
-          for (var f = 0; f < 4; f++) { var x0 = px + r - f * (2 * r / 4); ctx.lineTo(x0 - r / 4, py + r * 0.4); ctx.lineTo(x0 - 2 * r / 4, py + r * 0.7); }
-          ctx.closePath(); ctx.fill(); ctx.restore();
+          ctx.save(); ctx.shadowColor = col; ctx.shadowBlur = 14; ctx.fillStyle = col;
+          ctx.beginPath(); ctx.moveTo(px, py - r); ctx.lineTo(px + r, py - r * 0.1);
+          var teeth = 3, step = (2 * r) / (teeth * 2);
+          for (var f = 0; f < teeth * 2; f++) { var x0 = px + r - step * (f + 1); ctx.lineTo(x0, (f % 2 === 0) ? py + r * 0.55 : py + r); }
+          ctx.lineTo(px - r, py - r * 0.1); ctx.closePath(); ctx.fill(); ctx.restore();
         }
-        var look = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[gh.dir] || [0, 0];
-        [[-r * 0.38, -r * 0.12], [r * 0.38, -r * 0.12]].forEach(function (e) {
-          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(px + e[0], py + e[1], r * 0.34, 0, 7); ctx.fill();
-          ctx.fillStyle = (gh.mode === 'fright') ? '#2a4bff' : '#12204a';
-          ctx.beginPath(); ctx.arc(px + e[0] + look[0] * r * 0.16, py + e[1] + look[1] * r * 0.16, r * 0.16, 0, 7); ctx.fill();
-        });
+        var look = LK[gh.dir] || [0, 0];
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(px, py - r * 0.1, r * 0.4, 0, 7); ctx.fill();
+        ctx.fillStyle = (gh.mode === 'fright') ? '#2a4bff' : '#12204a';
+        ctx.beginPath(); ctx.arc(px + look[0] * r * 0.18, py - r * 0.1 + look[1] * r * 0.18, r * 0.2, 0, 7); ctx.fill();
       }
 
-      // Пакман
+      // герой «Хрумик» (неон, со своим глазом)
       if (st.pac.alive || st.mode === 'dying') {
-        var p = st.pac, a = Math.abs(Math.sin(p.mouth)) * 0.33 * Math.PI, base = DIRA[p.dir] || 0;
+        var p = st.pac, a = Math.abs(Math.sin(p.mouth)) * 0.30 * Math.PI, base = DIRA[p.dir] || 0, hx = cx(g, p.x), hy = cy(g, p.y);
         ctx.save(); ctx.shadowColor = '#ffe300'; ctx.shadowBlur = 16;
-        var grd = ctx.createRadialGradient(cx(g, p.x), cy(g, p.y), 2, cx(g, p.x), cy(g, p.y), cell * 0.5);
+        var grd = ctx.createRadialGradient(hx, hy, 2, hx, hy, cell * 0.5);
         grd.addColorStop(0, '#fff2a0'); grd.addColorStop(1, '#ffcf1a'); ctx.fillStyle = grd;
-        ctx.beginPath(); ctx.moveTo(cx(g, p.x), cy(g, p.y)); ctx.arc(cx(g, p.x), cy(g, p.y), cell * 0.46, base + a, base + 2 * Math.PI - a); ctx.closePath(); ctx.fill(); ctx.restore();
+        ctx.beginPath(); ctx.moveTo(hx, hy); ctx.arc(hx, hy, cell * 0.46, base + a, base + 2 * Math.PI - a); ctx.closePath(); ctx.fill(); ctx.restore();
+        var lk = LK[p.dir] || [0, 0], ex = hx - lk[0] * cell * 0.1, ey = hy - cell * 0.2;
+        ctx.fillStyle = '#0a1030'; ctx.beginPath(); ctx.arc(ex, ey, cell * 0.08, 0, 7); ctx.fill();
       }
 
       // HUD

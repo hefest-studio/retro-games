@@ -1,4 +1,4 @@
-/* PAC-MAN · «Лабиринт» — движок (DOM-free). PM.Game / PM.consts / PM.validate
+/* ХРУМ · «Лабиринт» — движок (DOM-free). PM.Game / PM.consts / PM.validate
    Чистая логика: лабиринт, точки, Пакман, 4 призрака с классическим ИИ (scatter/chase/fright).
    Запускается и в браузере, и в node (node:vm с шимом window) — без DOM и внешних зависимостей. */
 (function (global) {

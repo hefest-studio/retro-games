@@ -28,7 +28,7 @@
   /* Резервная копия данных — только для file:// и случаев, когда fetch
      недоступен. Основной источник — games.json. */
   const FALLBACK_GAMES = [
-    { slug: 'pacman', title: 'Pac-Man', subtitle: 'Лабиринт', year: 1980, developer: 'Namco / Тору Иватани', genre: 'Аркада', tags: ['аркада', 'лабиринт', 'классика'], summary: 'Собери все точки в лабиринте, уворачивайся от призраков, лови энергетики.', accent: '#ffd34d' },
+    { slug: 'hrum', title: 'ХРУМ', subtitle: 'Лабиринт', year: 1980, developer: 'Гефест', genre: 'Аркада', tags: ['аркада', 'лабиринт', 'оригинал'], summary: 'Собери все кристаллы в лабиринте, уворачивайся от врагов, лови усилители.', accent: '#ffd34d' },
     { slug: 'river-raid', title: 'River Raid', subtitle: 'Речной рейд', year: 1982, developer: 'Activision', genre: "Shoot'em-up", tags: ['аркада', 'скролл-шутер', 'вертикальный скролл'], summary: 'Вертикальный скролл над рекой: катера, мосты и топливо.', accent: '#3ce6a8' },
     { slug: 'digger', title: 'Digger', subtitle: 'Подземные туннели', year: 1983, developer: 'Windmill Software', genre: 'Аркада', tags: ['аркада', 'лабиринт', 'копание'], summary: 'Копайте туннели, собирайте алмазы и роняйте мешки золота.', accent: '#e8833a' },
     { slug: 'lode-runner', title: 'Lode Runner', subtitle: 'Погружение', year: 1983, developer: 'Douglas E. Smith', genre: 'Головоломка', tags: ['головоломка', 'платформер', 'классика'], summary: 'Золото, лестницы и ямы-ловушки: соберите всё и уйдите от стражи.', accent: '#f0b429' },

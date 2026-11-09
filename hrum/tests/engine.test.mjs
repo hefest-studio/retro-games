@@ -1,5 +1,5 @@
-/* PAC-MAN · tests/engine.test.mjs — автотесты логики (Node, без зависимостей).
-   Запуск: node pacman/tests/engine.test.mjs. Движок грузится в node:vm с шимом window. */
+/* ХРУМ · tests/engine.test.mjs — автотесты логики (Node, без зависимостей).
+   Запуск: node hrum/tests/engine.test.mjs. Движок грузится в node:vm с шимом window. */
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
