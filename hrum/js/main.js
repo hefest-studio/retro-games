@@ -29,6 +29,12 @@
       case 'gameover':
         PM.audio.sfx('over'); PM.audio.stopMusic(); started = false;
         if (d.score > hi) { hi = d.score; put(LS.hi, hi); }
+        var _lt = document.getElementById('tOver'); if (_lt) _lt.textContent = PM.t ? PM.t('over') : 'ИГРА ОКОНЧЕНА';
+        PM.ui.setOver(d.score, Math.max(hi, d.score)); PM.ui.show('ovOver'); break;
+      case 'victory':
+        PM.audio.sfx('win'); PM.audio.stopMusic(); started = false;
+        if (d.score > hi) { hi = d.score; put(LS.hi, hi); }
+        var _wt = document.getElementById('tOver'); if (_wt) _wt.textContent = 'ПОБЕДА! · YOU WIN';
         PM.ui.setOver(d.score, Math.max(hi, d.score)); PM.ui.show('ovOver'); break;
     }
   }

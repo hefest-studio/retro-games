@@ -26,6 +26,7 @@
   var GRAV = [800,720,630,550,470,380,300,220,130,100,80,80,70,70,70,50,50,50,30,30,20];
   var LOCK_DELAY = 500; // мс на земле до фиксации
   var SCORE_LINES = [0,100,300,500,800];
+  var WIN_LINES = 40;
 
   function rotateCW(m) {
     var n = m.length, r = [];
@@ -75,7 +76,7 @@
       bag: new Bag(rng),
       cur: null, hold: null, canHold: true,
       score: 0, lines: 0, level: opts.startLevel ? (opts.startLevel|0) : 0,
-      over: false, paused: false, started: false,
+      over: false, won: false, paused: false, started: false,
       gravT: 0, lockT: 0, onGround: false,
       hi: opts.hi ? (opts.hi|0) : 0
     };
@@ -131,6 +132,7 @@
       S.score += SCORE_LINES[n] * (S.level + 1);
       var newLevel = Math.floor(S.lines / 10);
       if (newLevel > S.level) { S.level = newLevel; emit('levelup', { level: S.level }); }
+      if (S.lines >= WIN_LINES && !S.over) { S.over = true; S.won = true; emit('win', { score: S.score }); }
       if (S.score > S.hi) S.hi = S.score;
       emit('clear', { rows: full, count: n, score: S.score });
       return n;
@@ -195,7 +197,7 @@
 
     function reset() {
       S.board = emptyBoard(); S.bag = new Bag(rng); S.hold = null; S.canHold = true;
-      S.score = 0; S.lines = 0; S.level = opts.startLevel ? (opts.startLevel|0) : 0;
+      S.score = 0; S.lines = 0; S.won = false; S.level = opts.startLevel ? (opts.startLevel|0) : 0;
       S.over = false; S.paused = false; S.gravT = 0; S.lockT = 0; S.onGround = false;
       S.cur = null; S.started = true; spawn(); emit('start', {});
     }
@@ -225,7 +227,7 @@
           board: S.board, cur: S.cur, ghostY: ghostY(),
           next: S.bag.peek(5), hold: S.hold, canHold: S.canHold,
           score: S.score, lines: S.lines, level: S.level, hi: S.hi,
-          over: S.over, paused: S.paused, started: S.started
+          over: S.over, won: S.won, paused: S.paused, started: S.started
         };
       },
       // для тестов:

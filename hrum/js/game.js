@@ -120,6 +120,7 @@
     opts = opts || {};
     var rng = opts.rng || Math.random;
     var onEvent = opts.onEvent || function () {};
+    var MAX_LEVEL = 8;
     var S = {
       maze: null, ROWS: ROWS, COLS: COLS,
       mode: 'title', level: 1, score: 0, hi: opts.hi || 0, lives: 3,
@@ -285,7 +286,7 @@
       S.time += dt;
       if (S.mode === 'ready') { S.ready -= dt; if (S.ready <= 0) S.mode = 'play'; return; }
       if (S.mode === 'dying') { S.ready -= dt; S.pac.mouth += dt * 6; if (S.ready <= 0) { resetActors(); S.mode = 'ready'; S.ready = 1.0; } return; }
-      if (S.mode === 'win') { S.flash -= dt; if (S.flash <= 0) { S.level++; loadLevel(); S.mode = 'ready'; S.ready = 1.2; } return; }
+      if (S.mode === 'win') { S.flash -= dt; if (S.flash <= 0) { if (S.level >= MAX_LEVEL) { S.mode = 'victory'; emit('victory', { score: S.score }); return; } S.level++; loadLevel(); S.mode = 'ready'; S.ready = 1.2; } return; }
       if (S.mode !== 'play') return;
 
       S.anim += dt;

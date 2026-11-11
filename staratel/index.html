@@ -1,362 +1,244 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#060713">
-<meta name="color-scheme" content="dark">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070b18'/%3E%3Crect x='10' y='42' width='44' height='6' rx='2' fill='%23ff7a59'/%3E%3Crect x='17' y='31' width='6' height='17' fill='%237dffb0'/%3E%3Crect x='25' y='36' width='18' height='5' fill='%23323d61'/%3E%3Ccircle cx='45' cy='24' r='8.5' fill='%23ffd34d'/%3E%3C/svg%3E">
-<title>СТАРАТЕЛЬ · Погружение — HTML5</title>
-<meta name="description" content="СТАРАТЕЛЬ — оригинальная игра студии «Гефест»: золото, кирпич, ямы-ловушки, стража. 8-битная музыка и графика, переключаемая на современный неон.">
-<link rel="stylesheet" href="css/style.css">
-</head>
-<body class="theme-retro lang-ru" data-screen="title">
-<div class="ambient" aria-hidden="true">
-  <span class="orb orb-a"></span>
-  <span class="orb orb-b"></span>
-  <span class="orb orb-c"></span>
-  <span class="grid-floor"></span>
-</div>
-
-<div class="app">
-  <header class="topbar">
-    <div class="brand">
-      <span class="brand-mark" aria-hidden="true"><span></span></span>
-      <span class="brand-text">
-        <span class="brand-word">СТАРА<span>ТЕЛЬ</span></span>
-        <span class="brand-sub" data-i18n="brand_sub">ПОДЗЕМЕЛЬЕ · 1983</span>
-      </span>
-    </div>
-    <nav class="top-actions" aria-label="Настройки">
-      <button class="chip" type="button" data-action="theme" id="btn-theme" title="G">
-        <span class="chip-label" data-i18n="graphics">ГРАФИКА</span><b id="theme-label">8-БИТ</b>
-      </button>
-      <button class="chip" type="button" data-action="lang" id="btn-lang" title="L">
-        <b id="lang-label">RU</b>
-      </button>
-      <button class="chip" type="button" data-action="mute" id="btn-mute" title="M">
-        <span class="chip-led" aria-hidden="true"></span><b id="mute-label">ЗВУК ВКЛ</b>
-      </button>
-      <button class="chip chip-icon" type="button" data-action="pause" id="btn-pause" title="P" aria-label="Пауза">Ⅱ</button>
-    </nav>
-  </header>
-
-  <main class="stage-shell">
-    <section class="stage" id="stage" aria-label="Игра СТАРАТЕЛЬ">
-      <div class="hud" id="hud">
-        <div class="hud-cell hud-level">
-          <span class="hud-label" data-i18n="hud_level">УРОВЕНЬ</span>
-          <div class="hud-level-row">
-            <b id="hud-level">01</b><span class="hud-dim">/&nbsp;<span id="hud-total">10</span></span>
-            <span class="lv-dots" id="lv-dots" aria-hidden="true"></span>
-          </div>
-          <span class="hud-sub" id="hud-name">—</span>
-        </div>
-        <div class="hud-cell hud-gold">
-          <span class="hud-label" data-i18n="hud_gold">ЗОЛОТО</span>
-          <div class="hud-gold-row">
-            <span class="coin" aria-hidden="true"></span>
-            <b id="hud-gold">0</b><span class="hud-dim">/ <span id="hud-gold-total">0</span></span>
-          </div>
-          <span class="gold-track"><i id="gold-bar"></i></span>
-        </div>
-        <div class="hud-cell hud-score">
-          <span class="hud-label" data-i18n="hud_score">ОЧКИ</span>
-          <b id="hud-score">000000</b>
-          <span class="hud-sub" id="hud-best">РЕКОРД 000000</span>
-        </div>
-        <div class="hud-cell hud-lives">
-          <span class="hud-label" data-i18n="hud_lives">ЖИЗНИ</span>
-          <b class="lives" id="hud-lives">♥♥♥</b>
-          <span class="hud-sub" id="hud-exit-state">ВЫХОД ЗАКРЫТ</span>
-        </div>
-      </div>
-
-      <div class="viewport" id="viewport">
-        <canvas id="game" width="1792" height="1024" aria-label="Игровое поле: подземелье с золотом, лестницами и стражей"></canvas>
-        <div class="fx scanlines" aria-hidden="true"></div>
-        <div class="fx grain" aria-hidden="true"></div>
-
-        <div class="level-banner" id="level-banner" aria-hidden="true">
-          <span class="lb-index" id="lb-index">УРОВЕНЬ 01</span>
-          <b class="lb-title" id="lb-title">—</b>
-          <span class="lb-hint" id="lb-hint">—</span>
-        </div>
-
-        <div class="toast" id="toast" role="status" aria-live="polite"></div>
-      </div>
-
-      <div class="underbar">
-        <div class="legend">
-          <span class="lchip"><i class="sw sw-gold" aria-hidden="true"></i><span data-i18n="legend_gold">золото +100</span></span>
-          <span class="lchip"><i class="sw sw-brick" aria-hidden="true"></i><span data-i18n="legend_brick">кирпич копается</span></span>
-          <span class="lchip"><i class="sw sw-exit" aria-hidden="true"></i><span data-i18n="legend_exit">выход</span></span>
-        </div>
-        <div class="keybar">
-          <span><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd><em data-i18n="hint_move">движение</em></span>
-          <span><kbd>Z</kbd><kbd>X</kbd><em data-i18n="hint_dig">копать</em></span>
-          <span><kbd>P</kbd><em data-i18n="hint_pause">пауза</em></span>
-          <span><kbd>G</kbd><em data-i18n="hint_gfx">графика</em></span>
-        </div>
-      </div>
-            <div class="overlay" id="overlay">
-          <!-- TITLE -->
-          <div class="screen screen-title" data-screen="title">
-            <div class="title-card">
-              <div class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span><span data-i18n="title_eyebrow">КЛАССИКА 1983 · ПЕРЕОСМЫСЛЕНА</span></div>
-              <h1 class="logo" aria-label="СТАРАТЕЛЬ"><span class="logo-main">СТАРА</span><span class="logo-accent">ТЕЛЬ</span></h1>
-              <div class="title-sub" data-i18n="title_sub">ПОГРУЖЕНИЕ</div>
-              <p class="title-lead" data-i18n="title_lead">Копай. Кради золото. Уходи от стражи. Одна ошибка — и ты уже легенда подземелья.</p>
-              <div class="title-actions">
-                <button class="btn btn-primary" type="button" data-action="start">
-                  <span data-i18n="start">НАЧАТЬ ПОГРУЖЕНИЕ</span><kbd>Enter</kbd>
-                </button>
-                <button class="btn btn-ghost" type="button" data-action="help">
-                  <span data-i18n="help">КАК ИГРАТЬ</span>
-                </button>
-              </div>
-              <div class="title-meta">
-                <div><span data-i18n="record">РЕКОРД</span><b id="title-best">000000</b></div>
-                <div><span data-i18n="levels">УРОВНЕЙ</span><b id="title-levels">10</b></div>
-                <div><span data-i18n="graphics">ГРАФИКА</span><b id="title-theme">8-БИТ</b></div>
-                <div><span data-i18n="music">МУЗЫКА</span><b>8-BIT</b></div>
-              </div>
-              <div class="theme-switch" role="group" aria-label="Стиль графики">
-                <button type="button" data-theme="retro" data-i18n="theme_retro" class="is-active">8-БИТ</button>
-                <button type="button" data-theme="neon" data-i18n="theme_neon">НЕОН</button>
-              </div>
-              <p class="title-hint" data-i18n="title_hint">Enter — старт · G — графика · M — звук · L — язык</p>
-            </div>
-          </div>
-
-          <!-- HELP -->
-          <div class="screen" data-screen="help">
-            <div class="panel panel-help">
-              <div class="panel-head">
-                <span class="eyebrow" data-i18n="help_kicker">ПОЛЕВОЙ УСТАВ</span>
-                <h2 data-i18n="help_title">КАК ИГРАТЬ</h2>
-              </div>
-              <p class="panel-lead" data-i18n="help_lead">Собери всё золото, открой выход и доберись до него. Стража не дремлет. Кирпич под ногами — твоё главное оружие.</p>
-              <div class="help-grid">
-                <div>
-                  <h3 data-i18n="help_controls">УПРАВЛЕНИЕ</h3>
-                  <ul class="help-list">
-                    <li><span class="keys"><kbd>←</kbd><kbd>→</kbd><kbd>A</kbd><kbd>D</kbd></span><span data-i18n="help_move">бежать</span></li>
-                    <li><span class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>W</kbd><kbd>S</kbd></span><span data-i18n="help_climb">лестницы</span></li>
-                    <li><span class="keys"><kbd>Z</kbd><kbd>X</kbd></span><span data-i18n="help_dig">копать влево / вправо</span></li>
-                    <li><span class="keys"><kbd>P</kbd><kbd>Esc</kbd></span><span data-i18n="help_pause">пауза</span></li>
-                    <li><span class="keys"><kbd>G</kbd><kbd>M</kbd><kbd>L</kbd></span><span data-i18n="help_sys">графика / звук / язык</span></li>
-                  </ul>
-                </div>
-                <div>
-                  <h3 data-i18n="help_rules_h">ПРАВИЛА ВЫЖИВАНИЯ</h3>
-                  <ul class="help-rules">
-                    <li data-i18n="help_rule_1">Золото даёт 100 очков. Собери всё — и выход наверху откроется.</li>
-                    <li data-i18n="help_rule_2">Выкопай яму под стражем: он свалится и погибнет, когда яма закроется. +150 очков.</li>
-                    <li data-i18n="help_rule_3">В яму можно упасть самому. Выбирайся клавишей ↑, пока она не схлопнулась.</li>
-                    <li data-i18n="help_rule_4">Страж не умеет копать, но отлично видит тебя. Лестницы и канаты — его стихия.</li>
-                  </ul>
-                </div>
-              </div>
-              <div class="panel-actions">
-                <button class="btn btn-primary" type="button" data-action="close-help">
-                  <span data-i18n="close">ПОНЯТНО</span><kbd>Enter</kbd>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- PAUSE -->
-          <div class="screen" data-screen="pause">
-            <div class="panel panel-small">
-              <span class="eyebrow" data-i18n="pause_kicker">ПЕРЕДЫШКА</span>
-              <h2 data-i18n="pause_title">ПАУЗА</h2>
-              <p class="panel-lead" data-i18n="pause_lead">Подземелье подождёт. Недолго.</p>
-              <div class="panel-actions column">
-                <button class="btn btn-primary" type="button" data-action="resume">
-                  <span data-i18n="resume">ПРОДОЛЖИТЬ</span><kbd>P</kbd>
-                </button>
-                <button class="btn btn-ghost" type="button" data-action="restart" data-i18n="restart">НАЧАТЬ ЗАНОВО</button>
-                <button class="btn btn-ghost" type="button" data-action="menu" data-i18n="to_menu">В МЕНЮ</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- LEVEL COMPLETE -->
-          <div class="screen" data-screen="complete">
-            <div class="panel panel-small">
-              <span class="eyebrow" id="complete-eyebrow">УРОВЕНЬ 01</span>
-              <h2 data-i18n="complete_title">УРОВЕНЬ ПРОЙДЕН</h2>
-              <div class="stats">
-                <div><span data-i18n="time">ВРЕМЯ</span><b id="complete-time">00:00</b></div>
-                <div><span data-i18n="bonus">БОНУС</span><b class="accent" id="complete-bonus">+000</b></div>
-                <div><span data-i18n="total_score">ОЧКИ</span><b id="complete-score">000000</b></div>
-              </div>
-              <div class="panel-actions">
-                <button class="btn btn-primary" type="button" data-action="next">
-                  <span id="complete-next-label">ДАЛЬШЕ</span><kbd>Enter</kbd>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- GAME OVER -->
-          <div class="screen" data-screen="gameover">
-            <div class="panel panel-small">
-              <span class="eyebrow" data-i18n="gameover_kicker">КОНЕЦ ПОГРУЖЕНИЯ</span>
-              <h2 data-i18n="gameover_title">ТЕБЯ ПОЙМАЛИ</h2>
-              <p class="panel-lead" data-i18n="gameover_lead">Подземелье не прощает жадности. Но золото всё ещё там.</p>
-              <div class="big-score" id="gameover-score">000000</div>
-              <p class="record-line" id="gameover-best">РЕКОРД 000000</p>
-              <div class="panel-actions">
-                <button class="btn btn-primary" type="button" data-action="again">
-                  <span data-i18n="again">ЕЩЁ РАЗ</span><kbd>Enter</kbd>
-                </button>
-                <button class="btn btn-ghost" type="button" data-action="menu" data-i18n="to_menu">В МЕНЮ</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- VICTORY -->
-          <div class="screen" data-screen="victory">
-            <div class="panel panel-small">
-              <span class="eyebrow" data-i18n="victory_kicker">ФИНАЛ</span>
-              <h2 data-i18n="victory_title">ПОГРУЖЕНИЕ ЗАВЕРШЕНО</h2>
-              <p class="panel-lead" data-i18n="victory_lead">Ты вынес всё золото и растворился в рассветном свете. Стража осталась с носом.</p>
-              <div class="big-score" id="victory-score">000000</div>
-              <p class="record-line" id="victory-best">РЕКОРД 000000</p>
-              <div class="panel-actions">
-                <button class="btn btn-primary" type="button" data-action="again">
-                  <span data-i18n="again">ЕЩЁ РАЗ</span><kbd>Enter</kbd>
-                </button>
-                <button class="btn btn-ghost" type="button" data-action="menu" data-i18n="to_menu">В МЕНЮ</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-</section>
-
-    <div class="touch-controls" aria-label="Сенсорное управление">
-      <div class="dpad">
-        <button type="button" data-touch="up" aria-label="Вверх">▲</button>
-        <button type="button" data-touch="left" aria-label="Влево">◀</button>
-        <button type="button" data-touch="down" aria-label="Вниз">▼</button>
-        <button type="button" data-touch="right" aria-label="Вправо">▶</button>
-      </div>
-      <div class="digpad">
-        <button type="button" data-touch="digL" aria-label="Копать влево"><span class="tdir">◀</span><span class="tlabel" data-i18n="touch_dig">копать</span></button>
-        <button type="button" data-touch="digR" aria-label="Копать вправо"><span class="tdir">▶</span><span class="tlabel" data-i18n="touch_dig">копать</span></button>
-      </div>
-    </div>
-
-    <footer class="footline">
-      <span data-i18n="footer_left">СТАРАТЕЛЬ · ни единой картинки: canvas + WebAudio</span>
-      <span data-i18n="footer_right">Классика 1983 · Браузер · Русский язык</span>
-    </footer>
-  </main>
-</div>
-
-<script src="js/levels.js"></script>
-<script src="js/audio.js"></script>
-<script src="js/game.js"></script>
-<script src="js/render.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/main.js"></script>
-<!-- catalog-backlink: ссылка на стартовую страницу проекта (встроена tools/add-catalog-back.mjs) -->
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>СТАРАТЕЛЬ — pixel-art edition</title>
 <style>
-#catalog-back{position:fixed!important;left:0!important;top:50%!important;transform:translateY(-50%)!important;z-index:2147483647!important;display:inline-flex!important;align-items:center!important;gap:6px!important;padding:8px 12px 8px 9px!important;margin:0!important;background:rgba(6,8,14,.82)!important;color:#ffd27a!important;border:1px solid rgba(255,190,80,.6)!important;border-left:0!important;border-radius:0 10px 10px 0!important;font:600 11px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important;letter-spacing:.1em!important;text-transform:uppercase!important;text-decoration:none!important;box-shadow:0 6px 22px rgba(0,0,0,.45)!important;cursor:pointer!important;opacity:.82!important;transition:opacity .15s ease,background .15s ease,color .15s ease!important;-webkit-font-smoothing:antialiased!important;}
-#catalog-back.catalog-back-round{border-left:1px solid rgba(255,190,80,.6)!important;border-radius:10px!important;}
-#catalog-back:hover,#catalog-back:focus-visible{opacity:1!important;background:rgba(255,190,80,.94)!important;color:#0a0b10!important;outline:2px solid #7cf5d2!important;outline-offset:2px!important;}
-#catalog-back .catalog-back-arrow{font-size:13px!important;line-height:1!important;}
-@media (max-width:480px){#catalog-back{font-size:10px!important;padding:6px 9px 6px 7px!important;gap:4px!important;}}
-@media (prefers-reduced-motion:reduce){#catalog-back{transition:none!important;}}
-</style>
-<a id="catalog-back" href="../" title="На стартовую страницу проекта — в каталог игр" aria-label="Вернуться на стартовую страницу проекта — каталог игр" data-catalog-back="1"><span class="catalog-back-arrow" aria-hidden="true">&larr;</span>Каталог</a>
+:root{--ember:#ea6a12;--gold:#f0b63a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#120e14;color:#f3e9da;font-family:Inter,system-ui,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
+.hud{width:min(94vw,520px);display:flex;justify-content:space-between;align-items:center;gap:6px;margin:10px 0 8px;font-weight:800;font-size:13px}
+.hud .cell{display:flex;align-items:center;gap:5px;background:#1d1620;border:1px solid #3a2f26;border-radius:10px;padding:6px 9px;white-space:nowrap}
+.hud img{width:18px;height:18px;image-rendering:pixelated}
+.lives{letter-spacing:1px}
+.wrap{position:relative;width:min(94vw,520px)}
+canvas{width:100%;display:block;image-rendering:pixelated;border:2px solid #3a2f26;border-radius:12px;background:#17111c;box-shadow:0 24px 70px -30px #000}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  background:rgba(12,9,14,.85);backdrop-filter:blur(3px);border-radius:12px;text-align:center;padding:20px}
+.overlay.hide{display:none}
+.overlay h1{margin:0;font-size:clamp(26px,7vw,40px);letter-spacing:-.02em}
+.overlay h1 .e{color:var(--ember)}
+.overlay p{margin:0;color:#b59b7e;font-size:14px;max-width:380px;line-height:1.55}
+.overlay p b{color:#f3e9da}
+.btn{border:0;background:var(--ember);color:#fff;font:800 16px Inter,sans-serif;padding:13px 28px;border-radius:999px;cursor:pointer;box-shadow:0 10px 30px -10px var(--ember)}
+.btn:active{transform:translateY(1px)}
+.pad{width:min(94vw,520px);margin:12px 0 20px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,52px);gap:8px;max-width:260px}
+.pad button{background:#1d1620;border:1px solid #3a2f26;border-radius:12px;color:#f3e9da;font-size:22px;font-weight:800;cursor:pointer}
+.pad button:active{background:#2a2029}
+.pad .u{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
+.foot{color:#6b5d4e;font-size:11px;margin-bottom:16px;text-align:center;padding:0 12px}
+@media(min-width:760px){.pad{display:none}}
+</style></head><body>
+<div class="hud">
+  <span class="cell"><img id="hudCoin">Счёт <b id="score">0</b></span>
+  <span class="cell"><img id="hudCoin2">Золото <b id="goal">0/0</b></span>
+  <span class="cell">Ур.<b id="level">1</b></span>
+  <span class="cell lives">♥<b id="lives">3</b></span>
+</div>
+<div class="wrap">
+  <canvas id="c" width="480" height="480"></canvas>
+  <div class="overlay" id="ov">
+    <h1>СТАРАТЕЛЬ <span class="e">◆</span></h1>
+    <p>Копай породу и собирай золото. <b>Валуны держатся на породе</b> — выкопай опору снизу, и валун рухнет: <b>раздавит голема</b> (премия к счёту) — или тебя. Набери норму золота — откроется <b>выход ▣</b>, добеги до него. Валуны можно толкать вбок. Големы и камни двигаются сами — не зевай.</p>
+    <button class="btn" id="startBtn">Начать смену</button>
+    <p style="font-size:12px;opacity:.7">Стрелки / WASD · на телефоне — крестовина внизу</p>
+  </div>
+</div>
+<div class="pad">
+  <button class="u" data-d="U">▲</button><button class="l" data-d="L">◀</button>
+  <button class="d" data-d="D">▼</button><button class="r" data-d="R">▶</button>
+</div>
+<div class="foot">Спрайты из pixel-art-atlas (CC0): imp · oval coin · crystal shard · wooden golem. Студия «Гефест».</div>
 <script>
-(function () {
-  var link = document.getElementById('catalog-back');
-  if (!link) return;
+const SRC={player:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAADsklEQVR4nO3dv0vUcRzH8TMUKrGs06iUcPE/qIZoiH5MJSkFNQRu0g+CGlqisb0hsKhJiH6AoVFNQTREELVUoxEiXkV6dSlW4GBDY/B6n7y9uuP1fKzvvndfrydf+Hzue3dNhbTVS7njfzXlz6GR/d/Xb1XuydHoCMAcAZgjAHMEYI4AzBGAueb4n+h16vjIKXl0/+C1ZZ3Qcp+//uXW6VW8vsHro5+fK4A5AjBHAOYIwBwBmCMAcwRgrop9gJzsOraj2C2PLxY7l39SK6hcnpHz2fJ0ah+l1rgCmCMAcwRgjgDMEYA5AjBHAObS+wC377yU80M7euV8XzB/8+GnnEfr8GifIDo+a6h/p5zPvf8q549eTazk6fyFK4A5AjBHAOYIwBwBmCMAcwRgrop71vV9+b1b9Tp7W1e7nF/ZFZ+BsveW3ieotacn1qSOP/9Cz6dKFTmf+BjtY/C5AAgEYI4AzBGAOQIwRwDmCMBcU7TOf3hwi3yAvsef5LyzvV3Oz3XpWxL69m+Q80h2nyC7zr/74Iuc36zorZiZSkXOs/8/XAHMEYA5AjBHAOYIwBwBmCMAc+E+wOmuYuoJFloW5Xxkck7OL/asl/Pjhzct+5xW0vVRfV//cKks54M96+S8dbFFzrOvL1cAcwRgjgDMEYA5AjBHAOYIwFxzdN/4cKmc+r7+aJ27ML5Hzlv7n8l5ZVTfT3Dy6EY5j2TX+dHfd+HMu9Tjx/hcAAQCMEcA5gjAHAGYIwBzBGCuiu8JjH73Lve7ft/eTmUOj9fJo6mHT6/Dlyan5Tx6Pz+W+11CrgDmCMAcAZgjAHMEYI4AzBGAudQa8g+9DxDdD9AVnMKRA/p7CFvWrsCfkLD4Q2+D3H+iv8evVNDHR/f1sw+AFAIwRwDmCMAcAZgjAHMEYK7m+wAdxW559FDbvJzf+6xP8fnrq3K+e/tZOY9kH//YZr3OvzHfJuezZX0/AfsASCEAcwRgjgDMEYA5AjBHAOb+wZvpep9goEN/D+Clgdz9ANH79ZHs418e0/cDjM1+D84gt86PcAUwRwDmCMAcAZgjAHMEYI4AzP3fm+oLhUL2cwX1rtb39WdxBTBHAOYIwBwBmCMAcwRgjgDM1cE+QCT3uYNiUd9PECmX9fv5tb5vv9a4ApgjAHMEYI4AzBGAOQIwRwDm6nqNWp3cPkGk0df5Ea4A5gjAHAGYIwBzBGCOAMwRgLmGXsNWJ/e7ho2+zo9wBTBHAOYIwBwBmCMAcwRgjgDM/Qa48cVJT3F5fwAAAABJRU5ErkJggg==",gold:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAADXElEQVR4nO3dvUtWYRiAcT8hofykCHLIaKogMHII+gcaisaMGqOtqYb+gIamXIIam2poCByqzaUvyZboi8wigwbzM1NRs7VB7js5Hc8r1/Vbb17PQS4eeB6P76mv2+KaG1vXqrz+8upsfZXXL6qh6htQtQwAzgDgDADOAOAMAM4A4Gp+D5vt83/NPCv1+u8u94fz3tufwnmtnxO4AsAZAJwBwBkAnAHAGQCcAcBVvkctus9f+DgQzpsaO8L5yupUoc+P3nwYzmv9nMAVAM4A4AwAzgDgDADOAOAMAK6p7AsU3ecvj90J5y37L238pv7SPHE/vv7cfDjfdaI7nL+YWQrnfffqwt9P2ecErgBwBgBnAHAGAGcAcAYAZwBwpZ8DZLJ9fnPP+VJ/fmPH4XC+Mv4onO/Yeyi5g9FkXi1XADgDgDMAOAOAMwA4A4AzALjC5wBl/72/qJ8PnoTzbUe+h/Om7t3hfO7z63C+58DOcH6tty2cXx15U+rzAq4AcAYAZwBwBgBnAHAGAGcAcOU/D5A8d1/U1I2L4byt/2w4X5odCefZOUK2CV9pbw7n040zyU8olysAnAHAGQCcAcAZAJwBwBkAXOnnANn/16efL/i8wNL7p4U+n9l+6lg4z84R2ldb/uftbJgrAJwBwBkAnAHAGQCcAcAZAFzl3w+QaZhcDOetx3vD+e/ObeE826cX3efXOlcAOAOAMwA4A4AzADgDgDMAuJo/B5gYehzOO0+fDOfZewEzK+Px9wdsda4AcAYAZwBwBgBnAHAGAGcAcJWfA2T79GyfPz00HM6XxybDece5vnC+OPg2nG91rgBwBgBnAHAGAGcAcAYAZwBwpb6bvq4uf5/Aj5dnws8vfP0WzvP39sXKfq5/YDD+HsDrw2PhvOj7ADKuAHAGAGcAcAYAZwBwBgBnAHCVPw/w5dbzcN51sCucz0x8COdr8/E+vOgvINvnV/09gBlXADgDgDMAOAOAMwA4A4AzALjSnwfIZM8LjFzYt1m3sq67r8LbS1X99/6MKwCcAcAZAJwBwBkAnAHAGQBc5ecAmeyc4MrRns26lXXV+j4/4woAZwBwBgBnAHAGAGcAcAYAV9N71H+RnROUrdb3+RlXADgDgDMAOAOAMwA4A4AzALg/hia2ZguQgJMAAAAASUVORK5CYII=",gem:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAADH0lEQVR4nO3dsUuUYRzA8bOro8PqqCxI0ZzCwZZoiCCouSXIpfYmh/Yaoz/BpbWhpZbAtqAlc9IIhwYDIRHCOiUVUzT7D36P8HQ979v3+1l/vscFXx54nnvu6mv859qtgYOc57d3v/f9rfdSRUdKvwGVZQBwBgBnAHAGAGcAcAYAV/s9bmqf/3P9Y/j8wfyTcN659Sqc1/2cwBUAzgDgDADOAOAMAM4A4AwArvJ72Ox9/tvJcL72ci6cn564Es47d9+H86qfE7gCwBkAnAHAGQCcAcAZAJwBwB0t/QZy/d5eCee5m/D91fXMV6g2VwA4A4AzADgDgDMAOAOAMwC44ucAuZ/3p84Bcq1Mf4nnT4fC+eDjRvjvK31fwBUAzgDgDADOAOAMAM4A4AwArufnALn7/L0PU+G8ebwbzve3NsL55mb8M4Kv54+F85sbP8L518lz4Xx4quw5gSsAnAHAGQCcAcAZAJwBwBkAXPH7AKnf6fs1NxvO+69fC+fN/pPhvDMSzx+Mh+PG1tJe/AcV5woAZwBwBgBnAHAGAGcAcAYAV/wcYO3Zm6znu7PT4XzkeXyO0Px8O5y3xkbj+dVw3Jh6+Cn+g8JcAeAMAM4A4AwAzgDgDADgDMAuOLnAM0zJ7KeHx6/FM4X7sT3Bd4txvf+G434Pv7+jfg+wKPl7XDu7wOoKAOAMwA4A4AzADgDgDMAOAOAK34O0DxzIuv54Yn4vsCCO/F9gXeL8b3/RiO+z9+/Ed8HeLS8Hc79fQAVZQBwBgBnAHAGAGcAcAYAZwBwxc8Bem1tc8/5Un9+Y8fhcL4y/iic79h7KLmD0WReLVcAOAOAMwA4A4AzADgDgDMAuMLnAGX/vb+onw/ehPNtR76H8+bqXeH87nOrcP7nQE6wfi23LZxfHXlT6vMCrgBwBgBnAHAGAGcAcAYAZwBw5T8PkDx3X9TUjYvhvK3/bDhfmh0J59k5QrYJX2lvDufTjTPJTyiXKwCcAcAZAJwBwBkAnAHAGQBc6ecA2f/Xp58v+LzA0vunhT6f2X7qWDjPzhHaV1v+5+1smCsAnAHAGQCcAcAZAJwBwBkAXOXfD5BpmFwM563He8P5785t4Twb59fdJ9c6VwA4A4AzADgDgDMAOAOAMwC4mj8HmBh6HM47T58M59l7ATMr4/H3B2x1rgBwBgBnAHAGAGcAcAYAZwBwlZ8DZPv0bJ8/PTQczpfHJsN5x7m+cL44+Dacb3WuAHAGAGcAcAYAZwBwBgBnAHClvpu+ri5/n8CPl2fCzy98/RbO8/f2xcp+rn9gMP4ewOvDY+G86PsAMq4AcAYAZwBwBgBnAHAGAGcAcJU/D/Dl1vNw3nWwK5zPTHwI52vz8T686C8g2+dX/T2AGVcAOAOAMwA4A4AzADgDgDMAuNKfB8hkzwuMXNi3Wbeyrruvwtt3XXQBwQXQIOwAAAABJRU5ErkJggg==",enemy:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAEKUlEQVR4nO2dzUtUURjGrzHhaKlJbqKECrOCtDJqFa2CzAg3LaJ2/QNtIoigVe0Mi6BatWhRUIuQNn4E4SioKKOjgaUzNTaIX31Y+TUS2R8QPK/yOl3heX7bx3vP4c7PF865556TF2x4ClbC7oGPxbywe4DYFHYHRLhIAHIkADkSgBwJQI4EIEcCkLMBxqh4nD/bcR1enewaWM/O/MPLziTMB9LzMG8ZnDJaCHeeQBWAHAlAjgQgRwKQIwHIkQDkSAByIrlvAo/zhx/Wwau7mzthfq8Lt367divMn75JwfzDJB7nXzxSijtg0DI4Zax3yO08gSoAORKAHAlAjgQgRwKQIwHIkQDk/Id5gHDJfv8O8/zFOdf9J2YWXdeHjSoAORKAHAlAjgQgRwKQIwHIkQDkrMM8gO/7/f70L5hfbWz33D7Irz0H8/QOvF4g3t2K82Hcfs3BXfgPTKzn61svoApAjgQgRwKQIwHIkQDkSAByJAA5q5gH8K3rP3+jeU0dWm+s9QBBgOcBck1FCf4fPFVZBvMnvdOueQJVAHIkADkSgBwJQI4EIEcCkCMByIl4x/mvWj+5OlAVXXJdv9GpLsE53p0gCC6d9O0/YM0TqAKQIwHIkQDkSAByJAA5EoAcCUCOuR7AWrc/ubDs6sDQUhTmsfv1MO+dwO/z2/t6YH7rOIyDo6crYH7iAO5/S98sbsDJ3LLvWEVVAHIkADkSgBwJQI4EIEcCkCMByHHvDzA6txnmyR9/XPe35iGeGePsorK9+P7vcfuT7/AGALFsNczn0+Mwt55PQ2I7zM8cwtsDvEjMwFwVgBwJQI4EIEcCkCMByJEA5EgAcsx5gLb4FMxXovj7dYtHz/thfvZYOcwbL+yB+UgC99+kbj+Mm+JJmMd+LvjaN3B+lqEKwI4EIEcCkCMByJEA5EgAciQAOeY8wOUq/L65IeHrQEcGn9tXWPoN5rNDlTDf9vkLzGPZnTC3SI7g+3vXQ1w7/BXmd3tcxwWoArAjAciRAORIAHIkADkSgBwJQI77u4DKCH7f7j0tIDWG17Wnxl47W8g4rw+Xonk8T2ChCkCOBCBHApAjAciRAORIAHIkADl51nkBNeVFrgbiGfx9v3UeQXf3R5jfaRqBufd9vHWu3816vB7hwVu8P4D1fHL9/FUByJEA5EgAciQAORKAHAlAjgQgJ2KdLx/PBL4N6Q3GR/HJeRMz+FzBmt14H72ksU+exeMr+2DelsLnJWxxPj5rHG+Df19VAHIkADkSgBwJQI4EIEcCkCMByFnFdwF4HGmD1xv8LsTj+FgW3704GF1zj9ZCQbQY5gnjvIQgmHb2wPv8MaoA5EgAciQAORKAHAlAjgQgRwKQk9Mx5urA8wR+cjuP4Se343wLVQByJAA5EoAcCUCOBCBHApAjAcj5Cyvx4o2crBBAAAAAAElFTkSuQmCC"};
+const IMG={};
+const N=15, TS=32, cv=document.getElementById('c'), x=cv.getContext('2d'); x.imageSmoothingEnabled=false;
+const WALL=1, DIRT=0, EMPTY=2, BOULDER=3, GOLD=4, GEM=5, EXIT=6;
+let grid, fall, player, enemies, score=0, lives=3, level=1, running=false, inv=0;
+let need=0, got=0, exitPos=null, shake=0, flash=0;
+const $=id=>document.getElementById(id);
+function ac(){try{return new (window.AudioContext||window.webkitAudioContext)()}catch(e){return null}}
+let AC=null;
+function beep(f,d,t,v){ if(!AC)return; const o=AC.createOscillator(),g=AC.createGain(); o.type=t||'square'; o.frequency.value=f;
+  o.connect(g); g.connect(AC.destination); g.gain.setValueAtTime(v||.07,AC.currentTime); g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);
+  o.start(); o.stop(AC.currentTime+d); }
 
-  /* На file:// каталог лежит в index.html корня: «../» открыл бы листинг. */
-  if (location.protocol === 'file:') link.setAttribute('href', '../index.html');
+function entityAt(gx,gy){ if(player.gx===gx&&player.gy===gy) return 'player';
+  if(enemies.some(e=>e.gx===gx&&e.gy===gy)) return 'enemy'; return null; }
 
-  /* Не даём клику/Enter всплывать в игровые обработчики (старт, пауза и т.п.). */
-  ['pointerdown', 'click', 'keydown'].forEach(function (type) {
-    link.addEventListener(type, function (event) { event.stopPropagation(); }, true);
-  });
-
-  /* --- адаптивное размещение, чтобы не перекрывать меню и кнопки игр --- */
-  var INTERACTIVE = 'a,button,input,select,textarea,[role="button"],[tabindex],[onclick]';
-  link.style.setProperty('transform', 'none', 'important');
-
-  function interactiveBoxes() {
-    var boxes = [];
-    var nodes = document.querySelectorAll(INTERACTIVE);
-    for (var i = 0; i < nodes.length; i += 1) {
-      var el = nodes[i];
-      if (el === link || el.contains(link)) continue;
-      var r = el.getBoundingClientRect();
-      if (r.width < 4 || r.height < 4) continue;
-      var cs = window.getComputedStyle(el);
-      if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) < 0.05) continue;
-      if (cs.pointerEvents === 'none') continue;
-      boxes.push({ left: r.left, top: r.top, right: r.right, bottom: r.bottom });
+function genLevel(){
+  grid=[]; fall=[];
+  for(let y=0;y<N;y++){ grid.push([]); fall.push([]);
+    for(let xx=0;xx<N;xx++){ fall[y].push(false);
+      let t = (xx===0||y===0||xx===N-1||y===N-1) ? WALL : DIRT;
+      if(t===DIRT){ const r=Math.random();
+        if(r<0.07) t=WALL; else if(r<0.21) t=BOULDER; else if(r<0.32) t=GOLD; else if(r<0.355) t=GEM; }
+      grid[y].push(t);
     }
-    return boxes;
   }
+  player={gx:1,gy:1,bob:0};
+  // безопасный карман у старта: ничего не падает на спавн
+  for(let dy=0;dy<3;dy++)for(let dx=0;dx<3;dx++){ const gx=1+dx,gy=1+dy; if(gx<N-1&&gy<N-1&&grid[gy][gx]!==WALL) grid[gy][gx]=DIRT; }
+  grid[1][1]=EMPTY;
+  // выход — подальше от старта, в породе
+  let ex,ey,t=0; do{ ex=2+Math.floor(Math.random()*(N-4)); ey=2+Math.floor(Math.random()*(N-4)); t++; }
+  while(t<300 && (grid[ey][ex]===WALL || (ex-1)+(ey-1)<12));
+  exitPos={gx:ex,gy:ey}; grid[ey][ex]=EXIT;
+  // враги
+  enemies=[]; const ne=Math.min(1+level,5);
+  for(let i=0;i<ne;i++){ let gx,gy,k=0;
+    do{ gx=2+Math.floor(Math.random()*(N-4)); gy=2+Math.floor(Math.random()*(N-4)); k++; }
+    while(k<400 && (grid[gy][gx]===WALL || grid[gy][gx]===EXIT || Math.abs(gx-1)+Math.abs(gy-1)<8));
+    grid[gy][gx]=EMPTY; enemies.push({gx,gy,slow:0}); }
+  // норма золота
+  let total=0; for(let y=0;y<N;y++)for(let xx=0;xx<N;xx++) if(grid[y][xx]===GOLD||grid[y][xx]===GEM) total++;
+  need=Math.max(3,Math.min(14,Math.ceil(total*0.5))); got=0;
+  $('goal').textContent=got+'/'+need; $('level').textContent=level;
+}
 
-  function overlap(a, b) {
-    return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-  }
+function tryMove(dx,dy){
+  if(!running) return;
+  const nx=player.gx+dx, ny=player.gy+dy;
+  if(!grid[ny]||grid[ny][nx]===undefined) return;
+  const t=grid[ny][nx];
+  if(t===WALL) return;
+  if(t===BOULDER){
+    if(dy!==0) return;                       // валун толкаем только вбок
+    const bx=nx+dx; if(grid[ny][bx]!==EMPTY||entityAt(bx,ny)) return;
+    grid[ny][bx]=BOULDER; fall[ny][bx]=false; grid[ny][nx]=EMPTY; beep(120,.05,'square',.05);
+  } else if(t===EXIT){
+    if(got<need) return;                      // выход закрыт, пока нет нормы
+    beep(1300,.2,'sawtooth'); level++; running=false; flash=1;
+    setTimeout(()=>{ genLevel(); running=true; },260);
+    player.gx=nx; player.gy=ny; return;
+  } else if(t===GOLD||t===GEM){
+    score += t===GEM?150:100; got++; $('score').textContent=score; $('goal').textContent=Math.min(got,need)+'/'+need;
+    grid[ny][nx]=EMPTY; beep(t===GEM?980:760,.09);
+    if(got===need) beep(1400,.14,'triangle',.06);
+  } else if(t===DIRT){ grid[ny][nx]=EMPTY; }
+  player.gx=nx; player.gy=ny; player.bob=1;
+  if(entityAt(nx,ny)==='enemy') hit();
+}
 
-  function place() {
-    var w = link.offsetWidth;
-    var h = link.offsetHeight;
-    if (!w || !h) return;
-    var W = window.innerWidth;
-    var H = window.innerHeight;
-    var m = 10;
-    var candidates = [
-      { name: 'left-mid', left: 0, top: Math.round((H - h) / 2), shape: 'tab' },
-      { name: 'bottom-left', left: m, top: H - h - m, shape: 'round' },
-      { name: 'top-left', left: m, top: m, shape: 'round' },
-      { name: 'bottom-right', left: W - w - m, top: H - h - m, shape: 'round' },
-      { name: 'top-right', left: W - w - m, top: m, shape: 'round' },
-      { name: 'bottom-center', left: Math.round((W - w) / 2), top: H - h - m, shape: 'round' },
-      { name: 'top-center', left: Math.round((W - w) / 2), top: m, shape: 'round' }
-    ];
-    var boxes = interactiveBoxes();
-    var chosen = candidates[0];
-    for (var i = 0; i < candidates.length; i += 1) {
-      var c = candidates[i];
-      var box = { left: c.left, top: c.top, right: c.left + w, bottom: c.top + h };
-      var hit = false;
-      for (var j = 0; j < boxes.length; j += 1) {
-        if (overlap(box, boxes[j])) { hit = true; break; }
+function gravity(){
+  // снизу вверх, один шаг за тик → каскад
+  for(let y=N-2;y>=1;y--)for(let xx=1;xx<N-1;xx++){
+    const t=grid[y][xx]; if(t!==BOULDER&&t!==GOLD&&t!==GEM) continue;
+    const below=grid[y+1][xx], ent=entityAt(xx,y+1);
+    if(below===EMPTY && !ent){ grid[y+1][xx]=t; fall[y+1][xx]=true; grid[y][xx]=EMPTY; fall[y][xx]=false; continue; }
+    if(below===EMPTY && ent && fall[y][xx]){
+      if(t===BOULDER){
+        if(ent==='enemy'){ enemies=enemies.filter(e=>!(e.gx===xx&&e.gy===y+1)); grid[y+1][xx]=BOULDER; fall[y+1][xx]=true; grid[y][xx]=EMPTY; fall[y][xx]=false;
+          score+=250; $('score').textContent=score; beep(70,.25,'sawtooth',.09); beep(900,.12,'triangle'); shake=6; continue; }
+        if(ent==='player'){ fall[y][xx]=false; hit(); shake=6; continue; }
+      } else { // золото/кристалл безвредны
+        if(ent==='player'){ // подбираем на лету
+          score+=t===GEM?150:100; got++; $('score').textContent=score; $('goal').textContent=Math.min(got,need)+'/'+need;
+          grid[y][xx]=EMPTY; fall[y][xx]=false; beep(t===GEM?980:760,.09); if(got===need)beep(1400,.14,'triangle',.06); continue; }
+        fall[y][xx]=false; continue; // на враге просто лежит
       }
-      if (!hit) { chosen = c; break; }
     }
-    link.style.setProperty('left', chosen.left + 'px', 'important');
-    link.style.setProperty('top', chosen.top + 'px', 'important');
-    link.classList.toggle('catalog-back-round', chosen.shape === 'round');
-    link.dataset.place = chosen.name;
+    // перекат с округлого (валун/стена) вбок
+    if((below===BOULDER||below===WALL)){
+      if(grid[y][xx-1]===EMPTY&&grid[y+1][xx-1]===EMPTY&&!entityAt(xx-1,y)&&!entityAt(xx-1,y+1)){
+        grid[y][xx-1]=t; fall[y][xx-1]=true; grid[y][xx]=EMPTY; fall[y][xx]=false; continue; }
+      if(grid[y][xx+1]===EMPTY&&grid[y+1][xx+1]===EMPTY&&!entityAt(xx+1,y)&&!entityAt(xx+1,y+1)){
+        grid[y][xx+1]=t; fall[y][xx+1]=true; grid[y][xx]=EMPTY; fall[y][xx]=false; continue; }
+    }
+    fall[y][xx]=false;
   }
+}
 
-  var timer = 0;
-  function schedule() {
-    window.clearTimeout(timer);
-    timer = window.setTimeout(place, 120);
+function enemyStep(){
+  for(const e of enemies){
+    const opts=[[1,0],[-1,0],[0,1],[0,-1]].filter(([dx,dy])=>{
+      const nx=e.gx+dx,ny=e.gy+dy; return (grid[ny]&&grid[ny][nx]===EMPTY) || (nx===player.gx&&ny===player.gy); });
+    if(!opts.length) continue;
+    opts.sort((a,b)=> (Math.abs(e.gx+a[0]-player.gx)+Math.abs(e.gy+a[1]-player.gy)) - (Math.abs(e.gx+b[0]-player.gx)+Math.abs(e.gy+b[1]-player.gy)));
+    const pick = Math.random()<0.72? opts[0] : opts[Math.floor(Math.random()*opts.length)];
+    e.gx+=pick[0]; e.gy+=pick[1];
+    if(e.gx===player.gx&&e.gy===player.gy) hit();
   }
+}
 
-  place();
-  window.setTimeout(place, 350);
-  window.setTimeout(place, 1200);
-  window.addEventListener('resize', schedule, { passive: true });
-  window.addEventListener('orientationchange', schedule, { passive: true });
-  document.addEventListener('fullscreenchange', schedule);
-})();
-</script>
-<!-- /catalog-backlink -->
-</body>
-</html>
+function hit(){
+  if(inv>0||!running) return; lives--; $('lives').textContent=lives; beep(140,.3,'sawtooth'); inv=900; shake=8;
+  if(lives<=0){ running=false; over("СМЕНА ОКОНЧЕНА","Счёт: "+score+" · Уровень "+level,"Ещё раз"); return; }
+  player.gx=1;player.gy=1; grid[1][1]=EMPTY;
+  for(let dy=0;dy<3;dy++)for(let dx=0;dx<3;dx++){ const gx=1+dx,gy=1+dy; if(grid[gy]&&grid[gy][gx]===BOULDER)grid[gy][gx]=DIRT; }
+  enemies.forEach(e=>{ if(Math.abs(e.gx-1)+Math.abs(e.gy-1)<6){e.gx=N-2;e.gy=N-2;} });
+}
+
+function roundRock(px,py){ const cx=px+TS/2,cy=py+TS/2,r=TS/2-3;
+  x.fillStyle="#6b655d"; x.beginPath(); x.arc(cx,cy,r,0,7); x.fill();
+  x.fillStyle="#8c857a"; x.beginPath(); x.arc(cx-3,cy-4,r*0.5,0,7); x.fill();
+  x.fillStyle="#48433c"; x.beginPath(); x.arc(cx+4,cy+5,r*0.32,0,7); x.fill(); }
+
+function draw(){
+  if(!grid) return;
+  const sx=shake?(Math.random()*2-1)*shake:0, sy=shake?(Math.random()*2-1)*shake:0;
+  x.save(); x.translate(sx,sy);
+  x.fillStyle="#17111c"; x.fillRect(-10,-10,500,500);
+  const open=got>=need;
+  for(let y=0;y<N;y++)for(let xx=0;xx<N;xx++){
+    const t=grid[y][xx], px=xx*TS, py=y*TS;
+    if(t===WALL){ x.fillStyle="#2b2230"; x.fillRect(px,py,TS,TS); x.fillStyle="#201926"; x.fillRect(px+2,py+2,TS-4,TS-4); }
+    else if(t===DIRT){ x.fillStyle="#3a2a1e"; x.fillRect(px,py,TS,TS); x.fillStyle="#44321f"; x.fillRect(px+3,py+3,TS-6,TS-6); }
+    else { x.fillStyle="#140f18"; x.fillRect(px,py,TS,TS); }
+    if(t===BOULDER) roundRock(px,py);
+    else if(t===EXIT){
+      if(open){ const g=0.6+0.4*Math.sin(Date.now()/160);
+        x.fillStyle="#5a2a08"; x.fillRect(px+3,py+3,TS-6,TS-6);
+        x.fillStyle="rgba(234,106,18,"+g+")"; x.fillRect(px+6,py+5,TS-12,TS-9);
+        x.fillStyle="#ffd15e"; x.font="bold 15px Inter"; x.textAlign="center"; x.fillText("▣",cx(px),py+TS-9); }
+      else { x.fillStyle="#241a15"; x.fillRect(px+3,py+3,TS-6,TS-6); x.fillStyle="#3a2d22"; x.fillRect(px+6,py+6,TS-12,TS-12);
+        x.fillStyle="#6b5d4e"; x.font="bold 14px Inter"; x.textAlign="center"; x.fillText("▣",cx(px),py+TS-9); }
+    }
+    else if(t===GOLD&&IMG.gold) put(IMG.gold,xx,y,TS-10);
+    else if(t===GEM&&IMG.gem) put(IMG.gem,xx,y,TS-10);
+  }
+  for(const e of enemies) if(IMG.enemy) put(IMG.enemy,e.gx,e.gy,TS-4);
+  if(IMG.player){ x.globalAlpha=inv&&Math.floor(Date.now()/90)%2?0.4:1; put(IMG.player,player.gx,player.gy,TS-4); x.globalAlpha=1; }
+  player.bob=0;
+  if(flash>0){ x.fillStyle="rgba(255,209,94,"+(flash*0.5)+")"; x.fillRect(-10,-10,500,500); }
+  x.restore();
+}
+function cx(px){ return px+TS/2; }
+function put(im,gx,gy,s){ const d=s||TS-6, o=(TS-d)/2; x.drawImage(im,gx*TS+o,gy*TS+o,d,d); }
+
+function over(t,s,btn){ const ov=$('ov'); ov.classList.remove('hide');
+  ov.innerHTML='<h1>'+t+'</h1><p>'+s+'</p><button class="btn" id="startBtn">'+btn+'</button>'+
+    '<p style="font-size:12px;opacity:.7">Стрелки / WASD · крестовина внизу</p>';
+  $('startBtn').onclick=start; }
+
+function start(){ if(!AC)AC=ac(); score=0;lives=3;level=1;inv=0;
+  $('score').textContent=0;$('lives').textContent=3;
+  genLevel(); running=true; $('ov').classList.add('hide'); }
+
+// фиксированный шаг физики — реальное время
+const STEP=165; let last=0, acc=0, phys=0;
+function loop(t){ requestAnimationFrame(loop);
+  if(shake>0) shake-=0.6; if(shake<0)shake=0;
+  if(flash>0) flash-=0.06; if(flash<0)flash=0;
+  if(!last)last=t; const dt=t-last; last=t;
+  if(inv>0) inv-=dt;
+  if(running){ acc+=dt;
+    while(acc>=STEP){ acc-=STEP; phys++; gravity(); if(phys%2===0) enemyStep(); }
+  } else acc=0;
+  draw();
+}
+
+addEventListener('keydown',e=>{ const k=e.key.toLowerCase();
+  if(k==='arrowup'||k==='w')tryMove(0,-1); else if(k==='arrowdown'||k==='s')tryMove(0,1);
+  else if(k==='arrowleft'||k==='a')tryMove(-1,0); else if(k==='arrowright'||k==='d')tryMove(1,0); else return; e.preventDefault(); });
+document.querySelectorAll('.pad button').forEach(b=>b.onclick=()=>{const d=b.dataset.d;
+  tryMove(d==='L'?-1:d==='R'?1:0, d==='U'?-1:d==='D'?1:0);});
+$('startBtn').onclick=start;
+$('hudCoin').src=SRC.gold; $('hudCoin2').src=SRC.gold;
+Object.entries(SRC).forEach(([k,s])=>{const i=new Image();i.onload=()=>{IMG[k]=i;};i.src=s;});
+requestAnimationFrame(loop);
+</script><style>
+#catalog-back{position:fixed!important;left:0!important;top:50%!important;transform:translateY(-50%)!important;z-index:2147483647!important;display:inline-flex!important;align-items:center!important;gap:6px!important;padding:8px 12px 8px 9px!important;margin:0!important;background:rgba(6,8,14,.82)!important;color:#ffd27a!important;border:1px solid rgba(255,190,80,.6)!important;border-left:0!important;border-radius:0 10px 10px 0!important;font:600 11px/1.2 ui-monospace,Menlo,Consolas,monospace!important;letter-spacing:.1em!important;text-transform:uppercase!important;text-decoration:none!important;box-shadow:0 6px 22px rgba(0,0,0,.45)!important;opacity:.82!important}
+#catalog-back:hover,#catalog-back:focus-visible{opacity:1!important;background:rgba(255,190,80,.94)!important;color:#0a0b10!important;outline:2px solid #7cf5d2!important;outline-offset:2px!important}
+@media (max-width:480px){#catalog-back{font-size:10px!important;padding:6px 9px 6px 7px!important}}
+</style>
+<a id="catalog-back" href="../" title="В каталог игр" aria-label="Вернуться в каталог игр"><span aria-hidden="true">&larr;</span>Каталог</a>
+</body></html>
