@@ -1,26 +1,30 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ИСКРА — пример на движке Гефест Arcade</title>
+<title>ИСКРА — пример на фреймворке Гефест Arcade</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:#0e0b12;color:#f3e9da;font-family:Inter,system-ui,sans-serif;
+body{margin:0;background:#0e1016;color:#eef2f8;font-family:Inter,system-ui,sans-serif;
   display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
 .wrap{position:relative;width:min(94vw,460px);margin-top:14px}
-canvas{width:100%;display:block;image-rendering:pixelated;border:2px solid #3a2f26;border-radius:12px;background:#140f18}
+canvas{width:100%;display:block;border:1px solid #222838;border-radius:10px;background:#0e1016}
 .pad{width:min(94vw,460px);margin:12px 0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,52px);gap:8px;max-width:260px}
-.pad button{background:#1d1620;border:1px solid #3a2f26;border-radius:12px;color:#f3e9da;font-size:22px;font-weight:800}
+.pad button{background:#161a24;border:1px solid #222838;border-radius:12px;color:#eef2f8;font-size:22px;font-weight:800}
 .pad .u{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
-.foot{color:#6b5d4e;font-size:11px;margin:4px 12px 16px;text-align:center}
+.foot{color:#5a6273;font-size:11px;margin:4px 12px 16px;text-align:center}
 @media(min-width:760px){.pad{display:none}}
 </style></head><body>
 <div class="wrap"><canvas id="c" width="432" height="432"></canvas></div>
 <div class="pad"><button class="u" data-d="U">▲</button><button class="l" data-d="L">◀</button>
 <button class="d" data-d="D">▼</button><button class="r" data-d="R">▶</button></div>
-<div class="foot">Пример на общем движке <b>Гефест Arcade</b> (_shared/engine.js). Собери искры, уйди от стражей, 5 уровней — победа.</div>
+<div class="foot">Пример на фреймворке <b>Гефест Arcade v2</b>: i18n RU/EN · темы retro/modern · меню · score/best. L — язык, T — тема, M — звук, P — пауза.</div>
 <script src="../engine.js"></script>
 <script>
+const STR = {
+  ru:{ play:'Играть', language:'Язык', theme:'Тема', sound:'Звук', on:'вкл', off:'выкл', score:'Счёт', level:'Ур.', best:'Рекорд', win:'ПОБЕДА!', gameover:'КОНЕЦ ИГРЫ', pause:'ПАУЗА', resume:'Продолжить', menu:'В меню', tapstart:'пробел / тап', subtitle:'Собери искры, уйди от стражей · 5 уровней' },
+  en:{ play:'Play', language:'Language', theme:'Theme', sound:'Sound', on:'on', off:'off', score:'Score', level:'Lvl', best:'Best', win:'YOU WIN!', gameover:'GAME OVER', pause:'PAUSE', resume:'Resume', menu:'Menu', tapstart:'space / tap', subtitle:'Collect sparks, flee the guards · 5 levels' },
+};
 const N=12, TS=36, WIN_LEVEL=5;
-const g = Arcade.createGame({ canvas:'#c', width:N*TS, height:N*TS });
+const g = Arcade.createGame({ canvas:'#c', width:N*TS, height:N*TS, gameId:'iskra', strings:STR, theme:'modern' });
 g.input.bindDpad(document.querySelector('.pad'));
 g.fit(460); addEventListener('resize', ()=>g.fit(460));
 
@@ -28,58 +32,39 @@ let grid, player, guards, coins, moveCd, hurt;
 function setup(){
   grid = new Arcade.Grid(N,N,TS,0);
   for(let i=0;i<N;i++){ grid.set(i,0,1); grid.set(i,N-1,1); grid.set(0,i,1); grid.set(N-1,i,1); }
-  // немного стен
   for(let k=0;k<6+g.state.level;k++){ const x=2+((Math.random()*(N-4))|0), y=2+((Math.random()*(N-4))|0); grid.set(x,y,1); }
   player={x:1,y:1}; grid.set(1,1,0);
-  coins=[]; const need=6+g.state.level*2;
-  let t=0; while(coins.length<need && t<500){ t++; const x=1+((Math.random()*(N-2))|0), y=1+((Math.random()*(N-2))|0);
-    if(grid.get(x,y)!==0) continue; if(Math.abs(x-1)+Math.abs(y-1)<3) continue;
-    if(coins.some(c=>c.x===x&&c.y===y)) continue; coins.push({x,y}); }
+  coins=[]; const need=6+g.state.level*2; let t=0;
+  while(coins.length<need && t<500){ t++; const x=1+((Math.random()*(N-2))|0), y=1+((Math.random()*(N-2))|0);
+    if(grid.get(x,y)!==0) continue; if(Math.abs(x-1)+Math.abs(y-1)<3) continue; if(coins.some(c=>c.x===x&&c.y===y)) continue; coins.push({x,y}); }
   guards=[]; const ng=Math.min(1+g.state.level,5);
-  for(let i=0;i<ng;i++){ let x,y,k=0; do{ x=2+((Math.random()*(N-4))|0); y=2+((Math.random()*(N-4))|0); k++; }
-    while(k<300 && (grid.get(x,y)!==0 || Math.abs(x-1)+Math.abs(y-1)<6)); guards.push({x,y}); }
+  for(let i=0;i<ng;i++){ let x,y,k=0; do{ x=2+((Math.random()*(N-4))|0); y=2+((Math.random()*(N-4))|0); k++; } while(k<300 && (grid.get(x,y)!==0 || Math.abs(x-1)+Math.abs(y-1)<6)); guards.push({x,y}); }
   moveCd=0; hurt=0;
 }
-function tryStep(dx,dy){ const nx=player.x+dx, ny=player.y+dy; if(grid.get(nx,ny)!==0) return;
-  player.x=nx; player.y=ny;
+function tryStep(dx,dy){ const nx=player.x+dx, ny=player.y+dy; if(grid.get(nx,ny)!==0) return; player.x=nx; player.y=ny;
   const i=coins.findIndex(c=>c.x===nx&&c.y===ny);
-  if(i>=0){ coins.splice(i,1); g.state.score+=100; g.audio.beep(760,0.08);
-    g.particles.spawn(nx*TS+TS/2, ny*TS+TS/2, {color:'#ffd15e',count:8,speed:70}); }
+  if(i>=0){ coins.splice(i,1); g.state.score+=100; g.audio.beep(760,0.08); g.particles.spawn(nx*TS+TS/2,ny*TS+TS/2,{color:g.th().warn,count:8,speed:70}); }
   if(!coins.length){ if(g.state.level>=WIN_LEVEL){ g.win(); } else { g.nextLevel(); g.audio.beep(1100,0.15,'sawtooth'); setup(); } }
 }
-function guardsStep(){
-  for(const gd of guards){
-    const opts=[[1,0],[-1,0],[0,1],[0,-1]].filter(([dx,dy])=> grid.get(gd.x+dx,gd.y+dy)===0 || (gd.x+dx===player.x&&gd.y+dy===player.y));
-    if(!opts.length) continue;
-    opts.sort((a,b)=>(Math.abs(gd.x+a[0]-player.x)+Math.abs(gd.y+a[1]-player.y))-(Math.abs(gd.x+b[0]-player.x)+Math.abs(gd.y+b[1]-player.y)));
-    const p = Math.random()<0.7?opts[0]:opts[(Math.random()*opts.length)|0];
-    gd.x+=p[0]; gd.y+=p[1];
-    if(gd.x===player.x&&gd.y===player.y) hit();
-  }
-}
-function hit(){ if(hurt>0) return; g.state.lives--; g.audio.beep(140,0.3,'sawtooth'); hurt=0.9; g.particles.spawn(player.x*TS+TS/2,player.y*TS+TS/2,{color:'#f87171',count:12,speed:90});
-  if(g.state.lives<=0){ g.gameover(); return; } player.x=1; player.y=1;
-  guards.forEach(gd=>{ if(Math.abs(gd.x-1)+Math.abs(gd.y-1)<5){ gd.x=N-2; gd.y=N-2; } }); }
+function guardsStep(){ for(const gd of guards){ const opts=[[1,0],[-1,0],[0,1],[0,-1]].filter(([dx,dy])=> grid.get(gd.x+dx,gd.y+dy)===0 || (gd.x+dx===player.x&&gd.y+dy===player.y)); if(!opts.length) continue;
+  opts.sort((a,b)=>(Math.abs(gd.x+a[0]-player.x)+Math.abs(gd.y+a[1]-player.y))-(Math.abs(gd.x+b[0]-player.x)+Math.abs(gd.y+b[1]-player.y)));
+  const p=Math.random()<0.7?opts[0]:opts[(Math.random()*opts.length)|0]; gd.x+=p[0]; gd.y+=p[1]; if(gd.x===player.x&&gd.y===player.y) hit(); } }
+function hit(){ if(hurt>0) return; g.state.lives--; g.audio.beep(140,0.3,'sawtooth'); hurt=0.9; g.particles.spawn(player.x*TS+TS/2,player.y*TS+TS/2,{color:g.th().bad,count:12,speed:90});
+  if(g.state.lives<=0){ g.gameover(); return; } player.x=1; player.y=1; guards.forEach(gd=>{ if(Math.abs(gd.x-1)+Math.abs(gd.y-1)<5){ gd.x=N-2; gd.y=N-2; } }); }
 
-g.useStandardScreens({ title:'ИСКРА ◆', subtitle:'Собери искры, уйди от стражей · 5 уровней', accent:'#ffd15e', bg:'#0e0b12', lives:3 });
+g.useStandardScreens({ title:'ИСКРА ◆', subtitle:STR.ru.subtitle, lives:3 });
 g.scene('play', { realtime:true,
-  enter(){ setup(); },
-  update(dt){
-    if(hurt>0) hurt-=dt;
-    moveCd-=dt;
-    if(moveCd<=0){ const d=this.input.dir; if(d.x||d.y){ tryStep(Math.sign(d.x)||0, d.x?0:(Math.sign(d.y)||0)); moveCd=0.11; } }
-    this._gt=(this._gt||0)+dt; if(this._gt>=0.34){ this._gt=0; guardsStep(); }
-  },
-  draw(ctx){
-    this.clear('#140f18');
-    grid.forEach((x,y,v)=>{ if(v===1){ this.rect(x*TS,y*TS,TS,TS,'#2b2230'); this.rect(x*TS+2,y*TS+2,TS-4,TS-4,'#201926'); } });
-    for(const c of coins){ ctx.fillStyle='#f0b429'; ctx.beginPath(); ctx.arc(c.x*TS+TS/2,c.y*TS+TS/2,TS/4,0,7); ctx.fill(); }
-    for(const gd of guards){ this.rect(gd.x*TS+5,gd.y*TS+5,TS-10,TS-10,'#8a847c'); this.rect(gd.x*TS+9,gd.y*TS+9,5,5,'#f87171'); this.rect(gd.x*TS+TS-14,gd.y*TS+9,5,5,'#f87171'); }
-    ctx.globalAlpha = (hurt>0 && ((this.time*10)|0)%2) ? 0.4 : 1;
-    this.rect(player.x*TS+4,player.y*TS+4,TS-8,TS-8,'#ffd15e'); ctx.globalAlpha=1;
-    this.hud({ score:this.state.score, level:this.state.level, lives:this.state.lives });
-  },
-  press(a){ const m={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[a]; if(m){ tryStep(m[0],m[1]); moveCd=0.11; } },
+  enter(d){ if(!(d&&d.resume)) setup(); },
+  update(dt){ if(hurt>0) hurt-=dt; moveCd-=dt;
+    if(moveCd<=0){ const dd=this.input.dir; if(dd.x||dd.y){ tryStep(Math.sign(dd.x)||0, dd.x?0:(Math.sign(dd.y)||0)); moveCd=0.11; } }
+    this._gt=(this._gt||0)+dt; if(this._gt>=0.34){ this._gt=0; guardsStep(); } },
+  press(a){ if(a==='pause'){ this.pause(); return; } const m={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[a]; if(m){ tryStep(m[0],m[1]); moveCd=0.11; } },
+  draw(ctx){ const th=this.th(); this.clear();
+    grid.forEach((x,y,v)=>{ if(v===1){ this.rect(x*TS,y*TS,TS,TS,th.panel); this.rect(x*TS+2,y*TS+2,TS-4,TS-4,th.grid); } });
+    for(const c of coins){ ctx.fillStyle=th.warn; ctx.beginPath(); ctx.arc(c.x*TS+TS/2,c.y*TS+TS/2,TS/4,0,7); ctx.fill(); }
+    for(const gd of guards){ this.rect(gd.x*TS+5,gd.y*TS+5,TS-10,TS-10,th.muted); this.rect(gd.x*TS+9,gd.y*TS+9,5,5,th.bad); this.rect(gd.x*TS+TS-14,gd.y*TS+9,5,5,th.bad); }
+    ctx.globalAlpha=(hurt>0 && ((this.time*10)|0)%2)?0.4:1; this.rect(player.x*TS+4,player.y*TS+4,TS-8,TS-8,th.accent); ctx.globalAlpha=1;
+    this.hud({ score:this.state.score, level:this.state.level, lives:this.state.lives }); },
 });
 g.start('title');
 </script></body></html>
