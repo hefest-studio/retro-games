@@ -1,5 +1,5 @@
 /* ============================================================
-   НЕОН × ЯРОСТЬ: NEON RAGE
+   НЕОН × ЯРОСТЬ: NEON YAROST
    src/render-modern.js — «неоновый ремастер»: Canvas 2D, 480×270
    ------------------------------------------------------------
    window.NR_RENDER_MODERN = { draw(ctx, view) }
@@ -4443,7 +4443,7 @@
     drawPosterLine(ctx, l2, W / 2, 86, {
       size: s2, c1: '#fff0fa', c2: '#ff8fc4', c3: '#ff2e88', glow: C.pink, glowAlpha: 0.85, skew: 0.03
     });
-    // подзаголовок NEON RAGE на неоновой плате
+    // подзаголовок NEON YAROST на неоновой плате
     ctx.save();
     ctx.translate(W / 2, 114);
     ctx.transform(1, 0, -0.16, 1, 0, 0);

@@ -20,14 +20,14 @@
 | 02 | [РУСЛО — Над рекой](ruslo/) | Shoot'em-up | retro / modern |
 | 03 | [КРОТ — Подземные туннели](krot/) | Аркада | retro / modern |
 | 04 | [СТАРАТЕЛЬ — Обвал в шахте](staratel/) | Головоломка | retro / modern |
-| 05 | [ОБВАЛ — Кристальные глубины](obval/) | Головоломка | retro / modern |
+| 05 | [ОБВАЛ — Шахта самоцветов](obval/) | Головоломка | retro / modern |
 | 06 | [КАСКАД — Головоломка](kaskad/) | Головоломка | retro / modern |
 | 07 | [РУБЕЖ — Неоновый рассвет](rubezh/) | Run-and-gun | retro / modern |
 | 08 | [ПРОРЫВ — Штурмовик](proryv/) | Run-and-gun | retro / modern |
 | 09 | [РУБИКОН — Робот ТАРАН-7](rubikon/) | Аркада | retro / modern |
 | 10 | [ВИХРЬ — Над полем боя](vihr/) | Shoot'em-up | retro / modern |
 | 11 | [СЕВЕРНАЯ САГА — Сага о трёх](saga/) | Платформер | retro / modern |
-| 12 | [НЕОН × ЯРОСТЬ — Neon Rage](neon-rage/) | Beat'em-up | retro / modern |
+| 12 | [НЕОН × ЯРОСТЬ — Neon Yarost](neon-rage/) | Beat'em-up | retro / modern |
 | 13 | [СЕВЕРНАЯ САГА 2 — Северное сияние](saga-2/) | Платформер | retro / modern |
 | 14 | [БОЛТ — Побег со Шлак-9](bolt/) | Run-and-gun | retro / modern |
 | 15 | [КОЛОБОК — Приключение](kolobok/) | Головоломка | retro / modern |

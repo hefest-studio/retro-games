@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#060911">
-<title>ОБВАЛ · Кристальные глубины</title>
+<title>ОБВАЛ · Шахта самоцветов</title>
 <meta name="description" content="ОБВАЛ — оригинальная игра студии «Гефест» о подземелье на фреймворке Гефест Arcade: восемь уровней, алмазы, камни, светлячки. Темы retro (8-бит) / modern, RU/EN, офлайн.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css">
@@ -33,7 +33,7 @@ html:not([data-arcade-scene="play"]):not([data-arcade-scene="off"]) #overlay { d
     <span class="brand-gem" aria-hidden="true"><i></i></span>
     <span class="brand-copy">
       <span class="brand-name">ОБ<em>ВАЛ</em></span>
-      <span class="brand-sub" data-i18n="brand.sub">КРИСТАЛЬНЫЕ ГЛУБИНЫ</span>
+      <span class="brand-sub" data-i18n="brand.sub">ШАХТА САМОЦВЕТОВ</span>
     </span>
   </button>
 
@@ -76,7 +76,7 @@ html:not([data-arcade-scene="play"]):not([data-arcade-scene="off"]) #overlay { d
             <div class="menu-copy">
               <div class="kicker"><i class="live-dot"></i> ОРИГИНАЛ · ГЕФЕСТ · 2026</div>
               <h1 class="game-title">ОБ<br><em>ВАЛ</em></h1>
-              <div class="game-subtitle">КРИСТАЛЬНЫЕ ГЛУБИНЫ</div>
+              <div class="game-subtitle">ШАХТА САМОЦВЕТОВ</div>
               <p class="lede" data-i18n="menu.lede">Копай породу, собирай алмазы и уходи глубже. Только не стой под камнями.</p>
               <div class="menu-actions">
                 <button class="btn btn-primary" type="button" data-action="start"><span data-i18n="menu.start">Начать спуск</span><kbd>ENTER</kbd></button>
@@ -193,10 +193,10 @@ html:not([data-arcade-scene="play"]):not([data-arcade-scene="off"]) #overlay { d
   var STR = {
     ru: { play: 'Играть', language: 'Язык', theme: 'Тема', sound: 'Звук', on: 'вкл', off: 'выкл', score: 'Счёт', level: 'Ур.', best: 'Рекорд',
           win: 'ВСЕ КАМЕРЫ ПРОЙДЕНЫ!', gameover: 'ОБВАЛ!', pause: 'ПАУЗА', resume: 'Продолжить', menu: 'В меню', tapstart: 'пробел / тап',
-          title: 'ОБВАЛ', subtitle: 'Кристальные глубины · копай, собирай, беги', levels: 'Уровни' },
+          title: 'ОБВАЛ', subtitle: 'Шахта самоцветов · копай, собирай, беги', levels: 'Уровни' },
     en: { play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off', score: 'Score', level: 'Lvl', best: 'Best',
           win: 'ALL CHAMBERS CLEARED!', gameover: 'CAVE-IN!', pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
-          title: 'ОБВАЛ', subtitle: 'Crystal Depths · dig, collect, run', levels: 'Levels' }
+          title: 'ОБВАЛ', subtitle: 'Gem Shaft · dig, collect, run', levels: 'Levels' }
   };
   var MODE = { menu: 'title', levels: 'sub', playing: 'play', dying: 'play', dead: 'play', clear: 'play', paused: 'paused', gameover: 'gameover', victory: 'win' };
   ArcadeHost.mount({

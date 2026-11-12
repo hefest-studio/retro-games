@@ -52,7 +52,7 @@ for (const name of SCRIPTS) {
 }
 
 const js = [
-  "/* НЕОН × ЯРОСТЬ: NEON RAGE — сгенерировано tools/build.mjs, не редактировать вручную */",
+  "/* НЕОН × ЯРОСТЬ: NEON YAROST — сгенерировано tools/build.mjs, не редактировать вручную */",
   "'use strict';",
   ...parts,
 ].join("\n");
