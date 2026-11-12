@@ -175,5 +175,35 @@ test('difficulty-хук: параметры берутся из переданн
   ok(calls.length>0 && calls.every(v=>v===3), 'хук вызван с уровнем 3'); eq(game._S.sea.length, 4);
 });
 
+test('уровни 4–5: «финальный рывок» — больше шаров и клещей, кривая монотонна', () => {
+  const P=[1,2,3,4,5].map(lv=>L.levelParams(lv));
+  eq(P.map(p=>p.sea).join(), '2,3,4,6,8', 'шары по уровням'); eq(P.map(p=>p.land).join(), '0,1,2,3,4', 'клещи по уровням');
+  for (let i=1;i<5;i++){ ok(P[i].seaSpeed>P[i-1].seaSpeed && P[i].landSpeed>P[i-1].landSpeed, 'скорости растут'); }
+  ok(P[4].seaSpeed < P[4].playerSpeed, 'шар медленнее резца');
+});
+
+// Баланс: «человеческий» бот (tests/bot.mjs) — реакция 150–250 мс, ошибка оценки
+// направления шара ~8°, внимание на 3 ближайших шара, нетерпение; надрезы от кромки,
+// при угрозе следу сворачивает на сушу. Ввод только через setDir. 20 сидов (1..20), ~30 с.
+// Цели: уровень 1 ≥ 90%, все 5 уровней 20–50%.
+const { playRazrez } = await import('./bot.mjs');
+const BAL = []; for (let s=1; s<=20; s++) BAL.push(playRazrez(R, s));
+test('баланс: бот проходит 1-й уровень в ≥ 90% партий', () => {
+  const n=BAL.filter(r=>r.passed>=1).length;
+  console.log('     уровень 1: '+n+'/20');
+  ok(n>=18, 'слишком сложно: '+n+'/20');
+});
+test('баланс: все 5 уровней — 20–50% партий бота', () => {
+  const n=BAL.filter(r=>r.won).length, dist=[0,0,0,0,0,0]; BAL.forEach(r=>dist[r.passed]++);
+  const d=BAL.reduce((a,r)=>{ for(const k in r.deaths) a[k]=(a[k]||0)+r.deaths[k]; return a; },{});
+  console.log('     все 5 уровней: '+n+'/20; пройдено уровней 0..5: '+dist.join(',')+'; смерти: '+JSON.stringify(d));
+  ok(n>=4, 'слишком сложно: '+n+'/20'); ok(n<=10, 'слишком легко: '+n+'/20');
+});
+test('непресность: потери жизней растут к 4–5-му уровню', () => {
+  const per=[1,2,3,4,5].map(w=>{ const reach=BAL.filter(r=>r.passed>=w-1).length; let l=0; for(const r of BAL) l+=(r.lost[w]||0); return l/Math.max(1,reach); });
+  console.log('     потерь жизней на уровень: '+per.map(v=>v.toFixed(2)).join(' / '));
+  ok(per[0]<per[3] && per[3]<per[4], 'нет нарастания: '+per.join(','));
+});
+
 console.log((failed? 'FAIL ':'OK ')+passed+'/'+(passed+failed));
 process.exit(failed?1:0);

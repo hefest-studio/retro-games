@@ -1,10 +1,10 @@
 /*! Гефест Arcade — фреймворк браузерных игр. vanilla JS, 0 зависимостей.
  * Общие системы, которые игры дублировали: цикл, ввод (клавиатура+тач-дпад), звук (WebAudio
- * + интерфейс музыки под modern-тему), i18n (RU/EN), темы (retro/modern), меню (title/пауза/
+ * SFX + чиптюн-секвенсор музыки, тембр по теме), i18n (RU/EN), темы (retro/modern), меню (title/пауза/
  * настройки: язык/тема/звук), сцены, сетка, частицы, HUD, счёт+рекорд (localStorage по игре).
  * Встроены критерии: проходимость (win/lose+финал, difficulty), играбельность (отклик, фидбек),
  * непресность (нарастание). Игры самодостаточны: build.sh копирует файл в игру. API — README.
- * (c) Студия «Гефест». v2.0.0
+ * (c) Студия «Гефест». v2.1.0 (процедурная музыка-секвенсор)
  */
 (function (global) {
   'use strict';
@@ -74,27 +74,191 @@
     });
   };
 
-  // ---------- Звук: 8-бит SFX + интерфейс музыки (задел под modern richer-music) ----------
+  // ---------- Звук: 8-бит SFX + процедурная чиптюн-музыка (секвенсор на WebAudio) ----------
+  // Политика автоплея: AudioContext создаётся/возобновляется ТОЛЬКО после первого жеста
+  // (клавиша/тап/клик). До жеста beep() и музыка молчат (музыка «ждёт» и стартует на жесте).
   function Audio() {
     this.enabled = Store.get('arcade.sound', '1') !== '0';
-    this.ac = null; this._music = {}; this._cur = null;
+    this.ac = null; this._music = {}; this._cur = null; this.unlocked = false;
+    this.music = new Music(this);
+    var self = this, w = global;
+    if (w && typeof w.addEventListener === 'function') {
+      var unlock = function () {
+        self.unlocked = true; var ac = self._ctx();
+        if (ac && ac.state === 'suspended' && !self._hidden) { try { ac.resume(); } catch (e) {} }
+        self.music._sync();
+      };
+      ['pointerdown', 'keydown', 'touchstart', 'mousedown'].forEach(function (ev) { w.addEventListener(ev, unlock, true); });
+      if (doc && doc.addEventListener) doc.addEventListener('visibilitychange', function () { // вкладка скрыта — звук спит
+        self._hidden = doc.hidden; var ac = self.ac; if (!ac) return;
+        try { if (doc.hidden) ac.suspend(); else if (self.unlocked) ac.resume(); } catch (e) {}
+      });
+    }
   }
-  Audio.prototype._ctx = function () { if (this.ac) return this.ac; try { this.ac = new (global.AudioContext || global.webkitAudioContext)(); } catch (e) { this.ac = null; } return this.ac; };
+  Audio.prototype._ctx = function () { if (this.ac) return this.ac; if (!this.unlocked) return null; try { this.ac = new (global.AudioContext || global.webkitAudioContext)(); } catch (e) { this.ac = null; } return this.ac; };
   Audio.prototype.beep = function (f, d, type, vol) {
     if (!this.enabled) return; var ac = this._ctx(); if (!ac) return;
     var o = ac.createOscillator(), g = ac.createGain(); o.type = type || 'square'; o.frequency.value = f || 440;
     o.connect(g); g.connect(ac.destination); g.gain.setValueAtTime(vol == null ? 0.07 : vol, ac.currentTime);
     g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + (d || 0.1)); o.start(); o.stop(ac.currentTime + (d || 0.1));
   };
-  Audio.prototype.toggle = function () { this.enabled = !this.enabled; Store.set('arcade.sound', this.enabled ? '1' : '0'); if (!this.enabled) this.stopMusic(); return this.enabled; };
-  // Интерфейс музыки: игра/тема регистрирует проигрыватель { start(ctx), stop() }.
-  // 8-бит чиптюн — как сейчас; под modern-тему позже можно зарегистрировать richer-плеер (сэмплы).
-  Audio.prototype.registerMusic = function (name, player) { this._music[name] = player; };
-  Audio.prototype.playMusic = function (name) {
-    if (!this.enabled) return; var p = this._music[name]; if (!p) return; // нет плеера — тихо (задел)
-    this.stopMusic(); this._cur = p; try { p.start(this._ctx()); } catch (e) {}
+  Audio.prototype.toggle = function () {
+    this.enabled = !this.enabled; Store.set('arcade.sound', this.enabled ? '1' : '0');
+    if (!this.enabled) this._stopLegacy();
+    this.music._sync(); // выкл — музыка на паузе (позиция сохраняется), вкл — продолжит, если идёт игра
+    return this.enabled;
   };
-  Audio.prototype.stopMusic = function () { if (this._cur && this._cur.stop) { try { this._cur.stop(); } catch (e) {} } this._cur = null; };
+  // Музыка. Основной путь — трек-данные для встроенного секвенсора: g.audio.setMusic(track).
+  // registerMusic(name, X): X — трек-данные (под тему name: 'retro'/'modern') ИЛИ legacy-плеер
+  // { start(ctx), stop() } (как в v2.0); null — ничего (совместимость с hrum).
+  Audio.prototype.setMusic = function (track) { this.music.set(track); };
+  Audio.prototype.registerMusic = function (name, player) {
+    if (player && typeof player.start !== 'function') { this.music.setFor(name, player); return; }
+    this._music[name] = player;
+  };
+  Audio.prototype.playMusic = function (name) {
+    var p = this._music[name];
+    if (p && typeof p.start === 'function') { // legacy-плеер
+      if (!this.enabled) return; this._stopLegacy(); this._cur = p; try { p.start(this._ctx()); } catch (e) {} return;
+    }
+    this.music.play();
+  };
+  Audio.prototype._stopLegacy = function () { if (this._cur && this._cur.stop) { try { this._cur.stop(); } catch (e) {} } this._cur = null; };
+  Audio.prototype.stopMusic = function () { this._stopLegacy(); this.music.stop(); };
+
+  // --- Нотация трека ---
+  // track = { bpm:132, div:2 (шагов на долю; 2 = восьмые), melody:'…', bass:'…', drums:'…',
+  //           lead:{retro:'square',modern:'triangle'} (необяз.), vol:1 (необяз.) }
+  // Голос — строка токенов через пробел, 1 токен = 1 шаг: 'C5' 'F#4' 'Bb3' — нота, '-' — тянуть
+  // предыдущую, '.' — пауза, '|' — разделитель тактов (игнорируется). Ударные: 'k' бочка,
+  // 's' малый, 'h' хэт, 'o' открытый хэт, комбинации 'kh'. Голоса зацикливаются НЕЗАВИСИМО:
+  // бас на 2 такта под мелодию на 16 — норма. Можно передать массив строк (склеится).
+  var NOTE_IX = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  function noteFreq(tok) {
+    var m = /^([A-Ga-g])([#b]?)(-?\d)$/.exec(tok); if (!m) return 0;
+    var midi = NOTE_IX[m[1].toUpperCase()] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0) + (parseInt(m[3], 10) + 1) * 12;
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
+  function parseVoice(src, drums) {
+    if (Array.isArray(src)) src = src.join(' ');
+    var toks = String(src || '').replace(/\|/g, ' ').trim().split(/\s+/).filter(Boolean), out = [], last = -1;
+    for (var i = 0; i < toks.length; i++) {
+      var t = toks[i];
+      if (t === '-') { if (last >= 0) out[last].len++; out.push(null); continue; }
+      if (t === '.') { out.push(null); last = -1; continue; }
+      if (drums) { if (!/^[ksho]+$/.test(t)) throw new Error('music: неизвестный удар «' + t + '»'); out.push({ hit: t, len: 1 }); last = -1; continue; }
+      var f = noteFreq(t); if (!f) throw new Error('music: неизвестная нота «' + t + '»');
+      out.push({ f: f, len: 1 }); last = out.length - 1;
+    }
+    return out;
+  }
+  function parseTrack(t) {
+    if (!t) return null; if (t._compiled) return t._compiled;
+    var c = { bpm: t.bpm || 120, div: t.div || 2, vol: t.vol == null ? 1 : t.vol, lead: t.lead || {},
+      melody: parseVoice(t.melody), bass: parseVoice(t.bass), drums: parseVoice(t.drums, true), src: t };
+    c.steps = Math.max(c.melody.length, c.bass.length, c.drums.length, 1);
+    try { Object.defineProperty(t, '_compiled', { value: c, enumerable: false }); } catch (e) {}
+    return c;
+  }
+
+  // --- Секвенсор: lookahead-планировщик (setInterval 25 мс, окно 0.15 с) ---
+  // Состояние «хочу»: want = 'play' | 'pause' | 'stop' (задаёт движок по сцене или игра);
+  // реально звучит, только если want==='play' && звук вкл && был жест && есть трек.
+  function Music(audio) {
+    this.audio = audio; this.track = null; this.byTheme = {}; this.want = 'stop';
+    this.playing = false; this.step = 0; this.next = 0; this.timer = null; this.bus = null;
+    this.volume = 0.8; this.theme = function () { return 'modern'; };
+    this.stats = { scheduled: 0, started: 0, errors: 0 }; // отладочные счётчики (для автотестов)
+  }
+  Music.prototype.set = function (track) { this.track = parseTrack(track); this._restartIfPlaying(); };
+  Music.prototype.setFor = function (theme, track) { this.byTheme[theme] = parseTrack(track); this._restartIfPlaying(); };
+  Music.prototype.current = function () { return this.byTheme[this.theme()] || this.track; };
+  Music.prototype.has = function () { return !!this.current(); };
+  Music.prototype._restartIfPlaying = function () { if (this.playing) { this._halt(); this._sync(); } };
+  Music.prototype.play = function (restart) { if (restart) this.step = 0; this.want = 'play'; this._sync(); };
+  Music.prototype.pause = function () { this.want = 'pause'; this._sync(); };
+  Music.prototype.stop = function () { this.want = 'stop'; this.step = 0; this._sync(); };
+  Music.prototype._sync = function () {
+    var a = this.audio, should = this.want === 'play' && a.enabled && a.unlocked && this.has();
+    if (should && !this.playing) this._begin(); else if (!should && this.playing) this._halt();
+    if (this.want === 'stop') this.step = 0;
+  };
+  Music.prototype._begin = function () {
+    var ac = this.audio._ctx(); if (!ac) return; var self = this;
+    try { if (ac.state === 'suspended' && !this.audio._hidden) ac.resume(); } catch (e) {}
+    this.bus = ac.createGain(); this.bus.gain.value = this.volume; this.bus.connect(ac.destination);
+    this.next = ac.currentTime + 0.06; this.playing = true; this.stats.started++;
+    this.timer = setInterval(function () { self._tick(); }, 25); this._tick();
+  };
+  Music.prototype._halt = function () { // быстрый fade и отключение шины — уже запланированные ноты обрываются
+    if (this.timer) { clearInterval(this.timer); this.timer = null; }
+    var bus = this.bus, ac = this.audio.ac, c = this.current(); this.bus = null; this.playing = false;
+    if (ac && c) { var ahead = Math.floor((this.next - ac.currentTime) * c.bpm * c.div / 60); if (ahead > 0) this.step = Math.max(0, this.step - ahead); } // вернуть оборванные шаги
+    if (bus && ac) { try { bus.gain.setTargetAtTime(0, ac.currentTime, 0.02); } catch (e) {} setTimeout(function () { try { bus.disconnect(); } catch (e) {} }, 150); }
+  };
+  Music.prototype._tick = function () {
+    var ac = this.audio.ac, c = this.current(); if (!ac || !c || !this.bus) return;
+    var spb = 60 / c.bpm / c.div, now = ac.currentTime;
+    if (this.next < now - 0.05) this.next = now + 0.02; // вкладка спала/лаг — не играем «догоняющую» пачку
+    var guard = 0;
+    while (this.next < now + 0.15 && guard++ < 64) {
+      try { this._stepAt(c, this.step, this.next, spb); } catch (e) { this.stats.errors++; }
+      this.next += spb; this.step++;
+    }
+  };
+  Music.prototype._stepAt = function (c, step, t, spb) {
+    var retro = this.theme() === 'retro', ev;
+    if (c.bass.length && (ev = c.bass[step % c.bass.length])) this._tone('bass', ev.f, t, ev.len * spb, retro, c);
+    if (c.melody.length && (ev = c.melody[step % c.melody.length])) this._tone('lead', ev.f, t, ev.len * spb, retro, c);
+    if (c.drums.length && (ev = c.drums[step % c.drums.length])) for (var i = 0; i < ev.hit.length; i++) this._drum(ev.hit[i], t, retro, c);
+  };
+  // Тембры: retro — квадрат/треугольник «как на 8-бит приставке», жёсткие огибающие;
+  // modern — мягче: синус+треугольник через НЧ-фильтр, плавная атака, длиннее хвост.
+  Music.prototype._tone = function (part, f, t, dur, retro, c) {
+    var ac = this.audio.ac, out = this.bus, vol = c.vol, g = ac.createGain(), o = ac.createOscillator(), o2 = null, end;
+    if (retro) {
+      o.type = part === 'bass' ? 'triangle' : (c.lead.retro || 'square');
+      var pk = (part === 'bass' ? 0.11 : (o.type === 'triangle' ? 0.08 : 0.035)) * vol;
+      end = t + Math.max(0.04, dur * 0.92);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(pk, t + 0.004);
+      g.gain.setValueAtTime(pk * 0.8, t + Math.min(0.05, dur * 0.4)); g.gain.linearRampToValueAtTime(0, end);
+      o.frequency.setValueAtTime(f, t); o.connect(g);
+    } else {
+      var lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = part === 'bass' ? 700 : 2400; lp.Q.value = 0.7;
+      o.type = part === 'bass' ? 'sine' : (c.lead.modern || 'triangle'); o.frequency.setValueAtTime(f, t);
+      if (part !== 'bass') { o2 = ac.createOscillator(); o2.type = 'sine'; o2.frequency.setValueAtTime(f * 2, t); o2.detune.value = 7; }
+      var pk2 = (part === 'bass' ? 0.16 : 0.075) * vol;
+      end = t + Math.max(0.08, dur * 0.95) + 0.12;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(pk2, t + 0.02);
+      g.gain.setTargetAtTime(pk2 * 0.55, t + 0.03, 0.12); g.gain.setTargetAtTime(0, t + Math.max(0.06, dur * 0.95), 0.05);
+      o.connect(lp); if (o2) { var g2 = ac.createGain(); g2.gain.value = 0.25; o2.connect(g2); g2.connect(lp); }
+      lp.connect(g);
+    }
+    g.connect(out); o.start(t); o.stop(end + 0.05); if (o2) { o2.start(t); o2.stop(end + 0.05); }
+    this.stats.scheduled++;
+  };
+  Music.prototype._noise = function () {
+    var ac = this.audio.ac; if (this._nb && this._nbCtx === ac) return this._nb;
+    var len = Math.floor(ac.sampleRate * 0.5), b = ac.createBuffer(1, len, ac.sampleRate), d = b.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    this._nb = b; this._nbCtx = ac; return b;
+  };
+  Music.prototype._drum = function (k, t, retro, c) {
+    var ac = this.audio.ac, out = this.bus, vol = c.vol, g = ac.createGain(), dur;
+    if (k === 'k') { // бочка — тон с падающей частотой
+      var o = ac.createOscillator(); o.type = retro ? 'triangle' : 'sine'; dur = retro ? 0.11 : 0.18;
+      o.frequency.setValueAtTime(retro ? 170 : 130, t); o.frequency.exponentialRampToValueAtTime(42, t + dur);
+      g.gain.setValueAtTime((retro ? 0.16 : 0.2) * vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.02);
+    } else { // шумовые: малый / хэт / открытый хэт
+      var n = ac.createBufferSource(), fl = ac.createBiquadFilter(); n.buffer = this._noise();
+      if (k === 's') { fl.type = retro ? 'highpass' : 'bandpass'; fl.frequency.value = retro ? 1200 : 1800; dur = retro ? 0.1 : 0.14; g.gain.setValueAtTime((retro ? 0.07 : 0.05) * vol, t); }
+      else { fl.type = 'highpass'; fl.frequency.value = retro ? 6500 : 8000; dur = k === 'o' ? 0.16 : (retro ? 0.035 : 0.05); g.gain.setValueAtTime((retro ? 0.035 : 0.022) * vol, t); }
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      n.connect(fl); fl.connect(g); g.connect(out); n.start(t); n.stop(t + dur + 0.02);
+    }
+    this.stats.scheduled++;
+  };
 
   // ---------- Частицы / Сетка (как v1) ----------
   function Particles() { this.list = []; }
@@ -135,6 +299,7 @@
     this.W = opts.width || this.canvas.width || 480; this.H = opts.height || this.canvas.height || 480;
     this.canvas.width = this.W; this.canvas.height = this.H; this.ctx = this.canvas.getContext('2d');
     this.input = new Input(); this.audio = new Audio(); this.particles = new Particles();
+    this.musicAuto = opts.musicAuto !== false; // музыка по сценам: play — звучит, pause — пауза, прочие — стоп
     this.i18n = new I18n(opts.strings, opts.lang);
     this.themeName = Store.get('arcade.theme', opts.theme || 'modern'); // modern по умолчанию
     this.themesMap = Object.assign({}, THEMES, opts.themes || {});
@@ -143,6 +308,9 @@
     this.running = false; this._acc = 0; this._last = 0; this._raf = 0; this.time = 0;
     this._applyPixel();
     var self = this;
+    this.audio.music.theme = function () { return self.themeName; };
+    var preset = opts.music || (Arcade.tracks && Arcade.tracks[this.gameId]); // трек из js/music.js игры
+    if (preset) this.audio.setMusic(preset);
     this.canvas.addEventListener('click', function (e) { self._click(e); });
     this.canvas.addEventListener('touchstart', function (e) { if (self.current && self.current._menu) { e.preventDefault(); self._click(e.changedTouches[0]); } }, { passive: false });
   }
@@ -155,7 +323,13 @@
   Engine.prototype.saveBest = function () { if (this.state.score > this.state.best) { this.state.best = this.state.score; Store.set('arcade.best.' + this.gameId, String(this.state.best)); } };
 
   Engine.prototype.scene = function (name, def) { this.scenes[name] = def; return this; };
-  Engine.prototype.goto = function (name, data) { this.current = this.scenes[name]; this._sceneName = name; this._acc = 0; if (this.current && this.current.enter) this.current.enter.call(this, data || {}); };
+  Engine.prototype.goto = function (name, data) { this.current = this.scenes[name]; this._sceneName = name; this._acc = 0; this._musicScene(name, data || {}); if (this.current && this.current.enter) this.current.enter.call(this, data || {}); };
+  // Музыка следует за сценой (если musicAuto): play — играет (resume — с того же места, иначе с начала),
+  // pause — пауза, title/win/gameover и прочие — стоп (на win/gameover звучит SFX движка, музыка не мешает).
+  Engine.prototype._musicScene = function (name, data) {
+    if (!this.musicAuto) return; var m = this.audio.music;
+    if (name === 'play') m.play(!data.resume); else if (name === 'pause') m.pause(); else m.stop();
+  };
   Engine.prototype._click = function (e) {
     var r = this.canvas.getBoundingClientRect(), py = (e.clientY - r.top) * (this.H / r.height);
     var sc = this.current; if (sc && sc._menu) { if (sc._menu.pointer(py)) { this._selectMenu(); } }
@@ -236,14 +410,17 @@
   Engine.prototype.pause = function () { this.goto('pause'); };
   Engine.prototype.nextLevel = function () { this.state.level++; };
   Engine.prototype.difficulty = function (base, step, max) { var v = base + (this.state.level - 1) * step; return max == null ? v : (step >= 0 ? Math.min(v, max) : Math.max(v, max)); };
-  // Музыка разведена по ТЕМАМ: регистрируй плеер под именем темы (registerMusic('modern', player)),
-  // playMusic() сам выберет плеер текущей темы. Под modern — задел на не-8-бит музыку (richer/сэмплы),
-  // TODO: зарегистрировать modern-плеер; retro — 8-бит чиптюн. Сейчас без плеера — no-op.
+  // Музыка: g.setMusic(track) — трек для встроенного секвенсора (тембр — по текущей теме: retro 8-бит,
+  // modern мягкий). Совместимость v2.0: g.playMusic()/stopMusic() и registerMusic(theme, player|track).
+  Engine.prototype.setMusic = function (track) { this.audio.setMusic(track); return this; };
   Engine.prototype.playMusic = function () { this.audio.playMusic(this.themeName); };
   Engine.prototype.stopMusic = function () { this.audio.stopMusic(); };
   Engine.prototype.fit = function (maxCssWidth) { var w = Math.min(maxCssWidth || 520, (this.canvas.parentElement || doc.body).clientWidth || this.W); this.canvas.style.width = w + 'px'; this.canvas.style.height = (w * this.H / this.W) + 'px'; };
 
-  var Arcade = { createGame: function (o) { return new Engine(o); }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Particles: Particles, Menu: Menu, themes: THEMES, Store: Store, version: '2.0.0' };
+  // Arcade.tracks[gameId] = track — так js/music.js игры регистрирует свою мелодию до createGame.
+  var Arcade = (global.Arcade && global.Arcade.tracks) ? global.Arcade : {};
+  Object.assign(Arcade, { createGame: function (o) { return new Engine(o); }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, themes: THEMES, Store: Store, version: '2.1.0' });
+  Arcade.tracks = Arcade.tracks || {};
   if (typeof module !== 'undefined' && module.exports) module.exports = Arcade;
   global.Arcade = Arcade;
 })(typeof window !== 'undefined' ? window : globalThis);

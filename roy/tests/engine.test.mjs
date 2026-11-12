@@ -127,33 +127,30 @@ test('3 потери — конец игры', () => {
   eq(S.lives,0); run(g, 2.5); ok(has(ev,'gameover'),'нет gameover'); ok(S.over && !S.won);
 });
 
-// Проходимость: простой бот (держится под ближайшим врагом, уходит от пуль, стреляет)
-function bot(seed, waves=1, maxT=150){
-  const ev=[]; const g=R.Game({ rng:mulberry32(seed), onEvent:(t)=>ev.push(t) }); g.start(); const S=g._S;
-  let t=0; const h=1/60;
-  while(t<maxT && !S.over && S.wave<=waves && !(S.wave===waves && S.phase==='clear')){
-    const p=S.player; let tx=p.x;
-    const live=S.enemies.filter(e=>e.state==='form'||e.state==='dive'||e.state==='return');
-    if(live.length){ live.sort((a,b)=>Math.abs(a.x-p.x)-Math.abs(b.x-p.x)); tx=live[0].x; }
-    // уклонение
-    for(const q of S.eb){ if(q.y>C.PLAYER_Y-140 && q.y<C.PLAYER_Y && Math.abs(q.x-p.x)<22) tx = q.x>p.x ? p.x-60 : p.x+60; }
-    for(const e of S.enemies){ if(e.state==='dive' && e.y>C.PLAYER_Y-170 && Math.abs(e.x-p.x)<34) tx = e.x>p.x ? p.x-70 : p.x+70; }
-    g.setDir(Math.abs(tx-p.x)<4?0:Math.sign(tx-p.x)); g.setFire(true);
-    g.update(h); t+=h;
-  }
-  return { cleared: S.wave>waves || (S.wave===waves && S.phase==='clear') || S.won, lives:S.lives, t, S };
-}
-test('играбельность: бот проходит 1-ю волну в ≥ 8 из 10 сидов', () => {
-  let ok1=0; const lives=[];
-  for(let s=1;s<=10;s++){ const r=bot(s,1); if(r.cleared) ok1++; lives.push(r.lives); }
-  console.log('     волна 1: пройдено '+ok1+'/10, жизни '+lives.join(','));
-  ok(ok1>=8, 'слишком сложно: '+ok1+'/10');
+// Баланс: «человеческий» бот (tests/bot.mjs) — реакция 150–250 мс, решения ~12/с,
+// прицел с разбросом, уклонение от пуль/пике/луча, ввод только через setDir/setFire.
+// 100 детерминированных сидов (1..100), ~12 с. Цели: волна 1 ≥ 90%, все 5 волн 15–40%.
+const { playRoy } = await import('./bot.mjs');
+const BAL = []; for (let s=1; s<=100; s++) BAL.push(playRoy(R, s));
+const perWave = w => { const reach=BAL.filter(r=>r.passed>=w-1).length; let lost=0; for(const r of BAL) lost+=(r.lost[w]||0); return lost/Math.max(1,reach); };
+test('баланс: бот проходит 1-ю волну в ≥ 90% партий', () => {
+  const n=BAL.filter(r=>r.passed>=1).length;
+  console.log('     волна 1: '+n+'/100');
+  ok(n>=90, 'слишком сложно: '+n+'/100');
 });
-test('непресность: к 5-й волне бот теряет жизни (не все проходят без потерь)', () => {
-  let lost=0, won=0;
-  for(let s=1;s<=6;s++){ const r=bot(100+s,5,600); if(r.lives<3) lost++; if(r.S.won) won++; }
-  console.log('     5 волн: с потерями '+lost+'/6, побед бота '+won+'/6');
-  ok(lost>=3, 'игра пресная: бот почти не теряет жизни');
+test('баланс: все 5 волн — 15–40% партий бота', () => {
+  const n=BAL.filter(r=>r.cleared).length, dist=[0,0,0,0,0,0]; BAL.forEach(r=>dist[r.passed]++);
+  console.log('     все 5 волн: '+n+'/100; пройдено волн 0..5: '+dist.join(','));
+  ok(n>=15, 'слишком сложно: '+n+'/100'); ok(n<=40, 'слишком легко: '+n+'/100');
+});
+test('непресность: потери жизней за волну растут от 1-й к 4–5-й', () => {
+  const L=[1,2,3,4,5].map(perWave);
+  console.log('     потерь жизней на волну: '+L.map(v=>v.toFixed(2)).join(' / '));
+  ok(L[0]<L[2] && L[2]<L[3] && L[0]<L[4], 'нет нарастания: '+L.join(','));
+});
+test('Медуза с лучом участвует в игре (захваты у бота случаются)', () => {
+  const caps=BAL.reduce((a,r)=>a+r.causes.capture,0);
+  ok(caps>0, 'луч ни разу не сработал');
 });
 
 console.log((failed? 'FAIL ':'OK ')+passed+'/'+(passed+failed));

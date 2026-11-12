@@ -26,12 +26,14 @@
   // Параметры уровня: больше и быстрее врагов с ростом уровня.
   function levelParams(level, diff) {
     diff = diff || defaultDiff;
+    // «Финальный рывок» 4–5 уровней: late = 0,0,0,1,2 (баланс по боту — README, «Баланс»)
+    var late = Math.max(0, Math.round(diff(level, -2, 1)));
     return {
       level: level,
-      sea: Math.round(diff(level, 2, 1, 6)),        // шары: 2,3,4,5,6
-      seaSpeed: diff(level, 7, 1, 11),              // клеток/с: 7..11 (резец — 15)
-      land: Math.round(diff(level, 0, 0.75, 3)),    // клещи: 0,1,2,2,3
-      landSpeed: diff(level, 4.5, 0.75, 7.5),       // 4.5..7.5
+      sea: Math.round(diff(level, 2, 1, 6)) + late,        // шары: 2,3,4,6,8
+      seaSpeed: diff(level, 7, 1, 11) + late * 0.75,       // клеток/с: 7,8,9,10.75,12.5 (резец — 15)
+      land: Math.round(diff(level, 0, 0.75, 3)) + Math.min(1, late), // клещи: 0,1,2,3,4
+      landSpeed: diff(level, 4.5, 0.75, 7.5) + late * 0.75, // 4.5,5.25,6,7.5,9
       playerSpeed: 15                               // клеток/с
     };
   }

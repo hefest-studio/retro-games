@@ -75,6 +75,7 @@
         diveSpeed: diff(165, 22, 260),           // скорость пике, px/с
         shotChance: diff(0.35, 0.15, 0.95),      // шанс, что пикирующий стреляет
         eBulletV: diff(220, 22, 320),            // скорость вражеских пуль
+        wobble: diff(70, 8, 110),                // размах «виляния» в пике, px: 70,78,86,94,102 (баланс — README)
         formFireEvery: S.wave >= 2 ? diff(7.2, -1.2, 2.6) : 0 // стрельба из строя (с 2-й волны)
       };
     }
@@ -233,7 +234,7 @@
           } else if (e.sub === 'down') {
             var p = S.player;
             if (e.y < PLAYER_Y - 170 && p.alive) e.tx = p.x + (e.mode === 'capture' ? 0 : 0);
-            var wob = e.mode === 'capture' ? 0 : Math.sin(e.t * 3.2 + e.id) * 70;
+            var wob = e.mode === 'capture' ? 0 : Math.sin(e.t * 3.2 + e.id) * P.wobble;
             var want = clamp((e.tx - e.x) * 1.8 + wob, -170, 170);
             e.vx += (want - e.vx) * Math.min(1, dt * 3);
             var oldY = e.y;
