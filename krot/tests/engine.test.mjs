@@ -1281,6 +1281,27 @@ test('start() после gameover сбрасывает прогресс, но с
   eq(S.hi, 9000, 'рекорд сохранён после start()');
 });
 
+/* ------------------------- v2: музыка и оболочка -------------------------- */
+test('v2: трек js/music.js — валидная нотация, 8 тактов, голоса кратны', () => {
+  const sb = { window: { Arcade: {} } }; vm.createContext(sb);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/music.js'), 'utf8'), sb);
+  const t = sb.window.Arcade.tracks.krot; ok(t && t.bpm > 0, 'нет Arcade.tracks.krot');
+  const toks = (s) => (Array.isArray(s) ? s.join(' ') : s).replace(/\|/g, ' ').trim().split(/\s+/);
+  const mel = toks(t.melody), bass = toks(t.bass), dr = toks(t.drums);
+  eq(mel.length, 8 * t.div * 4, 'шагов мелодии (8 тактов)');
+  ok(mel.length % bass.length === 0 && mel.length % dr.length === 0, 'голоса не кратны мелодии');
+  mel.concat(bass).forEach((x) => ok(x === '-' || x === '.' || /^[A-G][#b]?\d$/.test(x), 'плохой токен ' + x));
+  dr.forEach((x) => ok(x === '.' || /^[ksho]+$/.test(x), 'плохой удар ' + x));
+});
+test('v2: index.html — движок, music.js сразу после engine.js, рекорд мигрирует, legacy.html на месте', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const srcs = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
+  eq(srcs[0], './engine.js'); eq(srcs[1], './js/music.js');
+  ok(fs.existsSync(path.join(ROOT, 'engine.js')) && fs.existsSync(path.join(ROOT, 'legacy.html')), 'нет engine.js/legacy.html');
+  ok(/digger\.hi\.v1/.test(html) && /arcade\.best\.krot/.test(html), 'нет миграции рекорда');
+  ok(/gameId:'krot'/.test(html), 'gameId');
+});
+
 /* --------------------------------- итог ----------------------------------- */
 console.log('');
 const total = passed + failed;

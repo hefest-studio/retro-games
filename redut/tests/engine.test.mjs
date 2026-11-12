@@ -130,5 +130,49 @@ test('пауза переключается', () => {
   const g = R.Game({}); g.start(); ok(!g.isPaused()); g.pause(); ok(g.isPaused()); g.pause(); ok(!g.isPaused());
 });
 
+// ---------- Оболочка v2 (index.html на движке Arcade): музыка, порядок скриптов, кооп-раскладка ----------
+{
+  const SLUG = path.basename(ROOT);
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const box = { console, Math, Object, Array, JSON, Error, Float32Array, parseInt, parseFloat };
+  box.window = box; box.globalThis = box; vm.createContext(box);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), box, { filename: 'engine.js' });
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/music.js'), 'utf8'), box, { filename: 'music.js' });
+  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/coop.js'), 'utf8'), box, { filename: 'coop.js' });
+  const A = box.Arcade;
+
+  test('v2: engine.js — копия _shared/engine.js (v2.1+)', () => {
+    eq(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), fs.readFileSync(path.join(ROOT, '../_shared/engine.js'), 'utf8'), 'engine.js рассинхронизирован');
+    ok(/^2\.(1|[2-9])/.test(A.version), 'версия движка ' + A.version);
+  });
+  test('v2: музыкальный трек по gameId парсится, 8+ тактов', () => {
+    const t = A.tracks && A.tracks[SLUG]; ok(t, 'нет Arcade.tracks[' + SLUG + ']');
+    const c = A.parseTrack(t); ok(c.melody.length >= 48, 'мелодия коротка: ' + c.melody.length);
+    ok(c.bass.length > 0 && c.drums.length > 0, 'нет баса/ударных');
+  });
+  test('v2: порядок скриптов — engine.js, сразу music.js, затем coop.js и родные модули', () => {
+    const srcs = [...html.matchAll(/<script[^>]*\ssrc=["']([^"']+)["']/g)].map(m => m[1].replace(/^\.\//, ''));
+    eq(srcs[0], 'engine.js'); eq(srcs[1], 'js/music.js'); eq(srcs[2], 'js/coop.js');
+    ['js/game.js', 'js/classic.js', 'js/modern.js'].forEach(s => ok(srcs.includes(s), 'нет ' + s));
+    ok(!srcs.includes('js/main.js') && !srcs.includes('js/audio.js'), 'старый загрузчик/аудио не должны грузиться');
+    ok(html.includes("gameId:'" + SLUG + "'"), 'gameId ≠ slug');
+  });
+  test('v2: legacy.html — старая страница с рабочими путями', () => {
+    const lg = fs.readFileSync(path.join(ROOT, 'legacy.html'), 'utf8');
+    ['js/game.js', 'js/main.js', 'css/style.css'].forEach(s => { ok(lg.includes(s), 'legacy без ' + s); ok(fs.existsSync(path.join(ROOT, s)), 'нет файла ' + s); });
+  });
+  test('v2: кооп-раскладка — P1 стрелки, P2 WASD, без горячих клавиш движка, без пересечений', () => {
+    const m = /bind:\{\s*p1:\{([^}]*)\},\s*p2:\{([^}]*)\}/.exec(html); ok(m, 'нет bind в index.html');
+    const codes = s => [...s.matchAll(/'([A-Za-z0-9]+)'/g)].map(x => x[1]);
+    const p1 = codes(m[1]), p2 = codes(m[2]);
+    ['ArrowLeft', 'ArrowRight', 'ArrowUp'].forEach(c => ok(p1.includes(c), 'P1 без ' + c));
+    ['KeyA', 'KeyD', 'KeyW'].forEach(c => ok(p2.includes(c), 'P2 без ' + c));
+    const HOT = ['KeyP', 'Escape', 'KeyM', 'KeyL', 'KeyT', 'Enter', 'NumpadEnter', 'Digit1', 'Digit2'];
+    p1.concat(p2).forEach(c => ok(!HOT.includes(c), 'конфликт с горячей клавишей ' + c));
+    p1.forEach(c => ok(!p2.includes(c), 'клавиша у обоих игроков: ' + c));
+  });
+  test('v2: Arcade.coop — фабрика есть', () => { eq(typeof A.coop, 'function'); });
+}
+
 console.log('\n' + (failed ? 'НЕУСПЕХ' : 'OK') + ' ' + passed + '/' + (passed + failed));
 process.exit(failed ? 1 : 0);

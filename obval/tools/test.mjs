@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Headless Chrome smoke test + screenshots for Boulder Dash.
+ * Headless Chrome smoke test + screenshots for ОБВАЛ.
  * Usage: node tools/test.mjs
  */
 import { spawn } from "node:child_process";
@@ -9,11 +9,11 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
-const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const CHROME = process.env.CHROME || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const ROOT = resolve(process.cwd());
 const OUT = join(ROOT, "screenshots", "test");
 const PORT = 9344;
-const PAGE = `file://${join(ROOT, "index.html")}`;
+const PAGE = `file://${join(ROOT, process.env.PAGE || "index.html")}`;
 mkdirSync(OUT, { recursive: true });
 const profile = mkdtempSync(join(tmpdir(), "dsh-bd-"));
 

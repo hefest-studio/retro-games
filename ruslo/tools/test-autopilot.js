@@ -1,6 +1,6 @@
 /* Автопилот: оценка баланса. Бот держится коридора, обходит острова/врагов,
    стреляет вперёд и проходит мосты. Запуск:
-   node tools/cdp.mjs eval --page index.html --script tools/test-autopilot.js --wait 500 */
+   node tools/cdp.mjs eval --page legacy.html --script tools/test-autopilot.js --wait 500 */
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 function segmentsAhead(S) {

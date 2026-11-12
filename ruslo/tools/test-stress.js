@@ -1,6 +1,6 @@
 /* Стресс-проверки River Raid: состояния, переключения, память, сеть, WebAudio
    и localStorage, производительность. Запуск:
-   node tools/cdp.mjs eval --page index.html --script tools/test-stress.js --wait 600 */
+   node tools/cdp.mjs eval --page legacy.html --script tools/test-stress.js --wait 600 */
 /* Стресс-проверки состояний, памяти, сети и производительности. */
 const out = { checks: [], errors: [] };
 const check = (n, ok, info) => out.checks.push({ n, ok: !!ok, info });

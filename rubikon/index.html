@@ -1,41 +1,91 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>РУБИКОН · HTML5</title>
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>РУБИКОН · Робот ОР-КАБЕ — HTML5</title>
+<meta name="description" content="РУБИКОН — оригинальная аркада студии «Гефест» на фреймворке Гефест Arcade: робот ОР-КАБЕ, 10 подземных уровней и поверхность. Темы retro (CGA) / modern (неон), RU/EN, офлайн.">
+<meta name="theme-color" content="#04050c">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
 <style>
   html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden}
-  body{display:flex;align-items:center;justify-content:center;
+  body{display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;
        background:radial-gradient(circle at 50% 45%,#101014 0%,#000 70%)}
   #stage{position:relative;line-height:0}
-  canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;background:#000;
+  #game{display:block;image-rendering:pixelated;image-rendering:crisp-edges;background:#000;
          box-shadow:0 0 0 1px #23232b,0 0 60px rgba(85,255,255,.08),0 0 140px rgba(255,85,255,.05)}
   body.modern{background:radial-gradient(circle at 50% 42%,#0b1026 0%,#04050c 70%)}
-  body.modern canvas{image-rendering:auto;
+  body.modern #game{image-rendering:auto;
          box-shadow:0 0 0 1px #1b2540,0 0 70px rgba(57,231,255,.12),0 0 170px rgba(255,47,156,.08)}
+  /* canvas движка (меню/пауза/финалы) — поверх игрового кадра */
+  canvas.arcade-host{position:absolute;left:0;top:0;width:100%;height:100%;display:block;z-index:2}
   #err{position:fixed;left:0;top:0;z-index:9;display:none;max-width:100vw;white-space:pre-wrap;
        background:#000;color:#f66;font:12px/1.4 monospace;padding:8px}
   #testout{position:fixed;left:0;top:0;z-index:9;display:none;background:#000;color:#5f5;
            font:11px/1.4 monospace;padding:8px;white-space:pre;max-height:100vh;overflow:auto}
+  a.back{position:fixed;left:10px;top:8px;z-index:5;color:#8a90a0;font:12px Inter,system-ui,sans-serif;text-decoration:none}
+  a.back:hover{color:#eef2f8}
+  /* тач-пульт: только на сенсорных экранах */
+  .pad{position:fixed;left:0;right:0;bottom:10px;z-index:4;display:none;justify-content:space-between;padding:0 10px;pointer-events:none}
+  .pad .grp{display:grid;gap:6px;pointer-events:auto}
+  .pad .dir{grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,46px)}
+  .pad .act{grid-template-columns:repeat(2,60px);grid-template-rows:repeat(2,46px)}
+  .pad button{border:1px solid #2a3350;border-radius:12px;background:rgba(14,18,32,.72);color:#e9f6ff;font:800 18px system-ui,sans-serif;touch-action:none}
+  .pad button.on{background:rgba(60,232,255,.28)}
+  @media (pointer:coarse){.pad{display:flex}}
 </style>
 </head>
 <body>
-<div id="stage"><canvas id="game" width="320" height="200"></canvas></div>
+<a class="back" href="../">← Каталог</a>
+<div id="stage"><canvas id="game" width="320" height="200" aria-label="РУБИКОН"></canvas></div>
+<div class="pad" aria-label="Сенсорное управление">
+  <div class="grp dir">
+    <span></span><button data-code="ArrowUp" aria-label="Вверх">▲</button><span></span>
+    <button data-code="ArrowLeft" aria-label="Влево">◀</button><button data-code="ArrowDown" aria-label="Вниз">▼</button><button data-code="ArrowRight" aria-label="Вправо">▶</button>
+  </div>
+  <div class="grp act">
+    <button data-code="KeyP" aria-label="Пауза">Ⅱ</button><button data-code="KeyX" aria-label="Башня">⇪</button>
+    <button data-code="Space" data-key=" " aria-label="Огонь" style="grid-column:span 2">●</button>
+  </div>
+</div>
 <pre id="err"></pre>
 <pre id="testout"></pre>
-<script src="js/game.js"></script>
-<!-- catalog-backlink: ссылка на стартовую страницу проекта (встроена tools/add-catalog-back.mjs) -->
-<style>
-#catalog-back{position:fixed!important;left:0!important;top:50%!important;transform:translateY(-50%)!important;z-index:2147483647!important;display:inline-flex!important;align-items:center!important;gap:6px!important;padding:8px 12px 8px 9px!important;margin:0!important;background:rgba(6,8,14,.82)!important;color:#ffd27a!important;border:1px solid rgba(255,190,80,.6)!important;border-left:0!important;border-radius:0 10px 10px 0!important;font:600 11px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important;letter-spacing:.1em!important;text-transform:uppercase!important;text-decoration:none!important;box-shadow:0 6px 22px rgba(0,0,0,.45)!important;cursor:pointer!important;opacity:.82!important;transition:opacity .15s ease,background .15s ease,color .15s ease!important;-webkit-font-smoothing:antialiased!important;}
-#catalog-back.catalog-back-round{border-left:1px solid rgba(255,190,80,.6)!important;border-radius:10px!important;}
-#catalog-back:hover,#catalog-back:focus-visible{opacity:1!important;background:rgba(255,190,80,.94)!important;color:#0a0b10!important;outline:2px solid #7cf5d2!important;outline-offset:2px!important;}
-#catalog-back .catalog-back-arrow{font-size:13px!important;line-height:1!important;}
-@media (max-width:480px){#catalog-back{font-size:10px!important;padding:6px 9px 6px 7px!important;gap:4px!important;}}
-@media (prefers-reduced-motion:reduce){#catalog-back{transition:none!important;}}
-</style>
-<a id="catalog-back" href="../" title="На стартовую страницу проекта — в каталог игр" aria-label="Вернуться на стартовую страницу проекта — каталог игр" data-catalog-back="1"><span class="catalog-back-arrow" aria-hidden="true">&larr;</span>Каталог</a>
-<script src="js/catalog-back.js"></script>
-<!-- /catalog-backlink -->
+<script src="./engine.js"></script>
+<script src="./js/host.js"></script>
+<script src="./js/game.js"></script>
+<script>
+'use strict';
+/* РУБИКОН на движке v2 — «оболочка» (js/host.js): родной js/game.js (логика, уровни, баланс,
+   рендереры CGA = retro и неон = modern, своя чиптюн-музыка) работает без изменений,
+   движок даёт меню/паузу/финалы/тему/язык/звук/рекорд. Связь — через window.__LM. */
+(function () {
+  var LM = window.__LM;
+  var STR = {
+    ru: { play: 'Играть', language: 'Язык', theme: 'Тема', sound: 'Звук', on: 'вкл', off: 'выкл', score: 'Счёт', level: 'Ур.', best: 'Рекорд',
+          win: 'МИССИЯ ВЫПОЛНЕНА', gameover: 'ИГРА ОКОНЧЕНА', pause: 'ПАУЗА', resume: 'Продолжить', menu: 'В меню', tapstart: 'пробел / тап',
+          title: 'РУБИКОН', subtitle: 'Робот ОР-КАБЕ · путь к поверхности', brief: 'Брифинг' },
+    en: { play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off', score: 'Score', level: 'Lvl', best: 'Best',
+          win: 'MISSION COMPLETE', gameover: 'GAME OVER', pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
+          title: 'RUBICON', subtitle: 'Robot OR-KABE · way to the surface', brief: 'Briefing' }
+  };
+  var MODE = { title: 'title', briefing: 'sub', play: 'play', dead: 'play', lift: 'play', paused: 'paused', gameover: 'gameover', win: 'win' };
+  ArcadeHost.mount({
+    gameId: 'rubikon', mount: '#stage', width: 560, height: 350, strings: STR, extra: 'brief',
+    adapter: {
+      mode: function () { return MODE[LM.G.mode] || 'play'; },
+      start: function () { LM.startGame(); },
+      toTitle: function () { LM.G.mode = 'title'; LM.G.modeT = 0; },
+      pause: function () { if (LM.G.mode === 'play') LM.G.mode = 'paused'; },
+      resume: function () { if (LM.G.mode === 'paused') LM.G.mode = 'play'; },
+      openSub: function () { LM.G.mode = 'briefing'; },
+      score: function () { return LM.G.score; },
+      best: function () { return LM.G.record; },
+      gfx: function () { return LM.gfx(); },
+      setGfx: function (v) { LM.setGfx(v); },
+      lang: function () { return LM.lang(); },
+      setLang: function (v) { LM.setLang(v); },
+      setSound: function (on) { if (LM.muted() === on) LM.toggleMute(); }
+    }
+  });
+  ArcadeHost.bindKeyPad('.pad');
+})();
+</script>
 </body>
 </html>

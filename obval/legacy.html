@@ -4,12 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#060911">
-<title>BOULDER DASH · Кристальные глубины</title>
-<meta name="description" content="Boulder Dash — браузерный ремейк легендарной аркады 1984 года. Восемь уровней, алмазы, камни, светлячки, 8-битная музыка и переключение между ретро- и нео-графикой.">
+<title>ОБВАЛ · Кристальные глубины (legacy)</title>
+<meta name="description" content="ОБВАЛ — оригинальная игра студии «Гефест» о подземелье. Восемь уровней, алмазы, камни, светлячки, 8-битная музыка и переключение между ретро- и нео-графикой.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070b13'/%3E%3Cpath d='M32 8 54 24 32 56 10 24Z' fill='%234ff2d0'/%3E%3Cpath d='M32 8v48M10 24h44M22 18l10 6 10-6' stroke='%2303171d' stroke-width='2.5' fill='none'/%3E%3C/svg%3E">
-<style>
-/*__INLINE_CSS__*/
-</style>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -22,10 +20,10 @@
 </div>
 
 <header class="topbar">
-  <button class="brand" id="brandHome" type="button" aria-label="Boulder Dash — в главное меню">
+  <button class="brand" id="brandHome" type="button" aria-label="ОБВАЛ — в главное меню">
     <span class="brand-gem" aria-hidden="true"><i></i></span>
     <span class="brand-copy">
-      <span class="brand-name">BOULDER <em>DASH</em></span>
+      <span class="brand-name">ОБ<em>ВАЛ</em></span>
       <span class="brand-sub" data-i18n="brand.sub">КРИСТАЛЬНЫЕ ГЛУБИНЫ</span>
     </span>
   </button>
@@ -61,14 +59,14 @@
       </div>
 
       <div class="screen" id="screen">
-        <canvas id="game" width="1280" height="704" aria-label="Игровое поле Boulder Dash"></canvas>
+        <canvas id="game" width="1280" height="704" aria-label="Игровое поле ОБВАЛ"></canvas>
         <div class="crt" aria-hidden="true"></div>
         <div class="screen-vignette" aria-hidden="true"></div>
         <div class="overlay" id="overlay" data-screen="menu">
           <div class="menu-screen">
             <div class="menu-copy">
-              <div class="kicker"><i class="live-dot"></i> 1984 · HTML5 REMAKE · 2026</div>
-              <h1 class="game-title">BOULDER<br><em>DASH</em></h1>
+              <div class="kicker"><i class="live-dot"></i> ОРИГИНАЛ · ГЕФЕСТ · 2026</div>
+              <h1 class="game-title">ОБ<br><em>ВАЛ</em></h1>
               <div class="game-subtitle">КРИСТАЛЬНЫЕ ГЛУБИНЫ</div>
               <p class="lede" data-i18n="menu.lede">Копай породу, собирай алмазы и уходи глубже. Только не стой под камнями.</p>
               <div class="menu-actions">
@@ -173,8 +171,101 @@
   <span class="footer-tech"><i>HTML5</i><i>CANVAS</i><i>8-BIT</i></span>
 </footer>
 
+<script src="js/game.js"></script>
+<!-- catalog-backlink: ссылка на стартовую страницу проекта (встроена tools/add-catalog-back.mjs) -->
+<style>
+#catalog-back{position:fixed!important;left:0!important;top:50%!important;transform:translateY(-50%)!important;z-index:2147483647!important;display:inline-flex!important;align-items:center!important;gap:6px!important;padding:8px 12px 8px 9px!important;margin:0!important;background:rgba(6,8,14,.82)!important;color:#ffd27a!important;border:1px solid rgba(255,190,80,.6)!important;border-left:0!important;border-radius:0 10px 10px 0!important;font:600 11px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important;letter-spacing:.1em!important;text-transform:uppercase!important;text-decoration:none!important;box-shadow:0 6px 22px rgba(0,0,0,.45)!important;cursor:pointer!important;opacity:.82!important;transition:opacity .15s ease,background .15s ease,color .15s ease!important;-webkit-font-smoothing:antialiased!important;}
+#catalog-back.catalog-back-round{border-left:1px solid rgba(255,190,80,.6)!important;border-radius:10px!important;}
+#catalog-back:hover,#catalog-back:focus-visible{opacity:1!important;background:rgba(255,190,80,.94)!important;color:#0a0b10!important;outline:2px solid #7cf5d2!important;outline-offset:2px!important;}
+#catalog-back .catalog-back-arrow{font-size:13px!important;line-height:1!important;}
+@media (max-width:480px){#catalog-back{font-size:10px!important;padding:6px 9px 6px 7px!important;gap:4px!important;}}
+@media (prefers-reduced-motion:reduce){#catalog-back{transition:none!important;}}
+</style>
+<a id="catalog-back" href="../" title="На стартовую страницу проекта — в каталог игр" aria-label="Вернуться на стартовую страницу проекта — каталог игр" data-catalog-back="1"><span class="catalog-back-arrow" aria-hidden="true">&larr;</span>Каталог</a>
 <script>
-/*__INLINE_JS__*/
+(function () {
+  var link = document.getElementById('catalog-back');
+  if (!link) return;
+
+  /* На file:// каталог лежит в index.html корня: «../» открыл бы листинг. */
+  if (location.protocol === 'file:') link.setAttribute('href', '../index.html');
+
+  /* Не даём клику/Enter всплывать в игровые обработчики (старт, пауза и т.п.). */
+  ['pointerdown', 'click', 'keydown'].forEach(function (type) {
+    link.addEventListener(type, function (event) { event.stopPropagation(); }, true);
+  });
+
+  /* --- адаптивное размещение, чтобы не перекрывать меню и кнопки игр --- */
+  var INTERACTIVE = 'a,button,input,select,textarea,[role="button"],[tabindex],[onclick]';
+  link.style.setProperty('transform', 'none', 'important');
+
+  function interactiveBoxes() {
+    var boxes = [];
+    var nodes = document.querySelectorAll(INTERACTIVE);
+    for (var i = 0; i < nodes.length; i += 1) {
+      var el = nodes[i];
+      if (el === link || el.contains(link)) continue;
+      var r = el.getBoundingClientRect();
+      if (r.width < 4 || r.height < 4) continue;
+      var cs = window.getComputedStyle(el);
+      if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) < 0.05) continue;
+      if (cs.pointerEvents === 'none') continue;
+      boxes.push({ left: r.left, top: r.top, right: r.right, bottom: r.bottom });
+    }
+    return boxes;
+  }
+
+  function overlap(a, b) {
+    return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  }
+
+  function place() {
+    var w = link.offsetWidth;
+    var h = link.offsetHeight;
+    if (!w || !h) return;
+    var W = window.innerWidth;
+    var H = window.innerHeight;
+    var m = 10;
+    var candidates = [
+      { name: 'left-mid', left: 0, top: Math.round((H - h) / 2), shape: 'tab' },
+      { name: 'bottom-left', left: m, top: H - h - m, shape: 'round' },
+      { name: 'top-left', left: m, top: m, shape: 'round' },
+      { name: 'bottom-right', left: W - w - m, top: H - h - m, shape: 'round' },
+      { name: 'top-right', left: W - w - m, top: m, shape: 'round' },
+      { name: 'bottom-center', left: Math.round((W - w) / 2), top: H - h - m, shape: 'round' },
+      { name: 'top-center', left: Math.round((W - w) / 2), top: m, shape: 'round' }
+    ];
+    var boxes = interactiveBoxes();
+    var chosen = candidates[0];
+    for (var i = 0; i < candidates.length; i += 1) {
+      var c = candidates[i];
+      var box = { left: c.left, top: c.top, right: c.left + w, bottom: c.top + h };
+      var hit = false;
+      for (var j = 0; j < boxes.length; j += 1) {
+        if (overlap(box, boxes[j])) { hit = true; break; }
+      }
+      if (!hit) { chosen = c; break; }
+    }
+    link.style.setProperty('left', chosen.left + 'px', 'important');
+    link.style.setProperty('top', chosen.top + 'px', 'important');
+    link.classList.toggle('catalog-back-round', chosen.shape === 'round');
+    link.dataset.place = chosen.name;
+  }
+
+  var timer = 0;
+  function schedule() {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(place, 120);
+  }
+
+  place();
+  window.setTimeout(place, 350);
+  window.setTimeout(place, 1200);
+  window.addEventListener('resize', schedule, { passive: true });
+  window.addEventListener('orientationchange', schedule, { passive: true });
+  document.addEventListener('fullscreenchange', schedule);
+})();
 </script>
+<!-- /catalog-backlink -->
 </body>
 </html>

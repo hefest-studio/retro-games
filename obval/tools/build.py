@@ -1,30 +1,43 @@
 #!/usr/bin/env python3
-"""Inline CSS, levels and JS into one self-contained index.html."""
+"""ОБВАЛ: сборка js/game.js и css/style.css из src/ (раньше — монолит index.html).
+
+После порта на движок v2 страницы подключают собранные файлы:
+  index.html  — движок v2 (engine.js + js/host.js) поверх js/game.js;
+  legacy.html — старая страница со своим меню, тот же js/game.js;
+  обе — css/style.css.
+
+  src/game.js (+ src/levels.js по маркеру /*__LEVELS__*/) -> js/game.js
+  src/style.css                                          -> css/style.css
+
+Запуск:  python3 tools/build.py [--check]   (--check: только сравнить, код выхода 1 при расхождении)
+"""
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SHELL = ROOT / "src" / "shell.html"
-STYLE = ROOT / "src" / "style.css"
-LEVELS = ROOT / "src" / "levels.js"
-GAME = ROOT / "src" / "game.js"
-OUT = ROOT / "index.html"
+SRC = ROOT / "src"
 
-css = STYLE.read_text(encoding="utf-8")
-levels = LEVELS.read_text(encoding="utf-8").strip()
-game = GAME.read_text(encoding="utf-8")
-html = SHELL.read_text(encoding="utf-8")
-
+game = (SRC / "game.js").read_text(encoding="utf-8")
+levels = (SRC / "levels.js").read_text(encoding="utf-8").strip()
 if "/*__LEVELS__*/" not in game:
-    raise SystemExit("game.js: levels marker not found")
-game = game.replace("/*__LEVELS__*/", levels)
+    raise SystemExit("src/game.js: нет маркера /*__LEVELS__*/")
+if "</script" in game.lower():
+    raise SystemExit("src/game.js: содержит '</script>'")
+out = {
+    ROOT / "js" / "game.js": game.replace("/*__LEVELS__*/", levels),
+    ROOT / "css" / "style.css": (SRC / "style.css").read_text(encoding="utf-8"),
+}
 
-if "/*__INLINE_CSS__*/" not in html or "/*__INLINE_JS__*/" not in html:
-    raise SystemExit("shell.html: inline markers not found")
-
-html = html.replace("/*__INLINE_CSS__*/", css)
-html = html.replace("/*__INLINE_JS__*/", game)
-if "__INLINE_CSS__" in html or "__INLINE_JS__" in html:
-    raise SystemExit("unreplaced marker left in output")
-
-OUT.write_text(html, encoding="utf-8")
-print(f"built {OUT.relative_to(ROOT)} · {len(html):,} bytes")
+check = "--check" in sys.argv
+bad = 0
+for path, text in out.items():
+    rel = path.relative_to(ROOT)
+    if check:
+        same = path.exists() and path.read_text(encoding="utf-8") == text
+        print(("  ✓ " if same else "  ✗ ") + f"{rel} {'совпадает с src' if same else 'отличается от src — запустите без --check'}")
+        bad += 0 if same else 1
+    else:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        print(f"built {rel} · {len(text):,} bytes")
+sys.exit(1 if bad else 0)

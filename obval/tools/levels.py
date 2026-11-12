@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Development helper: build + validate Boulder Dash level maps."""
+"""Development helper: build + validate ОБВАЛ level maps."""
 from __future__ import annotations
 import random
 

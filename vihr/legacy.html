@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#05060a" />
+<meta name="color-scheme" content="dark" />
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CjxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgcng9IjE0IiBmaWxsPSIjMDcwOTEwIi8+CjxyZWN0IHg9IjYiIHk9IjYiIHdpZHRoPSI1MiIgaGVpZ2h0PSI1MiIgcng9IjEwIiBmaWxsPSJub25lIiBzdHJva2U9IiMxYzI2MzciIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIzMiIgY3k9IjIwIiByPSI0IiBmaWxsPSIjZmYyZjljIi8+CjxwYXRoIGQ9Ik0yOCAyMCBMMzYgMjAiIHN0cm9rZT0iI2ZmMmY5YyIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPHBhdGggZD0iTTE0IDMwIEwyMiAzMCBMMjYgMzYgTDUwIDM2IEw1MiA0MCBMMjYgNDQgTDIyIDQwIEwxNCA0MCBaIiBmaWxsPSIjMzllN2ZmIi8+CjxwYXRoIGQ9Ik0xMiAyNCBMNTIgMjQiIHN0cm9rZT0iI2VhZjZmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIG9wYWNpdHk9IjAuODUiLz4KPHBhdGggZD0iTTQwIDM2IEw0NiA0NiIgc3Ryb2tlPSIjMzllN2ZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC42Ii8+CjxjaXJjbGUgY3g9IjUyIiBjeT0iNDYiIHI9IjQiIGZpbGw9IiNmZmQxNjYiLz4KPC9zdmc+" />
+<title>ВИХРЬ · Над полем боя — HTML5 (legacy)</title>
+<meta name="description" content="ВИХРЬ (Гефест, 1988) — веб-оригинал классической аркады: русский интерфейс, 8-битная музыка и переключение на современную графику." />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="retro">
+<div id="app">
+  <header class="bar">
+    <div class="brand">
+      <b>ВИХРЬ</b>
+      <span data-ru="ВИХРЬ · ГЕФЕСТ 1988 · ВЕБ-ОРИГИНАЛ" data-en="ВИХРЬ · ГЕФЕСТ 1988 · WEB ORIGINAL">ВИХРЬ · ГЕФЕСТ 1988 · ВЕБ-ОРИГИНАЛ</span>
+    </div>
+    <div class="chips">
+      <span class="chip optional" id="chip-mode"><span class="dot"></span><b>8-БИТ</b> ГРАФИКА</span>
+      <span class="chip optional"><span class="dot"></span><b>RU</b> <span data-ru="ЯЗЫК" data-en="LANGUAGE">ЯЗЫК</span></span>
+      <span class="chip warn optional" id="chip-audio"><span class="dot"></span><b>M</b> <span data-ru="ЗВУК" data-en="SOUND">ЗВУК</span></span>
+    </div>
+  </header>
+
+  <div id="mobile-hero">
+    <b>ВИХРЬ</b>
+    <span data-ru="ВИХРЬ · АРКАДА 1988" data-en="ВИХРЬ · ARCADE 1988">ВИХРЬ · АРКАДА 1988</span>
+  </div>
+
+  <div id="stage">
+    <div id="frame">
+      <canvas id="game" width="320" height="224" aria-label="ВИХРЬ — игра"></canvas>
+      <div id="crt"></div>
+      <div id="scan"></div>
+    </div>
+  </div>
+
+  <div id="mobile-hint" data-ru="ВЕДИТЕ ПАЛЬЦЕМ · ОГОНЬ АВТОМАТИЧЕСКИ · ПАУЗА — ПРАВЫЙ ВЕРХНИЙ УГОЛ" data-en="DRAG TO FLY · AUTO-FIRE · PAUSE — TOP-RIGHT CORNER">ВЕДИТЕ ПАЛЬЦЕМ · ОГОНЬ АВТОМАТИЧЕСКИ · ПАУЗА — ПРАВЫЙ ВЕРХНИЙ УГОЛ</div>
+
+  <footer class="bar">
+    <div class="wide">
+      <span class="key"><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> / <kbd>WASD</kbd> <span data-ru="движение" data-en="move">движение</span></span>
+      <span class="sep">·</span>
+      <span class="key"><kbd>Space</kbd> <span data-ru="огонь" data-en="fire">огонь</span></span>
+      <span class="sep">·</span>
+      <span class="key"><kbd>B</kbd> <span data-ru="бомба" data-en="bomb">бомба</span></span>
+      <span class="sep">·</span>
+      <span class="key"><kbd>P</kbd> <span data-ru="пауза" data-en="pause">пауза</span></span>
+    </div>
+    <div>
+      <span class="key"><kbd>G</kbd> <span data-ru="графика" data-en="graphics">графика</span></span>
+      <span class="sep">·</span>
+      <span class="key"><kbd>L</kbd> <span data-ru="язык" data-en="language">язык</span></span>
+      <span class="sep">·</span>
+      <span class="key"><kbd>M</kbd> <span data-ru="музыка" data-en="sound">музыка</span></span>
+      <span class="sep">·</span>
+      <span class="key"><kbd>Enter</kbd> <span data-ru="старт" data-en="start">старт</span></span>
+    </div>
+  </footer>
+</div>
+<div id="toast"></div>
+<pre id="err"></pre>
+<pre id="testout"></pre>
+<script src="src/audio.js"></script>
+<script src="src/game.js"></script>
+<!-- catalog-backlink: ссылка на стартовую страницу проекта (встроена tools/add-catalog-back.mjs) -->
+<style>
+#catalog-back{position:fixed!important;left:0!important;top:50%!important;transform:translateY(-50%)!important;z-index:2147483647!important;display:inline-flex!important;align-items:center!important;gap:6px!important;padding:8px 12px 8px 9px!important;margin:0!important;background:rgba(6,8,14,.82)!important;color:#ffd27a!important;border:1px solid rgba(255,190,80,.6)!important;border-left:0!important;border-radius:0 10px 10px 0!important;font:600 11px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important;letter-spacing:.1em!important;text-transform:uppercase!important;text-decoration:none!important;box-shadow:0 6px 22px rgba(0,0,0,.45)!important;cursor:pointer!important;opacity:.82!important;transition:opacity .15s ease,background .15s ease,color .15s ease!important;-webkit-font-smoothing:antialiased!important;}
+#catalog-back.catalog-back-round{border-left:1px solid rgba(255,190,80,.6)!important;border-radius:10px!important;}
+#catalog-back:hover,#catalog-back:focus-visible{opacity:1!important;background:rgba(255,190,80,.94)!important;color:#0a0b10!important;outline:2px solid #7cf5d2!important;outline-offset:2px!important;}
+#catalog-back .catalog-back-arrow{font-size:13px!important;line-height:1!important;}
+@media (max-width:480px){#catalog-back{font-size:10px!important;padding:6px 9px 6px 7px!important;gap:4px!important;}}
+@media (prefers-reduced-motion:reduce){#catalog-back{transition:none!important;}}
+</style>
+<a id="catalog-back" href="../" title="На стартовую страницу проекта — в каталог игр" aria-label="Вернуться на стартовую страницу проекта — каталог игр" data-catalog-back="1"><span class="catalog-back-arrow" aria-hidden="true">&larr;</span>Каталог</a>
+<script>
+(function () {
+  var link = document.getElementById('catalog-back');
+  if (!link) return;
+
+  /* На file:// каталог лежит в index.html корня: «../» открыл бы листинг. */
+  if (location.protocol === 'file:') link.setAttribute('href', '../index.html');
+
+  /* Не даём клику/Enter всплывать в игровые обработчики (старт, пауза и т.п.). */
+  ['pointerdown', 'click', 'keydown'].forEach(function (type) {
+    link.addEventListener(type, function (event) { event.stopPropagation(); }, true);
+  });
+
+  /* --- адаптивное размещение, чтобы не перекрывать меню и кнопки игр --- */
+  var INTERACTIVE = 'a,button,input,select,textarea,[role="button"],[tabindex],[onclick]';
+  link.style.setProperty('transform', 'none', 'important');
+
+  function interactiveBoxes() {
+    var boxes = [];
+    var nodes = document.querySelectorAll(INTERACTIVE);
+    for (var i = 0; i < nodes.length; i += 1) {
+      var el = nodes[i];
+      if (el === link || el.contains(link)) continue;
+      var r = el.getBoundingClientRect();
+      if (r.width < 4 || r.height < 4) continue;
+      var cs = window.getComputedStyle(el);
+      if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) < 0.05) continue;
+      if (cs.pointerEvents === 'none') continue;
+      boxes.push({ left: r.left, top: r.top, right: r.right, bottom: r.bottom });
+    }
+    return boxes;
+  }
+
+  function overlap(a, b) {
+    return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  }
+
+  function place() {
+    var w = link.offsetWidth;
+    var h = link.offsetHeight;
+    if (!w || !h) return;
+    var W = window.innerWidth;
+    var H = window.innerHeight;
+    var m = 10;
+    var candidates = [
+      { name: 'left-mid', left: 0, top: Math.round((H - h) / 2), shape: 'tab' },
+      { name: 'bottom-left', left: m, top: H - h - m, shape: 'round' },
+      { name: 'top-left', left: m, top: m, shape: 'round' },
+      { name: 'bottom-right', left: W - w - m, top: H - h - m, shape: 'round' },
+      { name: 'top-right', left: W - w - m, top: m, shape: 'round' },
+      { name: 'bottom-center', left: Math.round((W - w) / 2), top: H - h - m, shape: 'round' },
+      { name: 'top-center', left: Math.round((W - w) / 2), top: m, shape: 'round' }
+    ];
+    var boxes = interactiveBoxes();
+    var chosen = candidates[0];
+    for (var i = 0; i < candidates.length; i += 1) {
+      var c = candidates[i];
+      var box = { left: c.left, top: c.top, right: c.left + w, bottom: c.top + h };
+      var hit = false;
+      for (var j = 0; j < boxes.length; j += 1) {
+        if (overlap(box, boxes[j])) { hit = true; break; }
+      }
+      if (!hit) { chosen = c; break; }
+    }
+    link.style.setProperty('left', chosen.left + 'px', 'important');
+    link.style.setProperty('top', chosen.top + 'px', 'important');
+    link.classList.toggle('catalog-back-round', chosen.shape === 'round');
+    link.dataset.place = chosen.name;
+  }
+
+  var timer = 0;
+  function schedule() {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(place, 120);
+  }
+
+  place();
+  window.setTimeout(place, 350);
+  window.setTimeout(place, 1200);
+  window.addEventListener('resize', schedule, { passive: true });
+  window.addEventListener('orientationchange', schedule, { passive: true });
+  document.addEventListener('fullscreenchange', schedule);
+})();
+</script>
+<!-- /catalog-backlink -->
+</body>
+</html>

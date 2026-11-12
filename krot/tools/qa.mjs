@@ -24,7 +24,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
-const INDEX = path.join(ROOT, 'index.html');
+const INDEX = path.join(ROOT, 'legacy.html'); // v2: старый DOM-интерфейс (шоты/артефакты) живёт в legacy.html
 const SHOT_DIR = path.join(ROOT, 'screenshots');
 const TMP_DIR = path.join(ROOT, '.tmp');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';

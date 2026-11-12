@@ -1,5 +1,12 @@
 # КРОТ · HTML5
 
+> **v2 (фреймворк Гефест Arcade).** `index.html` — оболочка на движке `engine.js` (копия `_shared/engine.js`):
+> меню/пауза (P/Esc)/темы retro↔modern (T, старая G тоже работает)/RU-EN (L)/звук (M)/рекорд `arcade.best.krot`
+> (старый `digger.hi.v1` переносится при первом запуске), музыка — `js/music.js`. Логика `js/game.js`,
+> рендеры `js/classic.js` (retro) и `js/modern.js`, SFX `js/audio.js` — родные, без изменений.
+> Прежняя страница с DOM-меню — `legacy.html` (на неё же смотрят `tools/e2e.mjs`, `tools/qa.mjs`).
+> Тесты: `node krot/tests/engine.test.mjs`.
+
 Оригинальная игра студии «Гефест» **КРОТ** — о подземном буре на чистом
 HTML/CSS/JavaScript. Копайте туннели в подземном лабиринте, собирайте алмазы, роняйте
 на монстров мешки золота — и не попадайте под собственный груз.

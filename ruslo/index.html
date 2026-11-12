@@ -1,300 +1,94 @@
-<!DOCTYPE html>
-<html lang="ru" data-gfx="retro" data-lang="ru">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="color-scheme" content="dark" />
-<meta name="theme-color" content="#04070c" />
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>РУСЛО · Над рекой — HTML5</title>
-<meta name="description" content="Оригинальная аркада над рекой от студии «Гефест»: река, мосты, заправки, два режима графики и 8-битная музыка." />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23050b12'/%3E%3Cpath d='M16 5l4 12-4-2-4 2z' fill='%2339f0d0'/%3E%3Cpath d='M6 18l10 3-4 6z' fill='%234cc9ff'/%3E%3Cpath d='M26 18l-10 3 4 6z' fill='%23ff4f9a'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="css/style.css" />
-</head>
-<body data-state="menu">
-<div class="page">
-  <div class="bg" aria-hidden="true">
-    <div class="orb orb-a"></div>
-    <div class="orb orb-b"></div>
-    <div class="stars"></div>
-    <div class="grid"></div>
-  </div>
-
-  <aside class="rail rail-left" aria-hidden="true">
-    <span class="rail-top">ГЕФЕСТ</span>
-    <span class="rail-line"></span>
-    <span class="rail-mid">1982</span>
-    <span class="rail-line"></span>
-    <span class="rail-bot">HTML5 PORT</span>
-  </aside>
-
-  <main class="frame" id="frame">
-    <header class="frame-top">
-      <div class="brand">
-        <span class="brand-mark" aria-hidden="true"></span>
-        <span class="brand-name">РУСЛО</span>
-        <span class="brand-year">1982</span>
-        <span class="chip" id="gfxTag">РЕТРО</span>
-      </div>
-      <div class="quick" role="group" aria-label="Быстрые настройки" data-i18n-aria="quickGroup">
-        <button class="qbtn" id="quickGfx" data-action="graphics" data-i18n-title="graphics" data-i18n-aria="graphics" title="G">8-BIT</button>
-        <button class="qbtn" id="quickLang" data-action="lang" data-i18n-title="language" data-i18n-aria="language" title="L">RU</button>
-        <button class="qbtn" id="quickSound" data-action="sound" data-i18n-title="sound" data-i18n-aria="sound" title="M">♪</button>
-        <button class="qbtn" data-action="fullscreen" data-i18n-title="fullscreen" data-i18n-aria="fullscreen" title="F">⛶</button>
-      </div>
-    </header>
-
-    <div class="stage" id="stage">
-      <canvas id="game" width="360" height="540" aria-label="Игровое поле РУСЛО" data-i18n-aria="gameField"></canvas>
-
-      <div class="fx grain" aria-hidden="true"></div>
-      <div class="fx scan" aria-hidden="true"></div>
-      <div class="fx vig" aria-hidden="true"></div>
-
-      <!-- МЕНЮ -->
-      <div class="overlay ov-menu is-open" id="ov-menu">
-        <div class="menu">
-          <div class="logo">
-            <div class="logo-kicker">
-              <span>ГЕФЕСТ</span><i>оригинал</i><b>→</b><span>HTML5</span>
-            </div>
-            <h1 class="logo-title"><span>РУС</span><span>ЛО</span></h1>
-            <div class="logo-ru" data-i18n="title"></div>
-            <p class="logo-sub" data-i18n="subtitle"></p>
-          </div>
-
-          <nav class="menu-list" id="menuList" aria-label="Главное меню" data-i18n-aria="mainMenu">
-            <button class="m-item is-active" data-action="play">
-              <span class="m-num">01</span><span class="m-label" data-i18n="play"></span><span class="m-arrow" aria-hidden="true">→</span>
-            </button>
-            <button class="m-item" data-action="howto">
-              <span class="m-num">02</span><span class="m-label" data-i18n="howto"></span><span class="m-arrow" aria-hidden="true">→</span>
-            </button>
-            <button class="m-item" data-action="graphics" data-kind="toggle">
-              <span class="m-num">03</span><span class="m-label" data-i18n="graphics"></span><span class="m-value" id="valGfx"></span>
-            </button>
-            <button class="m-item" data-action="sound" data-kind="toggle">
-              <span class="m-num">04</span><span class="m-label" data-i18n="sound"></span><span class="m-value" id="valSound"></span>
-            </button>
-            <button class="m-item" data-action="lang" data-kind="toggle">
-              <span class="m-num">05</span><span class="m-label" data-i18n="language"></span><span class="m-value" id="valLang"></span>
-            </button>
-          </nav>
-
-          <div class="menu-foot">
-            <div class="hs">
-              <span class="hs-label" data-i18n="record"></span>
-              <b id="menuRecord">000000</b>
-            </div>
-            <div class="start-hint" data-i18n="startHint"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ИНСТРУКЦИЯ -->
-      <div class="overlay ov-help" id="ov-help">
-        <div class="panel help">
-          <div class="ov-kicker">РУСЛО</div>
-          <h2 data-i18n="howtoTitle"></h2>
-          <div class="help-body">
-          <p class="lead" data-i18n="howtoLead"></p>
-          <div class="keylist">
-            <div><kbd>←</kbd><kbd>→</kbd><span data-i18n="ctrlMove"></span></div>
-            <div><kbd>↑</kbd><kbd>↓</kbd><span data-i18n="ctrlSpeed"></span></div>
-            <div><kbd>SPACE</kbd><span data-i18n="ctrlFire"></span></div>
-            <div><kbd>P</kbd><kbd>ESC</kbd><span data-i18n="ctrlPause"></span></div>
-            <div><kbd>M</kbd><span data-i18n="ctrlSound"></span></div>
-            <div><kbd>G</kbd><span data-i18n="ctrlGfx"></span></div>
-            <div><kbd>L</kbd><span data-i18n="ctrlLang"></span></div>
-            <div><kbd>F</kbd><span data-i18n="ctrlFull"></span></div>
-            <div><kbd>☰</kbd><span data-i18n="ctrlTouch"></span></div>
-          </div>
-          <div class="tips">
-            <h3 data-i18n="tipsTitle"></h3>
-            <ul>
-              <li data-i18n="tip1"></li>
-              <li data-i18n="tip2"></li>
-              <li data-i18n="tip3"></li>
-              <li data-i18n="tip4"></li>
-              <li data-i18n="tip5"></li>
-            </ul>
-          </div>
-          </div>
-          <button class="btn ghost" data-action="back" data-i18n="back"></button>
-        </div>
-      </div>
-
-      <!-- ПАУЗА -->
-      <div class="overlay ov-pause" id="ov-pause">
-        <div class="panel small">
-          <div class="ov-kicker">РУСЛО</div>
-          <h2 data-i18n="paused"></h2>
-          <div class="btn-col">
-            <button class="btn primary" data-action="resume" data-i18n="resume"></button>
-            <button class="btn" data-action="restart" data-i18n="restart"></button>
-            <button class="btn ghost" data-action="menu" data-i18n="toMenu"></button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ФИНАЛ -->
-      <div class="overlay ov-over" id="ov-over">
-        <div class="panel small over">
-          <div class="ov-kicker">РУСЛО</div>
-          <h2 id="overTitle" data-i18n="gameOver"></h2>
-          <div class="scoreblock">
-            <span data-i18n="score"></span>
-            <b id="scoreOver">000000</b>
-          </div>
-          <div class="recordline">
-            <span data-i18n="record"></span>
-            <b id="hiOver">000000</b>
-          </div>
-          <div class="reason" id="reasonOver"></div>
-          <div class="accuracy" id="accuracyOver"></div>
-          <div class="btn-col">
-            <button class="btn primary" data-action="restart" data-i18n="again"></button>
-            <button class="btn ghost" data-action="menu" data-i18n="toMenu"></button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ЭКРАННОЕ УПРАВЛЕНИЕ -->
-      <div class="touch" id="touch" role="group" aria-label="Экранное управление" data-i18n-aria="touchPad">
-        <div class="tgroup tmove">
-          <button data-key="left" aria-label="Влево" data-i18n-aria="touchLeft">◀</button>
-          <button data-key="right" aria-label="Вправо" data-i18n-aria="touchRight">▶</button>
-        </div>
-        <div class="tgroup tspeed">
-          <button data-key="up" aria-label="Быстрее" data-i18n-aria="touchUp">▲</button>
-          <button data-key="down" aria-label="Медленнее" data-i18n-aria="touchDown">▼</button>
-        </div>
-        <div class="tgroup tfire">
-          <button data-key="fire" class="fire" aria-label="Огонь" data-i18n-aria="touchFire">●</button>
-        </div>
-        <button class="tbtn tpause" data-key="pause" aria-label="Пауза" data-i18n-aria="touchPause">❚❚</button>
-      </div>
-    </div>
-
-    <footer class="frame-foot">
-      <span class="foot-note" data-i18n="sideNote"></span>
-      <span class="foot-keys">
-        <kbd>←</kbd><kbd>→</kbd>·<kbd>↑</kbd><kbd>↓</kbd>·<kbd>SPACE</kbd>·<kbd>P</kbd>·<kbd>G</kbd>
-      </span>
-    </footer>
-  </main>
-
-  <aside class="rail rail-right" aria-hidden="true">
-    <span class="rail-top">8-BIT</span>
-    <span class="rail-line"></span>
-    <span class="rail-mid">60 FPS</span>
-    <span class="rail-line"></span>
-    <span class="rail-bot">NO ASSETS</span>
-  </aside>
-</div>
-
-<noscript>
-  <div class="noscript">Для игры нужен JavaScript. Включите его и перезагрузите страницу. / JavaScript is required to play. Enable it and reload the page.</div>
-</noscript>
-
-<script src="js/core.js"></script>
-<script src="js/lang.js"></script>
-<script src="js/audio.js"></script>
-<script src="js/render.js"></script>
-<script src="js/game.js"></script>
-<!-- catalog-backlink: ссылка на стартовую страницу проекта (встроена tools/add-catalog-back.mjs) -->
+<meta name="description" content="РУСЛО — оригинальная аркада-скролл-шутер студии «Гефест» на фреймворке Гефест Arcade: река, мосты, заправки, топливо. Темы retro/modern, RU/EN, офлайн.">
+<meta name="theme-color" content="#04070c">
+<link rel="canonical" href="https://arcade.hefest.ru/ruslo/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Гефест · Зал ретро-игр">
+<meta property="og:title" content="РУСЛО · Над рекой"><meta property="og:url" content="https://arcade.hefest.ru/ruslo/">
 <style>
-#catalog-back{position:fixed!important;left:0!important;top:50%!important;transform:translateY(-50%)!important;z-index:2147483647!important;display:inline-flex!important;align-items:center!important;gap:6px!important;padding:8px 12px 8px 9px!important;margin:0!important;background:rgba(6,8,14,.82)!important;color:#ffd27a!important;border:1px solid rgba(255,190,80,.6)!important;border-left:0!important;border-radius:0 10px 10px 0!important;font:600 11px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important;letter-spacing:.1em!important;text-transform:uppercase!important;text-decoration:none!important;box-shadow:0 6px 22px rgba(0,0,0,.45)!important;cursor:pointer!important;opacity:.82!important;transition:opacity .15s ease,background .15s ease,color .15s ease!important;-webkit-font-smoothing:antialiased!important;}
-#catalog-back.catalog-back-round{border-left:1px solid rgba(255,190,80,.6)!important;border-radius:10px!important;}
-#catalog-back:hover,#catalog-back:focus-visible{opacity:1!important;background:rgba(255,190,80,.94)!important;color:#0a0b10!important;outline:2px solid #7cf5d2!important;outline-offset:2px!important;}
-#catalog-back .catalog-back-arrow{font-size:13px!important;line-height:1!important;}
-@media (max-width:480px){#catalog-back{font-size:10px!important;padding:6px 9px 6px 7px!important;gap:4px!important;}}
-@media (prefers-reduced-motion:reduce){#catalog-back{transition:none!important;}}
-</style>
-<a id="catalog-back" href="../" title="На стартовую страницу проекта — в каталог игр" aria-label="Вернуться на стартовую страницу проекта — каталог игр" data-catalog-back="1"><span class="catalog-back-arrow" aria-hidden="true">&larr;</span>Каталог</a>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#04070c;color:#eaf6ff;font-family:Inter,system-ui,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
+.wrap{position:relative;width:min(96vw,420px);margin-top:10px;display:flex;justify-content:center}
+canvas{display:block;border:1px solid #1d2c42;border-radius:10px;background:#05070d;touch-action:none}
+.pad{width:min(96vw,420px);margin:10px 0;display:grid;grid-template-columns:repeat(4,1fr) 1.3fr;grid-template-rows:repeat(2,48px);gap:8px}
+.pad button{background:#0d1622;border:1px solid #1d2c42;border-radius:12px;color:#eaf6ff;font-size:20px;font-weight:800}
+.pad button:active{background:#18263a}
+.pad .l{grid-column:1;grid-row:1/3}.pad .r{grid-column:2;grid-row:1/3}.pad .u{grid-column:3;grid-row:1}.pad .d{grid-column:3;grid-row:2}
+.pad .p{grid-column:4;grid-row:1/3;font-size:16px;color:#7f9cc4}.pad .f{grid-column:5;grid-row:1/3;font-size:26px;color:#ff4f9a}
+.foot{color:#4f6378;font-size:11px;margin:2px 12px 16px;text-align:center;max-width:460px}
+a.back{position:fixed;left:10px;top:8px;color:#4f6378;font-size:12px;text-decoration:none}
+@media(min-width:760px){.pad{display:none}}
+</style></head><body>
+<a class="back" href="../">← Каталог</a>
+<div class="wrap"><canvas id="c" width="360" height="540" aria-label="РУСЛО"></canvas></div>
+<div class="pad">
+  <button class="l" data-d="L">◀</button><button class="r" data-d="R">▶</button>
+  <button class="u" data-d="U">▲</button><button class="d" data-d="D">▼</button>
+  <button class="p" id="bPause" aria-label="Пауза">❚❚</button>
+  <button class="f" data-d="A" aria-label="Огонь">●</button>
+</div>
+<div class="foot" id="foot"></div>
+<script src="./engine.js"></script>
+<script src="./js/music.js"></script>
+<script src="./js/core.js"></script>
+<script src="./js/lang.js"></script>
+<script src="./js/audio.js"></script>
+<script src="./js/render.js"></script>
+<script src="./js/game.js"></script>
 <script>
-(function () {
-  var link = document.getElementById('catalog-back');
-  if (!link) return;
+'use strict';
+/* Оболочка v2: меню/пауза/темы/язык/счёт/рекорд/музыка — движок Arcade; полёт, река, враги, топливо —
+   родной js/game.js (без своего canvas#game он не запускает свой цикл и DOM-меню, управляется через RR.test),
+   отрисовка — родной js/render.js (retro = 8-бит, modern = неон). */
+// Перенос старого рекорда (riverraid.hi) в общий ключ движка — один раз.
+(function(){ try{ var S=Arcade.Store, k='arcade.best.ruslo';
+  if(S.get('arcade.migrated.ruslo',null)) return;
+  var old=parseInt(JSON.parse(S.get('riverraid.hi','0')),10)||0;
+  if(old>S.getNum(k,0)) S.set(k,String(old)); S.set('arcade.migrated.ruslo','1');
+}catch(e){} })();
+// Родной чиптюн РУСЛА — только SFX; музыку ведёт движок (js/music.js).
+(function(){ var C=window.Chiptune; if(!C) return; var noop=function(){};
+  window.Chiptune=Object.assign({},C,{startMusic:noop,stopMusic:noop,setPaused:noop}); })();
+var STR={
+ ru:{play:'Играть',language:'Язык',theme:'Тема',sound:'Звук',on:'вкл',off:'выкл',score:'Счёт',level:'Ур.',best:'Рекорд',win:'ПОБЕДА!',gameover:'КОНЕЦ ПОЛЁТА',pause:'ПАУЗА',resume:'Продолжить',menu:'В меню',tapstart:'пробел / тап',title:'РУСЛО',subtitle:'Над рекой · мосты, заправки, топливо',
+   foot:'<b>РУСЛО</b> · ←→ манёвр, ↑↓ скорость, пробел/● — огонь, P/Esc — пауза · L язык, T тема, M звук.'},
+ en:{play:'Play',language:'Language',theme:'Theme',sound:'Sound',on:'on',off:'off',score:'Score',level:'Lvl',best:'Best',win:'VICTORY!',gameover:'FLIGHT OVER',pause:'PAUSE',resume:'Resume',menu:'Menu',tapstart:'space / tap',title:'RUSLO',subtitle:'Over the river · bridges, depots, fuel',
+   foot:'<b>RUSLO</b> · ←→ steer, ↑↓ speed, space/● — fire, P/Esc — pause · L language, T theme, M sound.'}
+};
+var g=Arcade.createGame({canvas:'#c',width:360,height:540,gameId:'ruslo',strings:STR,theme:'modern'});
+// Чёткость: буфер холста 2× (720×1080), вся отрисовка (и движка, и игры) — в логических 360×540.
+(function(){ var cv=g.canvas; cv.width=720; cv.height=1080; g.ctx.setTransform(2,0,0,2,0,0); g._applyPixel(); })();
+g.input.bindDpad(document.querySelector('.pad'));
+function fit(){ g.fit(Math.min(420,Math.max(240,(innerHeight-70)*360/540))); }
+fit(); addEventListener('resize',fit);
+var started=false, lang=null, S=RR.S, T=RR.test;
+function syncLang(){ if(lang!==g.i18n.lang){ lang=g.i18n.lang; if(RR.getLang()!==lang) RR.setLang(lang);
+  document.title=g.t('title')+(lang==='ru'?' · Над рекой — HTML5':' · Over the river — HTML5'); document.documentElement.lang=lang;
+  document.getElementById('foot').innerHTML=g.t('foot',''); } }
+function syncCfg(){ S.gfx=g.themeName==='retro'?'retro':'modern'; RR.cfg.sound=g.audio.enabled;
+  try{ if(RR.cfg.audioReady) Chiptune.setMuted(!g.audio.enabled); }catch(e){} }
+(function poll(){ syncLang(); syncCfg(); requestAnimationFrame(poll); })();
+// G — графика (старая клавиша) = смена темы движка.
+addEventListener('keydown',function(e){ if(e.code==='KeyG'&&!e.repeat) g.toggleTheme(); });
+addEventListener('blur',function(){ ['left','right','up','down','fire'].forEach(function(k){ T.hold(k,false); }); });
+document.addEventListener('visibilitychange',function(){ if(document.hidden&&g._sceneName==='play') g.pause(); });
+(function(){ var b=document.getElementById('bPause'); var f=function(e){ e.preventDefault(); if(g._sceneName==='play') g.pause(); else if(g._sceneName==='pause') g.goto('play',{resume:true}); };
+  b.addEventListener('touchstart',f,{passive:false}); b.addEventListener('mousedown',f); })();
 
-  /* На file:// каталог лежит в index.html корня: «../» открыл бы листинг. */
-  if (location.protocol === 'file:') link.setAttribute('href', '../index.html');
-
-  /* Не даём клику/Enter всплывать в игровые обработчики (старт, пауза и т.п.). */
-  ['pointerdown', 'click', 'keydown'].forEach(function (type) {
-    link.addEventListener(type, function (event) { event.stopPropagation(); }, true);
-  });
-
-  /* --- адаптивное размещение, чтобы не перекрывать меню и кнопки игр --- */
-  var INTERACTIVE = 'a,button,input,select,textarea,[role="button"],[tabindex],[onclick]';
-  link.style.setProperty('transform', 'none', 'important');
-
-  function interactiveBoxes() {
-    var boxes = [];
-    var nodes = document.querySelectorAll(INTERACTIVE);
-    for (var i = 0; i < nodes.length; i += 1) {
-      var el = nodes[i];
-      if (el === link || el.contains(link)) continue;
-      var r = el.getBoundingClientRect();
-      if (r.width < 4 || r.height < 4) continue;
-      var cs = window.getComputedStyle(el);
-      if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) < 0.05) continue;
-      if (cs.pointerEvents === 'none') continue;
-      boxes.push({ left: r.left, top: r.top, right: r.right, bottom: r.bottom });
-    }
-    return boxes;
-  }
-
-  function overlap(a, b) {
-    return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-  }
-
-  function place() {
-    var w = link.offsetWidth;
-    var h = link.offsetHeight;
-    if (!w || !h) return;
-    var W = window.innerWidth;
-    var H = window.innerHeight;
-    var m = 10;
-    var candidates = [
-      { name: 'left-mid', left: 0, top: Math.round((H - h) / 2), shape: 'tab' },
-      { name: 'bottom-left', left: m, top: H - h - m, shape: 'round' },
-      { name: 'top-left', left: m, top: m, shape: 'round' },
-      { name: 'bottom-right', left: W - w - m, top: H - h - m, shape: 'round' },
-      { name: 'top-right', left: W - w - m, top: m, shape: 'round' },
-      { name: 'bottom-center', left: Math.round((W - w) / 2), top: H - h - m, shape: 'round' },
-      { name: 'top-center', left: Math.round((W - w) / 2), top: m, shape: 'round' }
-    ];
-    var boxes = interactiveBoxes();
-    var chosen = candidates[0];
-    for (var i = 0; i < candidates.length; i += 1) {
-      var c = candidates[i];
-      var box = { left: c.left, top: c.top, right: c.left + w, bottom: c.top + h };
-      var hit = false;
-      for (var j = 0; j < boxes.length; j += 1) {
-        if (overlap(box, boxes[j])) { hit = true; break; }
-      }
-      if (!hit) { chosen = c; break; }
-    }
-    link.style.setProperty('left', chosen.left + 'px', 'important');
-    link.style.setProperty('top', chosen.top + 'px', 'important');
-    link.classList.toggle('catalog-back-round', chosen.shape === 'round');
-    link.dataset.place = chosen.name;
-  }
-
-  var timer = 0;
-  function schedule() {
-    window.clearTimeout(timer);
-    timer = window.setTimeout(place, 120);
-  }
-
-  place();
-  window.setTimeout(place, 350);
-  window.setTimeout(place, 1200);
-  window.addEventListener('resize', schedule, { passive: true });
-  window.addEventListener('orientationchange', schedule, { passive: true });
-  document.addEventListener('fullscreenchange', schedule);
-})();
-</script>
-<!-- /catalog-backlink -->
-</body>
-</html>
+g.useStandardScreens({get subtitle(){ return g.t('subtitle',''); },lives:3});
+g.scene('play',{realtime:true,
+  enter:function(d){ if(!(d&&d.resume)){ syncCfg(); S.hi=Math.max(S.hi,this.state.best); T.startGame(); started=true; } },
+  // Раскладка v2: пробел = огонь (action), P/Esc = пауза; Enter в полёте ничего не делает.
+  press:function(a){ if(a==='pause') this.pause(); },
+  update:function(dt){ if(!started) return; var k=this.input.keys, d=this.input.dir;
+    T.hold('left',d.x<0); T.hold('right',d.x>0); T.hold('up',d.y<0); T.hold('down',d.y>0); T.hold('fire',!!k.action);
+    T.update(Math.min(0.05,dt));
+    this.state.score=S.score; this.state.level=S.level; this.state.lives=S.lives;
+    if(S.mode==='over'){ started=false; T.hold('fire',false); this.gameover(); } },
+  draw:function(ctx){ syncCfg(); RR.Render.draw(ctx,S); }
+});
+g.start('title');
+</script></body></html>

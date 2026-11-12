@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-/** Browser logic tests for Boulder Dash. */
+/** Browser logic tests for ОБВАЛ. */
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
-const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const CHROME = process.env.CHROME || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const ROOT = resolve(process.cwd());
 const PORT = 9345;
-const PAGE = `file://${join(ROOT, "index.html")}`;
+const PAGE = `file://${join(ROOT, process.env.PAGE || "index.html")}`;
 const profile = mkdtempSync(join(tmpdir(), "dsh-bd-logic-"));
 const chrome = spawn(CHROME, ["--headless=new", "--disable-gpu", "--no-sandbox", "--mute-audio",
   "--allow-file-access-from-files", `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`, "about:blank"],
@@ -59,7 +59,9 @@ async function run() {
   await setup(); await goto();
   console.log("\\nDEFAULTS");
   const defaultGraphics = await ev("BD.state.graphics");
-  check("default graphics is retro", defaultGraphics === "retro", defaultGraphics);
+  // index.html — движок v2: тема по умолчанию modern; legacy.html — старая страница: retro
+  const expectGfx = /legacy/.test(PAGE) ? "retro" : "modern";
+  check("default graphics is " + expectGfx, defaultGraphics === expectGfx, defaultGraphics);
   await ev("BD.setGraphics('modern', true)");
   check("graphics toggles to neo", await ev("BD.state.graphics") === "modern");
   await ev("BD.setGraphics('retro', true)");

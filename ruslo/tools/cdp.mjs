@@ -4,8 +4,8 @@
  * делает скриншот, печатает console/exception. Без npm-зависимостей.
  *
  * Использование:
- *   node tools/cdp.mjs eval --page index.html --script tools/probe.js [--wait 600] [--settle 400]
- *   node tools/cdp.mjs shot --page index.html --out screenshots/x.png [--width 1280 --height 900]
+ *   node tools/cdp.mjs eval --page legacy.html --script tools/probe.js [--wait 600] [--settle 400]
+ *   node tools/cdp.mjs shot --page legacy.html --out screenshots/x.png [--width 1280 --height 900]
  *   node tools/cdp.mjs eval ... --shot screenshots/x.png
  *
  * Скрипт выполняется как `(async (args) => { <код скрипта> })(<args>)`;
@@ -185,7 +185,7 @@ async function screenshot(out) {
 /* ---------- main ---------- */
 try {
   await open();
-  const page = fileUrl(A.page || "index.html");
+  const page = fileUrl(A.page || "legacy.html"); // v2: старый интерфейс — legacy.html
   await navigate(page);
 
   if (A.scenes) {

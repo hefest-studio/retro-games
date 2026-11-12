@@ -3708,7 +3708,9 @@ function boot() {
   window.__SW = {
     G, STAGES, GFX: () => GFX, LANG: () => LANG,
     setGfx, setLang, newGame, startStage, spawnBoss, spawnShowcase,
-    updatePlay, render, runTests, makeWaves, I18N, Sound, simulate
+    updatePlay, render, runTests, makeWaves, I18N, Sound, simulate,
+    // для оболочки движка v2 (js/host.js): меню/пауза/звук через родные функции
+    CFG, toTitle, pauseGame, resumeGame, toggleSound
   };
   requestAnimationFrame(loop);
 }

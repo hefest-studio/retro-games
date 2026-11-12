@@ -3481,6 +3481,7 @@ function init(){
   window.__LM = {
     G:G, T:T, setLang:setLang, newGame:newGame, genFloor:genFloor, startGame:startGame,
     setGfx:setGfx, gfx:()=>GFX, Music:Music, TRACKS:TRACKS, tick:(dt)=>update(dt||1/60),
+    lang:()=>LANG, toggleMute:toggleMute, muted:()=>A.muted,   // для оболочки движка v2 (js/host.js)
     audio:()=>({ state: A.ctx ? A.ctx.state : null, muted:A.muted, music:Music.name,
                   notes:Music.notes, gain:Music.gain ? Music.gain.gain.value : null })
   };

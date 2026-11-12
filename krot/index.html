@@ -1,198 +1,107 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="dark">
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>КРОТ · Подземные туннели — HTML5</title>
+<meta name="description" content="КРОТ — оригинальная аркада студии «Гефест» о подземном буре на фреймворке Гефест Arcade: копай туннели, собирай алмазы, роняй мешки золота на монстров. Темы retro/modern, RU/EN, офлайн.">
 <meta name="theme-color" content="#05060a">
-<title>КРОТ · HTML5</title>
-<meta name="description" content="КРОТ — оригинальная игра студии «Гефест» о подземном буре: копайте туннели, собирайте алмазы, роняйте мешки золота на монстров. 8-битная музыка, RU/EN, переключение на современную графику.">
-<link rel="stylesheet" href="css/style.css">
+<link rel="canonical" href="https://arcade.hefest.ru/krot/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Гефест · Зал ретро-игр">
+<meta property="og:title" content="КРОТ · Подземные туннели"><meta property="og:url" content="https://arcade.hefest.ru/krot/">
 <style>
-  /* ── СТРУКТУРНЫЙ КАРКАС (Lead): сцена 960×600, оверлей UI, слой эффектов ── */
-  :root { color-scheme: dark; }
-  *, *::before, *::after { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; height: 100%; }
-  body {
-    background: #05060a;
-    color: #e8edf7;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-  }
-  #stage {
-    position: relative;
-    line-height: 0;
-    width: min(96vw, 160vh, 1440px);
-    width: min(96vw, 160dvh, 1440px);
-    aspect-ratio: 8 / 5;
-    border-radius: 14px;
-    overflow: hidden;
-    background: #05060a;
-    box-shadow: 0 0 0 1px rgba(120, 170, 255, .14), 0 24px 70px rgba(0, 0, 0, .65);
-    isolation: isolate;
-  }
-  canvas#game {
-    display: block;
-    width: 100%;
-    height: 100%;
-    background: #05060a;
-    image-rendering: auto;
-    touch-action: none;
-  }
-  body.gfx-classic canvas#game { image-rendering: pixelated; image-rendering: crisp-edges; }
-  #ui, #fx { position: absolute; inset: 0; }
-  #ui { z-index: 3; pointer-events: none; }
-  #ui > * { pointer-events: auto; }
-  #fx { z-index: 2; pointer-events: none; }
-  #err, #testout {
-    position: fixed; z-index: 99; left: 0; top: 0; margin: 0; padding: 10px 12px;
-    display: none; max-width: 100vw; max-height: 100vh; overflow: auto;
-    background: #000; font: 12px/1.45 ui-monospace, Menlo, Consolas, monospace;
-    white-space: pre-wrap; text-align: left;
-  }
-  #err { color: #ff8a8a; }
-  #testout { color: #7dffa8; }
-  /* скриншот-режим: гасим анимации для стабильных кадров */
-  body.shot *, body.shot *::before, body.shot *::after {
-    animation-duration: 0s !important; animation-delay: 0s !important;
-    transition: none !important;
-  }
-  @media (max-width: 720px) {
-    #stage { width: 100vw; width: 100dvw; border-radius: 0; }
-  }
-  /* Портрет: сцена занимает весь экран, мир — letterbox по центру,
-     UI получает полный экран для адаптивных экранов. */
-  @media (max-width: 720px) and (orientation: portrait) {
-    #stage {
-      width: 100vw; width: 100dvw;
-      height: 100vh; height: 100dvh;
-      aspect-ratio: auto;
-      border-radius: 0;
-      display: flex; align-items: center; justify-content: center;
-    }
-    canvas#game { width: 100%; height: auto; }
-  }
-  @media (max-height: 520px) {
-    #stage { width: min(100vw, 160dvh); border-radius: 0; }
-  }
-</style>
-</head>
-<body class="gfx-classic crt-on" data-gfx="classic">
-<div id="stage">
-  <canvas id="game" width="960" height="600" aria-label="Игровое поле КРОТ"></canvas>
-  <div id="ui"></div>
-  <div id="fx" aria-hidden="true"></div>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#05060a;color:#e8edf7;font-family:Inter,system-ui,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
+.wrap{position:relative;width:min(96vw,620px);margin-top:10px}
+canvas{width:100%;display:block;border:1px solid #222838;border-radius:10px;background:#05060a;touch-action:none}
+.pad{width:min(96vw,620px);margin:10px 0;display:grid;grid-template-columns:repeat(3,1fr) 1.2fr;grid-template-rows:repeat(2,50px);gap:8px;max-width:360px}
+.pad button{background:#161a24;border:1px solid #222838;border-radius:12px;color:#eef2f8;font-size:20px;font-weight:800}
+.pad button:active{background:#232a38}
+.pad .u{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
+.pad .f{grid-column:4;grid-row:1/3;font-size:26px;color:#ffb020}
+.foot{color:#5a6273;font-size:11px;margin:2px 12px 16px;text-align:center;max-width:620px}
+a.back{position:fixed;left:10px;top:8px;color:#5a6273;font-size:12px;text-decoration:none}
+@media(min-width:760px){.pad{display:none}}
+</style></head><body>
+<a class="back" href="../">← Каталог</a>
+<div class="wrap"><canvas id="c" width="960" height="600" aria-label="КРОТ"></canvas></div>
+<div class="pad">
+  <button class="u" data-d="U">▲</button><button class="l" data-d="L">◀</button>
+  <button class="d" data-d="D">▼</button><button class="r" data-d="R">▶</button>
+  <button class="f" data-d="A" aria-label="Огонь">●</button>
 </div>
-<pre id="err" aria-hidden="true"></pre>
-<pre id="testout" aria-hidden="true"></pre>
-<noscript><p style="position:fixed;inset:0;display:grid;place-items:center;font:16px sans-serif;color:#fff;background:#000">Для игры нужен JavaScript.</p></noscript>
-<script src="js/i18n.js"></script>
-<script src="js/audio.js"></script>
-<script src="js/game.js"></script>
-<script src="js/classic.js"></script>
-<script src="js/modern.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/main.js"></script>
-<!-- catalog-backlink: ссылка на стартовую страницу проекта (встроена tools/add-catalog-back.mjs) -->
-<style>
-#catalog-back{position:fixed!important;left:0!important;top:50%!important;transform:translateY(-50%)!important;z-index:2147483647!important;display:inline-flex!important;align-items:center!important;gap:6px!important;padding:8px 12px 8px 9px!important;margin:0!important;background:rgba(6,8,14,.82)!important;color:#ffd27a!important;border:1px solid rgba(255,190,80,.6)!important;border-left:0!important;border-radius:0 10px 10px 0!important;font:600 11px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important;letter-spacing:.1em!important;text-transform:uppercase!important;text-decoration:none!important;box-shadow:0 6px 22px rgba(0,0,0,.45)!important;cursor:pointer!important;opacity:.82!important;transition:opacity .15s ease,background .15s ease,color .15s ease!important;-webkit-font-smoothing:antialiased!important;}
-#catalog-back.catalog-back-round{border-left:1px solid rgba(255,190,80,.6)!important;border-radius:10px!important;}
-#catalog-back:hover,#catalog-back:focus-visible{opacity:1!important;background:rgba(255,190,80,.94)!important;color:#0a0b10!important;outline:2px solid #7cf5d2!important;outline-offset:2px!important;}
-#catalog-back .catalog-back-arrow{font-size:13px!important;line-height:1!important;}
-@media (max-width:480px){#catalog-back{font-size:10px!important;padding:6px 9px 6px 7px!important;gap:4px!important;}}
-@media (prefers-reduced-motion:reduce){#catalog-back{transition:none!important;}}
-</style>
-<a id="catalog-back" href="../" title="На стартовую страницу проекта — в каталог игр" aria-label="Вернуться на стартовую страницу проекта — каталог игр" data-catalog-back="1"><span class="catalog-back-arrow" aria-hidden="true">&larr;</span>Каталог</a>
+<div class="foot" id="foot"></div>
+<script src="./engine.js"></script>
+<script src="./js/music.js"></script>
+<script src="./js/i18n.js"></script>
+<script src="./js/audio.js"></script>
+<script src="./js/game.js"></script>
+<script src="./js/classic.js"></script>
+<script src="./js/modern.js"></script>
 <script>
-(function () {
-  var link = document.getElementById('catalog-back');
-  if (!link) return;
+'use strict';
+// Перенос старого рекорда (digger.hi.v1) в общий ключ движка — один раз.
+(function(){ try{ var S=Arcade.Store, k='arcade.best.krot';
+  if(S.get('arcade.migrated.krot',null)) return;
+  var old=parseInt(JSON.parse(S.get('digger.hi.v1','0')),10)||0;
+  if(old>S.getNum(k,0)) S.set(k,String(old)); S.set('arcade.migrated.krot','1');
+}catch(e){} })();
+var STR={
+ ru:{play:'Играть',language:'Язык',theme:'Тема',sound:'Звук',on:'вкл',off:'выкл',score:'Счёт',level:'Ур.',best:'Рекорд',win:'ПОБЕДА!',gameover:'КОНЕЦ ИГРЫ',pause:'ПАУЗА',resume:'Продолжить',menu:'В меню',tapstart:'пробел / тап',title:'КРОТ',subtitle:'Подземные туннели · алмазы и мешки золота',
+   foot:'<b>КРОТ</b> · стрелки/WASD — копать, пробел/● — выстрел, P/Esc — пауза · L язык, T тема, M звук.'},
+ en:{play:'Play',language:'Language',theme:'Theme',sound:'Sound',on:'on',off:'off',score:'Score',level:'Lvl',best:'Best',win:'VICTORY!',gameover:'GAME OVER',pause:'PAUSE',resume:'Resume',menu:'Menu',tapstart:'space / tap',title:'KROT',subtitle:'Underground tunnels · gems and gold bags',
+   foot:'<b>KROT</b> · arrows/WASD — dig, space/● — fire, P/Esc — pause · L language, T theme, M sound.'}
+};
+var g=Arcade.createGame({canvas:'#c',width:960,height:600,gameId:'krot',strings:STR,theme:'modern'});
+g.input.bindDpad(document.querySelector('.pad'));
+g.fit(620); addEventListener('resize',function(){g.fit(620);});
+var game=null, lang=null;
 
-  /* На file:// каталог лежит в index.html корня: «../» открыл бы листинг. */
-  if (location.protocol === 'file:') link.setAttribute('href', '../index.html');
+// Родной звук КРОТА (SFX) — только эффекты; музыку ведёт движок (js/music.js).
+var DA=window.DG&&DG.audio;
+if(DA){ try{ DA.setMusicEnabled(false); DA.setVolume(0.6); }catch(e){} }
+function unlockSfx(){ if(DA){ try{ DA.unlock(); DA.setMusicEnabled(false); }catch(e){} } }
+['keydown','pointerdown','touchstart'].forEach(function(ev){ addEventListener(ev,unlockSfx,{passive:true}); });
+var lastDig=0;
+function sfx(n){ if(!DA||!g.audio.enabled) return; try{ DA.sfx(n); }catch(e){} }
+var SFX={dig:'dig',gem:'gem',gold:'gold',bagPush:'bag_push',bagWobble:'bag_wobble',bagFall:'bag_fall',bagBreak:'bag_break',
+  shoot:'shoot',monsterDie:'monster_die',squash:'squash',cherry:'cherry',bonusStart:'bonus',eat:'eat',playerDie:'player_die',
+  extraLife:'extra_life',levelClear:'level_clear'};
+function syncLang(){ if(lang!==g.i18n.lang){ lang=g.i18n.lang; DG.i18n.setLang(lang); document.documentElement.lang=lang;
+  document.getElementById('foot').innerHTML=g.t('foot',''); } }
 
-  /* Не даём клику/Enter всплывать в игровые обработчики (старт, пауза и т.п.). */
-  ['pointerdown', 'click', 'keydown'].forEach(function (type) {
-    link.addEventListener(type, function (event) { event.stopPropagation(); }, true);
-  });
+function mkGame(){ return DG.Game({ seed:(Date.now()^((Math.random()*0x7fffffff)|0))>>>0, hiscore:g.state.best,
+  onEvent:function(type){
+    if(type==='dig'){ var now=performance.now(); if(now-lastDig<60) return; lastDig=now; }
+    if(SFX[type]) sfx(SFX[type]);
+    if(type==='gameOver'&&game){ g.state.score=game.state.score; g.gameover(); }
+  }}); }
+function render(ctx){ if(!game){ g.clear(); return; }
+  ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+  (g.themeName==='retro'?DG.render.classic:DG.render.modern).draw(ctx,game.state); }
 
-  /* --- адаптивное размещение, чтобы не перекрывать меню и кнопки игр --- */
-  var INTERACTIVE = 'a,button,input,select,textarea,[role="button"],[tabindex],[onclick]';
-  link.style.setProperty('transform', 'none', 'important');
+// Направление: последняя нажатая клавиша (как в оригинале), тач-крестовина — через движок.
+var DIRK={ArrowUp:0,KeyW:0,ArrowRight:1,KeyD:1,ArrowDown:2,KeyS:2,ArrowLeft:3,KeyA:3};
+var stack=[], lastSent=-2;
+addEventListener('keydown',function(e){ if(!(e.code in DIRK)) return; for(var i=0;i<stack.length;i++) if(stack[i].c===e.code) return; stack.push({c:e.code,d:DIRK[e.code]}); });
+addEventListener('keyup',function(e){ for(var i=stack.length-1;i>=0;i--) if(stack[i].c===e.code){ stack.splice(i,1); return; } });
+addEventListener('blur',function(){ stack=[]; });
+function curDir(){ if(stack.length) return stack[stack.length-1].d; var d=g.input.dir;
+  return d.y<0?0:d.x>0?1:d.y>0?2:d.x<0?3:-1; }
+// G — графика (старая клавиша) = смена темы движка.
+addEventListener('keydown',function(e){ if(e.code==='KeyG'&&!e.repeat) g.toggleTheme(); });
+document.addEventListener('visibilitychange',function(){ if(document.hidden&&g._sceneName==='play') g.pause(); });
 
-  function interactiveBoxes() {
-    var boxes = [];
-    var nodes = document.querySelectorAll(INTERACTIVE);
-    for (var i = 0; i < nodes.length; i += 1) {
-      var el = nodes[i];
-      if (el === link || el.contains(link)) continue;
-      var r = el.getBoundingClientRect();
-      if (r.width < 4 || r.height < 4) continue;
-      var cs = window.getComputedStyle(el);
-      if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) < 0.05) continue;
-      if (cs.pointerEvents === 'none') continue;
-      boxes.push({ left: r.left, top: r.top, right: r.right, bottom: r.bottom });
-    }
-    return boxes;
-  }
-
-  function overlap(a, b) {
-    return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-  }
-
-  function place() {
-    var w = link.offsetWidth;
-    var h = link.offsetHeight;
-    if (!w || !h) return;
-    var W = window.innerWidth;
-    var H = window.innerHeight;
-    var m = 10;
-    var candidates = [
-      { name: 'left-mid', left: 0, top: Math.round((H - h) / 2), shape: 'tab' },
-      { name: 'bottom-left', left: m, top: H - h - m, shape: 'round' },
-      { name: 'top-left', left: m, top: m, shape: 'round' },
-      { name: 'bottom-right', left: W - w - m, top: H - h - m, shape: 'round' },
-      { name: 'top-right', left: W - w - m, top: m, shape: 'round' },
-      { name: 'bottom-center', left: Math.round((W - w) / 2), top: H - h - m, shape: 'round' },
-      { name: 'top-center', left: Math.round((W - w) / 2), top: m, shape: 'round' }
-    ];
-    var boxes = interactiveBoxes();
-    var chosen = candidates[0];
-    for (var i = 0; i < candidates.length; i += 1) {
-      var c = candidates[i];
-      var box = { left: c.left, top: c.top, right: c.left + w, bottom: c.top + h };
-      var hit = false;
-      for (var j = 0; j < boxes.length; j += 1) {
-        if (overlap(box, boxes[j])) { hit = true; break; }
-      }
-      if (!hit) { chosen = c; break; }
-    }
-    link.style.setProperty('left', chosen.left + 'px', 'important');
-    link.style.setProperty('top', chosen.top + 'px', 'important');
-    link.classList.toggle('catalog-back-round', chosen.shape === 'round');
-    link.dataset.place = chosen.name;
-  }
-
-  var timer = 0;
-  function schedule() {
-    window.clearTimeout(timer);
-    timer = window.setTimeout(place, 120);
-  }
-
-  place();
-  window.setTimeout(place, 350);
-  window.setTimeout(place, 1200);
-  window.addEventListener('resize', schedule, { passive: true });
-  window.addEventListener('orientationchange', schedule, { passive: true });
-  document.addEventListener('fullscreenchange', schedule);
-})();
-</script>
-<!-- /catalog-backlink -->
-</body>
-</html>
+// заголовок и подзаголовок меню — по текущему языку движка
+g.useStandardScreens({get subtitle(){ return g.t('subtitle',''); },lives:3});
+(function poll(){ syncLang(); requestAnimationFrame(poll); })();
+g.scene('play',{realtime:true,
+  enter:function(d){ if(!(d&&d.resume)){ game=mkGame(); game.start(); lastSent=-2; } },
+  press:function(a){ if(a==='pause') this.pause(); },
+  update:function(dt){ if(!game) return; var S=game.state;
+    var dir=curDir(); if(dir!==lastSent){ game.setDir(dir); lastSent=dir; }
+    if(this.input.keys.action&&(S.mode==='play'||S.mode==='bonus')) game.shoot();
+    game.update(dt); this.state.score=S.score; this.state.level=S.level; this.state.lives=S.lives; },
+  draw:function(ctx){ render(ctx); }
+});
+g.start('title');
+</script></body></html>

@@ -1,244 +1,115 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>СТАРАТЕЛЬ — pixel-art edition</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>СТАРАТЕЛЬ · Обвал в шахте — HTML5</title>
+<meta name="description" content="СТАРАТЕЛЬ — оригинальная головоломка-аркада студии «Гефест» на фреймворке Гефест Arcade: копай породу, собирай золото, роняй валуны на големов и уходи в выход. Темы retro (пиксель-арт) / modern, RU/EN, офлайн.">
+<meta name="theme-color" content="#120e14">
+<link rel="canonical" href="https://arcade.hefest.ru/staratel/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Гефест · Зал ретро-игр">
+<meta property="og:title" content="СТАРАТЕЛЬ · Обвал в шахте"><meta property="og:url" content="https://arcade.hefest.ru/staratel/">
 <style>
-:root{--ember:#ea6a12;--gold:#f0b63a}
+/* Палитра страницы и HUD следует теме движка: body.th-retro (пиксель-арт, как прежде) / body.th-modern */
+body.th-retro{--bg:#120e14;--ink:#f3e9da;--cell:#1d1620;--line:#3a2f26;--muted:#6b5d4e;--acc:#ea6a12;--cv:#17111c;--font:"Courier New",ui-monospace,monospace;--r:4px}
+body.th-modern{--bg:#0b0d14;--ink:#eef2f8;--cell:#161a24;--line:#222838;--muted:#5a6273;--acc:#4f8cff;--cv:#0e1016;--font:Inter,system-ui,sans-serif;--r:10px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:#120e14;color:#f3e9da;font-family:Inter,system-ui,sans-serif;
-  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
-.hud{width:min(94vw,520px);display:flex;justify-content:space-between;align-items:center;gap:6px;margin:10px 0 8px;font-weight:800;font-size:13px}
-.hud .cell{display:flex;align-items:center;gap:5px;background:#1d1620;border:1px solid #3a2f26;border-radius:10px;padding:6px 9px;white-space:nowrap}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden;transition:background .2s}
+.hud{width:min(94vw,520px);display:flex;justify-content:space-between;align-items:center;gap:6px;margin:10px 0 8px;font-weight:800;font-size:13px;font-family:var(--font)}
+.hud .cell{display:flex;align-items:center;gap:5px;background:var(--cell);border:1px solid var(--line);border-radius:var(--r);padding:6px 9px;white-space:nowrap}
+.hud .cell b{color:var(--ink)}
 .hud img{width:18px;height:18px;image-rendering:pixelated}
+.hud .coin{display:none;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff3c4,#ffc93c 50%,#d48a12);box-shadow:0 0 8px rgba(255,190,60,.6)}
+body.th-modern .hud img{display:none} body.th-modern .hud .coin{display:inline-block}
+body.th-modern .hud .lives{color:#ff5d6c}
 .lives{letter-spacing:1px}
 .wrap{position:relative;width:min(94vw,520px)}
-canvas{width:100%;display:block;image-rendering:pixelated;border:2px solid #3a2f26;border-radius:12px;background:#17111c;box-shadow:0 24px 70px -30px #000}
-.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
-  background:rgba(12,9,14,.85);backdrop-filter:blur(3px);border-radius:12px;text-align:center;padding:20px}
-.overlay.hide{display:none}
-.overlay h1{margin:0;font-size:clamp(26px,7vw,40px);letter-spacing:-.02em}
-.overlay h1 .e{color:var(--ember)}
-.overlay p{margin:0;color:#b59b7e;font-size:14px;max-width:380px;line-height:1.55}
-.overlay p b{color:#f3e9da}
-.btn{border:0;background:var(--ember);color:#fff;font:800 16px Inter,sans-serif;padding:13px 28px;border-radius:999px;cursor:pointer;box-shadow:0 10px 30px -10px var(--ember)}
-.btn:active{transform:translateY(1px)}
+canvas{width:100%;display:block;border:2px solid var(--line);border-radius:12px;background:var(--cv);box-shadow:0 24px 70px -30px #000;touch-action:none}
+body.th-retro canvas{image-rendering:pixelated}
 .pad{width:min(94vw,520px);margin:12px 0 20px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,52px);gap:8px;max-width:260px}
-.pad button{background:#1d1620;border:1px solid #3a2f26;border-radius:12px;color:#f3e9da;font-size:22px;font-weight:800;cursor:pointer}
-.pad button:active{background:#2a2029}
+.pad button{background:var(--cell);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-size:22px;font-weight:800;cursor:pointer}
+.pad button:active{filter:brightness(1.3)}
 .pad .u{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
-.foot{color:#6b5d4e;font-size:11px;margin-bottom:16px;text-align:center;padding:0 12px}
+.pad .p{grid-column:3;grid-row:1;font-size:15px;color:var(--muted)}
+.foot{color:var(--muted);font-size:11px;margin-bottom:16px;text-align:center;padding:0 12px;max-width:560px}
+a.back{position:fixed;left:10px;top:8px;color:var(--muted);font-size:12px;text-decoration:none}
 @media(min-width:760px){.pad{display:none}}
-</style></head><body>
-<div class="hud">
-  <span class="cell"><img id="hudCoin">Счёт <b id="score">0</b></span>
-  <span class="cell"><img id="hudCoin2">Золото <b id="goal">0/0</b></span>
-  <span class="cell">Ур.<b id="level">1</b></span>
+</style></head><body class="th-modern">
+<a class="back" href="../">← Каталог</a>
+<div class="hud" id="hud">
+  <span class="cell"><img id="hudCoin" alt=""><i class="coin"></i><span data-t="hudScore">Счёт</span> <b id="score">0</b></span>
+  <span class="cell"><img id="hudCoin2" alt=""><i class="coin"></i><span data-t="hudGold">Золото</span> <b id="goal">0/0</b></span>
+  <span class="cell"><span data-t="hudLevel">Ур.</span><b id="level">1</b></span>
   <span class="cell lives">♥<b id="lives">3</b></span>
 </div>
-<div class="wrap">
-  <canvas id="c" width="480" height="480"></canvas>
-  <div class="overlay" id="ov">
-    <h1>СТАРАТЕЛЬ <span class="e">◆</span></h1>
-    <p>Копай породу и собирай золото. <b>Валуны держатся на породе</b> — выкопай опору снизу, и валун рухнет: <b>раздавит голема</b> (премия к счёту) — или тебя. Набери норму золота — откроется <b>выход ▣</b>, добеги до него. Валуны можно толкать вбок. Големы и камни двигаются сами — не зевай.</p>
-    <button class="btn" id="startBtn">Начать смену</button>
-    <p style="font-size:12px;opacity:.7">Стрелки / WASD · на телефоне — крестовина внизу</p>
-  </div>
-</div>
+<div class="wrap"><canvas id="c" width="480" height="480" aria-label="СТАРАТЕЛЬ"></canvas></div>
 <div class="pad">
   <button class="u" data-d="U">▲</button><button class="l" data-d="L">◀</button>
   <button class="d" data-d="D">▼</button><button class="r" data-d="R">▶</button>
+  <button class="p" id="bPause" aria-label="Пауза">❚❚</button>
 </div>
-<div class="foot">Спрайты из pixel-art-atlas (CC0): imp · oval coin · crystal shard · wooden golem. Студия «Гефест».</div>
+<div class="foot" id="foot"></div>
+<script src="./engine.js"></script>
+<script src="./js/music.js"></script>
+<script src="./js/mine.js"></script>
+<script src="./js/mine-sprites.js"></script>
+<script src="./js/mine-retro.js"></script>
+<script src="./js/mine-modern.js"></script>
 <script>
-const SRC={player:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAADsklEQVR4nO3dv0vUcRzH8TMUKrGs06iUcPE/qIZoiH5MJSkFNQRu0g+CGlqisb0hsKhJiH6AoVFNQTREELVUoxEiXkV6dSlW4GBDY/B6n7y9uuP1fKzvvndfrydf+Hzue3dNhbTVS7njfzXlz6GR/d/Xb1XuydHoCMAcAZgjAHMEYI4AzBGAueb4n+h16vjIKXl0/+C1ZZ3Qcp+//uXW6VW8vsHro5+fK4A5AjBHAOYIwBwBmCMAcwRgrop9gJzsOraj2C2PLxY7l39SK6hcnpHz2fJ0ah+l1rgCmCMAcwRgjgDMEYA5AjBHAObS+wC377yU80M7euV8XzB/8+GnnEfr8GifIDo+a6h/p5zPvf8q549eTazk6fyFK4A5AjBHAOYIwBwBmCMAcwRgrop71vV9+b1b9Tp7W1e7nF/ZFZ+BsveW3ieotacn1qSOP/9Cz6dKFTmf+BjtY/C5AAgEYI4AzBGAOQIwRwDmCMBcU7TOf3hwi3yAvsef5LyzvV3Oz3XpWxL69m+Q80h2nyC7zr/74Iuc36zorZiZSkXOs/8/XAHMEYA5AjBHAOYIwBwBmCMAc+E+wOmuYuoJFloW5Xxkck7OL/asl/Pjhzct+5xW0vVRfV//cKks54M96+S8dbFFzrOvL1cAcwRgjgDMEYA5AjBHAOYIwFxzdN/4cKmc+r7+aJ27ML5Hzlv7n8l5ZVTfT3Dy6EY5j2TX+dHfd+HMu9Tjx/hcAAQCMEcA5gjAHAGYIwBzBGCuiu8JjH73Lve7ft/eTmUOj9fJo6mHT6/Dlyan5Tx6Pz+W+11CrgDmCMAcAZgjAHMEYI4AzBGAudQa8g+9DxDdD9AVnMKRA/p7CFvWrsCfkLD4Q2+D3H+iv8evVNDHR/f1sw+AFAIwRwDmCMAcAZgjAHMEYK7m+wAdxW559FDbvJzf+6xP8fnrq3K+e/tZOY9kH//YZr3OvzHfJuezZX0/AfsASCEAcwRgjgDMEYA5AjBHAOb+wZvpep9goEN/D+Clgdz9ANH79ZHs418e0/cDjM1+D84gt86PcAUwRwDmCMAcAZgjAHMEYI4AzP3fm+oLhUL2cwX1rtb39WdxBTBHAOYIwBwBmCMAcwRgjgDM1cE+QCT3uYNiUd9PECmX9fv5tb5vv9a4ApgjAHMEYI4AzBGAOQIwRwDm6nqNWp3cPkGk0df5Ea4A5gjAHAGYIwBzBGCOAMwRgLmGXsNWJ/e7ho2+zo9wBTBHAOYIwBwBmCMAcwRgjgDM/Qa48cVJT3F5fwAAAABJRU5ErkJggg==",gold:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAADXElEQVR4nO3dvUtWYRiAcT8hofykCHLIaKogMHII+gcaisaMGqOtqYb+gIamXIIam2poCByqzaUvyZboi8wigwbzM1NRs7VB7js5Hc8r1/Vbb17PQS4eeB6P76mv2+KaG1vXqrz+8upsfZXXL6qh6htQtQwAzgDgDADOAOAMAM4A4Gp+D5vt83/NPCv1+u8u94fz3tufwnmtnxO4AsAZAJwBwBkAnAHAGQCcAcBVvkctus9f+DgQzpsaO8L5yupUoc+P3nwYzmv9nMAVAM4A4AwAzgDgDADOAOAMAK6p7AsU3ecvj90J5y37L238pv7SPHE/vv7cfDjfdaI7nL+YWQrnfffqwt9P2ecErgBwBgBnAHAGAGcAcAYAZwBwpZ8DZLJ9fnPP+VJ/fmPH4XC+Mv4onO/Yeyi5g9FkXi1XADgDgDMAOAOAMwA4A4AzALjC5wBl/72/qJ8PnoTzbUe+h/Om7t3hfO7z63C+58DOcH6tty2cXx15U+rzAq4AcAYAZwBwBgBnAHAGAGcAcOU/D5A8d1/U1I2L4byt/2w4X5odCefZOUK2CV9pbw7n040zyU8olysAnAHAGQCcAcAZAJwBwBkAXOnnANn/16efL/i8wNL7p4U+n9l+6lg4z84R2ldb/uftbJgrAJwBwBkAnAHAGQCcAcAZAFzl3w+QaZhcDOetx3vD+e/ObeE826cX3efXOlcAOAOAMwA4A4AzADgDgDMAuJo/B5gYehzOO0+fDOfZewEzK+Px9wdsda4AcAYAZwBwBgBnAHAGAGcAcJWfA2T79GyfPz00HM6XxybDece5vnC+OPg2nG91rgBwBgBnAHAGAGcAcAYAZwBwpb6bvq4uf5/Aj5dnws8vfP0WzvP39sXKfq5/YDD+HsDrw2PhvOj7ADKuAHAGAGcAcAYAZwBwBgBnAHCVPw/w5dbzcN51sCucz0x8COdr8/E+vOgvINvnV/09gBlXADgDgDMAOAOAMwA4A4AzALjSnwfIZM8LjFzYt1m3sq67r8LbS1X99/6MKwCcAcAZAJwBwBkAnAHAGQBc5ecAmeyc4MrRns26lXXV+j4/4woAZwBwBgBnAHAGAGcAcAYAV9N71H+RnROUrdb3+RlXADgDgDMAOAOAMwA4A4AzALg/hia2ZguQgJMAAAAASUVORK5CYII=",gem:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAADH0lEQVR4nO3dsUuUYRzA8bOro8PqqCxI0ZzCwZZoiCCouSXIpfYmh/Yaoz/BpbWhpZbAtqAlc9IIhwYDIRHCOiUVUzT7D36P8HQ979v3+1l/vscFXx54nnvu6mv859qtgYOc57d3v/f9rfdSRUdKvwGVZQBwBgBnAHAGAGcAcAYAV/s9bmqf/3P9Y/j8wfyTcN659Sqc1/2cwBUAzgDgDADOAOAMAM4A4AwArvJ72Ox9/tvJcL72ci6cn564Es47d9+H86qfE7gCwBkAnAHAGQCcAcAZAJwBwB0t/QZy/d5eCee5m/D91fXMV6g2VwA4A4AzADgDgDMAOAOAMwC44ucAuZ/3p84Bcq1Mf4nnT4fC+eDjRvjvK31fwBUAzgDgDADOAOAMAM4A4AwArufnALn7/L0PU+G8ebwbzve3NsL55mb8M4Kv54+F85sbP8L518lz4Xx4quw5gSsAnAHAGQCcAcAZAJwBwBkAXPH7AKnf6fs1NxvO+69fC+fN/pPhvDMSzx+Mh+PG1tJe/AcV5woAZwBwBgBnAHAGAGcAcAYAV/wcYO3Zm6znu7PT4XzkeXyO0Px8O5y3xkbj+dVw3Jh6+Cn+g8JcAeAMAM4A4AwAzgDgDADgDMAuOLnAM0zJ7KeHx6/FM4X7sT3Bd4txvf+G434Pv7+jfg+wKPl7XDu7wOoKAOAMwA4A4AzADgDgDMAOAOAK34O0DxzIuv54Yn4vsCCO/F9gXeL8b3/RiO+z9+/Ed8HeLS8Hc79fQAVZQBwBgBnAHAGAGcAcAYAZwBwxc8Bem1tc8/5Un9+Y8fhcL4y/iic79h7KLmD0WReLVcAOAOAMwA4A4AzADgDgDMAuMLnAGX/vb+onw/ehPNtR76H8+bqXeH87nOrcP7nQE6wfi23LZxfHXlT6vMCrgBwBgBnAHAGAGcAcAYAZwBw5T8PkDx3X9TUjYvhvK3/bDhfmh0J59k5QrYJX2lvDufTjTPJTyiXKwCcAcAZAJwBwBkAnAHAGQBc6ecA2f/Xp58v+LzA0vunhT6f2X7qWDjPzhHaV1v+5+1smCsAnAHAGQCcAcAZAJwBwBkAXOXfD5BpmFwM563He8P5785t4Twb59fdJ9c6VwA4A4AzADgDgDMAOAOAMwC4mj8HmBh6HM47T58M59l7ATMr4/H3B2x1rgBwBgBnAHAGAGcAcAYAZwBwlZ8DZPv0bJ8/PTQczpfHJsN5x7m+cL44+Dacb3WuAHAGAGcAcAYAZwBwBgBnAHClvpu+ri5/n8CPl2fCzy98/RbO8/f2xcp+rn9gMP4ewOvDY+G86PsAMq4AcAYAZwBwBgBnAHAGAGcAcJU/D/Dl1vNw3nWwK5zPTHwI52vz8T686C8g2+dX/T2AGVcAOAOAMwA4A4AzADgDgDMAuNKfB8hkzwuMXNi3Wbeyrruvwtt3XXQBwQXQIOwAAAABJRU5ErkJggg==",enemy:"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAEKUlEQVR4nO2dzUtUURjGrzHhaKlJbqKECrOCtDJqFa2CzAg3LaJ2/QNtIoigVe0Mi6BatWhRUIuQNn4E4SioKKOjgaUzNTaIX31Y+TUS2R8QPK/yOl3heX7bx3vP4c7PF865556TF2x4ClbC7oGPxbywe4DYFHYHRLhIAHIkADkSgBwJQI4EIEcCkLMBxqh4nD/bcR1enewaWM/O/MPLziTMB9LzMG8ZnDJaCHeeQBWAHAlAjgQgRwKQIwHIkQDkSAByIrlvAo/zhx/Wwau7mzthfq8Lt367divMn75JwfzDJB7nXzxSijtg0DI4Zax3yO08gSoAORKAHAlAjgQgRwKQIwHIkQDk/Id5gHDJfv8O8/zFOdf9J2YWXdeHjSoAORKAHAlAjgQgRwKQIwHIkQDkrMM8gO/7/f70L5hfbWz33D7Irz0H8/QOvF4g3t2K82Hcfs3BXfgPTKzn61svoApAjgQgRwKQIwHIkQDkSAByJAA5q5gH8K3rP3+jeU0dWm+s9QBBgOcBck1FCf4fPFVZBvMnvdOueQJVAHIkADkSgBwJQI4EIEcCkCMByIl4x/mvWj+5OlAVXXJdv9GpLsE53p0gCC6d9O0/YM0TqAKQIwHIkQDkSAByJAA5EoAcCUCOuR7AWrc/ubDs6sDQUhTmsfv1MO+dwO/z2/t6YH7rOIyDo6crYH7iAO5/S98sbsDJ3LLvWEVVAHIkADkSgBwJQI4EIEcCkCMByHHvDzA6txnmyR9/XPe35iGeGePsorK9+P7vcfuT7/AGALFsNczn0+Mwt55PQ2I7zM8cwtsDvEjMwFwVgBwJQI4EIEcCkCMByJEA5EgAcsx5gLb4FMxXovj7dYtHz/thfvZYOcwbL+yB+UgC99+kbj+Mm+JJmMd+LvjaN3B+lqEKwI4EIEcCkCMByJEA5EgAciQAOeY8wOUq/L65IeHrQEcGn9tXWPoN5rNDlTDf9vkLzGPZnTC3SI7g+3vXQ1w7/BXmd3tcxwWoArAjAciRAORIAHIkADkSgBwJQI77u4DKCH7f7j0tIDWG17Wnxl47W8g4rw+Xonk8T2ChCkCOBCBHApAjAciRAORIAHIkADl51nkBNeVFrgbiGfx9v3UeQXf3R5jfaRqBufd9vHWu3816vB7hwVu8P4D1fHL9/FUByJEA5EgAciQAORKAHAlAjgQgJ2KdLx/PBL4N6Q3GR/HJeRMz+FzBmt14H72ksU+exeMr+2DelsLnJWxxPj5rHG+Df19VAHIkADkSgBwJQI4EIEcCkCMByFnFdwF4HGmD1xv8LsTj+FgW3704GF1zj9ZCQbQY5gnjvIQgmHb2wPv8MaoA5EgAciQAORKAHAlAjgQgRwKQk9Mx5urA8wR+cjuP4Se343wLVQByJAA5EoAcCUCOBCBHApAjAcj5Cyvx4o2crBBAAAAAAElFTkSuQmCC"};
-const IMG={};
-const N=15, TS=32, cv=document.getElementById('c'), x=cv.getContext('2d'); x.imageSmoothingEnabled=false;
-const WALL=1, DIRT=0, EMPTY=2, BOULDER=3, GOLD=4, GEM=5, EXIT=6;
-let grid, fall, player, enemies, score=0, lives=3, level=1, running=false, inv=0;
-let need=0, got=0, exitPos=null, shake=0, flash=0;
-const $=id=>document.getElementById(id);
-function ac(){try{return new (window.AudioContext||window.webkitAudioContext)()}catch(e){return null}}
-let AC=null;
-function beep(f,d,t,v){ if(!AC)return; const o=AC.createOscillator(),g=AC.createGain(); o.type=t||'square'; o.frequency.value=f;
-  o.connect(g); g.connect(AC.destination); g.gain.setValueAtTime(v||.07,AC.currentTime); g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);
-  o.start(); o.stop(AC.currentTime+d); }
-
-function entityAt(gx,gy){ if(player.gx===gx&&player.gy===gy) return 'player';
-  if(enemies.some(e=>e.gx===gx&&e.gy===gy)) return 'enemy'; return null; }
-
-function genLevel(){
-  grid=[]; fall=[];
-  for(let y=0;y<N;y++){ grid.push([]); fall.push([]);
-    for(let xx=0;xx<N;xx++){ fall[y].push(false);
-      let t = (xx===0||y===0||xx===N-1||y===N-1) ? WALL : DIRT;
-      if(t===DIRT){ const r=Math.random();
-        if(r<0.07) t=WALL; else if(r<0.21) t=BOULDER; else if(r<0.32) t=GOLD; else if(r<0.355) t=GEM; }
-      grid[y].push(t);
-    }
-  }
-  player={gx:1,gy:1,bob:0};
-  // безопасный карман у старта: ничего не падает на спавн
-  for(let dy=0;dy<3;dy++)for(let dx=0;dx<3;dx++){ const gx=1+dx,gy=1+dy; if(gx<N-1&&gy<N-1&&grid[gy][gx]!==WALL) grid[gy][gx]=DIRT; }
-  grid[1][1]=EMPTY;
-  // выход — подальше от старта, в породе
-  let ex,ey,t=0; do{ ex=2+Math.floor(Math.random()*(N-4)); ey=2+Math.floor(Math.random()*(N-4)); t++; }
-  while(t<300 && (grid[ey][ex]===WALL || (ex-1)+(ey-1)<12));
-  exitPos={gx:ex,gy:ey}; grid[ey][ex]=EXIT;
-  // враги
-  enemies=[]; const ne=Math.min(1+level,5);
-  for(let i=0;i<ne;i++){ let gx,gy,k=0;
-    do{ gx=2+Math.floor(Math.random()*(N-4)); gy=2+Math.floor(Math.random()*(N-4)); k++; }
-    while(k<400 && (grid[gy][gx]===WALL || grid[gy][gx]===EXIT || Math.abs(gx-1)+Math.abs(gy-1)<8));
-    grid[gy][gx]=EMPTY; enemies.push({gx,gy,slow:0}); }
-  // норма золота
-  let total=0; for(let y=0;y<N;y++)for(let xx=0;xx<N;xx++) if(grid[y][xx]===GOLD||grid[y][xx]===GEM) total++;
-  need=Math.max(3,Math.min(14,Math.ceil(total*0.5))); got=0;
-  $('goal').textContent=got+'/'+need; $('level').textContent=level;
+'use strict';
+/* Оболочка v2: меню/пауза/темы/язык/счёт/рекорд/музыка — движок Arcade; правила шахты — js/mine.js
+   (перенесены 1:1 из прежней страницы, она сохранена как legacy.html); retro — прежний пиксель-арт,
+   modern — векторный рендер. DOM-HUD сверху сохранён и следует теме и языку движка.
+   Рекордов прежняя версия не хранила — переносить нечего, рекорд ведёт движок (arcade.best.staratel). */
+var STR={
+ ru:{play:'Играть',language:'Язык',theme:'Тема',sound:'Звук',on:'вкл',off:'выкл',score:'Счёт',level:'Ур.',best:'Рекорд',win:'ПОБЕДА!',gameover:'СМЕНА ОКОНЧЕНА',pause:'ПАУЗА',resume:'Продолжить',menu:'В меню',tapstart:'пробел / тап',title:'СТАРАТЕЛЬ',subtitle:'Обвал в шахте · норма золота, валуны и големы',
+   hudScore:'Счёт',hudGold:'Золото',hudLevel:'Ур.',
+   foot:'<b>СТАРАТЕЛЬ</b> · стрелки/WASD — ход и копка, валуны толкаются вбок · P/Esc — пауза · L язык, T тема, M звук.<br>Спрайты retro-темы из pixel-art-atlas (CC0): imp · oval coin · crystal shard · wooden golem. Студия «Гефест».'},
+ en:{play:'Play',language:'Language',theme:'Theme',sound:'Sound',on:'on',off:'off',score:'Score',level:'Lvl',best:'Best',win:'VICTORY!',gameover:'SHIFT OVER',pause:'PAUSE',resume:'Resume',menu:'Menu',tapstart:'space / tap',title:'STARATEL',subtitle:'Mine cave-in · gold quota, boulders and golems',
+   hudScore:'Score',hudGold:'Gold',hudLevel:'Lvl',
+   foot:'<b>STARATEL</b> · arrows/WASD — move and dig, push boulders sideways · P/Esc — pause · L language, T theme, M sound.<br>Retro sprites from pixel-art-atlas (CC0): imp · oval coin · crystal shard · wooden golem. Hefest studio.'}
+};
+var g=Arcade.createGame({canvas:'#c',width:480,height:480,gameId:'staratel',strings:STR,theme:'modern'});
+g.input.bindDpad(document.querySelector('.pad'));
+g.fit(520); addEventListener('resize',function(){g.fit(520);});
+var IMG=Arcade.loadSprites(STARATEL.SPRITES);
+document.getElementById('hudCoin').src=STARATEL.SPRITES.gold; document.getElementById('hudCoin2').src=STARATEL.SPRITES.gold;
+var game=null, lang=null, theme=null, $=function(id){ return document.getElementById(id); };
+function bp(f,d,t,v){ g.audio.beep(f,d,t,v); }
+// SFX — те же частоты/длительности, что beep() прежней страницы
+function onEvent(type,d){
+  if(type==='push') bp(120,.05,'square',.05);
+  else if(type==='exit') bp(1300,.2,'sawtooth');
+  else if(type==='pickup') bp(d.gem?980:760,.09);
+  else if(type==='quota') bp(1400,.14,'triangle',.06);
+  else if(type==='crush'){ bp(70,.25,'sawtooth',.09); bp(900,.12,'triangle'); }
+  else if(type==='hit') bp(140,.3,'sawtooth');
+  else if(type==='gameover'&&game){ g.state.score=game.state.score; g.state.level=game.state.level; syncHud(); g.gameover(); }
 }
-
-function tryMove(dx,dy){
-  if(!running) return;
-  const nx=player.gx+dx, ny=player.gy+dy;
-  if(!grid[ny]||grid[ny][nx]===undefined) return;
-  const t=grid[ny][nx];
-  if(t===WALL) return;
-  if(t===BOULDER){
-    if(dy!==0) return;                       // валун толкаем только вбок
-    const bx=nx+dx; if(grid[ny][bx]!==EMPTY||entityAt(bx,ny)) return;
-    grid[ny][bx]=BOULDER; fall[ny][bx]=false; grid[ny][nx]=EMPTY; beep(120,.05,'square',.05);
-  } else if(t===EXIT){
-    if(got<need) return;                      // выход закрыт, пока нет нормы
-    beep(1300,.2,'sawtooth'); level++; running=false; flash=1;
-    setTimeout(()=>{ genLevel(); running=true; },260);
-    player.gx=nx; player.gy=ny; return;
-  } else if(t===GOLD||t===GEM){
-    score += t===GEM?150:100; got++; $('score').textContent=score; $('goal').textContent=Math.min(got,need)+'/'+need;
-    grid[ny][nx]=EMPTY; beep(t===GEM?980:760,.09);
-    if(got===need) beep(1400,.14,'triangle',.06);
-  } else if(t===DIRT){ grid[ny][nx]=EMPTY; }
-  player.gx=nx; player.gy=ny; player.bob=1;
-  if(entityAt(nx,ny)==='enemy') hit();
+function syncHud(){ var S=game?game.state:null;
+  $('score').textContent=S?S.score:0; $('goal').textContent=S?Math.min(S.got,S.need)+'/'+S.need:'0/0';
+  $('level').textContent=S?S.level:1; $('lives').textContent=S?Math.max(0,S.lives):3; }
+function syncShell(){
+  if(theme!==g.themeName){ theme=g.themeName; document.body.className=theme==='retro'?'th-retro':'th-modern'; }
+  if(lang!==g.i18n.lang){ lang=g.i18n.lang; document.documentElement.lang=lang;
+    document.querySelectorAll('[data-t]').forEach(function(el){ el.textContent=g.t(el.getAttribute('data-t')); });
+    $('foot').innerHTML=g.t('foot',''); document.title=g.t('title')+(lang==='ru'?' · Обвал в шахте — HTML5':' · Mine cave-in — HTML5'); }
 }
+(function poll(){ syncShell(); if(game) syncHud(); requestAnimationFrame(poll); })();
+// Удержание клавиши — повтор шага с частотой автоповтора ОС (как в прежней версии); первый шаг — через движок.
+var DIRK={ArrowUp:[0,-1],KeyW:[0,-1],ArrowDown:[0,1],KeyS:[0,1],ArrowLeft:[-1,0],KeyA:[-1,0],ArrowRight:[1,0],KeyD:[1,0]};
+addEventListener('keydown',function(e){ if(e.repeat&&DIRK[e.code]&&g._sceneName==='play'&&game){ game.move(DIRK[e.code][0],DIRK[e.code][1]); } });
+document.addEventListener('visibilitychange',function(){ if(document.hidden&&g._sceneName==='play') g.pause(); });
+(function(){ var b=$('bPause'); var f=function(e){ e.preventDefault(); if(g._sceneName==='play') g.pause(); else if(g._sceneName==='pause') g.goto('play',{resume:true}); };
+  b.addEventListener('touchstart',f,{passive:false}); b.addEventListener('mousedown',f); })();
 
-function gravity(){
-  // снизу вверх, один шаг за тик → каскад
-  for(let y=N-2;y>=1;y--)for(let xx=1;xx<N-1;xx++){
-    const t=grid[y][xx]; if(t!==BOULDER&&t!==GOLD&&t!==GEM) continue;
-    const below=grid[y+1][xx], ent=entityAt(xx,y+1);
-    if(below===EMPTY && !ent){ grid[y+1][xx]=t; fall[y+1][xx]=true; grid[y][xx]=EMPTY; fall[y][xx]=false; continue; }
-    if(below===EMPTY && ent && fall[y][xx]){
-      if(t===BOULDER){
-        if(ent==='enemy'){ enemies=enemies.filter(e=>!(e.gx===xx&&e.gy===y+1)); grid[y+1][xx]=BOULDER; fall[y+1][xx]=true; grid[y][xx]=EMPTY; fall[y][xx]=false;
-          score+=250; $('score').textContent=score; beep(70,.25,'sawtooth',.09); beep(900,.12,'triangle'); shake=6; continue; }
-        if(ent==='player'){ fall[y][xx]=false; hit(); shake=6; continue; }
-      } else { // золото/кристалл безвредны
-        if(ent==='player'){ // подбираем на лету
-          score+=t===GEM?150:100; got++; $('score').textContent=score; $('goal').textContent=Math.min(got,need)+'/'+need;
-          grid[y][xx]=EMPTY; fall[y][xx]=false; beep(t===GEM?980:760,.09); if(got===need)beep(1400,.14,'triangle',.06); continue; }
-        fall[y][xx]=false; continue; // на враге просто лежит
-      }
-    }
-    // перекат с округлого (валун/стена) вбок
-    if((below===BOULDER||below===WALL)){
-      if(grid[y][xx-1]===EMPTY&&grid[y+1][xx-1]===EMPTY&&!entityAt(xx-1,y)&&!entityAt(xx-1,y+1)){
-        grid[y][xx-1]=t; fall[y][xx-1]=true; grid[y][xx]=EMPTY; fall[y][xx]=false; continue; }
-      if(grid[y][xx+1]===EMPTY&&grid[y+1][xx+1]===EMPTY&&!entityAt(xx+1,y)&&!entityAt(xx+1,y+1)){
-        grid[y][xx+1]=t; fall[y][xx+1]=true; grid[y][xx]=EMPTY; fall[y][xx]=false; continue; }
-    }
-    fall[y][xx]=false;
-  }
-}
-
-function enemyStep(){
-  for(const e of enemies){
-    const opts=[[1,0],[-1,0],[0,1],[0,-1]].filter(([dx,dy])=>{
-      const nx=e.gx+dx,ny=e.gy+dy; return (grid[ny]&&grid[ny][nx]===EMPTY) || (nx===player.gx&&ny===player.gy); });
-    if(!opts.length) continue;
-    opts.sort((a,b)=> (Math.abs(e.gx+a[0]-player.gx)+Math.abs(e.gy+a[1]-player.gy)) - (Math.abs(e.gx+b[0]-player.gx)+Math.abs(e.gy+b[1]-player.gy)));
-    const pick = Math.random()<0.72? opts[0] : opts[Math.floor(Math.random()*opts.length)];
-    e.gx+=pick[0]; e.gy+=pick[1];
-    if(e.gx===player.gx&&e.gy===player.gy) hit();
-  }
-}
-
-function hit(){
-  if(inv>0||!running) return; lives--; $('lives').textContent=lives; beep(140,.3,'sawtooth'); inv=900; shake=8;
-  if(lives<=0){ running=false; over("СМЕНА ОКОНЧЕНА","Счёт: "+score+" · Уровень "+level,"Ещё раз"); return; }
-  player.gx=1;player.gy=1; grid[1][1]=EMPTY;
-  for(let dy=0;dy<3;dy++)for(let dx=0;dx<3;dx++){ const gx=1+dx,gy=1+dy; if(grid[gy]&&grid[gy][gx]===BOULDER)grid[gy][gx]=DIRT; }
-  enemies.forEach(e=>{ if(Math.abs(e.gx-1)+Math.abs(e.gy-1)<6){e.gx=N-2;e.gy=N-2;} });
-}
-
-function roundRock(px,py){ const cx=px+TS/2,cy=py+TS/2,r=TS/2-3;
-  x.fillStyle="#6b655d"; x.beginPath(); x.arc(cx,cy,r,0,7); x.fill();
-  x.fillStyle="#8c857a"; x.beginPath(); x.arc(cx-3,cy-4,r*0.5,0,7); x.fill();
-  x.fillStyle="#48433c"; x.beginPath(); x.arc(cx+4,cy+5,r*0.32,0,7); x.fill(); }
-
-function draw(){
-  if(!grid) return;
-  const sx=shake?(Math.random()*2-1)*shake:0, sy=shake?(Math.random()*2-1)*shake:0;
-  x.save(); x.translate(sx,sy);
-  x.fillStyle="#17111c"; x.fillRect(-10,-10,500,500);
-  const open=got>=need;
-  for(let y=0;y<N;y++)for(let xx=0;xx<N;xx++){
-    const t=grid[y][xx], px=xx*TS, py=y*TS;
-    if(t===WALL){ x.fillStyle="#2b2230"; x.fillRect(px,py,TS,TS); x.fillStyle="#201926"; x.fillRect(px+2,py+2,TS-4,TS-4); }
-    else if(t===DIRT){ x.fillStyle="#3a2a1e"; x.fillRect(px,py,TS,TS); x.fillStyle="#44321f"; x.fillRect(px+3,py+3,TS-6,TS-6); }
-    else { x.fillStyle="#140f18"; x.fillRect(px,py,TS,TS); }
-    if(t===BOULDER) roundRock(px,py);
-    else if(t===EXIT){
-      if(open){ const g=0.6+0.4*Math.sin(Date.now()/160);
-        x.fillStyle="#5a2a08"; x.fillRect(px+3,py+3,TS-6,TS-6);
-        x.fillStyle="rgba(234,106,18,"+g+")"; x.fillRect(px+6,py+5,TS-12,TS-9);
-        x.fillStyle="#ffd15e"; x.font="bold 15px Inter"; x.textAlign="center"; x.fillText("▣",cx(px),py+TS-9); }
-      else { x.fillStyle="#241a15"; x.fillRect(px+3,py+3,TS-6,TS-6); x.fillStyle="#3a2d22"; x.fillRect(px+6,py+6,TS-12,TS-12);
-        x.fillStyle="#6b5d4e"; x.font="bold 14px Inter"; x.textAlign="center"; x.fillText("▣",cx(px),py+TS-9); }
-    }
-    else if(t===GOLD&&IMG.gold) put(IMG.gold,xx,y,TS-10);
-    else if(t===GEM&&IMG.gem) put(IMG.gem,xx,y,TS-10);
-  }
-  for(const e of enemies) if(IMG.enemy) put(IMG.enemy,e.gx,e.gy,TS-4);
-  if(IMG.player){ x.globalAlpha=inv&&Math.floor(Date.now()/90)%2?0.4:1; put(IMG.player,player.gx,player.gy,TS-4); x.globalAlpha=1; }
-  player.bob=0;
-  if(flash>0){ x.fillStyle="rgba(255,209,94,"+(flash*0.5)+")"; x.fillRect(-10,-10,500,500); }
-  x.restore();
-}
-function cx(px){ return px+TS/2; }
-function put(im,gx,gy,s){ const d=s||TS-6, o=(TS-d)/2; x.drawImage(im,gx*TS+o,gy*TS+o,d,d); }
-
-function over(t,s,btn){ const ov=$('ov'); ov.classList.remove('hide');
-  ov.innerHTML='<h1>'+t+'</h1><p>'+s+'</p><button class="btn" id="startBtn">'+btn+'</button>'+
-    '<p style="font-size:12px;opacity:.7">Стрелки / WASD · крестовина внизу</p>';
-  $('startBtn').onclick=start; }
-
-function start(){ if(!AC)AC=ac(); score=0;lives=3;level=1;inv=0;
-  $('score').textContent=0;$('lives').textContent=3;
-  genLevel(); running=true; $('ov').classList.add('hide'); }
-
-// фиксированный шаг физики — реальное время
-const STEP=165; let last=0, acc=0, phys=0;
-function loop(t){ requestAnimationFrame(loop);
-  if(shake>0) shake-=0.6; if(shake<0)shake=0;
-  if(flash>0) flash-=0.06; if(flash<0)flash=0;
-  if(!last)last=t; const dt=t-last; last=t;
-  if(inv>0) inv-=dt;
-  if(running){ acc+=dt;
-    while(acc>=STEP){ acc-=STEP; phys++; gravity(); if(phys%2===0) enemyStep(); }
-  } else acc=0;
-  draw();
-}
-
-addEventListener('keydown',e=>{ const k=e.key.toLowerCase();
-  if(k==='arrowup'||k==='w')tryMove(0,-1); else if(k==='arrowdown'||k==='s')tryMove(0,1);
-  else if(k==='arrowleft'||k==='a')tryMove(-1,0); else if(k==='arrowright'||k==='d')tryMove(1,0); else return; e.preventDefault(); });
-document.querySelectorAll('.pad button').forEach(b=>b.onclick=()=>{const d=b.dataset.d;
-  tryMove(d==='L'?-1:d==='R'?1:0, d==='U'?-1:d==='D'?1:0);});
-$('startBtn').onclick=start;
-$('hudCoin').src=SRC.gold; $('hudCoin2').src=SRC.gold;
-Object.entries(SRC).forEach(([k,s])=>{const i=new Image();i.onload=()=>{IMG[k]=i;};i.src=s;});
-requestAnimationFrame(loop);
-</script><style>
-#catalog-back{position:fixed!important;left:0!important;top:50%!important;transform:translateY(-50%)!important;z-index:2147483647!important;display:inline-flex!important;align-items:center!important;gap:6px!important;padding:8px 12px 8px 9px!important;margin:0!important;background:rgba(6,8,14,.82)!important;color:#ffd27a!important;border:1px solid rgba(255,190,80,.6)!important;border-left:0!important;border-radius:0 10px 10px 0!important;font:600 11px/1.2 ui-monospace,Menlo,Consolas,monospace!important;letter-spacing:.1em!important;text-transform:uppercase!important;text-decoration:none!important;box-shadow:0 6px 22px rgba(0,0,0,.45)!important;opacity:.82!important}
-#catalog-back:hover,#catalog-back:focus-visible{opacity:1!important;background:rgba(255,190,80,.94)!important;color:#0a0b10!important;outline:2px solid #7cf5d2!important;outline-offset:2px!important}
-@media (max-width:480px){#catalog-back{font-size:10px!important;padding:6px 9px 6px 7px!important}}
-</style>
-<a id="catalog-back" href="../" title="В каталог игр" aria-label="Вернуться в каталог игр"><span aria-hidden="true">&larr;</span>Каталог</a>
-</body></html>
+g.useStandardScreens({get subtitle(){ return g.t('subtitle',''); },lives:3});
+g.scene('play',{realtime:true,
+  enter:function(d){ if(!(d&&d.resume)){ game=STARATEL.Game({onEvent:onEvent}); game.start(); syncHud(); } },
+  press:function(a){ if(!game) return; if(a==='pause'){ this.pause(); return; }
+    if(a==='up') game.move(0,-1); else if(a==='down') game.move(0,1); else if(a==='left') game.move(-1,0); else if(a==='right') game.move(1,0); },
+  update:function(dt){ if(!game) return; game.update(dt*1000); this.state.score=game.state.score; this.state.level=game.state.level; this.state.lives=game.state.lives; },
+  draw:function(ctx){ if(!game){ this.clear(); return; }
+    if(this.themeName==='retro') STARATEL.retro.draw(ctx,game.state,IMG); else STARATEL.modern.draw(ctx,game.state,this.th()); }
+});
+g.start('title');
+</script></body></html>

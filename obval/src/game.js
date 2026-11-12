@@ -1,5 +1,5 @@
 /* ==========================================================================
-   BOULDER DASH · КРИСТАЛЬНЫЕ ГЛУБИНЫ
+   ОБВАЛ · КРИСТАЛЬНЫЕ ГЛУБИНЫ
    A self-contained HTML5 tribute. Canvas 2D + WebAudio. No dependencies.
    ========================================================================== */
 'use strict';
@@ -90,7 +90,7 @@ const I18N = {
     'menu.fact.mission': 'миссия',
     'menu.best': 'РЕКОРД',
     'menu.done': 'ПРОЙДЕНО',
-    'menu.kicker': '1984 · HTML5 REMAKE · 2026',
+    'menu.kicker': 'ОРИГИНАЛ · ГЕФЕСТ · 2026',
     'levels.eyebrow': 'КАРТА СПУСКА',
     'levels.title': 'Выбор уровня',
     'levels.text': 'Любая камера доступна сразу. Выбор начнёт новый забег с тремя жизнями.',
@@ -181,7 +181,7 @@ const I18N = {
     'menu.fact.mission': 'mission',
     'menu.best': 'BEST',
     'menu.done': 'CLEARED',
-    'menu.kicker': '1984 · HTML5 REMAKE · 2026',
+    'menu.kicker': 'ОРИГИНАЛ · ГЕФЕСТ · 2026',
     'levels.eyebrow': 'DESCENT MAP',
     'levels.title': 'Choose a level',
     'levels.text': 'Every chamber is available right away. Choosing one starts a new run with three lives.',
@@ -2390,7 +2390,7 @@ function applyStaticI18n() {
     UI.btnLang.setAttribute('aria-label', UI.btnLang.title);
   }
   document.documentElement.lang = lang === 'ru' ? 'ru' : 'en';
-  document.title = lang === 'ru' ? 'BOULDER DASH · Кристальные глубины' : 'BOULDER DASH · Crystal Depths';
+  document.title = lang === 'ru' ? 'ОБВАЛ · Кристальные глубины' : 'ОБВАЛ · Crystal Depths';
 }
 
 function updateGraphicsUI() {
@@ -2489,7 +2489,7 @@ function renderOverlay(screen) {
       <div class="menu-screen">
         <div class="menu-copy">
           <div class="kicker"><i class="live-dot"></i> ${t('menu.kicker')}</div>
-          <h1 class="game-title">BOULDER<br><em>DASH</em></h1>
+          <h1 class="game-title">ОБ<br><em>ВАЛ</em></h1>
           <div class="game-subtitle">${t('brand.sub')}</div>
           <p class="lede">${t('menu.lede')}</p>
           <div class="menu-actions">
@@ -2846,8 +2846,8 @@ function init() {
   bindEvents();
 
   const issues = validateLevels();
-  if (issues.length) console.warn('Boulder Dash level issues:', issues);
-  console.info('BOULDER DASH · Crystal Depths ready.', { levels: LEVELS.length, issues: issues.length });
+  if (issues.length) console.warn('ОБВАЛ level issues:', issues);
+  console.info('ОБВАЛ · Crystal Depths ready.', { levels: LEVELS.length, issues: issues.length });
 
   window.BD = {
     version: '1.0.0',

@@ -14,7 +14,7 @@ const CHROME = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Conte
 const ROOT = process.cwd();
 const PROFILE = path.join(ROOT, '.tmp/e2e-profile');
 const PORT = Number(process.env.E2E_PORT || 9333);
-const URL = 'file://' + path.join(ROOT, 'index.html');
+const URL = 'file://' + path.join(ROOT, 'legacy.html'); // v2: старый DOM-интерфейс живёт в legacy.html
 fs.mkdirSync(path.join(ROOT, '.tmp/e2e'), { recursive: true });
 fs.rmSync(PROFILE, { recursive: true, force: true });
 
