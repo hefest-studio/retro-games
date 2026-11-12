@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ХРУМ · Лабиринт — HTML5</title>
+<meta name="description" content="Оригинальная аркада-лабиринт студии «Гефест» на чистом HTML5/Canvas: герой-грызун, враги-кристаллы, 8-бит и неон, RU/EN, офлайн.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-ptheme="classic">
+  <div class="shell">
+    <header class="bar">
+      <a class="logo" href="../"><span class="mk"></span><b>ХРУМ</b><i>лабиринт</i></a>
+      <nav class="ctl">
+        <button id="btnGfx" class="b"><span id="lblGfx">ГРАФИКА</span> <em id="valGfx">8-БИТ</em></button>
+        <button id="btnLang" class="b"><em id="valLang">RU</em></button>
+        <button id="btnSnd" class="b"><span id="lblSnd">ЗВУК</span> <em id="valSnd">ВКЛ</em></button>
+        <button id="btnPause" class="b" title="Пауза (P)">II</button>
+      </nav>
+    </header>
+
+    <a id="backLink" class="backlink" href="../" data-catalog-back="1">&larr; Каталог</a>
+
+    <div class="stage">
+      <canvas id="game" width="960" height="600" aria-label="Игровое поле ХРУМ"></canvas>
+
+      <div id="ovTitle" class="ov" style="display:flex">
+        <div class="box">
+          <div class="kick">ОРИГИНАЛЬНАЯ АРКАДА-ЛАБИРИНТ · ГЕФЕСТ</div>
+          <h1>ХР<span>УМ</span></h1>
+          <div class="sub" id="tSub">ЛАБИРИНТ</div>
+          <p id="tTagline">Собери все точки, уворачивайся от призраков, лови энергетики.</p>
+          <div class="row">
+            <button id="btnStart" class="big">НАЧАТЬ <kbd>Enter</kbd></button>
+            <button id="btnHow" class="ghost">КАК ИГРАТЬ</button>
+          </div>
+          <div id="helpBox" class="helpbox" style="display:none"><ul id="helpList"></ul></div>
+          <div class="hint">Enter — старт · стрелки/WASD — движение · G — графика · M — звук</div>
+        </div>
+      </div>
+
+      <div id="ovPause" class="ov" style="display:none">
+        <div class="box"><h2 id="tPause">ПАУЗА</h2><button id="btnResume" class="big">ПРОДОЛЖИТЬ</button></div>
+      </div>
+
+      <div id="ovOver" class="ov" style="display:none">
+        <div class="box">
+          <h2 id="tOver">ИГРА ОКОНЧЕНА</h2>
+          <div class="stats"><span>ОЧКИ <b id="overScore">0</b></span><span>РЕКОРД <b id="overBest">0</b></span></div>
+          <button id="btnAgain" class="big">ЕЩЁ РАЗ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/classic.js"></script>
+  <script src="js/modern.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,64 +1,73 @@
-<!doctype html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ХРУМ · Лабиринт — HTML5</title>
-<meta name="description" content="Оригинальная аркада-лабиринт студии «Гефест» на чистом HTML5/Canvas: герой-грызун, враги-кристаллы, 8-бит и неон, RU/EN, офлайн.">
-<link rel="stylesheet" href="css/style.css">
-</head>
-<body data-ptheme="classic">
-  <div class="shell">
-    <header class="bar">
-      <a class="logo" href="../"><span class="mk"></span><b>ХРУМ</b><i>лабиринт</i></a>
-      <nav class="ctl">
-        <button id="btnGfx" class="b"><span id="lblGfx">ГРАФИКА</span> <em id="valGfx">8-БИТ</em></button>
-        <button id="btnLang" class="b"><em id="valLang">RU</em></button>
-        <button id="btnSnd" class="b"><span id="lblSnd">ЗВУК</span> <em id="valSnd">ВКЛ</em></button>
-        <button id="btnPause" class="b" title="Пауза (P)">II</button>
-      </nav>
-    </header>
+<meta name="description" content="Оригинальная аркада-лабиринт студии «Гефест» на фреймворке Гефест Arcade: герой-грызун, призраки, темы retro/modern, RU/EN, офлайн.">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#0e1016;color:#eef2f8;font-family:Inter,system-ui,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
+.wrap{position:relative;width:min(94vw,430px);margin-top:12px}
+canvas{width:100%;display:block;border:1px solid #222838;border-radius:10px;background:#0e1016}
+.pad{width:min(94vw,430px);margin:10px 0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,52px);gap:8px;max-width:260px}
+.pad button{background:#161a24;border:1px solid #222838;border-radius:12px;color:#eef2f8;font-size:22px;font-weight:800}
+.pad .u{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
+.foot{color:#5a6273;font-size:11px;margin:2px 12px 16px;text-align:center}
+@media(min-width:760px){.pad{display:none}}
+</style></head><body>
+<div class="wrap"><canvas id="c" width="420" height="500"></canvas></div>
+<div class="pad"><button class="u" data-d="U">▲</button><button class="l" data-d="L">◀</button>
+<button class="d" data-d="D">▼</button><button class="r" data-d="R">▶</button></div>
+<div class="foot"><b>ХРУМ</b> на фреймворке Гефест Arcade · стрелки/дпад — движение, P — пауза · L язык, T тема, M звук. Собери все точки, 8 уровней — победа.</div>
+<script src="./engine.js"></script>
+<script src="./js/game.js"></script>
+<script>
+const STR={ ru:{play:'Играть',language:'Язык',theme:'Тема',sound:'Звук',on:'вкл',off:'выкл',score:'Счёт',level:'Ур.',best:'Рекорд',win:'ПОБЕДА!',gameover:'ИГРА ОКОНЧЕНА',pause:'ПАУЗА',resume:'Продолжить',menu:'В меню',tapstart:'пробел / тап',title:'ХРУМ',subtitle:'Собери все точки · 8 уровней',ready:'ГОТОВ'},
+  en:{play:'Play',language:'Language',theme:'Theme',sound:'Sound',on:'on',off:'off',score:'Score',level:'Lvl',best:'Best',win:'YOU WIN!',gameover:'GAME OVER',pause:'PAUSE',resume:'Resume',menu:'Menu',tapstart:'space / tap',title:'HRUM',subtitle:'Eat all dots · 8 levels',ready:'READY'} };
+const GHOST={ retro:['#ff5555','#ffb8de','#55ffff','#ffb852'], modern:['#ef4444','#ec4899','#22d3ee','#f59e0b'], neon:['#ff2f9c','#ff79c6','#39e7ff','#ffb020'] };
+const g = Arcade.createGame({ canvas:'#c', width:420, height:500, gameId:'hrum', strings:STR, theme:'modern' });
+g.input.bindDpad(document.querySelector('.pad'));
+g.fit(430); addEventListener('resize', ()=>g.fit(430));
+// аудио-хук по теме: под modern — задел на не-8-бит музыку (TODO), сейчас только beeps
+g.audio.registerMusic('retro', null); g.audio.registerMusic('modern', null); // TODO: modern richer-плеер
 
-    <a id="backLink" class="backlink" href="../" data-catalog-back="1">&larr; Каталог</a>
+const OX=14, OY=40, CELL=14;
+let game=null;
+function newGame(){ return PM.Game({ hi:g.state.best, onEvent:(t,d)=>{
+  if(t==='chomp') g.audio.beep(520,0.02,'square',0.04);
+  else if(t==='power') g.audio.beep(300,0.12,'sawtooth');
+  else if(t==='eatghost') g.audio.beep(900,0.1,'triangle');
+  else if(t==='death') g.audio.beep(140,0.3,'sawtooth');
+  else if(t==='win') g.audio.beep(1100,0.15,'triangle');
+}}); }
+function dirFromInput(){ const d=g.input.dir; if(d.y<0)return'up'; if(d.y>0)return'down'; if(d.x<0)return'left'; if(d.x>0)return'right'; return null; }
 
-    <div class="stage">
-      <canvas id="game" width="960" height="600" aria-label="Игровое поле ХРУМ"></canvas>
-
-      <div id="ovTitle" class="ov" style="display:flex">
-        <div class="box">
-          <div class="kick">ОРИГИНАЛЬНАЯ АРКАДА-ЛАБИРИНТ · ГЕФЕСТ</div>
-          <h1>ХР<span>УМ</span></h1>
-          <div class="sub" id="tSub">ЛАБИРИНТ</div>
-          <p id="tTagline">Собери все точки, уворачивайся от призраков, лови энергетики.</p>
-          <div class="row">
-            <button id="btnStart" class="big">НАЧАТЬ <kbd>Enter</kbd></button>
-            <button id="btnHow" class="ghost">КАК ИГРАТЬ</button>
-          </div>
-          <div id="helpBox" class="helpbox" style="display:none"><ul id="helpList"></ul></div>
-          <div class="hint">Enter — старт · стрелки/WASD — движение · G — графика · M — звук</div>
-        </div>
-      </div>
-
-      <div id="ovPause" class="ov" style="display:none">
-        <div class="box"><h2 id="tPause">ПАУЗА</h2><button id="btnResume" class="big">ПРОДОЛЖИТЬ</button></div>
-      </div>
-
-      <div id="ovOver" class="ov" style="display:none">
-        <div class="box">
-          <h2 id="tOver">ИГРА ОКОНЧЕНА</h2>
-          <div class="stats"><span>ОЧКИ <b id="overScore">0</b></span><span>РЕКОРД <b id="overBest">0</b></span></div>
-          <button id="btnAgain" class="big">ЕЩЁ РАЗ</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="js/i18n.js"></script>
-  <script src="js/audio.js"></script>
-  <script src="js/game.js"></script>
-  <script src="js/classic.js"></script>
-  <script src="js/modern.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/main.js"></script>
-</body>
-</html>
+g.useStandardScreens({ title:'ХРУМ', subtitle:STR.ru.subtitle, lives:3 });
+g.scene('play',{ realtime:true,
+  enter(d){ if(!(d&&d.resume)){ game=newGame(); game.start(); } },
+  press(a){ if(!game) return; if(a==='pause'){ this.pause(); return; } const m={up:'up',down:'down',left:'left',right:'right'}[a]; if(m) game.setDir(m); },
+  update(dt){ if(!game) return; const nd=dirFromInput(); if(nd) game.setDir(nd); game.step(dt);
+    const s=game.state(); g.state.score=s.score; g.state.level=s.level; g.state.lives=s.lives;
+    if(s.mode==='gameover'){ g.gameover(); } else if(s.mode==='victory'){ g.win(); } },
+  draw(ctx){ const th=this.th(); this.clear(); if(!game) return; const s=game.state(), mz=s.maze, gc=GHOST[g.themeName]||GHOST.modern;
+    for(let y=0;y<mz.length;y++)for(let x=0;x<mz[y].length;x++){ const ch=mz[y][x], px=OX+x*CELL, py=OY+y*CELL;
+      if(ch==='#'){ ctx.fillStyle=th.accent; ctx.globalAlpha=th.pixel?1:0.9; ctx.fillRect(px+1,py+1,CELL-2,CELL-2); ctx.globalAlpha=1; }
+      else if(ch==='='){ ctx.fillStyle=th.muted; ctx.fillRect(px+1,py+CELL/2-1,CELL-2,2); }
+      else if(ch==='.'){ ctx.fillStyle=th.warn; ctx.fillRect(px+CELL/2-1,py+CELL/2-1,2,2); }
+      else if(ch==='o'){ const r=3+Math.sin(this.time*6)*1; ctx.fillStyle=th.warn; ctx.beginPath(); ctx.arc(px+CELL/2,py+CELL/2,r,0,7); ctx.fill(); }
+    }
+    // Хрумик
+    const p=s.pac, cx=OX+p.x*CELL+CELL/2, cy=OY+p.y*CELL+CELL/2, mo=Math.abs(Math.sin(p.mouth))*0.5+0.08;
+    const ang={right:0,down:Math.PI/2,left:Math.PI,up:-Math.PI/2}[p.dir||'right'];
+    ctx.fillStyle=th.pixel?'#ffff55':'#ffd60a'; ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,CELL/2-1, ang+mo, ang+Math.PI*2-mo); ctx.closePath(); ctx.fill();
+    // призраки
+    for(let i=0;i<s.ghosts.length;i++){ const gh=s.ghosts[i], gx=OX+gh.x*CELL+CELL/2, gy=OY+gh.y*CELL+CELL/2;
+      let col=gc[i%4]; if(gh.mode==='fright') col=(s.frightT<2&&((this.time*8)|0)%2)?'#fff':th.accent; if(gh.mode==='eyes') col=null;
+      if(col){ ctx.fillStyle=col; ctx.beginPath(); ctx.arc(gx,gy-1,CELL/2-1,Math.PI,0); ctx.lineTo(gx+CELL/2-1,gy+CELL/2-2); ctx.lineTo(gx-CELL/2+1,gy+CELL/2-2); ctx.closePath(); ctx.fill(); }
+      ctx.fillStyle='#fff'; ctx.fillRect(gx-3,gy-2,2,3); ctx.fillRect(gx+1,gy-2,2,3);
+    }
+    if(s.mode==='ready'){ this.text(this.t('ready','ГОТОВ'), this.W/2, OY+16*CELL, {size:20,align:'center',color:th.warn}); }
+    this.hud({ score:s.score, level:s.level, lives:s.lives }); },
+});
+g.start('title');
+</script></body></html>

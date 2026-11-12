@@ -7,3 +7,6 @@ chrome-export/
 .npmcache/
 node_modules/
 .vercel
+
+# эксперименты (не в прод)
+_experiments/
