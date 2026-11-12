@@ -1,5 +1,5 @@
 /*
- * tools/audio-probe.js — проба аудиодвижка river-raid.
+ * tools/audio-probe.js — проба аудиодвижка ruslo.
  * Выполняется в странице tools/audio-test.html как async-функция (см. tools/cdp.mjs):
  * доступны args и sleep(ms), возвращаемый объект печатается JSON-ом.
  *

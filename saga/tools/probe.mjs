@@ -3,7 +3,7 @@
  * Headless-проверка страницы через Chrome DevTools Protocol:
  * скриншот + ошибки консоли/исключения + необязательный JS-eval.
  *
- *   node lost-vikings/tools/probe.mjs <file.html|http://url> out.png \
+ *   node saga/tools/probe.mjs <file.html|http://url> out.png \
  *        [--w=1280] [--h=800] [--wait=900] [--eval='EX.state.mode'] [--keys=Enter,Space] [--mobile=1]
  *
  * --eval печатает результат (JSON или строку). --keys отправляет нажатия
@@ -23,7 +23,7 @@ const opt = (name, def) => {
   return hit ? hit.slice(name.length + 3) : def;
 };
 const url = positional[0];
-const outPath = resolve(positional[1] || "lost-vikings/tmp/probe.png");
+const outPath = resolve(positional[1] || "saga/tmp/probe.png");
 if (!url) {
   console.error("usage: node probe.mjs <url|file> <out.png> [--w=1280] [--h=800] [--wait=900] [--eval='js'] [--keys=Enter,Space]");
   process.exit(2);

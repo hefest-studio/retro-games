@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Офлайн-проверка музыкальных данных exolon/src/audio.js.
+ * Офлайн-проверка музыкальных данных proryv/src/audio.js.
  *
- *   node exolon/tmp/validate-music.mjs
+ *   node proryv/tmp/validate-music.mjs
  *
  * Блок между [MUSIC-DATA-BEGIN] / [MUSIC-DATA-END] исполняется в Node
  * (без WebAudio), после чего проверяются:

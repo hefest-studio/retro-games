@@ -63,7 +63,7 @@ html:not([data-arcade-scene="play"]):not([data-arcade-scene="off"]) #overlay { d
     <div class="console" id="console">
       <div class="console-top">
         <div class="leds" aria-hidden="true"><i class="led led-a"></i><i class="led led-b"></i><i class="led led-c"></i></div>
-        <div class="console-id"><span data-i18n="console.unit">DEEP CRYSTAL MINING UNIT</span><b>BD-84</b></div>
+        <div class="console-id"><span data-i18n="console.unit">DEEP CRYSTAL MINING UNIT</span><b>OB-26</b></div>
         <div class="console-badge" id="modeChip">РЕТРО-РЕНДЕР</div>
       </div>
 
@@ -91,7 +91,7 @@ html:not([data-arcade-scene="play"]):not([data-arcade-scene="off"]) #overlay { d
             <div class="menu-side" aria-hidden="true">
               <div class="menu-side-label">DEEP<br>CRYSTAL<br>MINING</div>
               <div class="menu-side-line"></div>
-              <div class="menu-side-code">BD-84 / SECTOR 07</div>
+              <div class="menu-side-code">OB-26 / SECTOR 07</div>
             </div>
           </div>
         </div>
@@ -176,7 +176,7 @@ html:not([data-arcade-scene="play"]):not([data-arcade-scene="off"]) #overlay { d
 </main>
 
 <footer class="footer">
-  <span data-i18n="footer.made">Дань уважения аркаде 1984 года. Сделано на Canvas + WebAudio, без внешних библиотек.</span>
+  <span data-i18n="footer.made">Оригинальная игра студии «Гефест». Сделано на Canvas + WebAudio, без внешних библиотек.</span>
   <span class="footer-tech"><i>HTML5</i><i>CANVAS</i><i>8-BIT</i></span>
 </footer>
 
@@ -187,9 +187,9 @@ html:not([data-arcade-scene="play"]):not([data-arcade-scene="off"]) #overlay { d
 'use strict';
 /* ОБВАЛ на движке v2 — «оболочка» (js/host.js): родной js/game.js (логика, уровни, баланс,
    рендеры ретро = retro и нео = modern, своя 8-битная музыка, HUD и панели) работает без изменений,
-   движок даёт меню/паузу/финалы/тему/язык/звук/рекорд. Связь — через публичный window.BD. */
+   движок даёт меню/паузу/финалы/тему/язык/звук/рекорд. Связь — через публичный window.OBVAL. */
 (function () {
-  var BD = window.BD, S = BD.debug.S, Sound = BD.debug.Sound;
+  var OBVAL = window.OBVAL, S = OBVAL.debug.S, Sound = OBVAL.debug.Sound;
   var STR = {
     ru: { play: 'Играть', language: 'Язык', theme: 'Тема', sound: 'Звук', on: 'вкл', off: 'выкл', score: 'Счёт', level: 'Ур.', best: 'Рекорд',
           win: 'ВСЕ КАМЕРЫ ПРОЙДЕНЫ!', gameover: 'ОБВАЛ!', pause: 'ПАУЗА', resume: 'Продолжить', menu: 'В меню', tapstart: 'пробел / тап',
@@ -203,17 +203,17 @@ html:not([data-arcade-scene="play"]):not([data-arcade-scene="off"]) #overlay { d
     gameId: 'obval', mount: '#screen', width: 640, height: 352, strings: STR, extra: 'levels',
     adapter: {
       mode: function () { return MODE[S.screen] || 'play'; },
-      start: function () { BD.start(0); },
-      toTitle: function () { BD.menu(); },
-      pause: function () { BD.pause(); },
-      resume: function () { BD.resume(); },
-      openSub: function () { BD.openLevels(); },
+      start: function () { OBVAL.start(0); },
+      toTitle: function () { OBVAL.menu(); },
+      pause: function () { OBVAL.pause(); },
+      resume: function () { OBVAL.resume(); },
+      openSub: function () { OBVAL.openLevels(); },
       score: function () { return S.score; },
       best: function () { return S.best; },
-      gfx: function () { return BD.debug.GFX.mode; },
-      setGfx: function (v) { BD.setGraphics(v, true); },
+      gfx: function () { return OBVAL.debug.GFX.mode; },
+      setGfx: function (v) { OBVAL.setGraphics(v, true); },
       lang: function () { return document.documentElement.lang === 'en' ? 'en' : 'ru'; },
-      setLang: function (v) { BD.setLanguage(v, true); },
+      setLang: function (v) { OBVAL.setLanguage(v, true); },
       setSound: function (on) {                       // звук движка = музыка + эффекты игры (через её кнопки)
         if (!!Sound.musicOn !== on) document.getElementById('btnMusic').click();
         if (!!Sound.sfxOn !== on) document.getElementById('btnSound').click();

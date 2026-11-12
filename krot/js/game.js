@@ -1,12 +1,29 @@
 /* ============================================================================
    КРОТ · движок (DOM-free, детерминированный)
    Механика жанра подземных раскопок:
-   копание, алмазы, мешки золота, ноббины/хоббины, вишня и бонус-режим.
+   копание, алмазы, мешки золота, ползуны/грызуны, вишня и бонус-режим.
    Владелец: Lead. Интерфейс — CONTRACT.md §3-§4.
    ========================================================================== */
 (function (global) {
   'use strict';
   var DG = global.DG = global.DG || {};
+
+  /* Миграция localStorage: ключи прежнего рабочего имени → ключи КРОТа.
+     Старый → новый (если нового ещё нет) → удалить старый. Вызывают main.js (legacy.html)
+     и index.html до первого чтения настроек/рекорда. ls — объект Storage (для тестов — подделка). */
+  DG.STORE_KEYS = { settings: 'krot.settings.v1', hi: 'krot.hi.v1' };
+  var LEGACY_STORE_KEYS = [['digger.settings.v1', 'krot.settings.v1'], ['digger.hi.v1', 'krot.hi.v1']];
+  DG.migrateStorage = function (ls) {
+    try {
+      if (!ls) return;
+      LEGACY_STORE_KEYS.forEach(function (pair) {
+        var v = ls.getItem(pair[0]);
+        if (v == null) return;
+        if (ls.getItem(pair[1]) == null) ls.setItem(pair[1], v);
+        ls.removeItem(pair[0]);
+      });
+    } catch (e) { /* file:// / приватный режим */ }
+  };
 
   var COLS = 15, ROWS = 10;
   var DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]]; // up, right, down, left
@@ -15,8 +32,8 @@
   var BULLET_SPEED = 16;                       // клеток в секунду
   var FALL_SPEED = 8;
   var WOBBLE_TIME = 0.8;
-  var SPEED_NOBBIN = 0.30;                     // сек. на клетку (растёт на ранних уровнях)
-  var SPEED_HOBBIN = 0.42;
+  var SPEED_CRAWLER = 0.30;                     // сек. на клетку (растёт на ранних уровнях)
+  var SPEED_GNAWER = 0.42;
   var SPEED_SCARED = 0.22;
   var SPAWN_INTERVAL = 2.0;
   var READY_TIME = 1.8;
@@ -84,7 +101,7 @@
       time: 0, anim: 0,
       gemsLeft: 0, gemsTotal: 0, gemsCollected: 0, gemChain: 0,
       bonus: false, bonusT: 0, bonusDur: 0, eatChain: 0,
-      spawnLeft: 0, spawnTimer: 0, monstersMax: 0, hobbinChance: 0,
+      spawnLeft: 0, spawnTimer: 0, monstersMax: 0, gnawerChance: 0,
       cherrySpawned: false, kills: 0,
       shake: 0, readyT: 0, deadT: 0, clearT: 0,
       grid: new Uint8Array(COLS * ROWS),
@@ -308,7 +325,7 @@
       /* монстры */
       S.spawnLeft = Math.min(1 + level, 9);
       S.monstersMax = Math.min(1 + Math.floor((level - 1) / 2), 4);
-      S.hobbinChance = clamp((level - 3) * 0.15, 0, 0.65);
+      S.gnawerChance = clamp((level - 3) * 0.15, 0, 0.65);
 
       var gems = 0;
       for (i = 0; i < S.items.length; i++) if (S.items[i].type === 'gem') gems++;
@@ -321,7 +338,7 @@
     /* ------------------------------ монстры -------------------------------- */
     function spawnMonster(cx, cy, kind) {
       var m = {
-        kind: kind || 'nobbin',
+        kind: kind || 'crawler',
         cx: cx, cy: cy, x: cx + 0.5, y: cy + 0.5, tx: cx + 0.5, ty: cy + 0.5,
         dir: 2, scared: !!S.bonus, dying: 0, spawnT: 0, moving: false,
         think: 0.2, fromX: cx, fromY: cy - 1, walkPhase: 0
@@ -356,7 +373,7 @@
     function monsterCanEnter(m, cx, cy) {
       if (!inBounds(cx, cy)) return false;
       if (isTunnel(cx, cy)) return true;
-      return m.kind === 'hobbin' && !m.scared; // хоббин копает
+      return m.kind === 'gnawer' && !m.scared; // грызун копает
     }
 
     function startMonsterMove(m, dir, nx, ny) {
@@ -367,7 +384,7 @@
       m.moving = true;
       if (!isTunnel(nx, ny)) {
         digCell(nx, ny);
-        emit('dig', { cx: nx, cy: ny, by: 'hobbin' });
+        emit('dig', { cx: nx, cy: ny, by: 'gnawer' });
         var it = itemAtCell(nx, ny);
         if (it) {
           if (it.type === 'gem' && levelRng() < 0.25) {
@@ -384,7 +401,7 @@
 
     function chooseMonsterMove(m) {
       var p = S.player;
-      var allowDig = (m.kind === 'hobbin' && !m.scared);
+      var allowDig = (m.kind === 'gnawer' && !m.scared);
       var dist = bfsFrom(p.cx, p.cy, allowDig);
       var opts = [], k, nx, ny, d;
       for (k = 0; k < 4; k++) {
@@ -423,7 +440,7 @@
         m.scared = !!S.bonus && m.dying <= 0;
         var levelSlow = Math.max(0, 3 - S.level) * 0.04; // первые уровни — помягче
         var secPerCell = m.scared ? SPEED_SCARED
-          : (m.kind === 'hobbin' ? SPEED_HOBBIN : SPEED_NOBBIN) + levelSlow;
+          : (m.kind === 'gnawer' ? SPEED_GNAWER : SPEED_CRAWLER) + levelSlow;
         if (m.moving) {
           var dx = m.tx - m.x, dy = m.ty - m.y;
           var len = Math.sqrt(dx * dx + dy * dy);
@@ -453,7 +470,7 @@
         S.spawnTimer = 0.35;
         return;
       }
-      var kind = levelRng() < S.hobbinChance ? 'hobbin' : 'nobbin';
+      var kind = levelRng() < S.gnawerChance ? 'gnawer' : 'crawler';
       spawnMonster(spawnCx, spawnCy, kind);
       S.spawnLeft--;
       S.spawnTimer = Math.max(1.3, 3.0 - S.level * 0.18);
@@ -882,7 +899,7 @@
       S.mode = 'title';
       var spots = tunnelSpots(3);
       for (var i = 0; i < spots.length; i++) {
-        var m = spawnMonster(spots[i][0], spots[i][1], i === 2 ? 'hobbin' : 'nobbin');
+        var m = spawnMonster(spots[i][0], spots[i][1], i === 2 ? 'gnawer' : 'crawler');
         m.spawnT = 1;
       }
       S.player.invuln = 99;
@@ -915,7 +932,7 @@
       if (aliveMonsters().length === 0) {
         var spots = tunnelSpots(3);
         for (var i = 0; i < spots.length; i++) {
-          var m = spawnMonster(spots[i][0], spots[i][1], i === 2 ? 'hobbin' : 'nobbin');
+          var m = spawnMonster(spots[i][0], spots[i][1], i === 2 ? 'gnawer' : 'crawler');
           m.spawnT = 1;
         }
       }

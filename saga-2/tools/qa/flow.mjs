@@ -28,12 +28,12 @@ async function run(w, h, tag, mobile) {
   res.steps.toPlay = await qa.eval(H.clickText("В путь"));
   await qa.eval("await sleep(900); return true;");
   res.steps.play = await st(qa);
-  res.playState = await qa.eval(`const g=LV.game; return { ui: g.getUIState(), dbg: g.getDebugState(), camera:g.camera, music: LV.audio.getCurrentMusic && LV.audio.getCurrentMusic() };`);
+  res.playState = await qa.eval(`const g=SAGA2.game; return { ui: g.getUIState(), dbg: g.getDebugState(), camera:g.camera, music: SAGA2.audio.getCurrentMusic && SAGA2.audio.getCurrentMusic() };`);
   await qa.shot(`tmp/qa/${tag}_03_play_aurora.png`);
 
   // HUD-геометрия: не перекрывает активного героя
   res.hudGeom = await qa.eval(`
-    const g = LV.game, c = document.getElementById('game').getBoundingClientRect();
+    const g = SAGA2.game, c = document.getElementById('game').getBoundingClientRect();
     const VW = 1024, VH = 576;
     const sx = c.width / VW, sy = c.height / VH;
     const a = g.actors.find(x => x.id === g.active);
@@ -46,7 +46,7 @@ async function run(w, h, tag, mobile) {
   // P -> pause
   res.steps.toPause = await qa.eval(`await key('KeyP', 90); await sleep(350); return ${H.screen};`);
   await qa.shot(`tmp/qa/${tag}_04_pause_aurora.png`);
-  res.pauseMusic = await qa.eval(`return { id: LV.audio._debug.getMusicId(), sched: LV.audio._debug.isSchedulerRunning(), ready: LV.audio.isReady(), ctx: LV.audio._debug.getContextState() };`);
+  res.pauseMusic = await qa.eval(`return { id: SAGA2.audio._debug.getMusicId(), sched: SAGA2.audio._debug.isSchedulerRunning(), ready: SAGA2.audio.isReady(), ctx: SAGA2.audio._debug.getContextState() };`);
 
   // P -> resume
   res.steps.resume = await qa.eval(`await key('KeyP', 90); await sleep(250); return ${H.screen};`);
@@ -59,7 +59,7 @@ async function run(w, h, tag, mobile) {
   res.hint = await qa.eval(`await key('KeyH', 90); await sleep(250); const t=document.querySelector('.toast__text'); return t ? t.textContent : null;`);
 
   // R -> restart
-  res.steps.restart = await qa.eval(`await key('KeyR', 90); await sleep(500); return { screen: document.body.dataset.screen, state: LV.game.getDebugState(), time: LV.game.getUIState().time };`);
+  res.steps.restart = await qa.eval(`await key('KeyR', 90); await sleep(500); return { screen: document.body.dataset.screen, state: SAGA2.game.getDebugState(), time: SAGA2.game.getUIState().time };`);
 
   // G -> retro
   res.steps.retro = await qa.eval(`await key('KeyG', 90); await sleep(400); return ${H.screen};`);
@@ -82,7 +82,7 @@ async function run(w, h, tag, mobile) {
   res.steps.ru = await qa.eval(`await key('KeyY', 90); await sleep(300); return ${H.screen};`);
 
   // debug win -> complete
-  res.steps.win = await qa.eval(`LV.debug.win(); await sleep(1500); return { screen: document.body.dataset.screen, pending: LV.main.state.pendingStats };`);
+  res.steps.win = await qa.eval(`SAGA2.debug.win(); await sleep(1500); return { screen: document.body.dataset.screen, pending: SAGA2.main.state.pendingStats };`);
   await qa.shot(`tmp/qa/${tag}_09_complete_aurora.png`);
   res.complete = await qa.eval(`return { screen: document.body.dataset.screen, text: (document.querySelector('.screen')||{}).innerText };`);
 
@@ -97,11 +97,11 @@ async function run(w, h, tag, mobile) {
   await qa.eval(`await key('KeyY', 80); await sleep(250); return true;`);
 
   // levels screen
-  res.steps.levels = await qa.eval(`LV.debug.screen('levels', { unlocked: LV.main.state.progress.unlocked, levels: LV.LEVELS.map((lv,i)=>({index:i,name:lv.name,nameEn:lv.nameEn,stats:null})) }); await sleep(400); return ${H.screen};`);
+  res.steps.levels = await qa.eval(`SAGA2.debug.screen('levels', { unlocked: SAGA2.main.state.progress.unlocked, levels: SAGA2.LEVELS.map((lv,i)=>({index:i,name:lv.name,nameEn:lv.nameEn,stats:null})) }); await sleep(400); return ${H.screen};`);
   await qa.shot(`tmp/qa/${tag}_12_levels_aurora.png`);
 
   // ending (через уровень 6 + win + next)
-  res.steps.endingSetup = await qa.eval(`LV.debug.startLevel(6); await sleep(400); LV.debug.win(); await sleep(1500); return { screen: document.body.dataset.screen };`);
+  res.steps.endingSetup = await qa.eval(`SAGA2.debug.startLevel(6); await sleep(400); SAGA2.debug.win(); await sleep(1500); return { screen: document.body.dataset.screen };`);
   res.steps.ending = await qa.eval(H.clickText("Следующая сага"));
   await qa.eval("await sleep(500); return true;");
   res.ending = await qa.eval(`return { screen: document.body.dataset.screen, text: (document.querySelector('.screen')||{}).innerText };`);
@@ -122,7 +122,7 @@ async function run(w, h, tag, mobile) {
   // reload + continue
   await qa.navigate("index.html", 900);
   res.steps.afterReload = await st(qa);
-  res.continueVisible = await qa.eval(`return { buttons: Array.from(document.querySelectorAll('button')).map(b=>b.textContent.trim()), save: localStorage.getItem('lv2.progress') };`);
+  res.continueVisible = await qa.eval(`return { buttons: Array.from(document.querySelectorAll('button')).map(b=>b.textContent.trim()), save: localStorage.getItem('saga2.progress') };`);
   await qa.shot(`tmp/qa/${tag}_15_title_continue_aurora.png`);
 
   // mobile touch layer check

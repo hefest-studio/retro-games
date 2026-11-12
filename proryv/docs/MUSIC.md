@@ -1,6 +1,6 @@
-# EXOLON HTML5 — музыка и звук
+# ПРОРЫВ HTML5 — музыка и звук
 
-Движок: `exolon/src/audio.js` → `window.EX_AUDIO`. Контракт API: `exolon/docs/CONTRACT.md §2`.
+Движок: `proryv/src/audio.js` → `window.EX_AUDIO`. Контракт API: `proryv/docs/CONTRACT.md §2`.
 Всё генерируется кодом на WebAudio, без сэмплов и внешних файлов. Файл читается сверху вниз:
 
 | Блок | Что внутри |
@@ -16,7 +16,7 @@
 
 ## 4 канала
 
-Как на NES/ZX: 2 импульсных + треугольник + шум.
+Как на 8-битных приставках: 2 импульсных + треугольник + шум.
 
 | Канал | Синтез | Роль |
 |---|---|---|
@@ -78,7 +78,7 @@
 
 Порядок тактов задаётся массивом `order` (имена паттернов могут повторяться). Все каналы одного
 трека обязаны иметь одинаковую суммарную длину, кратную 16. Аккордовая карта трека описана в
-`exolon/tools/validate-music.mjs` и проверяется автоматически.
+`proryv/tools/validate-music.mjs` и проверяется автоматически.
 
 ---
 
@@ -174,7 +174,7 @@
 
 ## Где менять музыку
 
-Всё — в блоке `[MUSIC-DATA-BEGIN]` … `[MUSIC-DATA-END]` в `exolon/src/audio.js`:
+Всё — в блоке `[MUSIC-DATA-BEGIN]` … `[MUSIC-DATA-END]` в `proryv/src/audio.js`:
 
 * `GAME_LEAD`, `GAME_HARM`, `GAME_BASS`, `GAME_DRUMS` — основной трек;
 * `EXO_HARM`, `EXO_DRUMS` — надстройка для экзоскелета;
@@ -189,9 +189,9 @@ BPM и признак лупа — в `TRACKS`. Громкость канала 
 ## Проверка
 
 ```bash
-node --check exolon/src/audio.js
-node exolon/tools/validate-music.mjs            # структура, длины, гармония, SFX/API, без внешних зависимостей
-node exolon/tools/probe.mjs exolon/tmp/audio-proof.html exolon/reports/audio-proof.png \
+node --check proryv/src/audio.js
+node proryv/tools/validate-music.mjs            # структура, длины, гармония, SFX/API, без внешних зависимостей
+node proryv/tools/probe.mjs proryv/tmp/audio-proof.html proryv/reports/audio-proof.png \
      --w=1000 --h=700 --wait=1500 --eval='JSON.stringify({ready:EX_AUDIO.ready()})'
 ```
 

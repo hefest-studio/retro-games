@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Скриншоты и автотесты SILKWORM через Chrome DevTools Protocol.
+ * Скриншоты и автотесты ВИХРЯ через Chrome DevTools Protocol.
  *
  *   node tools/shots.mjs               — скриншоты в screenshots/
  *   node tools/shots.mjs --test        — только автотесты (#test), код выхода 1 при провале

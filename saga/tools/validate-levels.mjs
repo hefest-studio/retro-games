@@ -1,27 +1,28 @@
 #!/usr/bin/env node
 /**
- * validate-levels.mjs — автотест уровней The Lost Vikings (без зависимостей).
+ * validate-levels.mjs — автотест уровней СЕВЕРНОЙ САГИ (без зависимостей).
  *
  * Проверяет CONTRACT.md, раздел 3:
  *   1. ровно 10 уровней, id 1..10, theme/name/hint (RU+EN), hint <= 100;
  *   2. rows: ровно 15 строк по 24 символа, только символы из таблицы 2.5;
  *   3. периметр — только '#';
  *   4. ровно один E, один &, один O; ровно три X; exitFor — перестановка
- *      ["erik","baleog","olaf"] в порядке X при сканировании (сверху вниз, слева
+ *      ["snorri","gunnar","bjorn"] в порядке X при сканировании (сверху вниз, слева
  *      направо); каждый викинг обязан достигать ИМЕННО своей двери;
  *   5. старты/выходы: клетка не твёрдая/не шипы/не ловушка, под ней опора;
  *      плиты 1–4 стоят на твёрдой опоре (#/B);
  *   6. щедрая достижимость: ворота открыты, B убраны, враги/ловушки игнорируются;
  *      каждый старт достигает хотя бы одного X, каждый * — хотя бы одним викингом.
- *      Модель: шаг по горизонтали, прыжок вверх (Erik +3, Baleog +2, Olaf +1),
- *      прыжок через пропасть (Erik 4, Baleog 3, Olaf 2 кл.), падение вниз,
- *      односторонние платформы '=', плюс щит Олафа как ступень (щедро/кооперативно:
- *      стоящий на щите = на 1 клетку выше узла Олафа).
+ *      Модель: шаг по горизонтали, прыжок вверх (Snorri +3, Gunnar +2, Bjorn +1),
+ *      прыжок через пропасть (Snorri 4, Gunnar 3, Bjorn 2 кл.), падение вниз,
+ *      односторонние платформы '=', плюс щит Бьорна как ступень (щедро/кооперативно:
+ *      стоящий на щите = на 1 клетку выше узла Бьорна).
  *   7. покрытие механик по всем уровням (таран B, рычаги 5–8, плиты 1–4, ловушки,
  *      враги, '=', шипы). Обязательность щита/плиты доказывается в docs/LEVELS.md.
  *
  * Использование:
- *   node lost-vikings/tools/validate-levels.mjs [путь-к-levels.js] [--verbose]
+ *   node saga/tools/validate-levels.mjs [путь-к-файлу-с-уровнями] [--verbose]
+ *   По умолчанию уровни берутся из js/game.js (секция «src/levels.js» сборки).
  *   --verbose печатает карты достижимости по каждому викингу (для дизайна);
  *   --matrix  печатает матрицу «викинг → доступные двери» (для дизайна).
  *
@@ -45,14 +46,14 @@ const THEMES = new Set(["cave", "forge", "ice", "forest", "castle", "void"]);
 // Точная модель прыжков (по высоте из CONTRACT 2.2.1 + запас хода по физике):
 //   up — на сколько клеток вверх берёт уступ; upDx — горизонтальный снос при
 //   прыжке вверх; across — максимальная ширина пропасти (в клетках, dy=0).
-// Erik: 130 px/с, 400 вверх, g=1400 -> ~74 px хода, уступ 3.
-// Baleog: 95 px/с, 330 -> ~45 px, уступ 2. Olaf: 75 px/с, 260 -> ~28 px, уступ 1.
+// Snorri: 130 px/с, 400 вверх, g=1400 -> ~74 px хода, уступ 3.
+// Gunnar: 95 px/с, 330 -> ~45 px, уступ 2. Bjorn: 75 px/с, 260 -> ~28 px, уступ 1.
 const CHARS = {
-  erik: { up: 3, upDx: 2, across: 4 },
-  baleog: { up: 2, upDx: 1, across: 2 },
-  olaf: { up: 1, upDx: 1, across: 1 }
+  snorri: { up: 3, upDx: 2, across: 4 },
+  gunnar: { up: 2, upDx: 1, across: 2 },
+  bjorn: { up: 1, upDx: 1, across: 1 }
 };
-const CHAR_LABEL = { erik: "E", baleog: "&", olaf: "O" };
+const CHAR_LABEL = { snorri: "E", gunnar: "&", bjorn: "O" };
 
 // --- классификация тайлов -------------------------------------------------
 const isGate = (c) => c >= "a" && c <= "d";
@@ -104,7 +105,15 @@ function loadLevels(file) {
     console.error(`Файл не найден: ${file}`);
     process.exit(2);
   }
-  const src = readFileSync(file, "utf8");
+  let src = readFileSync(file, "utf8");
+  // js/game.js — склейка модулей: берём только секцию уровней
+  const START = "/* ==== src/levels.js ==== */";
+  const at = src.indexOf(START);
+  if (at >= 0) {
+    const rest = src.slice(at + START.length);
+    const end = rest.indexOf("/* ==== src/");
+    src = end >= 0 ? rest.slice(0, end) : rest;
+  }
   const sandbox = { window: {} };
   try {
     vm.createContext(sandbox);
@@ -114,9 +123,9 @@ function loadLevels(file) {
     console.error(`  ${e && e.stack ? e.stack.split("\n").slice(0, 4).join("\n  ") : e}`);
     process.exit(2);
   }
-  const levels = sandbox.window && sandbox.window.LV_LEVELS;
+  const levels = sandbox.window && sandbox.window.SAGA_LEVELS;
   if (!Array.isArray(levels)) {
-    console.error(`В ${file} нет window.LV_LEVELS (массива).`);
+    console.error(`В ${file} нет window.SAGA_LEVELS (массива).`);
     process.exit(2);
   }
   return levels;
@@ -214,11 +223,11 @@ function reachSet(world, charId, extraNodes) {
 
 function computeReach(world) {
   const key = (x, y) => y * W + x;
-  const olaf = reachSet(world, "olaf", null);
+  const bjorn = reachSet(world, "bjorn", null);
 
-  // Щит Олафа как ступень: узел на 1 клетку выше Олафа.
+  // Щит Бьорна как ступень: узел на 1 клетку выше Бьорна.
   const shield = new Set();
-  for (const k of olaf.set) {
+  for (const k of bjorn.set) {
     const x = k % W;
     const y = (k - x) / W;
     const sy = y - 1;
@@ -227,9 +236,9 @@ function computeReach(world) {
     }
   }
 
-  const erik = reachSet(world, "erik", shield);
-  const baleog = reachSet(world, "baleog", shield);
-  return { erik, baleog, olaf, shield };
+  const snorri = reachSet(world, "snorri", shield);
+  const gunnar = reachSet(world, "gunnar", shield);
+  return { snorri, gunnar, bjorn, shield };
 }
 
 // --- проверка одного уровня ----------------------------------------------
@@ -318,27 +327,27 @@ function checkLevel(level, idx) {
   stats.exits = exits.length;
   stats.exitFor = null;
   world.spawns = {};
-  if (!spawnPos.E) err("нет старта E (Эрик)");
-  if (!spawnPos["&"]) err("нет старта & (Балеог)");
-  if (!spawnPos.O) err("нет старта O (Олаф)");
-  world.spawns.erik = spawnPos.E;
-  world.spawns.baleog = spawnPos["&"];
-  world.spawns.olaf = spawnPos.O;
+  if (!spawnPos.E) err("нет старта E (Снорри)");
+  if (!spawnPos["&"]) err("нет старта & (Гуннар)");
+  if (!spawnPos.O) err("нет старта O (Бьорн)");
+  world.spawns.snorri = spawnPos.E;
+  world.spawns.gunnar = spawnPos["&"];
+  world.spawns.bjorn = spawnPos.O;
 
   if (exits.length !== 3) err(`выходов X = ${exits.length}, ожидается ровно 3`);
 
   // 4b. назначение дверей: перестановка ролей в порядке обхода X
-  const ROLES = ["erik", "baleog", "olaf"];
+  const ROLES = ["snorri", "gunnar", "bjorn"];
   let exitFor = level.exitFor;
   if (!Array.isArray(exitFor) || exitFor.length !== 3) {
-    err("нет exitFor: нужен массив из 3 ролей (erik/baleog/olaf)");
+    err("нет exitFor: нужен массив из 3 ролей (snorri/gunnar/bjorn)");
     exitFor = null;
   } else {
     const seenRoles = {};
     for (let i = 0; i < exitFor.length; i++) {
       const role = exitFor[i];
       if (!ROLES.includes(role)) {
-        err(`exitFor[${i}] = ${JSON.stringify(role)}, ожидается erik|baleog|olaf`);
+        err(`exitFor[${i}] = ${JSON.stringify(role)}, ожидается snorri|gunnar|bjorn`);
       } else if (seenRoles[role]) {
         err(`exitFor: роль ${role} встречается дважды`);
       }
@@ -375,7 +384,7 @@ function checkLevel(level, idx) {
     // место под тело (22 px): клетка и клетка над ней не твёрдые
     if (solidReal(atR(x, y - 1))) err(`${what} (${x},${y}): над головой твёрдый тайл '${atR(x, y - 1)}'`);
   };
-  for (const id of ["erik", "baleog", "olaf"]) {
+  for (const id of ["snorri", "gunnar", "bjorn"]) {
     const p = world.spawns[id];
     if (!p) continue;
     checkPost(p, `старт ${CHAR_LABEL[id]}`, false);
@@ -400,14 +409,14 @@ function checkLevel(level, idx) {
   const reach = computeReach(world);
   const keyOf = (p) => p.y * W + p.x;
   const reachable = {
-    erik: reach.erik.set,
-    baleog: reach.baleog.set,
-    olaf: reach.olaf.set
+    snorri: reach.snorri.set,
+    gunnar: reach.gunnar.set,
+    bjorn: reach.bjorn.set
   };
   // каждый викинг должен достигать СВОЕЙ двери (exitFor), а не «какой-нибудь»
-  const xReach = { erik: false, baleog: false, olaf: false };
-  const exitsOf = { erik: [], baleog: [], olaf: [] };
-  for (const id of ["erik", "baleog", "olaf"]) {
+  const xReach = { snorri: false, gunnar: false, bjorn: false };
+  const exitsOf = { snorri: [], gunnar: [], bjorn: [] };
+  for (const id of ["snorri", "gunnar", "bjorn"]) {
     for (const p of exits) if (reachable[id].has(keyOf(p))) exitsOf[id].push(p);
   }
   if (exitFor) {
@@ -423,13 +432,13 @@ function checkLevel(level, idx) {
       }
     }
   } else {
-    for (const id of ["erik", "baleog", "olaf"]) {
+    for (const id of ["snorri", "gunnar", "bjorn"]) {
       xReach[id] = exitsOf[id].length > 0;
     }
   }
 
   // сокровища: достижимы хотя бы одним живым викингом (щедро: клетка или соседняя по сетке)
-  const allReach = new Set([...reachable.erik, ...reachable.baleog, ...reachable.olaf]);
+  const allReach = new Set([...reachable.snorri, ...reachable.gunnar, ...reachable.bjorn]);
   const treasureOk = treasures.map((p) => {
     const k = keyOf(p);
     if (allReach.has(k)) return true;
@@ -479,7 +488,7 @@ function pad(s, n) {
 
 function doorLabel(r) {
   if (!r.exitFor || !r.exits) return "-";
-  const short = { erik: "E", baleog: "&", olaf: "O" };
+  const short = { snorri: "E", gunnar: "&", bjorn: "O" };
   return r.exitFor
     .map((role, i) => `${short[role]}\u2192(${r.exits[i].x},${r.exits[i].y})`)
     .join(" ");
@@ -498,7 +507,7 @@ function printTable(rows) {
     const st = r.stats || {};
     const tx = r.treasureTotal == null ? "-" : `${r.treasureReached}/${r.treasureTotal}`;
     const xr = r.xReach
-      ? [r.xReach.erik, r.xReach.baleog, r.xReach.olaf].map((v) => (v ? "+" : "-")).join(" ")
+      ? [r.xReach.snorri, r.xReach.gunnar, r.xReach.bjorn].map((v) => (v ? "+" : "-")).join(" ")
       : "- - -";
     console.log([
       pad(r.id, 3), pad(r.theme || "?", 7), pad(r.name || "?", 20),
@@ -518,7 +527,7 @@ function printMatrix(results) {
   console.log("Матрица достижимости дверей (E / & / O):");
   for (const r of results) {
     if (!r.exits || !r.exitsOf) continue;
-    const parts = ["erik", "baleog", "olaf"].map((id) => {
+    const parts = ["snorri", "gunnar", "bjorn"].map((id) => {
       const list = r.exitsOf[id].map((p) => `(${p.x},${p.y})`).join(",") || "-";
       return `${CHAR_LABEL[id]}: [${list}]`;
     });
@@ -532,9 +541,9 @@ function printVerbose(level, idx, result) {
   console.log(`\n── уровень ${idx + 1}: ${level.name ? level.name.ru : "?"} ──`);
   const { real } = makeWorld(level.rows);
   const sets = {
-    e: result.reach.erik.set,
-    b: result.reach.baleog.set,
-    o: result.reach.olaf.set
+    e: result.reach.snorri.set,
+    b: result.reach.gunnar.set,
+    o: result.reach.bjorn.set
   };
   for (let y = 0; y < H; y++) {
     let line = "";
@@ -555,10 +564,10 @@ function printVerbose(level, idx, result) {
 // --- main -----------------------------------------------------------------
 function main() {
   const args = parseArgs(process.argv);
-  const file = args.file ? resolve(args.file) : join(PROJECT, "src", "levels.js");
+  const file = args.file ? resolve(args.file) : join(PROJECT, "js", "game.js");
   const levels = loadLevels(file);
 
-  console.log("The Lost Vikings — проверка уровней");
+  console.log("СЕВЕРНАЯ САГА — проверка уровней");
   console.log(`файл: ${file}`);
   console.log("");
 
@@ -627,11 +636,11 @@ function main() {
   }
 
   const passed = results.filter((r) => r.ok).length;
-  const reachCount = { erik: 0, baleog: 0, olaf: 0 };
+  const reachCount = { snorri: 0, gunnar: 0, bjorn: 0 };
   let trTotal = 0, trReached = 0;
   for (const r of results) {
     if (r.xReach) {
-      for (const id of ["erik", "baleog", "olaf"]) if (r.xReach[id]) reachCount[id]++;
+      for (const id of ["snorri", "gunnar", "bjorn"]) if (r.xReach[id]) reachCount[id]++;
     }
     trTotal += r.treasureTotal || 0;
     trReached += r.treasureReached || 0;
@@ -647,8 +656,8 @@ function main() {
   const docsOk = docsText.includes("## Уровень 1 ") && missingDocs.length === 0;
 
   console.log("");
-  console.log(`Достижимость X: E ${reachCount.erik}/${passed || LEVEL_COUNT}, ` +
-    `& ${reachCount.baleog}/${passed || LEVEL_COUNT}, O ${reachCount.olaf}/${passed || LEVEL_COUNT}; ` +
+  console.log(`Достижимость X: E ${reachCount.snorri}/${passed || LEVEL_COUNT}, ` +
+    `& ${reachCount.gunnar}/${passed || LEVEL_COUNT}, O ${reachCount.bjorn}/${passed || LEVEL_COUNT}; ` +
     `сокровища ${trReached}/${trTotal}`);
   console.log(`docs/LEVELS.md: ${docsOk ? "OK (10/10 прохождений)" : "нет/неполный" + (missingDocs.length ? " (нет уровней: " + missingDocs.join(", ") + ")" : "")}`);
   console.log("");

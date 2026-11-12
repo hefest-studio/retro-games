@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  var LV = window.LV = window.LV || {};
+  var SAGA2 = window.SAGA2 = window.SAGA2 || {};
 
   var TILE = 32;
   var VIEW_W = 1024;
@@ -17,11 +17,11 @@
   var LADDER_SPEED = 140;
 
   var CHARS = {
-    erik:   { id: 'erik',   w: 24, h: 44, speed: 300, jump: 630, canJump: true  },
-    baleog: { id: 'baleog', w: 26, h: 46, speed: 220, jump: 0,   canJump: false },
-    olaf:   { id: 'olaf',   w: 32, h: 40, speed: 180, jump: 510, canJump: true  }
+    snorri:   { id: 'snorri',   w: 24, h: 44, speed: 300, jump: 630, canJump: true  },
+    gunnar: { id: 'gunnar', w: 26, h: 46, speed: 220, jump: 0,   canJump: false },
+    bjorn:   { id: 'bjorn',   w: 32, h: 40, speed: 180, jump: 510, canJump: true  }
   };
-  var ORDER = ['erik', 'baleog', 'olaf'];
+  var ORDER = ['snorri', 'gunnar', 'bjorn'];
   var MAX_HP = 3;
   var TILE_CHARS = '#=^~L.GT';
 
@@ -95,7 +95,7 @@
     this.anchors = [];
     this.exit = null;
 
-    this.active = 'erik';
+    this.active = 'snorri';
     this.time = 0;
     this.globalTime = 0;
     this.deaths = 0;
@@ -242,12 +242,12 @@
       var sx = point[0] * TILE + TILE / 2;
       var sy = (point[1] + 1) * TILE;
       var a = makeActor(id, sx, sy);
-      a.active = (id === 'erik');
+      a.active = (id === 'snorri');
       this.actors.push(a);
       this.spawnPoints[id] = { x: sx, y: sy };
       this.respawnPoints[id] = { x: sx, y: sy };
     }
-    this.active = 'erik';
+    this.active = 'snorri';
 
     this.camera.x = clamp(this.actors[0].x - VIEW_W / 2, 0, Math.max(0, this.levelWidth() - VIEW_W));
     this.camera.y = clamp(this.actors[0].y - VIEW_H * 0.62, 0, Math.max(0, this.levelHeight() - VIEW_H));
@@ -524,8 +524,8 @@
     this.updateSwitches(dt);
 
     this.solids = this.collectSolids();
-    var olaf = this.actorById('olaf');
-    this.olafPrev = olaf ? { x: olaf.x, y: olaf.y } : null;
+    var bjorn = this.actorById('bjorn');
+    this.bjornPrev = bjorn ? { x: bjorn.x, y: bjorn.y } : null;
 
     var a = this.activeActor();
     if (a) this.updateActor(a, dt);
@@ -686,8 +686,8 @@
     return this.getTile(col, rowMid) === 'L' || this.getTile(col, rowLow) === 'L';
   };
 
-  Game.prototype.olafPlatform = function () {
-    var o = this.actorById('olaf');
+  Game.prototype.bjornPlatform = function () {
+    var o = this.actorById('bjorn');
     if (!o || !o.shieldUp || o.dead || o.exited) return null;
     return { l: o.x - 20, r: o.x + 20, t: o.y - o.h - 6 };
   };
@@ -704,8 +704,8 @@
     a.onGround = false;
     a.groundProp = null;
 
-    if (dy > 0 && a.id !== 'olaf') {
-      var op = this.olafPlatform();
+    if (dy > 0 && a.id !== 'bjorn') {
+      var op = this.bjornPlatform();
       if (op && a.x + a.w / 2 > op.l && a.x - a.w / 2 < op.r &&
           prevFeet <= op.t + 3 && prevFeet + dy >= op.t) {
         a.y = op.t;
@@ -796,12 +796,12 @@
   };
 
   Game.prototype.updateCarried = function () {
-    var o = this.actorById('olaf');
-    if (!o || !this.olafPrev) return;
-    var dx = o.x - this.olafPrev.x;
-    var dy = o.y - this.olafPrev.y;
+    var o = this.actorById('bjorn');
+    if (!o || !this.bjornPrev) return;
+    var dx = o.x - this.bjornPrev.x;
+    var dy = o.y - this.bjornPrev.y;
     if (dx === 0 && dy === 0) return;
-    var plat = this.olafPlatform();
+    var plat = this.bjornPlatform();
     for (var i = 0; i < this.actors.length; i++) {
       var a = this.actors[i];
       if (a === o || !a.onBjorn || a.dead || a.exited) continue;
@@ -831,11 +831,11 @@
     var hookPressed = !!inp.hook && !this.prevInput.hook;
     a.aimUp = !!inp.up;
 
-    if (a.id === 'baleog' && a.hook) {
+    if (a.id === 'gunnar' && a.hook) {
       this.updateHook(a, dt, hookPressed);
       return;
     }
-    if (a.id === 'olaf') a.shieldUp = actionHeld;
+    if (a.id === 'bjorn') a.shieldUp = actionHeld;
     else a.shieldUp = false;
 
     var onLadder = this.onLadder(a);
@@ -872,13 +872,13 @@
 
     a.vy += GRAVITY * dt;
     if (a.vy > TERM_VEL) a.vy = TERM_VEL;
-    if (a.id === 'erik' && jumpHeld && !a.onGround && a.vy > 0) {
+    if (a.id === 'snorri' && jumpHeld && !a.onGround && a.vy > 0) {
       a.vy = Math.min(a.vy, 110);
       a.glide = true;
     } else {
       a.glide = false;
     }
-    if (a.id === 'olaf' && a.shieldUp && a.vy > 0) {
+    if (a.id === 'bjorn' && a.shieldUp && a.vy > 0) {
       a.vy = Math.min(a.vy, 70);
     }
 
@@ -899,9 +899,9 @@
       a.stepTimer = 0;
     }
 
-    if (a.id === 'erik') {
+    if (a.id === 'snorri') {
       if (actionPressed && a.cooldown <= 0) this.doHeadbutt(a);
-    } else if (a.id === 'baleog') {
+    } else if (a.id === 'gunnar') {
       if (actionPressed && a.cooldown <= 0) this.doSword(a);
       else if (specialPressed && a.cooldown <= 0) this.doBow(a);
       if (hookPressed) this.startHook(a);
@@ -1162,7 +1162,7 @@
         if (act && !act.dead && !act.exited) {
           var ar = actorRect(act);
           if (p.x > ar.l && p.x < ar.r && p.y > ar.t && p.y < ar.b) {
-            if (act.id === 'olaf' && act.shieldUp) {
+            if (act.id === 'bjorn' && act.shieldUp) {
               this.emit({ type: 'block', actor: act.id, x: p.x, y: p.y });
               this.camera.shake = Math.min(0.3, this.camera.shake + 0.06);
             } else {
@@ -1304,7 +1304,7 @@
       if (!s.seen && dist < 85 && this.signCooldown <= 0) {
         s.seen = true;
         this.signCooldown = 2.5;
-        var lang = (window.LV && LV.i18n && LV.i18n.getLang) ? LV.i18n.getLang() : 'ru';
+        var lang = (window.SAGA2 && SAGA2.i18n && SAGA2.i18n.getLang) ? SAGA2.i18n.getLang() : 'ru';
         var text = lang === 'en' ? (s.en || s.ru) : (s.ru || s.en);
         if (text) this.emit({ type: 'toast', text: text, tone: 'info' });
       }
@@ -1428,8 +1428,8 @@
 
   /* ------------------------------------------------------------- экспорт */
 
-  LV.Game = Game;
-  LV.consts = {
+  SAGA2.Game = Game;
+  SAGA2.consts = {
     TILE: TILE,
     VIEW_W: VIEW_W,
     VIEW_H: VIEW_H,

@@ -6,7 +6,7 @@
    • меню движка → Enter → брифинг игры → Enter → бой; пауза P ↔ пауза игры; тема T/G ↔ графика игры,
      язык L ↔ язык игры (в обе стороны); звук M ↔ звук игры; «Как играть» из меню и Esc назад;
      Esc на брифинге → меню; пауза → «В меню»; тач-кнопка паузы; финал → экран движка и рекорд
-     arcade.best.rubezh; перенос старого рекорда contra.best;
+     arcade.best.rubezh; перенос старого рекорда contra.best; миграция ключей contra.* → rubezh.*;
    • #gfx=retro|modern дают разные кадры; #shot= — без оболочки; 0 ошибок pageerror / console.error. */
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -60,12 +60,24 @@ try {
   await test('самотесты игры #test: index.html — 40/40 (оболочка выключена)', async () => { const t = await titleOf('#test'); ok(/TEST 40\/40/.test(t), t); });
   await test('legacy.html — старая версия грузится и работает сама', async () => {
     const o = await open('legacy.html');
-    const r = await o.p.evaluate(() => ({ g: !!window.__CONTRA, host: !!window.__arcadeHost }));
+    const r = await o.p.evaluate(() => ({ g: !!window.__RUBEZH_DBG, host: !!window.__arcadeHost }));
     await o.p.keyboard.press('Enter'); await wait(300);
-    const mode = await o.p.evaluate(() => window.__CONTRA.state().mode);
+    const mode = await o.p.evaluate(() => window.__RUBEZH_DBG.state().mode);
     await o.close(); ok(r.g && !r.host && mode === 'brief', JSON.stringify(r) + ' ' + mode);
   });
 
+  await test('миграция localStorage: старые ключи contra.* → rubezh.*, старые удалены, новые не затираются', async () => {
+    const o = await open('legacy.html', () => { try { if (sessionStorage.getItem('mig')) return; sessionStorage.setItem('mig', '1'); localStorage.clear();
+      localStorage.setItem('contra.best', '555'); localStorage.setItem('contra.lang', 'en'); localStorage.setItem('contra.gfx', 'modern');
+      localStorage.setItem('contra.muted', '1'); localStorage.setItem('rubezh.muted', '0'); } catch {} });
+    const r = await o.p.evaluate(() => ({ ls: Object.keys(localStorage).sort().map((k) => k + '=' + localStorage.getItem(k)), st: window.__RUBEZH_DBG.state() }));
+    await o.close();
+    const ls = r.ls.join(' ');
+    ok(!/contra\./.test(ls), 'старые ключи не удалены: ' + ls);
+    ok(/rubezh\.best=555/.test(ls) && /rubezh\.lang=en/.test(ls) && /rubezh\.gfx=modern/.test(ls), 'не перенесены: ' + ls);
+    ok(/rubezh\.muted=0/.test(ls), 'новый ключ затёрт старым: ' + ls);
+    ok(r.st.best === 555 && r.st.lang === 'en', 'игра не прочла перенесённое: ' + JSON.stringify(r.st));
+  });
   const { p, close } = await open('', () => { try { localStorage.clear(); localStorage.setItem('contra.best', '777'); } catch {} });
   await test('старт: меню движка, игра в title, родной титул скрыт, тема modern, рекорд перенесён', async () => {
     const s = await st(p);
@@ -90,7 +102,7 @@ try {
     ok(s.theme === 'retro' && s.gfx === 'retro', 'T ' + JSON.stringify(s));
     await p.keyboard.press('KeyG'); await wait(150); s = await st(p);
     ok(s.theme === 'modern' && s.gfx === 'modern', 'G ' + JSON.stringify(s));
-    await p.evaluate(() => window.__CONTRA.setGfx('retro')); await wait(150); s = await st(p);
+    await p.evaluate(() => window.__RUBEZH_DBG.setGfx('retro')); await wait(150); s = await st(p);
     ok(s.theme === 'retro', 'игра→движок ' + JSON.stringify(s));
   });
   await test('L → язык движка = язык игры; и обратно', async () => {
@@ -112,7 +124,7 @@ try {
     await p.keyboard.press('KeyP'); await wait(200); s = await st(p); ok(s.scene === 'play' && s.mode === 'play', 'снять ' + JSON.stringify(s));
   });
   await test('гибель последней жизни → экран gameover движка, рекорд arcade.best.rubezh', async () => {
-    await p.evaluate(() => { const G = window.__RUBEZH.G; G.score = 4321; G.lives = 1; window.__CONTRA.killPlayer(); }); await wait(2600);
+    await p.evaluate(() => { const G = window.__RUBEZH.G; G.score = 4321; G.lives = 1; window.__RUBEZH_DBG.killPlayer(); }); await wait(2600);
     const s = await st(p);
     ok(s.scene === 'gameover' && s.mode === 'over' && s.best === 4321, JSON.stringify(s));
     ok((await p.evaluate(() => localStorage.getItem('arcade.best.rubezh'))) === '4321', 'не сохранён');
@@ -150,7 +162,7 @@ try {
   });
   await test('#shot=play — отладочный режим без оболочки', async () => {
     const o = await open('#shot=play&stage=1');
-    const r = await o.p.evaluate(() => ({ host: !!window.__arcadeHost, mode: window.__CONTRA.state().mode, attr: document.documentElement.getAttribute('data-arcade-scene') }));
+    const r = await o.p.evaluate(() => ({ host: !!window.__arcadeHost, mode: window.__RUBEZH_DBG.state().mode, attr: document.documentElement.getAttribute('data-arcade-scene') }));
     await o.close(); ok(!r.host && r.mode === 'play' && r.attr === 'off', JSON.stringify(r));
   });
   await test('ошибок в браузере нет', async () => { ok(errors.length === 0, errors.join(' | ')); });

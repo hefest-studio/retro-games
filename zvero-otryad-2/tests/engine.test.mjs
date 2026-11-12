@@ -121,6 +121,85 @@ test('победа: дверь на финальном цехе → win', () => 
   eq(won, 1, 'win не сработал'); eq(g.phase(), 'win');
 });
 
+// ---------- Кооп: оба героя всегда в кадре (решение владельца 12.11) ----------
+// Пройти на цех idx (без игры, через дверь), вернуть состояние на старте цеха.
+function gotoLevel(g, idx) { for (let k = 0; k < idx; k++) clearToNext(g); return g.state(); }
+function inView(s, p) { return p.x >= s.camX - 0.5 && p.x + p.w <= s.camX + s.viewW + 0.5; }
+function span(s) { const [a, b] = s.players; return Math.max(a.x + a.w, b.x + b.w) - Math.min(a.x, b.x); }
+// Позиция буквы P в сетке уровня (исходная точка И1).
+function pCell(s) { for (let r = 0; r < s.rows; r++) { const c = s.grid[r].indexOf('P'); if (c >= 0) return { c, r }; } return null; }
+
+for (let L = 0; L < Z.consts.LEVELS; L++) {
+  test('кооп, цех ' + (L + 1) + ': на старте оба героя в кадре, И2 рядом с И1', () => {
+    const g = Z.Game({ twoP: true }); g.start(); const s = gotoLevel(g, L);
+    eq(s.level, L, 'не тот цех'); eq(s.players.length, 2);
+    s.players.forEach((p, i) => ok(inView(s, p), 'герой ' + (i + 1) + ' вне кадра: x=' + p.x + ' cam=' + s.camX));
+    ok(span(s) <= 2 * 22 + 2 * 28, 'И2 далеко от И1: ' + span(s));
+    // и после интро (первые кадры игры) — тоже в кадре
+    for (let i = 0; i < 90; i++) { g.step(1 / 60); s.players.forEach((p, k) => ok(!p.alive || inView(s, p), 'кадр ' + i + ': герой ' + (k + 1) + ' вне кадра')); }
+  });
+  test('кооп, цех ' + (L + 1) + ': разбегаются в разные стороны — расстояние ≤ ширины кадра, оба в кадре', () => {
+    const g = Z.Game({ twoP: true }); g.start(); const s = gotoLevel(g, L);
+    s.intro = 0; s.enemies = []; s.boss = null; s.lives = 99;
+    g.setHeld(0, 'left', true); g.setHeld(1, 'right', true);
+    let maxSpan = 0, leashed = false;
+    for (let i = 0; i < 60 * 12; i++) {
+      if (i % 25 === 0) { g.jump(0); g.jump(1); }
+      g.step(1 / 60);
+      if (s.players.every(p => p.alive)) {
+        maxSpan = Math.max(maxSpan, span(s)); leashed = leashed || s.players.some(p => p.leashed);
+        ok(span(s) <= Z.consts.LEASH_SPAN + 0.5, 'разошлись на ' + span(s));
+        ok(span(s) <= s.viewW, 'шире кадра: ' + span(s));
+        s.players.forEach((p, k) => ok(inView(s, p), 'шаг ' + i + ': герой ' + (k + 1) + ' вне кадра'));
+      }
+    }
+    ok(maxSpan > 400, 'герои почти не разошлись (' + maxSpan + ') — тест не проверил поводок');
+  });
+}
+
+test('кооп: поводок на ровном полу — упор ровно в LEASH_SPAN (880 = 960 − 2·40)', () => {
+  eq(Z.consts.LEASH_SPAN, Z.consts.VIEW_W - 2 * Z.consts.LEASH_PAD);
+  const g = Z.Game({ twoP: true }); g.start(); const s = g.state(); s.intro = 0; s.enemies = []; s.boss = null;
+  // искусственный ровный пол во весь уровень
+  s.grid = s.grid.map((r, i) => i === s.rows - 2 ? '#'.repeat(s.cols) : (i === s.rows - 1 ? r : ' '.repeat(s.cols)));
+  s.boxes = []; s.pickups = [];
+  const [a, b] = s.players; a.x = s.pixelW / 2 - 40; b.x = s.pixelW / 2 + 10; a.y = b.y = (s.rows - 2) * 30 - 28.01;
+  g.setHeld(0, 'left', true); g.setHeld(1, 'right', true);
+  for (let i = 0; i < 600; i++) g.step(1 / 60);
+  ok(Math.abs(span(s) - Z.consts.LEASH_SPAN) < 1, 'упор не в LEASH_SPAN: ' + span(s));
+  ok(inView(s, a) && inView(s, b), 'не в кадре');
+  // отпускаем И2 и ведём его назад — поводок не мешает сходиться
+  g.setHeld(1, 'right', false); g.setHeld(1, 'left', true); const x0 = b.x;
+  for (let i = 0; i < 30; i++) g.step(1 / 60);
+  ok(b.x < x0 - 50, 'навстречу не идёт');
+});
+
+test('кооп: случайный ввод 60 с на каждом цехе — пара всегда в кадре', () => {
+  let seed = 7; const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  for (let L = 0; L < Z.consts.LEVELS; L++) {
+    const g = Z.Game({ twoP: true }); g.start(); const s = gotoLevel(g, L); s.intro = 0; s.lives = 999;
+    for (let i = 0; i < 3600 && g.phase() === 'play'; i++) {
+      if (i % 20 === 0) for (let p = 0; p < 2; p++) { const r = rnd(); g.setHeld(p, 'left', r < 0.4); g.setHeld(p, 'right', r > 0.6); if (rnd() < 0.3) g.jump(p); }
+      g.step(1 / 60);
+      if (s.players.every(p => p.alive)) ok(span(s) <= Z.consts.LEASH_SPAN + 0.5 && s.players.every(p => inView(s, p)), 'цех ' + (L + 1) + ', шаг ' + i + ': пара не в кадре');
+    }
+  }
+});
+
+test('одиночный режим не изменился: один герой, стоит на «P» каждого цеха', () => {
+  for (let L = 0; L < Z.consts.LEVELS; L++) {
+    const g = Z.Game(); g.start(); const s = gotoLevel(g, L); eq(s.players.length, 1);
+    const c = pCell(s); ok(c, 'нет P на цехе ' + (L + 1));
+    eq(s.players[0].x, c.c * 30 + 4, 'x И1 цех ' + (L + 1)); eq(s.players[0].y, c.r * 30 - 2, 'y И1 цех ' + (L + 1));
+    ok(!s.players[0].leashed, 'поводок в одиночке');
+  }
+});
+
+test('оболочка: временные маркеры у края экрана убраны', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  ok(!/function offscreen|offscreen\(ctx/.test(html), 'маркеры «◀ ПЫЖ / ТЯПА ▶» всё ещё рисуются');
+});
+
 // ---------- Оболочка v2 (index.html на движке Arcade): музыка, порядок скриптов, кооп-раскладка ----------
 {
   const SLUG = path.basename(ROOT);

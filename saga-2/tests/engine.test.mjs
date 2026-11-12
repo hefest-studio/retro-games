@@ -6,7 +6,7 @@
    • пауза P ↔ пауза игры, тема T/G ↔ графика игры (modern = AURORA, retro = 8-BIT), язык L (меню) / Y (игра),
      звук M → звук игры; в игре L — крюк Гуннара, 1/2/3/Tab — герои;
    • финал → экран win движка и рекорд arcade.best.saga-2 (старый — сумма лучших очков саг — переносится);
-   • прогресс lv2.progress не теряется; ?mode= / ?level= / ?screen=levels / #gfx= работают;
+   • прогресс saga2.progress не теряется, старые ключи «lv2.*» мигрируют; ?mode= / ?level= / ?screen=levels / #gfx= работают;
    • 0 ошибок pageerror / console.error. */
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -49,26 +49,26 @@ async function open(path = '', init = null, arg = undefined) {
   return { p, ctx, close: () => ctx.close() };
 }
 const st = (p) => p.evaluate(() => {
-  const h = window.__arcadeHost, M = window.LV.main, g = M.game();
+  const h = window.__arcadeHost, M = window.SAGA2.main, g = M.game();
   const vis = (s) => { const el = document.querySelector('.screen-root > section[data-screen="' + s + '"]'); return !!el && getComputedStyle(el).display !== 'none'; };
   return { scene: h.g._sceneName, theme: h.g.themeName, lang: h.g.i18n.lang, sound: h.g.audio.enabled, best: h.g.state.best,
     screen: document.body.getAttribute('data-screen'), mode: M.state.mode, glang: M.state.lang, muted: M.state.muted,
     level: g.levelIndex, active: g.active, titleVis: vis('title'), pauseVis: vis('pause'), briefVis: vis('brief'), levelsVis: vis('levels') };
 });
 const PROGRESS = JSON.stringify({ unlocked: 3, levels: { 0: { done: true, runes: 3, time: 61, deaths: 0, score: 500 }, 1: { done: true, runes: 2, time: 90, deaths: 1, score: 700 } } });
-const seed = (pr) => { try { if (!sessionStorage.getItem('seeded')) { localStorage.clear(); if (pr) localStorage.setItem('lv2.progress', pr); sessionStorage.setItem('seeded', '1'); } } catch {} };
+const seed = (pr) => { try { if (!sessionStorage.getItem('seeded')) { localStorage.clear(); if (pr) localStorage.setItem('saga2.progress', pr); sessionStorage.setItem('seeded', '1'); } } catch {} };
 
 try {
   await test('уровни игры: 6 саг; пиксельные викинги (vikings-retro.js) подключены', async () => {
     const { p, close } = await open('');
-    const r = await p.evaluate(() => ({ n: (window.LV.LEVELS || []).length, vr: !!document.querySelector('script[src="js/vikings-retro.js"]') }));
+    const r = await p.evaluate(() => ({ n: (window.SAGA2.LEVELS || []).length, vr: !!document.querySelector('script[src="js/vikings-retro.js"]') }));
     await close(); ok(r.n === 6 && r.vr, JSON.stringify(r));
   });
   await test('legacy.html — старая версия грузится и работает сама', async () => {
     const ctx = await browser.newContext(); const p = await ctx.newPage();
     p.on('pageerror', (e) => errors.push('legacy: ' + e.message));
     await p.goto(BASE + 'legacy.html', { waitUntil: 'load' }); await wait(600);
-    const r = await p.evaluate(() => ({ main: !!(window.LV && window.LV.main), host: !!window.__arcadeHost, engine: !!window.Arcade, screen: document.body.dataset.screen }));
+    const r = await p.evaluate(() => ({ main: !!(window.SAGA2 && window.SAGA2.main), host: !!window.__arcadeHost, engine: !!window.Arcade, screen: document.body.dataset.screen }));
     await p.getByText(/новая сага/i).first().click(); await wait(400);
     const scr = await p.evaluate(() => document.body.dataset.screen);
     await ctx.close(); ok(r.main && !r.host && !r.engine && r.screen === 'title' && scr === 'brief', JSON.stringify(r) + ' ' + scr);
@@ -90,15 +90,15 @@ try {
     ok(s.scene === 'play' && s.screen === 'play', 'игра ' + JSON.stringify(s));
   });
   await test('геймплей: стрелка вправо двигает героя; 2 / Tab переключают героев; L — крюк (язык не меняется)', async () => {
-    const x0 = await p.evaluate(() => window.LV.main.game().getDebugState().actors[0].x);
+    const x0 = await p.evaluate(() => window.SAGA2.main.game().getDebugState().actors[0].x);
     await p.keyboard.down('ArrowRight'); await wait(500); await p.keyboard.up('ArrowRight');
-    const x1 = await p.evaluate(() => window.LV.main.game().getDebugState().actors[0].x);
+    const x1 = await p.evaluate(() => window.SAGA2.main.game().getDebugState().actors[0].x);
     ok(x1 > x0, `x ${x0} → ${x1}`);
-    await p.keyboard.press('Digit2'); await wait(100); let s = await st(p); ok(s.active === 'baleog', 'Digit2 ' + s.active);
+    await p.keyboard.press('Digit2'); await wait(100); let s = await st(p); ok(s.active === 'gunnar', 'Digit2 ' + s.active);
     await p.keyboard.down('KeyL'); await wait(60);
-    const hook = await p.evaluate(() => window.LV.input.hook); await p.keyboard.up('KeyL'); await wait(100);
+    const hook = await p.evaluate(() => window.SAGA2.input.hook); await p.keyboard.up('KeyL'); await wait(100);
     s = await st(p); ok(hook === true && s.lang === 'ru' && s.glang === 'ru', 'L ' + hook + ' ' + JSON.stringify(s));
-    await p.keyboard.press('Tab'); await wait(100); s = await st(p); ok(s.active === 'olaf', 'Tab ' + s.active);
+    await p.keyboard.press('Tab'); await wait(100); s = await st(p); ok(s.active === 'bjorn', 'Tab ' + s.active);
   });
   await test('P → пауза движка и игры (родная пауза скрыта); P → продолжить', async () => {
     await p.keyboard.press('KeyP'); await wait(250); let s = await st(p);
@@ -111,7 +111,7 @@ try {
     ok(s.theme === 'retro' && s.mode === 'retro', 'G ' + JSON.stringify(s));
     await p.keyboard.press('KeyT'); await wait(150); s = await st(p);
     ok(s.theme === 'modern' && s.mode === 'aurora', 'T ' + JSON.stringify(s));
-    await p.evaluate(() => window.LV.main.toggleGraphics()); await wait(150); s = await st(p);
+    await p.evaluate(() => window.SAGA2.main.toggleGraphics()); await wait(150); s = await st(p);
     ok(s.theme === 'retro' && s.mode === 'retro', 'игра→движок ' + JSON.stringify(s));
     await p.keyboard.press('KeyT'); await wait(150);
   });
@@ -130,7 +130,7 @@ try {
     ok(s.sound && !s.muted, JSON.stringify(s));
   });
   await test('финал (экран ending) → экран win движка, рекорд arcade.best.saga-2', async () => {
-    await p.evaluate(() => { window.LV.main.game().runScore = 4321; window.LV.debug.screen('ending', {}); }); await wait(300);
+    await p.evaluate(() => { window.SAGA2.main.game().runScore = 4321; window.SAGA2.debug.screen('ending', {}); }); await wait(300);
     const s = await st(p);
     ok(s.scene === 'win' && s.best === 4321, JSON.stringify(s));
     ok((await p.evaluate(() => localStorage.getItem('arcade.best.saga-2'))) === '4321', 'не сохранён');
@@ -152,14 +152,35 @@ try {
     await p.keyboard.press('Enter'); await wait(400); s = await st(p);
     ok(s.scene === 'play' && s.screen === 'play' && s.level === 1, JSON.stringify(s));
   });
-  await test('пауза → «В меню» → игра в титуле; прогресс lv2.progress не изменился', async () => {
+  await test('пауза → «В меню» → игра в титуле; прогресс saga2.progress не изменился', async () => {
     await p.keyboard.press('Escape'); await wait(200);
     await p.keyboard.press('ArrowDown'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await wait(300);
     const s = await st(p); ok(s.scene === 'title' && s.screen === 'title', JSON.stringify(s));
-    const pr = JSON.parse(await p.evaluate(() => localStorage.getItem('lv2.progress')));
+    const pr = JSON.parse(await p.evaluate(() => localStorage.getItem('saga2.progress')));
     ok(pr.unlocked === 3 && pr.levels[1].score === 700 && pr.levels[0].time === 61, JSON.stringify(pr));
   });
   await close();
+
+  // миграция: игрок со старыми ключами (до ребрендинга) — всё переезжает в saga2.*, старые ключи удаляются
+  for (const page of ['', 'legacy.html']) {
+    await test(`миграция ключей lv2.* → saga2.* (${page || 'index.html'})`, async () => {
+      const o = await open(page, (pr) => { try { if (!sessionStorage.getItem('seeded')) { localStorage.clear(); localStorage.setItem('lv2.progress', pr); localStorage.setItem('lv2.mode', 'retro'); localStorage.setItem('lv2.lang', 'en'); localStorage.setItem('lv2.muted', '1'); sessionStorage.setItem('seeded', '1'); } } catch {} }, PROGRESS);
+      const r = await o.p.evaluate(() => ({ prog: localStorage.getItem('saga2.progress'), mode: localStorage.getItem('saga2.mode'), lang: localStorage.getItem('saga2.lang'), muted: localStorage.getItem('saga2.muted'),
+        old: ['lv2.progress', 'lv2.mode', 'lv2.lang', 'lv2.muted'].map((k) => localStorage.getItem(k)) }));
+      const label = page ? null : await o.p.evaluate(() => window.__arcadeHost.g.scenes.title._menu.items[1].label());
+      await o.close();
+      const pr = JSON.parse(r.prog || 'null');
+      ok(pr && pr.unlocked === 3 && pr.levels[1].score === 700 && pr.levels[0].time === 61, 'прогресс: ' + r.prog);
+      ok(r.mode !== null && r.lang !== null && r.muted !== null, 'настройки не перенесены: ' + JSON.stringify(r));
+      ok(r.old.every((v) => v === null), 'старые ключи не удалены: ' + JSON.stringify(r.old));
+      if (label !== null) ok(/3/.test(label), 'меню после миграции: ' + label);
+    });
+  }
+  await test('миграция не затирает новые ключи: при наличии saga2.progress старый lv2.progress просто удаляется', async () => {
+    const o = await open('', () => { try { if (!sessionStorage.getItem('seeded')) { localStorage.clear(); localStorage.setItem('saga2.progress', '{"unlocked":5,"levels":{}}'); localStorage.setItem('lv2.progress', '{"unlocked":1,"levels":{}}'); sessionStorage.setItem('seeded', '1'); } } catch {} });
+    const r = await o.p.evaluate(() => [localStorage.getItem('saga2.progress'), localStorage.getItem('lv2.progress')]); await o.close();
+    ok(JSON.parse(r[0]).unlocked === 5 && r[1] === null, JSON.stringify(r));
+  });
 
   await test('?mode=retro&level=2 — отладочный адрес: 8-BIT, сразу сага 2, оболочка следует', async () => {
     const o = await open('?mode=retro&level=2');

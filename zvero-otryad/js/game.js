@@ -1,6 +1,6 @@
 /* ============================================================================
    ЗВЕРО-ОТРЯД · движок (DOM-free, детерминированный)
-   Ко-оп платформер: двое зверей-спасателей бегают, прыгают, ХВАТАЮТ ЯЩИКИ и
+   Ко-оп платформер: двое зверей-напарников бегают, прыгают, ХВАТАЮТ ЯЩИКИ и
    ШВЫРЯЮТ их во врагов. На ящик можно встать. 1–2 игрока (общий запас жизней),
    уровни-«цеха», враги двух типов и финальный босс Крыс БАК.
    Рендереры (classic/modern) и main.js только читают Z.Game.state().
@@ -16,9 +16,11 @@
   var GRAVITY = 1700, MOVE = 190, JUMP = -560, MAX_FALL = 760;
   var THROW_SPD = 430, THROW_UP = -150, BOX_GRAV = 1500;
   var INVULN = 1.5, RESPAWN_T = 0.9;
+  // --- кооп: «невидимый поводок» — герои не расходятся дальше ширины экрана минус отступы ---
+  var LEASH_PAD = 40, LEASH_SPAN = VIEW_W - 2 * LEASH_PAD;   // 880 px от левого края левого до правого края правого
 
   // --- уровни: массивы строк (ragged-строки допускаются, движок выровняет) ---
-  // Легенда: # кирпич  = платформа  P старт-1  Q старт-2  c ящик
+  // Легенда: # кирпич  = платформа  P старт (И2 появляется рядом с И1)  c ящик
   //          W ходок   F летун      o звезда-друг   D дверь выхода   B босс
   var LEVELS = [
     [
@@ -34,7 +36,7 @@
       '    =====    ======        ======    =========  ',
       '                                                ',
       '          c          o           c              ',
-      '   P    =====  W   =====   W   =====   Q         ',
+      '   P    =====  W   =====   W   =====             ',
       '#############     ########     #################',
       '#############  o  ########  o  #################',
       '#############=====########=====#################',
@@ -56,7 +58,7 @@
       '   o  ======   =====   #######   =====   ======  o     ',
       ' =====                                                ',
       '           c        o         o        c              ',
-      '   P    =======  W       W       W   =======    Q      ',
+      '   P    =======  W       W       W   =======           ',
       '######        ###################        #############',
       '######   o    ###################   o    #############',
       '######========###################========#############',
@@ -82,7 +84,7 @@
       '######     ##############     ##############     ###########',
       '###### o c ##############  o  ##############  o  ###########',
       '######=====##############=====##############=====##########',
-      '#### P #############################################  Q ####',
+      '#### P #############################################    ####',
       '####===#############################################===####',
       '###########################################################',
       '###########################################################'
@@ -104,7 +106,7 @@
       '                                                                  ',
       '                                                                  ',
       '###########                                       #################',
-      '######## P #                                     # Q ##############',
+      '######## P #                                     #   ##############',
       '########===#                                     #===##############',
       '##################################################################',
       '##################################################################'
@@ -163,7 +165,6 @@
         for (var c = 0; c < n.cols; c++) {
           var ch = row[c], wx = c * TILE, wy = r * TILE;
           if (ch === 'P') spawn[0] = { x: wx + 4, y: wy - 2 };
-          else if (ch === 'Q') spawn[1] = { x: wx + 4, y: wy - 2 };
           else if (ch === 'c') S.boxes.push(makeBox(wx + 2, wy + 4));
           else if (ch === 'W') S.enemies.push(makeWalker(wx, wy));
           else if (ch === 'F') S.enemies.push(makeFlyer(wx, wy));
@@ -173,11 +174,27 @@
         }
       }
       if (!S.door) S.door = { col: n.cols - 2, row: n.rows - 3, x: (n.cols - 2) * TILE, y: (n.rows - 4) * TILE, w: TILE, h: TILE * 2, open: idx < LEVELS.length - 1 };
-      // игроки
+      // игроки: И2 — рядом с И1 (оба в кадре с первого кадра цеха)
+      spawn[1] = partnerSpawn(spawn[0]);
+      S.spawn = spawn;
       var count = S.twoP ? 2 : 1;
       S.players = [];
       for (var i = 0; i < count; i++) S.players.push(makePlayer(spawn[i].x, spawn[i].y, i));
       updateCam();
+    }
+
+    // Точка появления напарника: ближайшая к И1 клетка той же высоты, где герой не в стене и
+    // под ногами опора. Сначала вправо на ширину героя, затем влево, дальше — шире.
+    function partnerSpawn(s0) {
+      var W = 22, H = 28, offs = [28, -28, 56, -56, 84, -84, 112, -112];
+      for (var i = 0; i < offs.length; i++) {
+        var x = s0.x + offs[i];
+        if (x < 0 || x + W > S.pixelW) continue;
+        var c0 = Math.floor(x / TILE), c1 = Math.floor((x + W - 1) / TILE), row = Math.floor((s0.y + H - 1) / TILE), ok = true;
+        for (var c = c0; c <= c1; c++) if (solidChar(tileAt(c, row)) || !solidChar(tileAt(c, row + 1))) ok = false;
+        if (ok) return { x: x, y: s0.y };
+      }
+      return { x: s0.x, y: s0.y };
     }
 
     function makePlayer(x, y, id) {
@@ -239,6 +256,16 @@
           if (bx) { a.y = bx.y - a.h - 0.01; a.vy = 0; a.onGround = true; }
         }
       }
+    }
+
+    // Поводок: перемещение героя по X урезается так, чтобы пара умещалась в LEASH_SPAN.
+    // Срезается только сделанный за шаг сдвиг (не дальше старой позиции) — героя не «телепортирует» в стену.
+    function leash(p, oldX) {
+      if (S.players.length < 2 || !p.alive) return;
+      var o = S.players[1 - p.id]; if (!o || !o.alive) return;
+      var hi = o.x + LEASH_SPAN - p.w, lo = o.x + o.w - LEASH_SPAN;
+      if (p.x > hi && p.x > oldX) { p.x = Math.max(oldX, hi); p.vx = 0; p.leashed = true; }
+      else if (p.x < lo && p.x < oldX) { p.x = Math.min(oldX, lo); p.vx = 0; p.leashed = true; }
     }
 
     function updateCam() {
@@ -305,9 +332,13 @@
         var ax = 0, h = S.hold[i];
         if (h.left) { ax -= 1; p.dir = -1; }
         if (h.right) { ax += 1; p.dir = 1; }
-        p.vx = ax * MOVE;
+        p.vx = ax * MOVE; p.leashed = false;
         p.vy += GRAVITY * dt; if (p.vy > MAX_FALL) p.vy = MAX_FALL;
+        var oldX = p.x;
         moveActor(p, p.vx * dt, 0);
+        leash(p, oldX);
+        // края мира — стены: герой не уходит за левый/правый край карты (раньше падал в пустоту за кадром)
+        if (p.x < 0) { p.x = 0; p.vx = 0; } else if (p.x + p.w > S.pixelW) { p.x = S.pixelW - p.w; p.vx = 0; }
         moveActor(p, 0, p.vy * dt);
         if (ax !== 0 && p.onGround) p.walkT += dt * 10; else p.walkT = 0;
         if (p.invuln > 0) p.invuln -= dt;
@@ -472,5 +503,5 @@
     return api;
   };
 
-  Z.consts = { TILE: TILE, ROWS: ROWS, VIEW_W: VIEW_W, VIEW_H: VIEW_H };
+  Z.consts = { TILE: TILE, ROWS: ROWS, VIEW_W: VIEW_W, VIEW_H: VIEW_H, LEASH_PAD: LEASH_PAD, LEASH_SPAN: LEASH_SPAN, LEVELS: LEVELS.length };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LOST VIKINGS 2 · render preview (visuals-smith)</title>
+<title>СЕВЕРНАЯ САГА 2 · render preview (visuals-smith)</title>
 <style>
   html, body { margin: 0; padding: 0; height: 100%; background: #04060c; overflow: hidden; }
   #game { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
@@ -83,8 +83,8 @@
   ];
 
   function actor(id, col, row, extra) {
-    var w = id === 'olaf' ? 32 : id === 'baleog' ? 26 : 24;
-    var h = id === 'olaf' ? 40 : id === 'baleog' ? 46 : 44;
+    var w = id === 'bjorn' ? 32 : id === 'gunnar' ? 26 : 24;
+    var h = id === 'bjorn' ? 40 : id === 'gunnar' ? 46 : 44;
     var a = {
       id: id, active: false, exited: false, dead: false,
       x: col * TILE + TILE / 2, y: (row + 1) * TILE, w: w, h: h,
@@ -97,9 +97,9 @@
   }
 
   var actors = [
-    actor('erik', 6, 15, { state: 'run', dir: 1, active: true }),
-    actor('baleog', 26, 12, { state: 'shoot', dir: 1 }),
-    actor('olaf', 1, 11, { state: 'idle', shieldUp: true })
+    actor('snorri', 6, 15, { state: 'run', dir: 1, active: true }),
+    actor('gunnar', 26, 12, { state: 'shoot', dir: 1 }),
+    actor('bjorn', 1, 11, { state: 'idle', shieldUp: true })
   ];
 
   var enemies = [
@@ -156,16 +156,16 @@
     world.camera.x = camMode;
   }
 
-  if (typeof LV === 'undefined' || !LV.render) return;
-  LV.render.setMode(mode);
-  LV.render.init(canvas);
+  if (typeof SAGA2 === 'undefined' || !SAGA2.render) return;
+  SAGA2.render.setMode(mode);
+  SAGA2.render.init(canvas);
 
   /* ---------- анимация мока ---------- */
   var t0 = 0, paused = false;
   function step(dt) {
     t0 += dt;
     world.time += dt; world.globalTime += dt;
-    // Эрик бежит
+    // Снорри бежит
     if (actors[0].state === 'run') {
       actors[0].anim += dt * 3.2;
       actors[0].x = 6 * TILE + 16 + Math.sin(t0 * 0.55) * 46;
@@ -173,7 +173,7 @@
     } else {
       actors[0].anim += dt;
     }
-    // Балеог: лук
+    // Гуннар: лук
     actors[1].anim += dt;
     if (play2) {
       actors[1].anim += dt * 0.5;
@@ -181,7 +181,7 @@
       actors[1].attack = null;
       actors[1].state = (Math.sin(t0 * 0.4) > -0.6) ? 'shoot' : 'idle';
     }
-    // Олаф
+    // Бьорн
     actors[2].anim += dt;
     // враги
     var i;
@@ -212,7 +212,7 @@
     var pl = props[3];
     pl.y = pl.oy - 64 - Math.sin(t0 * 0.8) * 40;
     // камера
-    if (LV.render.getMode() === 'aurora') world.camera.shake = play2 ? 0.12 : 0;
+    if (SAGA2.render.getMode() === 'aurora') world.camera.shake = play2 ? 0.12 : 0;
   }
 
   function camClamp() {
@@ -223,7 +223,7 @@
 
   /* ---------- прогрев + эффекты ---------- */
   var WARM = 72;
-  for (var wi = 0; wi < WARM; wi++) { step(1 / 60); LV.render.draw(game, 1 / 60); }
+  for (var wi = 0; wi < WARM; wi++) { step(1 / 60); SAGA2.render.draw(game, 1 / 60); }
 
   function demoBurst() {
     var cx = world.camera.x;
@@ -237,7 +237,7 @@
     if (ev === 'break') { ex = 11 * TILE + 16; ey = 13 * TILE; }
     if (ev === 'sword') { ex = actors[1].x; ey = actors[1].y; }
     if (ev === 'plateOn') { ex = 8 * TILE + 16; ey = 15 * TILE; }
-    LV.render.addFx({ type: ev, x: ex, y: ey, dir: 1 });
+    SAGA2.render.addFx({ type: ev, x: ex, y: ey, dir: 1 });
   }
   demoBurst();
 
@@ -256,8 +256,8 @@
     firstInput = true;
     showHint();
     if (k === 'g' || k === 'G' || k === 'п' || k === 'П') {
-      var next = LV.render.getMode() === 'aurora' ? 'retro' : 'aurora';
-      LV.render.setMode(next);
+      var next = SAGA2.render.getMode() === 'aurora' ? 'retro' : 'aurora';
+      SAGA2.render.setMode(next);
       document.body.classList.toggle('retro', next === 'retro');
       hintEl.innerHTML = next === 'retro'
         ? '<b>8-BIT</b> · 512×288 · палитра 16 · CRT &nbsp;·&nbsp; <b>G</b> — обратно'
@@ -279,7 +279,7 @@
   var last = performance.now();
   var acc = 0, demoT = 0;
   document.body.classList.toggle('retro', mode === 'retro');
-  window.addEventListener('resize', function () { LV.render.resize(); });
+  window.addEventListener('resize', function () { SAGA2.render.resize(); });
   scheduleHint();
 
   function frame(now) {
@@ -291,13 +291,13 @@
       if (acc > 0.2) { acc = 0; camClamp(); }
       if (demoT > 1.15) { demoT = 0; demoBurst(); }
     }
-    LV.render.draw(game, dt);
+    SAGA2.render.draw(game, dt);
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 
   /* отладочный доступ */
-  window.__preview = { world: world, game: game, opts: opts, render: LV.render };
+  window.__preview = { world: world, game: game, opts: opts, render: SAGA2.render };
 })();
 </script>
 </body>

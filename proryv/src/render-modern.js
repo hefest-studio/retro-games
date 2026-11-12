@@ -2,7 +2,7 @@
    ПРОРЫВ HTML5 — MODERN-рендерер «NEON 2026»
    Тот же мир 256×208, но векторная неоновая графика: свечение,
    параллакс, частицы, стеклянный HUD, современная типографика.
-   Координаты — логические (1 юнит = 1 «пиксель» ZX), масштаб
+   Координаты — логические (1 юнит = 1 «пиксель» 8-битного экрана), масштаб
    задаёт main.js через transform.
    ============================================================ */
 (function () {
@@ -913,7 +913,7 @@
       lines.slice(0, 10).forEach(function (l, i) { g.fillText(l, rx, s.y + s.h * 0.2 + i * s.h * 0.024); });
       g.fillStyle = 'rgba(160,175,255,0.10)';
       g.font = '800 ' + Math.round(side * 0.3) + 'px ' + HEAD_FONT;
-      g.fillText('1987', rx, s.y + s.h * 0.85);
+      g.fillText('2026', rx, s.y + s.h * 0.85);
     } else if (right > 26) {
       g.save();
       g.translate(s.x + s.w + right * 0.5, s.y + s.h * 0.5);
@@ -1076,7 +1076,7 @@
     drawWorld();
     g.fillStyle = 'rgba(4,3,14,0.7)'; g.fillRect(0, 0, W, VH);
     glowText(EX.t('msg.paused'), W / 2, 38, 13, '#ffffff', 'center', '800', 18, HEAD_FONT);
-    text(EX.t('pause.gfx', { v: EX.settings.gfx === 'modern' ? 'NEON · 2026' : 'RETRO · ZX' }) + '   [G]', W / 2, 52, 3.2, 'rgba(140,150,200,0.8)', 'center', '500', 0.8);
+    text(EX.t('pause.gfx', { v: EX.settings.gfx === 'modern' ? 'NEON · 2026' : 'RETRO · 8-BIT' }) + '   [G]', W / 2, 52, 3.2, 'rgba(140,150,200,0.8)', 'center', '500', 0.8);
     menuDraw('#39f6ff', null);
   }
 

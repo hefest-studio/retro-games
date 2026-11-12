@@ -8,7 +8,7 @@
  *
  * Примеры:
  *   node tools/shot.mjs --url "file://$PWD/catalog.html" --out /tmp/catalog.png
- *   node tools/shot.mjs --url "http://127.0.0.1:8080/contra/" --out /tmp/c.png --key g
+ *   node tools/shot.mjs --url "http://127.0.0.1:8080/hrum/" --out /tmp/c.png --key g
  *   node tools/shot.mjs --url "http://127.0.0.1:8080/" --out /tmp/m.png --width 390 --height 844
  *
  * Требуется установленный Google Chrome (macOS) или Chromium; путь можно задать

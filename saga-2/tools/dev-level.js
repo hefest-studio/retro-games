@@ -3,7 +3,7 @@
    руны, чекпоинт, выход, движущаяся платформа. */
 (function () {
   'use strict';
-  window.LV = window.LV || {};
+  window.SAGA2 = window.SAGA2 || {};
 
   var COLS = 40, ROWS = 18;
   var grid = [];
@@ -26,14 +26,14 @@
 
   var rows = grid.map(function (line) { return line.join(''); });
 
-  window.LV.LEVELS = [{
+  window.SAGA2.LEVELS = [{
     name: 'Отладка',
     nameEn: 'Debug',
     hint: 'Тестовый уровень движка.',
     hintEn: 'Engine test level.',
     music: 0,
     rows: rows,
-    spawn: { erik: [2, 15], baleog: [4, 15], olaf: [6, 15] },
+    spawn: { snorri: [2, 15], gunnar: [4, 15], bjorn: [6, 15] },
     entities: [
       { type: 'plate', x: 18, y: 15, group: 'a' },
       { type: 'door', x: 26, y: 13, w: 1, h: 3, group: 'a' },
@@ -47,7 +47,7 @@
       { type: 'rune', x: 36, y: 12 },
       { type: 'checkpoint', x: 10, y: 15 },
       { type: 'exit', x: 36, y: 14, w: 2, h: 2 },
-      { type: 'sign', x: 11, y: 15, ru: 'Проверка знака: Эрик ломает лёд тараном.', en: 'Sign test: Erik breaks ice with a headbutt.' },
+      { type: 'sign', x: 11, y: 15, ru: 'Проверка знака: Снорри ломает лёд тараном.', en: 'Sign test: Snorri breaks ice with a headbutt.' },
       { type: 'torch', x: 9, y: 10 },
       { type: 'torch', x: 20, y: 10 },
       { type: 'anchor', x: 24, y: 11 }

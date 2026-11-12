@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * CONTRA — screenshot generator (dependency-free).
+ * РУБЕЖ — screenshot generator (dependency-free).
  *
  * Uses installed Chrome in headless mode. Every shot gets its own temporary
  * profile; a 25 s watchdog kills a stuck browser so the batch can continue.
@@ -9,7 +9,7 @@
  *   node tools/shots.mjs --only title    # только имена, содержащие "title"
  *   node tools/shots.mjs --list          # показать список
  *
- * Скриншоты кладутся в contra/screenshots/.
+ * Скриншоты кладутся в rubezh/screenshots/.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
@@ -66,7 +66,7 @@ if (!picked.length) { console.error('no shots matched --only ' + only); process.
 
 const chrome = findChrome();
 mkdirSync(OUT_DIR, { recursive: true });
-const profileRoot = join(tmpdir(), 'contra-shots');
+const profileRoot = join(tmpdir(), 'rubezh-shots');
 let ok = 0, fail = 0;
 
 for (const shot of picked) {

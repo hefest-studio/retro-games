@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * lost-vikings-2 · tools/audio-test.mjs
- * Офлайн-тест LV.audio с заглушкой AudioContext (Node, без npm).
+ * saga-2 · tools/audio-test.mjs
+ * Офлайн-тест SAGA2.audio с заглушкой AudioContext (Node, без npm).
  *
  * Проверяет: поверхность API, все имена SFX, безопасность вызовов до unlock,
  * идемпотентность playMusic, all-треки, mute/volume, pause/resume, stop и
@@ -224,7 +224,7 @@ function countTimeouts() {
 /* ------------------------------------------------------------------ */
 /* загрузка модуля в vm-песочнице (как классический скрипт)            */
 /* ------------------------------------------------------------------ */
-const windowObj = { AudioContext: FakeAudioContext, LV: {} };
+const windowObj = { AudioContext: FakeAudioContext, SAGA2: {} };
 const sandbox = {
   window: windowObj,
   console,
@@ -239,23 +239,23 @@ try {
   console.error('FATAL: audio.js не загрузился:', e && e.stack);
   process.exit(1);
 }
-const audio = windowObj.LV && windowObj.LV.audio;
+const audio = windowObj.SAGA2 && windowObj.SAGA2.audio;
 const deb = audio && audio._debug;
 
 /* ------------------------------------------------------------------ */
 /* 1. API                                                              */
 /* ------------------------------------------------------------------ */
 section('1. API поверхности');
-check('LV.audio создан', !!audio);
+check('SAGA2.audio создан', !!audio);
 if (!audio) process.exit(1);
 const api = [
   'unlock', 'isReady', 'playMusic', 'stopMusic', 'pauseMusic', 'resumeMusic',
   'sfx', 'setMuted', 'toggleMuted', 'getMuted', 'setVolume'
 ];
-for (const fn of api) check('LV.audio.' + fn + ' — функция', typeof audio[fn] === 'function');
-check('в глобальном неймспейсе только LV.audio',
-  Object.keys(windowObj.LV).length === 1 && windowObj.LV.audio === audio,
-  Object.keys(windowObj.LV).join(','));
+for (const fn of api) check('SAGA2.audio.' + fn + ' — функция', typeof audio[fn] === 'function');
+check('в глобальном неймспейсе только SAGA2.audio',
+  Object.keys(windowObj.SAGA2).length === 1 && windowObj.SAGA2.audio === audio,
+  Object.keys(windowObj.SAGA2).join(','));
 
 const CONTRACT_SFX = [
   'jump', 'land', 'step', 'switch', 'headbutt', 'break', 'sword', 'bow',

@@ -43,7 +43,7 @@ const pageUrl = /^https?:|^file:/.test(url) ? url : `file://${resolve(url)}`;
 
 mkdirSync(dirname(outPath), { recursive: true });
 const port = 9400 + Math.floor(Math.random() * 400);
-const profile = mkdtempSync(join(tmpdir(), "dsh-probe-"));
+const profile = mkdtempSync(join(tmpdir(), "neon-probe-"));
 
 const chrome = spawn(CHROME, [
   "--headless=new",

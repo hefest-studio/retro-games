@@ -1443,7 +1443,7 @@
     if (m.scared) {
       return { hot: '#f0f9ff', main: '#bae6fd', deep: '#38bdf8', glow: C.cyanHot };
     }
-    if (kind === 'hobbin') return { hot: C.magentaHot, main: C.magenta, deep: C.magentaDeep, glow: C.magenta };
+    if (kind === 'gnawer') return { hot: C.magentaHot, main: C.magenta, deep: C.magentaDeep, glow: C.magenta };
     return { hot: C.cyanHot, main: C.cyan, deep: C.cyanDeep, glow: C.cyan };
   }
 
@@ -1529,8 +1529,8 @@
       ctx.fill();
     }
 
-    // хоббин: рожки, гребень, когти
-    if (m.kind === 'hobbin' && !m.scared) {
+    // грызун: рожки, гребень, когти
+    if (m.kind === 'gnawer' && !m.scared) {
       ctx.fillStyle = rgba(pal.deep, 0.95);
       ctx.beginPath();
       ctx.moveTo(-r * 0.55, -r * 0.78);
@@ -1552,7 +1552,7 @@
         ctx.fill();
       }
     } else if (!m.scared) {
-      // ноббин: лапки
+      // ползун: лапки
       ctx.fillStyle = rgba(pal.deep, 0.9);
       ctx.beginPath(); ctx.ellipse(-r * 0.42, r * 0.88, 4.5, 3, 0, 0, TAU); ctx.fill();
       ctx.beginPath(); ctx.ellipse(r * 0.42, r * 0.88, 4.5, 3, 0, 0, TAU); ctx.fill();

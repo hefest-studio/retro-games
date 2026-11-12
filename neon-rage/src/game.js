@@ -23,7 +23,16 @@
   function saveTry(fn) { try { fn(); } catch (e) { /* localStorage/file:// может быть недоступен */ } }
 
   /* ---------- данные ---------- */
-  var STORE_KEY = 'dd-neon-settings-v1';
+  var STORE_KEY = 'neon-rage.settings';
+  /* Устаревший ключ (прежнее имя) — только для однократной миграции:
+     старый → новый (если нового ещё нет) → удалить старый. */
+  var LEGACY_STORE_KEY = 'dd-neon-settings-v1';
+  saveTry(function () {
+    var old = window.localStorage.getItem(LEGACY_STORE_KEY);
+    if (old == null) return;
+    if (window.localStorage.getItem(STORE_KEY) == null) window.localStorage.setItem(STORE_KEY, old);
+    window.localStorage.removeItem(LEGACY_STORE_KEY);
+  });
   var DIFF_IDS = ['easy', 'normal', 'hard'];
   var DIFFS = {
     easy:   { hp: 0.78, dmg: 0.62, speed: 0.90, score: 0.80, label: 'diff.easy' },

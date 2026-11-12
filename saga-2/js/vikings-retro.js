@@ -1,6 +1,6 @@
 /* СЕВЕРНАЯ САГА II — js/vikings-retro.js
    Пиксель-арт викингов, перенесён ПИКСЕЛЬ-В-ПИКСЕЛЬ из саги 1 (src/render-retro.js),
-   чтобы Снорри/Гуннар/Бьорн (erik/baleog/olaf) выглядели одинаково в обеих играх.
+   чтобы Снорри/Гуннар/Бьорн (snorri/gunnar/bjorn) выглядели одинаково в обеих играх.
    Рисует персонажа вокруг origin (ноги в 0,0, корпус вверх по −y) в НАТИВНОМ масштабе
    (1 арт-пиксель). Вызывающий (render.js drawVikingR) ставит translate на ноги актора,
    флип по направлению и scale(2,2) — 1 арт-пиксель = 2 мировых px (retro-сетка).
@@ -46,7 +46,7 @@
   }
 
   var CHARS = {
-    erik: {
+    snorri: {
       skin: "#f2c496", skinS: "#d8a170", skinD: "#b0784a",
       tunic: "#e2622c", tunicS: "#a83c16", tunicL: "#f58c46",
       metal: "#c8d0dc", metalS: "#8b95a8", metalD: "#565e70", metalL: "#eef3fa",
@@ -55,7 +55,7 @@
       boot: "#4a3320", bootS: "#2e1f12", bootL: "#6b4a2c",
       cream: "#f0e6d2", creamL: "#fff6e2", eye: "#241a2e", white: "#f4f7ff"
     },
-    baleog: {
+    gunnar: {
       skin: "#f0c08c", skinS: "#cf9a66", skinD: "#a07044",
       tunic: "#3f9e4d", tunicS: "#266b34", tunicL: "#63c76e",
       metal: "#c8d0dc", metalS: "#8b95a8", metalD: "#565e70", metalL: "#eef3fa",
@@ -65,7 +65,7 @@
       bow: "#9a6430", bowL: "#c08a4a", bowS: "#6e4420", string: "#e8e0c8", blade: "#e6eef8", bladeS: "#9aa8bc",
       eye: "#241a2e", white: "#f4f7ff"
     },
-    olaf: {
+    bjorn: {
       skin: "#f2c49b", skinS: "#d19f74", skinD: "#a87a50",
       tunic: "#2f6fd0", tunicS: "#1d4890", tunicL: "#4f92f0",
       metal: "#d8c8a0", metalS: "#a89870", metalD: "#706448", metalL: "#f4e8c6",
@@ -170,7 +170,7 @@
     return P;
   }
 
-  function drawErik(g, pal, pose, st, f, t) {
+  function drawSnorri(g, pal, pose, st, f, t) {
     var by = -pose.bob, lean = pose.lean;
     drawLeg(g, pal, pose.legs[0], true);
     drawLeg(g, pal, pose.legs[1], false);
@@ -242,7 +242,7 @@
     rr(g, hX, hy, 2, 1, pal.blade);
   }
 
-  function drawBaleog(g, pal, pose, st, f, t) {
+  function drawGunnar(g, pal, pose, st, f, t) {
     var by = -pose.bob, lean = pose.lean;
     drawLeg(g, pal, pose.legs[0], true);
     drawLeg(g, pal, pose.legs[1], false);
@@ -288,7 +288,7 @@
     if (st === "act") rr(g, 4 + hX, -15 + hy, 2, 1, pal.goldL);
   }
 
-  function drawOlafShieldOverhead(g, pal, by) {
+  function drawBjornShieldOverhead(g, pal, by) {
     var y = -30;
     rr(g, -10, y, 20, 1, pal.woodL);
     rr(g, -10, y + 1, 20, 2, pal.wood);
@@ -310,7 +310,7 @@
     rr(g, -8, y + 2, 1, 1, pal.gold);
     rr(g, 7, y + 2, 1, 1, pal.gold);
   }
-  function drawOlafShield(g, pal) {
+  function drawBjornShield(g, pal) {
     var sx = 4, sy = -10;
     fillCircle(g, sx, sy, 5, pal.ironS);
     fillCircle(g, sx, sy, 4, pal.wood);
@@ -322,7 +322,7 @@
     rr(g, sx + 3, sy + 2, 1, 1, pal.gold);
   }
 
-  function drawOlaf(g, pal, pose, st, f, t) {
+  function drawBjorn(g, pal, pose, st, f, t) {
     var by = -pose.bob, lean = pose.lean;
     drawLeg(g, pal, pose.legs[0], true);
     drawLeg(g, pal, pose.legs[1], false);
@@ -361,8 +361,8 @@
     rr(g, -2 + hX, -9 + hy, 5, 1, pal.hairS);
     rr(g, -1 + hX, -14 + hy, 4, 1, pal.hairL);
     rr(g, -1 + hX, -13 + hy, 2, 1, "#b08a5a");
-    if (st === "brace" || st === "act") drawOlafShieldOverhead(g, pal, by);
-    else drawOlafShield(g, pal);
+    if (st === "brace" || st === "act") drawBjornShieldOverhead(g, pal, by);
+    else drawBjornShield(g, pal);
   }
 
   function drawDeadViking(g, pal, id) {
@@ -370,7 +370,7 @@
     rr(g, -7, -6, 12, 1, pal.tunic);
     rr(g, -8, -3, 3, 3, pal.boot);
     rr(g, -8, -3, 3, 1, pal.bootL);
-    if (id === "erik") {
+    if (id === "snorri") {
       rr(g, -1, -9, 7, 4, pal.skin);
       rr(g, 3, -12, 6, 3, pal.metal);
       rr(g, 3, -12, 6, 1, pal.metalL);
@@ -380,7 +380,7 @@
       rr(g, 0, -7, 7, 2, pal.hair);
       rr(g, 3, -5, 1, 1, pal.eye);
       rr(g, 5, -5, 1, 1, pal.eye);
-    } else if (id === "baleog") {
+    } else if (id === "gunnar") {
       rr(g, -1, -9, 7, 4, pal.skin);
       rr(g, 2, -11, 6, 2, pal.metal);
       rr(g, 2, -10, 6, 1, pal.gold);
@@ -412,7 +412,7 @@
 
   function mapState(a) {
     var s = a.state || "idle";
-    if (a.id === "olaf" && a.shieldUp) return "brace";
+    if (a.id === "bjorn" && a.shieldUp) return "brace";
     if (s === "run" || s === "walk") return "run";
     if (s === "shoot" || s === "attack" || s === "act" || s === "push" || s === "pull") return "act";
     if (s === "jump") return "jump";
@@ -420,14 +420,14 @@
     return "idle";
   }
 
-  function normId(id) { return (id === "erik" || id === "baleog" || id === "olaf") ? id : "erik"; }
+  function normId(id) { return (id === "snorri" || id === "gunnar" || id === "bjorn") ? id : "snorri"; }
 
   function drawChar(g, id, st, anim, t, active) {
     id = normId(id);
     var pal = active ? CHARS[id] : dimPal(id);
     var f = frameFor(st, anim);
     var pose = pickPose(st, f);
-    if (id === "olaf") {
+    if (id === "bjorn") {
       pose.legs[0].hip = -3; pose.legs[1].hip = 3;
       pose.arms[0].sh = -4; pose.arms[1].sh = 4;
       if (st === "idle" || st === "run") {
@@ -435,9 +435,9 @@
         pose.arms[1].el[0] = 5; pose.arms[1].hand[0] = 5;
       }
     }
-    if (id === "erik") drawErik(g, pal, pose, st, f, t);
-    else if (id === "baleog") drawBaleog(g, pal, pose, st, f, t);
-    else drawOlaf(g, pal, pose, st, f, t);
+    if (id === "snorri") drawSnorri(g, pal, pose, st, f, t);
+    else if (id === "gunnar") drawGunnar(g, pal, pose, st, f, t);
+    else drawBjorn(g, pal, pose, st, f, t);
   }
 
   function drawDead(g, id, active) {
@@ -445,5 +445,5 @@
     drawDeadViking(g, active ? CHARS[id] : dimPal(id), id);
   }
 
-  window.LVVIK = { drawChar: drawChar, drawDead: drawDead, mapState: mapState, CHARS: CHARS };
+  window.SAGA2VIK = { drawChar: drawChar, drawDead: drawDead, mapState: mapState, CHARS: CHARS };
 })();

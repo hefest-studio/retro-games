@@ -15,7 +15,7 @@
      EX_FONT.has(ch)           — есть ли глиф
      EX_FONT.glyph(ch)         — массив 8 байт (для неизвестного — глиф '?')
 
-   Сгенерировано из пиксельной раскладки (инструмент — exolon/tools/gen-font.mjs).
+   Сгенерировано из пиксельной раскладки (инструмент — proryv/tools/gen-font.mjs).
    Правки вносить в генератор, а не в этот файл.
    ============================================================ */
 (function () {
@@ -255,7 +255,7 @@
   const RU = {
     'brand': 'ПРОРЫВ',
     'brand.ru': 'ШТУРМОВИК',
-    'tagline': 'ПОРТ 1987 → 2026',
+    'tagline': 'ОТ 8 БИТ К НЕОНУ',
     'tagline.full': 'оригинал студии «Гефест»',
     'loading': 'ЗАГРУЗКА...',
 
@@ -287,7 +287,7 @@
     'settings.build.short': 'RETRO · СБОРКА {v}',
     'settings.on': 'ВКЛ',
     'settings.off': 'ВЫКЛ',
-    'gfx.retro': 'ZX 1987',
+    'gfx.retro': '8-BIT',
     'gfx.modern': 'NEON 2026',
     'lang.ru': 'РУССКИЙ',
     'lang.en': 'ENGLISH',
@@ -318,7 +318,7 @@
     'hint.teleport': 'Встань на телепорт и нажми ↓, чтобы уйти в парный. Там обычно награда.',
     'hint.launcher': 'Войди в статую-пушку — получишь 2000 или 3000 очков.',
     'hint.ammo': 'Синие патроны — заряд бластера, малиновые — гранаты.',
-    'hint.death': 'Виторк гибнет от любого попадания. На экзоскелете держится три удара.',
+    'hint.death': 'Кайр гибнет от любого попадания. На экзоскелете держится три удара.',
 
     /* ---- бриф уровня ---- */
     'level.sector': 'СЕКТОР {n} · {name}',
@@ -354,11 +354,11 @@
     'msg.gameover': 'ИГРА ОКОНЧЕНА',
     'msg.continue': 'ENTER — ЗАНОВО',
     'msg.win': 'ЭКСОЛОН ПАЛ',
-    'msg.win.sub': 'ВИТОРК ПРОБИЛСЯ ЧЕРЕЗ 5 СЕКТОРОВ',
+    'msg.win.sub': 'КАЙР ПРОБИЛСЯ ЧЕРЕЗ 5 СЕКТОРОВ',
     'msg.newrecord': 'НОВЫЙ РЕКОРД!',
     'msg.record': 'РЕКОРД',
     'msg.score': 'ИТОГО',
-    'msg.dead': 'ВИТОРК ПОГИБ',
+    'msg.dead': 'КАЙР ПОГИБ',
     'msg.press': 'НАЖМИ ENTER',
     'msg.pressfire': 'НАЖМИ SPACE',
     'msg.tips': 'подсказка:',
@@ -372,7 +372,7 @@
     'credits.fan': 'Оригинальная игра студии «Гефест» по мотивам жанра.',
     'credits.thanks': 'Графика и музыка — из кода. Внешних файлов нет.',
     'about.goal': 'Сюжет',
-    'about.text': 'Планета Эксолон — каторжная колония корпорации. Виторк, штурмовик-одиночка, пробивается через пять секторов: периметр, пещеры, реактор, улей и ядро. Бластер — против органики, гранаты — против брони. В середине каждого сектора ждёт капсула гиперсплавного экзоскелета: он держит удар, но лишает выходного бонуса.',
+    'about.text': 'Планета Тарн — каторжная колония корпорации. Кайр, штурмовик-одиночка, пробивается через пять секторов: периметр, пещеры, реактор, улей и ядро. Бластер — против органики, гранаты — против брони. В середине каждого сектора ждёт капсула гиперсплавного экзоскелета: он держит удар, но лишает выходного бонуса.',
     'record.new': 'НОВЫЙ РЕКОРД',
     'record.beaten': 'РЕКОРД ПОБИТ',
     'touch.left': '◄', 'touch.right': '►', 'touch.jump': '▲', 'touch.fire': '●', 'touch.duck': '▼',
@@ -396,7 +396,7 @@
   const EN = {
     'brand': 'ПРОРЫВ',
     'brand.ru': 'ПРОРЫВ',
-    'tagline': 'PORT 1987 → 2026',
+    'tagline': 'FROM 8-BIT TO NEON',
     'tagline.full': 'original by Hefest studio',
     'loading': 'LOADING...',
 
@@ -426,7 +426,7 @@
     'settings.build.short': 'RETRO · BUILD {v}',
     'settings.on': 'ON',
     'settings.off': 'OFF',
-    'gfx.retro': 'ZX 1987',
+    'gfx.retro': '8-BIT',
     'gfx.modern': 'NEON 2026',
     'lang.ru': 'РУССКИЙ',
     'lang.en': 'ENGLISH',
@@ -455,7 +455,7 @@
     'hint.teleport': 'Stand on a teleporter and press ↓ to warp to its twin. Usually a reward there.',
     'hint.launcher': 'Walk into a launcher statue for 2000 or 3000 points.',
     'hint.ammo': 'Blue packs refill the blaster, magenta packs refill grenades.',
-    'hint.death': 'Vitorc dies from a single hit. The exoskeleton takes three.',
+    'hint.death': 'Kair dies from a single hit. The exoskeleton takes three.',
 
     'level.sector': 'SECTOR {n} · {name}',
     'level.of': 'of 5',
@@ -488,11 +488,11 @@
     'msg.gameover': 'GAME OVER',
     'msg.continue': 'ENTER — RETRY',
     'msg.win': 'ПРОРЫВ HAS FALLEN',
-    'msg.win.sub': 'VITORC BROKE THROUGH 5 SECTORS',
+    'msg.win.sub': 'KAIR BROKE THROUGH 5 SECTORS',
     'msg.newrecord': 'NEW RECORD!',
     'msg.record': 'RECORD',
     'msg.score': 'TOTAL',
-    'msg.dead': 'VITORC DOWN',
+    'msg.dead': 'KAIR DOWN',
     'msg.press': 'PRESS ENTER',
     'msg.pressfire': 'PRESS SPACE',
     'msg.tips': 'tip:',
@@ -505,7 +505,7 @@
     'credits.fan': 'An original game by Hefest studio.',
     'credits.thanks': 'Graphics & music from code only.',
     'about.goal': 'Story',
-    'about.text': 'The planet ПРОРЫВ is a corporate penal colony. Vitorc, a lone stormtrooper, cuts through five sectors: perimeter, caves, reactor, hive and core. Blaster for organics, grenades for armour. Mid-sector a hyper-alloy exoskeleton pod waits: it soaks damage but forfeits the end bonus.',
+    'about.text': 'The planet Tarn is a corporate penal colony. Kair, a lone stormtrooper, cuts through five sectors: perimeter, caves, reactor, hive and core. Blaster for organics, grenades for armour. Mid-sector a hyper-alloy exoskeleton pod waits: it soaks damage but forfeits the end bonus.',
     'record.new': 'NEW RECORD',
     'record.beaten': 'RECORD BEATEN',
     'touch.left': '◄', 'touch.right': '►', 'touch.jump': '▲', 'touch.fire': '●', 'touch.duck': '▼',
@@ -551,7 +551,7 @@
    ПРОРЫВ HTML5 — 8-битный звуковой движок (WebAudio, без сэмплов)
    API: docs/CONTRACT.md §2, музыка: docs/MUSIC.md.
 
-   4 канала, как на NES/ZX:
+   4 канала, как на 8-битных приставках:
      lead  — pulse 1 (мелодия), duty + вибрато;
      harm  — pulse 2 (гармония/арпеджио), другой duty;
      bass  — triangle (бас);
@@ -615,7 +615,7 @@
      1. ТЕОРИЯ НОТ + ДАННЫЕ ТРЕКОВ
      Ниже до [MUSIC-DATA-END] — только данные и чистые формулы,
      без WebAudio: этот блок можно проверять офлайн
-     (exolon/tmp/validate-music.mjs).
+     (proryv/tmp/validate-music.mjs).
      ============================================================ */
 
   /* [MUSIC-DATA-BEGIN] */
@@ -2048,7 +2048,7 @@
    5 секторов × 5 экранов = 25 экранов по 32×24 тайла (256×192 px).
    Механика флип-скрина: ушёл за правый край — следующий экран.
 
-   Формат: docs/LEVELS.md · проверка: node exolon/tools/validate-levels.mjs
+   Формат: docs/LEVELS.md · проверка: node proryv/tools/validate-levels.mjs
 
    Тайлы:
      ' '  пусто              '#'  твёрдый блок (порода / металл)
@@ -3233,7 +3233,7 @@
   const T_EMPTY = 0, T_SOLID = 1, T_THIN = 2, T_ROCK = 3, T_SPIKE = 4, T_FLORA = 5;
   const TILE_CHARS = { ' ': T_EMPTY, '#': T_SOLID, '=': T_THIN, '%': T_ROCK, '^': T_SPIKE, 'x': T_FLORA };
 
-  /* палитра ZX Spectrum */
+  /* 8-битная палитра из 15 цветов */
   const PAL = {
     black: '#000000', blue: '#0000d7', red: '#d70000', magenta: '#d700d7',
     green: '#00d700', cyan: '#00d7d7', yellow: '#d7d700', white: '#d7d7d7',
@@ -3261,8 +3261,22 @@
 
   /* ---------- настройки ---------- */
   const DEFAULTS = { lang: 'ru', gfx: 'retro', music: true, sfx: true, crt: true };
-  const SETTINGS_KEY = 'exolon.settings';
-  const RECORD_KEY = 'exolon.record';
+  const SETTINGS_KEY = 'proryv.settings';
+  const RECORD_KEY = 'proryv.record';
+  /* Устаревшие ключи (до переименования игры) — только для однократной миграции:
+     старый → новый (если нового ещё нет) → удалить старый. */
+  const LEGACY_KEYS = [['exolon.settings', SETTINGS_KEY], ['exolon.record', RECORD_KEY]];
+  function migrateStorage() {
+    try {
+      LEGACY_KEYS.forEach(function (pair) {
+        const v = localStorage.getItem(pair[0]);
+        if (v == null) return;
+        if (localStorage.getItem(pair[1]) == null) localStorage.setItem(pair[1], v);
+        localStorage.removeItem(pair[0]);
+      });
+    } catch (e) { /* приватный режим */ }
+  }
+  migrateStorage();
 
   function parseHash() {
     const out = {};
@@ -3284,7 +3298,7 @@
       if (raw) Object.assign(s, JSON.parse(raw));
     } catch (e) { /* приватный режим */ }
     /* RETRO — режим по умолчанию всегда: выбор графики живёт только в рамках сессии,
-       чтобы после перезапуска игра снова открывалась в аутентичном ZX-стиле. */
+       чтобы после перезапуска игра снова открывалась в аутентичном 8-битном стиле. */
     s.gfx = 'retro';
     if (HASH.lang === 'en' || HASH.lang === 'ru') s.lang = HASH.lang;
     if (HASH.gfx === 'modern' || HASH.gfx === 'retro') s.gfx = HASH.gfx;
@@ -5040,7 +5054,7 @@
 
 /* ==== src/render-retro.js ==== */
 /* ============================================================
-   ПРОРЫВ HTML5 — RETRO-рендерер (ZX Spectrum 1987)
+   ПРОРЫВ HTML5 — RETRO-рендерер (8 бит)
    Рисует всё в логическом пространстве 256×208, 1 px = 1 пиксель.
    Стиль: чёрный фон, насыщенные цвета, 8×8 «атрибутные» блоки,
    пиксельный шрифт 6×8, минимум сглаживания.
@@ -5129,7 +5143,7 @@
     px(border, x + w - 3, y + h - 2, 2, 1); px(border, x + w - 2, y + h - 3, 1, 2);
   }
 
-  /* шахматный дизеринг — «атрибутная» фактура ZX */
+  /* шахматный дизеринг — «атрибутная» 8-битная фактура */
   function dither(x, y, w, h, c1, c2, phase) {
     for (let j = 0; j < h; j++) {
       for (let i = 0; i < w; i++) {
@@ -5172,7 +5186,7 @@
       px(col, x, yy, 1, 1);
       if (i % 11 === 0) { px(col, x + 1, yy, 1, 1); px(col, x, yy + 1, 1, 1); }
     }
-    /* одна «планета» на экран — как на бут-скринах ZX */
+    /* одна «планета» на экран — как на 8-битных заставках */
     const rr = rng(seed * 31 + 5);
     const cx = 24 + Math.floor(rr() * (W - 48));
     const cy = 28 + Math.floor(rr() * (H - 90));
@@ -5472,7 +5486,7 @@
       px(P.bred, dir > 0 ? x + 13 : x - 1, y + 6, 2, 2);
       return;
     }
-    /* Виторк: белый костюм, визор */
+    /* Кайр: белый костюм, визор */
     px(suit, x + 2, y + 3, 6, h - 7);
     px(suit2, x + 2, y + 3, 2, h - 7);
     px(P.bcyan, x + 3, y, 4, 4);
@@ -5990,7 +6004,7 @@
    ПРОРЫВ HTML5 — MODERN-рендерер «NEON 2026»
    Тот же мир 256×208, но векторная неоновая графика: свечение,
    параллакс, частицы, стеклянный HUD, современная типографика.
-   Координаты — логические (1 юнит = 1 «пиксель» ZX), масштаб
+   Координаты — логические (1 юнит = 1 «пиксель» 8-битного экрана), масштаб
    задаёт main.js через transform.
    ============================================================ */
 (function () {
@@ -6901,7 +6915,7 @@
       lines.slice(0, 10).forEach(function (l, i) { g.fillText(l, rx, s.y + s.h * 0.2 + i * s.h * 0.024); });
       g.fillStyle = 'rgba(160,175,255,0.10)';
       g.font = '800 ' + Math.round(side * 0.3) + 'px ' + HEAD_FONT;
-      g.fillText('1987', rx, s.y + s.h * 0.85);
+      g.fillText('2026', rx, s.y + s.h * 0.85);
     } else if (right > 26) {
       g.save();
       g.translate(s.x + s.w + right * 0.5, s.y + s.h * 0.5);
@@ -7064,7 +7078,7 @@
     drawWorld();
     g.fillStyle = 'rgba(4,3,14,0.7)'; g.fillRect(0, 0, W, VH);
     glowText(EX.t('msg.paused'), W / 2, 38, 13, '#ffffff', 'center', '800', 18, HEAD_FONT);
-    text(EX.t('pause.gfx', { v: EX.settings.gfx === 'modern' ? 'NEON · 2026' : 'RETRO · ZX' }) + '   [G]', W / 2, 52, 3.2, 'rgba(140,150,200,0.8)', 'center', '500', 0.8);
+    text(EX.t('pause.gfx', { v: EX.settings.gfx === 'modern' ? 'NEON · 2026' : 'RETRO · 8-BIT' }) + '   [G]', W / 2, 52, 3.2, 'rgba(140,150,200,0.8)', 'center', '500', 0.8);
     menuDraw('#39f6ff', null);
   }
 

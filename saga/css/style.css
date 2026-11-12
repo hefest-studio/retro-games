@@ -604,9 +604,9 @@ kbd {
   text-transform: uppercase;
 }
 .viking-card p { margin: 2px 0 0; font-size: clamp(8px, 0.8vw, 10px); letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
-.viking-card--erik h3 { color: var(--accent-3); }
-.viking-card--baleog h3 { color: var(--accent); }
-.viking-card--olaf h3 { color: var(--accent-2); }
+.viking-card--snorri h3 { color: var(--accent-3); }
+.viking-card--gunnar h3 { color: var(--accent); }
+.viking-card--bjorn h3 { color: var(--accent-2); }
 @keyframes card-float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-7px); }

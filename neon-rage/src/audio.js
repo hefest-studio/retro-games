@@ -22,7 +22,7 @@
 
    ARCHITECTURE
      lookahead sequencer (setInterval 25 ms, schedules 120 ms ahead), all note
-     times are absolute AudioContext times; 4 channels like NES/ZX —
+     times are absolute AudioContext times; 4 channels like 8-bit consoles —
        lead  pulse (chip) / detuned saw pair (synth),
        harm  pulse arpeggio (chip) / filtered saw arpeggio (synth),
        bass  triangle (chip) / saw+sub (synth),
@@ -830,7 +830,7 @@
     }
   }
 
-  /* ---------- chip instruments (dry, 4-channel NES/ZX feel) ---------- */
+  /* ---------- chip instruments (dry, 4-channel 8-bit feel) ---------- */
   function chipLead(dest, t, hz, dur, vel, song) {
     voice(dest, t, hz, dur, song.leadVol * vel, {
       wave: pulseWave(song.leadDuty), attack: 0.005, release: 0.035,

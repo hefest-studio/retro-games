@@ -5,14 +5,27 @@
 (function () {
   'use strict';
 
-  var LV = window.LV = window.LV || {};
+  var SAGA2 = window.SAGA2 = window.SAGA2 || {};
   var STEP = 1 / 60;
   var LS = {
-    mode: 'lv2.mode',
-    lang: 'lv2.lang',
-    muted: 'lv2.muted',
-    progress: 'lv2.progress'
+    mode: 'saga2.mode',
+    lang: 'saga2.lang',
+    muted: 'saga2.muted',
+    progress: 'saga2.progress'
   };
+  /* Миграция ключей: до ребрендинга настройки и прогресс лежали под префиксом
+     "lv2." — переносим в новые ключи (если новых ещё нет) и удаляем старые. */
+  (function migrateLegacyKeys() {
+    try {
+      var ls = window.localStorage;
+      for (var k in LS) {
+        var oldKey = 'lv2.' + k, val = ls.getItem(oldKey);
+        if (val === null) continue;
+        if (ls.getItem(LS[k]) === null) ls.setItem(LS[k], val);
+        ls.removeItem(oldKey);
+      }
+    } catch (e) { /* приватный режим / нет хранилища */ }
+  })();
 
   var state = {
     mode: 'retro',
@@ -38,7 +51,7 @@
 
   /* ------------------------------------------------------------------ ввод */
 
-  var input = LV.input = {
+  var input = SAGA2.input = {
     left: false, right: false, up: false, down: false,
     jump: false, action: false, special: false, hook: false,
     set: function (name, down) {
@@ -86,7 +99,7 @@
   }
 
   function t(key, vars) {
-    if (LV.i18n && LV.i18n.t) return LV.i18n.t(key, vars);
+    if (SAGA2.i18n && SAGA2.i18n.t) return SAGA2.i18n.t(key, vars);
     return key;
   }
 
@@ -117,7 +130,7 @@
   }
 
   function briefData(index) {
-    var levels = LV.LEVELS || [];
+    var levels = SAGA2.LEVELS || [];
     var lv = levels[index] || levels[0] || {};
     return {
       index: index,
@@ -135,7 +148,7 @@
 
   function startLevel(index) {
     if (!game) return;
-    var levels = LV.LEVELS || [];
+    var levels = SAGA2.LEVELS || [];
     if (!levels.length) {
       ui.toast('Нет уровней: js/levels.js не загрузился', { tone: 'warn', duration: 8000 });
       return;
@@ -185,7 +198,7 @@
     prevScreen = 'play';
     setScreen('pause', {
       levelIndex: game.levelIndex,
-      levelCount: (LV.LEVELS || []).length,
+      levelCount: (SAGA2.LEVELS || []).length,
       name: game.level ? game.level.name : '',
       nameEn: game.level ? game.level.nameEn : ''
     });
@@ -240,7 +253,7 @@
   function nextLevel() {
     if (!game) return;
     var next = game.levelIndex + 1;
-    if (next >= (LV.LEVELS || []).length) {
+    if (next >= (SAGA2.LEVELS || []).length) {
       showEnding();
       return;
     }
@@ -259,7 +272,7 @@
   }
 
   function showEnding() {
-    var levels = LV.LEVELS || [];
+    var levels = SAGA2.LEVELS || [];
     var total = { runes: 0, runesTotal: levels.length * 3, time: 0, deaths: 0, score: 0, levels: [] };
     for (var i = 0; i < levels.length; i++) {
       var st = state.progress.levels[i] || {};
@@ -316,7 +329,7 @@
       deaths: Math.min(prev.deaths === undefined ? 999 : prev.deaths, stats.deaths),
       score: Math.max(prev.score || 0, stats.score)
     };
-    var unlocked = Math.min((LV.LEVELS || []).length, idx + 2);
+    var unlocked = Math.min((SAGA2.LEVELS || []).length, idx + 2);
     if (unlocked > state.progress.unlocked) state.progress.unlocked = unlocked;
     saveProgress();
     if (audio) {
@@ -439,9 +452,9 @@
       if (lv && ui) ui.toast(langText(lv.hint, lv.hintEn), { tone: 'info', duration: 7000 });
       return;
     }
-    if (code === 'Digit1') { game.switchTo('erik'); return; }
-    if (code === 'Digit2') { game.switchTo('baleog'); return; }
-    if (code === 'Digit3') { game.switchTo('olaf'); return; }
+    if (code === 'Digit1') { game.switchTo('snorri'); return; }
+    if (code === 'Digit2') { game.switchTo('gunnar'); return; }
+    if (code === 'Digit3') { game.switchTo('bjorn'); return; }
     if (code === 'Tab') { e.preventDefault(); game.nextActor(); return; }
     mapKey(code, true);
   }
@@ -543,7 +556,7 @@
     if (q.level) {
       var idx = parseInt(q.level, 10) - 1;
       if (!isNaN(idx)) {
-        idx = Math.max(0, Math.min((LV.LEVELS || []).length - 1, idx));
+        idx = Math.max(0, Math.min((SAGA2.LEVELS || []).length - 1, idx));
         state.pendingStats = null;
         game.loadLevel(idx);
         game.resume();
@@ -554,7 +567,7 @@
     } else if (q.screen === 'levels') {
       setScreen('levels', {
         unlocked: state.progress.unlocked,
-        levels: (LV.LEVELS || []).map(function (lv, i) {
+        levels: (SAGA2.LEVELS || []).map(function (lv, i) {
           return {
             index: i, name: lv.name, nameEn: lv.nameEn,
             stats: state.progress.levels[i] || null
@@ -570,7 +583,7 @@
     loadSettings();
     document.documentElement.lang = state.lang;
 
-    if (!LV.LEVELS || !LV.LEVELS.length) {
+    if (!SAGA2.LEVELS || !SAGA2.LEVELS.length) {
       // Уровни ещё не подключены — покажем честную заглушку.
       document.body.setAttribute('data-screen', 'title');
       var msg = document.createElement('div');
@@ -580,21 +593,21 @@
       return;
     }
 
-    game = new LV.Game({
-      levels: LV.LEVELS,
+    game = new SAGA2.Game({
+      levels: SAGA2.LEVELS,
       onEvent: handleEvent,
       onLevelComplete: handleComplete
     });
-    LV.game = game;
+    SAGA2.game = game;
     game.setInput(input);
 
     canvas = document.getElementById('game');
-    if (canvas && LV.render && LV.render.init) {
-      render = LV.render;
+    if (canvas && SAGA2.render && SAGA2.render.init) {
+      render = SAGA2.render;
       render.init(canvas);
     }
-    audio = LV.audio || null;
-    ui = LV.ui || null;
+    audio = SAGA2.audio || null;
+    ui = SAGA2.ui || null;
 
     if (ui && ui.init) {
       ui.init({
@@ -645,7 +658,7 @@
 
     applyDebugQuery();
 
-    LV.main = {
+    SAGA2.main = {
       boot: boot,
       toggleGraphics: toggleGraphics,
       toggleLang: toggleLang,
@@ -660,9 +673,9 @@
       state: state,
       game: function () { return game; }
     };
-    LV.debug = {
+    SAGA2.debug = {
       startLevel: function (i) {
-        var idx = Math.max(0, Math.min((LV.LEVELS || []).length - 1, (i | 0) - 1));
+        var idx = Math.max(0, Math.min((SAGA2.LEVELS || []).length - 1, (i | 0) - 1));
         state.pendingStats = null;
         game.loadLevel(idx);
         game.resume();

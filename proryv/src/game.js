@@ -20,7 +20,7 @@
   const T_EMPTY = 0, T_SOLID = 1, T_THIN = 2, T_ROCK = 3, T_SPIKE = 4, T_FLORA = 5;
   const TILE_CHARS = { ' ': T_EMPTY, '#': T_SOLID, '=': T_THIN, '%': T_ROCK, '^': T_SPIKE, 'x': T_FLORA };
 
-  /* палитра ZX Spectrum */
+  /* 8-битная палитра из 15 цветов */
   const PAL = {
     black: '#000000', blue: '#0000d7', red: '#d70000', magenta: '#d700d7',
     green: '#00d700', cyan: '#00d7d7', yellow: '#d7d700', white: '#d7d7d7',
@@ -48,8 +48,22 @@
 
   /* ---------- настройки ---------- */
   const DEFAULTS = { lang: 'ru', gfx: 'retro', music: true, sfx: true, crt: true };
-  const SETTINGS_KEY = 'exolon.settings';
-  const RECORD_KEY = 'exolon.record';
+  const SETTINGS_KEY = 'proryv.settings';
+  const RECORD_KEY = 'proryv.record';
+  /* Устаревшие ключи (до переименования игры) — только для однократной миграции:
+     старый → новый (если нового ещё нет) → удалить старый. */
+  const LEGACY_KEYS = [['exolon.settings', SETTINGS_KEY], ['exolon.record', RECORD_KEY]];
+  function migrateStorage() {
+    try {
+      LEGACY_KEYS.forEach(function (pair) {
+        const v = localStorage.getItem(pair[0]);
+        if (v == null) return;
+        if (localStorage.getItem(pair[1]) == null) localStorage.setItem(pair[1], v);
+        localStorage.removeItem(pair[0]);
+      });
+    } catch (e) { /* приватный режим */ }
+  }
+  migrateStorage();
 
   function parseHash() {
     const out = {};
@@ -71,7 +85,7 @@
       if (raw) Object.assign(s, JSON.parse(raw));
     } catch (e) { /* приватный режим */ }
     /* RETRO — режим по умолчанию всегда: выбор графики живёт только в рамках сессии,
-       чтобы после перезапуска игра снова открывалась в аутентичном ZX-стиле. */
+       чтобы после перезапуска игра снова открывалась в аутентичном 8-битном стиле. */
     s.gfx = 'retro';
     if (HASH.lang === 'en' || HASH.lang === 'ru') s.lang = HASH.lang;
     if (HASH.gfx === 'modern' || HASH.gfx === 'retro') s.gfx = HASH.gfx;

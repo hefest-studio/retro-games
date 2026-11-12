@@ -3,7 +3,7 @@
    5 секторов × 5 экранов = 25 экранов по 32×24 тайла (256×192 px).
    Механика флип-скрина: ушёл за правый край — следующий экран.
 
-   Формат: docs/LEVELS.md · проверка: node exolon/tools/validate-levels.mjs
+   Формат: docs/LEVELS.md · проверка: node proryv/tools/validate-levels.mjs
 
    Тайлы:
      ' '  пусто              '#'  твёрдый блок (порода / металл)

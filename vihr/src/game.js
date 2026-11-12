@@ -213,8 +213,21 @@ const t = key => (I18N[LANG] && I18N[LANG][key]) || (I18N.ru[key] || key);
 /* -------------------------------------------------------------------------
    3. Настройки, рекорд и локальное хранилище
    ------------------------------------------------------------------------- */
-const CFG_KEY = 'silkworm.cfg.v1';
-const HI_KEY = 'silkworm.hi.v1';
+const CFG_KEY = 'vihr.cfg.v1';
+const HI_KEY = 'vihr.hi.v1';
+// Устаревшие ключи (прежнее рабочее имя) — только для однократной миграции:
+// старый → новый (если нового ещё нет) → удалить старый.
+const LEGACY_KEYS = [['silkworm.cfg.v1', CFG_KEY], ['silkworm.hi.v1', HI_KEY]];
+(function migrateStorage() {
+  try {
+    LEGACY_KEYS.forEach(([from, to]) => {
+      const v = localStorage.getItem(from);
+      if (v == null) return;
+      if (localStorage.getItem(to) == null) localStorage.setItem(to, v);
+      localStorage.removeItem(from);
+    });
+  } catch (e) { /* приватный режим */ }
+})();
 const CFG = { lang: 'ru', gfx: 'retro', sound: true }; // gfx живёт только в текущей сессии: при запуске всегда 8-бит
 
 function loadCfg() {
@@ -245,7 +258,7 @@ function saveHi(v) {
 /* -------------------------------------------------------------------------
    4. Конфигурация зон. Палитры подобраны отдельно под 8-бит и под неон.
    ------------------------------------------------------------------------- */
-const ENEMY_KINDS = ['tank', 'aa', 'goose', 'jet', 'truck'];
+const ENEMY_KINDS = ['tank', 'aa', 'kite', 'jet', 'truck'];
 
 const STAGES = [
   {
@@ -264,8 +277,8 @@ const STAGES = [
       ground: ['#160c1e', '#241030'], accent: '#ff7a3d', accent2: '#39e7ff',
       fog: 'rgba(255,120,90,.10)'
     },
-    mix: [['tank', 4], ['goose', 3], ['truck', 2], ['aa', 2], ['jet', 1]],
-    boss: { ru: 'ЖЕЛЕЗНЫЙ ГУСЬ', en: 'IRON GOOSE', hp: 300, accent: '#ff8a3d' }
+    mix: [['tank', 4], ['kite', 3], ['truck', 2], ['aa', 2], ['jet', 1]],
+    boss: { ru: 'ЖЕЛЕЗНЫЙ КОРШУН', en: 'IRON KITE', hp: 300, accent: '#ff8a3d' }
   },
   {
     ru: 'МОРСКОЙ ПАТРУЛЬ', en: 'SEA PATROL', ruSub: 'ПОБЕРЕЖЬЕ · ШТОРМ', enSub: 'COAST · STORM',
@@ -283,7 +296,7 @@ const STAGES = [
       ground: ['#021018', '#04222e'], accent: '#39e7ff', accent2: '#8affc1',
       fog: 'rgba(60,220,230,.10)'
     },
-    mix: [['goose', 4], ['jet', 3], ['tank', 2], ['aa', 2], ['truck', 1]],
+    mix: [['kite', 4], ['jet', 3], ['tank', 2], ['aa', 2], ['truck', 1]],
     boss: { ru: 'МОРСКОЙ ДЬЯВОЛ', en: 'SEA DEVIL', hp: 380, accent: '#39e7ff' }
   },
   {
@@ -302,7 +315,7 @@ const STAGES = [
       ground: ['#08060f', '#120c1e'], accent: '#ff2f9c', accent2: '#39e7ff',
       fog: 'rgba(255,47,156,.10)', stars: true
     },
-    mix: [['tank', 3], ['aa', 4], ['goose', 3], ['jet', 3], ['truck', 2]],
+    mix: [['tank', 3], ['aa', 4], ['kite', 3], ['jet', 3], ['truck', 2]],
     boss: { ru: 'НЕОНОВЫЙ ХИЩНИК', en: 'NEON PREDATOR', hp: 460, accent: '#ff2f9c' }
   },
   {
@@ -321,8 +334,8 @@ const STAGES = [
       ground: ['#0d0608', '#1a0c0e'], accent: '#ff4b2b', accent2: '#ffd166',
       fog: 'rgba(255,90,50,.10)', storm: true
     },
-    mix: [['aa', 4], ['tank', 4], ['goose', 4], ['jet', 4], ['truck', 2]],
-    boss: { ru: 'ГЕНЕРАЛ ВИХРЬ', en: 'GENERAL ВИХРЬ', hp: 560, accent: '#ff4b2b' }
+    mix: [['aa', 4], ['tank', 4], ['kite', 4], ['jet', 4], ['truck', 2]],
+    boss: { ru: 'ГЕНЕРАЛ ВИХРЬ', en: 'GENERAL VIHR', hp: 560, accent: '#ff4b2b' }
   }
 ];
 const stageCfg = () => STAGES[G.stage] || STAGES[0];
@@ -655,7 +668,7 @@ function defineSprites() {
     'kkkkkkk..kkkkkkk',
     'kkkkkkkkkkkkkkkk'
   ]);
-  SPR.goose = makeSprite([
+  SPR.kite = makeSprite([
     '.........kkkkkk.........',
     '......kkkddddddkkk......',
     '....kkddddddddddddkk....',
@@ -1419,7 +1432,7 @@ function drawBackground() {
 const ENEMY_DEFS = {
   tank:  { w: 18, h: 11, hp: 3, score: 100, fire: 2.1, vx: -14, ground: true },
   aa:    { w: 16, h: 12, hp: 5, score: 150, fire: 2.4, vx: -6, ground: true },
-  goose: { w: 24, h: 12, hp: 3, score: 200, fire: 1.7, vx: -56, air: true },
+  kite: { w: 24, h: 12, hp: 3, score: 200, fire: 1.7, vx: -56, air: true },
   jet:   { w: 20, h: 9,  hp: 2, score: 150, fire: 1.3, vx: -168, air: true },
   truck: { w: 16, h: 10, hp: 2, score: 50,  fire: 0,  vx: -18, ground: true }
 };
@@ -1474,7 +1487,7 @@ function makeWaves(stageIdx) {
   while (at < st.len - 340) {
     let r = rnd() * total, kind = mix[0][0];
     for (const m of mix) { r -= m[1]; if (r <= 0) { kind = m[0]; break; } }
-    const air = kind === 'goose' || kind === 'jet';
+    const air = kind === 'kite' || kind === 'jet';
     const group = (kind === 'tank' || kind === 'truck') ? (rnd() < 0.34 ? 2 : 1) : (air && rnd() < 0.38 ? 2 : 1);
     for (let g = 0; g < group; g++) {
       list.push({
@@ -1829,7 +1842,7 @@ function updateEnemies(dt) {
     const drift = G.scrollSpeed * (e.ground ? 1 : 0.65);
     e.x -= drift * dt;
     e.x += e.vx * dt;
-    if (e.type === 'goose') {
+    if (e.type === 'kite') {
       e.y = e.baseY + Math.sin(e.t * 2.2 + e.wob) * 24;
       e.y = clamp(e.y, FIELD_TOP + 14, GND - 28);
     } else if (e.type === 'jet') {
@@ -1851,7 +1864,7 @@ function updateEnemies(dt) {
         } else if (e.type === 'aa') {
           if (e.open) { enemyFire(e, pl.x, pl.y, 130 * diff, 3, 0.16, '#ff8a5a'); e.fireT = 2.5 / diff; }
           else e.fireT = 0.5;
-        } else if (e.type === 'goose') {
+        } else if (e.type === 'kite') {
           enemyFire(e, pl.x, pl.y, 130 * diff, 1, 0, '#ffb0b0');
           e.fireT = 1.8 / diff + rng() * 0.4;
         } else if (e.type === 'jet') {
@@ -2225,7 +2238,7 @@ function drawHeliModern(p) {
 /* ---- враги ---- */
 function enemyColor(type) {
   const st = stageCfg();
-  if (type === 'goose' || type === 'jet') return st.modern.accent || '#ff8a5a';
+  if (type === 'kite' || type === 'jet') return st.modern.accent || '#ff8a5a';
   return '#ff8a5a';
 }
 function drawEnemies() {
@@ -2256,8 +2269,8 @@ function drawEnemyRetro(e) {
       ctx.fillStyle = '#ff8a5a';
       ctx.fillRect(px(e.x - 1), px(e.y - 8), 2, 2);
     }
-  } else if (e.type === 'goose') {
-    drawSpr(SPR.goose, e.x, e.y, { flip: true });
+  } else if (e.type === 'kite') {
+    drawSpr(SPR.kite, e.x, e.y, { flip: true });
     ctx.fillStyle = '#7a1f1f';
     ctx.fillRect(px(e.x + 6), px(e.y + 1), 9, 2);
     ctx.fillStyle = '#ffd166';
@@ -2276,7 +2289,7 @@ function drawEnemyRetro(e) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = 0.55;
-    drawSpr(e.type === 'tank' ? SPR.tank : e.type === 'aa' ? SPR.aa : e.type === 'goose' ? SPR.goose : e.type === 'jet' ? SPR.jet : SPR.truck, e.x, e.y);
+    drawSpr(e.type === 'tank' ? SPR.tank : e.type === 'aa' ? SPR.aa : e.type === 'kite' ? SPR.kite : e.type === 'jet' ? SPR.jet : SPR.truck, e.x, e.y);
     ctx.restore();
   }
 }
@@ -2368,7 +2381,7 @@ function drawEnemyModern(e) {
       ctx.beginPath(); ctx.arc(0, -4, 9, Math.PI, TAU); ctx.stroke();
       ctx.setLineDash([]);
     }
-  } else if (e.type === 'goose') {
+  } else if (e.type === 'kite') {
     ctx.save();
     ctx.globalAlpha = 0.16;
     ctx.fillStyle = '#ffd0c0';
@@ -2905,12 +2918,12 @@ function drawTitle() {
     ctx.strokeStyle = 'rgba(216,232,240,.8)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(px(demo.x - w / 2), px(demo.y - 6)); ctx.lineTo(px(demo.x + w / 2), px(demo.y - 6)); ctx.stroke();
     drawSpr(SPR.tank, 280, GND - 5);
-    drawSpr(SPR.goose, 64, 80, { flip: true });
+    drawSpr(SPR.kite, 64, 80, { flip: true });
   } else {
     drawHeliModern(demo);
     drawEnemyModern({ type: 'tank', x: 282, y: GND - 5, t: G.menuT, open: false, flash: 0, ground: true });
     ctx.save(); ctx.globalAlpha = 0.85;
-    drawEnemyModern({ type: 'goose', x: 64, y: 80, t: G.menuT, open: false, flash: 0, ground: false });
+    drawEnemyModern({ type: 'kite', x: 64, y: 80, t: G.menuT, open: false, flash: 0, ground: false });
     ctx.restore();
   }
   // затемнение
@@ -3371,7 +3384,7 @@ function spawnShowcase() {
   G.weapon = 3; G.score = 23780; G.hi = 45600; G.lives = 2; G.bombs = 3;
   const spots = [
     ['tank', 168, GND - 6], ['tank', 246, GND - 6], ['aa', 288, GND - 6],
-    ['goose', 196, 66], ['goose', 268, 112], ['jet', 300, 84], ['truck', 132, GND - 5]
+    ['kite', 196, 66], ['kite', 268, 112], ['jet', 300, 84], ['truck', 132, GND - 5]
   ];
   for (const s of spots) {
     const e = spawnEnemy(s[0], s[2]);

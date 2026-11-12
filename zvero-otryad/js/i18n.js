@@ -6,7 +6,7 @@
   // Строки интерфейса. Рендереры и main.js берут текст только через Z.t().
   var STR = {
     ru: {
-      title: 'ЗВЕРО-ОТРЯД', sub: 'СПАСАТЕЛИ',
+      title: 'ЗВЕРО-ОТРЯД', sub: 'СТАРАЯ МАСТЕРСКАЯ',
       tagline: 'Ёж Пыж и заяц Тяпа расчищают Старую Мастерскую. Хватай ящики — и швыряй во врагов!',
       start: 'НАЧАТЬ', how: 'КАК ИГРАТЬ', back: 'Каталог',
       gfx: 'ГРАФИКА', snd: 'ЗВУК', on: 'ВКЛ', off: 'ВЫКЛ', retro: '8-БИТ', modern: 'НЕОН',
@@ -28,7 +28,7 @@
       ]
     },
     en: {
-      title: 'ZVERO-OTRYAD', sub: 'RESCUERS',
+      title: 'ZVERO-OTRYAD', sub: 'OLD WORKSHOP',
       tagline: 'Pyzh the hedgehog and Tyapa the hare clear the Old Workshop. Grab crates and hurl them at foes!',
       start: 'START', how: 'HOW TO PLAY', back: 'Catalog',
       gfx: 'GRAPHICS', snd: 'SOUND', on: 'ON', off: 'OFF', retro: '8-BIT', modern: 'NEON',

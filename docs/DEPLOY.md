@@ -1,24 +1,25 @@
 # Деплой: GitHub → Vercel
 
-Сайт — статика: каталог в корне и 11 игр в подпапках. Сборка не нужна.
+Сайт — статика: каталог в корне и игры в подпапках (список — `assets/catalog/games.json`). Сборка не нужна
+(`build.sh` только раскладывает копию `_shared/engine.js` по играм).
 
 **Статус: задеплоено.**
 
-- Production: <https://retro-games-psi.vercel.app>
+- Production: <https://arcade.hefest.ru>
 - Vercel-проект: `retro-games` (<https://vercel.com/sergio-zerg/retro-games>),
   `projectId: prj_wQgRI2z86E6wl4pNtWx6SVinyRRo`
 - GitHub: `sergio-zerg/retro-games` (private)
 - Интеграция: GitHub → Vercel привязана (`Production Branch = main`), пуш в `main`
   запускает автодеплой; CLI-деплой (`npx vercel --prod`) тоже работает.
-- Проверка прода: `/` → 200, все 11 игр → 200, `/digger/css/style.css` → 200,
-  `/contra` → 308 на `/contra/`, служебные пути (`/tools/`, `/reports/`, `*/src/`) → 404.
+- Проверка прода: `/` → 200, все игры каталога → 200, `/hrum/js/game.js` → 200,
+  `/hrum` → 308 на `/hrum/`, служебные пути (`/tools/`, `/reports/`, `*/src/`) → 404.
 
 ## 1. GitHub (приватный репозиторий)
 
 ```bash
 git init -b main
 git add -A
-git commit -m "Зал ретро-игр: каталог и 11 браузерных ремейков"
+git commit -m "Зал ретро-игр: каталог и игры студии"
 git remote add origin git@github.com:sergio-zerg/retro-games.git
 git push -u origin main
 ```
@@ -34,7 +35,7 @@ gh repo create sergio-zerg/retro-games --private --source=. --remote=origin --pu
 Проект: `retro-games`. Настройки — в `vercel.json`:
 
 - `framework: null` — статика без сборки;
-- `trailingSlash: true` — игры открываются как `/contra/`, и относительные
+- `trailingSlash: true` — игры открываются как `/hrum/`, и относительные
   `css/…`, `js/…` внутри игры резолвятся правильно (важно: без слеша они бы
   искались от корня и ломались);
 - `cleanUrls: false` — не переписывать `index.html` в URL;
@@ -57,21 +58,19 @@ npx vercel --prod    # production-деплой
 не деплоятся.
 
 > Примечание: `.vercelignore` исключает `**/src/`, но **не** исключает рабочие
-> `css/` и `js/` — у digger, lode-runner, lost-vikings-2 и river-raid игра
-> состоит из `index.html` + этих папок.
+> `css/` и `js/` — у большинства игр страница состоит из `index.html` + этих папок.
 
 ## 3. Проверка после деплоя
 
 ```bash
 BASE="https://<project>.vercel.app"
-for p in / boulder-dash/ contra/ digger/ double-dragon-battletoads/ exolon/ \
-         lode-runner/ lost-vikings/ lost-vikings-2/ river-raid/ silkworm/ the-last-mission/; do
+for p in / $(node -e "console.log(require('./assets/catalog/games.json').games.map(g=>g.slug+'/').join(' '))"); do
   printf '%s %s\n' "$(curl -s -o /dev/null -w '%{http_code}' "$BASE$p")" "$p"
 done
 ```
 
 Ожидаемо: все `200`, у игр с внешними `css/js` эти файлы тоже `200` (например
-`/digger/css/style.css`). Визуальную проверку удобно делать
+`/saga/css/style.css`). Визуальную проверку удобно делать
 `node tools/shot.mjs --url "$BASE" --out /tmp/prod.png` (нужен локальный Chrome).
 
 ## 4. Секреты

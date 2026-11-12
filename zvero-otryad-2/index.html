@@ -73,18 +73,9 @@ function mkGame(){ return Z.Game({hi:g.state.best,twoP:co.players()===2,onEvent:
 co.onAction(function(pi,name){ if(!game) return; if(name==='jump') game.jump(pi); else if(name==='grab') game.action(pi); });
 function render(ctx){ var st=game?game.state():null; if(!st){ g.clear(); return; }
   if(Z.i18n) Z.i18n.lang=g.i18n.lang;
-  (g.themeName==='retro'?Z.classic:Z.modern).draw(ctx,st);
-  if(st.players&&st.players.length>1) offscreen(ctx,st); }
-// Кооп: камера движка держит середину между героями, и при большом разносе (уже на старте цеха —
-// точки P и Q дальше ширины экрана) герой уходит за край. Не меняя логики игры, рисуем у края
-// маркер «◀ ПЫЖ» / «ТЯПА ▶» на высоте героя — видно, куда идти навстречу.
-var MARK=[{c:'#e07a2c',ru:'ПЫЖ',en:'PYZH'},{c:'#9fb0c0',ru:'ТЯПА',en:'TYAPA'}];
-function offscreen(ctx,st){ var W=st.viewW||960, cam=st.camX||0;
-  for(var i=0;i<st.players.length;i++){ var p=st.players[i]; if(!p.alive) continue; var sx=p.x-cam, left=sx+p.w<0, right=sx>W; if(!left&&!right) continue;
-    var m=MARK[i]||MARK[0], y=Math.max(70,Math.min((st.viewH||600)-20,p.y+p.h/2)), lab=(left?'◀ ':'')+m[g.i18n.lang]+(right?' ▶':'');
-    ctx.save(); ctx.font='800 14px '+g.th().font; ctx.textBaseline='middle'; var tw=ctx.measureText(lab).width+14, x=left?6:W-6-tw;
-    ctx.globalAlpha=.85+.15*Math.sin(g.time*6); ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fillRect(x,y-12,tw,24);
-    ctx.strokeStyle=m.c; ctx.lineWidth=2; ctx.strokeRect(x+1,y-11,tw-2,22); ctx.fillStyle=m.c; ctx.textAlign='left'; ctx.fillText(lab,x+7,y+1); ctx.restore(); } }
+  (g.themeName==='retro'?Z.classic:Z.modern).draw(ctx,st); }
+// Кооп: оба героя всегда в кадре — И2 появляется рядом с И1, а движок держит «поводок»
+// (не дальше ширины экрана минус отступ) и камеру по середине пары (js/game.js).
 g.scene('play',{realtime:true,
   enter:function(d){ co.arm(); if(!(d&&d.resume)){ game=mkGame(); game.start(); } },
   press:function(a){ if(a==='pause') this.pause(); },

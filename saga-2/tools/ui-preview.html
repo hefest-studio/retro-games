@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#05070f">
-  <title>UI SANDBOX · Lost Vikings II</title>
+  <title>UI SANDBOX · СЕВЕРНАЯ САГА 2</title>
   <link rel="stylesheet" href="../css/style.css">
   <style>
     /* Панель песочницы — только для tools/ui-preview.html */
@@ -134,17 +134,17 @@
   <script src="../js/i18n.js"></script>
   <script>
     /* Мок уровней: в реальной игре их даёт js/levels.js (level-smith). */
-    window.LV = window.LV || {};
-    LV.LEVELS = [
+    window.SAGA2 = window.SAGA2 || {};
+    SAGA2.LEVELS = [
       {
         name: 'Пробуждение', nameEn: 'Awakening', music: 0,
-        hint: 'Эрик ломает лёд тараном, Балеог рубит мечом, Олаф держит щит. Начните с простого.',
-        hintEn: 'Erik headbutts ice, Baleog swings his sword, Olaf raises his shield. Start simple.'
+        hint: 'Снорри ломает лёд тараном, Гуннар рубит мечом, Бьорн держит щит. Начните с простого.',
+        hintEn: 'Snorri headbutts ice, Gunnar swings his sword, Bjorn raises his shield. Start simple.'
       },
       {
         name: 'Ледяной путь', nameEn: 'The Ice Road', music: 0,
-        hint: 'Крюк Балеога цепляется за любой твёрдый потолок. Парение Эрика продлевает прыжок.',
-        hintEn: "Baleog's hook grabs any solid ceiling. Erik's glide stretches every jump."
+        hint: 'Крюк Гуннара цепляется за любой твёрдый потолок. Парение Снорри продлевает прыжок.',
+        hintEn: "Gunnar's hook grabs any solid ceiling. Snorri's glide stretches every jump."
       },
       {
         name: 'Огненный разлом', nameEn: 'Fire Rift', music: 1,
@@ -153,8 +153,8 @@
       },
       {
         name: 'Небесные врата', nameEn: 'Skyward Gates', music: 1,
-        hint: 'Вертикаль: щит Олафа — платформа для остальных, крюк и парение держат высоту.',
-        hintEn: "Verticality: Olaf's shield is a platform, hook and glide hold the height."
+        hint: 'Вертикаль: щит Бьорна — платформа для остальных, крюк и парение держат высоту.',
+        hintEn: "Verticality: Bjorn's shield is a platform, hook and glide hold the height."
       },
       {
         name: 'Холодная кузня', nameEn: 'The Cold Forge', music: 2,
@@ -162,7 +162,7 @@
         hintEn: 'Combine hook, shield and headbutt. Levers flip from sword and arrows.'
       },
       {
-        name: 'Нордвест', nameEn: 'Norse by Norsewest', music: 2,
+        name: 'Врата сияния', nameEn: 'Aurora Gate', music: 2,
         hint: 'Финальная мозаика механик. Три руны, трое у портала — не оставляйте никого позади.',
         hintEn: 'A final mosaic. Three runes, three at the portal — leave no one behind.'
       }
@@ -185,21 +185,21 @@
       var mock = {
         levelIndex: LEVEL_INDEX,
         levelCount: MAX_LEVEL,
-        name: LV.LEVELS[LEVEL_INDEX].name,
-        nameEn: LV.LEVELS[LEVEL_INDEX].nameEn,
-        hint: LV.LEVELS[LEVEL_INDEX].hint,
-        hintEn: LV.LEVELS[LEVEL_INDEX].hintEn,
+        name: SAGA2.LEVELS[LEVEL_INDEX].name,
+        nameEn: SAGA2.LEVELS[LEVEL_INDEX].nameEn,
+        hint: SAGA2.LEVELS[LEVEL_INDEX].hint,
+        hintEn: SAGA2.LEVELS[LEVEL_INDEX].hintEn,
         time: 83.6,
         deaths: 1,
         levelDeaths: 1,
         runes: 2,
         runesTotal: 3,
         score: 1800,
-        active: 'baleog',
+        active: 'gunnar',
         actors: [
-          { id: 'erik', hp: 2, maxHp: 3, dead: false, exited: false, active: false },
-          { id: 'baleog', hp: 1, maxHp: 3, dead: false, exited: false, active: true },
-          { id: 'olaf', hp: 3, maxHp: 3, dead: false, exited: false, active: false }
+          { id: 'snorri', hp: 2, maxHp: 3, dead: false, exited: false, active: false },
+          { id: 'gunnar', hp: 1, maxHp: 3, dead: false, exited: false, active: true },
+          { id: 'bjorn', hp: 3, maxHp: 3, dead: false, exited: false, active: false }
         ],
         exitCollected: 1,
         exitTotal: 3,
@@ -233,7 +233,7 @@
       }
 
       function levelData(i) {
-        return LV.LEVELS[Math.max(0, Math.min(MAX_LEVEL - 1, i))];
+        return SAGA2.LEVELS[Math.max(0, Math.min(MAX_LEVEL - 1, i))];
       }
 
       function applyMockLevel(i) {
@@ -262,10 +262,10 @@
       }
 
       function nextActive() {
-        var order = ['erik', 'baleog', 'olaf'];
+        var order = ['snorri', 'gunnar', 'bjorn'];
         var i = order.indexOf(mock.active);
         setActive(order[(i + 1) % order.length]);
-        LV.ui.updateHud(mock);
+        SAGA2.ui.updateHud(mock);
         status('active: ' + mock.active);
       }
 
@@ -276,7 +276,7 @@
         tick = setInterval(function () {
           if (!playing) return;
           mock.time += 0.25;
-          LV.ui.updateHud(mock);
+          SAGA2.ui.updateHud(mock);
           paintMockWorld();
         }, 250);
       }
@@ -391,8 +391,8 @@
       /* ---------- экраны ---------- */
       function startLevel(i) {
         applyMockLevel(i);
-        LV.ui.screen('play', { levelIndex: i });
-        LV.ui.updateHud(mock);
+        SAGA2.ui.screen('play', { levelIndex: i });
+        SAGA2.ui.updateHud(mock);
         startTick();
         paintMockWorld();
         status('play level ' + (i + 1));
@@ -402,34 +402,34 @@
         var n = String(name || 'title');
         if (n === 'title') {
           stopTick();
-          LV.ui.screen('title');
+          SAGA2.ui.screen('title');
         } else if (n === 'levels') {
           stopTick();
-          LV.ui.screen('levels');
+          SAGA2.ui.screen('levels');
         } else if (n === 'brief') {
           stopTick();
-          LV.ui.screen('brief', { index: mock.levelIndex });
+          SAGA2.ui.screen('brief', { index: mock.levelIndex });
         } else if (n === 'play') {
           startLevel(mock.levelIndex);
           return;
         } else if (n === 'pause') {
           stopTick();
-          LV.ui.screen('play', { levelIndex: mock.levelIndex });
-          LV.ui.updateHud(mock);
+          SAGA2.ui.screen('play', { levelIndex: mock.levelIndex });
+          SAGA2.ui.updateHud(mock);
           paintMockWorld();
-          LV.ui.screen('pause', { levelIndex: mock.levelIndex });
+          SAGA2.ui.screen('pause', { levelIndex: mock.levelIndex });
         } else if (n === 'complete') {
           stopTick();
-          LV.ui.screen('play', { levelIndex: mock.levelIndex });
-          LV.ui.updateHud(mock);
+          SAGA2.ui.screen('play', { levelIndex: mock.levelIndex });
+          SAGA2.ui.updateHud(mock);
           paintMockWorld();
-          LV.ui.screen('complete', resultMock);
+          SAGA2.ui.screen('complete', resultMock);
         } else if (n === 'ending') {
           stopTick();
-          LV.ui.screen('ending', endingMock);
+          SAGA2.ui.screen('ending', endingMock);
         } else if (n === 'help') {
-          LV.ui.screen('title');
-          LV.ui.screen('help');
+          SAGA2.ui.screen('title');
+          SAGA2.ui.screen('help');
         }
         updatePanelState(n);
       }
@@ -449,8 +449,8 @@
           status('callback: onSelectLevel(' + i + ')');
         },
         onResume: function () {
-          LV.ui.screen('play', { levelIndex: mock.levelIndex });
-          LV.ui.updateHud(mock);
+          SAGA2.ui.screen('play', { levelIndex: mock.levelIndex });
+          SAGA2.ui.updateHud(mock);
           startTick();
           status('callback: onResume');
           updatePanelState('play');
@@ -458,10 +458,10 @@
         onRestart: function () {
           mock.time = 0;
           mock.deaths += 1;
-          LV.ui.screen('play', { levelIndex: mock.levelIndex });
-          LV.ui.updateHud(mock);
+          SAGA2.ui.screen('play', { levelIndex: mock.levelIndex });
+          SAGA2.ui.updateHud(mock);
           startTick();
-          LV.ui.toast('Сага начата заново', { tone: 'info' });
+          SAGA2.ui.toast('Сага начата заново', { tone: 'info' });
           status('callback: onRestart');
           updatePanelState('play');
         },
@@ -481,8 +481,8 @@
         },
         onQuitToTitle: function () {
           stopTick();
-          if (LV.ui.isHelpOpen && LV.ui.isHelpOpen()) LV.ui.screen('title');
-          LV.ui.screen('title');
+          if (SAGA2.ui.isHelpOpen && SAGA2.ui.isHelpOpen()) SAGA2.ui.screen('title');
+          SAGA2.ui.screen('title');
           updatePanelState('title');
           status('callback: onQuitToTitle');
         },
@@ -493,14 +493,14 @@
           paintMockWorld();
         },
         onToggleLang: function () {
-          status('callback: onToggleLang → ' + LV.i18n.getLang());
+          status('callback: onToggleLang → ' + SAGA2.i18n.getLang());
         },
         onToggleMute: function () { status('callback: onToggleMute'); },
         onOpenHelp: function () { status('callback: onOpenHelp'); },
         onCloseHelp: function () { status('callback: onCloseHelp'); },
         onPause: function () {
           stopTick();
-          LV.ui.screen('pause', { levelIndex: mock.levelIndex });
+          SAGA2.ui.screen('pause', { levelIndex: mock.levelIndex });
           status('callback: onPause');
           updatePanelState('pause');
         },
@@ -510,16 +510,16 @@
           if (action === 'switch') {
             nextActive();
           } else if (action === 'jump') {
-            LV.ui.toast('Прыжок · мок', { tone: 'info', duration: 1200 });
+            SAGA2.ui.toast('Прыжок · мок', { tone: 'info', duration: 1200 });
           }
         }
       };
 
-      LV.ui.init({ callbacks: callbacks, getState: function () { return mock; } });
-      LV.ui.setSaveInfo(saved);
-      LV.ui.setMode(p('mode', 'aurora'));
-      LV.ui.setLang(p('lang', 'ru'));
-      LV.ui.setMuted(p('mute', '0') === '1');
+      SAGA2.ui.init({ callbacks: callbacks, getState: function () { return mock; } });
+      SAGA2.ui.setSaveInfo(saved);
+      SAGA2.ui.setMode(p('mode', 'aurora'));
+      SAGA2.ui.setLang(p('lang', 'ru'));
+      SAGA2.ui.setMuted(p('mute', '0') === '1');
 
       /* ---------- панель песочницы ---------- */
       function updatePanelState(name) {
@@ -530,11 +530,11 @@
         }
         var modeButtons = document.querySelectorAll('[data-sandbox-mode]');
         for (var m = 0; m < modeButtons.length; m++) {
-          modeButtons[m].classList.toggle('is-active', modeButtons[m].getAttribute('data-sandbox-mode') === LV.ui.getMode());
+          modeButtons[m].classList.toggle('is-active', modeButtons[m].getAttribute('data-sandbox-mode') === SAGA2.ui.getMode());
         }
         var langButtons = document.querySelectorAll('[data-sandbox-lang]');
         for (var l = 0; l < langButtons.length; l++) {
-          langButtons[l].classList.toggle('is-active', langButtons[l].getAttribute('data-sandbox-lang') === LV.ui.getLang());
+          langButtons[l].classList.toggle('is-active', langButtons[l].getAttribute('data-sandbox-lang') === SAGA2.ui.getLang());
         }
       }
 
@@ -549,11 +549,11 @@
         var s = target.getAttribute('data-sandbox-screen');
         if (s) { applyScreen(s); return; }
         var m = target.getAttribute('data-sandbox-mode');
-        if (m) { LV.ui.setMode(m); paintMockWorld(); updatePanelState(); return; }
+        if (m) { SAGA2.ui.setMode(m); paintMockWorld(); updatePanelState(); return; }
         var l = target.getAttribute('data-sandbox-lang');
-        if (l) { LV.ui.setLang(l); updatePanelState(); return; }
+        if (l) { SAGA2.ui.setLang(l); updatePanelState(); return; }
         var mu = target.getAttribute('data-sandbox-mute');
-        if (mu) { LV.ui.setMuted(mu === '1'); return; }
+        if (mu) { SAGA2.ui.setMuted(mu === '1'); return; }
         var t = target.getAttribute('data-sandbox-touch');
         if (t) {
           var url = location.pathname + '?touch=' + t + (p('screen') ? '&screen=' + p('screen') : '');
@@ -563,13 +563,13 @@
         }
         var hud = target.getAttribute('data-sandbox-hud');
         if (hud) {
-          if (hud === 'rune') { mock.runes = Math.min(mock.runesTotal, mock.runes + 1); LV.ui.toast('Руна ' + mock.runes + ' из 3', { tone: 'success' }); }
+          if (hud === 'rune') { mock.runes = Math.min(mock.runesTotal, mock.runes + 1); SAGA2.ui.toast('Руна ' + mock.runes + ' из 3', { tone: 'success' }); }
           else if (hud === 'death') { mock.deaths += 1; mock.actors[1].hp = 0; mock.actors[1].dead = true; }
           else if (hud === 'hurt') { mock.actors[0].hp = Math.max(0, mock.actors[0].hp - 1); }
           else if (hud === 'exit') { mock.exitCollected = Math.min(3, mock.exitCollected + 1); }
           else if (hud === 'switch') { nextActive(); }
           else if (hud === 'reset') { applyMockLevel(mock.levelIndex); }
-          LV.ui.updateHud(mock);
+          SAGA2.ui.updateHud(mock);
           updatePanelState();
           return;
         }
@@ -580,7 +580,7 @@
             warn: 'Осторожно: лава впереди',
             success: 'Руна 3 из 3 · +150 очков'
           };
-          LV.ui.toast(texts[toastTone] || 'Тост', { tone: toastTone });
+          SAGA2.ui.toast(texts[toastTone] || 'Тост', { tone: toastTone });
         }
       });
 

@@ -6,7 +6,7 @@ await qa.navigate("index.html?level=1&mode=retro", 700);
 for (const [i, wait] of [[0, 500], [1, 1500], [2, 3000], [3, 5000]].entries()) {
   await qa.eval(`await sleep(${wait}); return true;`);
   await qa.shot(`tmp/qa/retro_t${i}.png`, 0);
-  const s = await qa.eval(`return { t: Math.round(LV.game.time*10)/10, mode: document.body.dataset.mode, glitch: (LV.render._debug?1:0) };`);
+  const s = await qa.eval(`return { t: Math.round(SAGA2.game.time*10)/10, mode: document.body.dataset.mode, glitch: (SAGA2.render._debug?1:0) };`);
   console.log(i, wait, JSON.stringify(s));
 }
 // также через обычный поток: title -> brief -> play

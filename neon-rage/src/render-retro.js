@@ -931,7 +931,7 @@
     drawSkyline(ctx, camx, t, {
       f: 0.3, tileW: 92, baseY: 166, minH: 64, maxH: 124,
       color: C.panel, edge: C.deep, win1: C.amber, win2: C.cyan,
-      winProb: 0.2, seed: 23, signs: ['DRAGON', 'ARCADE', '24/7', 'NEON', 'TOXIC'], signChance: 0.45,
+      winProb: 0.2, seed: 23, signs: ['COMET', 'ARCADE', '24/7', 'NEON', 'TOXIC'], signChance: 0.45,
       vertical: ['HOTEL', 'CLUB', 'RAMEN']
     });
     drawStreetFacades(ctx, camx, t);
@@ -1010,7 +1010,7 @@
       fill(ctx, bx + w - 20, baseY - 16, 1, 2, C.amber);
       /* вывеска только если помещается */
       if (r2 > 0.5) {
-        var lbl = ['DRAGON', 'ARCADE', '24/7', 'NEON', 'CLUB'][norm(i + 1, 5)];
+        var lbl = ['COMET', 'ARCADE', '24/7', 'NEON', 'CLUB'][norm(i + 1, 5)];
         var bw = Math.min(w - 10, textW(lbl, 1) + 8);
         if (textW(lbl, 1) + 8 <= w - 10) {
           neonSign(ctx, bx + Math.round((w - bw) / 2), top + 1, bw, 11, lbl, col, t, 1, null);
@@ -1156,7 +1156,7 @@
     var start = Math.floor((off - 160) / tileW);
     var end = Math.ceil((off + 480 + 160) / tileW);
     var pal = [C.cyan, C.magenta, C.amber, C.lime];
-    var labels = ['NEON', 'RAGE', 'DD', 'TOAD'];
+    var labels = ['NEON', 'RAGE', 'DD', 'HAMMER'];
     for (i = start; i <= end; i++) {
       var bx = Math.round(i * tileW - off + 20);
       if (bx < -80 || bx > 500) continue;
@@ -1607,13 +1607,13 @@
     drawSkyline(ctx, camx, t, {
       f: 0.24, tileW: 98, baseY: 254, minH: 96, maxH: 206,
       color: C.panel, edge: C.deep, win1: C.amber, win2: C.cyan,
-      winProb: 0.18, seed: 17, signs: ['DRAGON', 'ARCADE', '24/7', 'NEON', 'RAGE', 'TOXIC'],
+      winProb: 0.18, seed: 17, signs: ['COMET', 'ARCADE', '24/7', 'NEON', 'RAGE', 'TOXIC'],
       signChance: 0.4, vertical: ['HOTEL', 'CLUB']
     });
     /* глубокая тень под логотипом */
     dith(ctx, 60, 8, 360, 112, C.ink, C.bg, 0.42);
     /* боковые вертикальные вывески */
-    neonSignV(ctx, 26, 68, 'DRAGON', C.magenta, t, 2);
+    neonSignV(ctx, 26, 68, 'COMET', C.magenta, t, 2);
     neonSignV(ctx, 430, 92, 'RAGE', C.cyan, t, 2);
     neonSign(ctx, 360, 208, textW('24/7', 1) + 12, 13, '24/7', C.amber, t, 1, { board: true });
     drawWires(ctx, camx, t, 34, 6, C.ink);
@@ -3173,7 +3173,7 @@
     drawSkyline(ctx, 170, t, {
       f: 0.18, tileW: 88, baseY: 264, minH: 70, maxH: 132,
       color: C.panel, edge: C.deep, win1: C.amber, win2: C.cyan,
-      winProb: 0.16, seed: 47, signs: ['DRAGON', 'TOAD', 'RAGE', 'NEON'], signChance: 0.55
+      winProb: 0.16, seed: 47, signs: ['COMET', 'HAMMER', 'RAGE', 'NEON'], signChance: 0.55
     });
     /* затемнение города + цветные неоновые канты */
     ctx.globalAlpha = 0.3;
@@ -3302,8 +3302,8 @@
     /* разделитель-молния */
     for (var z = 0; z < 13; z++) {
       var zy = 56 + z * 11;
-      var zx = 240 + (z % 2 ? 2 : -2);
-      fill(ctx, zx - 1, zy, 2, 7, z % 2 ? C.amber : C.wine);
+      var pxz = 240 + (z % 2 ? 2 : -2);
+      fill(ctx, pxz - 1, zy, 2, 7, z % 2 ? C.amber : C.wine);
     }
     for (var nd = 0; nd < 3; nd++) {
       var ny = 76 + nd * 38;

@@ -20,14 +20,14 @@ async function screens(mode) {
   await qa.eval(`await key('KeyP',90); await sleep(400); return true;`);
   await qa.shot(`tmp/qa/final_pause_${mode}.png`, 350);
   await qa.eval(`const b=Array.from(document.querySelectorAll('button')).find(x=>/Продолжить|Resume/.test(x.textContent)); b.click(); await sleep(500); return true;`);
-  await qa.eval(`LV.debug.win(); await sleep(1500); return true;`);
+  await qa.eval(`SAGA2.debug.win(); await sleep(1500); return true;`);
   await qa.shot(`tmp/qa/final_complete_${mode}.png`, 400);
   await qa.eval(`const b=Array.from(document.querySelectorAll('button')).find(x=>/Следующая сага|Next saga/.test(x.textContent)); b.click(); await sleep(500); return true;`);
   await qa.shot(`tmp/qa/final_brief2_${mode}.png`, 300);
-  await qa.eval(`LV.debug.startLevel(6); await sleep(400); LV.debug.win(); await sleep(1500); const b=Array.from(document.querySelectorAll('button')).find(x=>/Следующая сага|Next saga/.test(x.textContent)); b.click(); await sleep(600); return document.body.dataset.screen;`);
+  await qa.eval(`SAGA2.debug.startLevel(6); await sleep(400); SAGA2.debug.win(); await sleep(1500); const b=Array.from(document.querySelectorAll('button')).find(x=>/Следующая сага|Next saga/.test(x.textContent)); b.click(); await sleep(600); return document.body.dataset.screen;`);
   await qa.shot(`tmp/qa/final_ending_${mode}.png`, 400);
   out["endingScreen_" + mode] = await qa.eval(`return document.body.dataset.screen;`);
-  await qa.eval(`LV.debug.screen('levels',{unlocked:6,levels:LV.LEVELS.map((lv,i)=>({index:i,name:lv.name,nameEn:lv.nameEn,stats:{done:true,runes:3}}))}); await sleep(500); return true;`);
+  await qa.eval(`SAGA2.debug.screen('levels',{unlocked:6,levels:SAGA2.LEVELS.map((lv,i)=>({index:i,name:lv.name,nameEn:lv.nameEn,stats:{done:true,runes:3}}))}); await sleep(500); return true;`);
   await qa.shot(`tmp/qa/final_levels_${mode}.png`, 400);
   await goto(`index.html?level=3&mode=${mode}`);
   await qa.shot(`tmp/qa/final_play3_${mode}.png`, 900);
@@ -38,7 +38,7 @@ for (const m of ["aurora", "retro"]) await screens(m);
 /* ---------- EN: все экраны ---------- */
 await goto("index.html?lang=en&mode=aurora");
 await qa.shot("tmp/qa/final_title_en.png", 400);
-await qa.eval(`LV.debug.startLevel(2); await sleep(300); const b=Array.from(document.querySelectorAll('[data-focus="hud-help"]')); if(b[0])b[0].click(); await sleep(500); return true;`);
+await qa.eval(`SAGA2.debug.startLevel(2); await sleep(300); const b=Array.from(document.querySelectorAll('[data-focus="hud-help"]')); if(b[0])b[0].click(); await sleep(500); return true;`);
 await qa.shot("tmp/qa/final_help_en.png", 400);
 await qa.eval(`await key('Escape',90); await sleep(300); return true;`);
 await qa.shot("tmp/qa/final_play2_en.png", 600);
@@ -63,7 +63,7 @@ async function mobile(mode) {
     for (const sel of ['.hud-top','.hud-bottom','.touch-layer','.touch-btn','.portrait-card','.hud-hint']) {
       document.querySelectorAll(sel).forEach(e=>{ const r=e.getBoundingClientRect(); const st=getComputedStyle(e); if (st.display!=='none'&&st.visibility!=='hidden') vis.push({sel, l:Math.round(r.left),r:Math.round(r.right),t:Math.round(r.top),b:Math.round(r.bottom),w:Math.round(r.width),h:Math.round(r.height)}); });
     }
-    const g = LV.game;
+    const g = SAGA2.game;
     return { screen: document.body.dataset.screen, vp:{w:innerWidth,h:innerHeight}, canvas:{l:c.left,t:c.top,w:Math.round(c.width),h:Math.round(c.height)}, stage:{l:stage.left,t:stage.top,w:Math.round(stage.width),h:Math.round(stage.height)}, bodyScroll:{w:document.documentElement.scrollWidth,h:document.documentElement.scrollHeight}, isTouch:document.body.classList.contains('is-touch'), touchBtns:document.querySelectorAll('.touch-btn').length, rects: vis, camera:g?{x:Math.round(g.camera.x),y:Math.round(g.camera.y)}:null, actors:g?g.actors.map(a=>({id:a.id,x:Math.round(a.x),y:Math.round(a.y)})):null, errors: [] };`);
   geo.errors = m.state.errors.slice(0, 8);
   out["mobile_" + mode] = geo;
@@ -91,7 +91,7 @@ for (const mode of ["aurora", "retro"]) {
 /* ---------- audio: реальные id треков, mute/pause, scheduler ---------- */
 await goto("index.html");
 const audio = await qa.eval(`
-  const a = LV.audio, d = a._debug;
+  const a = SAGA2.audio, d = a._debug;
   const r = { before: { ready: a.isReady(), id: d.getMusicId(), ctx: d.getContextState(), sched: d.isSchedulerRunning() } };
   const btn = Array.from(document.querySelectorAll('button')).find(x=>/Новая сага|New saga/.test(x.textContent));
   r.title = { id: d.getMusicId(), tracks: d.getTrackIds(), sfx: d.getSfxNames().length, compileErrors: d.getCompileErrors() };
@@ -106,9 +106,9 @@ const audio = await qa.eval(`
   await key('Digit2',90); await sleep(200); await key('KeyK',90); await sleep(250); await key('KeyJ',90); await sleep(200);
   await key('Digit3',90); await sleep(200); await key('KeyJ',200); await sleep(200); await key('KeyL',90); await sleep(200);
   r.sfxErrors = d.getSchedulerErrors();
-  LV.debug.win(); await sleep(1500); r.complete = { screen: document.body.dataset.screen, id: d.getMusicId(), sched: d.isSchedulerRunning() };
+  SAGA2.debug.win(); await sleep(1500); r.complete = { screen: document.body.dataset.screen, id: d.getMusicId(), sched: d.isSchedulerRunning() };
   const b3 = Array.from(document.querySelectorAll('button')).find(x=>/Следующая сага|Next saga/.test(x.textContent)); b3.click(); await sleep(500);
-  await LV.debug.startLevel(6); await sleep(400); LV.debug.win(); await sleep(1500);
+  await SAGA2.debug.startLevel(6); await sleep(400); SAGA2.debug.win(); await sleep(1500);
   const b4 = Array.from(document.querySelectorAll('button')).find(x=>/Следующая сага|Next saga/.test(x.textContent)); b4.click(); await sleep(600);
   r.ending = { screen: document.body.dataset.screen, id: d.getMusicId(), sched: d.isSchedulerRunning() };
   return r;`);

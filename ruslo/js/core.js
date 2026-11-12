@@ -1,5 +1,5 @@
 /* ============================================================================
- * RIVER RAID · HTML5 — ядро
+ * РУСЛО · HTML5 — ядро
  * Константы, математика, хранилище, пиксельный шрифт 5×7 с кириллицей,
  * вспомогательные функции рисования. Без зависимостей, без сети.
  * ========================================================================== */
@@ -43,23 +43,39 @@ window.RR = window.RR || {};
   };
 
   /* ---------- localStorage (никогда не бросает) ---------- */
+  const STORE_PREFIX = 'ruslo.';
+  // Устаревший префикс ключей (прежнее рабочее имя) — только для однократной миграции.
+  const LEGACY_STORE_PREFIX = 'riverraid.';
+  const STORE_KEYS = ['gfx', 'sound', 'volume', 'hi', 'lang'];
   const LS = {
     get(key, def) {
       try {
-        const raw = localStorage.getItem('riverraid.' + key);
+        const raw = localStorage.getItem(STORE_PREFIX + key);
         return raw === null ? def : JSON.parse(raw);
       } catch (e) { return def; }
     },
     set(key, val) {
-      try { localStorage.setItem('riverraid.' + key, JSON.stringify(val)); } catch (e) { /* приватный режим */ }
+      try { localStorage.setItem(STORE_PREFIX + key, JSON.stringify(val)); } catch (e) { /* приватный режим */ }
+    },
+    // старый → новый (если нового ещё нет) → удалить старый; до первого чтения настроек
+    migrate(ls) {
+      try {
+        STORE_KEYS.forEach((key) => {
+          const v = ls.getItem(LEGACY_STORE_PREFIX + key);
+          if (v === null || v === undefined) return;
+          if (ls.getItem(STORE_PREFIX + key) === null) ls.setItem(STORE_PREFIX + key, v);
+          ls.removeItem(LEGACY_STORE_PREFIX + key);
+        });
+      } catch (e) { /* приватный режим */ }
     },
   };
   RR.store = LS;
+  try { LS.migrate(localStorage); } catch (e) { /* нет хранилища */ }
 
   /* ---------- шрифт 5×7 ---------- */
   /* Латинские глифы и цифры — стандартная матрица 5×7;
-     кириллица нарисована вручную в той же сетке (взята из родственного
-     порта The Last Mission этого же проекта и проверена тестом). */
+     кириллица нарисована вручную в той же сетке (взята из родственной
+     игры студии — РУБИКОНа — и проверена тестом). */
   const FONT = {
     'A': '01110 10001 10001 11111 10001 10001 10001',
     'B': '11110 10001 10001 11110 10001 10001 11110',

@@ -1,7 +1,7 @@
 /* ============================================================================
-   CONTRA: НЕОНОВЫЙ РАССВЕТ — WebAudio chiptune engine (original score, no samples)
+   РУБЕЖ: НЕОНОВЫЙ РАССВЕТ — WebAudio chiptune engine (original score, no samples)
    ----------------------------------------------------------------------------
-   Классический скрипт (не модуль). Единственный глобальный объект: CONTRA_AUDIO.
+   Классический скрипт (не модуль). Единственный глобальный объект: RUBEZH_AUDIO.
    Вся музыка синтезируется на лету: 2 импульсных канала (PeriodicWave 12.5%/25%),
    треугольный бас, шумовые барабаны, лёгкий эхо-посыл. Никаких файлов и сети.
    API и поведение описаны в docs/AUDIO.md. Код устойчив к отсутствию WebAudio:
@@ -72,7 +72,7 @@
 
   function warn(msg) {
     if (warnings++ > 24) return;
-    try { root.console.warn('[CONTRA_AUDIO] ' + msg); } catch (e) {}
+    try { root.console.warn('[RUBEZH_AUDIO] ' + msg); } catch (e) {}
   }
 
   // Разворачивает массив строк/строку в плоский список токенов.
@@ -1333,6 +1333,6 @@
     getVolume: function () { return userVol; }
   };
 
-  try { root.CONTRA_AUDIO = api; } catch (e) {}
+  try { root.RUBEZH_AUDIO = api; } catch (e) {}
 })();
 

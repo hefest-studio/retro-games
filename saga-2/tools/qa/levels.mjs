@@ -10,7 +10,7 @@ for (const mode of ["aurora", "retro"]) {
     qa.clearLogs();
     await qa.navigate(`index.html?level=${n}&mode=${mode}`, 900);
     const data = await qa.eval(`
-      const g = LV.game;
+      const g = SAGA2.game;
       const c = document.getElementById('game').getBoundingClientRect();
       const VW = 1024, VH = 576, sx = c.width / VW, sy = c.height / VH;
       const act = g.activeActor();
@@ -44,10 +44,10 @@ for (const mode of ["aurora", "retro"]) {
 qa.clearLogs();
 await qa.navigate("index.html?level=1", 900);
 const mech = await qa.eval(`
-  const g = LV.game; const snap = () => ({ active: g.active, x: Math.round(g.activeActor().x), y: Math.round(g.activeActor().y) });
+  const g = SAGA2.game; const snap = () => ({ active: g.active, x: Math.round(g.activeActor().x), y: Math.round(g.activeActor().y) });
   const r = { start: snap() };
-  input_set = (k, v) => LV.input.set(k, v);
-  LV.input.set('right', true); await sleep(700); LV.input.set('right', false); await sleep(120);
+  input_set = (k, v) => SAGA2.input.set(k, v);
+  SAGA2.input.set('right', true); await sleep(700); SAGA2.input.set('right', false); await sleep(120);
   r.afterRight = snap();
   await key('Space', 120); await sleep(500);
   r.afterJump = snap();
@@ -57,7 +57,7 @@ const mech = await qa.eval(`
   await key('KeyJ', 200); await sleep(300); r.shield = { active: g.active, hasShield: !!g.activeActor().shield };
   await key('Digit1', 90); await sleep(150);
   await key('KeyJ', 90); await sleep(300); r.headbutt = { active: g.active };
-  await key('KeyL', 90); await sleep(200); r.hookOnErik = true;
+  await key('KeyL', 90); await sleep(200); r.hookOnSnorri = true;
   r.err = 'none';
   return r;`);
 mech.errors = qa.state.errors.slice();
@@ -79,7 +79,7 @@ for (const mode of ["aurora", "retro"]) {
 qa.clearLogs();
 await qa.navigate("index.html", 900);
 const audio = await qa.eval(`
-  const a = LV.audio, d = a._debug;
+  const a = SAGA2.audio, d = a._debug;
   const r = { beforeGesture: { ready: a.isReady(), id: d.getMusicId(), ctx: d.getContextState() } };
   await key('KeyG', 60); await sleep(300);
   r.afterGesture = { ready: a.isReady(), id: d.getMusicId(), ctx: d.getContextState(), sched: d.isSchedulerRunning() };
@@ -91,7 +91,7 @@ const audio = await qa.eval(`
   await key('KeyP', 90); await sleep(300);
   await key('KeyM', 90); await sleep(300); r.muted = { muted: a.getMuted(), id: d.getMusicId() };
   await key('KeyM', 90); await sleep(200);
-  LV.debug.win(); await sleep(1400); r.complete = { id: d.getMusicId(), screen: document.body.dataset.screen };
+  SAGA2.debug.win(); await sleep(1400); r.complete = { id: d.getMusicId(), screen: document.body.dataset.screen };
   r.err = 'none';
   return r;`);
 audio.errors = qa.state.errors.slice();

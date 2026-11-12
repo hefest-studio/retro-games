@@ -14,7 +14,7 @@ const el = () => ({ dataset: {}, setAttribute() {}, classList: { toggle() {}, ad
 const store = {};
 const sandbox = {
   console, Math, Array, Object, JSON, Error, Number, String, Map, Date, RegExp, Promise,
-  localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } },
+  localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: (k) => { delete store[k]; } },
   document: {
     readyState: 'complete', title: '', body: el(), documentElement: el(),
     getElementById: () => null, querySelector: () => null, querySelectorAll: () => [],
@@ -93,8 +93,18 @@ test('оболочка v2: engine.js → music.js первыми, нет canvas#
   const srcs = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
   eq(srcs[0], './engine.js'); eq(srcs[1], './js/music.js');
   ok(!/id="game"/.test(html), 'canvas#game запустил бы родной цикл');
-  ok(/riverraid\.hi/.test(html) && /arcade\.best\.ruslo/.test(html), 'нет миграции рекорда');
+  ok(/ruslo\.hi/.test(html) && /arcade\.best\.ruslo/.test(html), 'нет миграции рекорда');
   ok(fs.existsSync(path.join(ROOT, 'legacy.html')) && fs.existsSync(path.join(ROOT, 'engine.js')));
+});
+test('миграция localStorage: riverraid.* → ruslo.*, старые удалены, новые не затираются', () => {
+  const mk = (init) => { const m = new Map(Object.entries(init)); return { m, getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
+  const a = mk({ 'riverraid.hi': '4242', 'riverraid.lang': '"en"', 'riverraid.gfx': '"modern"', 'riverraid.sound': 'false', 'riverraid.volume': '0.3' });
+  RR.store.migrate(a);
+  eq(a.m.get('ruslo.hi'), '4242', 'рекорд'); eq(a.m.get('ruslo.lang'), '"en"', 'язык'); eq(a.m.get('ruslo.volume'), '0.3', 'громкость');
+  ok(![...a.m.keys()].some((k) => k.startsWith('riverraid.')), 'старые ключи не удалены: ' + [...a.m.keys()]);
+  const b = mk({ 'riverraid.hi': '4242', 'ruslo.hi': '5000' });
+  RR.store.migrate(b);
+  eq(b.m.get('ruslo.hi'), '5000', 'новый рекорд затёрт старым'); ok(!b.m.has('riverraid.hi'), 'старый не удалён');
 });
 console.log(`\nOK ${passed}/${passed + failed}`);
 process.exit(failed ? 1 : 0);

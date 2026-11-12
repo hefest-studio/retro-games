@@ -8,8 +8,9 @@
   var doc = global.document;
 
   /* ------------------------------- настройки ------------------------------ */
-  var SET_KEY = 'digger.settings.v1';
-  var HI_KEY = 'digger.hi.v1';
+  var SET_KEY = DG.STORE_KEYS.settings;
+  var HI_KEY = DG.STORE_KEYS.hi;
+  try { DG.migrateStorage(global.localStorage); } catch (e) { /* нет хранилища */ }
 
   var defaults = { gfx: 'classic', lang: 'ru', music: true, sfx: true, crt: true };
   var settings = { gfx: defaults.gfx, lang: defaults.lang, music: defaults.music, sfx: defaults.sfx, crt: defaults.crt };

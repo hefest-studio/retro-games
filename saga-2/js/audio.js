@@ -1,6 +1,6 @@
 /* ============================================================================
    СЕВЕРНАЯ САГА 2 · СТУДИЯ ГЕФЕСТ · audio.js
-   LV.audio — оригинальный чиптюн и SFX на WebAudio. Все звуки синтезируются,
+   SAGA2.audio — оригинальный чиптюн и SFX на WebAudio. Все звуки синтезируются,
    внешних сэмплов и файлов нет.
 
    Состав трека: 2 пульсовых канала (duty 12.5% / 25% / 50%), треугольный бас,
@@ -12,7 +12,7 @@
 
    Модуль не трогает DOM при загрузке; все вызовы безопасны до unlock.
    ========================================================================== */
-window.LV = window.LV || {};
+window.SAGA2 = window.SAGA2 || {};
 (function () {
   'use strict';
 
@@ -1556,11 +1556,11 @@ window.LV = window.LV || {};
     return out;
   }
 
-  LV_audio_init();
+  SAGA2_audio_init();
 
-  function LV_audio_init() {
-    window.LV = window.LV || {};
-    window.LV.audio = {
+  function SAGA2_audio_init() {
+    window.SAGA2 = window.SAGA2 || {};
+    window.SAGA2.audio = {
       // контракт §6
       unlock: unlock,
       isReady: isReady,

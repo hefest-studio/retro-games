@@ -2,7 +2,7 @@
 /**
  * QA-хелпер: пачка скриншотов через tools/probe.mjs (headless Chrome).
  *
- *   node exolon/tools/shots.mjs [--out=exolon/tmp/qa-shots] [--w=1280] [--h=900]
+ *   node proryv/tools/shots.mjs [--out=proryv/tmp/qa-shots] [--w=1280] [--h=900]
  *                               [--concurrency=4] [--list=title,play,help]
  *                               [--matrix] [--final] [--extras]
  *
@@ -160,7 +160,7 @@ async function runStorageTest() {
 
   const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
   const port = 9800 + Math.floor(Math.random() * 190);
-  const profile = mkdtempSync(join(tmpdir(), "dsh-storage-"));
+  const profile = mkdtempSync(join(tmpdir(), "proryv-storage-"));
   const chrome = spawn(CHROME, [
     "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-crashpad",
     "--disable-breakpad", "--hide-scrollbars", "--no-first-run", "--mute-audio",
@@ -233,8 +233,8 @@ async function runStorageTest() {
       return JSON.stringify({
         before: JSON.parse(before),
         after: EX.settings,
-        lsSettings: localStorage.getItem('exolon.settings'),
-        lsRecord: localStorage.getItem('exolon.record')
+        lsSettings: localStorage.getItem('proryv.settings'),
+        lsRecord: localStorage.getItem('proryv.record')
       });
     })()`);
     console.log("шаг 1 (запись):", write);
@@ -251,8 +251,8 @@ async function runStorageTest() {
       languageMenu: EX.t('menu.play'),
       gfx: EX.settings.gfx, lang: EX.settings.lang,
       music: EX.settings.music, sfx: EX.settings.sfx, crt: EX.settings.crt,
-      lsSettings: localStorage.getItem('exolon.settings'),
-      lsRecord: localStorage.getItem('exolon.record'),
+      lsSettings: localStorage.getItem('proryv.settings'),
+      lsRecord: localStorage.getItem('proryv.record'),
       canvas: (function(){var c=document.getElementById('stage');return [c.width,c.height];})(),
       stage: EX_MAIN.stage(),
       title: document.title
@@ -266,8 +266,8 @@ async function runStorageTest() {
       ["после reload музыка off", b.music === false],
       ["после reload звуки off", b.sfx === false],
       ["после reload CRT off", b.crt === false],
-      ["запись настроек в exolon.settings", !!a.lsSettings && a.lsSettings === JSON.stringify(a.after)],
-      ["рекорд в exolon.record", a.lsRecord === "54321"],
+      ["запись настроек в proryv.settings", !!a.lsSettings && a.lsSettings === JSON.stringify(a.after)],
+      ["рекорд в proryv.record", a.lsRecord === "54321"],
       ["рекорд прочитан после reload", b.record === 54321 && b.stateRecord === 54321],
       ["кадр отрисован", b.canvas[0] > 0 && b.stage && b.stage.w > 0],
     ];

@@ -1,18 +1,18 @@
 /* ui.js — СЕВЕРНАЯ САГА 2 · СТУДИЯ ГЕФЕСТ
    Интерфейс: экраны, HUD, тосты, справка, чипы настроек, сенсорное управление.
    Правила: DOM трогаем только из init(); игру не трогаем — только callbacks и getState.
-   API §7: LV.ui {init, screen, updateHud, toast, setMode, setLang, setMuted, setSaveInfo}. */
-window.LV = window.LV || {};
+   API §7: SAGA2.ui {init, screen, updateHud, toast, setMode, setLang, setMuted, setSaveInfo}. */
+window.SAGA2 = window.SAGA2 || {};
 (function () {
   'use strict';
 
   /* ============================ утилиты ============================ */
 
   function T(key, vars) {
-    return window.LV && LV.i18n && LV.i18n.t ? LV.i18n.t(key, vars) : String(key);
+    return window.SAGA2 && SAGA2.i18n && SAGA2.i18n.t ? SAGA2.i18n.t(key, vars) : String(key);
   }
   function L(key) {
-    return window.LV && LV.i18n && LV.i18n.list ? LV.i18n.list(key) : [];
+    return window.SAGA2 && SAGA2.i18n && SAGA2.i18n.list ? SAGA2.i18n.list(key) : [];
   }
   function isNum(v) { return typeof v === 'number' && isFinite(v); }
   function nz() { // первое числовое значение из аргументов
@@ -137,7 +137,7 @@ window.LV = window.LV || {};
 
   /* ---------- портреты-заглушки (если render.drawPortrait недоступен) ---------- */
   var PORTRAITS = {
-    erik: [
+    snorri: [
       'M12 68c1.6-12.5 9.2-18.5 20-18.5S50.4 55.5 52 68',
       'M22 28.5c0-8.4 4.5-13.6 10-13.6s10 5.2 10 13.6v4.6c0 7-4.5 11.8-10 11.8s-10-4.8-10-11.8z',
       'M18.6 26c0-8.2 5.6-13.4 13.4-13.4S45.4 17.8 45.4 26',
@@ -149,7 +149,7 @@ window.LV = window.LV || {};
       'M45.2 25.2c4.6-1.8 7-6.6 6.8-11.8-4.8 1.2-8.4 4.8-10 9.4',
       'M26.8 50.4l5.2 5 5.2-5'
     ],
-    baleog: [
+    gunnar: [
       'M11 68c1.8-12.8 9.6-19 21-19s19.2 6.2 21 19',
       'M20.4 29c0-9 5-14.6 11.6-14.6S43.6 20 43.6 29v4.4c0 7.4-5 12.4-11.6 12.4S20.4 40.8 20.4 33.4z',
       'M17.6 26.4c0-8.6 6.2-14 14.4-14s14.4 5.4 14.4 14',
@@ -162,7 +162,7 @@ window.LV = window.LV || {};
       'M45.4 25.4c4.2-2 6.6-6.4 6.4-11-4.4 1-7.8 4.2-9.4 8.4',
       'M25.4 51.6c2 2.8 4.2 4.2 6.6 4.2s4.6-1.4 6.6-4.2'
     ],
-    olaf: [
+    bjorn: [
       'M8.4 68c2-13.6 10.4-20 23.6-20s21.6 6.4 23.6 20',
       'M20.2 28.6c0-9.2 5.2-15.2 11.8-15.2s11.8 6 11.8 15.2v4.8c0 7.8-5.2 13.4-11.8 13.4s-11.8-5.6-11.8-13.4z',
       'M16.8 25.4c0-8.6 6.6-14.2 15.2-14.2s15.2 5.6 15.2 14.2',
@@ -188,7 +188,7 @@ window.LV = window.LV || {};
     svg.setAttribute('width', '64');
     svg.setAttribute('height', '74');
     svg.setAttribute('class', 'portrait__fallback');
-    var list = PORTRAITS[id] || PORTRAITS.erik;
+    var list = PORTRAITS[id] || PORTRAITS.snorri;
     for (var i = 0; i < list.length; i++) {
       var p = document.createElementNS(NS, 'path');
       p.setAttribute('d', list[i]);
@@ -200,18 +200,18 @@ window.LV = window.LV || {};
   /* ============================ данные ============================ */
 
   var VIKINGS = [
-    { id: 'erik', abilities: ['headbutt', 'glide'] },
-    { id: 'baleog', abilities: ['sword', 'bow', 'hook'] },
-    { id: 'olaf', abilities: ['shield'] }
+    { id: 'snorri', abilities: ['headbutt', 'glide'] },
+    { id: 'gunnar', abilities: ['sword', 'bow', 'hook'] },
+    { id: 'bjorn', abilities: ['shield'] }
   ];
   var VIKING_MAP = {};
   for (var vi = 0; vi < VIKINGS.length; vi++) VIKING_MAP[VIKINGS[vi].id] = VIKINGS[vi];
 
   // способности для сенсорных кнопок: action (J), special (K/Space), hook (L)
   var TOUCH_ABILITIES = {
-    erik: { action: 'headbutt', special: 'glide', hook: null },
-    baleog: { action: 'sword', special: 'bow', hook: 'hook' },
-    olaf: { action: 'shield', special: null, hook: null }
+    snorri: { action: 'headbutt', special: 'glide', hook: null },
+    gunnar: { action: 'sword', special: 'bow', hook: 'hook' },
+    bjorn: { action: 'shield', special: null, hook: null }
   };
 
   var SCREENS = ['title', 'levels', 'brief', 'play', 'pause', 'complete', 'ending'];
@@ -254,7 +254,7 @@ window.LV = window.LV || {};
 
   function uiSfx(name) {
     try {
-      if (window.LV && LV.audio && typeof LV.audio.sfx === 'function') LV.audio.sfx(name);
+      if (window.SAGA2 && SAGA2.audio && typeof SAGA2.audio.sfx === 'function') SAGA2.audio.sfx(name);
     } catch (e) { /* no-op */ }
   }
 
@@ -442,7 +442,7 @@ window.LV = window.LV || {};
   /* ============================ уровни / сохранение ============================ */
 
   function levelsList() {
-    var lv = window.LV && LV.LEVELS;
+    var lv = window.SAGA2 && SAGA2.LEVELS;
     return lv && lv.length ? lv : null;
   }
   function levelAt(i) {
@@ -557,7 +557,7 @@ window.LV = window.LV || {};
     if (!activeId) {
       for (var k = 0; k < actors.length; k++) if (actors[k].active) { activeId = actors[k].id; break; }
     }
-    if (!activeId) activeId = 'erik';
+    if (!activeId) activeId = 'snorri';
 
     return {
       levelIndex: idx,
@@ -622,7 +622,7 @@ window.LV = window.LV || {};
 
   function drawPortraits() {
     if (!refs.portraits || !refs.portraits.length) return;
-    var rd = window.LV && LV.render;
+    var rd = window.SAGA2 && SAGA2.render;
     if (!rd || typeof rd.drawPortrait !== 'function') return;
     for (var i = 0; i < refs.portraits.length; i++) {
       try { rd.drawPortrait(refs.portraits[i].canvas, refs.portraits[i].id); } catch (e) { /* no-op */ }
@@ -831,13 +831,13 @@ window.LV = window.LV || {};
 
   function updateTouchAbility(activeId, n) {
     if (!refs.touch) return;
-    var map = TOUCH_ABILITIES[activeId] || TOUCH_ABILITIES.erik;
+    var map = TOUCH_ABILITIES[activeId] || TOUCH_ABILITIES.snorri;
     setTouchButtonContent(refs.touch.action, map.action, 'touch.action');
     setTouchButtonContent(refs.touch.special, map.special, 'touch.special');
     setTouchButtonContent(refs.touch.hook, map.hook, 'touch.hook');
     if (n && refs.touch.switchLabel) {
       // подпись смены викинга: следующий по кругу
-      var order = ['erik', 'baleog', 'olaf'];
+      var order = ['snorri', 'gunnar', 'bjorn'];
       var idx = order.indexOf(activeId);
       var next = order[(idx + 1) % order.length];
       setText(refs.touch.switchLabel, T('viking.' + next));
@@ -952,7 +952,7 @@ window.LV = window.LV || {};
     var hasProgress = saveInfo.hasProgress;
 
     var logo = h('h1', { 'class': 'logo', 'aria-label': 'СЕВЕРНАЯ САГА II · СТУДИЯ ГЕФЕСТ' }, [
-      h('span', { 'class': 'logo__line logo__line--lost', text: T('brand.lost'), 'aria-hidden': 'true' }),
+      h('span', { 'class': 'logo__line logo__line--north', text: T('brand.north'), 'aria-hidden': 'true' }),
       h('span', { 'class': 'logo__line logo__line--vikings' }, [
         h('span', { 'class': 'logo__word', text: T('brand.vikings') }),
         h('span', { 'class': 'logo__ii', text: T('brand.ii') })
@@ -1616,12 +1616,12 @@ window.LV = window.LV || {};
       'class': 'help-modal panel panel--glass',
       role: 'dialog',
       'aria-modal': 'true',
-      'aria-labelledby': 'lv-help-title'
+      'aria-labelledby': 'saga2-help-title'
     }, [
       h('header', { 'class': 'help-head' }, [
         h('div', { 'class': 'help-head__titles' }, [
           kicker(T('meta.aurora')),
-          h('h2', { 'class': 'help-title', id: 'lv-help-title', text: T('help.heading') }),
+          h('h2', { 'class': 'help-title', id: 'saga2-help-title', text: T('help.heading') }),
           h('p', { 'class': 'help-sub', text: T('help.sub') })
         ]),
         iconBtn('close', T('help.close'), {
@@ -1740,7 +1740,7 @@ window.LV = window.LV || {};
     var next = lang === 'en' ? 'en' : 'ru';
     var changed = st.lang !== next;
     st.lang = next;
-    if (window.LV && LV.i18n) LV.i18n.setLang(next);
+    if (window.SAGA2 && SAGA2.i18n) SAGA2.i18n.setLang(next);
     document.documentElement.lang = next;
     document.body.setAttribute('data-lang', next);
     if (!st.inited) return;
@@ -1887,7 +1887,7 @@ window.LV = window.LV || {};
     if (st.inited) {
       if (opts.callbacks) st.callbacks = opts.callbacks;
       if (typeof opts.getState === 'function') st.getState = opts.getState;
-      return LV.ui;
+      return SAGA2.ui;
     }
     st.callbacks = opts.callbacks || {};
     st.getState = typeof opts.getState === 'function' ? opts.getState : null;
@@ -1913,12 +1913,12 @@ window.LV = window.LV || {};
     st.touch = detectTouch();
     document.body.classList.toggle('is-touch', st.touch);
     bindGlobal();
-    return LV.ui;
+    return SAGA2.ui;
   }
 
   /* ============================ public API ============================ */
 
-  LV.ui = {
+  SAGA2.ui = {
     init: init,
     screen: screen,
     updateHud: updateHud,

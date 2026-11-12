@@ -87,12 +87,22 @@ test('трек js/music.js: валидная нотация, 8 тактов, г�
   eq(mel.length, 8 * t.div * 4, 'шагов мелодии'); ok(mel.length % bass.length === 0 && mel.length % dr.length === 0, 'не кратны');
   mel.concat(bass).forEach((x) => ok(x === '-' || x === '.' || /^[A-G][#b]?\d$/.test(x), 'плохой токен ' + x));
 });
-test('оболочка v2: engine.js → music.js первыми, DOM-HUD на месте, legacy.html и classic-loderunner.html целы', () => {
+test('оболочка v2: engine.js → music.js первыми, DOM-HUD на месте, legacy.html цел', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const srcs = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
   eq(srcs[0], './engine.js'); eq(srcs[1], './js/music.js');
   ['score', 'goal', 'level', 'lives'].forEach((id) => ok(html.includes('id="' + id + '"'), 'нет HUD #' + id));
-  ['legacy.html', 'classic-loderunner.html', 'engine.js'].forEach((f) => ok(fs.existsSync(path.join(ROOT, f)), 'нет ' + f));
+  ['legacy.html', 'engine.js'].forEach((f) => ok(fs.existsSync(path.join(ROOT, f)), 'нет ' + f));
+  srcs.forEach((s) => ok(fs.existsSync(path.join(ROOT, s)), 'нет файла ' + s));
+});
+test('legacy.html самостоятелен: не ссылается на внешние js/css папки', () => {
+  const lg = fs.readFileSync(path.join(ROOT, 'legacy.html'), 'utf8');
+  ok(!/<script[^>]*\ssrc=/.test(lg), 'legacy.html грузит внешний скрипт'); ok(!/<link[^>]*stylesheet/.test(lg), 'legacy.html грузит внешний css');
+  ok(/<canvas/.test(lg), 'нет canvas');
+});
+test('версия с лестницами вынесена в ПОДКОП: её файлов здесь нет', () => {
+  ['single.html', 'js/levels.js', 'js/game.js', 'js/render.js', 'js/ui.js', 'js/main.js', 'js/audio.js', 'css/style.css'].forEach((f) => ok(!fs.existsSync(path.join(ROOT, f)), 'остался ' + f));
+  ok(!fs.readdirSync(ROOT).some((f) => /runner/i.test(f)), 'остался файл со старым названием');
 });
 console.log(`\nOK ${passed}/${passed + failed}`);
 process.exit(failed ? 1 : 0);

@@ -1630,7 +1630,7 @@
      ============================================================ */
   var SIGNS = {
     0: [
-      { sx: 74, y: 30, w: 26, h: 88, text: 'ДРАКОН', style: 'vert', col: C.cyan, hot: '#ffffff', factor: 0.30 },
+      { sx: 74, y: 30, w: 26, h: 88, text: 'КОМЕТА', style: 'vert', col: C.cyan, hot: '#ffffff', factor: 0.30 },
       { sx: 262, y: 56, w: 120, h: 28, text: 'АРКАДА', style: 'horiz', col: C.pink, hot: '#ffe0ef', factor: 0.30 },
       { sx: 398, y: 100, w: 70, h: 24, text: '24/7', style: 'store', col: C.lime, hot: C.lime2, factor: 0.52 },
       { sx: 414, y: 52, w: 54, h: 18, text: 'NEON', style: 'small', col: C.amber, hot: C.amber2, factor: 0.30 }

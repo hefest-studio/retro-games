@@ -1,4 +1,4 @@
-/* Проверка механики и интерфейса River Raid в headless Chrome.
+/* Проверка механики и интерфейса РУСЛО в headless Chrome.
    Запуск: node tools/cdp.mjs eval --page legacy.html --script tools/test-game.js --wait 600 */
 const out = { checks: [], errors: [], state: null };
 const check = (name, ok, info) => {

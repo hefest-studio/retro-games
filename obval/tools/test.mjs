@@ -15,7 +15,7 @@ const OUT = join(ROOT, "screenshots", "test");
 const PORT = 9344;
 const PAGE = `file://${join(ROOT, process.env.PAGE || "index.html")}`;
 mkdirSync(OUT, { recursive: true });
-const profile = mkdtempSync(join(tmpdir(), "dsh-bd-"));
+const profile = mkdtempSync(join(tmpdir(), "obval-test-"));
 
 const chrome = spawn(CHROME, [
   "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-crashpad",
@@ -90,7 +90,7 @@ async function goto() {
     const t = setInterval(() => { if (true) {} }, 1000);
     const check = setInterval(async () => {
       try {
-        const ready = await evaluate("!!window.__BD_READY__");
+        const ready = await evaluate("!!window.__OBVAL_READY__");
         if (ready) { clearInterval(check); clearTimeout(t); res(); }
       } catch {}
     }, 100);
@@ -120,70 +120,70 @@ async function run() {
   await goto();
 
   console.log("\\n— loaded —");
-  console.log("levels:", await evaluate("JSON.stringify(BD.levels.map(l => l.name.ru + ' · ' + l.quota))"));
-  console.log("validation:", await evaluate("JSON.stringify(BD.validateLevels())"));
-  console.log("state:", await evaluate("JSON.stringify(BD.state)"));
+  console.log("levels:", await evaluate("JSON.stringify(OBVAL.levels.map(l => l.name.ru + ' · ' + l.quota))"));
+  console.log("validation:", await evaluate("JSON.stringify(OBVAL.validateLevels())"));
+  console.log("state:", await evaluate("JSON.stringify(OBVAL.state)"));
   console.log("scroll:", await evaluate("JSON.stringify({sw:document.documentElement.scrollWidth, iw:innerWidth, sh:document.documentElement.scrollHeight, ih:innerHeight})"));
   await shot("01-menu-ru-modern");
 
   await press("Enter", "Enter", 80);
   await sleep(750);
-  console.log("after Enter start:", await evaluate("JSON.stringify(BD.state)"));
-  console.log("audio:", await evaluate("JSON.stringify({ready:BD.debug.Sound.ready, state:BD.debug.Sound.ctx&&BD.debug.Sound.ctx.state, track:BD.debug.Sound.currentTrack, scheduler:!!BD.debug.Sound.timer})"));
+  console.log("after Enter start:", await evaluate("JSON.stringify(OBVAL.state)"));
+  console.log("audio:", await evaluate("JSON.stringify({ready:OBVAL.debug.Sound.ready, state:OBVAL.debug.Sound.ctx&&OBVAL.debug.Sound.ctx.state, track:OBVAL.debug.Sound.currentTrack, scheduler:!!OBVAL.debug.Sound.timer})"));
   await shot("02-play-ru-modern");
 
   // Move down/right a little, check that the player is actually able to move.
-  const before = await evaluate("JSON.stringify(BD.state.player)");
+  const before = await evaluate("JSON.stringify(OBVAL.state.player)");
   await press("ArrowRight", "ArrowRight", 300);
   await press("ArrowDown", "ArrowDown", 300);
-  const after = await evaluate("JSON.stringify(BD.state.player)");
+  const after = await evaluate("JSON.stringify(OBVAL.state.player)");
   console.log("player:", before, "→", after);
 
-  await evaluate("BD.toggleGraphics()");
+  await evaluate("OBVAL.toggleGraphics()");
   await sleep(350);
-  console.log("graphics:", await evaluate("BD.state.graphics"));
+  console.log("graphics:", await evaluate("OBVAL.state.graphics"));
   await shot("03-play-ru-retro");
 
-  await evaluate("BD.toggleGraphics()");
+  await evaluate("OBVAL.toggleGraphics()");
   await sleep(200);
-  await evaluate("BD.pause()");
+  await evaluate("OBVAL.pause()");
   await sleep(200);
   await shot("04-pause-ru-modern");
-  await evaluate("BD.resume()");
+  await evaluate("OBVAL.resume()");
   await sleep(150);
 
-  await evaluate("BD.toggleLanguage()");
+  await evaluate("OBVAL.toggleLanguage()");
   await sleep(250);
-  console.log("language:", await evaluate("BD.state.language"));
+  console.log("language:", await evaluate("OBVAL.state.language"));
   await shot("05-play-en-modern");
-  await evaluate("BD.toggleLanguage()");
+  await evaluate("OBVAL.toggleLanguage()");
 
-  await evaluate("BD.debug.S.gems = BD.debug.S.quota; BD.debug.S.exitOpen = true;");
+  await evaluate("OBVAL.debug.S.gems = OBVAL.debug.S.quota; OBVAL.debug.S.exitOpen = true;");
   await sleep(100);
-  await evaluate("BD.debug.completeLevel()");
+  await evaluate("OBVAL.debug.completeLevel()");
   await sleep(1100);
   await shot("06-clear-ru-modern");
 
   // Level select overlay
-  await evaluate("BD.menu(); BD.openLevels()");
+  await evaluate("OBVAL.menu(); OBVAL.openLevels()");
   await sleep(300);
   await shot("07-levels-ru-modern");
-  await evaluate("BD.menu()");
+  await evaluate("OBVAL.menu()");
   await sleep(200);
 
   // Mobile layout
   await viewport(390, 844, 2);
   await send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
-  await evaluate("BD.menu()");
+  await evaluate("OBVAL.menu()");
   await sleep(300);
   await shot("08-menu-mobile");
-  await evaluate("BD.start(0)");
+  await evaluate("OBVAL.start(0)");
   await sleep(500);
   await shot("09-play-mobile");
 
   console.log("\\nerrors:", errors.length ? errors : "none");
   console.log("warnings:", warnings.slice(0, 8));
-  console.log("final state:", await evaluate("JSON.stringify(BD.state)"));
+  console.log("final state:", await evaluate("JSON.stringify(OBVAL.state)"));
 }
 
 try {

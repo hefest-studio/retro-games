@@ -77,11 +77,11 @@
 
   var consts = {
     ROWS: ROWS, COLS: COLS, TUNNEL_ROW: TUNNEL_ROW,
-    GHOSTS: ['blinky', 'pinky', 'inky', 'clyde'],
-    COLORS: { blinky: '#ff2a2a', pinky: '#ff9ed6', inky: '#36d6ff', clyde: '#ffb347' },
+    GHOSTS: ['ember', 'rose', 'frost', 'amber'],
+    COLORS: { ember: '#ff2a2a', rose: '#ff9ed6', frost: '#36d6ff', amber: '#ffb347' },
     // стартовые клетки (в «шахте»/доме), целевые углы для режима scatter
-    START: { blinky: [13, 11], pinky: [14, 11], inky: [13, 13], clyde: [14, 13] },
-    SCATTER: { blinky: [26, 1], pinky: [1, 1], inky: [26, 29], clyde: [1, 29] },
+    START: { ember: [13, 11], rose: [14, 11], frost: [13, 13], amber: [14, 13] },
+    SCATTER: { ember: [26, 1], rose: [1, 1], frost: [26, 29], amber: [1, 29] },
     HOME: [13, 13], HOME_DOOR: [13, 11],
     // расписание scatter/chase (сек); последний chase — бесконечный
     PHASES: [['scatter', 7], ['chase', 20], ['scatter', 7], ['chase', 20], ['scatter', 5], ['chase', 20], ['scatter', 5], ['chase', 1e9]]
@@ -194,10 +194,10 @@
       if (g.mode === 'fright') return null;
       if (S.globalMode === 'scatter') return consts.SCATTER[g.name];
       // chase
-      if (g.name === 'blinky') return [pcx, pcy];
-      if (g.name === 'pinky') return [pcx + DIRS[p.dir].x * 4, pcy + DIRS[p.dir].y * 4];
-      if (g.name === 'clyde') return (dist2(g.x, g.y, pcx, pcy) > 64) ? [pcx, pcy] : consts.SCATTER.clyde;
-      // inky: вектор от Блинки к точке в 2 клетки перед Хрумиком, удвоенный
+      if (g.name === 'ember') return [pcx, pcy];
+      if (g.name === 'rose') return [pcx + DIRS[p.dir].x * 4, pcy + DIRS[p.dir].y * 4];
+      if (g.name === 'amber') return (dist2(g.x, g.y, pcx, pcy) > 64) ? [pcx, pcy] : consts.SCATTER.amber;
+      // frost: вектор от Уголька к точке в 2 клетки перед Хрумиком, удвоенный
       var b = S.ghosts[0], ax = pcx + DIRS[p.dir].x * 2, ay = pcy + DIRS[p.dir].y * 2;
       return [ax + (ax - b.x), ay + (ay - b.y)];
     }

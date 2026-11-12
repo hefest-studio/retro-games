@@ -25,7 +25,7 @@ export async function openQa(opts = {}) {
   const width = opts.width || 1440;
   const height = opts.height || 900;
   const PORT = 9400 + ((process.pid + Date.now()) % 3000);
-  const profile = mkdtempSync(join(tmpdir(), "lv2-qa-"));
+  const profile = mkdtempSync(join(tmpdir(), "saga2-qa-"));
   const chrome = spawn(CHROME || "google-chrome", [
     "--headless=new",
     ...(opts.gpu ? [] : ["--disable-gpu"]),

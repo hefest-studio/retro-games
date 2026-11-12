@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /* ==========================================================================
-   Валидатор уровней Lost Vikings 2 (node, без зависимостей).
+   Валидатор уровней СЕВЕРНОЙ САГИ 2 (node, без зависимостей).
    Проверяет: формат/тайлы/границы, спавны, exit/руны/чекпоинты/знаки,
-   группы дверей и их активаторы, ломаемость льда Эриком,
+   группы дверей и их активаторы, ломаемость льда Снорри,
    BFS-эвристику достижимости выхода для каждого викинга с учётом
-   способностей (прыжок, парение, крюк, лестницы, щит Олафа).
+   способностей (прыжок, парение, крюк, лестницы, щит Бьорна).
 
    Запуск: node tools/validate-levels.mjs
    Выход: 0 и "OK: 6 уровней" либо 1 и список ошибок.
@@ -29,19 +29,19 @@ try {
   const src = fs.readFileSync(LEVELS_FILE, 'utf8');
   const sandbox = { window: {} };
   vm.runInNewContext(src, sandbox, { filename: 'js/levels.js', timeout: 2000 });
-  const LV = sandbox.window && sandbox.window.LV;
-  LEVELS = LV && LV.LEVELS;
+  const SAGA2 = sandbox.window && sandbox.window.SAGA2;
+  LEVELS = SAGA2 && SAGA2.LEVELS;
 } catch (e) {
   console.error('FAIL: не удалось загрузить js/levels.js —', e.message);
   process.exit(1);
 }
 if (!Array.isArray(LEVELS)) {
-  console.error('FAIL: LV.LEVELS не массив');
+  console.error('FAIL: SAGA2.LEVELS не массив');
   process.exit(1);
 }
 
 const TILE_CHARS = new Set(['.', '#', '=', '^', '~', 'L', 'G', 'T']);
-const ACTORS = ['erik', 'baleog', 'olaf'];
+const ACTORS = ['snorri', 'gunnar', 'bjorn'];
 const GROUPS = ['a', 'b', 'c', 'd'];
 const ENEMY_KINDS = new Set(['grunt', 'thrower', 'bat']);
 const SOLID_TILES = new Set(['#', '=']);
@@ -115,7 +115,7 @@ function buildTiles(M, opts) {
     const t = grid[r][c];
     return t === '^' || t === '~';
   }
-  // проходимость: лёд считаем уже разбитым (Эрик может его сломать)
+  // проходимость: лёд считаем уже разбитым (Снорри может его сломать)
   function passable(c, r) {
     if (!inb(c, r)) return false;
     const t = grid[r][c];
@@ -146,8 +146,8 @@ function key(c, r) { return r * 10000 + c; }
 /* ----------------------------------------------------------------- BFS-обход */
 /**
  * Возвращает { stood: Map<key,{c,r}>, all:Set } — достижимые клетки-стоянки.
- * Правила: ходьба/падение, лестницы, прыжок (по способностям), крюк (Балеог),
- * щит-подъём (Эрик от Олафа).
+ * Правила: ходьба/падение, лестницы, прыжок (по способностям), крюк (Гуннар),
+ * щит-подъём (Снорри от Бьорна).
  */
 function reachability(M, actor, opts) {
   const T = buildTiles(M, opts);
@@ -155,8 +155,8 @@ function reachability(M, actor, opts) {
 
   // профили прыжка: [макс. |dx| при dy = 0,1,2,3...]
   const jumpProfile =
-    actor === 'erik' ? [6, 5, 4, 3] :
-    actor === 'olaf' ? [3, 2, 1] :
+    actor === 'snorri' ? [6, 5, 4, 3] :
+    actor === 'bjorn' ? [3, 2, 1] :
     [];
 
   const stood = new Map();   // достижимые клетки-стоянки
@@ -204,10 +204,10 @@ function reachability(M, actor, opts) {
   const sp = spawn[actor];
   if (Array.isArray(sp)) addNode(sp[0] | 0, sp[1] | 0);
 
-  // Олаф нужен Эрику для прыжка со щита
-  let olafStood = null;
-  if (actor === 'erik') {
-    olafStood = Array.from(reachability(M, 'olaf', opts).stood.values());
+  // Бьорн нужен Снорри для прыжка со щита
+  let bjornStood = null;
+  if (actor === 'snorri') {
+    bjornStood = Array.from(reachability(M, 'bjorn', opts).stood.values());
   }
 
   while (queue.length) {
@@ -270,8 +270,8 @@ function reachability(M, actor, opts) {
       }
     }
 
-    // ---- парение Эрика (длинные планирующие спуски) ----
-    if (actor === 'erik') {
+    // ---- парение Снорри (длинные планирующие спуски) ----
+    if (actor === 'snorri') {
       for (let drow = 2; drow <= 14; drow++) {
         const maxDx = Math.min(14, Math.floor(2.2 * drow) + 3);
         for (const dir of [-1, 1]) {
@@ -294,8 +294,8 @@ function reachability(M, actor, opts) {
       }
     }
 
-    // ---- крюк Балеога: до 7 клеток в 4 стороны ----
-    if (actor === 'baleog') {
+    // ---- крюк Гуннара: до 7 клеток в 4 стороны ----
+    if (actor === 'gunnar') {
       const dirs = [[1, 0], [-1, 0], [0, -1], [0, 1]];
       for (const [dc, dr] of dirs) {
         for (let k = 1; k <= 7; k++) {
@@ -314,9 +314,9 @@ function reachability(M, actor, opts) {
       }
     }
 
-    // ---- щит Олафа: Эрик прыгает со щита ----
-    if (actor === 'erik' && olafStood) {
-      for (const o of olafStood) {
+    // ---- щит Бьорна: Снорри прыгает со щита ----
+    if (actor === 'snorri' && bjornStood) {
+      for (const o of bjornStood) {
         if (Math.abs(o.c - c) > 2 || Math.abs(o.r - r) > 2) continue;
         for (let dx = -3; dx <= 3; dx++) {
           for (let s = o.r - 4; s <= o.r - 1; s++) {
@@ -397,8 +397,8 @@ function checkEntities(i, M) {
   const { lv, ents, doors, plates, levers, platforms } = M;
   const spawn = lv.spawn || {};
   const spawnKeys = Object.keys(spawn).sort();
-  if (spawnKeys.length !== 3 || spawnKeys.join(',') !== 'baleog,erik,olaf') {
-    err(i, `spawn должен содержать ровно erik/baleog/olaf, есть [${spawnKeys.join(', ')}]`);
+  if (spawnKeys.length !== 3 || spawnKeys.join(',') !== 'bjorn,gunnar,snorri') {
+    err(i, `spawn должен содержать ровно snorri/gunnar/bjorn, есть [${spawnKeys.join(', ')}]`);
   }
   const iceBroken = buildTiles(M, {});
   for (const id of ACTORS) {
@@ -491,10 +491,10 @@ function checkGroups(i, M) {
   }
 }
 
-/** Проверка ломаемости льда: низ каждой ледяной колонны доступен Эрику. */
+/** Проверка ломаемости льда: низ каждой ледяной колонны доступен Снорри. */
 function checkIce(i, M) {
   const T = buildTiles(M, {});
-  const erik = reachability(M, 'erik', {});
+  const snorri = reachability(M, 'snorri', {});
   for (let c = 1; c < M.cols - 1; c++) {
     let r = 0;
     while (r < M.rows) {
@@ -507,11 +507,11 @@ function checkIce(i, M) {
       for (const dv of [-1, 0, 1]) {
         for (const dc of [-1, 0, 1]) {
           const k = key(c + dc, low + dv);
-          if (erik.stood.has(k)) { ok = true; break; }
+          if (snorri.stood.has(k)) { ok = true; break; }
         }
         if (ok) break;
       }
-      if (!ok) err(i, `лёд в колонне (${c},${r}..${end}) недосягаем для Эрика — не сломать`);
+      if (!ok) err(i, `лёд в колонне (${c},${r}..${end}) недосягаем для Снорри — не сломать`);
       r = end + 1;
     }
   }
@@ -534,7 +534,7 @@ function checkActivators(i, M) {
       if (!ok) err(i, `плита '${p.group}' (${p.x},${p.y}) недостижима при закрытой двери группы '${g}'`);
     }
     for (const lv of M.levers.filter((x) => x.group === g)) {
-      const b = reach.baleog;
+      const b = reach.gunnar;
       let ok = false;
       for (const spot of b.stood.values()) {
         const dc = Math.abs(spot.c - lv.x);
@@ -544,7 +544,7 @@ function checkActivators(i, M) {
         const flatShot = Math.abs(dr) <= 1 && dc <= 7;
         if (upShot || melee || flatShot) { ok = true; break; }
       }
-      if (!ok) err(i, `рычаг '${lv.group}' (${lv.x},${lv.y}): Балеог не может достать его стрелой/мечом`);
+      if (!ok) err(i, `рычаг '${lv.group}' (${lv.x},${lv.y}): Гуннар не может достать его стрелой/мечом`);
     }
   }
 }
@@ -640,7 +640,7 @@ if (process.env.DEBUG_REACH) {
   }
 }
 
-console.log('=== Lost Vikings 2 · валидация уровней ===');
+console.log('=== СЕВЕРНАЯ САГА 2 · валидация уровней ===');
 for (const s of summary) {
   console.log(
     ` ${s.idx + 1}. ${s.name.padEnd(16)} ${s.size.padEnd(6)} руны:${s.runes} чек:${s.checkpoints} знаки:${s.signs} ` +

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Валидатор данных уровней Exolon HTML5.
+ * Валидатор данных уровней ПРОРЫВ HTML5.
  *
- *   node exolon/tools/validate-levels.mjs [--verbose]
+ *   node proryv/tools/validate-levels.mjs [--verbose]
  *
  * Проверяет структуру, тайлы, сущности, спавн/выход, пары телепортов,
  * грубую достижимость выхода и печатает статистику сложности.

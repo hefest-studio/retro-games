@@ -1,4 +1,4 @@
-/* СЕВЕРНАЯ САГА — код игры (i18n, уровни, звук, логика, рендеры retro/modern, UI, запуск). Вынесен из инлайна старой страницы (legacy.html) без изменений логики; src/ — устаревшие исходники до ребрендинга. */
+/* СЕВЕРНАЯ САГА — код игры (i18n, уровни, звук, логика, рендеры retro/modern, UI, запуск). Вынесен из инлайна старой страницы (legacy.html) без изменений логики; секции «src/…» — имена исходных модулей (сами исходники удалены, источник истины — этот файл). */
 'use strict';
 /* ==== src/i18n.js ==== */
 /* СЕВЕРНАЯ САГА · i18n — русский по умолчанию, English переключается */
@@ -17,12 +17,12 @@
         settings: "Настройки", "settings.hint": "графика · язык"
       },
       char: {
-        erik: "Снорри", "erik.role": "Быстрый", "erik.tag": "Быстрый · таран",
-        "erik.ability": "Прыгает выше всех и пробивает головой ветхие стены.",
-        baleog: "Гуннар", "baleog.role": "Свирепый", "baleog.tag": "Свирепый · лук",
-        "baleog.ability": "Стреляет из лука: враги и рычаги не устоят.",
-        olaf: "Бьорн", "olaf.role": "Стойкий", "olaf.tag": "Стойкий · щит",
-        "olaf.ability": "Держит щит над головой: ступень для друзей и защита от стрел."
+        snorri: "Снорри", "snorri.role": "Быстрый", "snorri.tag": "Быстрый · таран",
+        "snorri.ability": "Прыгает выше всех и пробивает головой ветхие стены.",
+        gunnar: "Гуннар", "gunnar.role": "Свирепый", "gunnar.tag": "Свирепый · лук",
+        "gunnar.ability": "Стреляет из лука: враги и рычаги не устоят.",
+        bjorn: "Бьорн", "bjorn.role": "Стойкий", "bjorn.tag": "Стойкий · щит",
+        "bjorn.ability": "Держит щит над головой: ступень для друзей и защита от стрел."
       },
       foot: {
         move: "идти", jump: "прыжок", action: "действие", switch: "сменить",
@@ -57,9 +57,9 @@
         lead: "Ведите всех трёх викингов к выходам. Активен один — переключайтесь и используйте способности каждого.",
         "objective.title": "Цель",
         "objective.text": "У каждого викинга своя дверь — она подсвечена цветом героя. Доведите каждого до его двери; чужая не откроется. Все трое ушли — уровень пройден.",
-        "erik.title": "Снорри · таран", "erik.text": "Самый быстрый и высокий прыжок. «Действие» у ветхой стены — пробить проход.",
-        "baleog.title": "Гуннар · лук", "baleog.text": "Стрела убивает пещерных врагов и переключает рычаги. Меч бьёт вплотную.",
-        "olaf.title": "Бьорн · щит", "olaf.text": "Держите «действие»: щит над головой — платформа для друзей и защита от вражеских стрел.",
+        "snorri.title": "Снорри · таран", "snorri.text": "Самый быстрый и высокий прыжок. «Действие» у ветхой стены — пробить проход.",
+        "gunnar.title": "Гуннар · лук", "gunnar.text": "Стрела убивает пещерных врагов и переключает рычаги. Меч бьёт вплотную.",
+        "bjorn.title": "Бьорн · щит", "bjorn.text": "Держите «действие»: щит над головой — платформа для друзей и защита от вражеских стрел.",
         "gate.title": "Плиты и ворота", "gate.text": "Плита открывает ворота, пока на ней кто-то стоит. Оставьте викинга на плите и переключитесь на другого.",
         "death.title": "Смерть", "death.text": "Шипы, враги и вражеские стрелы смертельны. Любая смерть — рестарт уровня; сокровища сбрасываются.",
         "key.move": "идти", "key.jump": "прыжок", "key.action": "действие", "key.switch": "сменить викинга",
@@ -109,12 +109,12 @@
         settings: "Settings", "settings.hint": "graphics · language"
       },
       char: {
-        erik: "Snorri", "erik.role": "Swift", "erik.tag": "Swift · headbutt",
-        "erik.ability": "Jumps the highest and smashes through crumbling walls.",
-        baleog: "Gunnar", "baleog.role": "Fierce", "baleog.tag": "Fierce · bow",
-        "baleog.ability": "Looses arrows: enemies and levers stand no chance.",
-        olaf: "Bjorn", "olaf.role": "Stout", "olaf.tag": "Stout · shield",
-        "olaf.ability": "Raises his shield: a step for friends and cover from arrows."
+        snorri: "Snorri", "snorri.role": "Swift", "snorri.tag": "Swift · headbutt",
+        "snorri.ability": "Jumps the highest and smashes through crumbling walls.",
+        gunnar: "Gunnar", "gunnar.role": "Fierce", "gunnar.tag": "Fierce · bow",
+        "gunnar.ability": "Looses arrows: enemies and levers stand no chance.",
+        bjorn: "Bjorn", "bjorn.role": "Stout", "bjorn.tag": "Stout · shield",
+        "bjorn.ability": "Raises his shield: a step for friends and cover from arrows."
       },
       foot: {
         move: "move", jump: "jump", action: "action", switch: "switch",
@@ -149,9 +149,9 @@
         lead: "Guide all three vikings to the exits. One is active at a time — switch and use each one's skill.",
         "objective.title": "Objective",
         "objective.text": "Each viking has his own door, tinted with his colour. Bring each one to his door; another's door will not open. All three out — level cleared.",
-        "erik.title": "Snorri · headbutt", "erik.text": "Fastest, highest jump. Use Action at a crumbling wall to smash through.",
-        "baleog.title": "Gunnar · bow", "baleog.text": "Arrows kill cave foes and toggle levers. The sword strikes at close range.",
-        "olaf.title": "Bjorn · shield", "olaf.text": "Hold Action: the shield above his head is a platform for friends and cover from enemy arrows.",
+        "snorri.title": "Snorri · headbutt", "snorri.text": "Fastest, highest jump. Use Action at a crumbling wall to smash through.",
+        "gunnar.title": "Gunnar · bow", "gunnar.text": "Arrows kill cave foes and toggle levers. The sword strikes at close range.",
+        "bjorn.title": "Bjorn · shield", "bjorn.text": "Hold Action: the shield above his head is a platform for friends and cover from enemy arrows.",
         "gate.title": "Plates & gates", "gate.text": "A plate keeps gates open while someone stands on it. Leave a viking on the plate and switch to another.",
         "death.title": "Death", "death.text": "Spikes, foes and enemy arrows are deadly. Any death restarts the level; treasure resets.",
         "key.move": "move", "key.jump": "jump", "key.action": "action", "key.switch": "switch viking",
@@ -235,8 +235,8 @@
     }
   };
 
-  window.LV_I18N = api;
-  window.LV_T = api.t;
+  window.SAGA_I18N = api;
+  window.SAGA_T = api.t;
 })();
 
 /* ==== src/levels.js ==== */
@@ -254,13 +254,13 @@
 (function () {
   "use strict";
 
-  window.LV_LEVELS = [
+  window.SAGA_LEVELS = [
     {
       id: 1,
       theme: "cave",
-      exitFor: ["erik", "baleog", "olaf"],
+      exitFor: ["snorri", "gunnar", "bjorn"],
       name: { ru: "Пробуждение", en: "Awakening" },
-      hint: { ru: "Трое викингов, три двери. Переключайтесь: 1, 2, 3. Кирпич ломает только Снорри.", en: "Three vikings, three doors. Switch with 1, 2, 3. Only Erik breaks bricks." },
+      hint: { ru: "Трое викингов, три двери. Переключайтесь: 1, 2, 3. Кирпич ломает только Снорри.", en: "Three vikings, three doors. Switch with 1, 2, 3. Only Snorri breaks bricks." },
       rows: [
         "########################",
         "#......................#",
@@ -282,9 +282,9 @@
     {
       id: 2,
       theme: "cave",
-      exitFor: ["erik", "baleog", "olaf"],
+      exitFor: ["snorri", "gunnar", "bjorn"],
       name: { ru: "Первый рычаг", en: "The First Lever" },
-      hint: { ru: "Стрела Гуннара будит древние механизмы. Стреляйте по рычагу.", en: "Baleog's arrow wakes ancient mechanisms. Shoot the lever." },
+      hint: { ru: "Стрела Гуннара будит древние механизмы. Стреляйте по рычагу.", en: "Gunnar's arrow wakes ancient mechanisms. Shoot the lever." },
       rows: [
         "########################",
         "#......................#",
@@ -306,9 +306,9 @@
     {
       id: 3,
       theme: "forge",
-      exitFor: ["erik", "baleog", "olaf"],
+      exitFor: ["snorri", "gunnar", "bjorn"],
       name: { ru: "Кузня", en: "The Forge" },
-      hint: { ru: "Бьорн подставит щит — прыгайте с него выше. Наверху ждёт дверь.", en: "Olaf raises his shield — jump higher from it. A door waits above." },
+      hint: { ru: "Бьорн подставит щит — прыгайте с него выше. Наверху ждёт дверь.", en: "Bjorn raises his shield — jump higher from it. A door waits above." },
       rows: [
         "########################",
         "#......................#",
@@ -330,7 +330,7 @@
     {
       id: 4,
       theme: "forge",
-      exitFor: ["erik", "baleog", "olaf"],
+      exitFor: ["snorri", "gunnar", "bjorn"],
       name: { ru: "Под обстрелом", en: "Under Fire" },
       hint: { ru: "Щит держит стрелы. Плита открывает решётку: один держит, двое идут.", en: "The shield stops arrows. A plate opens the gate: one holds, two pass." },
       rows: [
@@ -354,7 +354,7 @@
     {
       id: 5,
       theme: "ice",
-      exitFor: ["erik", "baleog", "olaf"],
+      exitFor: ["snorri", "gunnar", "bjorn"],
       name: { ru: "Ледяной разлом", en: "Ice Rift" },
       hint: { ru: "Шипы близко — прыгайте через них. Рычаг за ямой откроет решётку.", en: "Spikes are close — jump over them. The lever beyond the pit opens a gate." },
       rows: [
@@ -378,9 +378,9 @@
     {
       id: 6,
       theme: "ice",
-      exitFor: ["erik", "baleog", "olaf"],
+      exitFor: ["snorri", "gunnar", "bjorn"],
       name: { ru: "Вертикаль", en: "The Ascent" },
-      hint: { ru: "Вверх по уступам. Кирпич ломает только Снорри, врага снимает Гуннар.", en: "Climb the ledges. Only Erik breaks bricks; Baleog drops the foe." },
+      hint: { ru: "Вверх по уступам. Кирпич ломает только Снорри, врага снимает Гуннар.", en: "Climb the ledges. Only Snorri breaks bricks; Gunnar drops the foe." },
       rows: [
         "########################",
         "#......................#",
@@ -402,7 +402,7 @@
     {
       id: 7,
       theme: "forest",
-      exitFor: ["erik", "baleog", "olaf"],
+      exitFor: ["snorri", "gunnar", "bjorn"],
       name: { ru: "Лесные врата", en: "Forest Gates" },
       hint: { ru: "Две плиты — две решётки. Один держит, другие проходят. Щит — ступень.", en: "Two plates, two gates. One holds while others pass. The shield is a step." },
       rows: [
@@ -426,7 +426,7 @@
     {
       id: 8,
       theme: "castle",
-      exitFor: ["erik", "baleog", "olaf"],
+      exitFor: ["snorri", "gunnar", "bjorn"],
       name: { ru: "Замковый ход", en: "Castle Passage" },
       hint: { ru: "Кирпич, рычаг и щит — три ключа. Враг охраняет верхнюю дверь.", en: "Brick, lever and shield are three keys. A foe guards the upper door." },
       rows: [
@@ -450,7 +450,7 @@
     {
       id: 9,
       theme: "castle",
-      exitFor: ["erik", "baleog", "olaf"],
+      exitFor: ["snorri", "gunnar", "bjorn"],
       name: { ru: "Высокая башня", en: "High Tower" },
       hint: { ru: "Башня в три яруса. Ловушка простреливает площадку — щит поможет.", en: "A three-tier tower. A trap sweeps the floor — the shield helps." },
       rows: [
@@ -474,7 +474,7 @@
     {
       id: 10,
       theme: "void",
-      exitFor: ["erik", "baleog", "olaf"],
+      exitFor: ["snorri", "gunnar", "bjorn"],
       name: { ru: "Пустота", en: "The Void" },
       hint: { ru: "Всё, чему научились: кирпич, рычаг, шипы, щит. Три двери, три викинга.", en: "Everything you learned: brick, lever, spikes, shield. Three doors, three vikings." },
       rows: [
@@ -501,7 +501,7 @@
 /* ==== src/audio.js ==== */
 /* СЕВЕРНАЯ САГА · audio — оригинальный чиптюн и SFX на WebAudio (audio-smith)
  *
- * window.LV_AUDIO:
+ * window.SAGA_AUDIO:
  *   unlock(), startMusic('title'|'game'), stopMusic(), setGameTrack(0|1),
  *   sfx(name), jingle('win'|'death'|'level'|'finale'), setPaused(bool),
  *   setMuted(bool), toggleMuted(), getMuted(), setVolume(0..1), isReady()
@@ -1690,7 +1690,7 @@
     isReady: isReady
   };
 
-  W.LV_AUDIO = API;
+  W.SAGA_AUDIO = API;
 })();
 
 /* ==== src/game.js ==== */
@@ -1706,11 +1706,11 @@
   var SHIELD_TOP = 30, SHIELD_HALF = 10;
 
   var SPEC = {
-    erik:   { speed: 130, jump: 400 },
-    baleog: { speed: 95,  jump: 330 },
-    olaf:   { speed: 75,  jump: 260 }
+    snorri:   { speed: 130, jump: 400 },
+    gunnar: { speed: 95,  jump: 330 },
+    bjorn:   { speed: 75,  jump: 260 }
   };
-  var ORDER = ["erik", "baleog", "olaf"];
+  var ORDER = ["snorri", "gunnar", "bjorn"];
 
   var audio = null;
   var onEvent = function () {};
@@ -1733,7 +1733,7 @@
     actors: {},
     arrows: [],
     fx: [],
-    activeId: "erik",
+    activeId: "snorri",
     held: { left: false, right: false, jump: false, action: false, down: false },
     jumpPressed: false,
     actionPressed: false,
@@ -1887,11 +1887,11 @@
             });
             line.push(".");
             break;
-          case "E": starts.erik = { tx: x, ty: y }; line.push("."); break;
-          case "&": starts.baleog = { tx: x, ty: y }; line.push("."); break;
-          case "O": starts.olaf = { tx: x, ty: y }; line.push("."); break;
+          case "E": starts.snorri = { tx: x, ty: y }; line.push("."); break;
+          case "&": starts.gunnar = { tx: x, ty: y }; line.push("."); break;
+          case "O": starts.bjorn = { tx: x, ty: y }; line.push("."); break;
           case "X": {
-            var exitWho = ["erik", "baleog", "olaf"][G.exits.length];
+            var exitWho = ["snorri", "gunnar", "bjorn"][G.exits.length];
             if (level && level.exitFor && level.exitFor[G.exits.length]) exitWho = level.exitFor[G.exits.length];
             G.exits.push({ x: x, y: y, filledBy: null, anim: Math.random() * 6, who: exitWho });
             line.push(".");
@@ -1928,7 +1928,7 @@
     G.theme = (G.level && G.level.theme) || "cave";
     G.mode = "playing";
     G.paused = false;
-    G.activeId = "erik";
+    G.activeId = "snorri";
     resetDynamic();
     if (!keepDeaths) G.levelDeaths = 0;
     parseLevel(G.level);
@@ -1985,14 +1985,14 @@
         if (action === "action") G.actionPressed = true;
       }
       G.held[action] = down;
-      if (action === "action" && !down && G.actors.olaf && G.activeId === "olaf") G.actors.olaf.braced = false;
+      if (action === "action" && !down && G.actors.bjorn && G.activeId === "bjorn") G.actors.bjorn.braced = false;
       return;
     }
     if (!down) return;
     if (action === "switch") { cycleActive(); return; }
-    if (action === "switch1") setActive("erik");
-    else if (action === "switch2") setActive("baleog");
-    else if (action === "switch3") setActive("olaf");
+    if (action === "switch1") setActive("snorri");
+    else if (action === "switch2") setActive("gunnar");
+    else if (action === "switch3") setActive("bjorn");
   }
 
   function actionTileFront(a, dy) {
@@ -2036,12 +2036,12 @@
   function triggerAction(a) {
     if (!a || !a.alive || a.gone || a.dead || G.mode !== "playing") return;
     if (a.cooldown > 0) return;
-    if (a.id === "erik") {
+    if (a.id === "snorri") {
       a.actKind = "headbutt";
       a.actTimer = 0.18;
       a.cooldown = 0.5;
       a.state = "act";
-    } else if (a.id === "baleog") {
+    } else if (a.id === "gunnar") {
       a.actKind = "shoot";
       a.actTimer = 0.18;
       a.cooldown = 0.35;
@@ -2091,15 +2091,15 @@
     if (a.x === oldX) a.vx = 0;
   }
 
-  function olafBraced() {
-    var o = G.actors.olaf;
+  function bjornBraced() {
+    var o = G.actors.bjorn;
     return !!(o && o.alive && !o.gone && !o.dead && o.braced);
   }
 
   function standOnShield(a, prevBottom, bottom) {
-    if (a.id === "olaf" || !olafBraced()) return false;
+    if (a.id === "bjorn" || !bjornBraced()) return false;
     if (a.vy < 0) return false;
-    var o = G.actors.olaf;
+    var o = G.actors.bjorn;
     var top = o.y - SHIELD_TOP;
     if (a.x + ACTOR_W / 2 <= o.x - SHIELD_HALF || a.x - ACTOR_W / 2 >= o.x + SHIELD_HALF) return false;
     if (prevBottom <= top + 0.6 && bottom >= top) {
@@ -2175,12 +2175,12 @@
     var speed = SPEC[a.id].speed;
     var move = 0;
     if (isActive && G.mode === "playing") {
-      if (a.id === "olaf") a.braced = G.held.action && a.onGround;
-      if (a.id !== "olaf" || !a.braced) {
+      if (a.id === "bjorn") a.braced = G.held.action && a.onGround;
+      if (a.id !== "bjorn" || !a.braced) {
         if (G.held.left) move -= 1;
         if (G.held.right) move += 1;
       }
-    } else if (a.id === "olaf") {
+    } else if (a.id === "bjorn") {
       // Бьорн держит щит, даже когда управляем другим викингом.
       if (!a.onGround) a.braced = false;
     }
@@ -2346,8 +2346,8 @@
       }
 
       if (ar.hostile) {
-        var o = G.actors.olaf;
-        if (olafBraced()) {
+        var o = G.actors.bjorn;
+        if (bjornBraced()) {
           if (ar.x > o.x - SHIELD_HALF - 6 && ar.x < o.x + SHIELD_HALF + 6 &&
               ar.y > o.y - SHIELD_TOP - 6 && ar.y < o.y - 6) {
             G.arrows.splice(i, 1);
@@ -2632,7 +2632,7 @@
       actors.push({
         id: a.id, x: a.x, y: a.y, dir: a.dir, vx: a.vx, vy: a.vy,
         onGround: a.onGround, state: a.state, active: a.id === G.activeId,
-        shield: !!(a.id === "olaf" && a.braced), anim: a.anim
+        shield: !!(a.id === "bjorn" && a.braced), anim: a.anim
       });
     }
     var enemies = [];
@@ -2751,13 +2751,13 @@
     }
   };
 
-  window.LV_GAME = API;
+  window.SAGA_GAME = API;
 })();
 
 /* ==== src/render-retro.js ==== */
 /* СЕВЕРНАЯ САГА — src/render-retro.js
-   8-bit NES/Amiga pixel-art renderer. Owner: retro-artist.
-   window.LV_RETRO = { init(canvas), draw(view), drawPortrait(canvas,id,t), drawTitle(canvas,t) }
+   8-bit pixel-art renderer. Owner: retro-artist.
+   window.SAGA_RETRO = { init(canvas), draw(view), drawPortrait(canvas,id,t), drawTitle(canvas,t) }
    ES2019, IIFE, no external assets, no game logic, never mutates `view`. */
 (function () {
   "use strict";
@@ -3562,12 +3562,12 @@
   var RUNE_FALLBACK = ["##.", "#.#", "##.", "#.#", "#.#"];
 
   /* each viking has a personal door: colour + carved rune (view.exits[i].who) */
-  var OWNER_COLOR = { erik: "#ff6b8a", baleog: "#5ccfe0", olaf: "#e0b85c" };
-  var OWNER_DARK = { erik: "#8a1e3a", baleog: "#1e6a7a", olaf: "#7a5a1e" };
+  var OWNER_COLOR = { snorri: "#ff6b8a", gunnar: "#5ccfe0", bjorn: "#e0b85c" };
+  var OWNER_DARK = { snorri: "#8a1e3a", gunnar: "#1e6a7a", bjorn: "#7a5a1e" };
   var OWNER_RUNE = {
-    erik: ["#..", "#..", "###", "#..", "#.."],
-    baleog: ["##.", "#.#", "##.", "#.#", "##."],
-    olaf: [".#.", "#.#", "#.#", "#.#", ".#."]
+    snorri: ["#..", "#..", "###", "#..", "#.."],
+    gunnar: ["##.", "#.#", "##.", "#.#", "##."],
+    bjorn: [".#.", "#.#", "#.#", "#.#", ".#."]
   };
 
   function tinyRune(g, x, y, rows, col) {
@@ -3586,8 +3586,8 @@
       var x = (ex.x | 0) * TS, y = (ex.y | 0) * TS;
       var filled = ex.filledBy != null;
       var who = ex.who;
-      if (who !== "erik" && who !== "baleog" && who !== "olaf") who = ex.filledBy;
-      if (who !== "erik" && who !== "baleog" && who !== "olaf") who = null;
+      if (who !== "snorri" && who !== "gunnar" && who !== "bjorn") who = ex.filledBy;
+      if (who !== "snorri" && who !== "gunnar" && who !== "bjorn") who = null;
       var owner = who ? OWNER_COLOR[who] : p.accent;
       var ownerDark = who ? OWNER_DARK[who] : shade(p.accent, 0.5);
       var rune = who ? OWNER_RUNE[who] : RUNE_FALLBACK;
@@ -3708,10 +3708,10 @@
   }
   /* ───────────────────────── vikings ───────────────────────── */
 
-  var CHAR_COLOR = { erik: "#d94f6b", baleog: "#3f9ea0", olaf: "#d0a52f" };
+  var CHAR_COLOR = { snorri: "#d94f6b", gunnar: "#3f9ea0", bjorn: "#d0a52f" };
 
   var CHARS = {
-    erik: {
+    snorri: {
       skin: "#f2c496", skinS: "#d8a170", skinD: "#b0784a",
       tunic: "#d94f6b", tunicS: "#a83050", tunicL: "#f06f8a",
       metal: "#c8d0dc", metalS: "#8b95a8", metalD: "#565e70", metalL: "#eef3fa",
@@ -3720,7 +3720,7 @@
       boot: "#4a3320", bootS: "#2e1f12", bootL: "#6b4a2c",
       cream: "#f0e6d2", creamL: "#fff6e2", eye: "#241a2e", white: "#f4f7ff"
     },
-    baleog: {
+    gunnar: {
       skin: "#f0c08c", skinS: "#cf9a66", skinD: "#a07044",
       tunic: "#3f9ea0", tunicS: "#2a6f72", tunicL: "#5fc0c2",
       metal: "#c8d0dc", metalS: "#8b95a8", metalD: "#565e70", metalL: "#eef3fa",
@@ -3730,7 +3730,7 @@
       bow: "#9a6430", bowL: "#c08a4a", string: "#e8e0c8", blade: "#e6eef8", bladeS: "#9aa8bc",
       eye: "#241a2e", white: "#f4f7ff"
     },
-    olaf: {
+    bjorn: {
       skin: "#f2c49b", skinS: "#d19f74", skinD: "#a87a50",
       tunic: "#d0a52f", tunicS: "#9a7a1e", tunicL: "#f0c550",
       metal: "#d8c8a0", metalS: "#a89870", metalD: "#706448", metalL: "#f4e8c6",
@@ -3862,8 +3862,8 @@
     rr(g, x - 5, y - 1, 10, 1, "rgba(255,214,110,0.16)");
   }
 
-  /* ── Erik: swift, red hair, horned helmet, headbutt ── */
-  function drawErik(g, pal, pose, st, f, t) {
+  /* ── Snorri: swift, red hair, horned helmet, headbutt ── */
+  function drawSnorri(g, pal, pose, st, f, t) {
     var by = -pose.bob, lean = pose.lean;
     drawLeg(g, pal, pose.legs[0], true);
     drawLeg(g, pal, pose.legs[1], false);
@@ -3921,7 +3921,7 @@
     }
   }
 
-  /* ── Baleog: fierce, green tunic, sword & bow ── */
+  /* ── Gunnar: fierce, green tunic, sword & bow ── */
   function drawBowOnBack(g, pal) {
     limb(g, -5, -17, -4, -10, 1, pal.bowS);
     limb(g, -4, -10, -5, -6, 1, pal.bowS);
@@ -3945,7 +3945,7 @@
     rr(g, hx, hy, 2, 1, pal.blade);
   }
 
-  function drawBaleog(g, pal, pose, st, f, t) {
+  function drawGunnar(g, pal, pose, st, f, t) {
     var by = -pose.bob, lean = pose.lean;
     drawLeg(g, pal, pose.legs[0], true);
     drawLeg(g, pal, pose.legs[1], false);
@@ -4001,8 +4001,8 @@
     }
   }
 
-  /* ── Olaf: stout, blue tunic, round shield ── */
-  function drawOlafShieldOverhead(g, pal, by) {
+  /* ── Bjorn: stout, blue tunic, round shield ── */
+  function drawBjornShieldOverhead(g, pal, by) {
     var y = -30;
     rr(g, -10, y, 20, 1, pal.woodL);
     rr(g, -10, y + 1, 20, 2, pal.wood);
@@ -4028,7 +4028,7 @@
     rr(g, 7, y + 2, 1, 1, pal.gold);
   }
 
-  function drawOlafShield(g, pal) {
+  function drawBjornShield(g, pal) {
     var sx = 4, sy = -10;
     fillCircle(g, sx, sy, 5, pal.ironS);
     fillCircle(g, sx, sy, 4, pal.wood);
@@ -4040,7 +4040,7 @@
     rr(g, sx + 3, sy + 2, 1, 1, pal.gold);
   }
 
-  function drawOlaf(g, pal, pose, st, f, t) {
+  function drawBjorn(g, pal, pose, st, f, t) {
     var by = -pose.bob, lean = pose.lean;
     drawLeg(g, pal, pose.legs[0], true);
     drawLeg(g, pal, pose.legs[1], false);
@@ -4086,8 +4086,8 @@
     rr(g, -1 + hx, -14 + hy, 4, 1, pal.hairL);
     rr(g, -1 + hx, -13 + hy, 2, 1, "#b08a5a");
     /* shield */
-    if (st === "brace" || st === "act") drawOlafShieldOverhead(g, pal, by);
-    else drawOlafShield(g, pal);
+    if (st === "brace" || st === "act") drawBjornShieldOverhead(g, pal, by);
+    else drawBjornShield(g, pal);
   }
 
   function drawDeadViking(g, pal, id) {
@@ -4096,7 +4096,7 @@
     rr(g, -7, -6, 12, 1, pal.tunic);
     rr(g, -8, -3, 3, 3, pal.boot);
     rr(g, -8, -3, 3, 1, pal.bootL);
-    if (id === "erik") {
+    if (id === "snorri") {
       rr(g, -1, -9, 7, 4, pal.skin);
       rr(g, 3, -12, 6, 3, pal.metal);
       rr(g, 3, -12, 6, 1, pal.metalL);
@@ -4106,7 +4106,7 @@
       rr(g, 0, -7, 7, 2, pal.hair);
       rr(g, 3, -5, 1, 1, pal.eye);
       rr(g, 5, -5, 1, 1, pal.eye);
-    } else if (id === "baleog") {
+    } else if (id === "gunnar") {
       rr(g, -1, -9, 7, 4, pal.skin);
       rr(g, 2, -11, 6, 2, pal.metal);
       rr(g, 2, -10, 6, 1, pal.gold);
@@ -4130,7 +4130,7 @@
 
   function drawViking(g, a, v) {
     var id = a.id;
-    if (id !== "erik" && id !== "baleog" && id !== "olaf") id = "erik";
+    if (id !== "snorri" && id !== "gunnar" && id !== "bjorn") id = "snorri";
     var st = a.state || "idle";
     if (st === "gone") return;
     var active = !!a.active;
@@ -4155,7 +4155,7 @@
       g.restore();
     } else {
       var pose = pickPose(st, f);
-      if (id === "olaf") {
+      if (id === "bjorn") {
         pose.legs[0].hip = -3; pose.legs[1].hip = 3;
         pose.arms[0].sh = -4; pose.arms[1].sh = 4;
         if (st === "idle" || st === "run") {
@@ -4166,16 +4166,16 @@
       g.save();
       g.translate(x, y);
       g.scale(a.dir < 0 ? -1 : 1, 1);
-      if (id === "erik") drawErik(g, palBase, pose, st, f, t);
-      else if (id === "baleog") drawBaleog(g, palBase, pose, st, f, t);
-      else drawOlaf(g, palBase, pose, st, f, t);
+      if (id === "snorri") drawSnorri(g, palBase, pose, st, f, t);
+      else if (id === "gunnar") drawGunnar(g, palBase, pose, st, f, t);
+      else drawBjorn(g, palBase, pose, st, f, t);
       g.restore();
-      if (a.shield && id === "olaf" && st !== "brace" && st !== "act") {
+      if (a.shield && id === "bjorn" && st !== "brace" && st !== "act") {
         rr(g, x - 10, y - 30, 20, 2, "rgba(220,230,240,0.30)");
       }
     }
     if (active) {
-      var top = (id === "olaf" && (st === "brace" || st === "act")) ? 33 : 25;
+      var top = (id === "bjorn" && (st === "brace" || st === "act")) ? 33 : 25;
       drawActiveMarker(g, x, y, top, t);
     }
   }
@@ -4382,7 +4382,7 @@
 
   function drawPortrait(canvas, id, t) {
     if (!canvas) return;
-    if (id !== "erik" && id !== "baleog" && id !== "olaf") id = "erik";
+    if (id !== "snorri" && id !== "gunnar" && id !== "bjorn") id = "snorri";
     if (canvas.width !== 48 || canvas.height !== 56) { canvas.width = 48; canvas.height = 56; }
     var g = ctx2(canvas);
     if (!g) return;
@@ -4390,13 +4390,13 @@
     g.clearRect(0, 0, 48, 56);
     drawBustBackdrop(g, id);
     var U = 2;
-    var bob = Math.sin(t * 2.1 + (id === "erik" ? 0 : id === "baleog" ? 1.4 : 2.7)) > 0.55 ? 1 : 0;
-    var blink = ((t * 1.1 + (id === "erik" ? 0.3 : id === "baleog" ? 0.7 : 0.1)) % 3.2) < 0.13;
+    var bob = Math.sin(t * 2.1 + (id === "snorri" ? 0 : id === "gunnar" ? 1.4 : 2.7)) > 0.55 ? 1 : 0;
+    var blink = ((t * 1.1 + (id === "snorri" ? 0.3 : id === "gunnar" ? 0.7 : 0.1)) % 3.2) < 0.13;
     function P(x, y, w, h, c) { g.fillStyle = c; g.fillRect(x * U, (y + bob) * U, w * U, h * U); }
     var pal = CHARS[id];
-    if (id === "erik") portraitErik(g, P, pal, blink, bob);
-    else if (id === "baleog") portraitBaleog(g, P, pal, blink, bob);
-    else portraitOlaf(g, P, pal, blink, bob, t);
+    if (id === "snorri") portraitSnorri(g, P, pal, blink, bob);
+    else if (id === "gunnar") portraitGunnar(g, P, pal, blink, bob);
+    else portraitBjorn(g, P, pal, blink, bob, t);
     /* slow sparkle */
     var sp = (t * 0.8 + 0.35) % 2;
     if (sp < 0.4) {
@@ -4406,7 +4406,7 @@
     }
   }
 
-  function portraitErik(g, P, pal, blink, bob) {
+  function portraitSnorri(g, P, pal, blink, bob) {
     /* horns */
     P(2, 5, 2, 3, pal.cream); P(1, 3, 2, 3, pal.cream); P(2, 2, 1, 2, pal.creamL);
     P(20, 5, 2, 3, pal.cream); P(21, 3, 2, 3, pal.cream); P(21, 2, 1, 2, pal.creamL);
@@ -4456,7 +4456,7 @@
     P(9, 24, 6, 1, pal.leather);
   }
 
-  function portraitBaleog(g, P, pal, blink, bob) {
+  function portraitGunnar(g, P, pal, blink, bob) {
     /* bow behind left shoulder */
     P(2, 9, 1, 3, pal.bowL); P(1, 12, 1, 8, pal.bow); P(2, 20, 1, 3, pal.bowL); P(0, 10, 1, 2, pal.bow);
     /* sheathed sword behind right shoulder */
@@ -4503,7 +4503,7 @@
     P(11, 25, 2, 2, pal.gold);
   }
 
-  function portraitOlaf(g, P, pal, blink, bob, t) {
+  function portraitBjorn(g, P, pal, blink, bob, t) {
     var i, dy, w;
     /* round shield behind */
     for (dy = -11; dy <= 11; dy++) {
@@ -4811,7 +4811,7 @@
 
   /* ───────────────────────── export ───────────────────────── */
 
-  window.LV_RETRO = {
+  window.SAGA_RETRO = {
     init: init,
     draw: draw,
     drawPortrait: drawPortrait,
@@ -4821,7 +4821,7 @@
 
 /* ==== src/render-modern.js ==== */
 /* ============================================================================
- * СЕВЕРНАЯ САГА — MODERN RENDERER  (window.LV_MODERN)
+ * СЕВЕРНАЯ САГА — MODERN RENDERER  (window.SAGA_MODERN)
  * "nordic neon": deep gradients, aurora veils, glass tiles, soft bloom.
  * Draws the whole 384x240 world scaled 3x into a 1152x720 canvas.
  * No game logic, no view mutation, no external assets. ES2019, IIFE.
@@ -4918,26 +4918,26 @@
 
   /* ------------------------------------------------------- character colours */
   var CHAR = {
-    erik: {
+    snorri: {
       accent: "#ff8a4d", accent2: "#ffc078", glow: "#ff7a3d", cloth: "#2a1517",
       cloth2: "#7a2a22", cloak: "#8c3527", cloak2: "#d8543a", fur: "#3a2a28",
       metal: "#c8d4e4", metalDark: "#5a6a80", skin: "#e8b48a", beard: "#d86a32",
       eye: "#ffe6b0", rune: 0
     },
-    baleog: {
+    gunnar: {
       accent: "#5af0a8", accent2: "#b6ffd0", glow: "#3ff0a0", cloth: "#1d4a36",
       cloth2: "#2a6b4e", cloak: "#16382c", cloak2: "#1f5a42", fur: "#3a3426",
       metal: "#aabccc", metalDark: "#4a5a68", skin: "#d8a878", beard: "#8a5a34",
       eye: "#ccffd8", rune: 1
     },
-    olaf: {
+    bjorn: {
       accent: "#6fc0ff", accent2: "#bfe6ff", glow: "#4aa8ff", cloth: "#24405e",
       cloth2: "#2f5a80", cloak: "#1a2c42", cloak2: "#24405e", fur: "#c8d4e0",
       metal: "#b8c8da", metalDark: "#56687c", skin: "#e0b088", beard: "#b8c4d4",
       eye: "#d8ecff", rune: 3
     }
   };
-  function charPal(id) { return CHAR[id] || CHAR.erik; }
+  function charPal(id) { return CHAR[id] || CHAR.snorri; }
 
   var GROUP_COL = { a: "#4fe6cf", b: "#a97cff", c: "#ffb347", d: "#ff6f9c" };
   function groupCol(g) { return GROUP_COL[g] || GROUP_COL.a; }
@@ -7010,28 +7010,28 @@
     var id = a.id;
     var run = state === "run";
     var act = state === "act";
-    var brace = state === "brace" || (a.shield && id === "olaf");
+    var brace = state === "brace" || (a.shield && id === "bjorn");
     var air = state === "jump" || state === "fall" || !a.onGround;
     var ph = t * (run ? 12.5 : 2.2) + (a.anim || 0) * 2.1;
     var bob = run ? -Math.abs(Math.sin(ph)) * 0.9 : Math.sin(ph) * 0.45;
     if (air) bob = 0;
 
-    var olaf = id === "olaf";
-    var baleog = id === "baleog";
-    var shW = olaf ? 4.2 : baleog ? 3.5 : 2.9;
-    var waistW = olaf ? 3.4 : baleog ? 2.8 : 2.2;
+    var bjorn = id === "bjorn";
+    var gunnar = id === "gunnar";
+    var shW = bjorn ? 4.2 : gunnar ? 3.5 : 2.9;
+    var waistW = bjorn ? 3.4 : gunnar ? 2.8 : 2.2;
     var hipY = -9.4 + bob;
     var shY = -17.2 + bob;
     var lean = 0;
     if (run) lean = 1.3;
     if (state === "jump") lean = 1.4;
     if (state === "fall") lean = 0.5;
-    if (act && id === "erik") lean = 2.4;
-    if (act && id === "baleog") lean = 0.5;
+    if (act && id === "snorri") lean = 2.4;
+    if (act && id === "gunnar") lean = 0.5;
     if (brace) lean = 0.6;
 
     /* ---- cloak / back-gear (behind everything) ---- */
-    if (id === "erik") {
+    if (id === "snorri") {
       var sway = run ? Math.sin(ph * 0.5) * 1.8 : Math.sin(ph * 0.6) * 0.7;
       ctx.fillStyle = c.cloak;
       ctx.beginPath();
@@ -7048,7 +7048,7 @@
       ctx.quadraticCurveTo(-3.4, shY + 4.8, -4.4 + sway, -5.6);
       ctx.stroke();
       ctx.globalAlpha = 1;
-    } else if (id === "baleog") {
+    } else if (id === "gunnar") {
       /* quiver on the back */
       ctx.save();
       ctx.translate(-2.2, -12.4);
@@ -7109,7 +7109,7 @@
     } else if (brace) {
       footLx = -3.5; footLy = 0; footRx = 3.5; footRy = 0;
       kneeLx = -2.9; kneeLy = -5.4; kneeRx = 2.9; kneeRy = -5.4;
-    } else if (act && id === "erik") {
+    } else if (act && id === "snorri") {
       footLx = -4; footLy = 0; footRx = 3.4; footRy = 0;
       kneeLx = -2.8; kneeLy = -5; kneeRx = 2.6; kneeRy = -5;
     } else {
@@ -7123,7 +7123,7 @@
     hipY = -9.4 + bob;
     shY = -17.2 + bob;
 
-    var lw = olaf ? 2.9 : baleog ? 2.6 : 2.3;
+    var lw = bjorn ? 2.9 : gunnar ? 2.6 : 2.3;
     /* far leg */
     limbLeg(ctx, -1.6, hipY, kneeLx, kneeLy, footLx, footLy, lw, c.cloak, "#05070c", c.metalDark);
     /* near leg */
@@ -7164,8 +7164,8 @@
     ctx.fillRect(leanX * 0.4 - 0.5, hipY - 1.2, 1, 1.1);
     ctx.globalAlpha = 1;
     /* fur collar */
-    if (olaf || baleog) {
-      ctx.fillStyle = id === "olaf" ? c.fur : c.fur;
+    if (bjorn || gunnar) {
+      ctx.fillStyle = id === "bjorn" ? c.fur : c.fur;
       roundRect(ctx, -shW + 0.2 + leanX * 0.4, shY - 1.6, shW * 2 - 0.4, 2.3, 1.1);
       ctx.fill();
       ctx.strokeStyle = "rgba(0,0,0,0.35)";
@@ -7184,7 +7184,7 @@
     ctx.beginPath(); ctx.arc(headX, headY, 3.1, 0, TAU); ctx.fill();
     /* beard */
     ctx.fillStyle = c.beard;
-    if (id === "erik") {
+    if (id === "snorri") {
       ctx.beginPath();
       ctx.moveTo(headX - 2.9, headY + 0.6);
       ctx.quadraticCurveTo(headX - 2.4, headY + 3.4, headX + 0.4, headY + 3.6);
@@ -7192,7 +7192,7 @@
       ctx.quadraticCurveTo(headX, headY + 1.8, headX - 2.9, headY + 0.6);
       ctx.closePath();
       ctx.fill();
-    } else if (id === "baleog") {
+    } else if (id === "gunnar") {
       ctx.beginPath();
       ctx.moveTo(headX - 2.9, headY + 0.2);
       ctx.quadraticCurveTo(headX - 2.4, headY + 4.6, headX - 0.2, headY + 5.4);
@@ -7220,7 +7220,7 @@
     ctx.globalAlpha = 1;
 
     /* ---- helmets ---- */
-    if (id === "erik") {
+    if (id === "snorri") {
       ctx.fillStyle = c.metalDark;
       ctx.beginPath();
       ctx.arc(headX, headY - 0.2, 3.5, Math.PI * 0.98, Math.PI * 2.02);
@@ -7250,7 +7250,7 @@
       ctx.strokeStyle = "rgba(0,0,0,0.25)";
       ctx.lineWidth = 0.35;
       ctx.stroke();
-    } else if (id === "baleog") {
+    } else if (id === "gunnar") {
       ctx.fillStyle = c.metalDark;
       ctx.beginPath();
       ctx.moveTo(headX - 3.6, headY - 0.8);
@@ -7296,10 +7296,10 @@
 
     /* ---- arms ---- */
     var backHandX, backHandY, frontHandX, frontHandY;
-    if (act && id === "baleog") {
+    if (act && id === "gunnar") {
       frontHandX = 5.4 + leanX; frontHandY = -15.6 + bob;
       backHandX = 1.8 + leanX; backHandY = -16.6 + bob;
-    } else if (act && id === "erik") {
+    } else if (act && id === "snorri") {
       frontHandX = 1.2 + leanX; frontHandY = -13.4 + bob;
       backHandX = -3.6 + leanX; backHandY = -14.6 + bob;
     } else if (brace) {
@@ -7322,16 +7322,16 @@
       backHandX = -3.9; backHandY = -9.6 + bob;
     }
     /* far arm */
-    limb(ctx, -shW + 0.6 + leanX * 0.4, shY + 1.4, -shW - 0.8 + leanX * 0.3, (shY + backHandY) / 2, backHandX, backHandY, olaf ? 2.5 : 2.1, c.cloak, "#05070c");
+    limb(ctx, -shW + 0.6 + leanX * 0.4, shY + 1.4, -shW - 0.8 + leanX * 0.3, (shY + backHandY) / 2, backHandX, backHandY, bjorn ? 2.5 : 2.1, c.cloak, "#05070c");
     /* near arm */
-    limb(ctx, shW - 0.6 + leanX * 0.4, shY + 1.4, shW + 1.1 + leanX * 0.3, (shY + frontHandY) / 2, frontHandX, frontHandY, olaf ? 2.7 : 2.3, c.cloth2, "#05070c");
+    limb(ctx, shW - 0.6 + leanX * 0.4, shY + 1.4, shW + 1.1 + leanX * 0.3, (shY + frontHandY) / 2, frontHandX, frontHandY, bjorn ? 2.7 : 2.3, c.cloth2, "#05070c");
     /* hands */
     ctx.fillStyle = c.skin;
     ctx.beginPath(); ctx.arc(backHandX, backHandY, 1.15, 0, TAU); ctx.fill();
     ctx.beginPath(); ctx.arc(frontHandX, frontHandY, 1.25, 0, TAU); ctx.fill();
 
     /* ---- weapons ---- */
-    if (id === "baleog") {
+    if (id === "gunnar") {
       if (act) {
         /* drawn bow */
         ctx.strokeStyle = "#c9a06a";
@@ -7385,8 +7385,8 @@
       ctx.fillRect(waistW - 1.6, hipY - 2.4, 2.8, 0.8);
     }
 
-    /* ---- Olaf shield ---- */
-    if (id === "olaf") {
+    /* ---- Bjorn shield ---- */
+    if (id === "bjorn") {
       if (brace) {
         var shCX = 0.4 + leanX, shCY = -26.4 + bob;
         ctx.fillStyle = "#0a1320";
@@ -7480,7 +7480,7 @@
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(dir, 1);
-    var scale = a.id === "olaf" ? 1.06 : (a.id === "baleog" ? 1.02 : 0.98);
+    var scale = a.id === "bjorn" ? 1.06 : (a.id === "gunnar" ? 1.02 : 0.98);
     ctx.scale(scale, scale);
     if (!isActive) ctx.globalAlpha = 0.55;
     drawVikingBody(ctx, a, c, state, t, p);
@@ -7801,10 +7801,10 @@
     x.globalCompositeOperation = "source-over";
 
     /* ===================== bust ===================== */
-    var baleog = id === "baleog", olaf = id === "olaf";
+    var gunnar = id === "gunnar", bjorn = id === "bjorn";
 
     /* back props */
-    if (baleog) {
+    if (gunnar) {
       x.strokeStyle = "#6b5232";
       x.lineWidth = 2.4;
       x.beginPath();
@@ -7834,7 +7834,7 @@
         x.closePath(); x.fill();
         x.globalAlpha = 1;
       }
-    } else if (olaf) {
+    } else if (bjorn) {
       x.fillStyle = "#0b1522";
       x.beginPath(); x.arc(14, 74, 24, 0, TAU); x.fill();
       x.strokeStyle = c.accent;
@@ -7951,7 +7951,7 @@
 
     /* beard */
     x.fillStyle = c.beard;
-    if (id === "erik") {
+    if (id === "snorri") {
       x.beginPath();
       x.moveTo(33, 48);
       x.quadraticCurveTo(33, 64, 48, 66);
@@ -7963,7 +7963,7 @@
       x.strokeStyle = "rgba(0,0,0,0.25)";
       x.lineWidth = 0.5;
       x.beginPath(); x.moveTo(45, 58); x.quadraticCurveTo(48, 62, 51, 58); x.stroke();
-    } else if (baleog) {
+    } else if (gunnar) {
       x.beginPath();
       x.moveTo(31, 48);
       x.quadraticCurveTo(29, 74, 48, 82);
@@ -8051,7 +8051,7 @@
     x.globalCompositeOperation = "source-over";
 
     /* ---- helmet ---- */
-    if (id === "erik") {
+    if (id === "snorri") {
       x.fillStyle = c.metalDark;
       x.beginPath();
       x.arc(48, 38, 17.2, Math.PI * 1.02, Math.PI * 1.98);
@@ -8102,7 +8102,7 @@
       };
       horn(32.4, -1);
       horn(63.6, 1);
-    } else if (baleog) {
+    } else if (gunnar) {
       x.fillStyle = c.metalDark;
       x.beginPath();
       x.moveTo(30.6, 36);
@@ -8822,12 +8822,12 @@
   }
 
   /* merge into any existing namespace so hot-injected rebuilds keep references */
-  var API = window.LV_MODERN || {};
+  var API = window.SAGA_MODERN || {};
   API.init = init;
   API.draw = draw;
   API.drawPortrait = drawPortrait;
   API.drawTitle = drawTitle;
-  window.LV_MODERN = API;
+  window.SAGA_MODERN = API;
 })();
 
 /* ==== src/ui.js ==== */
@@ -8836,10 +8836,24 @@
 (function () {
   "use strict";
 
-  var ORDER = ["erik", "baleog", "olaf"];
-  var PREFS_KEY = "lv.prefs.v1";
-  var PROG_KEY = "lv.progress.v1";
-  var STORY_KEY = "lv.story.v1";
+  var ORDER = ["snorri", "gunnar", "bjorn"];
+  var PREFS_KEY = "saga.prefs.v1";
+  var PROG_KEY = "saga.progress.v1";
+  var STORY_KEY = "saga.story.v1";
+  /* Миграция ключей: до ребрендинга прогресс лежал под префиксом "lv." —
+     переносим в новые ключи (если новых ещё нет) и удаляем старые. */
+  (function migrateLegacyKeys() {
+    var pairs = [["lv.prefs.v1", PREFS_KEY], ["lv.progress.v1", PROG_KEY], ["lv.story.v1", STORY_KEY]];
+    try {
+      var ls = window.localStorage;
+      for (var i = 0; i < pairs.length; i++) {
+        var old = ls.getItem(pairs[i][0]);
+        if (old === null) continue;
+        if (ls.getItem(pairs[i][1]) === null) ls.setItem(pairs[i][1], old);
+        ls.removeItem(pairs[i][0]);
+      }
+    } catch (e) { /* приватный режим / нет хранилища */ }
+  })();
 
   var game = null, audio = null, levels = [], renderers = null, renderer = null;
   var app, stage, hud, screens = [], levelGrid, toastEl, touchpad;
@@ -8900,9 +8914,9 @@
   function setText(el, text) {
     if (el && el.textContent !== text) el.textContent = text;
   }
-  function t(key, fallback) { return window.LV_T(key, fallback); }
-  function lvlName(lv) { return window.LV_I18N.levelName(lv); }
-  function lvlHint(lv) { return window.LV_I18N.levelHint(lv); }
+  function t(key, fallback) { return window.SAGA_T(key, fallback); }
+  function lvlName(lv) { return window.SAGA_I18N.levelName(lv); }
+  function lvlHint(lv) { return window.SAGA_I18N.levelHint(lv); }
   function pad2(n) { return (n < 10 ? "0" : "") + n; }
   function fmtTime(sec) {
     sec = Math.max(0, Math.floor(sec || 0));
@@ -8974,7 +8988,7 @@
 
     loadPrefs();
     loadProgress();
-    window.LV_I18N.setLang(UI.prefs.lang);
+    window.SAGA_I18N.setLang(UI.prefs.lang);
     app.dataset.lang = UI.prefs.lang;
 
     // инициализация рендереров (оба, чтобы переключение было мгновенным)
@@ -9024,7 +9038,7 @@
   /* ───────────────────────── i18n / chrome ───────────────────────── */
 
   function applyI18n() {
-    window.LV_I18N.setLang(UI.prefs.lang);
+    window.SAGA_I18N.setLang(UI.prefs.lang);
     app.dataset.lang = UI.prefs.lang;
     document.documentElement.lang = UI.prefs.lang;
     $all("[data-i18n]").forEach(function (el) {
@@ -9648,7 +9662,7 @@
     }
   };
 
-  window.LV_UI = UI;
+  window.SAGA_UI = UI;
 })();
 
 /* ==== src/main.js ==== */
@@ -9669,11 +9683,11 @@
   function boot() {
     if (booted) return;
     booted = true;
-    game = window.LV_GAME;
-    audio = window.LV_AUDIO;
-    ui = window.LV_UI;
+    game = window.SAGA_GAME;
+    audio = window.SAGA_AUDIO;
+    ui = window.SAGA_UI;
 
-    var levels = window.LV_LEVELS || [];
+    var levels = window.SAGA_LEVELS || [];
 
     game.init({
       levels: levels,
@@ -9686,8 +9700,8 @@
       audio: audio,
       levels: levels,
       renderers: {
-        retro: window.LV_RETRO,
-        modern: window.LV_MODERN
+        retro: window.SAGA_RETRO,
+        modern: window.SAGA_MODERN
       }
     });
 
@@ -9709,7 +9723,7 @@
       if (document.hidden && ui.getScreen() === "playing") ui.nav("pause");
     });
 
-    window.LV = {
+    window.SAGA = {
       game: game, ui: ui, audio: audio,
       version: "1.0.0",
       startLevel: function (n) { ui.debug.beginLevel((n | 0) - 1); }
@@ -9743,7 +9757,7 @@
   function warnOnce(kind, err) {
     if (drawWarned) return;
     drawWarned = true;
-    try { console.error("LV " + kind + " error:", err && (err.stack || err.message || err)); } catch (e) {}
+    try { console.error("SAGA " + kind + " error:", err && (err.stack || err.message || err)); } catch (e) {}
   }
 
   if (document.readyState === "loading") {

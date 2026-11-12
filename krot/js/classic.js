@@ -116,7 +116,7 @@
     '.....kkkkkk.....'
   ];
 
-  var S_NOBBIN_A = [
+  var S_CRAWLER_A = [
     '................',
     '................',
     '.....kkkkkk.....',
@@ -134,7 +134,7 @@
     '................',
     '................'
   ];
-  var S_NOBBIN_B = [
+  var S_CRAWLER_B = [
     '................',
     '................',
     '.....kkkkkk.....',
@@ -153,7 +153,7 @@
     '................'
   ];
 
-  var S_HOBBIN_A = [
+  var S_GNAWER_A = [
     '................',
     '.....k....k.....',
     '....klk..klk....',
@@ -171,7 +171,7 @@
     '................',
     '................'
   ];
-  var S_HOBBIN_B = [
+  var S_GNAWER_B = [
     '................',
     '.....k....k.....',
     '....klk..klk....',
@@ -289,10 +289,10 @@
       k: C.black, w: C.white, W: C.ltCyan, g: C.dkGray,
       y: C.peach, o: C.lorange, r: C.rust, c: C.cyan, C: C.ltCyan
     },
-    nobbin: {
+    crawler: {
       k: C.black, m: C.mag, h: C.ltMag, w: C.white
     },
-    hobbin: {
+    gnawer: {
       k: C.black, c: C.cyan, l: C.ltCyan, b: C.dkCyan, w: C.white
     },
     scaredA: {
@@ -443,10 +443,10 @@
       gb.fillRect(3, 12, 2, 1);
       gb.fillRect(11, 8, 2, 1);
     }
-    var nbA = bake(S_NOBBIN_A, MAPS.nobbin, 16, 16);
-    var nbB = bake(S_NOBBIN_B, MAPS.nobbin, 16, 16);
-    var hbA = bake(S_HOBBIN_A, MAPS.hobbin, 16, 16);
-    var hbB = bake(S_HOBBIN_B, MAPS.hobbin, 16, 16);
+    var nbA = bake(S_CRAWLER_A, MAPS.crawler, 16, 16);
+    var nbB = bake(S_CRAWLER_B, MAPS.crawler, 16, 16);
+    var hbA = bake(S_GNAWER_A, MAPS.gnawer, 16, 16);
+    var hbB = bake(S_GNAWER_B, MAPS.gnawer, 16, 16);
     var scA = bake(S_SCARED, MAPS.scaredA, 16, 16);
     var scB = bake(S_SCARED, MAPS.scaredB, 16, 16);
     sprites = {
@@ -456,8 +456,8 @@
         [rotateCv(pl, 180), rotateCv(plB, 180)],
         [rotateCv(pl, 270), rotateCv(plB, 270)]
       ],
-      nobbin: [nbA, nbB],
-      hobbin: [hbA, hbB],
+      crawler: [nbA, nbB],
+      gnawer: [hbA, hbB],
       scared: [scA, scB],
       gem: bake(S_GEM, MAPS.gem, 16, 16),
       bag: bake(S_BAG, MAPS.bag, 16, 16),
@@ -497,9 +497,9 @@
       for (var x = 0; x < FW; x++, i += 4) {
         var col;
         var band = (y >> 2) & 1;
-        var zx = (band ? (x + y) : (x - y + 4096)) & 7;
-        if (zx === 0) col = cols.dark;
-        else if (zx === 1) col = cols.light;
+        var zq = (band ? (x + y) : (x - y + 4096)) & 7;
+        if (zq === 0) col = cols.dark;
+        else if (zq === 1) col = cols.light;
         else if (((x * 5 + y * 3) & 7) === 0) col = cols.brown;
         else col = cols.rust;
         var r = rnd();
@@ -741,7 +741,7 @@
         g.translate(px, py);
         g.rotate((1 - k) * 1.6);
         g.globalAlpha = Math.max(0.12, k);
-        var frame = (m.kind === 'hobbin' ? sprites.hobbin : sprites.nobbin)[0];
+        var frame = (m.kind === 'gnawer' ? sprites.gnawer : sprites.crawler)[0];
         if (frame) g.drawImage(frame, -8 * wid, -8 * squash, 16 * wid, 16 * squash);
         g.globalAlpha = 1;
         g.restore();
@@ -756,8 +756,8 @@
       }
       var frames;
       if (m.scared) frames = sprites.scared;
-      else if (m.kind === 'hobbin') frames = sprites.hobbin;
-      else frames = sprites.nobbin;
+      else if (m.kind === 'gnawer') frames = sprites.gnawer;
+      else frames = sprites.crawler;
       var frameIdx = frames && frames.length > 1
         ? (Math.floor(t * 7 + (m.walkPhase || 0) + (m.cx || 0) * 0.3) % 2)
         : 0;

@@ -55,10 +55,10 @@
   'use strict';
   /* СЕВЕРНАЯ САГА 2 на движке v2 — «оболочка» (js/host.js): родные js/*.js (логика, уровни, баланс,
      рендеры AURORA = modern и 8-BIT = retro, своя музыка, HUD, брифинги) работают без изменений,
-     движок даёт меню/паузу/финал/тему/язык/звук/рекорд. Связь — через публичные window.LV.main / LV.ui.
-     Прогресс игры (lv2.progress) не трогается. */
+     движок даёт меню/паузу/финал/тему/язык/звук/рекорд. Связь — через публичные window.SAGA2.main / SAGA2.ui.
+     Прогресс игры (saga2.progress; старые ключи lv2.* мигрирует js/main.js) не трогается. */
   document.addEventListener('DOMContentLoaded', function () { // после boot() игры (его слушатель раньше)
-    var LV = window.LV, M = LV.main;
+    var SAGA2 = window.SAGA2, M = SAGA2.main;
     if (!M) return; // уровни не загрузились — игра показала свою заглушку
     var STR = {
       ru: { play: 'Играть', language: 'Язык', theme: 'Тема', sound: 'Звук', on: 'вкл', off: 'выкл', score: 'Очки', level: 'Ур.', best: 'Рекорд',
@@ -71,8 +71,8 @@
     // экраны игры (body[data-screen]) → режимы оболочки; родные экраны между уровнями — 'sub'
     var MODE = { title: 'title', levels: 'sub', brief: 'sub', complete: 'sub', play: 'play', pause: 'paused', ending: 'win' };
     function screen() { return document.body.getAttribute('data-screen'); }
-    function progress() { // lv2.progress — только чтение (старый рекорд = сумма лучших очков по сагам)
-      try { var p = JSON.parse(localStorage.getItem('lv2.progress') || '{}'), s = 0, k; for (k in (p.levels || {})) s += +(p.levels[k].score || 0); return s; } catch (e) { return 0; }
+    function progress() { // saga2.progress — только чтение (старый рекорд = сумма лучших очков по сагам)
+      try { var p = JSON.parse(localStorage.getItem('saga2.progress') || '{}'), s = 0, k; for (k in (p.levels || {})) s += +(p.levels[k].score || 0); return s; } catch (e) { return 0; }
     }
     ArcadeHost.mount({
       gameId: 'saga-2', mount: '#arcade-frame', width: 704, height: 396, strings: STR, extra: ['continue', 'levels'],
@@ -81,14 +81,14 @@
       adapter: {
         mode: function () {
           var s = screen();
-          if (LV.ui.isHelpOpen() && (s === 'title' || s === 'levels')) return 'sub'; // помощь поверх меню — родная
+          if (SAGA2.ui.isHelpOpen() && (s === 'title' || s === 'levels')) return 'sub'; // помощь поверх меню — родная
           return MODE[s] || 'sub';
         },
         start: function () { M.newGame(); },                 // «Играть» — новая сага с первой земли (прогресс не сбрасывается)
         toTitle: function () { M.showTitle(); },
         pause: function () { M.pause(); },
         resume: function () { M.resume(); },
-        openSub: function (key) { if (key === 'levels') LV.ui.screen('levels'); else M.continueGame(); },
+        openSub: function (key) { if (key === 'levels') SAGA2.ui.screen('levels'); else M.continueGame(); },
         extraHint: function (key) { return key === 'continue' ? ' · ' + M.state.progress.unlocked : ''; },
         score: function () { var g = M.game(); return (g && g.runScore) || 0; },
         best: progress,

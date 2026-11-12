@@ -9,14 +9,12 @@
  *
  * Скрипт ничего не меняет в играх; только читает страницы и снимает скриншоты.
  */
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { launch, parseArgs, httpCheck } from './lib.mjs';
 
-const DEFAULT_SLUGS = [
-  'boulder-dash', 'contra', 'digger', 'double-dragon-battletoads', 'exolon',
-  'lode-runner', 'lost-vikings', 'lost-vikings-2', 'river-raid', 'silkworm',
-  'the-last-mission',
-];
+// слаги игр — из каталога (assets/catalog/games.json), без жёсткого списка
+const DEFAULT_SLUGS = JSON.parse(readFileSync(new URL('../../assets/catalog/games.json', import.meta.url), 'utf8'))
+  .games.map((g) => g.slug);
 
 // Ошибки/предупреждения, которые считаем заведомо безобидными для ретро-игр.
 const BENIGN_CONSOLE = [

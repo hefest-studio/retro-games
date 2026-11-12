@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * ЧЕРНОВИК-генератор exolon/src/levels.js.
+ * ЧЕРНОВИК-генератор proryv/src/levels.js.
  * Рисуем экраны «операциями» (прямоугольники, платформы, шипы), печатаем
  * читаемый ASCII-арт в levels.js. Файл tmp/ в артефакт не попадает.
  *
- *   node exolon/tmp/gen-levels.mjs
+ *   node proryv/tmp/gen-levels.mjs
  */
 import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -588,11 +588,11 @@ function emitScreen(key, sc) {
 }
 
 const head = `/* ============================================================
-   EXOLON HTML5 — данные уровней
+   ПРОРЫВ HTML5 — данные уровней
    5 секторов × 5 экранов = 25 экранов по 32×24 тайла (256×192 px).
    Механика флип-скрина: ушёл за правый край — следующий экран.
 
-   Формат: docs/LEVELS.md · проверка: node exolon/tools/validate-levels.mjs
+   Формат: docs/LEVELS.md · проверка: node proryv/tools/validate-levels.mjs
 
    Тайлы:
      ' '  пусто              '#'  твёрдый блок (порода / металл)

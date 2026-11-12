@@ -40,8 +40,8 @@ g.fit(440); addEventListener('resize', ()=>g.fit(440));
 function pcol(id){ return (PAL[g.themeName]||PAL.modern)[id] || g.th().accent; }
 
 const CELL=28, BX=14, BY=28, BW=10, BH=20;
-let tetris=null;
-function newTetris(){
+let stack=null;
+function newStack(){
   return TT.Game({ hi: g.state.best, onEvent:(type)=>{
     if(type==='move'||type==='rotate') g.audio.beep(420,0.03,'square',0.05);
     else if(type==='lock') g.audio.beep(180,0.05,'square',0.06);
@@ -52,7 +52,7 @@ function newTetris(){
     else if(type==='gameover'){ syncScore(); g.gameover(); }
   }});
 }
-function syncScore(){ if(!tetris) return; const s=tetris.state(); g.state.score=s.score; g.state.level=s.level; }
+function syncScore(){ if(!stack) return; const s=stack.state(); g.state.score=s.score; g.state.level=s.level; }
 
 function drawCell(ctx,x,y,id,ghost){
   const px=BX+x*CELL, py=BY+y*CELL;
@@ -68,24 +68,24 @@ function drawMini(ctx,type,ox,oy){
 
 g.useStandardScreens({ title:'КАСКАД', subtitle:STR.ru.subtitle, lives:0 });
 g.scene('play', { realtime:true,
-  enter(d){ if(!(d&&d.resume)){ tetris=newTetris(); tetris.start(); } else if(tetris){ tetris.pause(false); } },
-  press(a){ if(!tetris) return;
+  enter(d){ if(!(d&&d.resume)){ stack=newStack(); stack.start(); } else if(stack){ stack.pause(false); } },
+  press(a){ if(!stack) return;
     if(a==='pause'){ this.pause(); return; }
-    if(a==='up'){ tetris.rotateCW(); return; }
-    if(a==='action'){ tetris.hardDrop(); return; }
-    if(a==='left'){ tetris.left(); this._mv=0.12; return; }
-    if(a==='right'){ tetris.right(); this._mv=0.12; return; }
+    if(a==='up'){ stack.rotateCW(); return; }
+    if(a==='action'){ stack.hardDrop(); return; }
+    if(a==='left'){ stack.left(); this._mv=0.12; return; }
+    if(a==='right'){ stack.right(); this._mv=0.12; return; }
   },
-  update(dt){ if(!tetris) return; tetris.step(dt);
+  update(dt){ if(!stack) return; stack.step(dt);
     const d=this.input.dir;
     this._mv=(this._mv||0)-dt;
-    if(d.x && this._mv<=0){ d.x<0?tetris.left():tetris.right(); this._mv=0.10; }
+    if(d.x && this._mv<=0){ d.x<0?stack.left():stack.right(); this._mv=0.10; }
     if(!d.x) this._mv=0;
-    if(d.y>0){ this._sd=(this._sd||0)-dt; if(this._sd<=0){ tetris.softDrop(); this._sd=0.045; } }
+    if(d.y>0){ this._sd=(this._sd||0)-dt; if(this._sd<=0){ stack.softDrop(); this._sd=0.045; } }
     syncScore();
   },
   draw(ctx){ const th=this.th(); this.clear();
-    const s=tetris?tetris.state():null;
+    const s=stack?stack.state():null;
     // стакан
     ctx.fillStyle=th.panel; ctx.fillRect(BX-3,BY-3,BW*CELL+6,BH*CELL+6);
     ctx.fillStyle=th.bg; ctx.fillRect(BX,BY,BW*CELL,BH*CELL);
@@ -115,6 +115,6 @@ g.scene('play', { realtime:true,
   },
 });
 // холд — отдельной клавишей/кнопкой (движок не маппит C)
-addEventListener('keydown', e=>{ if((e.code==='KeyC'||e.code==='ShiftLeft'||e.code==='ShiftRight') && g._sceneName==='play' && tetris){ tetris.hold(); e.preventDefault(); } });
+addEventListener('keydown', e=>{ if((e.code==='KeyC'||e.code==='ShiftLeft'||e.code==='ShiftRight') && g._sceneName==='play' && stack){ stack.hold(); e.preventDefault(); } });
 g.start('title');
 </script></body></html>

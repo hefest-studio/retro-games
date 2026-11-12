@@ -4,7 +4,7 @@
 window.addEventListener('error', function(ev){ try{ reportError(String(ev.message||ev.error||'error')); }catch(e){} });
 window.addEventListener('unhandledrejection', function(ev){ try{ reportError('promise: '+String(ev.reason)); }catch(e){} });
 /* ==========================================================================
-   РУБИКОН — HTML5 port of the 1987 студия «Гефест» game
+   РУБИКОН — оригинальная аркада студии «Гефест», HTML5
    Internal resolution 320x200, CGA four-colour palette.
    ========================================================================== */
 
@@ -31,6 +31,21 @@ function mulberry32(a){
   };
 }
 
+/* ---------- миграция localStorage ----------
+   Устаревший префикс ключей (прежнее рабочее имя) — только для однократного переноса:
+   старый → новый (если нового ещё нет) → удалить старый. Выполняется до первого чтения настроек. */
+const LEGACY_STORE_PREFIX = 'lastmission.';
+(function migrateStorage(){
+  try{
+    ['gfxVer', 'gfx', 'record', 'lang'].forEach(function(k){
+      const v = localStorage.getItem(LEGACY_STORE_PREFIX + k);
+      if(v == null) return;
+      if(localStorage.getItem('rubikon.' + k) == null) localStorage.setItem('rubikon.' + k, v);
+      localStorage.removeItem(LEGACY_STORE_PREFIX + k);
+    });
+  }catch(e){}
+})();
+
 /* ---------- canvas / graphics-mode switching ---------- */
 const cv = document.getElementById('game');
 let ctx = cv.getContext('2d');
@@ -42,16 +57,16 @@ let PIX = 1;                  // css scale
 
 function loadGfx(){
   try{
-    const ver = localStorage.getItem('lastmission.gfxVer');
+    const ver = localStorage.getItem('rubikon.gfxVer');
     if(ver !== GFX_PREF_VERSION){
       // one-time migration: CGA is now the default style
       try{
-        localStorage.setItem('lastmission.gfxVer', GFX_PREF_VERSION);
-        localStorage.setItem('lastmission.gfx', 'retro');
+        localStorage.setItem('rubikon.gfxVer', GFX_PREF_VERSION);
+        localStorage.setItem('rubikon.gfx', 'retro');
       }catch(e){}
       return 'retro';
     }
-    return localStorage.getItem('lastmission.gfx') === 'modern' ? 'modern' : 'retro';
+    return localStorage.getItem('rubikon.gfx') === 'modern' ? 'modern' : 'retro';
   }catch(e){ return 'retro'; }
 }
 function fit(){
@@ -87,8 +102,8 @@ function fit(){
 function setGfx(v){
   GFX = (v === 'retro') ? 'retro' : 'modern';
   try{
-    localStorage.setItem('lastmission.gfx', GFX);
-    localStorage.setItem('lastmission.gfxVer', GFX_PREF_VERSION);
+    localStorage.setItem('rubikon.gfx', GFX);
+    localStorage.setItem('rubikon.gfxVer', GFX_PREF_VERSION);
   }catch(e){}
   curBacking = '';
   fit();
@@ -511,10 +526,10 @@ const G = {
 };
 
 function loadRecord(){
-  try{ return parseInt(localStorage.getItem('lastmission.record')||'0',10)||0; }catch(e){ return 0; }
+  try{ return parseInt(localStorage.getItem('rubikon.record')||'0',10)||0; }catch(e){ return 0; }
 }
 function saveRecord(v){
-  try{ localStorage.setItem('lastmission.record', String(v)); }catch(e){}
+  try{ localStorage.setItem('rubikon.record', String(v)); }catch(e){}
 }
 
 /* ==========================================================================
@@ -1946,7 +1961,7 @@ ru: {
   pause:'ПАУЗА', pause_hint:'P - ПРОДОЛЖИТЬ',
   brief_title:'БРИФИНГ',
   brief_lines:[
-    'МАШИНЫ ЗАХВАТИЛИ ЗЕМЛЮ. РОБОТ OR-CABE-3',
+    'МАШИНЫ ЗАХВАТИЛИ ЗЕМЛЮ. РОБОТ ТАРАН-7',
     'ДОБЫЛ ДАННЫЕ И ДОЛЖЕН ПОДНЯТЬСЯ',
     'НА ПОВЕРХНОСТЬ, К КОРАБЛЮ. 10 УРОВНЕЙ',
     'ПОД ЗЕМЛЕЙ И ОДИН НАД НЕБОМ.',
@@ -1969,7 +1984,7 @@ ru: {
   gameover_foot:'ГЕФЕСТ · 1987',
   win_title:'МИССИЯ ВЫПОЛНЕНА',
   win_lines:[
-    'OR-CABE-3 ВЫБРАЛСЯ НА ПОВЕРХНОСТЬ.',
+    'ТАРАН-7 ВЫБРАЛСЯ НА ПОВЕРХНОСТЬ.',
     'ДАННЫЕ НА КОРАБЛЕ. КОЛОНИЯ НОВА',
     'УЗНАЕТ, КАК СЛОМАТЬ МАШИННУЮ ИМПЕРИЮ.',
     'ЧЕЛОВЕЧЕСТВО ВОЗРОДИТСЯ.'
@@ -1999,7 +2014,7 @@ ru: {
   r_drone:'СТОЛКНОВЕНИЕ С ДРОНОМ',
   r_shot:'БАШНЯ СБИТА',
   r_power:'ЭНЕРГИЯ ИСЧЕРПАНА',
-  over_default:'OR-CABE-3 УНИЧТОЖЕН',
+  over_default:'ТАРАН-7 УНИЧТОЖЕН',
   mute_on:'ЗВУК ВКЛ',
   mute_off:'ЗВУК ВЫКЛ'
 },
@@ -2030,7 +2045,7 @@ en: {
   pause:'PAUSED', pause_hint:'P - RESUME',
   brief_title:'BRIEFING',
   brief_lines:[
-    'THE MACHINES TOOK EARTH. ROBOT OR-CABE-3',
+    'THE MACHINES TOOK EARTH. ROBOT TARAN-7',
     'STOLE THE DATA AND MUST NOW CLIMB OUT,',
     'FLOOR BY FLOOR, TO THE SHIP. 10 LEVELS',
     'BELOW AND ONE ABOVE.',
@@ -2053,7 +2068,7 @@ en: {
   gameover_foot:'ГЕФЕСТ · 1987',
   win_title:'MISSION COMPLETE',
   win_lines:[
-    'OR-CABE-3 REACHED THE SURFACE.',
+    'TARAN-7 REACHED THE SURFACE.',
     'THE DATA IS ABOARD. COLONY NOVA WILL',
     'LEARN HOW TO BREAK THE MACHINE EMPIRE.',
     'HUMANITY WILL RISE AGAIN.'
@@ -2083,7 +2098,7 @@ en: {
   r_drone:'CRASHED INTO A DRONE',
   r_shot:'TOWER SHOT DOWN',
   r_power:'POWER EXHAUSTED',
-  over_default:'OR-CABE-3 WAS DESTROYED',
+  over_default:'TARAN-7 WAS DESTROYED',
   mute_on:'SOUND ON',
   mute_off:'SOUND OFF'
 }
@@ -2097,12 +2112,12 @@ function T(k){
   return k;
 }
 function loadLang(){
-  try{ return localStorage.getItem('lastmission.lang')==='en' ? 'en' : 'ru'; }
+  try{ return localStorage.getItem('rubikon.lang')==='en' ? 'en' : 'ru'; }
   catch(e){ return 'ru'; }
 }
 function setLang(l){
   LANG = (l==='en') ? 'en' : 'ru';
-  try{ localStorage.setItem('lastmission.lang', LANG); }catch(e){}
+  try{ localStorage.setItem('rubikon.lang', LANG); }catch(e){}
 }
 function toggleLang(){ setLang(LANG==='ru' ? 'en' : 'ru'); }
 
@@ -3478,7 +3493,7 @@ function init(){
   addEventListener('blur', ()=>{ for(const k in G.keys) G.keys[k]=false; });
   cv.addEventListener('pointerdown', ()=>{ A.init(); if(G.mode==='title') startGame(); });
   setupFromHash();
-  window.__LM = {
+  window.__RUBIKON = {
     G:G, T:T, setLang:setLang, newGame:newGame, genFloor:genFloor, startGame:startGame,
     setGfx:setGfx, gfx:()=>GFX, Music:Music, TRACKS:TRACKS, tick:(dt)=>update(dt||1/60),
     lang:()=>LANG, toggleMute:toggleMute, muted:()=>A.muted,   // для оболочки движка v2 (js/host.js)

@@ -85,9 +85,9 @@ test('победа: съедена последняя точка → win', () =>
   eq(won, 1, 'win не сработал'); eq(s.dotsLeft, 0);
 });
 
-test('цель Блинки в режиме chase — клетка Хрумика', () => {
+test('цель Уголька в режиме chase — клетка Хрумика', () => {
   const g = PM.Game(); g.start(); const s = g.state(); s.globalMode = 'chase';
-  const t = g._ghostTarget(s.ghosts[0]); // blinky
+  const t = g._ghostTarget(s.ghosts[0]); // ember
   eq(t[0], Math.round(s.pac.x)); eq(t[1], Math.round(s.pac.y));
 });
 

@@ -1,7 +1,7 @@
 /* render.js — СЕВЕРНАЯ САГА 2 · СТУДИЯ ГЕФЕСТ
    Вся графика игры: AURORA («Северное сияние») и RETRO 8-BIT.
    Только canvas 2D, ноль внешних ассетов. Читает game.world (§3), не мутирует его. */
-window.LV = window.LV || {};
+window.SAGA2 = window.SAGA2 || {};
 (function () {
   'use strict';
 
@@ -20,11 +20,11 @@ window.LV = window.LV || {};
     '#b8d96a', '#5a3a1b', '#a56b2b', '#e0b35a', '#3a1a3a', '#7a2a5a', '#d94a6a', '#f2f2f2', '#111111'];
 
   var VIK = {
-    erik: { main: '#ff6b8a', dark: '#8a2e46', cloth: '#a8325c', cloth2: '#6d1f3c', skin: '#f2cda9', hair: '#c9a15a', cape: '#5e1a33', cape2: '#93264b', num: 1, horn: 1.0 },
-    baleog: { main: '#5fd0d2', dark: '#1e6a6c', cloth: '#2f7f82', cloth2: '#1d4e52', skin: '#e9b992', hair: '#c9a15a', cape: '#174f52', cape2: '#2a8f92', num: 2, horn: 0.86 },
-    olaf: { main: '#ffc857', dark: '#9a6a1e', cloth: '#b3812e', cloth2: '#7a4a1c', skin: '#e9b992', hair: '#cfd8e8', cape: '#4a3216', cape2: '#78521f', num: 3, horn: 0.74 }
+    snorri: { main: '#ff6b8a', dark: '#8a2e46', cloth: '#a8325c', cloth2: '#6d1f3c', skin: '#f2cda9', hair: '#c9a15a', cape: '#5e1a33', cape2: '#93264b', num: 1, horn: 1.0 },
+    gunnar: { main: '#5fd0d2', dark: '#1e6a6c', cloth: '#2f7f82', cloth2: '#1d4e52', skin: '#e9b992', hair: '#c9a15a', cape: '#174f52', cape2: '#2a8f92', num: 2, horn: 0.86 },
+    bjorn: { main: '#ffc857', dark: '#9a6a1e', cloth: '#b3812e', cloth2: '#7a4a1c', skin: '#e9b992', hair: '#cfd8e8', cape: '#4a3216', cape2: '#78521f', num: 3, horn: 0.74 }
   };
-  var R8VIK = { erik: 13, baleog: 3, olaf: 10 }; // индексы цветов R8
+  var R8VIK = { snorri: 13, gunnar: 3, bjorn: 10 }; // индексы цветов R8
 
   /* ---------- состояние ---------- */
   var st = {
@@ -527,7 +527,7 @@ window.LV = window.LV || {};
   }
 
   /* ---------- внешний API ---------- */
-  LV.render = {
+  SAGA2.render = {
     init: init,
     setMode: setMode,
     getMode: getMode,
@@ -2420,7 +2420,7 @@ window.LV = window.LV || {};
     if (atk && atk.kind === 'sword') { handX = shFrontX + h * 0.15; handY = shY + armLen * 0.32; }
     if (stt === 'shoot') { handX = shFrontX + h * 0.14; handY = shY + armLen * 0.42; }
     if (stt === 'hook') { handX = shFrontX + 3; handY = shY - h * 0.06; }
-    if (stt === 'act' && a.id === 'olaf') { handX = shFrontX + 2; handY = shY + armLen * 0.46; }
+    if (stt === 'act' && a.id === 'bjorn') { handX = shFrontX + 2; handY = shY + armLen * 0.46; }
     limb(g, shFrontX, shY + 4, handX, handY,
       shFrontX + 4, shY + armLen * 0.55, v.cloth, G.legW * 0.9, 'rgba(255,255,255,0.14)');
     // кисть
@@ -2430,7 +2430,7 @@ window.LV = window.LV || {};
     g.beginPath(); g.arc(handX, handY, w * 0.07, 0, TAU); g.fill();
 
     // ---- оружие ----
-    if (a.id === 'baleog') {
+    if (a.id === 'gunnar') {
       if (stt === 'shoot') drawBowA(g, handX, handY, a, v, t);
       else if (atk && atk.kind === 'sword') drawSwordA(g, handX, handY, a, v, t);
       else {
@@ -2446,7 +2446,7 @@ window.LV = window.LV || {};
         g.restore();
       }
     }
-    if (a.id === 'erik' && atk && atk.kind === 'headbutt') {
+    if (a.id === 'snorri' && atk && atk.kind === 'headbutt') {
       var pr = clamp(atk.t, 0, 1);
       g.strokeStyle = 'rgba(124,248,255,' + (0.75 * (1 - pr)) + ')';
       g.lineWidth = 2.2;
@@ -2456,7 +2456,7 @@ window.LV = window.LV || {};
         g.stroke();
       }
     }
-    if (a.id === 'olaf') drawShieldA(g, a, v, bodyW, shY, hipY, t);
+    if (a.id === 'bjorn') drawShieldA(g, a, v, bodyW, shY, hipY, t);
 
     // ---- голова ----
     // контур
@@ -2470,7 +2470,7 @@ window.LV = window.LV || {};
     g.fillStyle = v.skin;
     g.beginPath(); g.arc(headR * 0.1, headY - headR * 0.06, headR * 0.86, 0, TAU); g.fill();
     // борода
-    if (a.id !== 'erik') {
+    if (a.id !== 'snorri') {
       g.fillStyle = v.hair;
       g.beginPath();
       g.moveTo(-headR * 0.92, headY + headR * 0.1);
@@ -2736,7 +2736,7 @@ window.LV = window.LV || {};
   }
 
   function drawVikingA(g, a, t) {
-    var v = VIK[a.id] || VIK.erik;
+    var v = VIK[a.id] || VIK.snorri;
     var h = a.h || 44;
     if (a.exited && a.state !== 'exit') return;
     var dead = a.dead || a.state === 'dead';
@@ -2781,7 +2781,7 @@ window.LV = window.LV || {};
   /* ================= ВИКИНГИ RETRO ================= */
 
   function drawVikingR(g, a, t) {
-    var v = VIK[a.id] || VIK.erik;
+    var v = VIK[a.id] || VIK.snorri;
     var idx = (R8VIK[a.id] !== undefined) ? R8VIK[a.id] : 3;
     var col = R8[idx];
     var H = Math.round((a.h || 44) / 2) * 2;
@@ -2803,10 +2803,10 @@ window.LV = window.LV || {};
     var hw = e(W2 / 2);
     // тень
     if (!dead) { g.fillStyle = R8[0]; g.fillRect(-hw, 0, hw * 2, 2); }
-    // тело — пиксель-арт викинга из саги 1 (LVVIK); 1 арт-пиксель = 2 мировых px
+    // тело — пиксель-арт викинга из саги 1 (SAGA2VIK); 1 арт-пиксель = 2 мировых px
     g.scale(2, 2);
-    if (dead) LVVIK.drawDead(g, a.id, a.active);
-    else LVVIK.drawChar(g, a.id, LVVIK.mapState(a), anim, t, a.active);
+    if (dead) SAGA2VIK.drawDead(g, a.id, a.active);
+    else SAGA2VIK.drawChar(g, a.id, SAGA2VIK.mapState(a), anim, t, a.active);
     g.restore();
     if (a.active && !dead) { g.fillStyle = R8[4]; g.fillRect(q(a.x) - 2, q(a.y) - (a.h || 44) - 12, 4, 2); }
 
@@ -3328,11 +3328,11 @@ window.LV = window.LV || {};
       var g = canvas.getContext('2d');
       if (!g) return;
       var W = canvas.width || 64, H = canvas.height || 64;
-      var v = VIK[actorId] || VIK.erik;
+      var v = VIK[actorId] || VIK.snorri;
       g.setTransform(1, 0, 0, 1, 0, 0);
       g.clearRect(0, 0, W, H);
       if (st.mode === 'retro') {
-        // бюст викинга тем же арт-кодом, что и в мире (LVVIK) — единые спрайты
+        // бюст викинга тем же арт-кодом, что и в мире (SAGA2VIK) — единые спрайты
         g.save();
         g.beginPath(); g.rect(0, 0, W, H); g.clip();
         g.imageSmoothingEnabled = false;
@@ -3341,7 +3341,7 @@ window.LV = window.LV || {};
         var sc = H / 26;
         g.translate(Math.round(W / 2), Math.round(H * 1.15));
         g.scale(sc, sc);
-        LVVIK.drawChar(g, actorId, 'idle', 0, 0, true);
+        SAGA2VIK.drawChar(g, actorId, 'idle', 0, 0, true);
         g.restore();
         return;
       }
@@ -3386,7 +3386,7 @@ window.LV = window.LV || {};
       g.fillStyle = v.skin;
       g.beginPath(); g.arc(0, -22, 16.5, 0, TAU); g.fill();
       // борода
-      if (actorId !== 'erik') {
+      if (actorId !== 'snorri') {
         g.fillStyle = v.hair;
         g.beginPath();
         g.moveTo(-15, -16);
@@ -3424,12 +3424,12 @@ window.LV = window.LV || {};
       g.beginPath(); g.arc(0, -35, 3, 0, TAU); g.fill();
       glow(g, 0, -35, 14, v.main, 0.5);
       // оружие у плеча
-      if (actorId === 'olaf') {
+      if (actorId === 'bjorn') {
         g.fillStyle = '#8f7430';
         g.beginPath(); g.arc(42, 34, 15, 0, TAU); g.fill();
         g.fillStyle = '#e6c977';
         g.beginPath(); g.arc(41, 33, 12, 0, TAU); g.fill();
-      } else if (actorId === 'baleog') {
+      } else if (actorId === 'gunnar') {
         g.fillStyle = '#aebfd6';
         g.fillRect(38, -8, 5, 42);
         g.fillStyle = v.main;

@@ -1,4 +1,4 @@
-/* style.css — LOST VIKINGS 2 · NORSE BY NORSEWEST
+/* style.css — СЕВЕРНАЯ САГА 2 · СЕВЕРНОЕ СИЯНИЕ
    Дизайн-система «СЕВЕРНОЕ СИЯНИЕ»: полярная ночь, аврора, стекло, хром, руны.
    Второй арт-дирекшн — RETRO 8-BIT / CRT (body.mode-retro).
    Только CSS/SVG, без внешних шрифтов, картинок и эмодзи. */
@@ -557,7 +557,7 @@ body[data-screen="ending"] .sky__aurora { animation-play-state: paused; }
   letter-spacing: -.01em;
   text-transform: uppercase;
 }
-.logo__line--lost {
+.logo__line--north {
   display: block;
   font-size: clamp(13px, 1.55vw, 21px);
   letter-spacing: .56em;
@@ -1074,9 +1074,9 @@ body[data-screen="ending"] .sky__aurora { animation-play-state: paused; }
   background: rgba(234, 246, 255, .025);
   min-width: 0;
 }
-.crew--erik { --accent: var(--ice); }
-.crew--baleog { --accent: var(--magenta); }
-.crew--olaf { --accent: var(--gold); }
+.crew--snorri { --accent: var(--ice); }
+.crew--gunnar { --accent: var(--magenta); }
+.crew--bjorn { --accent: var(--gold); }
 .crew__portrait {
   flex: 0 0 auto;
   display: grid;
@@ -1289,9 +1289,9 @@ body[data-screen="ending"] .sky__aurora { animation-play-state: paused; }
   transition: border-color .28s ease, box-shadow .28s ease, opacity .28s ease, transform .28s ease;
   min-width: 0;
 }
-.viking--erik { --accent: var(--ice); --accent-soft: rgba(124, 248, 255, .18); }
-.viking--baleog { --accent: var(--magenta); --accent-soft: rgba(255, 61, 139, .16); }
-.viking--olaf { --accent: var(--gold); --accent-soft: rgba(255, 200, 87, .16); }
+.viking--snorri { --accent: var(--ice); --accent-soft: rgba(124, 248, 255, .18); }
+.viking--gunnar { --accent: var(--magenta); --accent-soft: rgba(255, 61, 139, .16); }
+.viking--bjorn { --accent: var(--gold); --accent-soft: rgba(255, 200, 87, .16); }
 .viking__index {
   position: absolute;
   top: 7px;
@@ -1680,9 +1680,9 @@ body[data-screen="ending"] .sky__aurora { animation-play-state: paused; }
   text-transform: uppercase;
   color: var(--muted);
 }
-.ability-group--erik .ability-card__icon { color: var(--ice); }
-.ability-group--baleog .ability-card__icon { color: var(--magenta); }
-.ability-group--olaf .ability-card__icon { color: var(--gold); }
+.ability-group--snorri .ability-card__icon { color: var(--ice); }
+.ability-group--gunnar .ability-card__icon { color: var(--magenta); }
+.ability-group--bjorn .ability-card__icon { color: var(--gold); }
 .ability-group__list { display: flex; flex-direction: column; gap: 4px; }
 .ability-card {
   display: flex;
@@ -2009,7 +2009,7 @@ body.mode-retro .logo__word {
   filter: none;
   text-shadow: 4px 4px 0 #1b2a4a, 8px 8px 0 #05060b;
 }
-body.mode-retro .logo__line--lost { color: #6fc3df; text-shadow: 2px 2px 0 #05060b; }
+body.mode-retro .logo__line--north { color: #6fc3df; text-shadow: 2px 2px 0 #05060b; }
 body.mode-retro .logo__ii {
   background: none;
   -webkit-background-clip: initial;
@@ -2165,7 +2165,7 @@ body.mode-retro #stage::before {
   .screen--title { padding: 12px 14px 10px; }
   .brand__sub { display: none; }
   .brand__mark { width: 34px; height: 34px; border-radius: 9px; }
-  .logo__line--lost { font-size: 12px; letter-spacing: .46em; }
+  .logo__line--north { font-size: 12px; letter-spacing: .46em; }
   .logo__line--vikings { font-size: clamp(44px, 14vw, 74px); }
   .logo-meta { margin-top: 10px; gap: 9px; }
   .logo-meta__norse { font-size: 8px; letter-spacing: .3em; }

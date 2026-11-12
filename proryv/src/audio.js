@@ -2,7 +2,7 @@
    ПРОРЫВ HTML5 — 8-битный звуковой движок (WebAudio, без сэмплов)
    API: docs/CONTRACT.md §2, музыка: docs/MUSIC.md.
 
-   4 канала, как на NES/ZX:
+   4 канала, как на 8-битных приставках:
      lead  — pulse 1 (мелодия), duty + вибрато;
      harm  — pulse 2 (гармония/арпеджио), другой duty;
      bass  — triangle (бас);
@@ -66,7 +66,7 @@
      1. ТЕОРИЯ НОТ + ДАННЫЕ ТРЕКОВ
      Ниже до [MUSIC-DATA-END] — только данные и чистые формулы,
      без WebAudio: этот блок можно проверять офлайн
-     (exolon/tmp/validate-music.mjs).
+     (proryv/tmp/validate-music.mjs).
      ============================================================ */
 
   /* [MUSIC-DATA-BEGIN] */

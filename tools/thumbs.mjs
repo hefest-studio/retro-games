@@ -37,7 +37,8 @@ const HASH_GFX = { vihr: '', rubikon: '', 'neon-rage': '&demo=1' };
 const TOGGLE_DEFAULT_MODERN = new Set(['saga']);
 /* Особые способы начать игру. */
 const START = {
-  staratel: async (p) => { await p.click('#startBtn', { timeout: 3000 }).catch(() => {}); },
+  /* меню движка → Enter, затем родной брифинг сектора «ENTER — В БОЙ» */
+  proryv: async (p) => { for (let i = 0; i < 3; i += 1) { await p.keyboard.press('Enter'); await p.waitForTimeout(700); } },
   'saga-2': async (p) => {
     /* с v2: меню движка → Enter, затем родной брифинг «В путь» → Enter */
     for (let i = 0; i < 3; i += 1) { await p.keyboard.press('Enter'); await p.waitForTimeout(700); }

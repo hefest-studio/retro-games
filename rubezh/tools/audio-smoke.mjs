@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * audio-smoke.mjs — dependency-free smoke test for contra/src/audio.js
+ * audio-smoke.mjs — dependency-free smoke test for rubezh/src/audio.js
  *
  * Загружает движок через vm в поддельный window с mock AudioContext,
  * прогоняет весь публичный API и проверяет:
@@ -205,11 +205,11 @@ function loadAudio(win) {
   };
   const context = vm.createContext(sandbox);
   const before = new Set(Object.keys(win));
-  vm.runInContext(SOURCE, context, { filename: 'contra/src/audio.js' });
-  const api = win.CONTRA_AUDIO;
-  assert.ok(api && typeof api === 'object', 'window.CONTRA_AUDIO must be defined');
+  vm.runInContext(SOURCE, context, { filename: 'rubezh/src/audio.js' });
+  const api = win.RUBEZH_AUDIO;
+  assert.ok(api && typeof api === 'object', 'window.RUBEZH_AUDIO must be defined');
   const added = Object.keys(win).filter((k) => !before.has(k));
-  assert.deepEqual(added, ['CONTRA_AUDIO'], 'engine must add exactly one global, got: ' + added.join(', '));
+  assert.deepEqual(added, ['RUBEZH_AUDIO'], 'engine must add exactly one global, got: ' + added.join(', '));
   return { api, liveIntervals };
 }
 

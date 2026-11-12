@@ -1,12 +1,12 @@
 /* ОБВАЛ · tests/engine.test.mjs — автотесты порта на движок v2 («оболочка» js/host.js).
    Запуск: node obval/tests/engine.test.mjs   (нужен Playwright: глобально или npm i -D playwright)
    Поднимает свой статический сервер по корню репо и проверяет в Chromium:
-   • данные уровней валидны (BD.validateLevels); legacy.html грузится без ошибок;
+   • данные уровней валидны (OBVAL.validateLevels); legacy.html грузится без ошибок;
    (полные логические тесты игры — node obval/tools/logic-test.mjs, нужен Chrome: CHROME=…)
    • меню движка → игра (Enter), пауза P ↔ пауза игры, тема T/G ↔ gfx игры, язык L ↔ язык игры (в обе стороны),
      звук M → музыка+эффекты игры, «Уровни» из меню и назад, финал → экран движка и рекорд arcade.best.obval;
    • игра, запущенная своим интерфейсом (кнопка уровня), и снятие паузы тач-кнопкой игры — движок следует;
-   • перенос старого рекорда bd84:best; #gfx=retro|modern дают разные кадры; #shot= — без оболочки;
+   • перенос старого рекорда; миграция ключей bd84:* → obval:*; #gfx=retro|modern дают разные кадры; #shot= — без оболочки;
    • 0 ошибок pageerror / console.error. */
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -48,24 +48,35 @@ async function open(hash = '', init = null) {
   await p.goto(BASE + hash, { waitUntil: 'load' }); await wait(600);
   return { p, close: () => ctx.close() };
 }
-const st = (p) => p.evaluate(() => { const h = window.__arcadeHost, B = window.BD, S = B.debug.S; return { scene: h.g._sceneName, theme: h.g.themeName, lang: h.g.i18n.lang, sound: h.g.audio.enabled, best: h.g.state.best, mode: S.screen, gfx: B.debug.GFX.mode, glang: document.documentElement.lang, muted: !B.debug.Sound.musicOn && !B.debug.Sound.sfxOn, overlay: getComputedStyle(document.getElementById('overlay')).display }; });
+const st = (p) => p.evaluate(() => { const h = window.__arcadeHost, B = window.OBVAL, S = B.debug.S; return { scene: h.g._sceneName, theme: h.g.themeName, lang: h.g.i18n.lang, sound: h.g.audio.enabled, best: h.g.state.best, mode: S.screen, gfx: B.debug.GFX.mode, glang: document.documentElement.lang, muted: !B.debug.Sound.musicOn && !B.debug.Sound.sfxOn, overlay: getComputedStyle(document.getElementById('overlay')).display }; });
 
 try {
   await test('уровни игры: 8 камер, структурная проверка без замечаний', async () => {
     const { p, close } = await open('');
-    const r = await p.evaluate(() => ({ n: window.BD.levels.length, issues: window.BD.validateLevels().length }));
+    const r = await p.evaluate(() => ({ n: window.OBVAL.levels.length, issues: window.OBVAL.validateLevels().length }));
     await close(); ok(r.n === 8 && r.issues === 0, JSON.stringify(r));
   });
   await test('legacy.html — старая версия грузится и работает сама', async () => {
     const ctx = await browser.newContext(); const p = await ctx.newPage();
     p.on('pageerror', (e) => errors.push('legacy: ' + e.message));
     await p.goto(BASE + 'legacy.html', { waitUntil: 'load' }); await wait(500);
-    const r = await p.evaluate(() => ({ lm: !!window.BD, host: !!window.__arcadeHost }));
+    const r = await p.evaluate(() => ({ lm: !!window.OBVAL, host: !!window.__arcadeHost }));
     await p.keyboard.press('Enter'); await wait(300);
-    const mode = await p.evaluate(() => window.BD.debug.S.screen);
+    const mode = await p.evaluate(() => window.OBVAL.debug.S.screen);
     await ctx.close(); ok(r.lm && !r.host && mode === 'playing', JSON.stringify(r) + ' ' + mode);
   });
 
+  await test('миграция localStorage: bd84:* → obval:*, старые удалены, новые не затираются', async () => {
+    const o = await open('legacy.html', () => { try { if (sessionStorage.getItem('mig')) return; sessionStorage.setItem('mig', '1'); localStorage.clear();
+      localStorage.setItem('bd84:best', '4242'); localStorage.setItem('bd84:lang', '"en"'); localStorage.setItem('bd84:completed', '[0,1]');
+      localStorage.setItem('obval:best', '5000'); } catch {} });
+    const r = await o.p.evaluate(() => ({ ls: Object.keys(localStorage).sort().map((k) => k + '=' + localStorage.getItem(k)), best: window.OBVAL.debug.S.best }));
+    await o.close();
+    const ls = r.ls.join(' ');
+    ok(!/bd84:/.test(ls), 'старые ключи не удалены: ' + ls);
+    ok(/obval:lang="en"/.test(ls) && /obval:completed=\[0,1\]/.test(ls), 'не перенесены: ' + ls);
+    ok(/obval:best=5000/.test(ls) && r.best === 5000, 'новый рекорд затёрт старым: ' + ls);
+  });
   const { p, close } = await open('', () => { try { localStorage.clear(); localStorage.setItem('bd84:best', '777'); } catch {} });
   await test('старт: меню движка, игра в title, тема modern по умолчанию, рекорд перенесён', async () => {
     const s = await st(p);
@@ -88,23 +99,23 @@ try {
     ok(s.theme === 'retro' && s.gfx === 'retro', 'T ' + JSON.stringify(s));
     await p.keyboard.press('KeyG'); await wait(150); s = await st(p);
     ok(s.theme === 'modern' && s.gfx === 'modern', 'G ' + JSON.stringify(s));
-    await p.evaluate(() => window.BD.setGraphics('retro', true)); await wait(150); s = await st(p);
+    await p.evaluate(() => window.OBVAL.setGraphics('retro', true)); await wait(150); s = await st(p);
     ok(s.theme === 'retro', 'игра→движок ' + JSON.stringify(s));
   });
   await test('L → язык движка = язык игры; и обратно', async () => {
     await p.keyboard.press('KeyL'); await wait(150); let s = await st(p);
     ok(s.lang === 'en' && s.glang === 'en', JSON.stringify(s));
-    await p.evaluate(() => window.BD.setLanguage('ru', true)); await wait(150); s = await st(p);
+    await p.evaluate(() => window.OBVAL.setLanguage('ru', true)); await wait(150); s = await st(p);
     ok(s.lang === 'ru', 'игра→движок ' + JSON.stringify(s));
   });
   await test('M → звук движка выкл = музыка и эффекты игры выкл, повтор — вкл', async () => {
     await p.keyboard.press('KeyM'); await wait(150); let s = await st(p);
     ok(!s.sound && s.muted, JSON.stringify(s));
     await p.keyboard.press('KeyM'); await wait(150); s = await st(p);
-    ok(s.sound && (await p.evaluate(() => window.BD.debug.Sound.musicOn && window.BD.debug.Sound.sfxOn)), JSON.stringify(s));
+    ok(s.sound && (await p.evaluate(() => window.OBVAL.debug.Sound.musicOn && window.OBVAL.debug.Sound.sfxOn)), JSON.stringify(s));
   });
   await test('финал игры → экран gameover движка, рекорд arcade.best.obval', async () => {
-    await p.evaluate(() => { const S = window.BD.debug.S; S.score = 4321; S.lives = 1; window.BD.debug.killPlayer('rock'); }); await wait(1500); await wait(200);
+    await p.evaluate(() => { const S = window.OBVAL.debug.S; S.score = 4321; S.lives = 1; window.OBVAL.debug.killPlayer('rock'); }); await wait(1500); await wait(200);
     const s = await st(p);
     ok(s.scene === 'gameover' && s.best === 4321, JSON.stringify(s));
     ok((await p.evaluate(() => localStorage.getItem('arcade.best.obval'))) === '4321', 'не сохранён');
@@ -125,12 +136,12 @@ try {
   });
   await test('кнопка уровня игры (панель «Уровни») → движок переходит в игру', async () => {
     await p.evaluate(() => document.querySelector('#levelGrid [data-level="1"]').click()); await wait(200);
-    const s = await st(p); ok(s.scene === 'play' && s.mode === 'playing' && (await p.evaluate(() => window.BD.debug.S.level)) === 1, JSON.stringify(s));
+    const s = await st(p); ok(s.scene === 'play' && s.mode === 'playing' && (await p.evaluate(() => window.OBVAL.debug.S.level)) === 1, JSON.stringify(s));
   });
   await test('пауза/продолжение тач-кнопкой игры (Ⅱ) — движок следует', async () => {
     await p.evaluate(() => document.querySelector('.tp-pause').click()); await wait(200);
     let s = await st(p); ok(s.scene === 'pause' && s.mode === 'paused', 'пауза ' + JSON.stringify(s));
-    await p.evaluate(() => window.BD.resume()); await wait(200);
+    await p.evaluate(() => window.OBVAL.resume()); await wait(200);
     s = await st(p); ok(s.scene === 'play' && s.mode === 'playing', 'продолжить ' + JSON.stringify(s));
   });
   await close();
@@ -146,7 +157,7 @@ try {
   });
   await test('#shot= — отладочный режим без оболочки (родное меню игры)', async () => {
     const o = await open('#shot=play');
-    const r = await o.p.evaluate(() => ({ host: !!window.__arcadeHost, mode: window.BD.debug.S.screen, attr: document.documentElement.getAttribute('data-arcade-scene') }));
+    const r = await o.p.evaluate(() => ({ host: !!window.__arcadeHost, mode: window.OBVAL.debug.S.screen, attr: document.documentElement.getAttribute('data-arcade-scene') }));
     await o.close(); ok(!r.host && r.mode === 'menu' && r.attr === 'off', JSON.stringify(r));
   });
   await test('ошибок в браузере нет', async () => { ok(errors.length === 0, errors.join(' | ')); });

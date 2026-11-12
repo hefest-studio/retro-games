@@ -43,10 +43,11 @@ a.back{position:fixed;left:10px;top:8px;color:#4f6378;font-size:12px;text-decora
 /* Оболочка v2: меню/пауза/темы/язык/счёт/рекорд/музыка — движок Arcade; полёт, река, враги, топливо —
    родной js/game.js (без своего canvas#game он не запускает свой цикл и DOM-меню, управляется через RR.test),
    отрисовка — родной js/render.js (retro = 8-бит, modern = неон). */
-// Перенос старого рекорда (riverraid.hi) в общий ключ движка — один раз.
+// Перенос старого рекорда (ruslo.hi; ключи прежнего имени переносит RR.store.migrate в core.js)
+// в общий ключ движка — один раз.
 (function(){ try{ var S=Arcade.Store, k='arcade.best.ruslo';
   if(S.get('arcade.migrated.ruslo',null)) return;
-  var old=parseInt(JSON.parse(S.get('riverraid.hi','0')),10)||0;
+  var old=parseInt(JSON.parse(S.get('ruslo.hi','0')),10)||0;
   if(old>S.getNum(k,0)) S.set(k,String(old)); S.set('arcade.migrated.ruslo','1');
 }catch(e){} })();
 // Родной чиптюн РУСЛА — только SFX; музыку ведёт движок (js/music.js).

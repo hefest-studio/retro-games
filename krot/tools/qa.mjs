@@ -1,12 +1,12 @@
 /* ============================================================================
-   DIGGER · tools/qa.mjs — финальные headless-проверки и скриншоты
+   КРОТ · tools/qa.mjs — финальные headless-проверки и скриншоты
    Владелец: qa-runner. Node без зависимостей (встроенные fetch/WebSocket).
    Chrome запускается один раз, управление — через Chrome DevTools Protocol:
    так мобильные layout'ы снимаются честным Emulation.setDeviceMetricsOverride
    (а не --window-size), а консоль/исключения и #test собираются в одной сессии.
 
    Что проверяет:
-     1. #test на странице: DIGGER TESTS n/n PASS, без ошибок консоли;
+     1. #test на странице: KROT TESTS n/n PASS, без ошибок консоли;
      2. desktop-скриншоты §7.2 + ready/levelclear/pause в screenshots/;
      3. мобильные 390×844 и 844×390 (CDP mobile:true): нет горизонтального
         скролла, сцена в кадре, панели не обрезаны;
@@ -414,7 +414,7 @@ async function main() {
   await session.init();
   const chromeVersion = (cdp.version && cdp.version.Browser) || 'неизвестно';
 
-  addReport('DIGGER QA · ' + nowStamp());
+  addReport('KROT QA · ' + nowStamp());
   addReport('Chrome: ' + chromeVersion + ' (CDP, headless=new)');
   addReport('index.html: ' + INDEX);
   addReport('Скриншоты: ' + SHOT_DIR);
@@ -435,7 +435,7 @@ async function main() {
     addReport('# самопроверки страницы (#test)');
     if (layout) {
       const text = decodeEntities(layout.testout || '') + '\n' + decodeEntities(layout.title || '');
-      const m = text.match(/DIGGER TESTS (\d+)\/(\d+) (PASS|FAIL)/);
+      const m = text.match(/KROT TESTS (\d+)\/(\d+) (PASS|FAIL)/);
       if (!m) {
         selfTestOk = false;
         selfTestsplit.push('результат #test не найден (title=' + JSON.stringify(layout.title) + ')');
@@ -627,7 +627,7 @@ main().then((code) => {
   console.error('QA фатальная ошибка: ' + (err && (err.stack || err.message)));
   try {
     fs.writeFileSync(path.join(SHOT_DIR, 'qa-report.txt'),
-      'DIGGER QA · ' + nowStamp() + '\nFAIL: ' + (err && (err.stack || err.message)) + '\n', 'utf8');
+      'KROT QA · ' + nowStamp() + '\nFAIL: ' + (err && (err.stack || err.message)) + '\n', 'utf8');
   } catch (e) { /* ignore */ }
   process.exit(1);
 });

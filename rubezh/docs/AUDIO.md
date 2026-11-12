@@ -1,16 +1,16 @@
-# CONTRA: НЕОНОВЫЙ РАССВЕТ — аудиосистема
+# РУБЕЖ: НЕОНОВЫЙ РАССВЕТ — аудиосистема
 
 Техническая и музыкальная справка по `src/audio.js` (оригинальный чиптюн-движок
 на WebAudio). Никаких сэмплов, файлов, CDN и сети: вся музыка и все эффекты
 синтезируются на лету. Скрипт классический (IIFE), единственный глобальный
-объект — `window.CONTRA_AUDIO`.
+объект — `window.RUBEZH_AUDIO`.
 
 ---
 
 ## 1. Публичный API
 
 ```js
-window.CONTRA_AUDIO = {
+window.RUBEZH_AUDIO = {
   unlock(),                    // создать/resume AudioContext; можно звать на каждый жест
   isReady(),                   // true, если контекст существует и state === 'running'
   startMusic(name),            // 'title' | 'stage1' | 'stage2' | 'boss' | 'victory' | 'gameover'
@@ -44,17 +44,17 @@ window.CONTRA_AUDIO = {
 
 ```js
 // на первом пользовательском жесте:
-CONTRA_AUDIO.unlock();
+RUBEZH_AUDIO.unlock();
 
 // можно и до жеста — движок сам запустит после unlock:
-CONTRA_AUDIO.startMusic('stage1');
+RUBEZH_AUDIO.startMusic('stage1');
 
 // события игры:
-CONTRA_AUDIO.sfx('shot_spread');
-CONTRA_AUDIO.sfx('explode');
-CONTRA_AUDIO.startMusic('boss');      // кроссфейд ~0.22 c
-CONTRA_AUDIO.stopMusic(0.4);
-CONTRA_AUDIO.setMuted(true);
+RUBEZH_AUDIO.sfx('shot_spread');
+RUBEZH_AUDIO.sfx('explode');
+RUBEZH_AUDIO.startMusic('boss');      // кроссфейд ~0.22 c
+RUBEZH_AUDIO.stopMusic(0.4);
+RUBEZH_AUDIO.setMuted(true);
 ```
 
 Движок сам вешает одноразовые `pointerdown`/`keydown`/`touchstart`-слушатели,
@@ -159,7 +159,7 @@ smoke-тест падает при ошибке в партитуре.
   крэш и том-филлы.
 * `gameover` — редкие низкие ноты, нисходящий минорный мотив, мягкие барабаны.
 
-Все мелодии оригинальные; цитат Contra/Konami нет. Ноты заданы именами
+Все мелодии оригинальные; цитат чужих игр нет. Ноты заданы именами
 (`A4`, `C#5`, `Bb3`), транспонирование — через таблицу частот (A4 = 440 Гц,
 равномерный строй). Генератора случайных нот в партитуре нет.
 
@@ -211,7 +211,7 @@ node tools/audio-smoke.mjs   # печатает "OK audio smoke"
 * отсутствие «убежавших» интервалов;
 * отсутствие предупреждений компилятора партитуры;
 * деградацию без WebAudio и fallback `webkitAudioContext`;
-* ровно один добавленный глобал — `CONTRA_AUDIO`.
+* ровно один добавленный глобал — `RUBEZH_AUDIO`.
 
 Дополнительно движок проверялся в реальном headless Chrome (48 кГц) через
 анализатор на выходе: все треки дают сигнал (пик 0.50–0.74, RMS 0.12–0.24),

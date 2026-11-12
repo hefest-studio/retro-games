@@ -1,0 +1,123 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ПОДКОП · Лестницы и ямы — HTML5</title>
+<meta name="description" content="ПОДКОП — оригинальная аркада-лабиринт студии «Гефест»: бегай, лазай по лестницам и канатам, копай ямы-ловушки для стражи, собери всё золото и уйди по проявившейся лестнице. 10 уровней, темы retro/modern, RU/EN, офлайн.">
+<meta name="theme-color" content="#070b18">
+<link rel="canonical" href="https://arcade.hefest.ru/podkop/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Гефест · Зал ретро-игр">
+<meta property="og:title" content="ПОДКОП · Лестницы и ямы"><meta property="og:url" content="https://arcade.hefest.ru/podkop/">
+<meta property="og:description" content="Оригинальная аркада-лабиринт студии «Гефест»: лестницы, канаты, ямы-ловушки для стражи и золото. Темы retro/modern, RU/EN, офлайн.">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#070b18;color:#eef2f8;font-family:Inter,system-ui,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
+.wrap{position:relative;width:min(96vw,900px);margin-top:30px}
+canvas{width:100%;display:block;border:1px solid #1d2742;border-radius:10px;background:#070b18}
+.pad{width:min(96vw,620px);margin:10px 0;display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(2,50px);gap:7px;max-width:420px}
+.pad button{background:#111a30;border:1px solid #1d2742;border-radius:12px;color:#eef2f8;font-size:19px;font-weight:800}
+.pad button:active{background:#1b2848}
+.pad .u{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
+.pad .dl{grid-column:4;grid-row:2;font-size:15px}.pad .dr{grid-column:5;grid-row:2;font-size:15px}.pad .ps{grid-column:5;grid-row:1}
+.foot{color:#5f6c8c;font-size:11px;margin:2px 12px 16px;text-align:center;max-width:900px}
+a.back{position:fixed;left:10px;top:8px;color:#5f6c8c;font-size:12px;text-decoration:none}
+@media(min-width:760px){.pad{display:none}}
+</style></head><body>
+<a class="back" href="../">← Каталог</a>
+<div class="wrap"><canvas id="c" width="896" height="560" aria-label="ПОДКОП"></canvas></div>
+<div class="pad">
+  <button class="u" data-d="U">▲</button><button class="l" data-d="L">◀</button><button class="d" data-d="D">▼</button><button class="r" data-d="R">▶</button>
+  <button class="dl" id="bDigL">⛏◀</button><button class="dr" id="bDigR">▶⛏</button><button class="ps" id="bPause">II</button>
+</div>
+<div class="foot"><b>ПОДКОП</b> · ← → ↑ ↓ / WASD — бег и лестницы · Z/Q — копать влево, X/E — копать вправо, пробел — копать по взгляду · P/Esc пауза · L язык, T тема, M звук.</div>
+<script src="./engine.js"></script>
+<script src="./js/music.js"></script>
+<script src="./js/store-migrate.js"></script>
+<script src="./js/levels.js"></script>
+<script src="./js/game.js"></script>
+<script src="./js/render.js"></script>
+<script>
+'use strict';
+var P=window.PODKOP, HUD_H=48, BW=896, BH=512;
+var STR={
+ ru:{play:'Играть',language:'Язык',theme:'Тема',sound:'Звук',on:'вкл',off:'выкл',score:'Счёт',level:'Ур.',best:'Рекорд',win:'ВСЁ ЗОЛОТО НАВЕРХУ!',gameover:'СТРАЖА ПОЙМАЛА',pause:'ПАУЗА',resume:'Продолжить',menu:'В меню',tapstart:'пробел / тап',title:'ПОДКОП',subtitle:'Лестницы, канаты и ямы-ловушки · 10 уровней',
+   gold:'Золото',lives:'Жизни',exitOpen:'ВЫХОД ОТКРЫТ — наверх по лестнице!',clear:'УРОВЕНЬ ПРОЙДЕН',bonus:'Бонус',next:'пробел — дальше',
+   help:'Z/Q ⛏◀   X/E ▶⛏   пробел — копать по взгляду'},
+ en:{play:'Play',language:'Language',theme:'Theme',sound:'Sound',on:'on',off:'off',score:'Score',level:'Lvl',best:'Best',win:'ALL GOLD IS UP TOP!',gameover:'THE GUARDS GOT YOU',pause:'PAUSE',resume:'Resume',menu:'Menu',tapstart:'space / tap',title:'PODKOP',subtitle:'Ladders, ropes and pit traps · 10 levels',
+   gold:'Gold',lives:'Lives',exitOpen:'EXIT OPEN — climb the ladder!',clear:'LEVEL CLEAR',bonus:'Bonus',next:'space — next',
+   help:'Z/Q ⛏◀   X/E ▶⛏   space — dig where you face'}
+};
+var g=Arcade.createGame({canvas:'#c',width:BW,height:BH+HUD_H,gameId:'podkop',strings:STR,theme:'modern'});
+g.input.bindDpad(document.querySelector('.pad'));
+g.fit(900); addEventListener('resize',function(){g.fit(900);});
+g.useStandardScreens({title:'ПОДКОП',subtitle:STR.ru.subtitle,lives:3});
+// заголовок/подзаголовок меню — по языку
+var _tt=g.scenes.title.draw; g.scenes.title.draw=function(ctx){ _tt.call(this,ctx);
+  this.text(this.t('help'),this.W/2,this.H-44,{size:12,align:'center',color:this.th().muted,weight:600}); };
+
+// Игровое поле рисует родной рендерер в свой холст 1792×1024 (2×), оболочка переносит его под HUD.
+var board=document.createElement('canvas'); board.width=BW*2; board.height=BH*2;
+var view=new P.Renderer(board);
+var game=null, clearT=0, clearInfo=null, introT=0, lastT=0;
+var SFX={click:[620,.04,'square',.04],step:[300,.02,'triangle',.025],dig:[180,.08,'sawtooth',.06],trap:[240,.12,'square',.06],
+  gold:[1180,.07,'triangle',.07],exit:[1500,.18,'triangle',.08],die:[150,.3,'sawtooth',.08],win:[1250,.16,'triangle',.08]};
+function sfx(n){ var s=SFX[n]; if(s) g.audio.beep(s[0],s[1],s[2],s[3]); }
+function mkGame(){ return new P.Game(window.PODKOP_LEVELS,{audio:{sfx:sfx},onEvent:function(type,d){
+  if(type==='level'){ introT=2.4; }
+  else if(type==='complete'){ clearT=2.2; clearInfo=d; }
+  else if(type==='gameover'){ g.state.score=d.score; g.gameover(); }
+  else if(type==='victory'){ g.state.score=d.score; g.win(); }
+}}); }
+function nextLevel(){ if(!game||game.state!=='complete') return; clearT=0; game.nextLevel(); }
+function dig(side){ if(g._sceneName==='play'&&game&&game.state==='playing') game.dig(side); }
+
+function drawHud(ctx){ var th=g.th(), retro=g.themeName==='retro';
+  ctx.fillStyle=th.panel||th.bg; ctx.fillRect(0,0,BW,HUD_H);
+  ctx.fillStyle=th.accent; ctx.globalAlpha=.5; ctx.fillRect(0,HUD_H-2,BW,2); ctx.globalAlpha=1;
+  if(!game) return; var h=game.getHud(), lang=g.i18n.lang, y=30;
+  g.text(g.t('score')+' '+h.score,14,y,{size:16});
+  g.text('◆ '+(h.goldTotal-h.goldLeft)+'/'+h.goldTotal,190,y,{size:16,color:h.exitOpen?th.good:th.warn});
+  g.text(g.t('level')+' '+h.level+'/'+h.totalLevels+' · '+game.levelName(lang),BW/2+40,y,{size:15,align:'center'});
+  var hearts=''; for(var i=0;i<Math.max(0,h.lives);i++) hearts+='♥';
+  g.text(hearts,BW-150,y,{size:17,align:'right',color:th.bad});
+  g.text(g.t('best')+' '+Math.max(g.state.best,h.score),BW-14,y,{size:13,align:'right',color:th.muted,weight:600});
+  if(retro){ ctx.fillStyle='rgba(0,0,0,.25)'; for(var yy=0;yy<HUD_H;yy+=3) ctx.fillRect(0,yy,BW,1); }
+}
+function banner(ctx,title,sub,a,col){ if(a<=0) return; var th=g.th(); ctx.save(); ctx.globalAlpha=Math.min(1,a);
+  var w=Math.min(BW-80,600), x=(BW-w)/2, y=HUD_H+BH/2-50;
+  ctx.fillStyle='rgba(5,8,16,.82)'; ctx.fillRect(x,y,w,100); ctx.strokeStyle=col||th.accent; ctx.lineWidth=2; ctx.strokeRect(x+1,y+1,w-2,98);
+  g.text(title,BW/2,y+44,{size:26,align:'center',color:col||th.accent}); if(sub) g.text(sub,BW/2,y+74,{size:13,align:'center',color:th.ink,weight:600});
+  ctx.restore(); }
+function render(ctx){ var now=g.time, dt=Math.max(0,Math.min(.08,now-lastT)); lastT=now; if(g._sceneName!=='play') dt=0;
+  g.clear(); drawHud(ctx); if(!game) return;
+  view.setTheme(g.themeName==='retro'?'retro':'modern',true); view.draw(game,dt);
+  ctx.save(); ctx.imageSmoothingEnabled=g.themeName!=='retro'; ctx.drawImage(board,0,HUD_H,BW,BH); ctx.restore();
+  var lang=g.i18n.lang;
+  if(introT>0) banner(ctx,(g.t('level')+' '+(game.levelIndex+1)+' · '+game.levelName(lang)).toUpperCase(),game.levelHint(lang),introT/0.6);
+  if(game.state==='complete'&&clearInfo) banner(ctx,g.t('clear'),g.t('bonus')+' +'+clearInfo.total+'   ·   '+g.t('next'),1,g.th().good);
+  else if(game.exit.open&&game.gold.size===0&&game.state==='playing'&&now-(game._exitShown||now)<2.5) banner(ctx,g.t('exitOpen'),'',1-(now-game._exitShown)/2.5,g.th().good);
+}
+g.scene('play',{realtime:true,
+  enter:function(d){ if(!(d&&d.resume)){ game=mkGame(); game.startRun(); clearT=0; clearInfo=null; } lastT=g.time; },
+  press:function(a){ if(!game) return; if(a==='pause'){ this.pause(); return; }
+    if(a==='action'||a==='start'){ if(game.state==='complete'){ nextLevel(); return; } if(a==='action') dig(game.player.dir<0?-1:1); } },
+  update:function(dt){ if(!game) return; var d=this.input.dir;
+    game.setInput({left:d.x<0,right:d.x>0,up:d.y<0,down:d.y>0});
+    var wasOpen=game.exit.open; game.update(dt);
+    if(!wasOpen&&game.exit.open) game._exitShown=g.time;
+    if(introT>0) introT-=dt;
+    if(game.state==='complete'){ clearT-=dt; if(clearT<=0) nextLevel(); }
+    g.state.score=game.score; g.state.lives=game.lives; g.state.level=game.levelIndex+1; },
+  draw:function(ctx){ render(ctx); }
+});
+// копание: Z/Q/Comma — влево, X/E/Period — вправо; тач-кнопки ⛏◀ ▶⛏ и пауза II
+addEventListener('keydown',function(e){ if(g._sceneName!=='play'||!game||e.repeat) return;
+  if(e.code==='KeyZ'||e.code==='KeyQ'||e.code==='Comma'){ dig(-1); e.preventDefault(); }
+  else if(e.code==='KeyX'||e.code==='KeyE'||e.code==='Period'){ dig(1); e.preventDefault(); } });
+function tapBtn(id,fn){ var b=document.getElementById(id); if(!b) return; var h=function(e){ e.preventDefault(); fn(); };
+  b.addEventListener('touchstart',h,{passive:false}); b.addEventListener('mousedown',h); }
+tapBtn('bDigL',function(){ dig(-1); }); tapBtn('bDigR',function(){ dig(1); });
+tapBtn('bPause',function(){ if(g._sceneName==='play') g.pause(); else if(g._sceneName==='pause') g.goto('play',{resume:true}); });
+window.__PODKOP_V2={g:g,game:function(){return game;}};
+g.start('title');
+</script></body></html>

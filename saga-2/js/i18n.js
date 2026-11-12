@@ -1,7 +1,7 @@
 /* i18n.js — СЕВЕРНАЯ САГА 2 · СТУДИЯ ГЕФЕСТ
    Все строки интерфейса: RU (по умолчанию) и EN. Только этот файл хранит тексты UI.
-   API: LV.i18n {t, list, setLang, getLang, LANGS}. */
-window.LV = window.LV || {};
+   API: SAGA2.i18n {t, list, setLang, getLang, LANGS}. */
+window.SAGA2 = window.SAGA2 || {};
 (function () {
   'use strict';
 
@@ -28,7 +28,7 @@ window.LV = window.LV || {};
       'common.dash': '—',
 
       /* ---------- шапка / бренд ---------- */
-      'brand.lost': 'СЕВЕРНАЯ',
+      'brand.north': 'СЕВЕРНАЯ',
       'brand.vikings': 'САГА II',
       'brand.ii': 'II',
       'brand.norse': 'СТУДИЯ ГЕФЕСТ',
@@ -50,7 +50,7 @@ window.LV = window.LV || {};
       'chip.group': 'Настройки',
 
       /* ---------- экран title ---------- */
-      'title.kicker': 'Оригинальная браузерная игра · 1997',
+      'title.kicker': 'Оригинальная браузерная игра студии «Гефест»',
       'title.subtitle': 'СЕВЕРНОЕ СИЯНИЕ',
       'title.tagline': 'Три викинга. Полярная ночь. Шесть саг.',
       'title.menu': 'Выберите путь',
@@ -61,7 +61,7 @@ window.LV = window.LV || {};
       'title.progress': 'Открыто саг: {n} из {total}',
       'title.fresh': 'Прогресса пока нет — начните первую сагу',
       'title.keys': '1–3 — викинги · G — графика · Y — язык · M — звук',
-      'title.attribution': 'Оригинал студии «Гефест» · 1997',
+      'title.attribution': 'Оригинал студии «Гефест»',
       'title.build': 'без внешних ассетов · всё нарисовано кодом',
       'title.stats': '6 саг · 3 викинга · 2 режима графики',
       'title.feature1': 'Полярная ночь',
@@ -170,12 +170,12 @@ window.LV = window.LV || {};
       'hud.exitPip': 'Слот выхода {n}',
 
       /* ---------- викинги и способности ---------- */
-      'viking.erik': 'Снорри',
-      'viking.erik.role': 'Быстрый',
-      'viking.baleog': 'Гуннар',
-      'viking.baleog.role': 'Свирепый',
-      'viking.olaf': 'Бьорн',
-      'viking.olaf.role': 'Могучий',
+      'viking.snorri': 'Снорри',
+      'viking.snorri.role': 'Быстрый',
+      'viking.gunnar': 'Гуннар',
+      'viking.gunnar.role': 'Свирепый',
+      'viking.bjorn': 'Бьорн',
+      'viking.bjorn.role': 'Могучий',
       'ability.headbutt': 'Таран',
       'ability.headbutt.key': 'J',
       'ability.headbutt.hint': 'Ломает лёд и бьёт врагов',
@@ -228,7 +228,7 @@ window.LV = window.LV || {};
       'ending.levels': 'Пройдено саг',
       'ending.levelsValue': '{n} из {total}',
       'ending.creditsTitle': 'Титры',
-      'ending.credit1': 'Дизайн и код — в духе «Северного сияния», 1997',
+      'ending.credit1': 'Дизайн и код — студия «Гефест»',
       'ending.credit2': 'Музыка — оригинальный чиптюн на WebAudio',
       'ending.credit3': 'Графика — вектор и пиксели, нарисованные кодом',
       'ending.credit4': 'СЕВЕРНАЯ САГА — оригинал студии «Гефест»',
@@ -344,7 +344,7 @@ window.LV = window.LV || {};
       'common.dash': '—',
 
       /* ---------- brand ---------- */
-      'brand.lost': 'СЕВЕРНАЯ',
+      'brand.north': 'СЕВЕРНАЯ',
       'brand.vikings': 'САГА II',
       'brand.ii': 'II',
       'brand.norse': 'СТУДИЯ ГЕФЕСТ',
@@ -366,7 +366,7 @@ window.LV = window.LV || {};
       'chip.group': 'Settings',
 
       /* ---------- title ---------- */
-      'title.kicker': 'A fan-made browser original · 1997',
+      'title.kicker': 'An original browser game by Hefest studio',
       'title.subtitle': 'NORDIC AURORA',
       'title.tagline': 'Three vikings. One polar night. Six sagas.',
       'title.menu': 'Choose your path',
@@ -377,7 +377,7 @@ window.LV = window.LV || {};
       'title.progress': 'Sagas unlocked: {n} of {total}',
       'title.fresh': 'No progress yet — begin the first saga',
       'title.keys': '1–3 vikings · G graphics · Y language · M sound',
-      'title.attribution': 'A original of СЕВЕРНАЯ САГА 2 · Гефест (1997)',
+      'title.attribution': 'An original by Hefest studio',
       'title.build': 'no external assets · everything drawn in code',
       'title.stats': '6 sagas · 3 vikings · 2 graphics modes',
       'title.feature1': 'Polar night',
@@ -486,12 +486,12 @@ window.LV = window.LV || {};
       'hud.exitPip': 'Exit slot {n}',
 
       /* ---------- vikings ---------- */
-      'viking.erik': 'Snorri',
-      'viking.erik.role': 'Swift',
-      'viking.baleog': 'Gunnar',
-      'viking.baleog.role': 'Fierce',
-      'viking.olaf': 'Bjorn',
-      'viking.olaf.role': 'Mighty',
+      'viking.snorri': 'Snorri',
+      'viking.snorri.role': 'Swift',
+      'viking.gunnar': 'Gunnar',
+      'viking.gunnar.role': 'Fierce',
+      'viking.bjorn': 'Bjorn',
+      'viking.bjorn.role': 'Mighty',
       'ability.headbutt': 'Headbutt',
       'ability.headbutt.key': 'J',
       'ability.headbutt.hint': 'Breaks ice and hits enemies',
@@ -544,10 +544,10 @@ window.LV = window.LV || {};
       'ending.levels': 'Sagas completed',
       'ending.levelsValue': '{n} of {total}',
       'ending.creditsTitle': 'Credits',
-      'ending.credit1': 'Design and code — in the spirit of Nordic Aurora, 1997',
+      'ending.credit1': 'Design and code — Hefest studio',
       'ending.credit2': 'Music — original chiptune on WebAudio',
       'ending.credit3': 'Art — vector and pixels, drawn in code',
-      'ending.credit4': 'СЕВЕРНАЯ САГА is a an original by Hefest studio',
+      'ending.credit4': 'NORTHERN SAGA is an original by Hefest studio',
       'ending.again': 'Play again',
       'ending.back': 'Main menu',
 
@@ -688,7 +688,7 @@ window.LV = window.LV || {};
     return lang;
   }
 
-  LV.i18n = {
+  SAGA2.i18n = {
     t: t,
     list: list,
     setLang: setLang,

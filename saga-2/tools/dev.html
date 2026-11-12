@@ -21,28 +21,28 @@
 <script>
 (function () {
   'use strict';
-  var LV = window.LV;
+  var SAGA2 = window.SAGA2;
   var canvas = document.getElementById('game');
   var ctx = canvas.getContext('2d');
   var hud = document.getElementById('hud');
-  var game = new LV.Game({
-    levels: LV.LEVELS,
+  var game = new SAGA2.Game({
+    levels: SAGA2.LEVELS,
     onEvent: function (ev) {
       if (ev.type === 'toast') console.log('[toast]', ev.text);
     },
     onLevelComplete: function (stats) { console.log('COMPLETE', JSON.stringify(stats)); }
   });
-  LV.game = game;
+  SAGA2.game = game;
   game.loadLevel(0);
-  var input = LV.input = { left: false, right: false, up: false, down: false, jump: false, action: false, special: false, hook: false };
+  var input = SAGA2.input = { left: false, right: false, up: false, down: false, jump: false, action: false, special: false, hook: false };
   game.setInput(input);
 
   var keys = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', Space: 'jump', KeyJ: 'action', KeyK: 'special', KeyL: 'hook' };
   window.addEventListener('keydown', function (e) {
     if (keys[e.code]) { input[keys[e.code]] = true; e.preventDefault(); }
-    if (e.code === 'Digit1') game.switchTo('erik');
-    if (e.code === 'Digit2') game.switchTo('baleog');
-    if (e.code === 'Digit3') game.switchTo('olaf');
+    if (e.code === 'Digit1') game.switchTo('snorri');
+    if (e.code === 'Digit2') game.switchTo('gunnar');
+    if (e.code === 'Digit3') game.switchTo('bjorn');
     if (e.code === 'Tab') { e.preventDefault(); game.nextActor(); }
     if (e.code === 'KeyR') game.restartLevel();
   });
@@ -50,7 +50,7 @@
     if (keys[e.code]) { input[keys[e.code]] = false; e.preventDefault(); }
   });
 
-  var COL = { erik: '#7cf8ff', baleog: '#ffc857', olaf: '#45f0b5' };
+  var COL = { snorri: '#7cf8ff', gunnar: '#ffc857', bjorn: '#45f0b5' };
   var TILE = 32;
   function rr(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); }
 
@@ -128,7 +128,7 @@
 
     var act = game.getUIState();
     var lines = [
-      'FPS/dev  LV ' + (act.levelIndex + 1) + '/' + act.levelCount + '  ' + act.name,
+      'FPS/dev  SAGA2 ' + (act.levelIndex + 1) + '/' + act.levelCount + '  ' + act.name,
       'active: ' + act.active + '   time: ' + act.time.toFixed(1) + '   deaths: ' + act.deaths,
       'runes: ' + act.runes + '/' + act.runesTotal + '   score: ' + act.score + '   exit: ' + act.exitCollected + '/3',
       act.actors.map(function (a) { return a.id + ' hp' + a.hp + (a.dead ? ' DEAD' : '') + (a.exited ? ' OUT' : ''); }).join('  '),

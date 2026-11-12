@@ -4,7 +4,7 @@
    • родные самотесты игры (#test) — все PASS; legacy.html грузится без ошибок;
    • меню движка → игра (Enter), пауза P ↔ пауза игры, тема T/G ↔ gfx игры, язык L ↔ язык игры (в обе стороны),
      звук M → звук игры, «Управление» из меню и назад, финал → экран движка и рекорд arcade.best.vihr;
-   • перенос старого рекорда silkworm.hi.v1; #gfx=retro|modern дают разные кадры; #shot= — без оболочки;
+   • перенос старого рекорда; миграция ключей silkworm.* → vihr.*; #gfx=retro|modern дают разные кадры; #shot= — без оболочки;
    • 0 ошибок pageerror / console.error. */
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -64,6 +64,16 @@ try {
     await ctx.close(); ok(r.lm && !r.host && mode === 'play', JSON.stringify(r) + ' ' + mode);
   });
 
+  await test('миграция localStorage: silkworm.* → vihr.*, старые удалены, новые не затираются', async () => {
+    const o = await open('legacy.html', () => { try { if (sessionStorage.getItem('mig')) return; sessionStorage.setItem('mig', '1'); localStorage.clear();
+      localStorage.setItem('silkworm.hi.v1', '4242'); localStorage.setItem('silkworm.cfg.v1', '{"lang":"en","sound":true}');
+      localStorage.setItem('vihr.hi.v1', '5000'); } catch {} });
+    const ls = (await o.p.evaluate(() => Object.keys(localStorage).sort().map((k) => k + '=' + localStorage.getItem(k)))).join(' ');
+    await o.close();
+    ok(!/silkworm\./.test(ls), 'старые ключи не удалены: ' + ls);
+    ok(/vihr\.cfg\.v1=\{"lang":"en"/.test(ls), 'настройки не перенесены: ' + ls);
+    ok(/vihr\.hi\.v1=5000/.test(ls), 'новый рекорд затёрт старым: ' + ls);
+  });
   const { p, close } = await open('', () => { try { localStorage.clear(); localStorage.setItem('silkworm.hi.v1', '777'); } catch {} });
   await test('старт: меню движка, игра в title, тема modern по умолчанию, рекорд перенесён', async () => {
     const s = await st(p);

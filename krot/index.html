@@ -39,10 +39,12 @@ a.back{position:fixed;left:10px;top:8px;color:#5a6273;font-size:12px;text-decora
 <script src="./js/modern.js"></script>
 <script>
 'use strict';
-// Перенос старого рекорда (digger.hi.v1) в общий ключ движка — один раз.
+// Ключи прежнего имени → krot.* (DG.migrateStorage), затем перенос старого рекорда (krot.hi.v1)
+// в общий ключ движка — один раз.
+(function(){ try{ DG.migrateStorage(localStorage); }catch(e){} })();
 (function(){ try{ var S=Arcade.Store, k='arcade.best.krot';
   if(S.get('arcade.migrated.krot',null)) return;
-  var old=parseInt(JSON.parse(S.get('digger.hi.v1','0')),10)||0;
+  var old=parseInt(JSON.parse(S.get(DG.STORE_KEYS.hi,'0')),10)||0;
   if(old>S.getNum(k,0)) S.set(k,String(old)); S.set('arcade.migrated.krot','1');
 }catch(e){} })();
 var STR={

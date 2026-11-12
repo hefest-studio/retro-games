@@ -12,7 +12,7 @@ const context = vm.createContext(sandbox);
 vm.runInContext(readFileSync(join(ROOT, 'tools/dev-level.js'), 'utf8'), context);
 vm.runInContext(readFileSync(join(ROOT, 'js/game.js'), 'utf8'), context);
 
-const LV = sandbox.window.LV;
+const SAGA2 = sandbox.window.SAGA2;
 let pass = 0;
 let fail = 0;
 const results = [];
@@ -24,8 +24,8 @@ function check(name, condition, extra) {
 
 function makeGame() {
   const events = [];
-  const game = new LV.Game({
-    levels: LV.LEVELS,
+  const game = new SAGA2.Game({
+    levels: SAGA2.LEVELS,
     onEvent: (ev) => events.push(ev),
     onLevelComplete: (stats) => { game.__stats = stats; }
   });
@@ -60,29 +60,29 @@ function actor(game, id) {
   const ok = game.actors.every((a) => Math.abs(a.y - 512) < 1 && Number.isFinite(a.x)) && game.actors.some((a) => a.onGround);
   check('спавн на полу, физика конечна', ok, game.actors.map((a) => a.id + ':y=' + a.y).join(' '));
 }
-/* 2. прыжок Эрика */
+/* 2. прыжок Снорри */
 {
   const { game, input } = makeGame();
   step(game, 20);
-  const erik = actor(game, 'erik');
+  const snorri = actor(game, 'snorri');
   input.jump = true;
-  let minY = erik.y;
+  let minY = snorri.y;
   for (let i = 0; i < 60; i++) {
     game.update(1 / 60);
-    minY = Math.min(minY, erik.y);
+    minY = Math.min(minY, snorri.y);
     if (i === 8) input.jump = false;
   }
-  check('прыжок Эрика поднимает минимум на 70px', minY < 512 - 70, 'minY=' + minY);
-  check('после прыжка снова на земле', erik.onGround && Math.abs(erik.y - 512) < 1, 'y=' + erik.y);
+  check('прыжок Снорри поднимает минимум на 70px', minY < 512 - 70, 'minY=' + minY);
+  check('после прыжка снова на земле', snorri.onGround && Math.abs(snorri.y - 512) < 1, 'y=' + snorri.y);
 }
 /* 3. таран ломает лёд */
 {
   const { game, input } = makeGame();
   step(game, 10);
-  game.debugTeleport('erik', 6, 15);
+  game.debugTeleport('snorri', 6, 15);
   step(game, 5);
-  const erik = actor(game, 'erik');
-  erik.dir = 1;
+  const snorri = actor(game, 'snorri');
+  snorri.dir = 1;
   press(game, input, 'action');
   step(game, 4);
   const broken = game.getTile(8, 14) === '.' || game.getTile(8, 15) === '.';
@@ -92,63 +92,63 @@ function actor(game, id) {
 {
   const { game } = makeGame();
   step(game, 5);
-  game.debugTeleport('erik', 18, 15);
+  game.debugTeleport('snorri', 18, 15);
   step(game, 90);
   const door = game.doors.find((d) => d.group === 'a');
   check('плита открывает дверь группы a', door.open > 0.7, 'open=' + door.open.toFixed(2) + ' plate=' + game.plates[0].pressed);
 }
-/* 5. стрела Балеога переключает рычаг */
+/* 5. стрела Гуннара переключает рычаг */
 {
   const { game, input } = makeGame();
   step(game, 5);
-  game.switchTo('baleog');
-  game.debugTeleport('baleog', 20, 15);
+  game.switchTo('gunnar');
+  game.debugTeleport('gunnar', 20, 15);
   step(game, 10);
   press(game, input, 'special');
   step(game, 40);
   const lever = game.levers.find((l) => l.group === 'b');
   check('стрела переключает рычаг', lever && lever.on === true, 'on=' + (lever ? lever.on : 'no lever'));
 }
-/* 6. крюк подтягивает Балеога вверх */
+/* 6. крюк подтягивает Гуннара вверх */
 {
   const { game, input } = makeGame();
   step(game, 5);
-  game.switchTo('baleog');
-  game.debugTeleport('baleog', 24, 15);
+  game.switchTo('gunnar');
+  game.debugTeleport('gunnar', 24, 15);
   step(game, 5);
-  const baleog = actor(game, 'baleog');
+  const gunnar = actor(game, 'gunnar');
   input.up = true;
   press(game, input, 'hook');
   input.up = false;
-  let minY = baleog.y;
+  let minY = gunnar.y;
   for (let i = 0; i < 120; i++) {
     game.update(1 / 60);
-    minY = Math.min(minY, baleog.y);
+    minY = Math.min(minY, gunnar.y);
   }
-  check('крюк поднимает Балеога', minY < 500 && Number.isFinite(baleog.y), 'minY=' + minY.toFixed(1));
+  check('крюк поднимает Гуннара', minY < 500 && Number.isFinite(gunnar.y), 'minY=' + minY.toFixed(1));
 }
-/* 7. щит Олафа — платформа для Эрика */
+/* 7. щит Бьорна — платформа для Снорри */
 {
   const { game, input } = makeGame();
   step(game, 5);
-  game.switchTo('olaf');
-  game.debugTeleport('olaf', 10, 15);
+  game.switchTo('bjorn');
+  game.debugTeleport('bjorn', 10, 15);
   step(game, 5);
   input.action = true;
   step(game, 4);
-  game.switchTo('erik');
-  game.debugTeleport('erik', 10, 12);
+  game.switchTo('snorri');
+  game.debugTeleport('snorri', 10, 12);
   step(game, 60);
-  const erik = actor(game, 'erik');
-  const olaf = actor(game, 'olaf');
-  const top = olaf.y - olaf.h - 6;
-  check('Эрик встаёт на щит Олафа', erik.onOlaf && Math.abs(erik.y - top) < 3, 'erikY=' + erik.y + ' top=' + top + ' onOlaf=' + erik.onOlaf);
+  const snorri = actor(game, 'snorri');
+  const bjorn = actor(game, 'bjorn');
+  const top = bjorn.y - bjorn.h - 6;
+  check('Снорри встаёт на щит Бьорна', snorri.onBjorn && Math.abs(snorri.y - top) < 3, 'snorriY=' + snorri.y + ' top=' + top + ' onBjorn=' + snorri.onBjorn);
 }
 /* 8. чекпоинт */
 {
   const { game } = makeGame();
   step(game, 5);
-  game.debugTeleport('erik', 10, 15);
+  game.debugTeleport('snorri', 10, 15);
   step(game, 15);
   check('чекпоинт активируется', game.checkpoints[0].active === true);
 }
@@ -156,18 +156,18 @@ function actor(game, id) {
 {
   const { game } = makeGame();
   step(game, 5);
-  game.debugTeleport('erik', 13, 16);
+  game.debugTeleport('snorri', 13, 16);
   step(game, 10);
-  const erik = actor(game, 'erik');
-  check('лава убивает', game.deaths >= 1 && erik.dead === true, 'deaths=' + game.deaths + ' dead=' + erik.dead);
+  const snorri = actor(game, 'snorri');
+  check('лава убивает', game.deaths >= 1 && snorri.dead === true, 'deaths=' + game.deaths + ' dead=' + snorri.dead);
   step(game, 100);
-  check('респавн после смерти', erik.dead === false && erik.hp === erik.maxHp, 'hp=' + erik.hp + ' dead=' + erik.dead);
+  check('респавн после смерти', snorri.dead === false && snorri.hp === snorri.maxHp, 'hp=' + snorri.hp + ' dead=' + snorri.dead);
 }
 /* 10. руна и финиш */
 {
   const { game } = makeGame();
   step(game, 5);
-  game.debugTeleport('erik', 3, 13);
+  game.debugTeleport('snorri', 3, 13);
   step(game, 20);
   check('руна подбирается', game.levelRunes >= 1, 'runes=' + game.levelRunes);
   game.debugWinLevel();

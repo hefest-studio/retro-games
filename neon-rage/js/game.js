@@ -2,7 +2,7 @@
 'use strict';
 /* ==== src/font.js ==== */
 /* ============================================================
-   EXOLON HTML5 — пиксельный моноширинный шрифт 6×8 с кириллицей
+   НЕОН × ЯРОСТЬ — пиксельный моноширинный шрифт 6×8 с кириллицей
    ------------------------------------------------------------
    Знакоместо 6×8: 5 px на глиф (колонки 0–4) + 1 px пробела (колонка 5).
    Заглавные и цифры занимают 7 px (строки 0–6), строчные — 5 px
@@ -15,7 +15,7 @@
      EX_FONT.has(ch)           — есть ли глиф
      EX_FONT.glyph(ch)         — массив 8 байт (для неизвестного — глиф '?')
 
-   Сгенерировано из пиксельной раскладки (инструмент — exolon/tmp/gen-font.mjs).
+   Сгенерировано из пиксельной раскладки (генератор пиксельной раскладки студии).
    Правки вносить в генератор, а не в этот файл.
    ============================================================ */
 (function () {
@@ -299,11 +299,11 @@
 
     /* ---------- персонажи ---------- */
     'char.dragon.name': 'КАЙ',
-    'char.dragon.alias': 'ДРАКОН',
-    'char.dragon.desc': 'Быстрый и точный. Серии из трёх ударов, драконий апперкот.',
+    'char.dragon.alias': 'КОМЕТА',
+    'char.dragon.desc': 'Быстрый и точный. Серии из трёх ударов, огненный апперкот.',
     'char.dragon.spec': 'СПЕЦ: ОГНЕННОЕ КОЛЬЦО',
     'char.toad.name': 'РОК',
-    'char.toad.alias': 'ЖАБА',
+    'char.toad.alias': 'МОЛОТ',
     'char.toad.desc': 'Тяжёлый и злой. Больше здоровья, сокрушительный слэм.',
     'char.toad.spec': 'СПЕЦ: ЗЕМЛЯНОЙ СЛЭМ',
     'stat.power': 'СИЛА',
@@ -319,7 +319,7 @@
     'intro.title': 'УКРАДЕННЫЙ ЧИП',
     'intro.text1': 'НЕОН-СИТИ, 1987. Корпорация «ТОКСИК» украла чип NEON-8 — сердце города.',
     'intro.text2': 'Без него гаснут вывески, а улицы делят банды. Город вот-вот замолчит.',
-    'intro.text3': 'Дракон Кай и жаба Рок выходят на улицу. Вдвоём. Но играть будешь одним.',
+    'intro.text3': 'Кай-Комета и Рок-Молот выходят на улицу. Вдвоём. Но играть будешь одним.',
     'intro.start': 'ENTER — НАЧАТЬ',
     'intro.skip': 'ESC — ПРОПУСТИТЬ',
 
@@ -394,7 +394,7 @@
     'hud.wave': 'ВОЛНА',
     'hud.rage': 'ЯРОСТЬ',
     'hud.combo': 'КОМБО',
-    'hud.boss': 'ТЁМНАЯ КОРОЛЕВА',
+    'hud.boss': 'КОРОЛЕВА ХРОМ',
     'hud.fight': 'В БОЙ!',
     'hud.clear': 'ЗАЧИЩЕНО',
     'hud.advance': 'ВПЕРЁД →',
@@ -422,7 +422,7 @@
     'popup.score': '+{n}',
 
     /* ---------- босс ---------- */
-    'boss.name': 'ТЁМНАЯ КОРОЛЕВА',
+    'boss.name': 'КОРОЛЕВА ХРОМ',
     'boss.sub': 'ХОЗЯЙКА «ТОКСИК»',
     'boss.taunt1': '«Вы опоздали. Город уже мой.»',
     'boss.taunt2': '«Неон — это моя корона.»',
@@ -450,7 +450,7 @@
     'about.text2': 'Все персонажи, графика и музыка оригинальны и созданы кодом — без внешних ассетов.',
     'about.text3': 'Ретро- и неон-рендеры рисуют один и тот же бой, а музыка синтезируется в WebAudio.',
     'about.tech': 'Canvas 2D · WebAudio · ES2019 · 0 внешних файлов',
-    'about.credits': 'СДЕЛАНО В DEEPSEEK HARNESS · 2026',
+    'about.credits': 'СТУДИЯ ГЕФЕСТ · 2026',
     'about.back': 'ESC — НАЗАД'
   };
 
@@ -488,11 +488,11 @@
 
     /* ---------- characters ---------- */
     'char.dragon.name': 'KAI',
-    'char.dragon.alias': 'DRAGON',
-    'char.dragon.desc': 'Fast and precise. Three-hit chains and a dragon uppercut.',
+    'char.dragon.alias': 'COMET',
+    'char.dragon.desc': 'Fast and precise. Three-hit chains and a fire uppercut.',
     'char.dragon.spec': 'SPECIAL: FIRE RING',
     'char.toad.name': 'ROCK',
-    'char.toad.alias': 'TOAD',
+    'char.toad.alias': 'HAMMER',
     'char.toad.desc': 'Heavy and mean. More health and a crushing slam.',
     'char.toad.spec': 'SPECIAL: EARTH SLAM',
     'stat.power': 'POWER',
@@ -508,7 +508,7 @@
     'intro.title': 'THE STOLEN CHIP',
     'intro.text1': 'NEON CITY, 1987. The TOXIC corporation stole the NEON-8 chip — the heart of the city.',
     'intro.text2': 'Without it the neon dies and the gangs split the streets. Soon the city goes silent.',
-    'intro.text3': 'Kai the Dragon and Rock the Toad step out. Two heroes. One player. You.',
+    'intro.text3': 'Kai the Comet and Rock the Hammer step out. Two heroes. One player. You.',
     'intro.start': 'ENTER — START',
     'intro.skip': 'ESC — SKIP',
 
@@ -583,7 +583,7 @@
     'hud.wave': 'WAVE',
     'hud.rage': 'RAGE',
     'hud.combo': 'COMBO',
-    'hud.boss': 'DARK QUEEN',
+    'hud.boss': 'QUEEN CHROME',
     'hud.fight': 'FIGHT!',
     'hud.clear': 'CLEARED',
     'hud.advance': 'GO →',
@@ -611,7 +611,7 @@
     'popup.score': '+{n}',
 
     /* ---------- boss ---------- */
-    'boss.name': 'THE DARK QUEEN',
+    'boss.name': 'QUEEN CHROME',
     'boss.sub': 'MISTRESS OF TOXIC',
     'boss.taunt1': 'Too late. The city is already mine.',
     'boss.taunt2': 'Neon is my crown.',
@@ -639,7 +639,7 @@
     'about.text2': 'Every character, sprite and note is original and made in code — no external assets.',
     'about.text3': 'The retro and modern renderers draw the same fight; the music is synthesized in WebAudio.',
     'about.tech': 'Canvas 2D · WebAudio · ES2019 · zero external files',
-    'about.credits': 'MADE IN DEEPSEEK HARNESS · 2026',
+    'about.credits': 'HEFEST STUDIO · 2026',
     'about.back': 'ESC — BACK'
   };
 
@@ -726,7 +726,7 @@
 
    ARCHITECTURE
      lookahead sequencer (setInterval 25 ms, schedules 120 ms ahead), all note
-     times are absolute AudioContext times; 4 channels like NES/ZX —
+     times are absolute AudioContext times; 4 channels like 8-bit consoles —
        lead  pulse (chip) / detuned saw pair (synth),
        harm  pulse arpeggio (chip) / filtered saw arpeggio (synth),
        bass  triangle (chip) / saw+sub (synth),
@@ -1534,7 +1534,7 @@
     }
   }
 
-  /* ---------- chip instruments (dry, 4-channel NES/ZX feel) ---------- */
+  /* ---------- chip instruments (dry, 4-channel 8-bit feel) ---------- */
   function chipLead(dest, t, hz, dur, vel, song) {
     voice(dest, t, hz, dur, song.leadVol * vel, {
       wave: pulseWave(song.leadDuty), attack: 0.005, release: 0.035,
@@ -2204,7 +2204,16 @@
   function saveTry(fn) { try { fn(); } catch (e) { /* localStorage/file:// может быть недоступен */ } }
 
   /* ---------- данные ---------- */
-  var STORE_KEY = 'dd-neon-settings-v1';
+  var STORE_KEY = 'neon-rage.settings';
+  /* Устаревший ключ (прежнее имя) — только для однократной миграции:
+     старый → новый (если нового ещё нет) → удалить старый. */
+  var LEGACY_STORE_KEY = 'dd-neon-settings-v1';
+  saveTry(function () {
+    var old = window.localStorage.getItem(LEGACY_STORE_KEY);
+    if (old == null) return;
+    if (window.localStorage.getItem(STORE_KEY) == null) window.localStorage.setItem(STORE_KEY, old);
+    window.localStorage.removeItem(LEGACY_STORE_KEY);
+  });
   var DIFF_IDS = ['easy', 'normal', 'hard'];
   var DIFFS = {
     easy:   { hp: 0.78, dmg: 0.62, speed: 0.90, score: 0.80, label: 'diff.easy' },
@@ -5392,7 +5401,7 @@
     drawSkyline(ctx, camx, t, {
       f: 0.3, tileW: 92, baseY: 166, minH: 64, maxH: 124,
       color: C.panel, edge: C.deep, win1: C.amber, win2: C.cyan,
-      winProb: 0.2, seed: 23, signs: ['DRAGON', 'ARCADE', '24/7', 'NEON', 'TOXIC'], signChance: 0.45,
+      winProb: 0.2, seed: 23, signs: ['COMET', 'ARCADE', '24/7', 'NEON', 'TOXIC'], signChance: 0.45,
       vertical: ['HOTEL', 'CLUB', 'RAMEN']
     });
     drawStreetFacades(ctx, camx, t);
@@ -5471,7 +5480,7 @@
       fill(ctx, bx + w - 20, baseY - 16, 1, 2, C.amber);
       /* вывеска только если помещается */
       if (r2 > 0.5) {
-        var lbl = ['DRAGON', 'ARCADE', '24/7', 'NEON', 'CLUB'][norm(i + 1, 5)];
+        var lbl = ['COMET', 'ARCADE', '24/7', 'NEON', 'CLUB'][norm(i + 1, 5)];
         var bw = Math.min(w - 10, textW(lbl, 1) + 8);
         if (textW(lbl, 1) + 8 <= w - 10) {
           neonSign(ctx, bx + Math.round((w - bw) / 2), top + 1, bw, 11, lbl, col, t, 1, null);
@@ -5617,7 +5626,7 @@
     var start = Math.floor((off - 160) / tileW);
     var end = Math.ceil((off + 480 + 160) / tileW);
     var pal = [C.cyan, C.magenta, C.amber, C.lime];
-    var labels = ['NEON', 'RAGE', 'DD', 'TOAD'];
+    var labels = ['NEON', 'RAGE', 'DD', 'HAMMER'];
     for (i = start; i <= end; i++) {
       var bx = Math.round(i * tileW - off + 20);
       if (bx < -80 || bx > 500) continue;
@@ -6068,13 +6077,13 @@
     drawSkyline(ctx, camx, t, {
       f: 0.24, tileW: 98, baseY: 254, minH: 96, maxH: 206,
       color: C.panel, edge: C.deep, win1: C.amber, win2: C.cyan,
-      winProb: 0.18, seed: 17, signs: ['DRAGON', 'ARCADE', '24/7', 'NEON', 'RAGE', 'TOXIC'],
+      winProb: 0.18, seed: 17, signs: ['COMET', 'ARCADE', '24/7', 'NEON', 'RAGE', 'TOXIC'],
       signChance: 0.4, vertical: ['HOTEL', 'CLUB']
     });
     /* глубокая тень под логотипом */
     dith(ctx, 60, 8, 360, 112, C.ink, C.bg, 0.42);
     /* боковые вертикальные вывески */
-    neonSignV(ctx, 26, 68, 'DRAGON', C.magenta, t, 2);
+    neonSignV(ctx, 26, 68, 'COMET', C.magenta, t, 2);
     neonSignV(ctx, 430, 92, 'RAGE', C.cyan, t, 2);
     neonSign(ctx, 360, 208, textW('24/7', 1) + 12, 13, '24/7', C.amber, t, 1, { board: true });
     drawWires(ctx, camx, t, 34, 6, C.ink);
@@ -7634,7 +7643,7 @@
     drawSkyline(ctx, 170, t, {
       f: 0.18, tileW: 88, baseY: 264, minH: 70, maxH: 132,
       color: C.panel, edge: C.deep, win1: C.amber, win2: C.cyan,
-      winProb: 0.16, seed: 47, signs: ['DRAGON', 'TOAD', 'RAGE', 'NEON'], signChance: 0.55
+      winProb: 0.16, seed: 47, signs: ['COMET', 'HAMMER', 'RAGE', 'NEON'], signChance: 0.55
     });
     /* затемнение города + цветные неоновые канты */
     ctx.globalAlpha = 0.3;
@@ -7763,8 +7772,8 @@
     /* разделитель-молния */
     for (var z = 0; z < 13; z++) {
       var zy = 56 + z * 11;
-      var zx = 240 + (z % 2 ? 2 : -2);
-      fill(ctx, zx - 1, zy, 2, 7, z % 2 ? C.amber : C.wine);
+      var pxz = 240 + (z % 2 ? 2 : -2);
+      fill(ctx, pxz - 1, zy, 2, 7, z % 2 ? C.amber : C.wine);
     }
     for (var nd = 0; nd < 3; nd++) {
       var ny = 76 + nd * 38;
@@ -9815,7 +9824,7 @@
      ============================================================ */
   var SIGNS = {
     0: [
-      { sx: 74, y: 30, w: 26, h: 88, text: 'ДРАКОН', style: 'vert', col: C.cyan, hot: '#ffffff', factor: 0.30 },
+      { sx: 74, y: 30, w: 26, h: 88, text: 'КОМЕТА', style: 'vert', col: C.cyan, hot: '#ffffff', factor: 0.30 },
       { sx: 262, y: 56, w: 120, h: 28, text: 'АРКАДА', style: 'horiz', col: C.pink, hot: '#ffe0ef', factor: 0.30 },
       { sx: 398, y: 100, w: 70, h: 24, text: '24/7', style: 'store', col: C.lime, hot: C.lime2, factor: 0.52 },
       { sx: 414, y: 52, w: 54, h: 18, text: 'NEON', style: 'small', col: C.amber, hot: C.amber2, factor: 0.30 }

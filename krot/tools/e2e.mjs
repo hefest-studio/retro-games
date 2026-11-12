@@ -1,5 +1,5 @@
 /* ============================================================================
-   DIGGER · tools/e2e.mjs — end-to-end проверка в реальном браузере (CDP).
+   КРОТ · tools/e2e.mjs — end-to-end проверка в реальном браузере (CDP).
    Владелец: Lead. Node 22+ (встроенный WebSocket), зависимостей нет.
    Запускает headless Chrome, проходит сценарий: титул → старт → движение/копание →
    выстрел → пауза → смена графики/языка → game over → рестарт → меню; проверяет
@@ -151,7 +151,7 @@ try {
   await tapKey('KeyG', 'g', 71);
   await sleep(350);
   const g1 = await evalJS(`({ gfx: DG.settings.gfx, cls: document.body.className,
-    stored: (function () { try { return JSON.parse(localStorage.getItem('digger.settings.v1') || 'null'); } catch (e) { return null; } })() })`);
+    stored: (function () { try { return JSON.parse(localStorage.getItem('krot.settings.v1') || 'null'); } catch (e) { return null; } })() })`);
   check('G switches to modern (in session)', g1.gfx === 'modern' && /gfx-modern/.test(g1.cls) &&
     (!g1.stored || g1.stored.gfx === undefined), JSON.stringify(g1));
   const shotSize = await screenshot(path.join(ROOT, '.tmp/e2e/e2e_modern.png'));
@@ -200,7 +200,7 @@ try {
     var S = DG.engine.state;
     S.lives = 1; S.player.invuln = 0; S.mode = 'play';
     var p = S.player;
-    S.monsters.push({kind:'nobbin', cx:p.cx, cy:p.cy, x:p.x, y:p.y, tx:p.x, ty:p.y, dir:0, scared:false, dying:0, spawnT:1, moving:false, think:0.2, fromX:p.cx, fromY:p.cy, walkPhase:0});
+    S.monsters.push({kind:'crawler', cx:p.cx, cy:p.cy, x:p.x, y:p.y, tx:p.x, ty:p.y, dir:0, scared:false, dying:0, spawnT:1, moving:false, think:0.2, fromX:p.cx, fromY:p.cy, walkPhase:0});
   })()`);
   await sleep(300);
   const d1 = await evalJS(`DG.engine.state.mode`);

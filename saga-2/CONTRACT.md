@@ -1,14 +1,14 @@
-# LOST VIKINGS 2 · NORSE BY NORSEWEST — контракт модулей
+# СЕВЕРНАЯ САГА 2 · СЕВЕРНОЕ СИЯНИЕ — контракт модулей
 
-Фанатский браузерный ремейк **The Lost Vikings 2 / Norse by Norsewest** (1997).
-Папка `lost-vikings-2/`. Открывается как `index.html` по `file://` — без сборки, npm,
+Оригинальная головоломка-платформер студии «Гефест», продолжение СЕВЕРНОЙ САГИ.
+Папка `saga-2/`. Открывается как `index.html` по `file://` — без сборки, npm,
 CDN, интернета, внешних картинок, шрифтов и аудиофайлов. **Всё рисуется и звучит кодом.**
 
 - Язык интерфейса: **русский по умолчанию**, переключатель RU/EN.
 - Два режима графики, переключаются на лету: **AURORA** (современный) и **8-BIT** (ретро).
-- 6 уровней-головоломок, три викинга со способностями из сиквела, оригинальный чиптюн.
+- 6 уровней-головоломок, три викинга с новыми способностями, оригинальный чиптюн.
 - Дизайн-концепция: **«СЕВЕРНОЕ СИЯНИЕ / NORDIC AURORA»** — полярная ночь, аврора,
-  неоновые руны, стекло и хром. Ретро-режим — «Sega Saturn, 1997»: пиксели, дизеринг, CRT.
+  неоновые руны, стекло и хром. Ретро-режим — поздние 32-битные консоли: пиксели, дизеринг, CRT.
 
 ---
 
@@ -48,17 +48,17 @@ CDN, интернета, внешних картинок, шрифтов и ау
 <script src="js/main.js"></script>
 ```
 
-Глобальный неймспейс: `window.LV = window.LV || {}`.
+Глобальный неймспейс: `window.SAGA2 = window.SAGA2 || {}`.
 
 ```
-LV.i18n   {t, setLang, getLang, LANGS}          // i18n.js
-LV.LEVELS [ ... 6 уровней ... ]                  // levels.js
-LV.audio  {unlock, playMusic, stopMusic, sfx, ...}// audio.js
-LV.render {init, setMode, getMode, draw, addFx, drawPortrait} // render.js
-LV.Game   функция-конструктор; LV.game — экземпляр // game.js
-LV.ui     {init, screen, updateHud, toast, ...}  // ui.js
-LV.input  {left,right,up,down,jump,action,special,hook,set,clear} // main.js
-LV.main   {boot, toggleGraphics, toggleLang, toggleMute, ...}      // main.js
+SAGA2.i18n   {t, setLang, getLang, LANGS}          // i18n.js
+SAGA2.LEVELS [ ... 6 уровней ... ]                  // levels.js
+SAGA2.audio  {unlock, playMusic, stopMusic, sfx, ...}// audio.js
+SAGA2.render {init, setMode, getMode, draw, addFx, drawPortrait} // render.js
+SAGA2.Game   функция-конструктор; SAGA2.game — экземпляр // game.js
+SAGA2.ui     {init, screen, updateHud, toast, ...}  // ui.js
+SAGA2.input  {left,right,up,down,jump,action,special,hook,set,clear} // main.js
+SAGA2.main   {boot, toggleGraphics, toggleLang, toggleMute, ...}      // main.js
 ```
 
 ---
@@ -78,7 +78,7 @@ LV.main   {boot, toggleGraphics, toggleLang, toggleMute, ...}      // main.js
 
 ### Викинги (сиквел: новые способности)
 
-| | Эрик Быстрый | Балеог Свирепый | Олаф Могучий |
+| | Снорри Быстрый | Гуннар Свирепый | Бьорн Могучий |
 |---|---|---|---|
 | Размер (w×h) | 24×44 | 26×46 | 32×40 |
 | Бег | 300 px/с | 220 | 180 |
@@ -88,10 +88,10 @@ LV.main   {boot, toggleGraphics, toggleLang, toggleMute, ...}      // main.js
 | Способность 3 | — | **Крюк** (`L`): 7 клеток, цепляет твёрдое/`G`; подтягивает 320 px/с; `L` — отцепиться | — |
 
 - Лазание по `L`-тайлам умеют все (скорость 140).
-- **Щит Олафа**: пока щит поднят, сверху создаётся односторонняя платформа
+- **Щит Бьорна**: пока щит поднят, сверху создаётся односторонняя платформа
   `x±20`, `y-h-6`, высота 8; на неё встают другие викинги. Блокирует снаряды,
   падение замедляется до 70 px/с. Состояние сохраняется при переключении.
-- **Крюк Балеога**: летит вверх (если `↑`) или по направлению взгляда, цепляется
+- **Крюк Гуннара**: летит вверх (если `↑`) или по направлению взгляда, цепляется
   за твёрдый тайл/якорь; подтягивает к точке; автоотцеп при упоре/достижении; повторный `L` — отцепиться.
 - Урон: контакт врага = 1, снаряд = 1, шипы = 1 + подброс. Неуязвимость 1.2 с.
   HP у каждого 3. HP = 0 → смерть, респавн у последнего чекпоинта через 1.4 с с полным HP.
@@ -105,8 +105,8 @@ LV.main   {boot, toggleGraphics, toggleLang, toggleMute, ...}      // main.js
 ## 2. Схема уровня (`js/levels.js`) — владелец level-smith
 
 ```js
-window.LV = window.LV || {};
-LV.LEVELS = [
+window.SAGA2 = window.SAGA2 || {};
+SAGA2.LEVELS = [
   {
     name: "Пробуждение",          // RU, ≤ 26 символов
     nameEn: "Awakening",          // EN, ≤ 26
@@ -114,7 +114,7 @@ LV.LEVELS = [
     hintEn: "…",
     music: 0,                     // 0 | 1 | 2 — игровой трек
     rows: [ "…", ... ],           // 18–30 строк, ширина cols, только ASCII из таблицы
-    spawn: { erik: [2,15], baleog: [4,15], olaf: [6,15] }, // [col,row] — клетка, где СТОИТ викинг
+    spawn: { snorri: [2,15], gunnar: [4,15], bjorn: [6,15] }, // [col,row] — клетка, где СТОИТ викинг
     entities: [ /* см. ниже */ ],
     walkthrough: [ "шаг 1", "шаг 2" ] // RU, для QA/README, в игру не выводится целиком
   }
@@ -127,7 +127,7 @@ LV.LEVELS = [
 |---|---|
 | `.` | воздух |
 | `#` | твёрдый камень/лёд |
-| `=` | ломаемый лёд: твёрдый, Эрик таранит одним ударом → воздух |
+| `=` | ломаемый лёд: твёрдый, Снорри таранит одним ударом → воздух |
 | `^` | шипы: не твёрдые, 1 урон + подброс |
 | `~` | лава: не твёрдая, мгновенная смерть |
 | `L` | лестница: не твёрдая, лазание |
@@ -181,8 +181,8 @@ world = {
   time,                    // секунды с начала уровня
   globalTime,              // общее время для анимаций
   camera: {x, y, w: 1024, h: 576, shake: 0},   // x,y — левый верхний угол в мире; shake 0..1
-  actors: [                // ровно 3, в порядке erik, baleog, olaf
-    { id:"erik", active:true, exited:false, dead:false,
+  actors: [                // ровно 3, в порядке snorri, gunnar, bjorn
+    { id:"snorri", active:true, exited:false, dead:false,
       x, y, w, h, dir:1, vx, vy, onGround:true,
       state:"idle",        // idle|run|jump|fall|climb|act|shoot|hook|hurt|dead|exit
       anim,                // фаза анимации (сек)
@@ -223,7 +223,7 @@ world = {
 
 ### События игры → звук и эффекты
 
-`game.setEventSink(fn)`; main передаёт события в `LV.audio.sfx` и `LV.render.addFx`.
+`game.setEventSink(fn)`; main передаёт события в `SAGA2.audio.sfx` и `SAGA2.render.addFx`.
 Событие: `{type, x?, y?, actor?, text?}`. Типы (= имена SFX):
 
 `jump, land, step, switch, headbutt, break, sword, bow, arrowHit, hookShoot, hookHit,
@@ -237,15 +237,15 @@ respawn, block, enemyHit, enemyDie, exit, lava, win, lose`.
 ## 4. `game.js` (Lead) — публичный API
 
 ```js
-LV.Game = function (opts) { … };        // opts: {levels, onEvent, onLevelComplete, onActorDeath}
-new LV.game? — экземпляр создаёт main.js: LV.game = new LV.Game({...})
+SAGA2.Game = function (opts) { … };        // opts: {levels, onEvent, onLevelComplete, onActorDeath}
+new SAGA2.game? — экземпляр создаёт main.js: SAGA2.game = new SAGA2.Game({...})
 game.loadLevel(index)                    // сброс состояния, расстановка, камера
 game.restartLevel()
 game.update(dt)                          // фиксированный шаг 1/60, максимум 5 подшагов
-game.switchTo(actorId)                   // 'erik'|'baleog'|'olaf'
+game.switchTo(actorId)                   // 'snorri'|'gunnar'|'bjorn'
 game.pause() / resume() / paused
 game.getUIState()                        // см. §6
-game.setInput(inputObj)                  // LV.input
+game.setInput(inputObj)                  // SAGA2.input
 game.world                               // см. §3
 game.getTile(col,row)
 game.debug = {teleport(actorId,col,row), winLevel(), completeLevel(), setCamera(x,y)}
@@ -258,7 +258,7 @@ game.debug = {teleport(actorId,col,row), winLevel(), completeLevel(), setCamera(
 ## 5. `render.js` (visuals-smith)
 
 ```js
-LV.render = {
+SAGA2.render = {
   init(canvas),                  // canvas — <canvas id="game">; настроить размеры/DPR
   setMode("aurora"|"retro"),     // идемпотентно; можно до init — запомнить
   getMode(),
@@ -277,7 +277,7 @@ LV.render = {
   с анимацией: бег, прыжок, плащ, щит, крюк, атака. Читаемость силуэтов на 1024×576.
 - **RETRO (8-BIT) — режим по умолчанию**: внутренний рендер 512×288 (ctx.scale(0.5)) → CSS `image-rendering:
   pixelated`. Ограниченная палитра, дизеринг, минимум сглаживаний, CRT-скан-линии/виньетка,
-  «Sega Saturn 1997» вайб. Без современных градиентов и blur.
+  вайб поздних 32-битных консолей. Без современных градиентов и blur.
 - Камера: рисуется только видимая область; уровни до 80×30; тряска из `world.camera.shake`.
 - Неактивные викинги: приглушённый «голографический» контур + номер 1/2/3, чтобы игрок
   помнил, где они. Активный — подсветка/маркер.
@@ -287,7 +287,7 @@ LV.render = {
 - Производительность: 60 fps в 1440×900; статичные слои кэшировать в offscreen-canvas,
   не использовать `shadowBlur` на каждой клетке; не создавать объекты в цикле отрисовки
   без нужды. Снап координат к сетке в retro.
-- `LV.render` не зависит от DOM/HUD/меню; рисует только canvas игры.
+- `SAGA2.render` не зависит от DOM/HUD/меню; рисует только canvas игры.
 - До появления `game.js` визуал можно отлаживать на своём `tools/render-preview.html`
   (мок `game.world` из этого контракта; файл твой).
 
@@ -296,7 +296,7 @@ LV.render = {
 ## 6. `audio.js` (audio-smith)
 
 ```js
-LV.audio = {
+SAGA2.audio = {
   unlock(),                    // создать/resume AudioContext; вызывать на первом жесте
   isReady(),
   playMusic(id),               // 'title' | 'game0' | 'game1' | 'game2' | 'ending' | 'none'
@@ -326,7 +326,7 @@ LV.audio = {
 ### API
 
 ```js
-LV.ui = {
+SAGA2.ui = {
   init({callbacks, getState}),   // callbacks — см. ниже
   screen(name, data),            // 'title'|'levels'|'brief'|'play'|'pause'|'complete'|'ending'|'help'
   updateHud(state),              // из game.getUIState(), 10–20 Гц, дёшево (diff по строкам)
@@ -346,7 +346,7 @@ main понимает оба варианта).
 
 ### Экраны
 
-1. **title** — логотип `LOST VIKINGS` / `II · NORSE BY NORSEWEST`, RU-подзаголовок,
+1. **title** — логотип `СЕВЕРНАЯ САГА` / `2 · СЕВЕРНОЕ СИЯНИЕ`, RU-подзаголовок,
    кнопки «Новая игра», «Продолжить» (если есть прогресс), «Уровни», «Управление»,
    чипы графики/языка/звука. Живой аврора-фон на CSS, без тяжёлых эффектов.
 2. **levels** — 6 карточек: номер, название RU/EN, руны 0–3, время, замок на неоткрытых.
@@ -360,8 +360,8 @@ main понимает оба варианта).
 
 ### Требования
 
-- RU по умолчанию, полный EN-переключатель (`LV.i18n`), выбор сохраняется.
-- `LV.ui.screen()` показывает/скрывает экраны без перезагрузки; `body[data-screen]` и
+- RU по умолчанию, полный EN-переключатель (`SAGA2.i18n`), выбор сохраняется.
+- `SAGA2.ui.screen()` показывает/скрывает экраны без перезагрузки; `body[data-screen]` и
   `body.mode-aurora|mode-retro` для CSS.
 - HUD обновляется без layout-thrash; числа меняются только при изменении.
 - Адаптив: desktop (1440×900), ноутбук (1280×800), планшет, телефон 390×844.
@@ -400,8 +400,8 @@ main понимает оба варианта).
 - Смерть: викинг возрождается у чекпоинта (без экрана game over), счётчик смертей растёт.
 - `play`: игра идёт, HUD обновляется; события → звук/эффекты/тосты.
 - Завершение уровня → `complete`; последний → `ending`.
-- Прогресс в `localStorage`: `lv2.mode` (aurora|retro), `lv2.lang` (ru|en), `lv2.muted`,
-  `lv2.progress` = `{unlocked: 1..6, levels: {i: {runes, time, deaths, score}}}`.
+- Прогресс в `localStorage` (старые ключи `lv2.*` мигрируют при запуске): `saga2.mode` (aurora|retro), `saga2.lang` (ru|en), `saga2.muted`,
+  `saga2.progress` = `{unlocked: 1..6, levels: {i: {runes, time, deaths, score}}}`.
   После reload — «Продолжить» с последнего открытого уровня.
 - Музыка: title → `title`; уровни 1–2 → `game0`; 3–4 → `game1`; 5–6 → `game2`;
   ending → `ending`; пауза — `pauseMusic()`; выключение звука — `setMuted(true)`.
@@ -436,7 +436,7 @@ node tools/validate-levels.mjs
 7. 60 fps в 1440×900 (AURORA) и в retro; нет утечек rAF/таймеров; ресайз корректный.
 8. Скриншоты: title/levels/brief/play/pause/complete/ending в обоих режимах;
    мобильный 390×844.
-9. README с описанием, управлением, механиками, скриншотами и атрибуцией оригиналу.
+9. README с описанием, управлением, механиками и скриншотами.
 10. Никаких внешних ассетов; весь код — оригинальный.
 
 ---

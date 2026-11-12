@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 /**
  * check-file-proto.mjs — проверка каталога в режиме double-click (file://):
- * 11 карточек, переключение темы, загрузка превью и переход по карточке
+ * все карточки каталога, переключение темы, загрузка превью и переход по карточке
  * на file:///<slug>/index.html (а не на листинг каталога).
  *
  * Запуск: node tools/qa/check-file-proto.mjs [--catalog /abs/path/index.html]
  */
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { launch, parseArgs } from './lib.mjs';
 
+const GAME_COUNT = JSON.parse(readFileSync(new URL('../../assets/catalog/games.json', import.meta.url), 'utf8')).games.length;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function main() {
@@ -40,7 +41,7 @@ async function main() {
       title: base.title,
       defaultTheme: base.theme,
       cardCount: base.cards,
-      allCardsIndexHtml: base.hrefs.length === 11 && base.hrefs.every((h) => /^[a-z0-9-]+\/index\.html$/.test(h)),
+      allCardsIndexHtml: base.hrefs.length === GAME_COUNT && base.hrefs.every((h) => /^[a-z0-9-]+\/index\.html$/.test(h)),
       brandHref: base.brandHref,
       thumbsLoaded: base.thumbs.filter((t) => t.nw > 0).length,
       thumbsTotal: base.thumbs.length,

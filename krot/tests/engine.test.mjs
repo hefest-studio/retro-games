@@ -1,5 +1,5 @@
 /* ============================================================================
-   DIGGER · tests/engine.test.mjs — автотесты логики движка (Node, без зависимостей)
+   КРОТ · tests/engine.test.mjs — автотесты логики движка (Node, без зависимостей)
    Владелец: qa-runner. Проверяет CONTRACT.md §3-§4 и §7.1.
    Запуск: node tests/engine.test.mjs
    Вывод:  строка на проверку, финал "OK n/n" (код 0) или "FAIL n/n" (код 1).
@@ -117,7 +117,7 @@ function lab(seed) {
   S.spawnLeft = 99;
   S.spawnTimer = 1e9;
   S.monstersMax = 4;
-  S.hobbinChance = 0;
+  S.gnawerChance = 0;
   S.bonus = false;
   S.bonusT = 0;
   S.bonusDur = 0;
@@ -145,7 +145,7 @@ function putItem(S, type, cx, cy) {
 }
 function putMonster(S, cx, cy, kind, extra) {
   const m = Object.assign({
-    kind: kind || 'nobbin', cx, cy, x: cx + 0.5, y: cy + 0.5, tx: cx + 0.5, ty: cy + 0.5,
+    kind: kind || 'crawler', cx, cy, x: cx + 0.5, y: cy + 0.5, tx: cx + 0.5, ty: cy + 0.5,
     dir: 2, scared: !!S.bonus, dying: 0, spawnT: 1, moving: false,
     think: 999, fromX: cx, fromY: cy - 1, walkPhase: 0
   }, extra || {});
@@ -207,7 +207,7 @@ function assertStateFinite(S, where) {
     }
   }
   for (const m of S.monsters) {
-    ok(m.kind === 'nobbin' || m.kind === 'hobbin', 'kind монстра' + at);
+    ok(m.kind === 'crawler' || m.kind === 'gnawer', 'kind монстра' + at);
     finite(m.x, 'monster.x' + at); finite(m.y, 'monster.y' + at);
     finite(m.spawnT, 'monster.spawnT' + at); finite(m.dying, 'monster.dying' + at);
     ok(inBounds(m.cx, m.cy), 'monster.cx/cy вне поля' + at);
@@ -554,17 +554,17 @@ test('бонус: поедание монстров даёт 200 → 400 → ...
   const { engine, S } = lab();
   S.mode = 'bonus'; S.bonus = true; S.bonusT = 10; S.bonusDur = 10;
   S.eatChain = 0; S.score = 0;
-  putMonster(S, 7, 5, 'nobbin', { think: 999, spawnT: 1 });
+  putMonster(S, 7, 5, 'crawler', { think: 999, spawnT: 1 });
   const evs = eventCapture(engine);
   engine.update(1 / 60);
   eq(S.score, 200, 'первый съеденный монстр');
   eq(S.eatChain, 1, 'eatChain');
   ok(S.monsters[0].dying > 0, 'монстр умирает');
-  putMonster(S, 7, 5, 'nobbin', { think: 999, spawnT: 1 });
+  putMonster(S, 7, 5, 'crawler', { think: 999, spawnT: 1 });
   engine.update(1 / 60);
   eq(S.score, 600, 'второй съеденный монстр');
   eq(S.eatChain, 2, 'eatChain');
-  putMonster(S, 7, 5, 'nobbin', { think: 999, spawnT: 1 });
+  putMonster(S, 7, 5, 'crawler', { think: 999, spawnT: 1 });
   engine.update(1 / 60);
   eq(S.score, 1400, 'третий съеденный монстр (+800)');
   eq(S.eatChain, 3, 'eatChain');
@@ -630,7 +630,7 @@ test('падающая сумка убивает монстра (+250, by=bag)',
   S.spawnLeft = 5;
   putItem(S, 'bag', 5, 3);
   digCell(S, 5, 4); digCell(S, 5, 5); digCell(S, 5, 6);
-  const mon = putMonster(S, 5, 5, 'nobbin', { think: 999, spawnT: 1 });
+  const mon = putMonster(S, 5, 5, 'crawler', { think: 999, spawnT: 1 });
   const evs = eventCapture(engine);
   step(engine, 1.5);
   ok(mon.dying > 0 || S.monsters.indexOf(mon) < 0, 'монстр убит');
@@ -749,10 +749,10 @@ test('скорость монстров по балансу §4', () => {
     for (let i = 0; i < n; i++) engine.update(dt);
     return (m.x - x0) / (n * dt);
   }
-  approx(measure(1, 'nobbin', false, 0.38), 1 / 0.38, 0.01, 'nobbin, 1 уровень (0.30+0.08 с/клетка)');
-  approx(measure(4, 'nobbin', false, 0.30), 1 / 0.30, 0.01, 'nobbin, 4 уровень (0.30)');
-  approx(measure(4, 'hobbin', false, 0.42), 1 / 0.42, 0.01, 'hobbin (0.42)');
-  approx(measure(1, 'nobbin', true, 0.22), 1 / 0.22, 0.02, 'испуганный монстр (0.22)');
+  approx(measure(1, 'crawler', false, 0.38), 1 / 0.38, 0.01, 'crawler, 1 уровень (0.30+0.08 с/клетка)');
+  approx(measure(4, 'crawler', false, 0.30), 1 / 0.30, 0.01, 'crawler, 4 уровень (0.30)');
+  approx(measure(4, 'gnawer', false, 0.42), 1 / 0.42, 0.01, 'gnawer (0.42)');
+  approx(measure(1, 'crawler', true, 0.22), 1 / 0.22, 0.02, 'испуганный монстр (0.22)');
 });
 
 test('выстрел убивает монстра (+250, by=bullet)', () => {
@@ -761,7 +761,7 @@ test('выстрел убивает монстра (+250, by=bullet)', () => {
   movePlayer(S, 3, 5);
   S.player.dir = 1;
   for (let cx = 1; cx <= 12; cx++) digCell(S, cx, 5);
-  putMonster(S, 8, 5, 'nobbin', { think: 999, spawnT: 1 });
+  putMonster(S, 8, 5, 'crawler', { think: 999, spawnT: 1 });
   const evs = eventCapture(engine);
   engine.shoot();
   step(engine, 0.6);
@@ -787,14 +787,14 @@ test('пуля гаснет о землю и не копает её', () => {
 test('контакт с монстром: ближе 0.58 клетки — смерть, 0.6 — нет (§4 баланс)', () => {
   let { engine, S } = lab();
   S.spawnLeft = 5;
-  const m = putMonster(S, S.player.cx, S.player.cy, 'nobbin', { think: 999, spawnT: 1 });
+  const m = putMonster(S, S.player.cx, S.player.cy, 'crawler', { think: 999, spawnT: 1 });
   m.x = S.player.x + 0.5; m.y = S.player.y;
   engine.update(1 / 60);
   eq(S.mode, 'dying', '0.5 клетки — смерть');
 
   ({ engine, S } = lab());
   S.spawnLeft = 5;
-  const m2 = putMonster(S, S.player.cx, S.player.cy, 'nobbin', { think: 999, spawnT: 1 });
+  const m2 = putMonster(S, S.player.cx, S.player.cy, 'crawler', { think: 999, spawnT: 1 });
   m2.x = S.player.x + 0.6; m2.y = S.player.y;
   engine.update(1 / 60);
   eq(S.mode, 'play', '0.6 клетки — ещё не смерть');
@@ -804,7 +804,7 @@ test('контакт с монстром: ближе 0.58 клетки — см�
 test('контакт с монстром убивает игрока (mode dying, lives−1, 1.6 с)', () => {
   const { engine, S } = lab();
   S.spawnLeft = 5;
-  putMonster(S, 7, 5, 'nobbin', { think: 999, spawnT: 1 });
+  putMonster(S, 7, 5, 'crawler', { think: 999, spawnT: 1 });
   const evs = eventCapture(engine);
   engine.update(1 / 60);
   eq(S.mode, 'dying', 'mode dying');
@@ -820,7 +820,7 @@ test('неуязвимость после респавна спасает от �
   const { engine, S } = lab();
   S.spawnLeft = 5;
   S.player.invuln = 1.0;
-  putMonster(S, 7, 5, 'nobbin', { think: 999, spawnT: 1 });
+  putMonster(S, 7, 5, 'crawler', { think: 999, spawnT: 1 });
   step(engine, 0.5);
   eq(S.mode, 'play', 'игрок жив при invuln');
   eq(S.player.alive, true, 'alive');
@@ -830,7 +830,7 @@ test('неуязвимость после респавна спасает от �
 test('смерть: респавн — mode ready, уровень перестроен, событие levelStart(respawn)', () => {
   const { engine, S } = lab();
   S.spawnLeft = 5;
-  putMonster(S, 7, 5, 'nobbin', { think: 999, spawnT: 1 });
+  putMonster(S, 7, 5, 'crawler', { think: 999, spawnT: 1 });
   engine.update(1 / 60);
   eq(S.mode, 'dying', 'умер');
   const evs = eventCapture(engine);
@@ -853,7 +853,7 @@ test('жизни 0 → gameover, событие gameOver с score/hi/record', ()
   S.lives = 1;
   S.score = 4321;
   S.spawnLeft = 5;
-  putMonster(S, 7, 5, 'nobbin', { think: 999, spawnT: 1 });
+  putMonster(S, 7, 5, 'crawler', { think: 999, spawnT: 1 });
   const evs = eventCapture(engine);
   engine.update(1 / 60);
   step(engine, 1.7);
@@ -876,7 +876,7 @@ test('три смерти подряд при 3 жизнях → gameover, lives
   eq(S.mode, 'play', 'игра началась');
   for (let k = 0; k < 3; k++) {
     S.player.invuln = 0;
-    putMonster(S, S.player.cx, S.player.cy, 'nobbin', { think: 999, spawnT: 1 });
+    putMonster(S, S.player.cx, S.player.cy, 'crawler', { think: 999, spawnT: 1 });
     e.update(1 / 60);
     eq(S.mode, 'dying', 'смерть #' + (k + 1));
     eq(S.lives, 2 - k, 'жизни после смерти #' + (k + 1));
@@ -948,7 +948,7 @@ test('уровень пройден, когда убит последний мо
   movePlayer(S, 3, 5);
   S.player.dir = 1;
   for (let cx = 1; cx <= 12; cx++) digCell(S, cx, 5);
-  putMonster(S, 6, 5, 'nobbin', { think: 999, spawnT: 1 });
+  putMonster(S, 6, 5, 'crawler', { think: 999, spawnT: 1 });
   const evs = eventCapture(engine);
   engine.shoot();
   step(engine, 0.6);
@@ -964,7 +964,7 @@ test('вишня появляется в (14,0), когда бюджет спа�
   S.gemsLeft = 99;
   digCell(S, 14, 0);
   digCell(S, 2, 2);
-  putMonster(S, 2, 2, 'nobbin', { think: 999, spawnT: 1 });
+  putMonster(S, 2, 2, 'crawler', { think: 999, spawnT: 1 });
   engine.update(1 / 60);
   const cherry = S.items.find((i) => i.type === 'cherry');
   ok(cherry, 'вишня появилась');
@@ -1007,13 +1007,13 @@ test('интервал спавна монстров = max(1.3, 3.0-0.18*level) 
   }
 });
 
-test('баланс: бюджет/лимит/hobbin/shootMax/мешки по уровням (§4)', () => {
+test('баланс: бюджет/лимит/gnawer/shootMax/мешки по уровням (§4)', () => {
   const e = mk(5);
   e.setLevel(1);
   let S = e.state;
   eq(S.spawnLeft, 2, 'бюджет 1 уровня (1+level)');
   eq(S.monstersMax, 1, 'лимит 1 уровня');
-  eq(S.hobbinChance, 0, 'на 1 уровне хоббинов нет');
+  eq(S.gnawerChance, 0, 'на 1 уровне грызунов нет');
   approx(S.player.shootMax, 1.2, 1e-9, 'shootMax 1 ур.');
   eq(S.items.filter((i) => i.type === 'bag').length, 3, 'мешков на 1 уровне');
   ok(S.gemsTotal >= 11 && S.gemsTotal <= 15, 'алмазов на 1 уровне: ' + S.gemsTotal);
@@ -1022,13 +1022,13 @@ test('баланс: бюджет/лимит/hobbin/shootMax/мешки по ур
   S = e.state;
   eq(S.spawnLeft, 4, 'бюджет 3 уровня');
   eq(S.monstersMax, 2, 'лимит 3 уровня (1+floor(2/2))');
-  eq(S.hobbinChance, 0, 'на 3 уровне шанс хоббина 0 (появляются с 4-го)');
+  eq(S.gnawerChance, 0, 'на 3 уровне шанс грызуна 0 (появляются с 4-го)');
 
   e.setLevel(4);
   S = e.state;
   eq(S.spawnLeft, 5, 'бюджет 4 уровня');
   eq(S.monstersMax, 2, 'лимит 4 уровня (1+floor(3/2))');
-  approx(S.hobbinChance, 0.15, 1e-9, 'шанс хоббина на 4 уровне');
+  approx(S.gnawerChance, 0.15, 1e-9, 'шанс грызуна на 4 уровне');
   approx(S.player.shootMax, 1.56, 1e-9, 'shootMax 4 ур.');
   eq(S.items.filter((i) => i.type === 'bag').length, 5, 'мешков на 4 уровне');
 
@@ -1036,26 +1036,26 @@ test('баланс: бюджет/лимит/hobbin/shootMax/мешки по ур
   S = e.state;
   eq(S.spawnLeft, 6, 'бюджет 5 уровня');
   eq(S.monstersMax, 3, 'лимит 5 уровня (1+floor(4/2))');
-  approx(S.hobbinChance, 0.30, 1e-9, 'шанс хоббина на 5 уровне');
+  approx(S.gnawerChance, 0.30, 1e-9, 'шанс грызуна на 5 уровне');
 
   e.setLevel(10);
   S = e.state;
   eq(S.spawnLeft, 9, 'бюджет 10 уровня (макс 9)');
   eq(S.monstersMax, 4, 'лимит 10 уровня (макс 4)');
-  approx(S.hobbinChance, 0.65, 1e-9, 'доля хоббинов (макс 0.65)');
+  approx(S.gnawerChance, 0.65, 1e-9, 'доля грызунов (макс 0.65)');
   approx(S.player.shootMax, 2.28, 1e-9, 'shootMax 10 ур.');
   eq(S.items.filter((i) => i.type === 'bag').length, 5, 'мешков на 10 уровне');
   ok(S.gemsTotal >= 26 && S.gemsTotal <= 30, 'алмазов на 10 уровне: ' + S.gemsTotal);
 });
 
-test('хоббины: на 1–3 уровне только ноббины, на 10 уровне есть хоббины', () => {
+test('грызуны: на 1–3 уровне только ползуны, на 10 уровне есть грызуны', () => {
   const e1 = mk(1234);
   e1.setLevel(1);
   const evs1 = eventCapture(e1);
   step(e1, 12);
   const kinds1 = ev(evs1, 'monsterSpawn').map((x) => x.data.kind);
   ok(kinds1.length > 0, 'на 1 уровне были спавны');
-  for (const k of kinds1) eq(k, 'nobbin', 'на 1 уровне только nobbin');
+  for (const k of kinds1) eq(k, 'crawler', 'на 1 уровне только crawler');
 
   const e3 = mk(1234);
   e3.setLevel(3);
@@ -1063,7 +1063,7 @@ test('хоббины: на 1–3 уровне только ноббины, на 
   step(e3, 12);
   const kinds3 = ev(evs3, 'monsterSpawn').map((x) => x.data.kind);
   ok(kinds3.length > 0, 'на 3 уровне были спавны');
-  for (const k of kinds3) eq(k, 'nobbin', 'на 3 уровне хоббинов нет (шанс 0)');
+  for (const k of kinds3) eq(k, 'crawler', 'на 3 уровне грызунов нет (шанс 0)');
 
   const e2 = mk(1234);
   e2.setLevel(10);
@@ -1071,7 +1071,7 @@ test('хоббины: на 1–3 уровне только ноббины, на 
   step(e2, 30);
   const kinds2 = ev(evs2, 'monsterSpawn').map((x) => x.data.kind);
   ok(kinds2.length >= 3, 'на 10 уровне несколько спавнов: ' + kinds2.length);
-  ok(kinds2.some((k) => k === 'hobbin'), 'среди них есть hobbin: ' + kinds2.join(','));
+  ok(kinds2.some((k) => k === 'gnawer'), 'среди них есть gnawer: ' + kinds2.join(','));
 });
 
 /* ========================================================================== */
@@ -1210,7 +1210,7 @@ test('5 минут (300 с) симуляции со случайными вво�
 
 test('события движка: только документированные §4 (плюс известный лишний bulletHit)', () => {
   const { engine, S } = lab();
-  S.spawnLeft = 6; S.monstersMax = 3; S.hobbinChance = 0.3; S.spawnTimer = 0.1; S.gemsLeft = 99;
+  S.spawnLeft = 6; S.monstersMax = 3; S.gnawerChance = 0.3; S.spawnTimer = 0.1; S.gemsLeft = 99;
   const evs = eventCapture(engine);
   const r = DG.rng(31);
   for (let i = 0; i < 1200; i++) {
@@ -1268,7 +1268,7 @@ test('start() после gameover сбрасывает прогресс, но с
   S.score = 9000;
   S.lives = 1;
   S.player.invuln = 0;
-  putMonster(S, S.player.cx, S.player.cy, 'nobbin', { think: 999, spawnT: 1 });
+  putMonster(S, S.player.cx, S.player.cy, 'crawler', { think: 999, spawnT: 1 });
   e.update(1 / 60);
   step(e, 1.7);
   eq(S.mode, 'gameover', 'игра окончена');
@@ -1298,8 +1298,21 @@ test('v2: index.html — движок, music.js сразу после engine.js,
   const srcs = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
   eq(srcs[0], './engine.js'); eq(srcs[1], './js/music.js');
   ok(fs.existsSync(path.join(ROOT, 'engine.js')) && fs.existsSync(path.join(ROOT, 'legacy.html')), 'нет engine.js/legacy.html');
-  ok(/digger\.hi\.v1/.test(html) && /arcade\.best\.krot/.test(html), 'нет миграции рекорда');
+  ok(/DG\.migrateStorage\(localStorage\)/.test(html) && /DG\.STORE_KEYS\.hi/.test(html) && /arcade\.best\.krot/.test(html), 'нет миграции рекорда');
   ok(/gameId:'krot'/.test(html), 'gameId');
+});
+
+test('миграция localStorage: digger.* → krot.*, старые удалены, новые не затираются', () => {
+  const mk = (init) => { const m = new Map(Object.entries(init)); return { m, getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
+  const a = mk({ 'digger.settings.v1': '{"lang":"en"}', 'digger.hi.v1': '4242' });
+  DG.migrateStorage(a);
+  eq(a.m.get('krot.settings.v1'), '{"lang":"en"}', 'настройки'); eq(a.m.get('krot.hi.v1'), '4242', 'рекорд');
+  ok(!a.m.has('digger.settings.v1') && !a.m.has('digger.hi.v1'), 'старые ключи не удалены');
+  const b = mk({ 'digger.hi.v1': '4242', 'krot.hi.v1': '5000' });
+  DG.migrateStorage(b);
+  eq(b.m.get('krot.hi.v1'), '5000', 'новый рекорд затёрт старым'); ok(!b.m.has('digger.hi.v1'), 'старый не удалён');
+  const c = mk({}); DG.migrateStorage(c); eq(c.m.size, 0, 'пустое хранилище');
+  DG.migrateStorage(null);
 });
 
 /* --------------------------------- итог ----------------------------------- */

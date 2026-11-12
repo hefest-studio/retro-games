@@ -9,13 +9,13 @@ for (const lang of ["ru", "en"]) {
   await qa.navigate(`index.html?lang=${lang}`, 800);
   for (const scr of screens) {
     const txt = await qa.eval(`
-      const LVx = LV; let s = document.body.dataset.screen;
-      if (${JSON.stringify(scr)} === 'levels') { LV.debug.screen('levels',{unlocked:6,levels:LV.LEVELS.map((lv,i)=>({index:i,name:lv.name,nameEn:lv.nameEn,stats:{done:true,runes:3,score:1000,time:60,deaths:0}}))}); }
-      else if (${JSON.stringify(scr)} === 'brief') { LV.debug.startLevel(2); }
-      else if (${JSON.stringify(scr)} === 'play') { LV.debug.startLevel(2); }
-      else if (${JSON.stringify(scr)} === 'pause') { LV.debug.startLevel(2); await sleep(200); await key('KeyP',80); }
-      else if (${JSON.stringify(scr)} === 'complete') { LV.debug.startLevel(2); await sleep(200); LV.debug.win(); await sleep(1400); }
-      else if (${JSON.stringify(scr)} === 'ending') { LV.debug.startLevel(6); await sleep(200); LV.debug.win(); await sleep(1400); const b=Array.from(document.querySelectorAll('button')).find(x=>/Следующая сага|Next saga/.test(x.textContent)); if(b)b.click(); await sleep(500); }
+      const LVx = SAGA2; let s = document.body.dataset.screen;
+      if (${JSON.stringify(scr)} === 'levels') { SAGA2.debug.screen('levels',{unlocked:6,levels:SAGA2.LEVELS.map((lv,i)=>({index:i,name:lv.name,nameEn:lv.nameEn,stats:{done:true,runes:3,score:1000,time:60,deaths:0}}))}); }
+      else if (${JSON.stringify(scr)} === 'brief') { SAGA2.debug.startLevel(2); }
+      else if (${JSON.stringify(scr)} === 'play') { SAGA2.debug.startLevel(2); }
+      else if (${JSON.stringify(scr)} === 'pause') { SAGA2.debug.startLevel(2); await sleep(200); await key('KeyP',80); }
+      else if (${JSON.stringify(scr)} === 'complete') { SAGA2.debug.startLevel(2); await sleep(200); SAGA2.debug.win(); await sleep(1400); }
+      else if (${JSON.stringify(scr)} === 'ending') { SAGA2.debug.startLevel(6); await sleep(200); SAGA2.debug.win(); await sleep(1400); const b=Array.from(document.querySelectorAll('button')).find(x=>/Следующая сага|Next saga/.test(x.textContent)); if(b)b.click(); await sleep(500); }
       else if (${JSON.stringify(scr)} === 'help') { const b=document.querySelector('[data-focus="hud-help"], [data-focus="title-help"]'); if(b)b.click(); else { const all=document.querySelectorAll('button'); all[all.length-1] && all[all.length-1].click(); } await sleep(400); }
       await sleep(250);
       const el = document.querySelector('.screen, .help-modal');

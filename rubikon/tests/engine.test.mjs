@@ -4,7 +4,7 @@
    • родные самотесты игры (#test) — все PASS; legacy.html грузится без ошибок;
    • меню движка → игра (Enter), пауза P ↔ пауза игры, тема T/G ↔ gfx игры, язык L ↔ язык игры (в обе стороны),
      звук M → mute игры, брифинг из меню и назад, финал → экран движка и рекорд arcade.best.rubikon;
-   • перенос старого рекорда lastmission.record; #gfx=retro|modern дают разные кадры; #shot= — без оболочки;
+   • перенос старого рекорда; миграция ключей lastmission.* → rubikon.*; #gfx=retro|modern дают разные кадры; #shot= — без оболочки;
    • 0 ошибок pageerror / console.error. */
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -46,7 +46,7 @@ async function open(hash = '', init = null) {
   await p.goto(BASE + hash, { waitUntil: 'load' }); await wait(600);
   return { p, close: () => ctx.close() };
 }
-const st = (p) => p.evaluate(() => { const h = window.__arcadeHost, G = window.__LM.G; return { scene: h.g._sceneName, theme: h.g.themeName, lang: h.g.i18n.lang, sound: h.g.audio.enabled, best: h.g.state.best, mode: G.mode, gfx: window.__LM.gfx(), glang: window.__LM.lang(), muted: window.__LM.muted() }; });
+const st = (p) => p.evaluate(() => { const h = window.__arcadeHost, G = window.__RUBIKON.G; return { scene: h.g._sceneName, theme: h.g.themeName, lang: h.g.i18n.lang, sound: h.g.audio.enabled, best: h.g.state.best, mode: G.mode, gfx: window.__RUBIKON.gfx(), glang: window.__RUBIKON.lang(), muted: window.__RUBIKON.muted() }; });
 
 try {
   await test('родные самотесты игры (#test) — все PASS', async () => {
@@ -59,12 +59,23 @@ try {
     const ctx = await browser.newContext(); const p = await ctx.newPage();
     p.on('pageerror', (e) => errors.push('legacy: ' + e.message));
     await p.goto(BASE + 'legacy.html', { waitUntil: 'load' }); await wait(500);
-    const r = await p.evaluate(() => ({ lm: !!window.__LM, host: !!window.__arcadeHost }));
+    const r = await p.evaluate(() => ({ lm: !!window.__RUBIKON, host: !!window.__arcadeHost }));
     await p.keyboard.press('Enter'); await wait(300);
-    const mode = await p.evaluate(() => window.__LM.G.mode);
+    const mode = await p.evaluate(() => window.__RUBIKON.G.mode);
     await ctx.close(); ok(r.lm && !r.host && mode === 'play', JSON.stringify(r) + ' ' + mode);
   });
 
+  await test('миграция localStorage: lastmission.* → rubikon.*, старые удалены, новые не затираются', async () => {
+    const o = await open('legacy.html', () => { try { if (sessionStorage.getItem('mig')) return; sessionStorage.setItem('mig', '1'); localStorage.clear();
+      localStorage.setItem('lastmission.record', '4242'); localStorage.setItem('lastmission.lang', 'en');
+      localStorage.setItem('lastmission.gfxVer', '2'); localStorage.setItem('lastmission.gfx', 'modern'); localStorage.setItem('rubikon.record', '5000'); } catch {} });
+    const r = await o.p.evaluate(() => ({ ls: Object.keys(localStorage).sort().map((k) => k + '=' + localStorage.getItem(k)), mode: window.__RUBIKON && window.__RUBIKON.G && window.__RUBIKON.G.mode }));
+    await o.close();
+    const ls = r.ls.join(' ');
+    ok(!/lastmission\./.test(ls), 'старые ключи не удалены: ' + ls);
+    ok(/rubikon\.lang=en/.test(ls) && /rubikon\.gfx=modern/.test(ls) && /rubikon\.gfxVer=2/.test(ls), 'не перенесены: ' + ls);
+    ok(/rubikon\.record=5000/.test(ls), 'новый рекорд затёрт старым: ' + ls);
+  });
   const { p, close } = await open('', () => { try { localStorage.clear(); localStorage.setItem('lastmission.record', '777'); } catch {} });
   await test('старт: меню движка, игра в title, тема modern по умолчанию, рекорд перенесён', async () => {
     const s = await st(p);
@@ -87,13 +98,13 @@ try {
     ok(s.theme === 'retro' && s.gfx === 'retro', 'T ' + JSON.stringify(s));
     await p.keyboard.press('KeyG'); await wait(150); s = await st(p);
     ok(s.theme === 'modern' && s.gfx === 'modern', 'G ' + JSON.stringify(s));
-    await p.evaluate(() => window.__LM.setGfx('retro')); await wait(150); s = await st(p);
+    await p.evaluate(() => window.__RUBIKON.setGfx('retro')); await wait(150); s = await st(p);
     ok(s.theme === 'retro', 'игра→движок ' + JSON.stringify(s));
   });
   await test('L → язык движка = язык игры; и обратно', async () => {
     await p.keyboard.press('KeyL'); await wait(150); let s = await st(p);
     ok(s.lang === 'en' && s.glang === 'en', JSON.stringify(s));
-    await p.evaluate(() => window.__LM.setLang('ru')); await wait(150); s = await st(p);
+    await p.evaluate(() => window.__RUBIKON.setLang('ru')); await wait(150); s = await st(p);
     ok(s.lang === 'ru', 'игра→движок ' + JSON.stringify(s));
   });
   await test('M → звук движка выкл = mute игры, повтор — вкл', async () => {
@@ -103,7 +114,7 @@ try {
     ok(s.sound && !s.muted, JSON.stringify(s));
   });
   await test('финал игры → экран gameover движка, рекорд arcade.best.rubikon', async () => {
-    await p.evaluate(() => { window.__LM.G.score = 4321; window.__LM.G.mode = 'gameover'; }); await wait(200);
+    await p.evaluate(() => { window.__RUBIKON.G.score = 4321; window.__RUBIKON.G.mode = 'gameover'; }); await wait(200);
     const s = await st(p);
     ok(s.scene === 'gameover' && s.best === 4321, JSON.stringify(s));
     ok((await p.evaluate(() => localStorage.getItem('arcade.best.rubikon'))) === '4321', 'не сохранён');
@@ -135,7 +146,7 @@ try {
   });
   await test('#shot=play — отладочный режим без оболочки', async () => {
     const o = await open('#shot=play&floor=2');
-    const r = await o.p.evaluate(() => ({ host: !!window.__arcadeHost, mode: window.__LM.G.mode, attr: document.documentElement.getAttribute('data-arcade-scene') }));
+    const r = await o.p.evaluate(() => ({ host: !!window.__arcadeHost, mode: window.__RUBIKON.G.mode, attr: document.documentElement.getAttribute('data-arcade-scene') }));
     await o.close(); ok(!r.host && r.mode === 'play' && r.attr === 'off', JSON.stringify(r));
   });
   await test('ошибок в браузере нет', async () => { ok(errors.length === 0, errors.join(' | ')); });

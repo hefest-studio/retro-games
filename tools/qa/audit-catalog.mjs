@@ -4,7 +4,7 @@
  *
  * Проверяет: тему по умолчанию (retro), переключение по G/кнопке, сохранение
  * в localStorage после перезагрузки, смену превью, фильтры по жанрам, поиск,
- * HTTP 200 по всем 11 ссылкам, alt/naturalWidth превью, отсутствие внешних
+ * HTTP 200 по всем ссылкам каталога, alt/naturalWidth превью, отсутствие внешних
  * запросов, мобильный и десктопный лейаут, клавиатурную навигацию/Enter,
  * aria-label/aria-pressed, контраст (прикидка), prefers-reduced-motion, 404.
  *
@@ -15,14 +15,12 @@
  *   node tools/qa/audit-catalog.mjs --base http://127.0.0.1:8098 \
  *     --out-dir reports/qa-shots --json reports/qa-shots/catalog-audit.json
  */
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { launch, parseArgs, httpCheck } from './lib.mjs';
 
-const DEFAULT_SLUGS = [
-  'boulder-dash', 'contra', 'digger', 'double-dragon-battletoads', 'exolon',
-  'lode-runner', 'lost-vikings', 'lost-vikings-2', 'river-raid', 'silkworm',
-  'the-last-mission',
-];
+// слаги игр — из каталога (assets/catalog/games.json), без жёсткого списка
+const DEFAULT_SLUGS = JSON.parse(readFileSync(new URL('../../assets/catalog/games.json', import.meta.url), 'utf8'))
+  .games.map((g) => g.slug);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -396,8 +394,8 @@ function inventoryExpr(slugs) {
       h1: [...document.querySelectorAll('h1')].map((e) => txt(e)),
       bodyTextLen: bodyText.length,
       bodyTextHead: bodyText.slice(0, 500),
-      hasCounter11: /11\\s*игр/i.test(bodyText),
-      yearsMentioned: /1982\\s*[–—-]\\s*1997/.test(bodyText),
+      hasCounter: new RegExp(DEFAULT_SLUGS.length + '\\s*(игр|оригинальн)', 'i').test(bodyText),
+      yearsMentioned: /19\\d\\d\\s*[–—-]\\s*19\\d\\d/.test(bodyText),
       themeNodes,
       themeProbe,
       toggles,
@@ -580,7 +578,7 @@ async function main() {
   if (games.length) {
     const required = ['slug', 'title', 'subtitle', 'year', 'developer', 'genre', 'tags', 'players', 'summary', 'description', 'features', 'controls', 'styles', 'languages', 'accent', 'thumb'];
     const issues = [];
-    if (games.length !== 11) issues.push(`games.length=${games.length}, ожидается 11`);
+    if (games.length !== DEFAULT_SLUGS.length) issues.push(`games.length=${games.length}, ожидается ${DEFAULT_SLUGS.length}`);
     const seen = new Set();
     for (const g of games) {
       for (const field of required) {
@@ -733,7 +731,7 @@ async function main() {
 
     // ── Фаза 5: поиск ──
     if (filterInv.search) {
-      const queries = games.slice(0, 11).map((g) => ({ kind: 'title', q: String(g.title), expected: g.slug, title: g.title }));
+      const queries = games.slice(0, DEFAULT_SLUGS.length).map((g) => ({ kind: 'title', q: String(g.title), expected: g.slug, title: g.title }));
       for (const item of queries) {
         try {
           await session.evaluate(`(() => {
@@ -1064,7 +1062,7 @@ async function main() {
         && Object.keys(report.phases.retro.localStorage || {}).length === 0
         && /retro|classic|8-?бит|8bit/i.test(JSON.stringify([report.phases.retro.themeNodes, report.phases.retro.toggles, report.phases.retro.cssVars, report.phases.retro.themeProbe])),
       allLinks200: report.links.every((l) => l.status === 200),
-      all11Cards: report.phases.retro.cards.filter((c) => c.slug).length === 11,
+      allCards: report.phases.retro.cards.filter((c) => c.slug).length === DEFAULT_SLUGS.length,
       thumbsRetroOk: report.thumbs.retro.problems.length === 0,
       thumbsModernOk: report.thumbs.modern.problems.length === 0,
       altsSet: report.thumbs.altsAllSet,

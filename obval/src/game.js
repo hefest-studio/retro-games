@@ -1,6 +1,6 @@
 /* ==========================================================================
    ОБВАЛ · КРИСТАЛЬНЫЕ ГЛУБИНЫ
-   A self-contained HTML5 tribute. Canvas 2D + WebAudio. No dependencies.
+   A self-contained original HTML5 game by Hefest studio. Canvas 2D + WebAudio. No dependencies.
    ========================================================================== */
 'use strict';
 
@@ -35,18 +35,37 @@ const ENEMY_EVERY = 2;
 /* --------------------------------------------------------------------------
    Persistence
    -------------------------------------------------------------------------- */
+const STORE_PREFIX = 'obval:';
+// Устаревший префикс ключей (прежнее рабочее имя) — только для однократной миграции.
+const LEGACY_STORE_PREFIX = 'bd84:';
 const Store = {
   get(key, fallback) {
     try {
-      const raw = localStorage.getItem('bd84:' + key);
+      const raw = localStorage.getItem(STORE_PREFIX + key);
       return raw === null ? fallback : JSON.parse(raw);
     } catch (_) { return fallback; }
   },
   set(key, value) {
-    try { localStorage.setItem('bd84:' + key, JSON.stringify(value)); }
+    try { localStorage.setItem(STORE_PREFIX + key, JSON.stringify(value)); }
     catch (_) { /* private mode, file://, etc. */ }
   },
+  // старый → новый (если нового ещё нет) → удалить старый; до первого чтения настроек
+  migrate() {
+    try {
+      const old = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.indexOf(LEGACY_STORE_PREFIX) === 0) old.push(k);
+      }
+      old.forEach((k) => {
+        const nk = STORE_PREFIX + k.slice(LEGACY_STORE_PREFIX.length);
+        if (localStorage.getItem(nk) === null) localStorage.setItem(nk, localStorage.getItem(k));
+        localStorage.removeItem(k);
+      });
+    } catch (_) { /* private mode */ }
+  },
 };
+Store.migrate();
 
 /* --------------------------------------------------------------------------
    Localisation
@@ -140,7 +159,7 @@ const I18N = {
     'toast.retry': 'Пробуем ещё раз. Осторожнее с камнями.',
     'toast.dead': 'Жизней осталось: {n}',
     'toast.saved': 'Выбор сохранён',
-    'footer.made': 'Дань уважения аркаде 1984 года. Сделано на Canvas + WebAudio, без внешних библиотек.',
+    'footer.made': 'Оригинальная игра студии «Гефест». Сделано на Canvas + WebAudio, без внешних библиотек.',
     'start.prompt': 'Enter — старт',
   },
   en: {
@@ -231,7 +250,7 @@ const I18N = {
     'toast.retry': 'One more try. Watch the rocks.',
     'toast.dead': 'Lives left: {n}',
     'toast.saved': 'Preference saved',
-    'footer.made': 'A tribute to the 1984 arcade classic. Canvas + WebAudio, no external libraries.',
+    'footer.made': 'An original game by Hefest studio. Canvas + WebAudio, no external libraries.',
     'start.prompt': 'Press Enter to start',
   },
 };
@@ -292,7 +311,7 @@ function validateLevels() {
 
 
 /* --------------------------------------------------------------------------
-   Audio: a tiny NES-flavoured synth + two chiptune loops
+   Audio: a tiny 8-bit-flavoured synth + two chiptune loops
    -------------------------------------------------------------------------- */
 const midiFreq = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
@@ -514,7 +533,7 @@ class ChipAudio {
         vibrato: true,
         bus: this.musicBus,
       });
-      // a quiet octave ghost doubles the melody, NES-style
+      // a quiet octave ghost doubles the melody, 8-bit style
       this.tone(lead + 12, when, stepDur * 1.1, 'square', 0.016, { bus: this.musicBus });
     }
     if (bass) {
@@ -748,7 +767,7 @@ const GFX = {
     };
 
     if (mode === 'retro') {
-      // --- 8-bit palette: C64-ish, four colours per object ---
+      // --- 8-bit palette: home-computer style, four colours per object ---
       const P = {
         void: '#070a12', floor: '#090d18', floorDot: '#111a2c',
         wall: '#272d44', wallHi: '#3d476b', wallLo: '#151a2d',
@@ -2505,7 +2524,7 @@ function renderOverlay(screen) {
         <div class="menu-side" aria-hidden="true">
           <div class="menu-side-label">DEEP<br>CRYSTAL<br>MINING</div>
           <div class="menu-side-line"></div>
-          <div class="menu-side-code">BD-84 / SECTOR 07</div>
+          <div class="menu-side-code">OB-26 / SECTOR 07</div>
         </div>
       </div>`;
     return;
@@ -2849,7 +2868,7 @@ function init() {
   if (issues.length) console.warn('ОБВАЛ level issues:', issues);
   console.info('ОБВАЛ · Crystal Depths ready.', { levels: LEVELS.length, issues: issues.length });
 
-  window.BD = {
+  window.OBVAL = {
     version: '1.0.0',
     get state() {
       return {
@@ -2896,7 +2915,7 @@ function init() {
       gridString: () => S.grid.map((r) => r.join('')),
     },
   };
-  window.__BD_READY__ = true;
+  window.__OBVAL_READY__ = true;
   requestAnimationFrame(loop);
 }
 

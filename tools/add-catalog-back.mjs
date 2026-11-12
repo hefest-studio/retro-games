@@ -15,19 +15,19 @@
  *
  * Скрипт идемпотентен: повторный запуск заменяет ранее вставленный блок.
  *
+ * После перехода на движок v2 ссылку в index.html даёт сам движок, поэтому скрипт
+ * обслуживает только старые страницы игр — <slug>/legacy.html (если она есть).
+ *
  * Использование:
- *   node tools/add-catalog-back.mjs            # все игры
- *   node tools/add-catalog-back.mjs contra ... # только указанные
+ *   node tools/add-catalog-back.mjs            # обновить блок во всех legacy.html, где он уже есть
+ *   node tools/add-catalog-back.mjs saga ...   # только указанные
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '..');
-const DEFAULT_GAMES = [
-  'boulder-dash', 'contra', 'digger', 'double-dragon-battletoads', 'exolon',
-  'lode-runner', 'lost-vikings', 'lost-vikings-2', 'river-raid', 'silkworm',
-  'the-last-mission',
-];
+const DEFAULT_GAMES = JSON.parse(readFileSync(resolve(ROOT, 'assets/catalog/games.json'), 'utf8'))
+  .games.map((g) => g.slug);
 const MARKER = 'data-catalog-back="1"';
 const START_COMMENT = '<!-- catalog-backlink:'; // начало вставленного блока
 const END_COMMENT = '<!-- /catalog-backlink -->';
@@ -132,17 +132,14 @@ function targets(args) {
   const names = args.length ? args : DEFAULT_GAMES;
   const files = [];
   for (const name of names) {
-    const file = resolve(ROOT, name, 'index.html');
+    const file = resolve(ROOT, name, 'legacy.html');
     if (!existsSync(file)) {
-      console.warn(`! пропуск: нет ${file}`);
+      if (args.length) console.warn(`! пропуск: нет ${file}`);
       continue;
     }
+    /* Без аргументов — только обновляем уже вставленные блоки, новых не добавляем. */
+    if (!args.length && !readFileSync(file, 'utf8').includes(START_COMMENT)) continue;
     files.push({ name, file });
-  }
-  /* Альтернативная одностраничная сборка Lode Runner. */
-  if (!args.length) {
-    const standalone = resolve(ROOT, 'lode-runner', 'lode-runner.html');
-    if (existsSync(standalone)) files.push({ name: 'lode-runner (standalone)', file: standalone });
   }
   return files;
 }

@@ -52,11 +52,11 @@
 
     /* ---------- персонажи ---------- */
     'char.dragon.name': 'КАЙ',
-    'char.dragon.alias': 'ДРАКОН',
-    'char.dragon.desc': 'Быстрый и точный. Серии из трёх ударов, драконий апперкот.',
+    'char.dragon.alias': 'КОМЕТА',
+    'char.dragon.desc': 'Быстрый и точный. Серии из трёх ударов, огненный апперкот.',
     'char.dragon.spec': 'СПЕЦ: ОГНЕННОЕ КОЛЬЦО',
     'char.toad.name': 'РОК',
-    'char.toad.alias': 'ЖАБА',
+    'char.toad.alias': 'МОЛОТ',
     'char.toad.desc': 'Тяжёлый и злой. Больше здоровья, сокрушительный слэм.',
     'char.toad.spec': 'СПЕЦ: ЗЕМЛЯНОЙ СЛЭМ',
     'stat.power': 'СИЛА',
@@ -72,7 +72,7 @@
     'intro.title': 'УКРАДЕННЫЙ ЧИП',
     'intro.text1': 'НЕОН-СИТИ, 1987. Корпорация «ТОКСИК» украла чип NEON-8 — сердце города.',
     'intro.text2': 'Без него гаснут вывески, а улицы делят банды. Город вот-вот замолчит.',
-    'intro.text3': 'Дракон Кай и жаба Рок выходят на улицу. Вдвоём. Но играть будешь одним.',
+    'intro.text3': 'Кай-Комета и Рок-Молот выходят на улицу. Вдвоём. Но играть будешь одним.',
     'intro.start': 'ENTER — НАЧАТЬ',
     'intro.skip': 'ESC — ПРОПУСТИТЬ',
 
@@ -147,7 +147,7 @@
     'hud.wave': 'ВОЛНА',
     'hud.rage': 'ЯРОСТЬ',
     'hud.combo': 'КОМБО',
-    'hud.boss': 'ТЁМНАЯ КОРОЛЕВА',
+    'hud.boss': 'КОРОЛЕВА ХРОМ',
     'hud.fight': 'В БОЙ!',
     'hud.clear': 'ЗАЧИЩЕНО',
     'hud.advance': 'ВПЕРЁД →',
@@ -175,7 +175,7 @@
     'popup.score': '+{n}',
 
     /* ---------- босс ---------- */
-    'boss.name': 'ТЁМНАЯ КОРОЛЕВА',
+    'boss.name': 'КОРОЛЕВА ХРОМ',
     'boss.sub': 'ХОЗЯЙКА «ТОКСИК»',
     'boss.taunt1': '«Вы опоздали. Город уже мой.»',
     'boss.taunt2': '«Неон — это моя корона.»',
@@ -203,7 +203,7 @@
     'about.text2': 'Все персонажи, графика и музыка оригинальны и созданы кодом — без внешних ассетов.',
     'about.text3': 'Ретро- и неон-рендеры рисуют один и тот же бой, а музыка синтезируется в WebAudio.',
     'about.tech': 'Canvas 2D · WebAudio · ES2019 · 0 внешних файлов',
-    'about.credits': 'СДЕЛАНО В DEEPSEEK HARNESS · 2026',
+    'about.credits': 'СТУДИЯ ГЕФЕСТ · 2026',
     'about.back': 'ESC — НАЗАД'
   };
 
@@ -241,11 +241,11 @@
 
     /* ---------- characters ---------- */
     'char.dragon.name': 'KAI',
-    'char.dragon.alias': 'DRAGON',
-    'char.dragon.desc': 'Fast and precise. Three-hit chains and a dragon uppercut.',
+    'char.dragon.alias': 'COMET',
+    'char.dragon.desc': 'Fast and precise. Three-hit chains and a fire uppercut.',
     'char.dragon.spec': 'SPECIAL: FIRE RING',
     'char.toad.name': 'ROCK',
-    'char.toad.alias': 'TOAD',
+    'char.toad.alias': 'HAMMER',
     'char.toad.desc': 'Heavy and mean. More health and a crushing slam.',
     'char.toad.spec': 'SPECIAL: EARTH SLAM',
     'stat.power': 'POWER',
@@ -261,7 +261,7 @@
     'intro.title': 'THE STOLEN CHIP',
     'intro.text1': 'NEON CITY, 1987. The TOXIC corporation stole the NEON-8 chip — the heart of the city.',
     'intro.text2': 'Without it the neon dies and the gangs split the streets. Soon the city goes silent.',
-    'intro.text3': 'Kai the Dragon and Rock the Toad step out. Two heroes. One player. You.',
+    'intro.text3': 'Kai the Comet and Rock the Hammer step out. Two heroes. One player. You.',
     'intro.start': 'ENTER — START',
     'intro.skip': 'ESC — SKIP',
 
@@ -336,7 +336,7 @@
     'hud.wave': 'WAVE',
     'hud.rage': 'RAGE',
     'hud.combo': 'COMBO',
-    'hud.boss': 'DARK QUEEN',
+    'hud.boss': 'QUEEN CHROME',
     'hud.fight': 'FIGHT!',
     'hud.clear': 'CLEARED',
     'hud.advance': 'GO →',
@@ -364,7 +364,7 @@
     'popup.score': '+{n}',
 
     /* ---------- boss ---------- */
-    'boss.name': 'THE DARK QUEEN',
+    'boss.name': 'QUEEN CHROME',
     'boss.sub': 'MISTRESS OF TOXIC',
     'boss.taunt1': 'Too late. The city is already mine.',
     'boss.taunt2': 'Neon is my crown.',
@@ -392,7 +392,7 @@
     'about.text2': 'Every character, sprite and note is original and made in code — no external assets.',
     'about.text3': 'The retro and modern renderers draw the same fight; the music is synthesized in WebAudio.',
     'about.tech': 'Canvas 2D · WebAudio · ES2019 · zero external files',
-    'about.credits': 'MADE IN DEEPSEEK HARNESS · 2026',
+    'about.credits': 'HEFEST STUDIO · 2026',
     'about.back': 'ESC — BACK'
   };
 

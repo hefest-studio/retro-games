@@ -1,6 +1,6 @@
 /* ============================================================================
-   CONTRA: НЕОНОВЫЙ РАССВЕТ / NEON DAWN
-   A fan-made HTML5 run-and-gun tribute. Single file, no dependencies.
+   РУБЕЖ: НЕОНОВЫЙ РАССВЕТ / NEON DAWN
+   An original HTML5 run-and-gun by Hefest studio. Single file, no dependencies.
    Two renderers (modern NEON / 1988 8-BIT), Russian + English UI,
    original WebAudio chiptune soundtrack (see audio.js).
    ============================================================================ */
@@ -13,11 +13,11 @@
   var bootErrs = [];
   window.addEventListener('error', function (ev) {
     bootErrs.push(String((ev && ev.message) || ev));
-    try { console.error('[CONTRA]', ev.message, ev.filename, ev.lineno); } catch (e) {}
+    try { console.error('[RUBEZH]', ev.message, ev.filename, ev.lineno); } catch (e) {}
   });
   window.addEventListener('unhandledrejection', function (ev) {
     bootErrs.push('promise: ' + String(ev.reason));
-    try { console.error('[CONTRA] promise', ev.reason); } catch (e) {}
+    try { console.error('[RUBEZH] promise', ev.reason); } catch (e) {}
   });
 
   /* --------------------------------------------------------------------------
@@ -33,7 +33,10 @@
   var COYOTE = 0.10, JUMP_BUFFER = 0.12;
   var BULLET_CAP = 90, EBULLET_CAP = 120, PART_CAP = 420;
   var MODERN_W = 1440, MODERN_H = 810; // 3x backing store
-  var STORE_PREFIX = 'contra.';
+  var STORE_PREFIX = 'rubezh.';
+  // Устаревший префикс ключей (до переименования игры) — только для однократной миграции.
+  var LEGACY_STORE_PREFIX = 'contra.';
+  var STORE_KEYS = ['best', 'gfx', 'lang', 'muted'];
 
   /* --------------------------------------------------------------------------
      2. UTILITIES
@@ -82,6 +85,18 @@
     var v = parseFloat(loadStr(key, ''));
     return isFinite(v) ? v : fallback;
   }
+  // Миграция настроек/рекорда со старых ключей: старый → новый (если нового ещё нет) → удалить старый.
+  function migrateStore() {
+    try {
+      STORE_KEYS.forEach(function (key) {
+        var v = localStorage.getItem(LEGACY_STORE_PREFIX + key);
+        if (v == null) return;
+        if (localStorage.getItem(STORE_PREFIX + key) == null) localStorage.setItem(STORE_PREFIX + key, v);
+        localStorage.removeItem(LEGACY_STORE_PREFIX + key);
+      });
+    } catch (e) {}
+  }
+  migrateStore();
 
   /* --------------------------------------------------------------------------
      3. LOCALISATION
@@ -152,10 +167,10 @@
       nextHint: 'СЛЕДУЮЩАЯ ЦЕЛЬ: КРЕПОСТЬ «ГЕЛИОС»',
       missionComplete: 'МИССИЯ ВЫПОЛНЕНА',
       winTitle: 'РАССВЕТ',
-      winText: 'Ядро «Гелиос» погасло. Крепость пала. Над джунглями впервые за десять лет встаёт солнце — и ты встречаешь его стоя. Легенда «Контры» вернулась.',
+      winText: 'Ядро «Гелиос» погасло. Крепость пала. Над джунглями впервые за десять лет встаёт солнце — и ты встречаешь его стоя. Легенда «Рубежа» вернулась.',
       badgeNoDeath: 'БЕЗ ПОТЕРЬ',
       badgeSpeed: 'СКОРОСТНОЙ ПРОРЫВ',
-      badgeCode: 'КОД КОНАМИ',
+      badgeCode: 'СЕКРЕТНЫЙ КОД',
       newRun: 'НОВЫЙ ЗАБЕГ',
       hudLives: 'ЖИЗНИ',
       hudScore: 'СЧЁТ',
@@ -179,7 +194,7 @@
       weaponGot: 'ОРУЖИЕ: {name}',
       shieldGot: 'ЩИТ: 3 ЗАРЯДА',
       extraLife: 'БОНУС · +1 ЖИЗНЬ',
-      konami: 'СЕКРЕТНЫЙ КОД · +30 ЖИЗНЕЙ',
+      cheat: 'СЕКРЕТНЫЙ КОД · +30 ЖИЗНЕЙ',
       bossWarning: 'ВНИМАНИЕ · БОСС',
       bossLabel: 'БОСС',
       stageStart: 'ЭТАП {n} · {name}',
@@ -247,7 +262,7 @@
       toMenu: 'MAIN MENU',
       missionFailed: 'SIGNAL LOST',
       gameOverTitle: 'OPERATION FAILED',
-      gameOverLede: 'Contra lost the signal. But you still have a chance — regroup and breach again.',
+      gameOverLede: 'The squad lost the signal. But you still have a chance — regroup and breach again.',
       stage: 'STAGE',
       retry: 'RETRY STAGE',
       stageClearTag: 'SECTOR CLEARED',
@@ -259,10 +274,10 @@
       nextHint: 'NEXT TARGET: FORTRESS HELIOS',
       missionComplete: 'MISSION COMPLETE',
       winTitle: 'DAWN',
-      winText: 'The Helios core is dark. The fortress has fallen. For the first time in ten years the sun rises over the jungle — and you meet it standing. The legend of Contra is back.',
+      winText: 'The Helios core is dark. The fortress has fallen. For the first time in ten years the sun rises over the jungle — and you meet it standing. The legend of the Frontier is back.',
       badgeNoDeath: 'NO CASUALTIES',
       badgeSpeed: 'SPEEDRUN',
-      badgeCode: 'KONAMI CODE',
+      badgeCode: 'SECRET CODE',
       newRun: 'NEW RUN',
       hudLives: 'LIVES',
       hudScore: 'SCORE',
@@ -286,7 +301,7 @@
       weaponGot: 'WEAPON: {name}',
       shieldGot: 'SHIELD: 3 CHARGES',
       extraLife: 'BONUS · +1 LIFE',
-      konami: 'SECRET CODE · +30 LIVES',
+      cheat: 'SECRET CODE · +30 LIVES',
       bossWarning: 'WARNING · BOSS',
       bossLabel: 'BOSS',
       stageStart: 'STAGE {n} · {name}',
@@ -328,7 +343,7 @@
       },
       en: {
         name: 'JUNGLE', zone: 'JUNGLE', boss: '“GUARDIAN”',
-        mission: 'Contra has landed on the coast. Break through the jungle, destroy the Guardian gunship and seize a bridgehead at the fortress.',
+        mission: 'The strike team has landed on the coast. Break through the jungle, destroy the Guardian gunship and seize a bridgehead at the fortress.',
         objectives: ['Fight through the jungle to the fortress', 'Destroy the Guardian gunship', 'Keep as many lives as you can']
       }
     },
@@ -489,12 +504,12 @@
   });
 
   /* --------------------------------------------------------------------------
-     6. AUDIO FACADE (audio.js provides window.CONTRA_AUDIO)
+     6. AUDIO FACADE (audio.js provides window.RUBEZH_AUDIO)
      -------------------------------------------------------------------------- */
   var AU = null;
   var audioUnlocked = false;
   function audio() {
-    if (!AU) AU = window.CONTRA_AUDIO || null;
+    if (!AU) AU = window.RUBEZH_AUDIO || null;
     return AU;
   }
   function audioUnlock() {
@@ -664,8 +679,8 @@
     totalDeaths: 0,
     checkpoint: 0,
     checkpointIndex: -1,
-    konamiUsed: false,
-    konamiBuf: [],
+    cheatUsed: false,
+    cheatBuf: [],
     boss: null,
     bossActive: false,
     bossTriggered: false,
@@ -729,8 +744,8 @@
     G.deaths = 0;
     G.totalDeaths = 0;
     G.runTime = 0;
-    G.konamiUsed = false;
-    G.konamiBuf = [];
+    G.cheatUsed = false;
+    G.cheatBuf = [];
     G.checkpoint = 0;
     G.checkpointIndex = -1;
     G.stageStartScore = 0;
@@ -1896,21 +1911,21 @@
   }
 
   /* --------------------------------------------------------------------------
-     17. KONAMI CODE
+     17. SECRET CODE
      -------------------------------------------------------------------------- */
-  var KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
+  var CHEAT = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
 
-  function trackKonami(code) {
-    if (G.konamiUsed) return;
+  function trackCheat(code) {
+    if (G.cheatUsed) return;
     var allowed = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'];
     if (allowed.indexOf(code) < 0) return;
-    G.konamiBuf.push(code);
-    if (G.konamiBuf.length > KONAMI.length) G.konamiBuf.shift();
-    if (G.konamiBuf.join(',') === KONAMI.join(',')) {
-      G.konamiUsed = true;
+    G.cheatBuf.push(code);
+    if (G.cheatBuf.length > CHEAT.length) G.cheatBuf.shift();
+    if (G.cheatBuf.join(',') === CHEAT.join(',')) {
+      G.cheatUsed = true;
       G.lives += 30;
       updateHUD(true);
-      showToast(t('konami'), null, false, 2.6);
+      showToast(t('cheat'), null, false, 2.6);
       sfx('powerup');
       G.shake = Math.max(G.shake, 4);
     }
@@ -4502,7 +4517,7 @@
     var badges = [
       ['badge-nodeath', G.totalDeaths === 0],
       ['badge-speed', G.runTime > 0 && G.runTime < 420],
-      ['badge-code', G.konamiUsed]
+      ['badge-code', G.cheatUsed]
     ];
     for (var i = 0; i < badges.length; i++) {
       var el = document.getElementById(badges[i][0]);
@@ -4599,7 +4614,7 @@
     if (code === 'KeyM') { toggleSound(); return; }
     if (code === 'KeyG') { toggleGfx(); return; }
     if (code === 'KeyL') { toggleLang(); return; }
-    trackKonami(code);
+    trackCheat(code);
     if (code === 'Escape') { onEscape(); return; }
     if (code === 'KeyP') {
       if (G.mode === 'play' || G.mode === 'pause') togglePause();
@@ -4842,7 +4857,7 @@
     // для оболочки движка v2 (index.html + js/host.js) — только экспорт функций, логика не меняется
     window.__RUBEZH = { G: G, startNewRun: startNewRun, backToMenu: backToMenu, togglePause: togglePause,
       resumeGame: resumeGame, openHowto: openHowto, setMuted: setMuted, setLang: setLang, audioUnlock: audioUnlock };
-    window.__CONTRA = {
+    window.__RUBEZH_DBG = {
       state: snapshot,
       start: function (i) { beginStage(clamp(parseInt(i, 10) || 0, 0, STAGES.length - 1)); return snapshot(); },
       brief: function (i) { showBrief(clamp(parseInt(i, 10) || 0, 0, STAGES.length - 1)); return snapshot(); },
@@ -4876,7 +4891,7 @@
       },
       render: function () { render(); return snapshot(); },
       selfTest: function () { return runSelfTests(); },
-      audio: function () { return window.CONTRA_AUDIO; },
+      audio: function () { return window.RUBEZH_AUDIO; },
       version: '1.0.0'
     };
   }
@@ -5010,12 +5025,12 @@
     });
     G.gfx = 'modern'; applyGfxSize();
 
-    // --- konami
-    G.konamiUsed = false;
-    G.konamiBuf = [];
+    // --- cheat
+    G.cheatUsed = false;
+    G.cheatBuf = [];
     G.lives = 1;
-    KONAMI.forEach(function (k) { trackKonami(k); });
-    check('konami code grants lives', G.konamiUsed && G.lives >= 30);
+    CHEAT.forEach(function (k) { trackCheat(k); });
+    check('cheat code grants lives', G.cheatUsed && G.lives >= 30);
 
     // --- pause / resume
     beginStage(0);
@@ -5073,7 +5088,7 @@
     // audio API is callable and safe
     var audioOK = true;
     try {
-      var a = window.CONTRA_AUDIO;
+      var a = window.RUBEZH_AUDIO;
       if (!a) throw new Error('missing');
       a.startMusic('title'); a.startMusic('stage1'); a.startMusic('boss');
       a.sfx('shot'); a.sfx('explode'); a.sfx('checkpoint');
@@ -5130,7 +5145,7 @@
     G.score = 0;
     G.lives = 3;
     G.totalDeaths = 0;
-    G.konamiUsed = false;
+    G.cheatUsed = false;
     G.freeze = false;
     Input.keys = Object.create(null);
     updateBestLabels();
@@ -5138,7 +5153,7 @@
     var pass = 0;
     for (var i = 0; i < results.length; i++) if (results[i].pass) pass++;
     var fail = results.length - pass;
-    var lines = ['CONTRA SELF-TEST · ' + pass + '/' + results.length + ' PASS' + (fail ? ' · ' + fail + ' FAIL' : ''), ''];
+    var lines = ['RUBEZH SELF-TEST · ' + pass + '/' + results.length + ' PASS' + (fail ? ' · ' + fail + ' FAIL' : ''), ''];
     results.forEach(function (r) {
       lines.push((r.pass ? '  ✓ ' : '  ✗ ') + r.name);
     });
@@ -5151,7 +5166,7 @@
     }
     try { console.log(text); } catch (e) {}
     window.__TEST_RESULT = { pass: pass, fail: fail, total: results.length, results: results, missing: missing };
-    document.title = 'CONTRA TEST ' + pass + '/' + results.length;
+    document.title = 'RUBEZH TEST ' + pass + '/' + results.length;
     return window.__TEST_RESULT;
   }
 

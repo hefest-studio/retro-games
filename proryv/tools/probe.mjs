@@ -3,7 +3,7 @@
  * Headless-проверка страницы через Chrome DevTools Protocol:
  * скриншот + ошибки консоли/исключения + необязательный JS-eval.
  *
- *   node exolon/tools/probe.mjs <file.html|http://url> out.png \
+ *   node proryv/tools/probe.mjs <file.html|http://url> out.png \
  *        [--w=1280] [--h=800] [--wait=900] [--eval='EX.state.mode'] [--keys=Enter,Space]
  *
  * --eval печатает результат (JSON или строку). --keys отправляет нажатия
@@ -23,7 +23,7 @@ const opt = (name, def) => {
   return hit ? hit.slice(name.length + 3) : def;
 };
 const url = positional[0];
-const outPath = resolve(positional[1] || "exolon/reports/probe.png");
+const outPath = resolve(positional[1] || "proryv/reports/probe.png");
 if (!url) {
   console.error("usage: node probe.mjs <url|file> <out.png> [--w=1280] [--h=800] [--wait=900] [--eval='js'] [--keys=Enter,Space]");
   process.exit(2);
@@ -39,7 +39,7 @@ const pageUrl = /^https?:|^file:/.test(url) ? url : `file://${resolve(url)}`;
 
 mkdirSync(dirname(outPath), { recursive: true });
 const port = 9400 + Math.floor(Math.random() * 400);
-const profile = mkdtempSync(join(tmpdir(), "dsh-probe-"));
+const profile = mkdtempSync(join(tmpdir(), "proryv-probe-"));
 
 const chrome = spawn(CHROME, [
   "--headless=new",

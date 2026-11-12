@@ -274,7 +274,7 @@ body.touch.playing .host-pad{display:block}
           <span class="tag magenta">РУБЕЖ · 20XX</span>
         </div>
         <h2 class="big-title hero" data-i18n="winTitle">РАССВЕТ</h2>
-        <p class="epilogue" data-i18n="winText">Ядро «Гелиос» погасло. Крепость пала. Над джунглями впервые за десять лет встаёт солнце — и ты встречаешь его стоя. Легенда «Контры» вернулась.</p>
+        <p class="epilogue" data-i18n="winText">Ядро «Гелиос» погасло. Крепость пала. Над джунглями впервые за десять лет встаёт солнце — и ты встречаешь его стоя. Легенда «Рубежа» вернулась.</p>
         <div class="stats">
           <div class="stat"><span class="k" data-i18n="hudScore">СЧЁТ</span><span class="v" id="win-score">000000</span></div>
           <div class="stat"><span class="k" data-i18n="record">РЕКОРД</span><span class="v hot js-best">000000</span></div>
@@ -283,7 +283,7 @@ body.touch.playing .host-pad{display:block}
         <div class="badge-row">
           <span class="tag hidden" id="badge-nodeath" data-i18n="badgeNoDeath">БЕЗ ПОТЕРЬ</span>
           <span class="tag hidden" id="badge-speed" data-i18n="badgeSpeed">СКОРОСТНОЙ ПРОРЫВ</span>
-          <span class="tag magenta hidden" id="badge-code" data-i18n="badgeCode">КОД КОНАМИ</span>
+          <span class="tag magenta hidden" id="badge-code" data-i18n="badgeCode">СЕКРЕТНЫЙ КОД</span>
         </div>
         <div class="panel-actions">
           <button class="btn primary" data-action="menu"><kbd>ENTER</kbd><span data-i18n="toMenu">В ГЛАВНОЕ МЕНЮ</span></button>
@@ -311,7 +311,7 @@ body.touch.playing .host-pad{display:block}
    баланс, рендеры 8-BIT = retro и NEON = modern, свой чиптюн-саундтрек, HUD, брифинги) работают
    без изменений; движок даёт меню/паузу/финалы/тему/язык/звук/рекорд. Связь — через window.__RUBEZH. */
 (function () {
-  var R = window.__RUBEZH, C = window.__CONTRA;
+  var R = window.__RUBEZH, C = window.__RUBEZH_DBG;
   if (!R) return;
   var G = R.G;
   // Аудио игры просыпается на первом жесте: в меню движка клавиши в игру не идут, поэтому будим сами
@@ -347,7 +347,7 @@ body.touch.playing .host-pad{display:block}
       setSound: function (on) { if (G.muted === on) R.setMuted(!on); }
     }
   });
-  // звук движка — главный: если в игре звук был выключен (contra.muted), выровнять сразу
+  // звук движка — главный: если в игре звук был выключен (rubezh.muted), выровнять сразу
   if (g && g.audio.enabled && G.muted) R.setMuted(false);
   ArcadeHost.bindKeyPad('.host-pad');
 })();

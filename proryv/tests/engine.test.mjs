@@ -6,7 +6,7 @@
    • меню движка → Enter → брифинг сектора → Enter → бой; пауза P ↔ пауза игры; тема T/G ↔ графика
      игры (кадр пересчитывается), язык L ↔ язык игры (в обе стороны); звук M → музыка + эффекты игры;
      «Как играть» из меню и Esc назад; пауза → «В меню»; тач-кнопка паузы; рамка движка = кадр игры;
-     финалы (gameover / win) → экраны движка и рекорд arcade.best.proryv; перенос exolon.record;
+     финалы (gameover / win) → экраны движка и рекорд arcade.best.proryv; перенос старого рекорда; миграция ключей exolon.* → proryv.*;
    • #gfx=retro|modern дают разные кадры; #shot= — без оболочки; 0 ошибок pageerror / console.error. */
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -66,6 +66,17 @@ try {
     await o.close(); ok(r.g && !r.host && r.mode === 'title' && mode === 'briefing', JSON.stringify(r) + ' ' + mode);
   });
 
+  await test('миграция localStorage: exolon.* → proryv.*, старые удалены, новые не затираются', async () => {
+    const o = await open('legacy.html', () => { try { if (sessionStorage.getItem('mig')) return; sessionStorage.setItem('mig', '1'); localStorage.clear();
+      localStorage.setItem('exolon.record', '4242'); localStorage.setItem('exolon.settings', '{"lang":"en","music":false,"sfx":true,"crt":true}');
+      localStorage.setItem('proryv.record', '5000'); } catch {} });
+    const r = await o.p.evaluate(() => ({ ls: Object.keys(localStorage).sort().map((k) => k + '=' + localStorage.getItem(k)), lang: window.EX.settings.lang, rec: window.EX.loadRecord() }));
+    await o.close();
+    const ls = r.ls.join(' ');
+    ok(!/exolon\./.test(ls), 'старые ключи не удалены: ' + ls);
+    ok(/proryv\.settings=\{"lang":"en"/.test(ls) && r.lang === 'en', 'настройки не перенесены: ' + ls);
+    ok(/proryv\.record=5000/.test(ls) && r.rec === 5000, 'новый рекорд затёрт старым: ' + ls);
+  });
   const { p, close } = await open('', () => { try { localStorage.clear(); localStorage.setItem('exolon.record', '777'); localStorage.setItem('exolon.settings', '{"music":false,"sfx":true}'); } catch {} });
   await test('старт: меню движка, игра в title, тема modern, рекорд перенесён, звук выровнен', async () => {
     const s = await st(p);

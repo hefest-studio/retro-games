@@ -15,7 +15,7 @@ const OUT = join(ROOT, "screenshots");
 const PORT = 9354;
 const PAGE = `file://${join(ROOT, process.env.PAGE || "index.html")}`;
 mkdirSync(OUT, { recursive: true });
-const profile = mkdtempSync(join(tmpdir(), "dsh-bd-shots-"));
+const profile = mkdtempSync(join(tmpdir(), "obval-shots-"));
 
 const chrome = spawn(CHROME, [
   "--headless=new", "--disable-gpu", "--no-sandbox", "--mute-audio",
@@ -80,7 +80,7 @@ async function setup() {
 async function load() {
   await send("Page.navigate", { url: PAGE });
   for (let i = 0; i < 60; i++) {
-    if (await ev("!!window.__BD_READY__")) break;
+    if (await ev("!!window.__OBVAL_READY__")) break;
     await sleep(100);
   }
   await sleep(850);
@@ -92,37 +92,37 @@ async function run() {
   await load();
 
   // 01 — menu (retro is the default mode)
-  await ev("BD.setGraphics('retro', true)");
+  await ev("OBVAL.setGraphics('retro', true)");
   await ev(`(() => {
-    const S = BD.debug.S;
+    const S = OBVAL.debug.S;
     S.best = 12480;
     S.completed = [true, true, true, true, false, false, false, false];
-    BD.debug.renderOverlay('menu');
+    OBVAL.debug.renderOverlay('menu');
   })()`);
   await shot("01-menu-ru.png", 900);
 
   // 02 — modern gameplay, level 4
-  await ev("BD.setGraphics('modern', true)");
+  await ev("OBVAL.setGraphics('modern', true)");
   await ev(`(() => {
-    const S = BD.debug.S;
-    BD.debug.loadLevel(3, { score: 2430, screen: 'playing' });
-    BD.debug.renderOverlay('playing');
+    const S = OBVAL.debug.S;
+    OBVAL.debug.loadLevel(3, { score: 2430, screen: 'playing' });
+    OBVAL.debug.renderOverlay('playing');
     S.score = 2430; S.gems = 9; S.time = 37; S.lives = 3; S.best = 12480;
     document.getElementById('toast').className = 'toast';
   })()`);
   await shot("02-game-modern.png", 950);
 
   // 03 — retro gameplay
-  await ev("BD.setGraphics('retro', true)");
+  await ev("OBVAL.setGraphics('retro', true)");
   await shot("03-game-retro.png", 700);
 
   // 04 — level select
   await ev(`(() => {
-    BD.setGraphics('modern', true);
-    BD.menu();
-    BD.debug.S.best = 12480;
-    BD.debug.S.completed = [true, true, true, true, false, false, false, false];
-    BD.openLevels();
+    OBVAL.setGraphics('modern', true);
+    OBVAL.menu();
+    OBVAL.debug.S.best = 12480;
+    OBVAL.debug.S.completed = [true, true, true, true, false, false, false, false];
+    OBVAL.openLevels();
     document.getElementById('toast').className = 'toast';
   })()`);
   await shot("04-levels-ru.png", 850);
@@ -130,11 +130,11 @@ async function run() {
   // 05 — mobile gameplay
   await viewport(390, 844);
   await load();
-  await ev("BD.setGraphics('retro', true)");
+  await ev("OBVAL.setGraphics('retro', true)");
   await ev(`(() => {
-    BD.debug.loadLevel(0, { score: 0, screen: 'playing' });
-    BD.debug.renderOverlay('playing');
-    BD.debug.S.best = 12480;
+    OBVAL.debug.loadLevel(0, { score: 0, screen: 'playing' });
+    OBVAL.debug.renderOverlay('playing');
+    OBVAL.debug.S.best = 12480;
     document.getElementById('toast').className = 'toast';
   })()`);
   await shot("05-mobile.png", 800);
@@ -142,14 +142,14 @@ async function run() {
   // 06 — victory
   await viewport(1440, 900);
   await ev(`(() => {
-    BD.debug.loadLevel(7, { score: 12480, screen: 'playing' });
-    BD.debug.renderOverlay('playing');
-    const S = BD.debug.S;
+    OBVAL.debug.loadLevel(7, { score: 12480, screen: 'playing' });
+    OBVAL.debug.renderOverlay('playing');
+    const S = OBVAL.debug.S;
     S.score = 12480; S.gems = S.quota; S.exitOpen = true; S.best = 11100;
     S.completed = [true, true, true, true, true, true, true, true];
     S.runTime = 612; S.lives = 3;
     document.getElementById('toast').className = 'toast';
-    BD.debug.completeLevel();
+    OBVAL.debug.completeLevel();
   })()`);
   await sleep(2200);
   await shot("06-victory-ru.png", 500);

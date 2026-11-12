@@ -368,7 +368,7 @@
           '</section>' +
           '<div class="dg-about-meta">' +
             '<span>' + esc(t('version')) + '</span>' +
-            '<span>' + esc(t('fanPort')) + ' · 2026</span>' +
+            '<span>' + esc(t('studioMark')) + ' · 2026</span>' +
           '</div>' +
         '</div>' +
         panelFoot() +

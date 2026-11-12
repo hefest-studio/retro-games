@@ -3,6 +3,7 @@
    Поднимает свой статический сервер по корню репо и проверяет в Chromium:
    • legacy.html — прежний монолит грузится и работает сам (без оболочки);
    • перенос старого рекорда (dd-neon-settings-v1.best → arcade.best.neon-rage), тема modern по умолчанию;
+   • миграция ключа настроек dd-neon-settings-v1 → neon-rage.settings (index.html и legacy.html);
    • меню движка → Enter → выбор героя игры → Enter → сюжет → Esc «пропустить» → бой, волна 1 стартует;
    • P/Esc — пауза движка = заморозка боя (без родного меню паузы), снятие; тач-кнопка II — через движок;
    • T/G — тема движка = графика игры, L — язык (в обе стороны); L в бою не тратит ярость, ярость — V;
@@ -178,6 +179,22 @@ try {
     const o = await open('#scene=intro&lang=en'); const s = await st(o.p); await o.close();
     ok(s.scene === 'play' && s.mode === 'intro' && s.lang === 'en' && s.glang === 'en', JSON.stringify(s));
   });
+  for (const page of ['', 'legacy.html']) {
+    await test(`миграция localStorage (${page || 'index.html'}): dd-neon-settings-v1 → neon-rage.settings, старый удалён, новый не затирается`, async () => {
+      const o = await open('', () => { try { if (sessionStorage.getItem('mig')) return; sessionStorage.setItem('mig', '1'); localStorage.clear();
+        localStorage.setItem('dd-neon-settings-v1', JSON.stringify({ lang: 'en', gfx: 'retro', best: 4242 })); } catch {} }, page);
+      const ls1 = await o.p.evaluate(() => ({ old: localStorage.getItem('dd-neon-settings-v1'), now: localStorage.getItem('neon-rage.settings'), best: window.DD.settings.best }));
+      await o.close();
+      ok(ls1.old === null, 'старый ключ не удалён');
+      ok(ls1.now && JSON.parse(ls1.now).best === 4242 && ls1.best === 4242, 'не перенесено: ' + JSON.stringify(ls1));
+      const o2 = await open('', () => { try { if (sessionStorage.getItem('mig')) return; sessionStorage.setItem('mig', '1'); localStorage.clear();
+        localStorage.setItem('dd-neon-settings-v1', JSON.stringify({ best: 1 })); localStorage.setItem('neon-rage.settings', JSON.stringify({ best: 5000 })); } catch {} }, page);
+      const ls2 = await o2.p.evaluate(() => ({ old: localStorage.getItem('dd-neon-settings-v1'), best: window.DD.settings.best }));
+      await o2.close();
+      ok(ls2.old === null && ls2.best === 5000, 'новый ключ затёрт старым: ' + JSON.stringify(ls2));
+    });
+  }
+
   await test('ошибок в браузере нет', async () => { ok(errors.length === 0, errors.join(' | ')); });
 } finally {
   await browser.close(); srv.close();
