@@ -111,7 +111,7 @@
 |---|---|
 | ![Брифинг](screenshots/briefing_retro_ru.png) | ![Брифинг NEON](screenshots/briefing_modern_ru.png) |
 | ![Бонус](screenshots/bonus_retro_ru.png) | ![Экзоскелет](screenshots/exo_modern_ru.png) |
-| ![Игра окончена](screenshots/gameover_retro_ru.png) | ![Победа](screenshots/win_modern_ru.png) |
+| ![Игра окончена](screenshots/gameover_retro_ru.png) | ![Игра окончена NEON](screenshots/gameover_modern_ru.png) |
 
 (Скриншоты — родные экраны игры, `legacy.html`; в `index.html` меню/пауза/финалы — экраны движка.)
 

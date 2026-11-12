@@ -65,7 +65,7 @@
 
     /* ---- брифинг / подсказки ---- */
     'hint.title': 'ЦЕЛЬ',
-    'hint.goal': 'Пробейся через 5 секторов Эксолона: уничтожай врагов, собирай патроны и уйди за правый край экрана.',
+    'hint.goal': 'Пробейся через 5 секторов Тарна: уничтожай врагов, собирай патроны и уйди за правый край экрана.',
     'hint.exo': 'Экзоскелет в середине сектора даёт броню и двойной темп огня — но отнимает бонус 10000.',
     'hint.grenade': 'Бластер берёт органику. Пушки, танки и коконы бронированы — только граната.',
     'hint.teleport': 'Встань на телепорт и нажми ↓, чтобы уйти в парный. Там обычно награда.',
@@ -106,7 +106,7 @@
     'msg.bonus.pick2': 'ЖМИ SPACE НА БОЛЬШЕМ ЧИСЛЕ',
     'msg.gameover': 'ИГРА ОКОНЧЕНА',
     'msg.continue': 'ENTER — ЗАНОВО',
-    'msg.win': 'ЭКСОЛОН ПАЛ',
+    'msg.win': 'ТАРН ПАЛ',
     'msg.win.sub': 'КАЙР ПРОБИЛСЯ ЧЕРЕЗ 5 СЕКТОРОВ',
     'msg.newrecord': 'НОВЫЙ РЕКОРД!',
     'msg.record': 'РЕКОРД',
@@ -202,7 +202,7 @@
     'key.enter': 'ENTER', 'key.enter.act': 'confirm · start',
 
     'hint.title': 'OBJECTIVE',
-    'hint.goal': 'Fight through 5 sectors of ПРОРЫВ: kill everything, grab ammo packs and reach the right edge of the screen.',
+    'hint.goal': 'Fight through the 5 sectors of Tarn: kill everything, grab ammo packs and reach the right edge of the screen.',
     'hint.exo': 'The exoskeleton pod mid-sector gives armour and double fire rate — but costs the 10000 bonus.',
     'hint.grenade': 'The blaster kills organics. Guns, tanks and pods are armoured — grenades only.',
     'hint.teleport': 'Stand on a teleporter and press ↓ to warp to its twin. Usually a reward there.',
@@ -240,7 +240,7 @@
     'msg.bonus.pick2': 'HIT SPACE ON THE HIGHEST',
     'msg.gameover': 'GAME OVER',
     'msg.continue': 'ENTER — RETRY',
-    'msg.win': 'ПРОРЫВ HAS FALLEN',
+    'msg.win': 'TARN HAS FALLEN',
     'msg.win.sub': 'KAIR BROKE THROUGH 5 SECTORS',
     'msg.newrecord': 'NEW RECORD!',
     'msg.record': 'RECORD',
