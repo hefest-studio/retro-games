@@ -17,11 +17,11 @@
         settings: "Настройки", "settings.hint": "графика · язык"
       },
       char: {
-        snorri: "Снорри", "snorri.role": "Быстрый", "snorri.tag": "Быстрый · таран",
-        "snorri.ability": "Прыгает выше всех и пробивает головой ветхие стены.",
-        gunnar: "Гуннар", "gunnar.role": "Свирепый", "gunnar.tag": "Свирепый · лук",
-        "gunnar.ability": "Стреляет из лука: враги и рычаги не устоят.",
-        bjorn: "Бьорн", "bjorn.role": "Стойкий", "bjorn.tag": "Стойкий · щит",
+        snorri: "Снорри", "snorri.role": "Таран", "snorri.tag": "Таран · удар плечом",
+        "snorri.ability": "Прыгает выше всех и с плеча пробивает ветхие стены.",
+        gunnar: "Гуннар", "gunnar.role": "Стрелок", "gunnar.tag": "Стрелок · арбалет",
+        "gunnar.ability": "Бьёт из арбалета: враги и рычаги не устоят.",
+        bjorn: "Бьорн", "bjorn.role": "Опора", "bjorn.tag": "Опора · щит",
         "bjorn.ability": "Держит щит над головой: ступень для друзей и защита от стрел."
       },
       foot: {
@@ -58,7 +58,7 @@
         "objective.title": "Цель",
         "objective.text": "У каждого викинга своя дверь — она подсвечена цветом героя. Доведите каждого до его двери; чужая не откроется. Все трое ушли — уровень пройден.",
         "snorri.title": "Снорри · таран", "snorri.text": "Самый быстрый и высокий прыжок. «Действие» у ветхой стены — пробить проход.",
-        "gunnar.title": "Гуннар · лук", "gunnar.text": "Стрела убивает пещерных врагов и переключает рычаги. Меч бьёт вплотную.",
+        "gunnar.title": "Гуннар · арбалет", "gunnar.text": "Болт убивает пещерных врагов и переключает рычаги. Вплотную бьёт молотом.",
         "bjorn.title": "Бьорн · щит", "bjorn.text": "Держите «действие»: щит над головой — платформа для друзей и защита от вражеских стрел.",
         "gate.title": "Плиты и ворота", "gate.text": "Плита открывает ворота, пока на ней кто-то стоит. Оставьте викинга на плите и переключитесь на другого.",
         "death.title": "Смерть", "death.text": "Шипы, враги и вражеские стрелы смертельны. Любая смерть — рестарт уровня; сокровища сбрасываются.",
@@ -109,11 +109,11 @@
         settings: "Settings", "settings.hint": "graphics · language"
       },
       char: {
-        snorri: "Snorri", "snorri.role": "Swift", "snorri.tag": "Swift · headbutt",
+        snorri: "Snorri", "snorri.role": "Ram", "snorri.tag": "Ram · shoulder bash",
         "snorri.ability": "Jumps the highest and smashes through crumbling walls.",
-        gunnar: "Gunnar", "gunnar.role": "Fierce", "gunnar.tag": "Fierce · bow",
-        "gunnar.ability": "Looses arrows: enemies and levers stand no chance.",
-        bjorn: "Bjorn", "bjorn.role": "Stout", "bjorn.tag": "Stout · shield",
+        gunnar: "Gunnar", "gunnar.role": "Marksman", "gunnar.tag": "Marksman · crossbow",
+        "gunnar.ability": "Looses crossbow bolts: enemies and levers stand no chance.",
+        bjorn: "Bjorn", "bjorn.role": "Bulwark", "bjorn.tag": "Bulwark · shield",
         "bjorn.ability": "Raises his shield: a step for friends and cover from arrows."
       },
       foot: {
@@ -149,8 +149,8 @@
         lead: "Guide all three vikings to the exits. One is active at a time — switch and use each one's skill.",
         "objective.title": "Objective",
         "objective.text": "Each viking has his own door, tinted with his colour. Bring each one to his door; another's door will not open. All three out — level cleared.",
-        "snorri.title": "Snorri · headbutt", "snorri.text": "Fastest, highest jump. Use Action at a crumbling wall to smash through.",
-        "gunnar.title": "Gunnar · bow", "gunnar.text": "Arrows kill cave foes and toggle levers. The sword strikes at close range.",
+        "snorri.title": "Snorri · shoulder bash", "snorri.text": "Fastest, highest jump. Use Action at a crumbling wall to smash through.",
+        "gunnar.title": "Gunnar · crossbow", "gunnar.text": "Bolts kill cave foes and toggle levers. The hammer strikes at close range.",
         "bjorn.title": "Bjorn · shield", "bjorn.text": "Hold Action: the shield above his head is a platform for friends and cover from enemy arrows.",
         "gate.title": "Plates & gates", "gate.text": "A plate keeps gates open while someone stands on it. Leave a viking on the plate and switch to another.",
         "death.title": "Death", "death.text": "Spikes, foes and enemy arrows are deadly. Any death restarts the level; treasure resets.",
@@ -2757,7 +2757,7 @@
 /* ==== src/render-retro.js ==== */
 /* СЕВЕРНАЯ САГА — src/render-retro.js
    8-bit pixel-art renderer. Owner: retro-artist.
-   window.SAGA_RETRO = { init(canvas), draw(view), drawPortrait(canvas,id,t), drawTitle(canvas,t) }
+   window.SAGA_RETRO = { init(canvas), draw(view), drawPortrait(canvas,id,t), drawTitle(canvas,t), drawHero, drawHeroDead }
    ES2019, IIFE, no external assets, no game logic, never mutates `view`. */
 (function () {
   "use strict";
@@ -3710,35 +3710,56 @@
 
   var CHAR_COLOR = { snorri: "#d94f6b", gunnar: "#3f9ea0", bjorn: "#d0a52f" };
 
+  /* ==== HERO-SPRITES:BEGIN ====
+     Общий пиксель-арт трёх героев саги — мастеров северной кузни студии «Гефест»:
+       snorri — Таран: кожаный капюшон с хвостом, кузнечный фартук, медный наплечник, краги;
+       gunnar — Стрелок: высокая меховая шапка, длинный кафтан с меховой оторочкой, шарф, арбалет;
+       bjorn  — Опора: широкие плечи, стёганый жилет, кольчужные рукава, кузнечные очки на лбу,
+                короткая борода-косица, большой круглый щит-кузнечный круг с заклёпками.
+     Блок между маркерами HERO-SPRITES:BEGIN/END ДОСЛОВНО одинаков в saga/js/game.js и
+     saga-2/js/vikings-retro.js (проверяют tests/engine.test.mjs обеих саг) — правьте оба места сразу.
+     Позы (pickPose), кадры (heroFrame) и их тайминги — прежние; меняется только облик.
+     Нужны из окружения: rr(g,x,y,w,h,col), shade(hex,k), fillCircle(g,cx,cy,r,col).
+     Начало координат — ноги (0,0), корпус вверх по −y, лицом в +x, 1 арт-пиксель. */
   var CHARS = {
     snorri: {
-      skin: "#f2c496", skinS: "#d8a170", skinD: "#b0784a",
-      tunic: "#d94f6b", tunicS: "#a83050", tunicL: "#f06f8a",
-      metal: "#c8d0dc", metalS: "#8b95a8", metalD: "#565e70", metalL: "#eef3fa",
-      hair: "#c24a52", hairS: "#8a2e36", hairL: "#e06a72",
-      leather: "#7a4a24", leatherL: "#a06a34", gold: "#f2c24a", goldL: "#ffe9a0",
-      boot: "#4a3320", bootS: "#2e1f12", bootL: "#6b4a2c",
-      cream: "#f0e6d2", creamL: "#fff6e2", eye: "#241a2e", white: "#f4f7ff"
+      skin: "#e8b48c", skinS: "#c98f66", skinD: "#9c6a48",
+      sleeve: "#4c5263", sleeveS: "#343846", sleeveL: "#6b7286",
+      fore: "#e8b48c", foreS: "#c08660", hand: "#5a3a26", handL: "#7a5236",
+      pants: "#3f322b", pantsS: "#2a201b", pantsL: "#58473c",
+      hood: "#57473e", hoodS: "#382d27", hoodL: "#786454",
+      apron: "#8c5a34", apronS: "#5e3c22", apronL: "#ad7746",
+      copper: "#d27c3e", copperS: "#8e4a20", copperL: "#f5b070",
+      ember: "#ffb347", emberL: "#fff2b8",
+      leather: "#4e3222", leatherL: "#6e4a32",
+      boot: "#2f2621", bootS: "#1c1612", bootL: "#4c3d33",
+      hair: "#2e2220", eye: "#1e1a26", white: "#f4f7ff"
     },
     gunnar: {
-      skin: "#f0c08c", skinS: "#cf9a66", skinD: "#a07044",
-      tunic: "#3f9ea0", tunicS: "#2a6f72", tunicL: "#5fc0c2",
-      metal: "#c8d0dc", metalS: "#8b95a8", metalD: "#565e70", metalL: "#eef3fa",
-      hair: "#7a431e", hairS: "#4e2a0e", hairL: "#9c5c2a",
-      leather: "#7a4a24", leatherL: "#a06a34", gold: "#f2c24a", goldL: "#ffe9a0",
-      boot: "#3e2c1c", bootS: "#261a10", bootL: "#5c442a",
-      bow: "#9a6430", bowL: "#c08a4a", string: "#e8e0c8", blade: "#e6eef8", bladeS: "#9aa8bc",
-      eye: "#241a2e", white: "#f4f7ff"
+      skin: "#eebf95", skinS: "#c99870", skinD: "#9c6c4a",
+      sleeve: "#2f7a78", sleeveS: "#1f5452", sleeveL: "#4aa29e",
+      coat: "#2f7a78", coatS: "#1f5452", coatL: "#4aa29e",
+      pants: "#4a4036", pantsS: "#322b24", pantsL: "#625548",
+      fur: "#cbbfa8", furS: "#968a74", furL: "#e6dcc8",
+      scarf: "#8c3646", scarfS: "#5e2230", scarfL: "#b54c5e",
+      wood: "#8a5a2e", woodL: "#b07a40", woodS: "#5a3a1c",
+      steel: "#c4ccd8", steelS: "#7e8896", string: "#e8e0c8",
+      leather: "#6a4428", leatherL: "#8c5e38",
+      boot: "#3a2c22", bootS: "#241a14", bootL: "#56443a",
+      hair: "#3a2a20", eye: "#1e1a26", white: "#f4f7ff"
     },
     bjorn: {
-      skin: "#f2c49b", skinS: "#d19f74", skinD: "#a87a50",
-      tunic: "#d0a52f", tunicS: "#9a7a1e", tunicL: "#f0c550",
-      metal: "#d8c8a0", metalS: "#a89870", metalD: "#706448", metalL: "#f4e8c6",
-      hair: "#e8dcc0", hairS: "#b8a888", hairL: "#fbf2dc",
-      leather: "#7a4a24", leatherL: "#a06a34", gold: "#f2c24a", goldL: "#ffe9a0",
-      boot: "#3a3020", bootS: "#221c12", bootL: "#5a4a30",
-      wood: "#96602e", woodL: "#b87c3e", woodS: "#5e3a1a", iron: "#c2cad8", ironS: "#7c8494",
-      blush: "#e89072", eye: "#241a2e", white: "#f4f7ff", fur: "#cfd8e4", furS: "#98a8bc"
+      skin: "#d9a47c", skinS: "#b5805a", skinD: "#8a5c3c",
+      sleeve: "#9aa3ae", sleeveS: "#6c7480", sleeveL: "#c4ccd6",
+      vest: "#3e5878", vestS: "#2a3d56", vestL: "#5a7a9e",
+      pants: "#3b3631", pantsS: "#27231f", pantsL: "#524b44",
+      beard: "#4a2e1e", beardS: "#2e1c12", beardL: "#6c4630",
+      brass: "#d4a03c", brassS: "#8e6a22", brassL: "#f6d680",
+      glass: "#6fcfe0", glassL: "#dcfaff",
+      steel: "#a6b0be", steelS: "#6a7484", steelD: "#444e5e", steelL: "#e2e8f0",
+      leather: "#5a3a26", leatherL: "#7a5236",
+      boot: "#332a22", bootS: "#1f1914", bootL: "#4e4136",
+      eye: "#1e1a26", white: "#f4f7ff"
     }
   };
 
@@ -3752,7 +3773,7 @@
     return src._dim;
   }
 
-  /* solid pixel limb: stamps w×w blocks along the segment (no holes) */
+  /* сплошная пиксельная конечность: штампует блоки w×w вдоль отрезка (без дыр) */
   function limb(g, x0, y0, x1, y1, w, col) {
     var dx = x1 - x0, dy = y1 - y0;
     var n = Math.max(Math.abs(dx), Math.abs(dy));
@@ -3764,13 +3785,13 @@
   }
 
   function drawLeg(g, pal, leg, back) {
-    var pants = back ? pal.tunicS : pal.tunic;
+    var pants = back ? pal.pantsS : pal.pants;
     limb(g, leg.hip, -6, leg.knee[0], leg.knee[1], 2, pants);
     limb(g, leg.knee[0], leg.knee[1], leg.foot[0], leg.foot[1], 2, pants);
-    if (!back) limb(g, leg.hip, -6, leg.knee[0], leg.knee[1], 1, pal.tunicL);
-    /* knee patch */
-    rr(g, leg.knee[0], leg.knee[1], 2, 1, back ? pal.tunicS : pal.tunicL);
-    /* boot */
+    if (!back) limb(g, leg.hip, -6, leg.knee[0], leg.knee[1], 1, pal.pantsL);
+    /* голенище сапога */
+    rr(g, leg.foot[0] - 1, leg.foot[1] - 2, 2, 1, back ? pal.bootS : pal.bootL);
+    /* сапог */
     var bx = leg.foot[0] - 1, by = leg.foot[1] - 1;
     rr(g, bx, by, 3, 2, back ? pal.bootS : pal.boot);
     rr(g, bx, by, 3, 1, back ? pal.bootS : pal.bootL);
@@ -3778,19 +3799,21 @@
   }
 
   function drawArm(g, pal, arm, back, up) {
-    var sleeve = back ? pal.tunicS : pal.tunic;
-    limb(g, arm.sh, -13, arm.el[0], arm.el[1], 2, sleeve);
-    limb(g, arm.el[0], arm.el[1], arm.hand[0], arm.hand[1], 2, sleeve);
+    var upper = back ? pal.sleeveS : pal.sleeve;
+    var lower = pal.fore ? (back ? pal.foreS : pal.fore) : upper;
+    limb(g, arm.sh, -13, arm.el[0], arm.el[1], 2, upper);
+    limb(g, arm.el[0], arm.el[1], arm.hand[0], arm.hand[1], 2, lower);
     if (!back) {
-      limb(g, arm.sh, -13, arm.el[0], arm.el[1], 1, pal.tunicL);
-      /* cuff */
-      rr(g, arm.el[0] - 1, arm.el[1] + 1, 3, 1, pal.leather);
+      limb(g, arm.sh, -13, arm.el[0], arm.el[1], 1, pal.sleeveL);
+      /* закатанный рукав / обшлаг */
+      rr(g, arm.el[0] - 1, arm.el[1] + 1, 3, 1, pal.fore ? pal.sleeveL : pal.leather);
     }
-    /* hand / fist */
+    /* кисть: у Тарана — кожаная крага */
     var hx = arm.hand[0] - 1, hy = arm.hand[1] - 1;
-    rr(g, hx, hy, 2, 2, pal.skin);
-    rr(g, hx, hy, 2, 1, shade(pal.skin, 1.06));
-    if (up) rr(g, hx, hy + 1, 2, 1, pal.skinS);
+    var hc = pal.hand || pal.skin;
+    rr(g, hx, hy, 2, 2, hc);
+    rr(g, hx, hy, 2, 1, pal.handL || shade(pal.skin, 1.06));
+    if (up) rr(g, hx, hy + 1, 2, 1, pal.hand ? pal.leather : pal.skinS);
   }
 
   function pickPose(st, f) {
@@ -3850,6 +3873,339 @@
     return P;
   }
 
+  /* ── Таран (snorri): капюшон, фартук, медный наплечник; «действие» — удар плечом ── */
+  function drawSnorri(g, pal, pose, st, f, t) {
+    var by = -pose.bob, L = pose.lean;
+    drawLeg(g, pal, pose.legs[0], true);
+    drawLeg(g, pal, pose.legs[1], false);
+    drawArm(g, pal, pose.arms[0], true);
+    /* рубаха */
+    rr(g, -3 + L, -14 + by, 6, 8, pal.sleeve);
+    rr(g, -3 + L, -14 + by, 6, 1, pal.sleeveL);
+    rr(g, -3 + L, -13 + by, 1, 7, pal.sleeveS);
+    /* пояс сзади */
+    rr(g, -3 + L, -8 + by, 3, 1, pal.leather);
+    /* кузнечный фартук: от груди до колен */
+    rr(g, -1 + L, -13 + by, 4, 8, pal.apron);
+    rr(g, -2 + L, -7 + by, 5, 3, pal.apron);
+    rr(g, -1 + L, -13 + by, 1, 6, pal.apronS);
+    rr(g, -2 + L, -7 + by, 1, 3, pal.apronS);
+    rr(g, 2 + L, -12 + by, 1, 6, pal.apronL);
+    rr(g, 0 + L, -9 + by, 2, 1, pal.apronS);
+    rr(g, -2 + L, -4 + by, 5, 1, pal.apronS);
+    /* лямка фартука */
+    rr(g, 0 + L, -14 + by, 1, 1, pal.leather);
+    if (st === "act") {
+      /* след рывка позади */
+      rr(g, -6 + L, -12 + by, 2, 1, pal.sleeveS);
+      rr(g, -7 + L, -10 + by, 2, 1, pal.sleeveS);
+      rr(g, -6 + L, -8 + by, 1, 1, pal.sleeveS);
+    }
+    drawArm(g, pal, pose.arms[1], false);
+    /* медный наплечник — ведущее плечо */
+    var px = 2 + L + (st === "act" ? 1 : 0);
+    rr(g, px, -14 + by, 4, 1, pal.copperL);
+    rr(g, px, -13 + by, 4, 1, pal.copper);
+    rr(g, px + 1, -12 + by, 3, 1, pal.copperS);
+    rr(g, px + 3, -13 + by, 1, 1, pal.emberL);
+    /* голова в капюшоне */
+    var hX = L * 2, hy = by;
+    /* хвост капюшона за спиной */
+    rr(g, -5 + hX, -20 + hy, 1, 3, pal.hoodS);
+    rr(g, -6 + hX, -18 + hy, 1, 2, pal.hoodS);
+    /* капюшон */
+    rr(g, -2 + hX, -23 + hy, 4, 1, pal.hoodL);
+    rr(g, -3 + hX, -22 + hy, 6, 1, pal.hood);
+    rr(g, -4 + hX, -21 + hy, 7, 5, pal.hood);
+    rr(g, -4 + hX, -21 + hy, 1, 5, pal.hoodS);
+    rr(g, -1 + hX, -22 + hy, 3, 1, pal.hoodL);
+    /* ворот-пелерина на плечах */
+    rr(g, -4 + hX, -16 + hy, 4, 1, pal.hood);
+    rr(g, -4 + hX, -15 + hy, 7, 1, pal.hoodS);
+    rr(g, -3 + hX, -15 + hy, 5, 1, pal.hood);
+    /* лицо в проёме капюшона */
+    rr(g, 0 + hX, -20 + hy, 3, 5, pal.skin);
+    rr(g, 0 + hX, -20 + hy, 3, 1, pal.hoodL);
+    rr(g, 3 + hX, -19 + hy, 1, 3, pal.skin);
+    rr(g, 0 + hX, -19 + hy, 1, 1, pal.hair);
+    rr(g, 1 + hX, -18 + hy, 1, 1, pal.white);
+    rr(g, 2 + hX, -18 + hy, 1, 1, pal.eye);
+    rr(g, 1 + hX, -19 + hy, 2, 1, pal.hair);
+    rr(g, 3 + hX, -17 + hy, 1, 1, pal.skinS);
+    rr(g, 1 + hX, -16 + hy, 2, 1, pal.skinS);
+    /* сажа на щеке */
+    rr(g, 0 + hX, -17 + hy, 1, 1, pal.skinD);
+    if (st === "act") {
+      /* искры удара перед наплечником */
+      var s = (f % 3);
+      rr(g, 6 + hX, -16 + hy - s, 1, 1, pal.emberL);
+      rr(g, 7 + hX, -14 + hy, 1, 1, pal.ember);
+      rr(g, 8 + hX, -17 + hy + s, 1, 1, pal.ember);
+      rr(g, 7 + hX, -12 + hy - s, 1, 1, pal.copperL);
+    }
+  }
+
+  /* ── Стрелок (gunnar): меховая шапка, кафтан, шарф; арбалет ── */
+  function drawCrossbowOnBack(g, pal, by) {
+    limb(g, -5, -17 + by, -2, -8 + by, 1, pal.woodS);
+    rr(g, -7, -17 + by, 5, 1, pal.steelS);
+    rr(g, -7, -18 + by, 1, 1, pal.steelS);
+    rr(g, -3, -18 + by, 1, 1, pal.steelS);
+  }
+
+  function drawCrossbow(g, pal, hx, hy) {
+    /* ложе */
+    rr(g, hx - 2, hy, 8, 1, pal.wood);
+    rr(g, hx - 2, hy, 8, 1, pal.woodL);
+    rr(g, hx - 2, hy + 1, 3, 1, pal.woodS);
+    /* дуга (стальная) */
+    rr(g, hx + 5, hy - 3, 1, 7, pal.steel);
+    rr(g, hx + 4, hy - 4, 1, 1, pal.steelS);
+    rr(g, hx + 4, hy + 4, 1, 1, pal.steelS);
+    /* тетива и болт */
+    limb(g, hx + 4, hy - 3, hx + 1, hy, 1, pal.string);
+    limb(g, hx + 1, hy, hx + 4, hy + 3, 1, pal.string);
+    rr(g, hx + 6, hy - 1, 2, 1, pal.steel);
+  }
+
+  function drawGunnar(g, pal, pose, st, f, t) {
+    var by = -pose.bob, L = pose.lean;
+    /* хвост шарфа за спиной */
+    var sw = (f % 2);
+    rr(g, -5 + L * 2, -16 + by, 2, 1, pal.scarfS);
+    rr(g, -6 + L * 2, -15 + by + sw, 2, 1, pal.scarf);
+    drawLeg(g, pal, pose.legs[0], true);
+    drawLeg(g, pal, pose.legs[1], false);
+    drawArm(g, pal, pose.arms[0], true);
+    if (st !== "act") drawCrossbowOnBack(g, pal, by);
+    /* длинный кафтан */
+    rr(g, -3, -15 + by, 6, 9, pal.coat);
+    rr(g, -4, -7 + by, 8, 3, pal.coat);
+    rr(g, -3, -15 + by, 6, 1, pal.coatL);
+    rr(g, -3, -14 + by, 1, 8, pal.coatS);
+    rr(g, -4, -7 + by, 1, 3, pal.coatS);
+    rr(g, 1, -13 + by, 1, 9, pal.coatS);
+    rr(g, 2, -12 + by, 1, 5, pal.coatL);
+    /* меховая оторочка подола */
+    rr(g, -4, -4 + by, 8, 1, pal.fur);
+    rr(g, -4, -4 + by, 2, 1, pal.furS);
+    /* пояс и колчан болтов на бедре */
+    rr(g, -3, -10 + by, 6, 1, pal.leather);
+    rr(g, 1, -10 + by, 1, 1, pal.steel);
+    rr(g, -4, -10 + by, 2, 4, pal.leatherL);
+    rr(g, -4, -11 + by, 1, 1, pal.steel);
+    rr(g, -3, -11 + by, 1, 1, pal.steelS);
+    drawArm(g, pal, pose.arms[1], false);
+    if (st === "act") drawCrossbow(g, pal, pose.arms[1].hand[0], pose.arms[1].hand[1] + by);
+    /* голова */
+    var hX = L * 2, hy = by;
+    /* лицо */
+    rr(g, -2 + hX, -20 + hy, 5, 4, pal.skin);
+    rr(g, -2 + hX, -20 + hy, 1, 4, pal.skinS);
+    rr(g, 0 + hX, -19 + hy, 2, 1, pal.hair);
+    rr(g, 0 + hX, -18 + hy, 1, 1, pal.white);
+    rr(g, 1 + hX, -18 + hy, 1, 1, pal.eye);
+    rr(g, 3 + hX, -18 + hy, 1, 1, pal.skinS);
+    /* шарф, закрывающий подбородок */
+    rr(g, -3 + hX, -16 + hy, 6, 2, pal.scarf);
+    rr(g, -2 + hX, -16 + hy, 5, 1, pal.scarfL);
+    rr(g, -3 + hX, -15 + hy, 2, 1, pal.scarfS);
+    /* высокая меховая шапка с ушком */
+    rr(g, -2 + hX, -26 + hy, 4, 1, pal.coatL);
+    rr(g, -3 + hX, -25 + hy, 6, 1, pal.furL);
+    rr(g, -3 + hX, -24 + hy, 6, 2, pal.fur);
+    rr(g, -4 + hX, -22 + hy, 8, 2, pal.fur);
+    rr(g, -4 + hX, -22 + hy, 8, 1, pal.furL);
+    rr(g, -3 + hX, -24 + hy, 1, 2, pal.furS);
+    rr(g, 0 + hX, -23 + hy, 1, 1, pal.furS);
+    rr(g, 2 + hX, -24 + hy, 1, 1, pal.furS);
+    rr(g, -4 + hX, -20 + hy, 2, 3, pal.furS);
+    rr(g, -4 + hX, -20 + hy, 1, 3, pal.fur);
+    if (st === "act") rr(g, 9 + hX, -15 + hy, 2, 1, pal.steel);
+  }
+
+  /* ── Опора (bjorn): кузнечные очки, косица, щит-кузнечный круг ── */
+  function drawBjornShieldOverhead(g, pal, by) {
+    var y = -30;
+    /* круг ребром: линза из стали с латунным ободом */
+    rr(g, -1, y - 1, 2, 1, pal.brassL);
+    rr(g, -8, y, 16, 1, pal.steelL);
+    rr(g, -10, y + 1, 20, 1, pal.steel);
+    rr(g, -10, y + 2, 20, 1, pal.steelS);
+    rr(g, -8, y + 3, 16, 1, pal.steelD);
+    rr(g, -10, y + 1, 1, 2, pal.brass);
+    rr(g, 9, y + 1, 1, 2, pal.brass);
+    rr(g, -9, y, 1, 1, pal.brassS);
+    rr(g, 8, y, 1, 1, pal.brassS);
+    /* заклёпки по кругу */
+    rr(g, -7, y + 1, 1, 1, pal.brassL);
+    rr(g, -4, y + 1, 1, 1, pal.brassL);
+    rr(g, 3, y + 1, 1, 1, pal.brassL);
+    rr(g, 6, y + 1, 1, 1, pal.brassL);
+    rr(g, -2, y + 1, 4, 2, pal.steelD);
+    rr(g, -1, y + 1, 2, 1, pal.brass);
+    /* ремни */
+    rr(g, -6, y + 4, 2, 2, pal.leather);
+    rr(g, 4, y + 4, 2, 2, pal.leather);
+  }
+
+  function drawBjornShield(g, pal) {
+    var sx = 4, sy = -10;
+    fillCircle(g, sx, sy, 6, pal.brassS);
+    fillCircle(g, sx, sy, 5, pal.steelS);
+    fillCircle(g, sx, sy, 4, pal.steel);
+    rr(g, sx - 3, sy - 4, 4, 1, pal.steelL);
+    rr(g, sx - 4, sy - 3, 2, 2, pal.steelL);
+    /* кольцо заклёпок */
+    rr(g, sx, sy - 4, 1, 1, pal.brassL);
+    rr(g, sx + 3, sy - 2, 1, 1, pal.brassL);
+    rr(g, sx + 3, sy + 2, 1, 1, pal.brassL);
+    rr(g, sx, sy + 4, 1, 1, pal.brassL);
+    rr(g, sx - 3, sy + 2, 1, 1, pal.brassL);
+    rr(g, sx - 3, sy - 2, 1, 1, pal.brassL);
+    /* умбон-наковаленка */
+    rr(g, sx - 1, sy - 1, 3, 3, pal.steelD);
+    rr(g, sx - 1, sy - 1, 2, 1, pal.brass);
+    rr(g, sx + 1, sy + 1, 1, 1, pal.steelS);
+  }
+
+  function drawBjorn(g, pal, pose, st, f, t) {
+    var by = -pose.bob, L = pose.lean;
+    drawLeg(g, pal, pose.legs[0], true);
+    drawLeg(g, pal, pose.legs[1], false);
+    drawArm(g, pal, pose.arms[0], true, st === "brace");
+    /* торс-трапеция: широкие плечи, узкая талия */
+    rr(g, -4, -15 + by, 9, 3, pal.vest);
+    rr(g, -3, -12 + by, 7, 3, pal.vest);
+    rr(g, -3, -9 + by, 6, 3, pal.vest);
+    rr(g, -4, -15 + by, 9, 1, pal.vestL);
+    rr(g, -4, -14 + by, 1, 2, pal.vestS);
+    rr(g, -3, -12 + by, 1, 6, pal.vestS);
+    /* стёжка жилета */
+    rr(g, -1, -13 + by, 1, 6, pal.vestS);
+    rr(g, 2, -13 + by, 1, 6, pal.vestS);
+    rr(g, 3, -12 + by, 1, 3, pal.vestL);
+    /* кольчужные наплечья */
+    rr(g, -4, -16 + by, 2, 2, pal.sleeve);
+    rr(g, 3, -16 + by, 2, 2, pal.sleeve);
+    rr(g, 3, -16 + by, 2, 1, pal.sleeveL);
+    /* ремень с латунной пряжкой */
+    rr(g, -3, -7 + by, 6, 1, pal.leather);
+    rr(g, 0, -7 + by, 2, 1, pal.brass);
+    drawArm(g, pal, pose.arms[1], false, st === "brace");
+    /* голова: бритая, очки на лбу */
+    var hX = L * 2, hy = by;
+    rr(g, -2 + hX, -23 + hy, 4, 1, pal.skin);
+    rr(g, -3 + hX, -22 + hy, 6, 6, pal.skin);
+    rr(g, -3 + hX, -22 + hy, 1, 6, pal.skinS);
+    rr(g, -2 + hX, -23 + hy, 2, 1, shade(pal.skin, 1.12));
+    rr(g, 3 + hX, -19 + hy, 1, 2, pal.skin);
+    /* ремешок очков и линза */
+    rr(g, -3 + hX, -21 + hy, 6, 1, pal.leather);
+    rr(g, 0 + hX, -22 + hy, 3, 2, pal.brass);
+    rr(g, 1 + hX, -22 + hy, 1, 1, pal.glassL);
+    rr(g, 1 + hX, -21 + hy, 1, 1, pal.glass);
+    rr(g, -2 + hX, -22 + hy, 1, 1, pal.brassS);
+    /* ухо, бровь, глаз */
+    rr(g, -2 + hX, -19 + hy, 1, 2, pal.skinS);
+    rr(g, 0 + hX, -20 + hy, 2, 1, pal.beardS);
+    rr(g, 0 + hX, -19 + hy, 1, 1, pal.white);
+    rr(g, 1 + hX, -19 + hy, 1, 1, pal.eye);
+    rr(g, 2 + hX, -18 + hy, 1, 1, pal.skinS);
+    /* короткая тёмная борода с косицей и латунным кольцом */
+    rr(g, -1 + hX, -17 + hy, 5, 1, pal.beard);
+    rr(g, -2 + hX, -16 + hy, 5, 2, pal.beard);
+    rr(g, 0 + hX, -17 + hy, 3, 1, pal.beardL);
+    rr(g, -2 + hX, -16 + hy, 1, 2, pal.beardS);
+    rr(g, 0 + hX, -14 + hy, 2, 2, pal.beard);
+    rr(g, 0 + hX, -12 + hy, 2, 1, pal.brass);
+    /* щит */
+    if (st === "brace" || st === "act") drawBjornShieldOverhead(g, pal, by);
+    else drawBjornShield(g, pal);
+  }
+
+  function drawDeadViking(g, pal, id) {
+    /* лежит на земле, головой в +x */
+    if (id === "snorri") {
+      rr(g, -7, -6, 12, 5, pal.sleeveS);
+      rr(g, -7, -6, 12, 1, pal.sleeve);
+      rr(g, -4, -5, 8, 3, pal.apron);
+      rr(g, -4, -5, 8, 1, pal.apronL);
+      rr(g, -8, -3, 3, 3, pal.boot);
+      rr(g, -8, -3, 3, 1, pal.bootL);
+      rr(g, 3, -8, 3, 2, pal.copper);
+      rr(g, 4, -10, 6, 5, pal.hood);
+      rr(g, 4, -10, 6, 1, pal.hoodL);
+      rr(g, 10, -8, 2, 1, pal.hoodS);
+      rr(g, 6, -8, 3, 2, pal.skin);
+      rr(g, 7, -7, 1, 1, pal.eye);
+    } else if (id === "gunnar") {
+      rr(g, -7, -6, 12, 5, pal.coatS);
+      rr(g, -7, -6, 12, 1, pal.coat);
+      rr(g, -7, -2, 10, 1, pal.fur);
+      rr(g, -8, -3, 3, 3, pal.boot);
+      rr(g, -8, -3, 3, 1, pal.bootL);
+      rr(g, 3, -6, 4, 2, pal.scarf);
+      rr(g, 4, -9, 4, 3, pal.skin);
+      rr(g, 6, -8, 1, 1, pal.eye);
+      rr(g, 9, -6, 4, 3, pal.fur);
+      rr(g, 9, -6, 4, 1, pal.furL);
+      rr(g, -6, -9, 6, 1, pal.wood);
+      rr(g, -1, -11, 1, 4, pal.steel);
+    } else {
+      rr(g, -7, -6, 12, 5, pal.vestS);
+      rr(g, -7, -6, 12, 1, pal.vest);
+      rr(g, -8, -3, 3, 3, pal.boot);
+      rr(g, -8, -3, 3, 1, pal.bootL);
+      rr(g, 4, -10, 6, 5, pal.skin);
+      rr(g, 4, -10, 6, 1, shade(pal.skin, 1.12));
+      rr(g, 7, -10, 2, 2, pal.brass);
+      rr(g, 3, -6, 5, 2, pal.beard);
+      rr(g, 6, -7, 1, 1, pal.eye);
+      fillCircle(g, -3, -9, 3, pal.steelS);
+      fillCircle(g, -3, -9, 2, pal.steel);
+      rr(g, -3, -9, 1, 1, pal.brass);
+    }
+    rr(g, -2, -14, 1, 1, "rgba(220,230,255,0.45)");
+    rr(g, -4, -16, 1, 1, "rgba(220,230,255,0.3)");
+  }
+
+  /* номер кадра по состоянию и времени анимации (тайминги прежние) */
+  function heroFrame(st, anim) {
+    anim = anim || 0;
+    if (st === "run") return Math.floor(anim * 7.5) % 4;
+    if (st === "idle") return Math.floor(anim * 2.2) % 2;
+    if (st === "jump" || st === "fall") return Math.floor(anim * 4) % 2;
+    return Math.floor(anim * 6) % 3;
+  }
+
+  function heroId(id) { return (id === "snorri" || id === "gunnar" || id === "bjorn") ? id : "snorri"; }
+
+  /* герой целиком: id, состояние (idle/run/jump/fall/act/brace), время анимации, t, активен ли */
+  function drawHero(g, id, st, anim, t, active) {
+    id = heroId(id);
+    var pal = active ? CHARS[id] : dimPal(id);
+    var f = heroFrame(st, anim);
+    var pose = pickPose(st, f);
+    if (id === "bjorn") {
+      pose.legs[0].hip = -3; pose.legs[1].hip = 3;
+      pose.arms[0].sh = -4; pose.arms[1].sh = 4;
+      if (st === "idle" || st === "run") {
+        pose.arms[0].el[0] = -4; pose.arms[0].hand[0] = -4;
+        pose.arms[1].el[0] = 5; pose.arms[1].hand[0] = 5;
+      }
+    }
+    if (id === "snorri") drawSnorri(g, pal, pose, st, f, t);
+    else if (id === "gunnar") drawGunnar(g, pal, pose, st, f, t);
+    else drawBjorn(g, pal, pose, st, f, t);
+  }
+
+  function drawHeroDead(g, id, active) {
+    id = heroId(id);
+    drawDeadViking(g, active ? CHARS[id] : dimPal(id), id);
+  }
+  /* ==== HERO-SPRITES:END ==== */
+
   function drawActiveMarker(g, x, y, top, t) {
     var bob = Math.round(Math.abs(Math.sin(t * 3.4)) * 2);
     var my = y - top - 5 - bob;
@@ -3862,320 +4218,28 @@
     rr(g, x - 5, y - 1, 10, 1, "rgba(255,214,110,0.16)");
   }
 
-  /* ── Snorri: swift, red hair, horned helmet, headbutt ── */
-  function drawSnorri(g, pal, pose, st, f, t) {
-    var by = -pose.bob, lean = pose.lean;
-    drawLeg(g, pal, pose.legs[0], true);
-    drawLeg(g, pal, pose.legs[1], false);
-    drawArm(g, pal, pose.arms[0], true);
-    /* torso */
-    rr(g, -3 + lean, -14 + by, 6, 8, pal.tunic);
-    rr(g, -3 + lean, -14 + by, 6, 1, pal.tunicL);
-    rr(g, -3 + lean, -13 + by, 1, 7, pal.tunicS);
-    rr(g, 1 + lean, -12 + by, 2, 1, pal.tunicL);
-    rr(g, -3 + lean, -9 + by, 6, 1, pal.leather);
-    rr(g, -1 + lean, -9 + by, 2, 1, pal.gold);
-    rr(g, -2 + lean, -12 + by, 1, 3, pal.leather);
-    if (st === "act") {
-      rr(g, -6 + lean, -12 + by, 2, 1, pal.tunicS);
-      rr(g, -7 + lean, -10 + by, 2, 1, pal.tunicS);
-    }
-    drawArm(g, pal, pose.arms[1], false);
-    /* head */
-    var hx = lean * 2, hy = by;
-    /* hair at the back */
-    rr(g, -4 + hx, -19 + hy, 1, 4, pal.hairS);
-    rr(g, -5 + hx, -17 + hy, 1, 2, pal.hair);
-    /* horns */
-    rr(g, -4 + hx, -20 + hy, 2, 2, pal.cream);
-    rr(g, -5 + hx, -22 + hy, 2, 2, pal.cream);
-    rr(g, -6 + hx, -24 + hy, 1, 2, pal.creamL);
-    rr(g, 3 + hx, -20 + hy, 2, 2, pal.cream);
-    rr(g, 4 + hx, -22 + hy, 2, 2, pal.cream);
-    rr(g, 5 + hx, -24 + hy, 1, 2, pal.creamL);
-    /* helmet */
-    rr(g, -2 + hx, -23 + hy, 4, 1, pal.metalL);
-    rr(g, -3 + hx, -22 + hy, 6, 2, pal.metal);
-    rr(g, -3 + hx, -20 + hy, 6, 1, pal.metalS);
-    rr(g, -3 + hx, -19 + hy, 6, 1, pal.metalD);
-    rr(g, -2 + hx, -21 + hy, 1, 1, pal.gold);
-    rr(g, 2 + hx, -21 + hy, 1, 1, pal.gold);
-    /* face */
-    rr(g, -2 + hx, -18 + hy, 5, 4, pal.skin);
-    rr(g, -2 + hx, -18 + hy, 5, 1, pal.skinS);
-    rr(g, 1 + hx, -17 + hy, 1, 1, pal.white);
-    rr(g, 2 + hx, -17 + hy, 1, 1, pal.eye);
-    rr(g, 1 + hx, -18 + hy, 2, 1, pal.hairS);
-    rr(g, 3 + hx, -16 + hy, 1, 2, pal.skinS);
-    rr(g, 3 + hx, -15 + hy, 1, 1, pal.skin);
-    /* beard */
-    rr(g, -2 + hx, -15 + hy, 4, 2, pal.hair);
-    rr(g, -1 + hx, -13 + hy, 3, 1, pal.hair);
-    rr(g, 1 + hx, -15 + hy, 2, 1, pal.hairL);
-    rr(g, 1 + hx, -14 + hy, 1, 1, "#6a2c10");
-    rr(g, -3 + hx, -18 + hy, 1, 4, pal.hairS);
-    if (st === "act") {
-      rr(g, -9 + hx, -22 + hy, 2, 1, pal.goldL);
-      rr(g, -10 + hx, -20 + hy, 2, 1, pal.gold);
-      rr(g, -8 + hx, -24 + hy, 1, 1, pal.white);
-    }
-  }
-
-  /* ── Gunnar: fierce, green tunic, sword & bow ── */
-  function drawBowOnBack(g, pal) {
-    limb(g, -5, -17, -4, -10, 1, pal.bowS);
-    limb(g, -4, -10, -5, -6, 1, pal.bowS);
-    limb(g, -5, -17, -5, -6, 1, pal.string);
-  }
-
-  function drawSword(g, pal, hx, hy) {
-    rr(g, hx, hy - 8, 1, 8, pal.blade);
-    rr(g, hx, hy - 9, 1, 1, pal.bladeS);
-    rr(g, hx + 1, hy - 7, 1, 5, pal.bladeS);
-    rr(g, hx - 1, hy - 1, 3, 1, pal.gold);
-    rr(g, hx, hy, 1, 1, pal.leather);
-    rr(g, hx - 1, hy - 2, 3, 1, pal.goldL);
-  }
-
-  function drawBow(g, pal, hx, hy) {
-    limb(g, hx + 1, hy - 7, hx + 2, hy - 4, 1, pal.bowL);
-    limb(g, hx + 2, hy - 4, hx + 2, hy + 4, 1, pal.bow);
-    limb(g, hx + 2, hy + 4, hx + 1, hy + 7, 1, pal.bowL);
-    limb(g, hx, hy - 6, hx, hy + 6, 1, pal.string);
-    rr(g, hx, hy, 2, 1, pal.blade);
-  }
-
-  function drawGunnar(g, pal, pose, st, f, t) {
-    var by = -pose.bob, lean = pose.lean;
-    drawLeg(g, pal, pose.legs[0], true);
-    drawLeg(g, pal, pose.legs[1], false);
-    drawArm(g, pal, pose.arms[0], true);
-    if (st !== "act") drawBowOnBack(g, pal);
-    /* torso */
-    rr(g, -3, -15 + by, 6, 9, pal.tunic);
-    rr(g, -3, -15 + by, 6, 1, pal.tunicL);
-    rr(g, -3, -14 + by, 1, 8, pal.tunicS);
-    rr(g, 1, -14 + by, 2, 1, pal.tunicL);
-    /* leather harness (diagonal 1px) */
-    rr(g, -2, -13 + by, 1, 2, pal.leather);
-    rr(g, -1, -11 + by, 1, 2, pal.leather);
-    rr(g, 0, -9 + by, 1, 2, pal.leather);
-    rr(g, -3, -8 + by, 6, 1, pal.leather);
-    rr(g, 1, -8 + by, 1, 1, pal.gold);
-    /* shoulder pads */
-    rr(g, -4, -15 + by, 2, 2, pal.leather);
-    rr(g, 3, -15 + by, 2, 2, pal.leather);
-    rr(g, -4, -15 + by, 2, 1, pal.leatherL);
-    rr(g, 3, -15 + by, 2, 1, pal.leatherL);
-    drawArm(g, pal, pose.arms[1], false);
-    if (st !== "act") drawSword(g, pal, pose.arms[1].hand[0] - 1, pose.arms[1].hand[1] + by);
-    if (st === "act") drawBow(g, pal, pose.arms[1].hand[0], pose.arms[1].hand[1] + by);
-    /* head */
-    var hx = lean * 2, hy = by;
-    rr(g, -3 + hx, -19 + hy, 1, 2, pal.hairS);
-    /* helmet dome + brim */
-    rr(g, -2 + hx, -23 + hy, 4, 1, pal.metalL);
-    rr(g, -3 + hx, -22 + hy, 6, 2, pal.metal);
-    rr(g, -3 + hx, -20 + hy, 6, 1, pal.metalS);
-    rr(g, -3 + hx, -19 + hy, 6, 1, pal.gold);
-    rr(g, -3 + hx, -18 + hy, 6, 1, pal.metalD);
-    /* nose guard */
-    rr(g, 1 + hx, -19 + hy, 1, 3, pal.metalS);
-    /* face */
-    rr(g, -2 + hx, -18 + hy, 4, 3, pal.skin);
-    rr(g, 1 + hx, -17 + hy, 1, 1, pal.white);
-    rr(g, 2 + hx, -17 + hy, 1, 1, pal.eye);
-    rr(g, 1 + hx, -18 + hy, 2, 1, pal.hairS);
-    rr(g, 2 + hx, -16 + hy, 1, 1, pal.skinS);
-    /* brown beard */
-    rr(g, -3 + hx, -16 + hy, 6, 2, pal.hair);
-    rr(g, -2 + hx, -14 + hy, 5, 2, pal.hair);
-    rr(g, -1 + hx, -12 + hy, 3, 1, pal.hair);
-    rr(g, -1 + hx, -16 + hy, 3, 1, pal.hairL);
-    rr(g, 1 + hx, -15 + hy, 1, 1, "#3a1e08");
-    rr(g, 2 + hx, -14 + hy, 1, 2, pal.hairS);
-    rr(g, 2 + hx, -12 + hy, 1, 1, pal.gold);
-    rr(g, -3 + hx, -16 + hy, 1, 2, pal.hairS);
-    if (st === "act") {
-      rr(g, 4 + hx, -15 + hy, 2, 1, pal.goldL);
-    }
-  }
-
-  /* ── Bjorn: stout, blue tunic, round shield ── */
-  function drawBjornShieldOverhead(g, pal, by) {
-    var y = -30;
-    rr(g, -10, y, 20, 1, pal.woodL);
-    rr(g, -10, y + 1, 20, 2, pal.wood);
-    rr(g, -10, y + 3, 20, 1, pal.woodS);
-    /* metal end caps + rim */
-    rr(g, -10, y, 2, 4, pal.iron);
-    rr(g, 8, y, 2, 4, pal.iron);
-    rr(g, -10, y, 2, 1, shade(pal.iron, 1.25));
-    rr(g, 8, y, 2, 1, shade(pal.iron, 1.25));
-    rr(g, -10, y + 3, 2, 1, pal.ironS);
-    rr(g, 8, y + 3, 2, 1, pal.ironS);
-    /* planks + boss + straps */
-    rr(g, -6, y + 1, 1, 2, pal.woodS);
-    rr(g, -2, y + 1, 1, 2, pal.woodS);
-    rr(g, 2, y + 1, 1, 2, pal.woodS);
-    rr(g, 6, y + 1, 1, 2, pal.woodS);
-    rr(g, -2, y + 1, 4, 2, pal.iron);
-    rr(g, -1, y + 1, 2, 1, pal.ironS);
-    rr(g, -6, y + 4, 2, 2, pal.leather);
-    rr(g, 4, y + 4, 2, 2, pal.leather);
-    /* rivets */
-    rr(g, -8, y + 2, 1, 1, pal.gold);
-    rr(g, 7, y + 2, 1, 1, pal.gold);
-  }
-
-  function drawBjornShield(g, pal) {
-    var sx = 4, sy = -10;
-    fillCircle(g, sx, sy, 5, pal.ironS);
-    fillCircle(g, sx, sy, 4, pal.wood);
-    rr(g, sx - 4, sy - 1, 8, 1, pal.woodL);
-    rr(g, sx - 4, sy + 1, 8, 1, pal.woodS);
-    fillCircle(g, sx, sy, 2, pal.iron);
-    rr(g, sx - 1, sy - 1, 2, 1, pal.ironS);
-    rr(g, sx - 4, sy - 3, 1, 1, pal.gold);
-    rr(g, sx + 3, sy + 2, 1, 1, pal.gold);
-  }
-
-  function drawBjorn(g, pal, pose, st, f, t) {
-    var by = -pose.bob, lean = pose.lean;
-    drawLeg(g, pal, pose.legs[0], true);
-    drawLeg(g, pal, pose.legs[1], false);
-    drawArm(g, pal, pose.arms[0], true, st === "brace");
-    /* torso — wide and round */
-    rr(g, -4, -15 + by, 8, 10, pal.tunic);
-    rr(g, -4, -15 + by, 8, 1, pal.tunicL);
-    rr(g, -4, -14 + by, 1, 9, pal.tunicS);
-    rr(g, -3, -11 + by, 6, 2, pal.tunicL);
-    rr(g, -3, -10 + by, 6, 1, shade(pal.tunic, 1.12));
-    rr(g, -4, -8 + by, 8, 1, pal.leather);
-    rr(g, -1, -8 + by, 2, 1, pal.gold);
-    /* fur collar */
-    rr(g, -4, -15 + by, 8, 1, pal.fur);
-    rr(g, -3, -16 + by, 6, 1, pal.furS);
-    drawArm(g, pal, pose.arms[1], false, st === "brace");
-    /* head */
-    var hx = lean * 2, hy = by;
-    /* helmet */
-    rr(g, -2 + hx, -23 + hy, 4, 1, pal.metalL);
-    rr(g, -4 + hx, -22 + hy, 8, 2, pal.metalS);
-    rr(g, -4 + hx, -20 + hy, 8, 1, pal.metal);
-    rr(g, -4 + hx, -19 + hy, 8, 1, pal.metalD);
-    rr(g, -3 + hx, -22 + hy, 1, 1, pal.gold);
-    rr(g, 2 + hx, -22 + hy, 1, 1, pal.gold);
-    rr(g, 0 + hx, -19 + hy, 1, 1, pal.metalD);
-    /* face */
-    rr(g, -3 + hx, -18 + hy, 7, 5, pal.skin);
-    rr(g, -3 + hx, -18 + hy, 7, 1, pal.skinS);
-    rr(g, -2 + hx, -17 + hy, 1, 1, pal.white);
-    rr(g, -2 + hx, -16 + hy, 2, 1, pal.eye);
-    rr(g, 2 + hx, -17 + hy, 1, 1, pal.white);
-    rr(g, 2 + hx, -16 + hy, 2, 1, pal.eye);
-    rr(g, -3 + hx, -17 + hy, 1, 1, pal.hairS);
-    rr(g, 3 + hx, -17 + hy, 1, 1, pal.hairS);
-    rr(g, 0 + hx, -16 + hy, 2, 2, pal.skinS);
-    rr(g, -3 + hx, -14 + hy, 1, 1, pal.blush);
-    rr(g, 3 + hx, -14 + hy, 1, 1, pal.blush);
-    /* big blond beard */
-    rr(g, -4 + hx, -14 + hy, 9, 3, pal.hair);
-    rr(g, -3 + hx, -11 + hy, 7, 2, pal.hair);
-    rr(g, -2 + hx, -9 + hy, 5, 1, pal.hairS);
-    rr(g, -1 + hx, -14 + hy, 4, 1, pal.hairL);
-    rr(g, -1 + hx, -13 + hy, 2, 1, "#b08a5a");
-    /* shield */
-    if (st === "brace" || st === "act") drawBjornShieldOverhead(g, pal, by);
-    else drawBjornShield(g, pal);
-  }
-
-  function drawDeadViking(g, pal, id) {
-    /* sprawled on the ground, head toward +x */
-    rr(g, -7, -6, 12, 5, pal.tunicS);
-    rr(g, -7, -6, 12, 1, pal.tunic);
-    rr(g, -8, -3, 3, 3, pal.boot);
-    rr(g, -8, -3, 3, 1, pal.bootL);
-    if (id === "snorri") {
-      rr(g, -1, -9, 7, 4, pal.skin);
-      rr(g, 3, -12, 6, 3, pal.metal);
-      rr(g, 3, -12, 6, 1, pal.metalL);
-      rr(g, 8, -12, 2, 2, pal.cream);
-      rr(g, 2, -13, 2, 2, pal.cream);
-      rr(g, 4, -10, 5, 1, pal.metalD);
-      rr(g, 0, -7, 7, 2, pal.hair);
-      rr(g, 3, -5, 1, 1, pal.eye);
-      rr(g, 5, -5, 1, 1, pal.eye);
-    } else if (id === "gunnar") {
-      rr(g, -1, -9, 7, 4, pal.skin);
-      rr(g, 2, -11, 6, 2, pal.metal);
-      rr(g, 2, -10, 6, 1, pal.gold);
-      rr(g, 1, -8, 6, 2, pal.hair);
-      rr(g, 4, -5, 1, 1, pal.eye);
-      rr(g, 6, -5, 1, 1, pal.eye);
-      rr(g, -7, -12, 1, 5, pal.bow);
-      rr(g, -6, -6, 1, 1, pal.blade);
-    } else {
-      rr(g, -1, -10, 8, 5, pal.skin);
-      rr(g, 1, -12, 7, 3, pal.metalS);
-      rr(g, 1, -11, 7, 1, pal.metalD);
-      rr(g, 0, -7, 8, 2, pal.hair);
-      rr(g, 4, -6, 1, 1, pal.eye);
-      rr(g, 6, -6, 1, 1, pal.eye);
-      rr(g, -8, -8, 1, 1, pal.skin);
-    }
-    rr(g, -2, -14, 1, 1, "rgba(220,230,255,0.45)");
-    rr(g, -4, -16, 1, 1, "rgba(220,230,255,0.3)");
-  }
-
   function drawViking(g, a, v) {
-    var id = a.id;
-    if (id !== "snorri" && id !== "gunnar" && id !== "bjorn") id = "snorri";
+    var id = heroId(a.id);
     var st = a.state || "idle";
     if (st === "gone") return;
     var active = !!a.active;
-    var palBase = active ? CHARS[id] : dimPal(id);
     var x = Math.round(a.x), y = Math.round(a.y);
     var t = v.t || 0;
-    var anim = a.anim || 0;
-    var f;
-    if (st === "run") f = Math.floor(anim * 7.5) % 4;
-    else if (st === "idle") f = Math.floor(anim * 2.2) % 2;
-    else if (st === "jump" || st === "fall") f = Math.floor(anim * 4) % 2;
-    else f = Math.floor(anim * 6) % 3;
     /* shadow */
     rr(g, x - 5, y - 1, 10, 2, "rgba(0,0,0,0.36)");
     rr(g, x - 3, y - 1, 6, 1, "rgba(0,0,0,0.45)");
     if (active) rr(g, x - 6, y - 1, 12, 1, "rgba(255,214,110,0.14)");
-    if (st === "dead") {
-      g.save();
-      g.translate(x, y);
-      g.scale(a.dir < 0 ? -1 : 1, 1);
-      drawDeadViking(g, palBase, id);
-      g.restore();
-    } else {
-      var pose = pickPose(st, f);
-      if (id === "bjorn") {
-        pose.legs[0].hip = -3; pose.legs[1].hip = 3;
-        pose.arms[0].sh = -4; pose.arms[1].sh = 4;
-        if (st === "idle" || st === "run") {
-          pose.arms[0].el[0] = -4; pose.arms[0].hand[0] = -4;
-          pose.arms[1].el[0] = 5; pose.arms[1].hand[0] = 5;
-        }
-      }
-      g.save();
-      g.translate(x, y);
-      g.scale(a.dir < 0 ? -1 : 1, 1);
-      if (id === "snorri") drawSnorri(g, palBase, pose, st, f, t);
-      else if (id === "gunnar") drawGunnar(g, palBase, pose, st, f, t);
-      else drawBjorn(g, palBase, pose, st, f, t);
-      g.restore();
-      if (a.shield && id === "bjorn" && st !== "brace" && st !== "act") {
-        rr(g, x - 10, y - 30, 20, 2, "rgba(220,230,240,0.30)");
-      }
+    g.save();
+    g.translate(x, y);
+    g.scale(a.dir < 0 ? -1 : 1, 1);
+    if (st === "dead") drawHeroDead(g, id, active);
+    else drawHero(g, id, st, a.anim || 0, t, active);
+    g.restore();
+    if (st !== "dead" && a.shield && id === "bjorn" && st !== "brace" && st !== "act") {
+      rr(g, x - 10, y - 30, 20, 2, "rgba(220,230,240,0.30)");
     }
     if (active) {
-      var top = (id === "bjorn" && (st === "brace" || st === "act")) ? 33 : 25;
+      var top = (id === "bjorn" && (st === "brace" || st === "act")) ? 33 : (id === "gunnar" ? 28 : 25);
       drawActiveMarker(g, x, y, top, t);
     }
   }
@@ -4406,162 +4470,165 @@
     }
   }
 
+  /* Таран: кожаный капюшон, фартук с лямками, медный наплечник */
   function portraitSnorri(g, P, pal, blink, bob) {
-    /* horns */
-    P(2, 5, 2, 3, pal.cream); P(1, 3, 2, 3, pal.cream); P(2, 2, 1, 2, pal.creamL);
-    P(20, 5, 2, 3, pal.cream); P(21, 3, 2, 3, pal.cream); P(21, 2, 1, 2, pal.creamL);
-    /* helmet */
-    P(5, 2, 14, 2, pal.metalL);
-    P(4, 4, 16, 5, pal.metal);
-    P(4, 4, 16, 1, pal.metalL);
-    P(4, 9, 16, 2, pal.metalS);
-    P(4, 10, 16, 1, pal.metalD);
-    P(7, 6, 1, 1, pal.gold); P(16, 6, 1, 1, pal.gold);
-    /* face */
-    P(6, 11, 12, 7, pal.skin);
-    P(6, 11, 12, 1, pal.skinS);
-    P(6, 11, 2, 4, pal.hairS); /* temples */
-    P(16, 11, 2, 4, pal.hairS);
-    /* brows + eyes */
+    /* капюшон */
+    P(7, 2, 10, 1, pal.hoodL);
+    P(5, 3, 14, 2, pal.hood);
+    P(8, 3, 6, 1, pal.hoodL);
+    P(4, 5, 16, 12, pal.hood);
+    P(4, 5, 2, 12, pal.hoodS);
+    P(18, 5, 2, 12, pal.hoodS);
+    /* лицо в проёме */
+    P(7, 7, 10, 10, pal.skin);
+    P(6, 7, 1, 10, pal.hoodS);
+    P(17, 7, 1, 10, pal.hoodS);
+    P(7, 7, 10, 1, pal.hoodL);
+    P(8, 8, 8, 1, pal.hair);
+    P(7, 8, 1, 3, pal.hair); P(16, 8, 1, 3, pal.hair);
     if (blink) {
-      P(7, 13, 3, 1, pal.hairS); P(14, 13, 3, 1, pal.hairS);
-      P(8, 14, 2, 1, pal.skinD); P(14, 14, 2, 1, pal.skinD);
-    } else {
-      P(7, 12, 3, 1, pal.hairS); P(14, 12, 3, 1, pal.hairS);
-      P(7, 13, 2, 2, "#f4f7ff"); P(14, 13, 2, 2, "#f4f7ff");
-      P(8, 14, 1, 1, "#231a2e"); P(15, 14, 1, 1, "#231a2e");
-    }
-    /* nose + grin */
-    P(11, 13, 2, 3, pal.skinS);
-    P(11, 15, 1, 1, pal.skinD);
-    P(9, 17, 6, 1, "#7a3a20");
-    P(10, 17, 4, 1, "#f4e6d0");
-    P(7, 16, 1, 1, pal.blush || "#e8a070");
-    P(16, 16, 1, 1, "#e8a070");
-    /* big red beard */
-    P(4, 15, 2, 4, pal.hair);
-    P(18, 15, 2, 4, pal.hair);
-    P(5, 18, 14, 4, pal.hair);
-    P(6, 21, 12, 3, pal.hair);
-    P(8, 23, 8, 2, pal.hair);
-    P(10, 24, 4, 2, pal.hair);
-    P(9, 17, 6, 1, pal.hairL);
-    P(6, 19, 2, 1, pal.hairS); P(12, 22, 2, 1, pal.hairS); P(10, 20, 1, 2, pal.hairS);
-    /* tunic shoulders */
-    P(2, 25, 20, 3, pal.tunic);
-    P(2, 25, 20, 1, pal.tunicL);
-    P(2, 27, 20, 1, pal.tunicS);
-    P(6, 25, 2, 3, pal.leather); P(16, 25, 2, 3, pal.leather);
-    P(11, 26, 2, 2, pal.gold);
-    P(9, 24, 6, 1, pal.leather);
-  }
-
-  function portraitGunnar(g, P, pal, blink, bob) {
-    /* bow behind left shoulder */
-    P(2, 9, 1, 3, pal.bowL); P(1, 12, 1, 8, pal.bow); P(2, 20, 1, 3, pal.bowL); P(0, 10, 1, 2, pal.bow);
-    /* sheathed sword behind right shoulder */
-    P(20, 3, 1, 10, pal.blade); P(21, 2, 1, 3, pal.bladeS);
-    P(19, 12, 4, 1, pal.gold); P(20, 13, 2, 3, pal.leather); P(19, 16, 4, 1, pal.gold);
-    /* helmet */
-    P(5, 3, 14, 2, pal.metalL);
-    P(4, 5, 16, 5, pal.metal);
-    P(4, 5, 16, 1, pal.metalL);
-    P(4, 10, 16, 2, pal.metalS);
-    P(4, 11, 16, 1, pal.metalD);
-    P(5, 10, 16, 1, pal.gold);
-    /* nose guard */
-    P(11, 11, 2, 8, pal.metalD);
-    P(11, 11, 1, 7, pal.metalS);
-    /* face */
-    P(6, 12, 12, 6, pal.skin);
-    P(6, 12, 12, 1, pal.skinS);
-    P(6, 12, 1, 5, pal.hairS);
-    if (blink) {
-      P(7, 14, 3, 1, pal.hairS); P(14, 14, 3, 1, pal.hairS);
-    } else {
-      P(7, 13, 3, 1, pal.hairS); P(14, 13, 3, 1, pal.hairS);
-      P(7, 14, 2, 2, "#f4f7ff"); P(15, 14, 2, 2, "#f4f7ff");
-      P(8, 15, 1, 1, "#231a2e"); P(16, 15, 1, 1, "#231a2e");
-    }
-    P(10, 14, 2, 3, pal.skinS);
-    /* moustache + huge brown beard */
-    P(9, 17, 6, 1, pal.hairL);
-    P(4, 17, 16, 4, pal.hair);
-    P(5, 21, 14, 3, pal.hair);
-    P(7, 23, 10, 2, pal.hair);
-    P(9, 25, 6, 1, pal.hair);
-    P(5, 19, 2, 1, pal.hairS); P(15, 20, 2, 1, pal.hairS); P(10, 21, 1, 2, pal.hairS);
-    /* braids with gold beads */
-    P(4, 20, 2, 4, pal.hair); P(18, 20, 2, 4, pal.hair);
-    P(4, 24, 2, 2, pal.gold); P(18, 24, 2, 2, pal.gold);
-    /* green tunic shoulders */
-    P(2, 25, 20, 3, pal.tunic);
-    P(2, 25, 20, 1, pal.tunicL);
-    P(2, 27, 20, 1, pal.tunicS);
-    P(3, 24, 18, 1, pal.leather);
-    P(6, 25, 2, 3, pal.leather); P(16, 25, 2, 3, pal.leather);
-    P(11, 25, 2, 2, pal.gold);
-  }
-
-  function portraitBjorn(g, P, pal, blink, bob, t) {
-    var i, dy, w;
-    /* round shield behind */
-    for (dy = -11; dy <= 11; dy++) {
-      w = Math.floor(Math.sqrt(121 - dy * dy));
-      g.fillStyle = dy < 0 ? pal.ironS : shade(pal.ironS, 0.8);
-      g.fillRect((12 - w) * 2, (23 + dy + bob) * 2, w * 2 * 2, 2);
-    }
-    for (dy = -9; dy <= 9; dy++) {
-      w = Math.floor(Math.sqrt(81 - dy * dy));
-      g.fillStyle = dy < -2 ? pal.woodL : pal.wood;
-      g.fillRect((12 - w) * 2, (23 + dy + bob) * 2, w * 2 * 2, 2);
-    }
-    for (i = 0; i < 3; i++) P(3 + i * 7, 14 + i, 1, 13, shade(pal.wood, 0.7));
-    fillCircle(g, 24, (23 + bob) * 2, 5, pal.iron);
-    rr(g, 22, (22 + bob) * 2, 4, 2, pal.ironS);
-    rr(g, 16, (15 + bob) * 2, 2, 2, pal.gold);
-    rr(g, 30, (30 + bob) * 2, 2, 2, pal.gold);
-    /* shoulders: blue, wide */
-    P(1, 25, 22, 3, pal.tunic);
-    P(1, 25, 22, 1, pal.tunicL);
-    P(1, 27, 22, 1, pal.tunicS);
-    P(4, 24, 16, 1, "#cfd8e4");
-    /* helmet */
-    P(5, 2, 14, 2, pal.metalL);
-    P(4, 4, 16, 3, pal.metalS);
-    P(4, 7, 16, 2, pal.metal);
-    P(4, 9, 16, 1, pal.metalD);
-    P(7, 5, 1, 1, pal.gold); P(16, 5, 1, 1, pal.gold);
-    P(11, 7, 2, 5, pal.metalD); /* nose guard */
-    /* face */
-    P(6, 10, 12, 8, pal.skin);
-    P(6, 10, 12, 1, pal.skinS);
-    P(7, 16, 2, 1, pal.blush); P(15, 16, 2, 1, pal.blush);
-    P(11, 14, 2, 3, pal.skinS);
-    if (blink) {
+      P(8, 11, 3, 1, pal.hair); P(13, 11, 3, 1, pal.hair);
       P(8, 12, 2, 1, pal.skinD); P(14, 12, 2, 1, pal.skinD);
     } else {
-      P(7, 12, 2, 2, "#f4f7ff"); P(15, 12, 2, 2, "#f4f7ff");
-      P(8, 13, 1, 1, "#231a2e"); P(16, 13, 1, 1, "#231a2e");
-      P(7, 11, 3, 1, pal.hairS); P(14, 11, 3, 1, pal.hairS);
+      P(8, 10, 3, 1, pal.hair); P(13, 10, 3, 1, pal.hair);
+      P(8, 11, 2, 2, pal.white); P(14, 11, 2, 2, pal.white);
+      P(9, 12, 1, 1, pal.eye); P(14, 12, 1, 1, pal.eye);
     }
-    /* mighty light beard */
-    P(4, 17, 16, 4, pal.hair);
-    P(3, 19, 18, 3, pal.hair);
-    P(5, 22, 14, 3, pal.hair);
-    P(7, 24, 10, 2, pal.hair);
-    P(9, 26, 6, 1, pal.hair);
-    P(7, 18, 10, 1, pal.hairL);
-    P(5, 21, 1, 2, pal.hairS); P(17, 22, 1, 2, pal.hairS); P(11, 23, 2, 2, pal.hairS);
-    /* moustache */
-    P(8, 18, 8, 1, pal.hairL);
-    P(9, 19, 6, 1, pal.hair);
-    /* warm breath in the cold */
+    P(11, 12, 2, 3, pal.skinS);
+    P(11, 14, 1, 1, pal.skinD);
+    P(10, 15, 4, 1, pal.skinD);
+    P(15, 13, 2, 1, pal.skinD); /* сажа на скуле */
+    P(8, 16, 8, 1, pal.skinS);
+    /* пелерина капюшона на плечах */
+    P(3, 17, 18, 3, pal.hood);
+    P(7, 17, 10, 1, pal.hoodS);
+    P(3, 19, 18, 1, pal.hoodS);
+    /* рубаха */
+    P(1, 20, 22, 8, pal.sleeve);
+    P(1, 20, 22, 1, pal.sleeveL);
+    P(1, 21, 1, 7, pal.sleeveS);
+    /* фартук с лямками */
+    P(8, 20, 8, 8, pal.apron);
+    P(8, 20, 8, 1, pal.apronL);
+    P(8, 21, 1, 7, pal.apronS);
+    P(10, 24, 4, 1, pal.apronS);
+    P(7, 20, 1, 8, pal.leather); P(16, 20, 1, 8, pal.leather);
+    /* медный наплечник */
+    P(0, 19, 7, 3, pal.copper);
+    P(0, 19, 7, 1, pal.copperL);
+    P(1, 22, 5, 1, pal.copperS);
+    P(2, 20, 1, 1, pal.emberL); P(5, 20, 1, 1, pal.emberL);
+  }
+
+  /* Стрелок: высокая меховая шапка с ушами, шарф, кафтан; арбалет за спиной */
+  function portraitGunnar(g, P, pal, blink, bob) {
+    /* арбалет за левым плечом */
+    P(1, 8, 1, 10, pal.steel);
+    P(2, 7, 1, 1, pal.steelS); P(2, 18, 1, 1, pal.steelS);
+    P(2, 12, 4, 1, pal.wood); P(2, 13, 3, 1, pal.woodS);
+    /* шапка */
+    P(8, 0, 8, 1, pal.coatL);
+    P(6, 1, 12, 2, pal.furL);
+    P(5, 3, 14, 4, pal.fur);
+    P(4, 7, 16, 2, pal.fur);
+    P(4, 7, 16, 1, pal.furL);
+    P(7, 4, 1, 1, pal.furS); P(11, 3, 1, 1, pal.furS); P(15, 5, 1, 1, pal.furS);
+    P(9, 6, 1, 1, pal.furS); P(6, 8, 1, 1, pal.furS); P(13, 8, 1, 1, pal.furS);
+    /* уши шапки */
+    P(4, 9, 2, 7, pal.furS); P(18, 9, 2, 7, pal.furS);
+    P(4, 9, 1, 7, pal.fur); P(19, 9, 1, 7, pal.fur);
+    /* лицо */
+    P(6, 9, 12, 7, pal.skin);
+    P(6, 9, 12, 1, pal.skinS);
+    if (blink) {
+      P(7, 12, 3, 1, pal.hair); P(14, 12, 3, 1, pal.hair);
+    } else {
+      P(7, 11, 3, 1, pal.hair); P(14, 11, 3, 1, pal.hair);
+      P(7, 12, 2, 2, pal.white); P(15, 12, 2, 2, pal.white);
+      P(8, 13, 1, 1, pal.eye); P(15, 13, 1, 1, pal.eye);
+    }
+    P(11, 12, 2, 3, pal.skinS);
+    /* шарф до носа */
+    P(5, 15, 14, 4, pal.scarf);
+    P(5, 15, 14, 1, pal.scarfL);
+    P(8, 17, 1, 2, pal.scarfS); P(14, 16, 1, 2, pal.scarfS);
+    /* кафтан и меховой ворот */
+    P(1, 19, 22, 9, pal.coat);
+    P(1, 19, 22, 1, pal.coatL);
+    P(1, 20, 1, 8, pal.coatS);
+    P(4, 19, 16, 2, pal.fur);
+    P(4, 19, 16, 1, pal.furL);
+    P(11, 21, 1, 7, pal.coatS);
+    P(13, 23, 1, 1, pal.steel); P(13, 26, 1, 1, pal.steel);
+    /* хвост шарфа */
+    P(15, 19, 3, 6, pal.scarf);
+    P(15, 19, 1, 6, pal.scarfS);
+    P(15, 25, 3, 1, pal.scarfL);
+  }
+
+  /* Опора: бритая голова, кузнечные очки на лбу, борода-косица; щит-кузнечный круг */
+  function portraitBjorn(g, P, pal, blink, bob, t) {
+    var dy, w;
+    /* щит за спиной */
+    for (dy = -11; dy <= 11; dy++) {
+      w = Math.floor(Math.sqrt(121 - dy * dy));
+      g.fillStyle = pal.brassS;
+      g.fillRect((12 - w) * 2, (23 + dy + bob) * 2, w * 2 * 2, 2);
+    }
+    for (dy = -10; dy <= 10; dy++) {
+      w = Math.floor(Math.sqrt(100 - dy * dy));
+      g.fillStyle = dy < -3 ? pal.steelL : dy < 4 ? pal.steel : pal.steelS;
+      g.fillRect((12 - w) * 2, (23 + dy + bob) * 2, w * 2 * 2, 2);
+    }
+    var rv = [[12, 15], [18, 17], [20, 23], [4, 23], [6, 17]];
+    for (var i = 0; i < rv.length; i++) P(rv[i][0], rv[i][1], 1, 1, pal.brassL);
+    /* плечи: стёганый жилет, кольчужные наплечья */
+    P(0, 21, 24, 7, pal.vest);
+    P(0, 21, 24, 1, pal.vestL);
+    P(5, 22, 1, 6, pal.vestS); P(18, 22, 1, 6, pal.vestS);
+    P(0, 20, 5, 4, pal.sleeve); P(19, 20, 5, 4, pal.sleeve);
+    P(1, 21, 1, 1, pal.sleeveL); P(3, 22, 1, 1, pal.sleeveL); P(20, 21, 1, 1, pal.sleeveL); P(22, 22, 1, 1, pal.sleeveL);
+    P(0, 23, 5, 1, pal.sleeveS); P(19, 23, 5, 1, pal.sleeveS);
+    /* шея */
+    P(9, 17, 6, 4, pal.skinS);
+    /* голова */
+    P(8, 3, 8, 1, pal.skin);
+    P(6, 4, 12, 13, pal.skin);
+    P(9, 4, 4, 1, shade(pal.skin, 1.15));
+    P(6, 5, 1, 11, pal.skinS); P(17, 5, 1, 11, pal.skinS);
+    P(5, 10, 1, 3, pal.skinS); P(18, 10, 1, 3, pal.skinS);
+    /* кузнечные очки на лбу */
+    P(5, 7, 14, 1, pal.leather);
+    P(7, 5, 4, 3, pal.brass); P(13, 5, 4, 3, pal.brass);
+    P(8, 6, 2, 1, pal.glass); P(14, 6, 2, 1, pal.glass);
+    P(8, 6, 1, 1, pal.glassL); P(14, 6, 1, 1, pal.glassL);
+    P(7, 7, 4, 1, pal.brassS); P(13, 7, 4, 1, pal.brassS);
+    /* брови, глаза, нос */
+    if (blink) {
+      P(8, 11, 2, 1, pal.skinD); P(14, 11, 2, 1, pal.skinD);
+      P(7, 10, 4, 1, pal.beardS); P(13, 10, 4, 1, pal.beardS);
+    } else {
+      P(7, 9, 4, 1, pal.beardS); P(13, 9, 4, 1, pal.beardS);
+      P(8, 10, 2, 2, pal.white); P(14, 10, 2, 2, pal.white);
+      P(9, 11, 1, 1, pal.eye); P(14, 11, 1, 1, pal.eye);
+    }
+    P(11, 11, 2, 3, pal.skinS);
+    /* усы и короткая борода с косицей */
+    P(8, 14, 8, 1, pal.beard);
+    P(10, 15, 4, 1, pal.skinD);
+    P(7, 15, 3, 2, pal.beard); P(14, 15, 3, 2, pal.beard);
+    P(8, 17, 8, 1, pal.beard);
+    P(9, 16, 6, 1, pal.beardL);
+    P(11, 18, 2, 4, pal.beard);
+    P(11, 18, 1, 4, pal.beardL);
+    P(11, 22, 2, 1, pal.brass);
+    P(11, 23, 2, 1, pal.beardS);
+    /* тёплое дыхание на морозе */
     var puff = (t * 0.9) % 3;
     if (puff < 0.7) {
       g.globalAlpha = 1 - puff / 0.7;
-      rr(g, 20, (19 + bob) * 2, 2, 1, "#cfe0f0");
-      rr(g, 23, (18 + bob) * 2, 2, 1, "#cfe0f0");
+      rr(g, 20, (16 + bob) * 2, 2, 1, "#cfe0f0");
+      rr(g, 23, (15 + bob) * 2, 2, 1, "#cfe0f0");
       g.globalAlpha = 1;
     }
   }
@@ -4815,7 +4882,10 @@
     init: init,
     draw: draw,
     drawPortrait: drawPortrait,
-    drawTitle: drawTitle
+    drawTitle: drawTitle,
+    /* общий с сагой 2 пиксель-арт героев (блок HERO-SPRITES; тест единства спрайтов) */
+    drawHero: drawHero,
+    drawHeroDead: drawHeroDead
   };
 })();
 
@@ -4917,24 +4987,35 @@
   function pal(theme) { return PAL[theme] || PAL.cave; }
 
   /* ------------------------------------------------------- character colours */
+  /* Палитры героев (modern). accent/accent2/glow — цвета-метки героя (двери, ауры, HUD) — прежние;
+     одежда и снаряжение — облик мастеров кузни (см. drawVikingBody). */
   var CHAR = {
     snorri: {
-      accent: "#ff8a4d", accent2: "#ffc078", glow: "#ff7a3d", cloth: "#2a1517",
-      cloth2: "#7a2a22", cloak: "#8c3527", cloak2: "#d8543a", fur: "#3a2a28",
-      metal: "#c8d4e4", metalDark: "#5a6a80", skin: "#e8b48a", beard: "#d86a32",
-      eye: "#ffe6b0", rune: 0
+      accent: "#ff8a4d", accent2: "#ffc078", glow: "#ff7a3d",
+      cloth: "#3c414e", cloth2: "#4c5263", armN: "#525a6c", armF: "#2c3039",
+      pants: "#4a3a30", pantsF: "#2e241e", boot: "#3a2c22", hand: "#5a3a26",
+      hood: "#7a5e4c", hoodL: "#a8876c", hoodS: "#4a382e",
+      apron: "#8c5a34", apronL: "#c08852", apronS: "#5e3c22",
+      copper: "#d27c3e", copperL: "#f6b47a",
+      metal: "#c8d4e4", metalDark: "#5a6a80", skin: "#e8b48a", hair: "#2e2220",
+      eye: "#2a1a14", rune: 0
     },
     gunnar: {
-      accent: "#5af0a8", accent2: "#b6ffd0", glow: "#3ff0a0", cloth: "#1d4a36",
-      cloth2: "#2a6b4e", cloak: "#16382c", cloak2: "#1f5a42", fur: "#3a3426",
-      metal: "#aabccc", metalDark: "#4a5a68", skin: "#d8a878", beard: "#8a5a34",
-      eye: "#ccffd8", rune: 1
+      accent: "#5af0a8", accent2: "#b6ffd0", glow: "#3ff0a0",
+      cloth: "#2f7a78", cloth2: "#1f5452", armN: "#348582", armF: "#1d4c4a",
+      pants: "#5a4e42", pantsF: "#3a322a", boot: "#3a2c22", hand: "#eebf95",
+      fur: "#b8ab94", furL: "#d9cfbc", scarf: "#a33c50", wood: "#8a5a2e",
+      metal: "#c4ccd8", metalDark: "#56626e", skin: "#eebf95", hair: "#3a2a20",
+      eye: "#1a2620", rune: 1
     },
     bjorn: {
-      accent: "#6fc0ff", accent2: "#bfe6ff", glow: "#4aa8ff", cloth: "#24405e",
-      cloth2: "#2f5a80", cloak: "#1a2c42", cloak2: "#24405e", fur: "#c8d4e0",
-      metal: "#b8c8da", metalDark: "#56687c", skin: "#e0b088", beard: "#b8c4d4",
-      eye: "#d8ecff", rune: 3
+      accent: "#6fc0ff", accent2: "#bfe6ff", glow: "#4aa8ff",
+      cloth: "#3e5878", cloth2: "#2a3d56", armN: "#9aa3ae", armF: "#6c7480",
+      pants: "#4a443d", pantsF: "#2e2a26", boot: "#3a2c22", hand: "#d9a47c",
+      mail: "#aab3be", brass: "#d4a03c", brassL: "#f6d680", glass: "#8fe4f2",
+      steel: "#b6c0cc", steelD: "#4e5866", beard: "#4a2e1e",
+      metal: "#b8c8da", metalDark: "#56687c", skin: "#d9a47c", hair: "#2e1c12",
+      eye: "#16202e", rune: 3
     }
   };
   function charPal(id) { return CHAR[id] || CHAR.snorri; }
@@ -6992,7 +7073,7 @@
     ctx.strokeStyle = "rgba(0,0,0,0.6)";
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = c.metal;
+    ctx.fillStyle = c.hood || c.fur || c.skin;
     ctx.beginPath(); ctx.arc(x - 4.6, y - 3.4, 2.3, 0, TAU); ctx.fill();
     ctx.strokeStyle = c.accent;
     ctx.globalAlpha = 0.4;
@@ -7006,6 +7087,10 @@
     ctx.globalCompositeOperation = "source-over";
   }
 
+  /* Облик героев (modern): Таран — капюшон, фартук, медный наплечник, молот на поясе;
+     Стрелок — меховая шапка, длинный кафтан, шарф, арбалет; Опора — бритая голова, кузнечные очки,
+     борода-косица, стёганый жилет, кольчужные рукава, большой круглый щит-кузнечный круг.
+     Позы, руки/ноги и их фазы — прежние (геймплей и хитбоксы не зависят от отрисовки). */
   function drawVikingBody(ctx, a, c, state, t, p) {
     var id = a.id;
     var run = state === "run";
@@ -7018,8 +7103,9 @@
 
     var bjorn = id === "bjorn";
     var gunnar = id === "gunnar";
-    var shW = bjorn ? 4.2 : gunnar ? 3.5 : 2.9;
-    var waistW = bjorn ? 3.4 : gunnar ? 2.8 : 2.2;
+    var snorri = !bjorn && !gunnar;
+    var shW = bjorn ? 4.4 : gunnar ? 3.3 : 3.0;
+    var waistW = bjorn ? 2.7 : gunnar ? 2.7 : 2.3;
     var hipY = -9.4 + bob;
     var shY = -17.2 + bob;
     var lean = 0;
@@ -7029,66 +7115,34 @@
     if (act && id === "snorri") lean = 2.4;
     if (act && id === "gunnar") lean = 0.5;
     if (brace) lean = 0.6;
+    var sway = run ? Math.sin(ph * 0.5) * 1.8 : Math.sin(ph * 0.6) * 0.7;
 
-    /* ---- cloak / back-gear (behind everything) ---- */
-    if (id === "snorri") {
-      var sway = run ? Math.sin(ph * 0.5) * 1.8 : Math.sin(ph * 0.6) * 0.7;
-      ctx.fillStyle = c.cloak;
-      ctx.beginPath();
-      ctx.moveTo(-1.2, shY + 0.4);
-      ctx.quadraticCurveTo(-3.6, shY + 4.4, -4.6 + sway, -5.4);
-      ctx.quadraticCurveTo(-3.2 + sway * 0.5, -6.2, -1.6, -10.4);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = c.accent;
-      ctx.globalAlpha = 0.5;
-      ctx.lineWidth = 0.55;
-      ctx.beginPath();
-      ctx.moveTo(-1.4, shY + 1);
-      ctx.quadraticCurveTo(-3.4, shY + 4.8, -4.4 + sway, -5.6);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    } else if (id === "gunnar") {
-      /* quiver on the back */
+    /* ---- снаряжение за спиной ---- */
+    if (gunnar && !act) {
+      /* арбалет за спиной: ложе наискось + стальная дуга у плеча */
       ctx.save();
-      ctx.translate(-2.2, -12.4);
-      ctx.rotate(0.5);
-      ctx.fillStyle = c.fur;
-      roundRect(ctx, -1.6, -5.4, 3.2, 8.6, 1.2);
+      ctx.translate(-2.4, -12.6);
+      ctx.rotate(0.62);
+      ctx.fillStyle = c.wood;
+      roundRect(ctx, -0.8, -6.2, 1.6, 10.4, 0.6);
       ctx.fill();
-      ctx.strokeStyle = "rgba(0,0,0,0.5)";
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-      ctx.strokeStyle = c.accent;
-      ctx.globalAlpha = 0.6;
-      ctx.beginPath(); ctx.moveTo(-1.2, -4.6); ctx.lineTo(1.2, -4.6); ctx.stroke();
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = "#a88050";
-      ctx.lineWidth = 0.55;
-      for (var q = 0; q < 3; q++) {
-        ctx.beginPath();
-        ctx.moveTo(-1 + q, -5.2);
-        ctx.lineTo(-1 + q + 1.2, -8.4);
-        ctx.stroke();
-      }
-      ctx.restore();
-    } else if (!brace) {
-      /* round shield on the back */
-      ctx.fillStyle = "#0c1522";
-      ctx.beginPath(); ctx.arc(-2.6, -12.4, 4.8, 0, TAU); ctx.fill();
-      ctx.strokeStyle = c.accent;
-      ctx.globalAlpha = 0.75;
-      ctx.lineWidth = 0.7;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = c.metal;
+      ctx.strokeStyle = "rgba(0,0,0,0.55)";
       ctx.lineWidth = 0.45;
-      ctx.beginPath(); ctx.arc(-2.6, -12.4, 3.2, 0, TAU); ctx.stroke();
-      ctx.fillStyle = c.accent2;
-      ctx.beginPath(); ctx.arc(-2.6, -12.4, 1.1, 0, TAU); ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = c.metal;
+      ctx.lineWidth = 0.9;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(-4.2, -4.4);
+      ctx.quadraticCurveTo(0, -6.6, 4.2, -4.4);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(230,240,255,0.6)";
+      ctx.lineWidth = 0.35;
+      ctx.beginPath(); ctx.moveTo(-4.2, -4.4); ctx.lineTo(4.2, -4.4); ctx.stroke();
+      ctx.restore();
     }
 
-    /* ---- legs ---- */
+    /* ---- ноги ---- */
     var footLx, footLy, footRx, footRy, kneeLx, kneeLy, kneeRx, kneeRy;
     if (air) {
       if (state === "jump") {
@@ -7123,178 +7177,273 @@
     hipY = -9.4 + bob;
     shY = -17.2 + bob;
 
-    var lw = bjorn ? 2.9 : gunnar ? 2.6 : 2.3;
-    /* far leg */
-    limbLeg(ctx, -1.6, hipY, kneeLx, kneeLy, footLx, footLy, lw, c.cloak, "#05070c", c.metalDark);
-    /* near leg */
-    limbLeg(ctx, 1.7, hipY, kneeRx, kneeRy, footRx, footRy, lw + 0.2, c.cloth2, "#05070c", c.metalDark);
+    var lw = bjorn ? 2.9 : gunnar ? 2.5 : 2.3;
+    limbLeg(ctx, -1.6, hipY, kneeLx, kneeLy, footLx, footLy, lw, c.pantsF, "#05070c", c.boot);
+    limbLeg(ctx, 1.7, hipY, kneeRx, kneeRy, footRx, footRy, lw + 0.2, c.pants, "#05070c", c.boot);
 
-    /* ---- torso ---- */
+    /* ---- торс ---- */
     var leanX = lean;
+    var lx = leanX * 0.4;
     ctx.beginPath();
-    ctx.moveTo(-shW + leanX * 0.4, shY);
-    ctx.quadraticCurveTo(leanX * 0.4, shY - 1.8, shW + leanX * 0.4, shY);
-    ctx.quadraticCurveTo(waistW + 1, (shY + hipY) / 2, waistW, hipY);
-    ctx.quadraticCurveTo(0, hipY + 1.3, -waistW, hipY);
-    ctx.quadraticCurveTo(-waistW - 1, (shY + hipY) / 2, -shW + leanX * 0.4, shY);
+    ctx.moveTo(-shW + lx, shY);
+    ctx.quadraticCurveTo(lx, shY - 1.8, shW + lx, shY);
+    if (bjorn) {
+      /* трапеция: широкие плечи → узкая талия */
+      ctx.lineTo(waistW + 0.4, hipY);
+      ctx.quadraticCurveTo(0, hipY + 1.1, -waistW - 0.4, hipY);
+      ctx.lineTo(-shW + lx, shY);
+    } else {
+      ctx.quadraticCurveTo(waistW + 1, (shY + hipY) / 2, waistW, hipY);
+      ctx.quadraticCurveTo(0, hipY + 1.3, -waistW, hipY);
+      ctx.quadraticCurveTo(-waistW - 1, (shY + hipY) / 2, -shW + lx, shY);
+    }
     ctx.closePath();
     ctx.fillStyle = c.cloth;
     ctx.fill();
     ctx.strokeStyle = "rgba(0,0,0,0.55)";
     ctx.lineWidth = 1.1;
     ctx.stroke();
-    /* tunic panel */
-    ctx.fillStyle = c.cloth2;
-    ctx.globalAlpha = 0.55;
-    ctx.beginPath();
-    ctx.moveTo(-waistW + 0.6, hipY - 0.6);
-    ctx.lineTo(-shW + 0.9 + leanX * 0.4, shY + 0.8);
-    ctx.lineTo(shW - 1.1 + leanX * 0.4, shY + 0.8);
-    ctx.lineTo(waistW - 0.7, hipY - 0.6);
-    ctx.closePath();
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    /* belt */
-    ctx.fillStyle = "#0a0d14";
-    ctx.fillRect(-waistW, hipY - 1.3, waistW * 2, 1.7);
-    ctx.fillStyle = c.metal;
-    ctx.fillRect(leanX * 0.4 - 1, hipY - 1.7, 2, 2.2);
-    ctx.fillStyle = c.accent;
-    ctx.globalAlpha = 0.8;
-    ctx.fillRect(leanX * 0.4 - 0.5, hipY - 1.2, 1, 1.1);
-    ctx.globalAlpha = 1;
-    /* fur collar */
-    if (bjorn || gunnar) {
-      ctx.fillStyle = id === "bjorn" ? c.fur : c.fur;
-      roundRect(ctx, -shW + 0.2 + leanX * 0.4, shY - 1.6, shW * 2 - 0.4, 2.3, 1.1);
+
+    if (gunnar) {
+      /* полы кафтана до колен с меховой оторочкой */
+      var flare = run ? Math.sin(ph) * 0.6 : 0;
+      ctx.fillStyle = c.cloth;
+      ctx.beginPath();
+      ctx.moveTo(-waistW, hipY - 1);
+      ctx.lineTo(waistW, hipY - 1);
+      ctx.lineTo(waistW + 1.4 + flare, -4.2);
+      ctx.lineTo(-waistW - 1.6 - sway * 0.3, -4.2);
+      ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = "rgba(0,0,0,0.35)";
-      ctx.lineWidth = 0.4;
+      ctx.strokeStyle = "rgba(0,0,0,0.5)";
+      ctx.lineWidth = 0.8;
       ctx.stroke();
+      ctx.fillStyle = c.fur;
+      roundRect(ctx, -waistW - 1.8 - sway * 0.3, -5.1, waistW * 2 + 3.4 + flare, 1.4, 0.7);
+      ctx.fill();
+      /* застёжка */
+      ctx.strokeStyle = c.cloth2;
+      ctx.lineWidth = 0.6;
+      ctx.beginPath(); ctx.moveTo(1 + lx, shY + 1); ctx.lineTo(1.2, -5); ctx.stroke();
+      /* пояс + колчан болтов на бедре */
+      ctx.fillStyle = "#2a1c12";
+      ctx.fillRect(-waistW, hipY - 2.2, waistW * 2, 1.2);
+      ctx.fillStyle = "#6a4428";
+      roundRect(ctx, -waistW - 1.6, hipY - 2.6, 1.8, 4.4, 0.5);
+      ctx.fill();
+      ctx.fillStyle = c.metal;
+      ctx.fillRect(-waistW - 1.4, hipY - 3.5, 0.5, 1);
+      ctx.fillRect(-waistW - 0.6, hipY - 3.3, 0.5, 0.8);
+    } else if (snorri) {
+      /* кузнечный фартук: от груди до колен */
+      ctx.fillStyle = c.apron;
+      ctx.beginPath();
+      ctx.moveTo(-0.6 + lx, shY + 1.2);
+      ctx.lineTo(2.4 + lx, shY + 1.2);
+      ctx.lineTo(2.9 + leanX * 0.3, -4);
+      ctx.lineTo(-1.2 + leanX * 0.3, -4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.5)";
+      ctx.lineWidth = 0.6;
+      ctx.stroke();
+      ctx.fillStyle = c.apronL;
+      ctx.globalAlpha = 0.7;
+      ctx.fillRect(1.6 + lx, shY + 2, 0.6, 9);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = c.apronS;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.moveTo(-0.2 + lx, hipY + 0.6); ctx.lineTo(2.4 + lx, hipY + 0.6); ctx.stroke();
+      /* лямка */
+      ctx.strokeStyle = "#2a1c12";
+      ctx.lineWidth = 0.6;
+      ctx.beginPath(); ctx.moveTo(0.4 + lx, shY + 1.2); ctx.lineTo(-1.4 + lx, shY - 0.6); ctx.stroke();
+      /* пояс сзади и кузнечный молот на бедре */
+      ctx.fillStyle = "#1a120c";
+      ctx.fillRect(-waistW, hipY - 1.3, 2.2, 1.4);
+      ctx.save();
+      ctx.translate(-waistW - 0.2, hipY - 0.4);
+      ctx.rotate(0.25 + sway * 0.05);
+      ctx.fillStyle = "#6a4428";
+      ctx.fillRect(-0.35, -0.4, 0.7, 5.2);
+      ctx.fillStyle = c.metal;
+      roundRect(ctx, -1.6, 4.2, 3.2, 1.8, 0.4);
+      ctx.fill();
+      ctx.restore();
+    } else {
+      /* стёганый жилет */
+      ctx.strokeStyle = c.cloth2;
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(-1.4 + lx, shY + 1); ctx.lineTo(-1.1, hipY);
+      ctx.moveTo(1.6 + lx, shY + 1); ctx.lineTo(1.3, hipY);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.beginPath();
+      ctx.moveTo(-shW + 1 + lx, shY + 0.6); ctx.lineTo(shW - 1 + lx, shY + 0.6);
+      ctx.lineTo(waistW - 0.4, hipY - 3); ctx.lineTo(-waistW + 0.4, hipY - 3);
+      ctx.closePath(); ctx.fill();
+      /* ремень с латунной пряжкой */
+      ctx.fillStyle = "#1a120c";
+      ctx.fillRect(-waistW - 0.4, hipY - 1.4, waistW * 2 + 0.8, 1.6);
+      ctx.fillStyle = c.brass;
+      ctx.fillRect(lx - 1, hipY - 1.7, 2, 2.2);
+      /* кольчужные наплечья */
+      ctx.fillStyle = c.mail;
+      ctx.beginPath(); ctx.ellipse(-shW + 0.8 + lx, shY + 0.6, 1.5, 1.1, 0, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(shW - 0.8 + lx, shY + 0.6, 1.5, 1.1, 0, 0, TAU); ctx.fill();
+    }
+    if (!bjorn) {
+      /* пряжка-искра */
+      ctx.fillStyle = c.accent;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(lx - 0.5 + (gunnar ? 0.6 : -1.6), hipY - (gunnar ? 2 : 1.2), 1, 1);
+      ctx.globalAlpha = 1;
     }
 
-    /* ---- head ---- */
+    /* ---- голова ---- */
     var headX = 0.6 + leanX;
     var headY = -20 + bob;
-    /* neck */
     ctx.fillStyle = c.skin;
     ctx.fillRect(headX - 1.2, headY + 2.4, 2.4, 2.4);
-    /* face */
-    ctx.fillStyle = c.skin;
-    ctx.beginPath(); ctx.arc(headX, headY, 3.1, 0, TAU); ctx.fill();
-    /* beard */
-    ctx.fillStyle = c.beard;
-    if (id === "snorri") {
+
+    if (snorri) {
+      /* хвост капюшона, свисающий за спину */
+      ctx.fillStyle = c.hoodS;
       ctx.beginPath();
-      ctx.moveTo(headX - 2.9, headY + 0.6);
-      ctx.quadraticCurveTo(headX - 2.4, headY + 3.4, headX + 0.4, headY + 3.6);
-      ctx.quadraticCurveTo(headX + 2.8, headY + 3, headX + 2.9, headY + 0.4);
-      ctx.quadraticCurveTo(headX, headY + 1.8, headX - 2.9, headY + 0.6);
-      ctx.closePath();
-      ctx.fill();
-    } else if (id === "gunnar") {
-      ctx.beginPath();
-      ctx.moveTo(headX - 2.9, headY + 0.2);
-      ctx.quadraticCurveTo(headX - 2.4, headY + 4.6, headX - 0.2, headY + 5.4);
-      ctx.quadraticCurveTo(headX + 2.2, headY + 4.8, headX + 2.9, headY + 0.2);
-      ctx.quadraticCurveTo(headX, headY + 2.2, headX - 2.9, headY + 0.2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = "rgba(0,0,0,0.3)";
-      ctx.lineWidth = 0.35;
-      ctx.stroke();
-    } else {
-      ctx.beginPath();
-      ctx.moveTo(headX - 3.2, headY + 0.4);
-      ctx.quadraticCurveTo(headX - 2.6, headY + 4.4, headX, headY + 4.8);
-      ctx.quadraticCurveTo(headX + 2.6, headY + 4.4, headX + 3.2, headY + 0.4);
-      ctx.quadraticCurveTo(headX, headY + 2, headX - 3.2, headY + 0.4);
+      ctx.moveTo(headX - 2.2, headY - 2.6);
+      ctx.quadraticCurveTo(headX - 5.2 - sway * 0.6, headY - 1, headX - 5.4 - sway, headY + 3.2);
+      ctx.lineTo(headX - 2.6, headY + 1.4);
       ctx.closePath();
       ctx.fill();
     }
-    /* eyes */
+
+    ctx.fillStyle = c.skin;
+    ctx.beginPath(); ctx.arc(headX, headY, 3.1, 0, TAU); ctx.fill();
+
+    if (bjorn) {
+      /* бритая голова, короткая тёмная борода и косица с кольцом */
+      ctx.fillStyle = "rgba(255,240,220,0.35)";
+      ctx.beginPath(); ctx.ellipse(headX - 0.6, headY - 2.2, 1.6, 0.7, -0.3, 0, TAU); ctx.fill();
+      ctx.fillStyle = c.beard;
+      ctx.beginPath();
+      ctx.moveTo(headX - 2.6, headY + 0.6);
+      ctx.quadraticCurveTo(headX - 2, headY + 3.2, headX + 0.6, headY + 3.3);
+      ctx.quadraticCurveTo(headX + 2.8, headY + 2.8, headX + 3, headY + 0.6);
+      ctx.quadraticCurveTo(headX + 0.4, headY + 1.6, headX - 2.6, headY + 0.6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = c.beard;
+      ctx.lineWidth = 1;
+      ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(headX + 0.8, headY + 3); ctx.lineTo(headX + 0.9, headY + 5.4); ctx.stroke();
+      ctx.fillStyle = c.brass;
+      ctx.fillRect(headX + 0.3, headY + 5.2, 1.2, 0.8);
+    } else if (snorri) {
+      /* лёгкая щетина и сажа */
+      ctx.fillStyle = "rgba(40,24,18,0.35)";
+      ctx.beginPath(); ctx.ellipse(headX + 1, headY + 1.8, 1.9, 0.9, 0, 0, TAU); ctx.fill();
+    }
+
+    /* глаза */
     ctx.fillStyle = c.eye;
     ctx.globalAlpha = 0.95;
     ctx.beginPath(); ctx.ellipse(headX + 1.1, headY - 0.5, 0.55, 0.4, 0, 0, TAU); ctx.fill();
     ctx.beginPath(); ctx.ellipse(headX + 2.45, headY - 0.5, 0.45, 0.34, 0, 0, TAU); ctx.fill();
     ctx.globalAlpha = 1;
 
-    /* ---- helmets ---- */
-    if (id === "snorri") {
-      ctx.fillStyle = c.metalDark;
+    /* ---- головные уборы ---- */
+    if (snorri) {
+      /* кожаный капюшон: купол с проёмом для лица спереди */
+      ctx.fillStyle = c.hood;
       ctx.beginPath();
-      ctx.arc(headX, headY - 0.2, 3.5, Math.PI * 0.98, Math.PI * 2.02);
+      ctx.moveTo(headX + 2.6, headY - 1.4);
+      ctx.quadraticCurveTo(headX + 2.4, headY - 4.4, headX - 0.6, headY - 4.2);
+      ctx.quadraticCurveTo(headX - 4.2, headY - 3.6, headX - 3.9, headY + 0.6);
+      ctx.quadraticCurveTo(headX - 3.6, headY + 3.4, headX - 1, headY + 3.4);
+      ctx.lineTo(headX - 0.2, headY + 1.6);
+      ctx.quadraticCurveTo(headX - 1.6, headY - 0.6, headX - 0.4, headY - 1.8);
+      ctx.quadraticCurveTo(headX + 1, headY - 2.4, headX + 2.6, headY - 1.4);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = c.metal;
-      ctx.lineWidth = 0.5;
+      ctx.strokeStyle = "rgba(0,0,0,0.5)";
+      ctx.lineWidth = 0.45;
       ctx.stroke();
-      ctx.fillStyle = c.metal;
-      ctx.fillRect(headX - 3.6, headY - 1.1, 7.2, 1.6);
-      ctx.fillStyle = c.accent2;
-      ctx.globalAlpha = 0.7;
-      ctx.fillRect(headX - 3.7, headY - 1.15, 7.4, 0.5);
-      ctx.globalAlpha = 1;
-      /* horns */
-      ctx.strokeStyle = "#e8dcc4";
-      ctx.lineWidth = 1.25;
-      ctx.lineCap = "round";
+      ctx.strokeStyle = c.hoodL;
+      ctx.lineWidth = 0.55;
       ctx.beginPath();
-      ctx.moveTo(headX - 2.6, headY - 2.5);
-      ctx.quadraticCurveTo(headX - 5.4, headY - 4.4, headX - 3.6, headY - 6.2);
+      ctx.moveTo(headX + 2.5, headY - 1.5);
+      ctx.quadraticCurveTo(headX + 1, headY - 2.5, headX - 0.4, headY - 1.8);
       ctx.stroke();
+      /* пелерина на плечах */
+      ctx.fillStyle = c.hood;
       ctx.beginPath();
-      ctx.moveTo(headX + 2.6, headY - 2.5);
-      ctx.quadraticCurveTo(headX + 5.4, headY - 4.4, headX + 3.6, headY - 6.2);
-      ctx.stroke();
-      ctx.strokeStyle = "rgba(0,0,0,0.25)";
+      ctx.ellipse(headX - 0.6, shY + 0.2, shW + 0.3, 1.5, 0, 0, TAU);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.35)";
       ctx.lineWidth = 0.35;
       ctx.stroke();
-    } else if (id === "gunnar") {
-      ctx.fillStyle = c.metalDark;
+    } else if (gunnar) {
+      /* шарф, закрывающий подбородок, с хвостом по ветру */
+      ctx.fillStyle = c.scarf;
+      roundRect(ctx, headX - 2.9, headY + 0.9, 5.8, 2.6, 1.1);
+      ctx.fill();
       ctx.beginPath();
-      ctx.moveTo(headX - 3.6, headY - 0.8);
-      ctx.lineTo(headX + 0.4, headY - 5.8);
-      ctx.lineTo(headX + 3.6, headY - 0.8);
+      ctx.moveTo(headX - 2.4, headY + 2);
+      ctx.quadraticCurveTo(headX - 5 - sway, headY + 2.4, headX - 6.2 - sway * 1.4, headY + 4.6);
+      ctx.lineTo(headX - 4.6 - sway, headY + 4.4);
+      ctx.quadraticCurveTo(headX - 3.8, headY + 3.4, headX - 2, headY + 3.2);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = c.metal;
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-      ctx.fillStyle = c.metal;
-      ctx.fillRect(headX - 3.7, headY - 1.5, 7.4, 1.5);
-      /* nose guard */
-      ctx.fillRect(headX + 1.4, headY - 1.2, 1.1, 3.1);
-      ctx.fillStyle = c.accent;
-      ctx.globalAlpha = 0.65;
-      ctx.fillRect(headX + 1.55, headY - 1.1, 0.8, 2.8);
-      ctx.globalAlpha = 1;
-    } else {
-      ctx.fillStyle = c.metalDark;
+      ctx.strokeStyle = "rgba(255,255,255,0.22)";
+      ctx.lineWidth = 0.4;
+      ctx.beginPath(); ctx.moveTo(headX - 2.4, headY + 1.3); ctx.lineTo(headX + 2.4, headY + 1.3); ctx.stroke();
+      /* высокая меховая шапка */
+      ctx.fillStyle = c.fur;
       ctx.beginPath();
-      ctx.arc(headX, headY - 0.4, 3.6, Math.PI * 0.96, Math.PI * 2.04);
+      ctx.moveTo(headX - 3.5, headY - 0.9);
+      ctx.lineTo(headX - 3.9, headY - 4.2);
+      ctx.quadraticCurveTo(headX - 3.6, headY - 6.4, headX + 0.2, headY - 6.3);
+      ctx.quadraticCurveTo(headX + 4, headY - 6.4, headX + 4.1, headY - 4.2);
+      ctx.lineTo(headX + 3.5, headY - 0.9);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = c.metal;
-      ctx.lineWidth = 0.55;
+      ctx.strokeStyle = "rgba(0,0,0,0.45)";
+      ctx.lineWidth = 0.45;
       ctx.stroke();
-      ctx.fillStyle = c.metal;
-      ctx.fillRect(headX - 3.7, headY - 1.5, 7.4, 1.7);
-      /* cheek guards */
-      ctx.fillRect(headX - 3.7, headY - 1.4, 1.1, 3);
-      ctx.fillRect(headX + 2.6, headY - 1.4, 1.1, 3);
-      /* nose guard */
-      ctx.fillRect(headX + 0.9, headY - 1.3, 1.1, 2.9);
-      /* rivets */
-      ctx.fillStyle = c.metal;
-      for (var rv = 0; rv < 3; rv++) {
+      /* суконный верх и меховая опушка */
+      ctx.fillStyle = c.cloth2;
+      ctx.beginPath(); ctx.ellipse(headX + 0.2, headY - 5.9, 2.6, 0.7, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = c.furL;
+      roundRect(ctx, headX - 3.8, headY - 2.6, 7.6, 1.9, 0.9);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(90,80,60,0.45)";
+      ctx.lineWidth = 0.35;
+      for (var fz = 0; fz < 4; fz++) {
         ctx.beginPath();
-        ctx.arc(headX - 2.2 + rv * 2.2, headY - 2.2, 0.35, 0, TAU);
-        ctx.fill();
+        ctx.moveTo(headX - 2.4 + fz * 1.6, headY - 5.4 + (fz % 2) * 0.5);
+        ctx.lineTo(headX - 2.1 + fz * 1.6, headY - 3.6 + (fz % 2) * 0.5);
+        ctx.stroke();
       }
+      /* ухо шапки */
+      ctx.fillStyle = c.fur;
+      roundRect(ctx, headX - 3.6, headY - 1, 1.6, 3.2, 0.7);
+      ctx.fill();
+    } else {
+      /* кузнечные очки на лбу */
+      ctx.fillStyle = "#2a1c12";
+      ctx.fillRect(headX - 3.2, headY - 2.2, 6.4, 0.9);
+      ctx.fillStyle = c.brass;
+      ctx.beginPath(); ctx.arc(headX + 1.2, headY - 2.4, 1.25, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(headX + 3.2, headY - 2.2, 0.95, 0, TAU); ctx.fill();
+      ctx.fillStyle = c.glass;
+      ctx.beginPath(); ctx.arc(headX + 1.2, headY - 2.4, 0.75, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(headX + 3.2, headY - 2.2, 0.5, 0, TAU); ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(headX + 0.8, headY - 2.9, 0.4, 0.4);
     }
 
-    /* ---- arms ---- */
+    /* ---- руки ---- */
     var backHandX, backHandY, frontHandX, frontHandY;
     if (act && id === "gunnar") {
       frontHandX = 5.4 + leanX; frontHandY = -15.6 + bob;
@@ -7321,126 +7470,152 @@
       frontHandX = 3.9; frontHandY = -9.6 + bob;
       backHandX = -3.9; backHandY = -9.6 + bob;
     }
-    /* far arm */
-    limb(ctx, -shW + 0.6 + leanX * 0.4, shY + 1.4, -shW - 0.8 + leanX * 0.3, (shY + backHandY) / 2, backHandX, backHandY, bjorn ? 2.5 : 2.1, c.cloak, "#05070c");
-    /* near arm */
-    limb(ctx, shW - 0.6 + leanX * 0.4, shY + 1.4, shW + 1.1 + leanX * 0.3, (shY + frontHandY) / 2, frontHandX, frontHandY, bjorn ? 2.7 : 2.3, c.cloth2, "#05070c");
-    /* hands */
-    ctx.fillStyle = c.skin;
+    limb(ctx, -shW + 0.6 + leanX * 0.4, shY + 1.4, -shW - 0.8 + leanX * 0.3, (shY + backHandY) / 2, backHandX, backHandY, bjorn ? 2.5 : 2.1, c.armF, "#05070c");
+    limb(ctx, shW - 0.6 + leanX * 0.4, shY + 1.4, shW + 1.1 + leanX * 0.3, (shY + frontHandY) / 2, frontHandX, frontHandY, bjorn ? 2.7 : 2.3, c.armN, "#05070c");
+    /* кисти (у Тарана — кожаные краги) */
+    ctx.fillStyle = c.hand;
     ctx.beginPath(); ctx.arc(backHandX, backHandY, 1.15, 0, TAU); ctx.fill();
     ctx.beginPath(); ctx.arc(frontHandX, frontHandY, 1.25, 0, TAU); ctx.fill();
 
-    /* ---- weapons ---- */
-    if (id === "gunnar") {
+    if (snorri) {
+      /* медный наплечник на ведущем плече */
+      var pdx = shW - 0.4 + lx + (act ? 0.6 : 0), pdy = shY + 0.9;
+      ctx.fillStyle = c.copper;
+      ctx.beginPath();
+      ctx.ellipse(pdx, pdy, 2.2, 1.6, -0.25, Math.PI, TAU);
+      ctx.lineTo(pdx + 2.1, pdy + 0.9);
+      ctx.lineTo(pdx - 2.1, pdy + 0.9);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.5)";
+      ctx.lineWidth = 0.4;
+      ctx.stroke();
+      ctx.fillStyle = c.copperL;
+      ctx.fillRect(pdx - 1.4, pdy - 1.2, 2.4, 0.5);
+      ctx.fillStyle = c.accent2;
+      ctx.beginPath(); ctx.arc(pdx + 0.9, pdy - 0.1, 0.35, 0, TAU); ctx.fill();
       if (act) {
-        /* drawn bow */
-        ctx.strokeStyle = "#c9a06a";
-        ctx.lineWidth = 0.95;
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(frontHandX, frontHandY - 5.8);
-        ctx.quadraticCurveTo(frontHandX + 2.4, frontHandY, frontHandX, frontHandY + 5.8);
-        ctx.stroke();
-        ctx.strokeStyle = "rgba(230,240,255,0.75)";
-        ctx.lineWidth = 0.4;
-        ctx.beginPath();
-        ctx.moveTo(frontHandX, frontHandY - 5.8);
-        ctx.lineTo(backHandX, backHandY);
-        ctx.lineTo(frontHandX, frontHandY + 5.8);
-        ctx.stroke();
-        /* arrow */
-        ctx.strokeStyle = c.accent;
-        ctx.globalAlpha = 0.9;
-        ctx.lineWidth = 0.55;
-        ctx.beginPath();
-        ctx.moveTo(backHandX, backHandY);
-        ctx.lineTo(frontHandX + 8.4, frontHandY - 0.2);
-        ctx.stroke();
-        ctx.fillStyle = c.accent2;
-        ctx.beginPath();
-        ctx.moveTo(frontHandX + 9.6, frontHandY - 0.2);
-        ctx.lineTo(frontHandX + 7.6, frontHandY - 1);
-        ctx.lineTo(frontHandX + 7.6, frontHandY + 0.7);
-        ctx.closePath();
-        ctx.fill();
-        ctx.globalAlpha = 1;
+        /* искры удара плечом */
         ctx.globalCompositeOperation = "lighter";
-        glow(ctx, frontHandX + 8.6, frontHandY - 0.2, 3.4, c.accent, 0.5);
+        for (var sk = 0; sk < 5; sk++) {
+          var sa = -0.9 + sk * 0.42 + Math.sin(t * 9 + sk) * 0.15;
+          var sr = 3 + mod(t * 14 + sk * 1.7, 4);
+          glow(ctx, pdx + 2 + Math.cos(sa) * sr, pdy + Math.sin(sa) * sr, 1.3, sk % 2 ? c.accent2 : c.accent, 0.8);
+        }
         ctx.globalCompositeOperation = "source-over";
-      } else {
-        /* sheathed bow on the back */
-        ctx.strokeStyle = "#6b5232";
-        ctx.globalAlpha = 0.6;
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.moveTo(-4.2, -16.4);
-        ctx.quadraticCurveTo(-7.2, -12, -4.2, -7.6);
-        ctx.stroke();
         ctx.globalAlpha = 1;
       }
-      /* sword hilt at the hip */
-      ctx.fillStyle = "#c8d4e4";
-      ctx.fillRect(waistW - 0.8, hipY - 2.2, 1.2, 3.4);
-      ctx.fillStyle = c.accent;
-      ctx.fillRect(waistW - 1.6, hipY - 2.4, 2.8, 0.8);
     }
 
-    /* ---- Bjorn shield ---- */
-    if (id === "bjorn") {
+    /* ---- оружие Стрелка: арбалет ---- */
+    if (gunnar && act) {
+      var cx0 = backHandX - 0.6, cy0 = (backHandY + frontHandY) / 2;
+      /* ложе */
+      ctx.strokeStyle = c.wood;
+      ctx.lineWidth = 1.3;
+      ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(cx0, cy0 + 0.2); ctx.lineTo(frontHandX + 3.2, frontHandY); ctx.stroke();
+      /* стальная дуга поперёк */
+      ctx.strokeStyle = c.metal;
+      ctx.lineWidth = 0.9;
+      ctx.beginPath();
+      ctx.moveTo(frontHandX + 1.6, frontHandY - 4.4);
+      ctx.quadraticCurveTo(frontHandX + 3.8, frontHandY, frontHandX + 1.6, frontHandY + 4.4);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(230,240,255,0.75)";
+      ctx.lineWidth = 0.35;
+      ctx.beginPath();
+      ctx.moveTo(frontHandX + 1.6, frontHandY - 4.4);
+      ctx.lineTo(frontHandX + 0.2, frontHandY);
+      ctx.lineTo(frontHandX + 1.6, frontHandY + 4.4);
+      ctx.stroke();
+      /* болт */
+      ctx.strokeStyle = c.accent;
+      ctx.globalAlpha = 0.9;
+      ctx.lineWidth = 0.6;
+      ctx.beginPath(); ctx.moveTo(frontHandX, frontHandY - 0.3); ctx.lineTo(frontHandX + 7.6, frontHandY - 0.3); ctx.stroke();
+      ctx.fillStyle = c.accent2;
+      ctx.beginPath();
+      ctx.moveTo(frontHandX + 8.8, frontHandY - 0.3);
+      ctx.lineTo(frontHandX + 7.2, frontHandY - 1.1);
+      ctx.lineTo(frontHandX + 7.2, frontHandY + 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "lighter";
+      glow(ctx, frontHandX + 8, frontHandY - 0.3, 3.4, c.accent, 0.5);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 1;
+    }
+
+    /* ---- щит Опоры: круглый кузнечный круг с заклёпками ---- */
+    if (bjorn) {
       if (brace) {
         var shCX = 0.4 + leanX, shCY = -26.4 + bob;
-        ctx.fillStyle = "#0a1320";
-        ctx.beginPath(); ctx.ellipse(shCX, shCY, 10.2, 3.5, 0, 0, TAU); ctx.fill();
-        /* rim */
-        ctx.strokeStyle = c.accent;
-        ctx.globalAlpha = 0.95;
+        ctx.fillStyle = c.steelD;
+        ctx.beginPath(); ctx.ellipse(shCX, shCY + 0.5, 10.2, 3.5, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = c.steel;
+        ctx.beginPath(); ctx.ellipse(shCX, shCY, 10.2, 3.3, 0, 0, TAU); ctx.fill();
+        ctx.strokeStyle = c.brass;
         ctx.lineWidth = 1.1;
-        ctx.beginPath(); ctx.ellipse(shCX, shCY, 10.2, 3.5, 0, 0, TAU); ctx.stroke();
-        ctx.globalAlpha = 0.55;
-        ctx.strokeStyle = c.accent2;
-        ctx.lineWidth = 0.5;
-        ctx.beginPath(); ctx.ellipse(shCX, shCY, 8.4, 2.6, 0, 0, TAU); ctx.stroke();
-        ctx.globalAlpha = 1;
-        /* top surface highlight */
-        ctx.strokeStyle = "#eaf6ff";
-        ctx.globalAlpha = 0.9;
-        ctx.lineWidth = 0.6;
-        ctx.beginPath();
-        ctx.ellipse(shCX, shCY - 0.25, 8.6, 2.2, 0, Math.PI * 1.08, Math.PI * 1.92);
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-        /* boss + runes */
-        ctx.fillStyle = c.accent2;
-        ctx.beginPath(); ctx.ellipse(shCX, shCY, 2.1, 0.9, 0, 0, TAU); ctx.fill();
-        ctx.strokeStyle = c.accent2;
-        ctx.globalAlpha = 0.85;
+        ctx.beginPath(); ctx.ellipse(shCX, shCY, 10.2, 3.3, 0, 0, TAU); ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,0.75)";
         ctx.lineWidth = 0.55;
-        strokeRune(ctx, 3, shCX - 5, shCY, 3, 0);
-        strokeRune(ctx, 3, shCX + 5, shCY, 3, 0);
-        ctx.globalAlpha = 1;
+        ctx.beginPath(); ctx.ellipse(shCX, shCY - 0.3, 8.4, 2.2, 0, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
+        /* кольцо заклёпок */
+        ctx.fillStyle = c.brassL;
+        for (var rv = 0; rv < 10; rv++) {
+          var ra = rv / 10 * TAU;
+          ctx.beginPath(); ctx.arc(shCX + Math.cos(ra) * 7.4, shCY + Math.sin(ra) * 2.3, 0.42, 0, TAU); ctx.fill();
+        }
+        /* умбон */
+        ctx.fillStyle = c.steelD;
+        ctx.beginPath(); ctx.ellipse(shCX, shCY, 2.3, 1, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = c.accent2;
+        ctx.beginPath(); ctx.ellipse(shCX - 0.3, shCY - 0.2, 1, 0.4, 0, 0, TAU); ctx.fill();
         ctx.globalCompositeOperation = "lighter";
-        glow(ctx, shCX, shCY - 0.5, 9, c.glow, 0.16);
+        glow(ctx, shCX, shCY - 0.5, 9, c.glow, 0.14);
         ctx.globalCompositeOperation = "source-over";
-        /* bracing arms */
-        ctx.strokeStyle = c.cloth2;
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = c.armN;
         ctx.lineWidth = 2.1;
         ctx.lineCap = "round";
         ctx.beginPath();
         ctx.moveTo(-shW + 1, shY + 2); ctx.lineTo(-3.4, -23.2 + bob);
         ctx.moveTo(shW - 1, shY + 2); ctx.lineTo(3.4, -23.2 + bob);
         ctx.stroke();
+      } else {
+        var sx = frontHandX + 0.6, sy = frontHandY - 1.4, R = 4.9;
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.beginPath(); ctx.arc(sx, sy, R + 0.6, 0, TAU); ctx.fill();
+        ctx.fillStyle = c.brass;
+        ctx.beginPath(); ctx.arc(sx, sy, R, 0, TAU); ctx.fill();
+        ctx.fillStyle = c.steel;
+        ctx.beginPath(); ctx.arc(sx, sy, R - 0.8, 0, TAU); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.25)";
+        ctx.beginPath(); ctx.arc(sx - 1, sy - 1, R - 2.2, Math.PI, Math.PI * 1.75); ctx.lineTo(sx - 1, sy - 1); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = c.brassL;
+        for (var rv2 = 0; rv2 < 8; rv2++) {
+          var ra2 = rv2 / 8 * TAU + 0.2;
+          ctx.beginPath(); ctx.arc(sx + Math.cos(ra2) * (R - 1.9), sy + Math.sin(ra2) * (R - 1.9), 0.38, 0, TAU); ctx.fill();
+        }
+        ctx.fillStyle = c.steelD;
+        ctx.beginPath(); ctx.arc(sx, sy, 1.3, 0, TAU); ctx.fill();
+        ctx.fillStyle = c.accent2;
+        ctx.beginPath(); ctx.arc(sx - 0.3, sy - 0.3, 0.5, 0, TAU); ctx.fill();
       }
     }
 
-    /* ---- rim light ---- */
+    /* ---- контровой свет ---- */
     ctx.strokeStyle = c.accent;
     ctx.globalAlpha = 0.8;
     ctx.lineWidth = 0.55;
     ctx.beginPath();
-    ctx.arc(headX, headY - 0.6, 3.5, -2.5, -0.3);
+    if (gunnar) ctx.arc(headX, headY - 3, 4, -2.2, -0.4);
+    else ctx.arc(headX, headY - 0.6, 3.6, -2.5, -0.3);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(shW - 0.4 + leanX * 0.4, shY + 1);
+    ctx.moveTo(shW - 0.4 + lx, shY + 1);
     ctx.quadraticCurveTo(shW + 0.4 + leanX * 0.3, shY + 4.4, waistW - 0.2, hipY - 1);
     ctx.stroke();
     ctx.globalAlpha = 0.5;
@@ -7450,7 +7625,7 @@
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    /* ---- running dust ---- */
+    /* ---- пыль при беге ---- */
     if (run && !air) {
       ctx.globalCompositeOperation = "lighter";
       for (var d = 0; d < 2; d++) {
@@ -7801,74 +7976,75 @@
     x.globalCompositeOperation = "source-over";
 
     /* ===================== bust ===================== */
-    var gunnar = id === "gunnar", bjorn = id === "bjorn";
+    var gunnar = id === "gunnar", bjorn = id === "bjorn", snorri = !gunnar && !bjorn;
 
-    /* back props */
+    /* предметы за спиной */
     if (gunnar) {
-      x.strokeStyle = "#6b5232";
-      x.lineWidth = 2.4;
-      x.beginPath();
-      x.moveTo(12, 102);
-      x.quadraticCurveTo(2, 62, 20, 20);
+      /* арбалет за плечом: ложе наискось и стальная дуга */
+      x.save();
+      x.translate(22, 64);
+      x.rotate(-0.5);
+      x.fillStyle = c.wood;
+      roundRect(x, -2.2, -40, 4.4, 62, 1.6);
+      x.fill();
+      x.strokeStyle = "rgba(0,0,0,0.45)";
+      x.lineWidth = 0.6;
       x.stroke();
-      x.strokeStyle = "rgba(230,240,255,0.35)";
-      x.lineWidth = 0.5;
+      x.strokeStyle = c.metal;
+      x.lineWidth = 2.6;
       x.beginPath();
-      x.moveTo(12, 102);
-      x.quadraticCurveTo(2, 62, 20, 20);
+      x.moveTo(-15, -30);
+      x.quadraticCurveTo(0, -42, 15, -30);
       x.stroke();
-      /* arrow fletchings behind the right shoulder */
-      x.strokeStyle = "#a88050";
-      x.lineWidth = 1.1;
-      for (var ar = 0; ar < 3; ar++) {
-        x.beginPath();
-        x.moveTo(66 + ar * 3.4, 66);
-        x.lineTo(72 + ar * 3.4, 40);
-        x.stroke();
-        x.fillStyle = c.accent;
-        x.globalAlpha = 0.6;
-        x.beginPath();
-        x.moveTo(72 + ar * 3.4, 40);
-        x.lineTo(69.6 + ar * 3.4, 45);
-        x.lineTo(74 + ar * 3.4, 45);
-        x.closePath(); x.fill();
-        x.globalAlpha = 1;
-      }
+      x.strokeStyle = "rgba(230,240,255,0.55)";
+      x.lineWidth = 0.6;
+      x.beginPath(); x.moveTo(-15, -30); x.lineTo(15, -30); x.stroke();
+      x.restore();
     } else if (bjorn) {
-      x.fillStyle = "#0b1522";
-      x.beginPath(); x.arc(14, 74, 24, 0, TAU); x.fill();
-      x.strokeStyle = c.accent;
-      x.globalAlpha = 0.85;
-      x.lineWidth = 1.6;
-      x.stroke();
-      x.globalAlpha = 0.5;
-      x.strokeStyle = c.accent2;
-      x.lineWidth = 0.7;
-      x.beginPath(); x.arc(14, 74, 18, 0, TAU); x.stroke();
-      x.globalAlpha = 1;
-      x.fillStyle = c.metal;
-      x.beginPath(); x.arc(14, 74, 5, 0, TAU); x.fill();
-      x.strokeStyle = c.accent;
-      x.globalAlpha = 0.6;
-      x.lineWidth = 0.7;
-      strokeRune(x, 3, 14, 74, 10, 0.3);
+      /* щит-кузнечный круг с кольцом заклёпок */
+      x.fillStyle = "rgba(0,0,0,0.5)";
+      x.beginPath(); x.arc(14, 76, 26, 0, TAU); x.fill();
+      x.fillStyle = c.brass;
+      x.beginPath(); x.arc(14, 74, 25, 0, TAU); x.fill();
+      var sg = x.createLinearGradient(0, 52, 20, 96);
+      sg.addColorStop(0, "#e2e8f0");
+      sg.addColorStop(0.5, c.steel);
+      sg.addColorStop(1, c.steelD);
+      x.fillStyle = sg;
+      x.beginPath(); x.arc(14, 74, 21.5, 0, TAU); x.fill();
+      x.fillStyle = c.brassL;
+      for (var rv = 0; rv < 12; rv++) {
+        var ra = rv / 12 * TAU;
+        x.beginPath(); x.arc(14 + Math.cos(ra) * 17.5, 74 + Math.sin(ra) * 17.5, 1.1, 0, TAU); x.fill();
+      }
+      x.fillStyle = c.steelD;
+      x.beginPath(); x.arc(14, 74, 6, 0, TAU); x.fill();
+      x.fillStyle = c.accent2;
+      x.globalAlpha = 0.8;
+      x.beginPath(); x.arc(12.6, 72.6, 2.2, 0, TAU); x.fill();
       x.globalAlpha = 1;
     } else {
-      /* wolf-pelt over the shoulder */
-      x.fillStyle = c.fur;
-      x.beginPath();
-      x.moveTo(74, 108);
-      x.quadraticCurveTo(84, 92, 78, 80);
-      x.quadraticCurveTo(72, 84, 70, 94);
-      x.closePath();
+      /* рукоять кузнечного молота над плечом */
+      x.save();
+      x.translate(80, 64);
+      x.rotate(0.35);
+      x.fillStyle = "#6a4428";
+      roundRect(x, -1.6, -34, 3.2, 52, 1.2);
       x.fill();
-      x.strokeStyle = "rgba(0,0,0,0.35)";
-      x.lineWidth = 0.5;
+      x.fillStyle = c.metal;
+      roundRect(x, -8, -42, 16, 9, 1.6);
+      x.fill();
+      x.fillStyle = "rgba(255,255,255,0.35)";
+      x.fillRect(-7, -41, 14, 1.6);
+      x.strokeStyle = "rgba(0,0,0,0.5)";
+      x.lineWidth = 0.6;
+      roundRect(x, -8, -42, 16, 9, 1.6);
       x.stroke();
+      x.restore();
     }
 
-    /* shoulders / cloak */
-    x.fillStyle = c.cloak;
+    /* плечи */
+    x.fillStyle = c.armF;
     x.beginPath();
     x.moveTo(-4, 112);
     x.quadraticCurveTo(10, 88, 26, 80);
@@ -7881,134 +8057,136 @@
     x.strokeStyle = "rgba(0,0,0,0.5)";
     x.lineWidth = 1;
     x.stroke();
-    /* torso */
+    /* торс */
     x.fillStyle = c.cloth;
     x.beginPath();
-    x.moveTo(10, 112);
-    x.quadraticCurveTo(20, 92, 32, 84);
+    x.moveTo(bjorn ? 4 : 10, 112);
+    x.quadraticCurveTo(bjorn ? 14 : 20, 90, bjorn ? 28 : 32, 82);
     x.lineTo(44, 77);
     x.lineTo(52, 77);
-    x.lineTo(64, 84);
-    x.quadraticCurveTo(76, 92, 86, 112);
+    x.lineTo(bjorn ? 68 : 64, 82);
+    x.quadraticCurveTo(bjorn ? 82 : 76, 90, bjorn ? 92 : 86, 112);
     x.closePath();
     x.fill();
-    /* tunic panel */
-    x.fillStyle = c.cloth2;
-    x.globalAlpha = 0.6;
-    x.beginPath();
-    x.moveTo(22, 112);
-    x.lineTo(34, 86);
-    x.lineTo(48, 82);
-    x.lineTo(48, 112);
-    x.closePath();
-    x.fill();
-    x.globalAlpha = 1;
-    /* belt / strap */
-    x.strokeStyle = "#0a0d14";
-    x.lineWidth = 3.2;
-    x.beginPath(); x.moveTo(10, 104); x.quadraticCurveTo(48, 96, 86, 104); x.stroke();
-    x.fillStyle = c.metal;
-    x.fillRect(43, 98, 10, 9);
-    x.fillStyle = c.accent;
-    x.globalAlpha = 0.8;
-    x.fillRect(45, 100, 6, 5);
-    x.globalAlpha = 1;
-    /* fur collar */
-    x.fillStyle = c.fur;
-    x.beginPath();
-    x.moveTo(11, 90);
-    x.quadraticCurveTo(26, 76, 40, 72);
-    x.lineTo(48, 78);
-    x.lineTo(56, 72);
-    x.quadraticCurveTo(70, 76, 85, 90);
-    x.quadraticCurveTo(70, 86, 56, 84);
-    x.lineTo(48, 88);
-    x.lineTo(40, 84);
-    x.quadraticCurveTo(26, 86, 11, 90);
-    x.closePath();
-    x.fill();
-    x.strokeStyle = "rgba(0,0,0,0.35)";
-    x.lineWidth = 0.5;
-    x.stroke();
 
-    /* neck */
+    if (snorri) {
+      /* рубаха и кузнечный фартук с лямками */
+      x.fillStyle = c.apron;
+      x.beginPath();
+      x.moveTo(34, 112); x.lineTo(36, 86); x.lineTo(60, 86); x.lineTo(62, 112);
+      x.closePath(); x.fill();
+      x.fillStyle = c.apronL;
+      x.globalAlpha = 0.5;
+      x.fillRect(54, 88, 3, 24);
+      x.globalAlpha = 1;
+      x.strokeStyle = c.apronS;
+      x.lineWidth = 1;
+      x.beginPath(); x.moveTo(40, 100); x.lineTo(56, 100); x.stroke();
+      x.strokeStyle = "#2a1c12";
+      x.lineWidth = 2.2;
+      x.beginPath(); x.moveTo(37, 87); x.lineTo(30, 76); x.moveTo(59, 87); x.lineTo(66, 76); x.stroke();
+      /* медный наплечник */
+      x.fillStyle = c.copper;
+      x.beginPath();
+      x.moveTo(62, 80); x.quadraticCurveTo(78, 72, 92, 88); x.lineTo(86, 94); x.quadraticCurveTo(76, 84, 64, 88);
+      x.closePath(); x.fill();
+      x.strokeStyle = "rgba(0,0,0,0.45)";
+      x.lineWidth = 0.7;
+      x.stroke();
+      x.strokeStyle = c.copperL;
+      x.lineWidth = 1.2;
+      x.beginPath(); x.moveTo(65, 81); x.quadraticCurveTo(77, 75, 89, 87); x.stroke();
+      x.fillStyle = c.accent2;
+      x.beginPath(); x.arc(72, 82, 1, 0, TAU); x.fill();
+      x.beginPath(); x.arc(81, 84, 1, 0, TAU); x.fill();
+    } else if (gunnar) {
+      /* кафтан с меховым воротом и застёжками */
+      x.strokeStyle = c.cloth2;
+      x.lineWidth = 1.2;
+      x.beginPath(); x.moveTo(50, 84); x.lineTo(52, 112); x.stroke();
+      x.fillStyle = c.metal;
+      x.fillRect(53, 92, 2.4, 2.4); x.fillRect(53.6, 102, 2.4, 2.4);
+      x.fillStyle = c.fur;
+      x.beginPath();
+      x.moveTo(14, 90); x.quadraticCurveTo(28, 74, 42, 72); x.lineTo(48, 80); x.lineTo(54, 72);
+      x.quadraticCurveTo(68, 74, 82, 90); x.quadraticCurveTo(66, 88, 54, 86); x.lineTo(48, 90); x.lineTo(42, 86);
+      x.quadraticCurveTo(28, 88, 14, 90);
+      x.closePath(); x.fill();
+      x.strokeStyle = "rgba(0,0,0,0.3)";
+      x.lineWidth = 0.5;
+      x.stroke();
+    } else {
+      /* стёганый жилет, кольчужные наплечья */
+      x.strokeStyle = c.cloth2;
+      x.lineWidth = 1.2;
+      for (var qz = 0; qz < 4; qz++) {
+        x.beginPath(); x.moveTo(30 + qz * 12, 84); x.lineTo(28 + qz * 13, 112); x.stroke();
+      }
+      x.fillStyle = c.mail;
+      x.beginPath(); x.ellipse(20, 88, 14, 9, -0.4, 0, TAU); x.fill();
+      x.beginPath(); x.ellipse(76, 88, 14, 9, 0.4, 0, TAU); x.fill();
+      x.fillStyle = "rgba(40,50,60,0.45)";
+      for (var mz = 0; mz < 14; mz++) {
+        var mx = (mz % 7) * 3.6, my = Math.floor(mz / 7) * 3.2;
+        x.beginPath(); x.arc(12 + mx, 85 + my, 0.6, 0, TAU); x.fill();
+        x.beginPath(); x.arc(63 + mx, 85 + my, 0.6, 0, TAU); x.fill();
+      }
+    }
+
+    /* шея */
     x.fillStyle = c.skin;
     x.fillRect(42, 64, 12, 14);
     x.fillStyle = "rgba(0,0,0,0.22)";
     x.fillRect(42, 64, 12, 4);
 
-    /* head */
+    /* хвост капюшона за спиной (под головой) */
+    if (snorri) {
+      x.fillStyle = c.hoodS;
+      x.beginPath();
+      x.moveTo(30, 40); x.quadraticCurveTo(16, 48, 14, 70); x.lineTo(24, 66); x.quadraticCurveTo(26, 52, 34, 46);
+      x.closePath(); x.fill();
+    }
+
+    /* голова */
     x.fillStyle = c.skin;
     x.beginPath();
     x.ellipse(48, 46, 15.5, 16.5, 0, 0, TAU);
     x.fill();
-    /* ears */
     x.beginPath(); x.ellipse(32.2, 48, 2.6, 4, 0, 0, TAU); x.fill();
     x.beginPath(); x.ellipse(63.8, 48, 2.6, 4, 0, 0, TAU); x.fill();
-    /* cheek shadow */
     x.fillStyle = "rgba(60,20,10,0.16)";
     x.beginPath(); x.ellipse(38, 54, 8, 6, 0.3, 0, TAU); x.fill();
 
-    /* beard */
-    x.fillStyle = c.beard;
-    if (id === "snorri") {
+    if (bjorn) {
+      /* бритая макушка — блик */
+      x.fillStyle = "rgba(255,240,220,0.35)";
+      x.beginPath(); x.ellipse(42, 33, 7, 3, -0.3, 0, TAU); x.fill();
+      /* короткая тёмная борода, усы и косица с латунным кольцом */
+      x.fillStyle = c.beard;
       x.beginPath();
-      x.moveTo(33, 48);
-      x.quadraticCurveTo(33, 64, 48, 66);
-      x.quadraticCurveTo(63, 64, 63, 48);
-      x.quadraticCurveTo(57, 58, 48, 57);
-      x.quadraticCurveTo(39, 58, 33, 48);
+      x.moveTo(33, 50);
+      x.quadraticCurveTo(34, 66, 48, 68);
+      x.quadraticCurveTo(62, 66, 63, 50);
+      x.quadraticCurveTo(57, 59, 48, 58);
+      x.quadraticCurveTo(39, 59, 33, 50);
       x.closePath();
       x.fill();
-      x.strokeStyle = "rgba(0,0,0,0.25)";
-      x.lineWidth = 0.5;
-      x.beginPath(); x.moveTo(45, 58); x.quadraticCurveTo(48, 62, 51, 58); x.stroke();
-    } else if (gunnar) {
-      x.beginPath();
-      x.moveTo(31, 48);
-      x.quadraticCurveTo(29, 74, 48, 82);
-      x.quadraticCurveTo(67, 74, 65, 48);
-      x.quadraticCurveTo(58, 60, 48, 59);
-      x.quadraticCurveTo(38, 60, 31, 48);
-      x.closePath();
-      x.fill();
-      /* braid lines */
-      x.strokeStyle = "rgba(0,0,0,0.3)";
-      x.lineWidth = 0.6;
-      for (var br = 0; br < 4; br++) {
-        x.beginPath();
-        x.moveTo(42 + br * 3.4, 56);
-        x.quadraticCurveTo(41 + br * 3.7, 66, 44 + br * 3, 76);
-        x.stroke();
-      }
-    } else {
-      x.beginPath();
-      x.moveTo(30, 50);
-      x.quadraticCurveTo(28, 78, 44, 90);
-      x.quadraticCurveTo(52, 92, 56, 88);
-      x.quadraticCurveTo(68, 76, 66, 50);
-      x.quadraticCurveTo(57, 62, 48, 61);
-      x.quadraticCurveTo(39, 62, 30, 50);
-      x.closePath();
-      x.fill();
-      /* moustache */
       x.strokeStyle = c.beard;
-      x.lineWidth = 3.4;
-      x.beginPath();
-      x.moveTo(40, 55);
-      x.quadraticCurveTo(48, 59, 56, 55);
-      x.stroke();
-      /* braids with rings */
-      x.fillStyle = c.metal;
-      x.strokeStyle = c.beard;
-      x.lineWidth = 2.6;
-      x.beginPath(); x.moveTo(36, 82); x.quadraticCurveTo(33, 92, 35, 100); x.stroke();
-      x.beginPath(); x.moveTo(60, 82); x.quadraticCurveTo(63, 92, 61, 100); x.stroke();
-      x.beginPath(); x.arc(35, 101, 2.2, 0, TAU); x.fill();
-      x.beginPath(); x.arc(61, 101, 2.2, 0, TAU); x.fill();
+      x.lineWidth = 3;
+      x.beginPath(); x.moveTo(41, 56); x.quadraticCurveTo(48, 53, 55, 56); x.stroke();
+      x.lineWidth = 4;
+      x.beginPath(); x.moveTo(48, 66); x.lineTo(48, 80); x.stroke();
+      x.fillStyle = c.brass;
+      x.fillRect(45, 78, 6, 3);
+      x.fillStyle = c.beard;
+      x.beginPath(); x.moveTo(46, 81); x.lineTo(50, 81); x.lineTo(48, 86); x.closePath(); x.fill();
+    } else if (snorri) {
+      /* сажа на скуле */
+      x.fillStyle = "rgba(30,20,16,0.35)";
+      x.beginPath(); x.ellipse(57, 52, 3, 1.4, -0.4, 0, TAU); x.fill();
     }
 
-    /* face features */
+    /* лицо */
     var eyeY = 45;
     x.fillStyle = "#f3e7d3";
     x.beginPath(); x.ellipse(41, eyeY, 3.1, 2.2, 0, 0, TAU); x.fill();
@@ -8022,14 +8200,12 @@
     x.fillStyle = "rgba(255,255,255,0.9)";
     x.beginPath(); x.arc(41.3, eyeY - 0.5, 0.35, 0, TAU); x.fill();
     x.beginPath(); x.arc(55, eyeY - 0.5, 0.35, 0, TAU); x.fill();
-    /* brows */
-    x.strokeStyle = c.beard;
+    x.strokeStyle = c.hair;
     x.lineWidth = 2;
     x.beginPath();
     x.moveTo(37, 40.5); x.quadraticCurveTo(41, 38.4, 45, 40);
     x.moveTo(51, 40); x.quadraticCurveTo(55, 38.4, 59, 40.5);
     x.stroke();
-    /* nose */
     x.fillStyle = "rgba(120,60,40,0.28)";
     x.beginPath();
     x.moveTo(46, 48);
@@ -8039,158 +8215,120 @@
     x.fill();
     x.fillStyle = "rgba(255,235,210,0.5)";
     x.fillRect(46.4, 47, 1.2, 5.4);
-    /* mouth line (mostly under the beard) */
-    x.strokeStyle = "rgba(50,20,12,0.5)";
-    x.lineWidth = 0.8;
-    x.beginPath(); x.moveTo(44, 59); x.lineTo(52, 59); x.stroke();
+    if (!gunnar) {
+      x.strokeStyle = "rgba(70,30,20,0.6)";
+      x.lineWidth = 0.9;
+      x.beginPath(); x.moveTo(44, 60); x.quadraticCurveTo(48, 61.4, 52, 60); x.stroke();
+    }
 
-    /* eye glow */
     x.globalCompositeOperation = "lighter";
     glow(x, 41.8, eyeY + 0.2, 4.4, c.accent, 0.28);
     glow(x, 55.5, eyeY + 0.2, 4.4, c.accent, 0.28);
     x.globalCompositeOperation = "source-over";
+    x.globalAlpha = 1;
 
-    /* ---- helmet ---- */
-    if (id === "snorri") {
-      x.fillStyle = c.metalDark;
+    /* ---- головные уборы ---- */
+    if (snorri) {
+      /* кожаный капюшон: обрамляет лицо, пелерина на плечи */
+      x.fillStyle = c.hood;
       x.beginPath();
-      x.arc(48, 38, 17.2, Math.PI * 1.02, Math.PI * 1.98);
-      x.lineTo(65.2, 36);
-      x.lineTo(30.8, 36);
+      x.moveTo(30, 74);
+      x.quadraticCurveTo(24, 52, 28, 36);
+      x.quadraticCurveTo(34, 18, 50, 17);
+      x.quadraticCurveTo(66, 18, 70, 36);
+      x.quadraticCurveTo(74, 52, 68, 74);
+      x.lineTo(60, 70);
+      x.quadraticCurveTo(66, 52, 63, 38);
+      x.quadraticCurveTo(58, 28, 48, 28);
+      x.quadraticCurveTo(37, 28, 33, 38);
+      x.quadraticCurveTo(30, 52, 36, 70);
       x.closePath();
       x.fill();
-      x.fillStyle = c.metal;
-      x.beginPath();
-      x.arc(48, 37, 15.4, Math.PI * 1.05, Math.PI * 1.92);
-      x.closePath();
-      x.fill();
-      x.fillStyle = c.metalDark;
-      x.fillRect(30.6, 34.4, 34.8, 5.4);
-      x.fillStyle = c.metal;
-      x.fillRect(31, 34.8, 34, 1.2);
-      x.fillStyle = c.accent;
-      x.globalAlpha = 0.65;
-      x.fillRect(31, 38.6, 34, 1);
-      x.globalAlpha = 1;
-      /* central ridge */
-      x.fillStyle = "rgba(255,255,255,0.16)";
-      x.fillRect(46.6, 20, 2.8, 15);
-      /* rivets */
-      x.fillStyle = "#e8eef8";
-      for (var rv = 0; rv < 4; rv++) {
-        x.beginPath(); x.arc(33 + rv * 10, 38.4, 0.7, 0, TAU); x.fill();
-      }
-      /* horns */
-      var horn = function (sx, dirSign) {
-        x.fillStyle = "#e6d8bc";
-        x.beginPath();
-        x.moveTo(sx, 33);
-        x.quadraticCurveTo(sx + dirSign * 13, 26, sx + dirSign * 15, 10);
-        x.quadraticCurveTo(sx + dirSign * 10, 15, sx + dirSign * 7, 18);
-        x.quadraticCurveTo(sx + dirSign * 5, 25, sx, 30);
-        x.closePath();
-        x.fill();
-        x.strokeStyle = "rgba(90,60,30,0.45)";
-        x.lineWidth = 0.6;
-        x.stroke();
-        x.strokeStyle = "rgba(255,250,235,0.75)";
-        x.lineWidth = 0.8;
-        x.beginPath();
-        x.moveTo(sx + dirSign * 0.5, 31.6);
-        x.quadraticCurveTo(sx + dirSign * 11, 24, sx + dirSign * 13.6, 12);
-        x.stroke();
-      };
-      horn(32.4, -1);
-      horn(63.6, 1);
-    } else if (gunnar) {
-      x.fillStyle = c.metalDark;
-      x.beginPath();
-      x.moveTo(30.6, 36);
-      x.quadraticCurveTo(32, 20, 48, 10);
-      x.quadraticCurveTo(64, 20, 65.4, 36);
-      x.closePath();
-      x.fill();
-      x.fillStyle = c.metal;
-      x.beginPath();
-      x.moveTo(32, 34.6);
-      x.quadraticCurveTo(34, 21, 48, 12.4);
-      x.quadraticCurveTo(62, 21, 64, 34.6);
-      x.closePath();
-      x.fill();
-      /* brow band */
-      x.fillStyle = c.metalDark;
-      x.fillRect(30.4, 33.4, 35.2, 5.6);
-      x.strokeStyle = c.metal;
+      x.strokeStyle = "rgba(0,0,0,0.5)";
       x.lineWidth = 0.8;
-      x.beginPath(); x.moveTo(31, 34.4); x.lineTo(65, 34.4); x.stroke();
-      /* nose guard */
-      x.fillStyle = c.metal;
-      x.beginPath();
-      x.moveTo(45.4, 34.6);
-      x.lineTo(50.6, 34.6);
-      x.lineTo(49.4, 56);
-      x.lineTo(46.6, 56);
-      x.closePath();
-      x.fill();
-      x.strokeStyle = "rgba(0,0,0,0.3)";
-      x.lineWidth = 0.5;
       x.stroke();
-      x.fillStyle = c.accent;
-      x.globalAlpha = 0.5;
-      x.fillRect(47.4, 36, 1.4, 17);
-      x.globalAlpha = 1;
-      /* rivets */
-      x.fillStyle = "#e8eef8";
-      for (var rv2 = 0; rv2 < 3; rv2++) {
-        x.beginPath(); x.arc(35 + rv2 * 13, 36.2, 0.7, 0, TAU); x.fill();
-      }
-      /* top spike */
-      x.fillStyle = c.metal;
+      /* кромка проёма и шов */
+      x.strokeStyle = c.hoodL;
+      x.lineWidth = 1.4;
       x.beginPath();
-      x.moveTo(47, 12); x.lineTo(48.4, 4.4); x.lineTo(50, 12);
+      x.moveTo(36, 68); x.quadraticCurveTo(30, 52, 33, 38); x.quadraticCurveTo(37, 28, 48, 28);
+      x.quadraticCurveTo(58, 28, 63, 38); x.quadraticCurveTo(66, 52, 60, 68);
+      x.stroke();
+      x.strokeStyle = c.hoodS;
+      x.lineWidth = 0.8;
+      x.beginPath(); x.moveTo(50, 17.5); x.quadraticCurveTo(48, 22, 48, 28); x.stroke();
+      x.fillStyle = c.hood;
+      x.beginPath();
+      x.moveTo(22, 84); x.quadraticCurveTo(48, 66, 74, 84); x.quadraticCurveTo(48, 80, 22, 84);
       x.closePath(); x.fill();
+    } else if (gunnar) {
+      /* шарф до носа */
+      x.fillStyle = c.scarf;
+      x.beginPath();
+      x.moveTo(30, 56); x.quadraticCurveTo(48, 50, 66, 56); x.lineTo(66, 70);
+      x.quadraticCurveTo(48, 76, 30, 70); x.closePath(); x.fill();
+      x.strokeStyle = "rgba(0,0,0,0.35)";
+      x.lineWidth = 0.7;
+      x.stroke();
+      x.strokeStyle = "rgba(255,255,255,0.2)";
+      x.lineWidth = 1;
+      x.beginPath(); x.moveTo(32, 58); x.quadraticCurveTo(48, 53, 64, 58); x.stroke();
+      x.strokeStyle = "rgba(0,0,0,0.25)";
+      x.beginPath(); x.moveTo(36, 64); x.quadraticCurveTo(48, 61, 60, 65); x.stroke();
+      x.fillStyle = c.scarf;
+      x.beginPath(); x.moveTo(58, 68); x.lineTo(68, 70); x.lineTo(66, 96); x.lineTo(58, 94); x.closePath(); x.fill();
+      /* высокая меховая шапка с ушами */
+      x.fillStyle = c.fur;
+      x.beginPath();
+      x.moveTo(29, 40); x.lineTo(30, 16);
+      x.quadraticCurveTo(32, 2, 48, 2);
+      x.quadraticCurveTo(64, 2, 66, 16);
+      x.lineTo(67, 40);
+      x.closePath(); x.fill();
+      x.strokeStyle = "rgba(0,0,0,0.4)";
+      x.lineWidth = 0.8;
+      x.stroke();
+      x.fillStyle = c.cloth2;
+      x.beginPath(); x.ellipse(48, 5, 12, 3.4, 0, 0, TAU); x.fill();
+      x.strokeStyle = "rgba(110,100,80,0.5)";
+      x.lineWidth = 0.9;
+      for (var fz = 0; fz < 9; fz++) {
+        var fx = 33 + fz * 3.6, fy = 12 + (fz % 3) * 4;
+        x.beginPath(); x.moveTo(fx, fy); x.lineTo(fx + 1, fy + 6); x.stroke();
+      }
+      x.fillStyle = c.furL;
+      roundRect(x, 27, 30, 42, 9, 4.5);
+      x.fill();
+      x.strokeStyle = "rgba(0,0,0,0.25)";
+      x.lineWidth = 0.6;
+      x.stroke();
+      x.fillStyle = c.fur;
+      roundRect(x, 26, 36, 8, 22, 3.6); x.fill();
+      roundRect(x, 62, 36, 8, 22, 3.6); x.fill();
     } else {
-      x.fillStyle = c.metalDark;
+      /* кузнечные очки на лбу */
+      x.fillStyle = "#2a1c12";
       x.beginPath();
-      x.arc(48, 36, 17.6, Math.PI * 0.98, Math.PI * 2.02);
-      x.closePath();
-      x.fill();
-      x.fillStyle = c.metal;
-      x.beginPath();
-      x.arc(48, 35.4, 15.6, Math.PI * 1.02, Math.PI * 1.98);
-      x.closePath();
-      x.fill();
-      /* brow band */
-      x.fillStyle = c.metalDark;
-      x.fillRect(30.4, 32.6, 35.2, 6);
-      x.fillStyle = c.metal;
-      x.fillRect(31, 33.2, 34, 1.2);
-      /* cheek guards */
-      x.fillStyle = c.metal;
-      x.beginPath();
-      x.moveTo(31.4, 36); x.lineTo(37.4, 36); x.lineTo(36, 56); x.lineTo(31.8, 52);
+      x.moveTo(31, 36); x.quadraticCurveTo(48, 31, 65, 36); x.lineTo(65, 39.5); x.quadraticCurveTo(48, 34.5, 31, 39.5);
       x.closePath(); x.fill();
-      x.beginPath();
-      x.moveTo(64.6, 36); x.lineTo(58.6, 36); x.lineTo(60, 56); x.lineTo(64.2, 52);
-      x.closePath(); x.fill();
-      /* nose guard */
-      x.fillStyle = c.metalDark;
-      x.beginPath();
-      x.moveTo(45.6, 36); x.lineTo(50.4, 36); x.lineTo(49, 51); x.lineTo(47, 51);
-      x.closePath(); x.fill();
-      x.fillStyle = c.accent;
-      x.globalAlpha = 0.5;
-      x.fillRect(47.8, 37, 1.2, 12);
-      x.globalAlpha = 1;
-      /* rivets */
-      x.fillStyle = "#e8eef8";
-      for (var rv3 = 0; rv3 < 4; rv3++) {
-        x.beginPath(); x.arc(34 + rv3 * 9.4, 35.4, 0.75, 0, TAU); x.fill();
+      for (var gz = 0; gz < 2; gz++) {
+        var gx = gz ? 56 : 40;
+        x.fillStyle = c.brass;
+        x.beginPath(); x.arc(gx, 33, 6.4, 0, TAU); x.fill();
+        x.strokeStyle = "rgba(0,0,0,0.45)";
+        x.lineWidth = 0.7;
+        x.stroke();
+        var gg = x.createRadialGradient(gx - 1.6, 31.4, 0.5, gx, 33, 4.6);
+        gg.addColorStop(0, "#eafcff");
+        gg.addColorStop(0.5, c.glass);
+        gg.addColorStop(1, "#2a5a6a");
+        x.fillStyle = gg;
+        x.beginPath(); x.arc(gx, 33, 4.4, 0, TAU); x.fill();
+        x.fillStyle = c.brassL;
+        x.beginPath(); x.arc(gx + 4.6, 30.6, 0.7, 0, TAU); x.fill();
       }
-      /* little crown ridge */
-      x.strokeStyle = "rgba(255,255,255,0.18)";
-      x.lineWidth = 1.6;
-      x.beginPath(); x.arc(48, 34, 12.4, Math.PI * 1.12, Math.PI * 1.88); x.stroke();
+      x.fillStyle = c.brass;
+      x.fillRect(45.6, 32, 4.8, 2);
     }
 
 

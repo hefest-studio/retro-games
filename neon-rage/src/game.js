@@ -42,15 +42,15 @@
 
   var CHARS = [
     {
-      id: 'dragon', nameKey: 'char.dragon.name', aliasKey: 'char.dragon.alias',
-      descKey: 'char.dragon.desc', specKey: 'char.dragon.spec',
+      id: 'comet', nameKey: 'char.comet.name', aliasKey: 'char.comet.alias',
+      descKey: 'char.comet.desc', specKey: 'char.comet.spec',
       hp: 110, speed: 120, depth: 80, power: 1.0, jump: 345,
       specialR: 100, specialDmg: 28,
       stats: { power: 3, speed: 5, armor: 3, range: 4 }
     },
     {
-      id: 'toad', nameKey: 'char.toad.name', aliasKey: 'char.toad.alias',
-      descKey: 'char.toad.desc', specKey: 'char.toad.spec',
+      id: 'hammer', nameKey: 'char.hammer.name', aliasKey: 'char.hammer.alias',
+      descKey: 'char.hammer.desc', specKey: 'char.hammer.spec',
       hp: 138, speed: 96, depth: 62, power: 1.18, jump: 315,
       specialR: 124, specialDmg: 34,
       stats: { power: 5, speed: 3, armor: 5, range: 3 }
@@ -574,7 +574,7 @@
     var diff = DIFFS[S.run.difficulty] || DIFFS.normal;
     var hp = Math.round(BOSS_STATS.hp * (0.85 + (diff.hp - 0.78) * 0.55));
     var b = {
-      id: uid(), kind: 'boss', char: 'queen',
+      id: uid(), kind: 'boss', char: 'khrom',
       x: arena[1] - 180, y: 214, z: 16, vx: 0, vy: 0, vz: 0,
       facing: -1,
       hp: hp, maxHp: hp, state: 'idle', anim: 'idle', animT: 0,
@@ -927,7 +927,7 @@
 
   function playerAttackDef(p, type) {
     var c = charOf(p);
-    var slow = c.id === 'toad' ? 1.14 : 1;
+    var slow = c.id === 'hammer' ? 1.14 : 1;
     var pow = c.power;
     if (type === 'jab') return {
       wind: 0.055 * slow, active: 0.075, recover: 0.11 * slow,
@@ -1679,7 +1679,7 @@
 
   /* ---------- босс ---------- */
   function bossDef(b, type) {
-    if (type === 'whip') return { wind: 0.62, active: 0.34, recover: 0.7, dmg: b.dmg + 2, reach: 168, depth: 38, anim: 'whip', type: type };
+    if (type === 'cable') return { wind: 0.62, active: 0.34, recover: 0.7, dmg: b.dmg + 2, reach: 168, depth: 38, anim: 'cable', type: type };
     if (type === 'orbs') return { wind: 0.58, active: 0.16, recover: 0.66, dmg: b.dmg - 2, reach: 0, depth: 0, anim: 'cast', type: type };
     if (type === 'slam') return { wind: 0.5, active: 0.16, recover: 0.8, dmg: b.dmg, reach: 0, depth: 0, anim: 'slam', type: type };
     return { wind: 0.34, active: 0.16, recover: 0.5, dmg: 0, reach: 0, depth: 0, anim: 'cast', type: 'teleport' };
@@ -1735,10 +1735,10 @@
       var r = Math.random();
       var type;
       if (dist > 125) {
-        type = r < 0.55 ? 'orbs' : r < 0.8 ? 'teleport' : 'whip';
+        type = r < 0.55 ? 'orbs' : r < 0.8 ? 'teleport' : 'cable';
       } else {
-        if (b.phase2) type = r < 0.36 ? 'whip' : r < 0.64 ? 'slam' : r < 0.85 ? 'orbs' : 'teleport';
-        else type = r < 0.5 ? 'whip' : r < 0.8 ? 'slam' : 'teleport';
+        if (b.phase2) type = r < 0.36 ? 'cable' : r < 0.64 ? 'slam' : r < 0.85 ? 'orbs' : 'teleport';
+        else type = r < 0.5 ? 'cable' : r < 0.8 ? 'slam' : 'teleport';
       }
       startBossAttack(b, type);
     }
@@ -1771,7 +1771,7 @@
   function bossAttackFire(b, a) {
     var d = a.def;
     var p = S.player;
-    if (a.type === 'whip') {
+    if (a.type === 'cable') {
       var dx = (p.x - b.x) * b.facing;
       if (dx > -14 && dx < d.reach && Math.abs(p.y - b.y) < d.depth && Math.abs((p.z || 0) - b.z) < 80) {
         hurtPlayer(d.dmg, b);

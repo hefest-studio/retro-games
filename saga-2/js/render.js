@@ -19,10 +19,16 @@ window.SAGA2 = window.SAGA2 || {};
   var R8 = ['#0b0f1a', '#1b2a4a', '#3b6ea5', '#6fc3df', '#d9f2ff', '#2d4a22', '#5a8f3d',
     '#b8d96a', '#5a3a1b', '#a56b2b', '#e0b35a', '#3a1a3a', '#7a2a5a', '#d94a6a', '#f2f2f2', '#111111'];
 
+  /* цвета героев: main — цвет-метка героя (маркеры, HUD) — прежний; остальное — облик мастеров кузни */
   var VIK = {
-    snorri: { main: '#ff6b8a', dark: '#8a2e46', cloth: '#a8325c', cloth2: '#6d1f3c', skin: '#f2cda9', hair: '#c9a15a', cape: '#5e1a33', cape2: '#93264b', num: 1, horn: 1.0 },
-    gunnar: { main: '#5fd0d2', dark: '#1e6a6c', cloth: '#2f7f82', cloth2: '#1d4e52', skin: '#e9b992', hair: '#c9a15a', cape: '#174f52', cape2: '#2a8f92', num: 2, horn: 0.86 },
-    bjorn: { main: '#ffc857', dark: '#9a6a1e', cloth: '#b3812e', cloth2: '#7a4a1c', skin: '#e9b992', hair: '#cfd8e8', cape: '#4a3216', cape2: '#78521f', num: 3, horn: 0.74 }
+    snorri: { main: '#ff6b8a', dark: '#8a2e46', cloth: '#4c5263', cloth2: '#3f322b', armN: '#5a6274', armF: '#353a47',
+      hand: '#5a3a26', skin: '#e8b48c', hair: '#2e2220', hood: '#6e5646', hoodL: '#9a7c64', hoodS: '#45352c',
+      apron: '#8c5a34', copper: '#d27c3e', num: 1 },
+    gunnar: { main: '#5fd0d2', dark: '#1e6a6c', cloth: '#2f7a78', cloth2: '#4a4036', armN: '#358481', armF: '#1f5452',
+      hand: '#eebf95', skin: '#eebf95', hair: '#3a2a20', fur: '#bdb29c', furL: '#ddd4c2', scarf: '#a33c50',
+      wood: '#8a5a2e', num: 2 },
+    bjorn: { main: '#ffc857', dark: '#9a6a1e', cloth: '#3e5878', cloth2: '#3b3631', armN: '#9aa3ae', armF: '#6c7480',
+      hand: '#d9a47c', skin: '#d9a47c', hair: '#4a2e1e', mail: '#aab3be', brass: '#d4a03c', glass: '#8fe4f2', num: 3 }
   };
   var R8VIK = { snorri: 13, gunnar: 3, bjorn: 10 }; // индексы цветов R8
 
@@ -2260,8 +2266,16 @@ window.SAGA2 = window.SAGA2 || {};
     g.fill(); g.stroke();
     roundRectPath(g, a.x + w * 0.06, feet - h * 0.36, w * 0.24, h * 0.36, w * 0.1);
     g.fill(); g.stroke();
-    // торс
-    roundRectPath(g, a.x - w * 0.46, feet - h * 0.78, w * 0.92, h * 0.46, w * 0.26);
+    // торс: трапеция — плечи шире талии
+    var shH = a.id === 'bjorn' ? 0.5 : 0.44, waH = a.id === 'bjorn' ? 0.27 : 0.3;
+    g.beginPath();
+    g.moveTo(a.x - w * shH, feet - h * 0.74);
+    g.quadraticCurveTo(a.x - w * shH, feet - h * 0.79, a.x - w * (shH - 0.08), feet - h * 0.79);
+    g.lineTo(a.x + w * (shH - 0.08), feet - h * 0.79);
+    g.quadraticCurveTo(a.x + w * shH, feet - h * 0.79, a.x + w * shH, feet - h * 0.74);
+    g.lineTo(a.x + w * waH, feet - h * 0.33);
+    g.lineTo(a.x - w * waH, feet - h * 0.33);
+    g.closePath();
     g.fill(); g.stroke();
     // плечи
     g.beginPath();
@@ -2274,12 +2288,23 @@ window.SAGA2 = window.SAGA2 || {};
     g.beginPath();
     g.arc(a.x, feet - h * 0.87, h * 0.135, 0, TAU);
     g.fill(); g.stroke();
-    // рога-контур
+    // контур головного убора героя
     g.beginPath();
-    g.moveTo(a.x - h * 0.1, feet - h * 0.93);
-    g.quadraticCurveTo(a.x - h * 0.26, feet - h * 1.0, a.x - h * 0.2, feet - h * 1.08);
-    g.moveTo(a.x + h * 0.1, feet - h * 0.93);
-    g.quadraticCurveTo(a.x + h * 0.26, feet - h * 1.0, a.x + h * 0.2, feet - h * 1.08);
+    if (a.id === 'snorri') {
+      g.moveTo(a.x + h * 0.12, feet - h * 0.93);
+      g.quadraticCurveTo(a.x - h * 0.02, feet - h * 1.04, a.x - h * 0.14, feet - h * 0.96);
+      g.quadraticCurveTo(a.x - h * 0.24, feet - h * 0.9, a.x - h * 0.26, feet - h * 0.78);
+    } else if (a.id === 'gunnar') {
+      g.moveTo(a.x - h * 0.16, feet - h * 0.9);
+      g.lineTo(a.x - h * 0.17, feet - h * 1.04);
+      g.quadraticCurveTo(a.x, feet - h * 1.1, a.x + h * 0.17, feet - h * 1.04);
+      g.lineTo(a.x + h * 0.16, feet - h * 0.9);
+    } else {
+      g.moveTo(a.x - h * 0.14, feet - h * 0.93);
+      g.lineTo(a.x + h * 0.14, feet - h * 0.93);
+      g.moveTo(a.x + h * 0.08, feet - h * 0.95);
+      g.arc(a.x + h * 0.03, feet - h * 0.95, h * 0.05, 0, TAU);
+    }
     g.stroke();
     // сканирующие линии
     g.save();
@@ -2306,7 +2331,11 @@ window.SAGA2 = window.SAGA2 || {};
     g.restore();
   }
 
-  /* тело викинга в локальных координатах (ноги в 0, вперёд +x) */
+  /* тело героя в локальных координатах (ноги в 0, вперёд +x).
+     Облик — мастера северной кузни: Таран (snorri) — капюшон, фартук, медный наплечник;
+     Стрелок (gunnar) — меховая шапка, кафтан, шарф, арбалет и кузнечный молот;
+     Опора (bjorn) — бритая голова, кузнечные очки, борода-косица, стёганый жилет, щит-кузнечный круг.
+     Позы и фазы анимации — прежние. */
   function drawVikingBodyA(g, a, v, t) {
     var G = vikGeom(a), h = G.h, w = G.w, bodyW = G.bodyW, headR = G.headR;
     var stt = a.state || 'idle';
@@ -2316,12 +2345,12 @@ window.SAGA2 = window.SAGA2 || {};
     var climbing = stt === 'climb';
     var inAir = stt === 'jump' || stt === 'fall';
     var atk = a.attack || null;
-    var attacking = stt === 'act' || (atk && atk.t > 0 && atk.t < 1);
     var bob = moving ? Math.abs(Math.cos(ph)) * 1.7 : Math.sin(t * 2.2 + v.num * 1.7) * 0.7;
     var hipY = G.hipY - bob * 0.3;
     var shY = G.shY - bob;
     var headY = G.headY - bob;
     var lean = 0;
+    var isS = a.id === 'snorri', isG = a.id === 'gunnar', isB = a.id === 'bjorn';
     if (stt === 'jump') lean = 0.05;
     else if (stt === 'fall') lean = -0.04;
     else if (stt === 'hurt') lean = -0.14;
@@ -2329,23 +2358,33 @@ window.SAGA2 = window.SAGA2 || {};
     if (climbing) lean = 0.03;
 
     if (lean) g.rotate(lean);
+    var wave = Math.sin(t * 3.4 + anim * 4) * (moving || inAir ? 3.6 : 1.3);
 
-    // ---- плащ ----
-    var capeWave = Math.sin(t * 3.4 + anim * 4) * (moving || inAir ? 3.6 : 1.3);
-    g.fillStyle = v.cape;
-    g.beginPath();
-    g.moveTo(-bodyW * 0.54, shY + 2);
-    g.quadraticCurveTo(-bodyW * 1.2 - capeWave, hipY * 0.4, -bodyW * 0.86 - capeWave * 0.6, -h * 0.05);
-    g.lineTo(-bodyW * 0.06, -h * 0.11);
-    g.quadraticCurveTo(-bodyW * 0.14, hipY * 0.55, bodyW * 0.18, shY + 2);
-    g.closePath();
-    g.fill();
-    g.strokeStyle = 'rgba(4,8,16,0.5)'; g.lineWidth = 1.1; g.stroke();
-    g.strokeStyle = rgba(v.cape2, 0.9); g.lineWidth = 1.3;
-    g.beginPath();
-    g.moveTo(-bodyW * 0.54, shY + 3);
-    g.quadraticCurveTo(-bodyW * 1.2 - capeWave, hipY * 0.4, -bodyW * 0.86 - capeWave * 0.6, -h * 0.05);
-    g.stroke();
+    // ---- за спиной ----
+    if (isS) {
+      // хвост капюшона
+      g.fillStyle = v.hoodS;
+      g.beginPath();
+      g.moveTo(-headR * 0.7, headY - headR * 0.6);
+      g.quadraticCurveTo(-headR * 1.9 - wave * 0.4, headY + headR * 0.2, -headR * 1.8 - wave * 0.8, headY + headR * 1.9);
+      g.lineTo(-headR * 0.9, headY + headR * 1.2);
+      g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(4,8,16,0.5)'; g.lineWidth = 1; g.stroke();
+    } else if (isG && stt !== 'shoot') {
+      // арбалет за спиной
+      g.save();
+      g.translate(-bodyW * 0.42, shY + h * 0.2);
+      g.rotate(0.6);
+      g.fillStyle = OUTLINE; fillRound(g, -2.2, -h * 0.26, 4.4, h * 0.44, 1.6);
+      g.fillStyle = v.wood; fillRound(g, -1.4, -h * 0.25, 2.8, h * 0.42, 1.2);
+      g.strokeStyle = OUTLINE; g.lineWidth = 3.6; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(-h * 0.17, -h * 0.2); g.quadraticCurveTo(0, -h * 0.29, h * 0.17, -h * 0.2); g.stroke();
+      g.strokeStyle = '#c3d4e8'; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(-h * 0.17, -h * 0.2); g.quadraticCurveTo(0, -h * 0.29, h * 0.17, -h * 0.2); g.stroke();
+      g.strokeStyle = 'rgba(234,246,255,0.7)'; g.lineWidth = 0.8;
+      g.beginPath(); g.moveTo(-h * 0.17, -h * 0.2); g.lineTo(h * 0.17, -h * 0.2); g.stroke();
+      g.restore();
+    }
 
     // ---- ноги ----
     var foot1X, foot2X, lift1 = 0, lift2 = 0;
@@ -2374,16 +2413,16 @@ window.SAGA2 = window.SAGA2 || {};
     leg(foot1X, lift1, 1);
 
     // ---- торс ----
+    var waist = isB ? 0.46 : 0.58;
     g.beginPath();
-    g.moveTo(-bodyW * 0.7, shY + 3);
-    g.quadraticCurveTo(-bodyW * 0.84, hipY * 0.55, -bodyW * 0.58, hipY + 1);
-    g.lineTo(bodyW * 0.58, hipY + 1);
-    g.quadraticCurveTo(bodyW * 0.84, hipY * 0.55, bodyW * 0.7, shY + 3);
-    g.quadraticCurveTo(0, shY - 2.6, -bodyW * 0.7, shY + 3);
+    g.moveTo(-bodyW * (isB ? 0.86 : 0.7), shY + 3);
+    g.quadraticCurveTo(-bodyW * (isB ? 0.8 : 0.84), hipY * 0.55, -bodyW * waist, hipY + 1);
+    g.lineTo(bodyW * waist, hipY + 1);
+    g.quadraticCurveTo(bodyW * (isB ? 0.8 : 0.84), hipY * 0.55, bodyW * (isB ? 0.86 : 0.7), shY + 3);
+    g.quadraticCurveTo(0, shY - 2.6, -bodyW * (isB ? 0.86 : 0.7), shY + 3);
     g.closePath();
     g.strokeStyle = OUTLINE; g.lineWidth = 2.4; g.stroke();
     g.fillStyle = v.cloth; g.fill();
-    // светотень на груди
     g.fillStyle = 'rgba(255,255,255,0.10)';
     g.beginPath();
     g.moveTo(-bodyW * 0.5, shY + 5);
@@ -2391,14 +2430,72 @@ window.SAGA2 = window.SAGA2 || {};
     g.lineTo(bodyW * 0.22, hipY);
     g.quadraticCurveTo(-bodyW * 0.1, hipY - 3, -bodyW * 0.44, hipY);
     g.closePath(); g.fill();
-    // ремень + пряжка
-    g.fillStyle = '#3a2718';
-    g.fillRect(-bodyW * 0.6, hipY - 4.4, bodyW * 1.2, 3.6);
-    g.fillStyle = v.main;
-    g.fillRect(-1.8, hipY - 4.4, 3.6, 3.6);
-    // воротник-мех
-    g.fillStyle = 'rgba(180,200,225,0.42)';
-    g.beginPath(); g.ellipse(0, shY + 2, bodyW * 0.5, bodyW * 0.17, 0, 0, TAU); g.fill();
+
+    if (isG) {
+      // полы кафтана до колен и меховая оторочка
+      var fl = moving ? Math.sin(ph) * 1.4 : 0;
+      g.beginPath();
+      g.moveTo(-bodyW * 0.6, hipY - 2);
+      g.lineTo(bodyW * 0.6, hipY - 2);
+      g.lineTo(bodyW * 0.78 + fl, -h * 0.13);
+      g.lineTo(-bodyW * 0.82 - wave * 0.3, -h * 0.13);
+      g.closePath();
+      g.strokeStyle = OUTLINE; g.lineWidth = 2; g.stroke();
+      g.fillStyle = v.cloth; g.fill();
+      g.fillStyle = v.fur;
+      fillRound(g, -bodyW * 0.88 - wave * 0.3, -h * 0.15, bodyW * 1.7 + fl, 3, 1.5);
+      g.strokeStyle = 'rgba(4,8,16,0.4)'; g.lineWidth = 1.2;
+      g.beginPath(); g.moveTo(bodyW * 0.14, shY + 3); g.lineTo(bodyW * 0.18, -h * 0.15); g.stroke();
+      g.fillStyle = '#3a2718';
+      g.fillRect(-bodyW * 0.6, hipY - 4.4, bodyW * 1.2, 3);
+      g.fillStyle = v.main;
+      g.fillRect(-1.6, hipY - 4.4, 3.2, 3);
+    } else if (isS) {
+      // кузнечный фартук
+      g.beginPath();
+      g.moveTo(-bodyW * 0.08, shY + 3);
+      g.lineTo(bodyW * 0.62, shY + 3);
+      g.lineTo(bodyW * 0.7, -h * 0.12);
+      g.lineTo(-bodyW * 0.2, -h * 0.12);
+      g.closePath();
+      g.strokeStyle = OUTLINE; g.lineWidth = 1.6; g.stroke();
+      g.fillStyle = v.apron; g.fill();
+      g.fillStyle = 'rgba(255,220,180,0.18)';
+      g.fillRect(bodyW * 0.42, shY + 4, 1.6, h * 0.4);
+      g.strokeStyle = 'rgba(40,20,10,0.5)'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(0, hipY + 1); g.lineTo(bodyW * 0.6, hipY + 1); g.stroke();
+      g.strokeStyle = '#2a1c12'; g.lineWidth = 1.4;
+      g.beginPath(); g.moveTo(bodyW * 0.1, shY + 3); g.lineTo(-bodyW * 0.3, shY - 1); g.stroke();
+      // молот на поясе сзади
+      g.save();
+      g.translate(-bodyW * 0.62, hipY - 1);
+      g.rotate(0.22 + wave * 0.01);
+      g.fillStyle = OUTLINE; g.fillRect(-1.6, -1, 3.2, h * 0.24);
+      g.fillStyle = '#6a4428'; g.fillRect(-0.9, -0.6, 1.8, h * 0.23);
+      g.fillStyle = OUTLINE; fillRound(g, -4.4, h * 0.2, 8.8, 5.2, 1.2);
+      g.fillStyle = '#9aa8bc'; fillRound(g, -3.6, h * 0.2 + 0.7, 7.2, 3.8, 1);
+      g.restore();
+    } else {
+      // стёганый жилет + ремень с латунной пряжкой
+      g.strokeStyle = 'rgba(4,8,16,0.35)'; g.lineWidth = 1.1;
+      g.beginPath();
+      g.moveTo(-bodyW * 0.28, shY + 3); g.lineTo(-bodyW * 0.22, hipY);
+      g.moveTo(bodyW * 0.28, shY + 3); g.lineTo(bodyW * 0.22, hipY);
+      g.stroke();
+      g.fillStyle = '#3a2718';
+      g.fillRect(-bodyW * 0.5, hipY - 4.2, bodyW, 3.4);
+      g.fillStyle = v.brass;
+      g.fillRect(-2.2, hipY - 4.6, 4.4, 4.2);
+      // кольчужные наплечья
+      g.fillStyle = v.mail;
+      g.beginPath(); g.ellipse(-bodyW * 0.7, shY + 3.5, 4.2, 3, -0.2, 0, TAU); g.fill();
+      g.beginPath(); g.ellipse(bodyW * 0.7, shY + 3.5, 4.2, 3, 0.2, 0, TAU); g.fill();
+    }
+    if (isG) {
+      // меховой ворот
+      g.fillStyle = v.fur;
+      g.beginPath(); g.ellipse(0, shY + 2, bodyW * 0.6, bodyW * 0.2, 0, 0, TAU); g.fill();
+    }
     // rim-light по левому краю
     g.strokeStyle = 'rgba(190,235,255,0.2)'; g.lineWidth = 1.2;
     g.beginPath();
@@ -2410,10 +2507,8 @@ window.SAGA2 = window.SAGA2 || {};
     var armLen = h * 0.3;
     var shFrontX = bodyW * 0.56, shBackX = -bodyW * 0.54;
     var armSwing = moving ? Math.sin(ph + Math.PI) * h * 0.08 : Math.sin(t * 2 + v.num) * 1.1;
-    // задняя
     limb(g, shBackX, shY + 4, shBackX - 3 + armSwing * 0.7, shY + armLen,
-      shBackX - 4, shY + armLen * 0.5, v.cloth2, G.legW * 0.9, null);
-    // передняя
+      shBackX - 4, shY + armLen * 0.5, v.armF, G.legW * 0.9, null);
     var handX = shFrontX + (moving ? Math.sin(ph) * h * 0.07 : 0);
     var handY = shY + armLen;
     if (atk && atk.kind === 'headbutt') { handX = shFrontX + 6; handY = shY + armLen * 0.66; }
@@ -2422,74 +2517,90 @@ window.SAGA2 = window.SAGA2 || {};
     if (stt === 'hook') { handX = shFrontX + 3; handY = shY - h * 0.06; }
     if (stt === 'act' && a.id === 'bjorn') { handX = shFrontX + 2; handY = shY + armLen * 0.46; }
     limb(g, shFrontX, shY + 4, handX, handY,
-      shFrontX + 4, shY + armLen * 0.55, v.cloth, G.legW * 0.9, 'rgba(255,255,255,0.14)');
-    // кисть
+      shFrontX + 4, shY + armLen * 0.55, v.armN, G.legW * 0.9, 'rgba(255,255,255,0.14)');
     g.fillStyle = 'rgba(4,8,16,0.8)';
     g.beginPath(); g.arc(handX, handY, w * 0.088, 0, TAU); g.fill();
-    g.fillStyle = v.skin;
+    g.fillStyle = v.hand;
     g.beginPath(); g.arc(handX, handY, w * 0.07, 0, TAU); g.fill();
 
+    if (isS) {
+      // медный наплечник
+      var px = shFrontX + (atk && atk.kind === 'headbutt' ? 2 : 0), py = shY + 3;
+      g.beginPath();
+      g.ellipse(px, py, 5.6, 4, -0.2, Math.PI, TAU);
+      g.lineTo(px + 5.4, py + 2.4); g.lineTo(px - 5.4, py + 2.4);
+      g.closePath();
+      g.strokeStyle = OUTLINE; g.lineWidth = 1.6; g.stroke();
+      g.fillStyle = v.copper; g.fill();
+      g.fillStyle = 'rgba(255,230,190,0.6)';
+      g.fillRect(px - 3.6, py - 3, 6, 1.1);
+      g.fillStyle = '#fff2b8';
+      g.beginPath(); g.arc(px + 2.4, py - 0.4, 0.9, 0, TAU); g.fill();
+    }
+
     // ---- оружие ----
-    if (a.id === 'gunnar') {
+    if (isG) {
       if (stt === 'shoot') drawBowA(g, handX, handY, a, v, t);
       else if (atk && atk.kind === 'sword') drawSwordA(g, handX, handY, a, v, t);
       else {
+        // кузнечный молот в опущенной руке
         g.save();
         g.translate(handX, handY);
-        g.rotate(0.55);
-        g.strokeStyle = OUTLINE; g.lineWidth = 4.2; g.lineCap = 'round';
-        g.beginPath(); g.moveTo(0, -2); g.lineTo(0, h * 0.32); g.stroke();
-        g.strokeStyle = '#c3d4e8'; g.lineWidth = 2.6;
-        g.beginPath(); g.moveTo(0, -2); g.lineTo(0, h * 0.32); g.stroke();
-        g.fillStyle = v.main;
-        g.fillRect(-4.4, h * 0.28, 8.8, 2.2);
+        g.rotate(0.45);
+        g.strokeStyle = OUTLINE; g.lineWidth = 3.8; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(0, -2); g.lineTo(0, h * 0.26); g.stroke();
+        g.strokeStyle = '#7a5232'; g.lineWidth = 2.2;
+        g.beginPath(); g.moveTo(0, -2); g.lineTo(0, h * 0.26); g.stroke();
+        g.fillStyle = OUTLINE; fillRound(g, -5.2, h * 0.24, 10.4, 6, 1.4);
+        g.fillStyle = '#9aa8bc'; fillRound(g, -4.4, h * 0.24 + 0.8, 8.8, 4.4, 1.1);
+        g.fillStyle = 'rgba(234,246,255,0.6)'; g.fillRect(-4, h * 0.24 + 1, 8, 1);
         g.restore();
       }
     }
-    if (a.id === 'snorri' && atk && atk.kind === 'headbutt') {
+    if (isS && atk && atk.kind === 'headbutt') {
+      // удар плечом: искры и волна
       var pr = clamp(atk.t, 0, 1);
-      g.strokeStyle = 'rgba(124,248,255,' + (0.75 * (1 - pr)) + ')';
+      g.strokeStyle = 'rgba(255,180,90,' + (0.75 * (1 - pr)) + ')';
       g.lineWidth = 2.2;
       for (var ar = 0; ar < 3; ar++) {
         g.beginPath();
-        g.arc(-bodyW * 0.1, shY - 4, h * (0.16 + ar * 0.09) * (0.6 + pr), -1.0, 1.0);
+        g.arc(bodyW * 0.2, shY + 2, h * (0.16 + ar * 0.09) * (0.6 + pr), -1.0, 1.0);
         g.stroke();
       }
+      for (var sk = 0; sk < 5; sk++) {
+        var sa = -0.9 + sk * 0.45, sr = h * (0.2 + pr * 0.3);
+        glowAdd(g, shFrontX + Math.cos(sa) * sr, shY + 3 + Math.sin(sa) * sr, 3, sk % 2 ? '#ffd27a' : '#ff8a4d', 0.9 * (1 - pr));
+      }
     }
-    if (a.id === 'bjorn') drawShieldA(g, a, v, bodyW, shY, hipY, t);
+    if (isB) drawShieldA(g, a, v, bodyW, shY, hipY, t);
 
     // ---- голова ----
-    // контур
     g.fillStyle = 'rgba(4,8,16,0.9)';
     g.beginPath(); g.arc(0, headY, headR + 1.4, 0, TAU); g.fill();
     g.fillStyle = v.skin;
     g.beginPath(); g.arc(0, headY, headR, 0, TAU); g.fill();
-    // затенение
     g.fillStyle = 'rgba(70,40,20,0.16)';
     g.beginPath(); g.arc(-headR * 0.25, headY + headR * 0.22, headR * 0.86, 0, TAU); g.fill();
     g.fillStyle = v.skin;
     g.beginPath(); g.arc(headR * 0.1, headY - headR * 0.06, headR * 0.86, 0, TAU); g.fill();
-    // борода
-    if (a.id !== 'snorri') {
+    if (isB) {
+      // короткая тёмная борода и косица с латунным кольцом
       g.fillStyle = v.hair;
       g.beginPath();
-      g.moveTo(-headR * 0.92, headY + headR * 0.1);
-      g.quadraticCurveTo(-headR * 0.95, headY + headR * 2.0, 0, headY + headR * 1.8);
-      g.quadraticCurveTo(headR * 0.95, headY + headR * 2.0, headR * 0.8, headY + headR * 0.06);
+      g.moveTo(-headR * 0.8, headY + headR * 0.2);
+      g.quadraticCurveTo(-headR * 0.6, headY + headR * 1.2, headR * 0.2, headY + headR * 1.15);
+      g.quadraticCurveTo(headR * 0.9, headY + headR * 1.0, headR * 0.92, headY + headR * 0.2);
+      g.quadraticCurveTo(headR * 0.2, headY + headR * 0.55, -headR * 0.8, headY + headR * 0.2);
       g.closePath(); g.fill();
-      g.strokeStyle = 'rgba(4,8,16,0.5)'; g.lineWidth = 1; g.stroke();
-      g.strokeStyle = 'rgba(255,255,255,0.25)'; g.lineWidth = 0.9;
-      g.beginPath();
-      g.moveTo(-headR * 0.2, headY + headR * 0.9);
-      g.quadraticCurveTo(0, headY + headR * 1.55, headR * 0.42, headY + headR * 1.5);
-      g.stroke();
-    } else {
-      // усы Снорриа
-      g.strokeStyle = v.hair; g.lineWidth = 1.6; g.lineCap = 'round';
-      g.beginPath();
-      g.moveTo(-headR * 0.1, headY + headR * 0.62);
-      g.quadraticCurveTo(headR * 0.4, headY + headR * 0.72, headR * 0.7, headY + headR * 0.52);
-      g.stroke();
+      g.strokeStyle = v.hair; g.lineWidth = 2.4; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(headR * 0.25, headY + headR * 1.05); g.lineTo(headR * 0.3, headY + headR * 1.75); g.stroke();
+      g.fillStyle = v.brass;
+      g.fillRect(headR * 0.3 - 2, headY + headR * 1.65, 4, 2);
+      g.fillStyle = 'rgba(255,240,220,0.4)';
+      g.beginPath(); g.ellipse(-headR * 0.2, headY - headR * 0.72, headR * 0.4, headR * 0.16, -0.3, 0, TAU); g.fill();
+    } else if (isS) {
+      g.fillStyle = 'rgba(30,20,16,0.4)';
+      g.beginPath(); g.ellipse(headR * 0.15, headY + headR * 0.3, headR * 0.22, headR * 0.1, -0.3, 0, TAU); g.fill();
     }
     // глаза
     g.fillStyle = '#0b0f1a';
@@ -2498,77 +2609,109 @@ window.SAGA2 = window.SAGA2 || {};
     g.fillStyle = 'rgba(255,255,255,0.9)';
     g.fillRect(headR * 0.36, headY - headR * 0.18, 0.9, 0.9);
     g.fillRect(headR * 0.05, headY - headR * 0.18, 0.8, 0.8);
-    // брови
     g.strokeStyle = 'rgba(40,26,16,0.8)'; g.lineWidth = 1.3; g.lineCap = 'round';
     g.beginPath();
     g.moveTo(headR * 0.14, headY - headR * 0.38);
     g.lineTo(headR * 0.58, headY - headR * 0.32);
     g.stroke();
-    // нос
     g.fillStyle = 'rgba(120,70,40,0.35)';
     g.beginPath(); g.ellipse(headR * 0.6, headY + headR * 0.16, 1.2, 1.5, 0, 0, TAU); g.fill();
 
-    drawHelmetA(g, a, v, G, headY, t);
+    drawHeadgearA(g, a, v, G, headY, t);
   }
 
-  function drawHelmetA(g, a, v, G, headY, t) {
-    var r = G.headR, hornK = v.horn || 1;
-    // купол
-    g.beginPath();
-    g.arc(0, headY - r * 0.12, r * 1.14, Math.PI * 1.02, Math.PI * 1.98);
-    g.closePath();
-    g.strokeStyle = OUTLINE; g.lineWidth = 2.2; g.stroke();
-    g.fillStyle = '#3f5675'; g.fill();
-    g.beginPath();
-    g.arc(-r * 0.16, headY - r * 0.24, r * 0.94, Math.PI * 1.08, Math.PI * 1.92);
-    g.closePath();
-    g.fillStyle = '#69829f'; g.fill();
-    // блик на куполе
-    g.fillStyle = 'rgba(234,246,255,0.5)';
-    g.beginPath();
-    g.ellipse(-r * 0.34, headY - r * 0.62, r * 0.34, r * 0.16, -0.5, 0, TAU); g.fill();
-    // обод
-    g.fillStyle = '#2b3d54';
-    g.fillRect(-r * 1.14, headY - r * 0.36, r * 2.28, r * 0.3);
-    g.fillStyle = 'rgba(234,246,255,0.55)';
-    g.fillRect(-r * 1.12, headY - r * 0.38, r * 2.24, r * 0.08);
-    // наносник
-    g.fillStyle = '#41566f';
-    g.fillRect(-r * 0.12, headY - r * 0.36, r * 0.26, r * 0.86);
-    g.fillStyle = 'rgba(234,246,255,0.4)';
-    g.fillRect(-r * 0.1, headY - r * 0.3, r * 0.08, r * 0.72);
-    // заклёпки
-    g.fillStyle = 'rgba(234,246,255,0.6)';
-    g.fillRect(-r * 0.82, headY - r * 0.28, r * 0.1, r * 0.1);
-    g.fillRect(r * 0.66, headY - r * 0.28, r * 0.1, r * 0.1);
-    // рога
-    var hs = Math.sin(t * 2.2 + v.num) * r * 0.05;
-    function horn(dir) {
-      var bx = dir * r * 0.72, by = headY - r * 0.3;
-      var cx = dir * r * 1.62, cy = headY - r * (0.9 + 0.12 * hornK) + hs;
-      var ex = dir * r * (1.05 + 0.1 * hornK), ey = headY - r * (1.5 + 0.4 * hornK) + hs;
-      g.lineCap = 'round';
-      g.strokeStyle = OUTLINE; g.lineWidth = r * 0.46;
-      g.beginPath(); g.moveTo(bx, by); g.quadraticCurveTo(cx, cy, ex, ey); g.stroke();
-      g.strokeStyle = '#ddd6c0'; g.lineWidth = r * 0.32;
-      g.beginPath(); g.moveTo(bx, by); g.quadraticCurveTo(cx, cy, ex, ey); g.stroke();
-      g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = r * 0.1;
-      g.beginPath(); g.moveTo(bx, by - 1); g.quadraticCurveTo(cx - 1, cy - 1, ex - 1, ey + 2); g.stroke();
-      g.fillStyle = '#cfc8b2';
-      g.beginPath(); g.arc(ex, ey, r * 0.14, 0, TAU); g.fill();
+  /* головные уборы: капюшон / меховая шапка + шарф / кузнечные очки */
+  function drawHeadgearA(g, a, v, G, headY, t) {
+    var r = G.headR;
+    var wv = Math.sin(t * 3.1 + v.num) * r * 0.08;
+    if (a.id === 'snorri') {
+      g.beginPath();
+      g.moveTo(r * 0.95, headY - r * 0.3);
+      g.quadraticCurveTo(r * 0.9, headY - r * 1.45, -r * 0.2, headY - r * 1.38);
+      g.quadraticCurveTo(-r * 1.35, headY - r * 1.2, -r * 1.25, headY + r * 0.2);
+      g.quadraticCurveTo(-r * 1.2, headY + r * 1.1, -r * 0.45, headY + r * 1.15);
+      g.lineTo(-r * 0.3, headY + r * 0.55);
+      g.quadraticCurveTo(-r * 0.75, headY - r * 0.2, -r * 0.3, headY - r * 0.66);
+      g.quadraticCurveTo(r * 0.35, headY - r * 0.9, r * 0.95, headY - r * 0.3);
+      g.closePath();
+      g.strokeStyle = OUTLINE; g.lineWidth = 2; g.stroke();
+      g.fillStyle = v.hood; g.fill();
+      g.strokeStyle = v.hoodL; g.lineWidth = 1.2;
+      g.beginPath();
+      g.moveTo(r * 0.9, headY - r * 0.34);
+      g.quadraticCurveTo(r * 0.35, headY - r * 0.9, -r * 0.3, headY - r * 0.66);
+      g.stroke();
+      g.strokeStyle = 'rgba(4,8,16,0.35)'; g.lineWidth = 0.9;
+      g.beginPath(); g.moveTo(-r * 0.2, headY - r * 1.36); g.quadraticCurveTo(-r * 0.5, headY - r * 0.4, -r * 0.7, headY + r * 0.6); g.stroke();
+      // пелерина
+      g.fillStyle = v.hoodS;
+      g.beginPath(); g.ellipse(-r * 0.35, headY + r * 1.5, r * 1.15, r * 0.34, 0, 0, TAU); g.fill();
+      g.strokeStyle = 'rgba(4,8,16,0.5)'; g.lineWidth = 1; g.stroke();
+    } else if (a.id === 'gunnar') {
+      // шарф до носа и его хвост
+      g.fillStyle = OUTLINE;
+      fillRound(g, -r * 1.02, headY + r * 0.2, r * 2.04, r * 0.95, r * 0.4);
+      g.fillStyle = v.scarf;
+      fillRound(g, -r * 0.92, headY + r * 0.28, r * 1.84, r * 0.8, r * 0.35);
+      g.beginPath();
+      g.moveTo(-r * 0.8, headY + r * 0.6);
+      g.quadraticCurveTo(-r * 1.6 - wv * 4, headY + r * 0.7, -r * 2.1 - wv * 6, headY + r * 1.5);
+      g.lineTo(-r * 1.6 - wv * 4, headY + r * 1.6);
+      g.quadraticCurveTo(-r * 1.2, headY + r * 1.1, -r * 0.7, headY + r * 1.0);
+      g.closePath(); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.22)';
+      g.fillRect(-r * 0.8, headY + r * 0.34, r * 1.6, r * 0.12);
+      // меховая шапка
+      g.beginPath();
+      g.moveTo(-r * 1.15, headY - r * 0.25);
+      g.lineTo(-r * 1.28, headY - r * 1.35);
+      g.quadraticCurveTo(-r * 1.2, headY - r * 2.05, 0, headY - r * 2.02);
+      g.quadraticCurveTo(r * 1.25, headY - r * 2.05, r * 1.3, headY - r * 1.35);
+      g.lineTo(r * 1.15, headY - r * 0.25);
+      g.closePath();
+      g.strokeStyle = OUTLINE; g.lineWidth = 2.2; g.stroke();
+      g.fillStyle = v.fur; g.fill();
+      g.fillStyle = v.cloth;
+      g.beginPath(); g.ellipse(0, headY - r * 1.88, r * 0.85, r * 0.22, 0, 0, TAU); g.fill();
+      g.strokeStyle = 'rgba(90,80,60,0.45)'; g.lineWidth = 0.9;
+      for (var fz = 0; fz < 5; fz++) {
+        g.beginPath();
+        g.moveTo(-r * 0.8 + fz * r * 0.4, headY - r * 1.7 + (fz % 2) * r * 0.15);
+        g.lineTo(-r * 0.72 + fz * r * 0.4, headY - r * 1.15 + (fz % 2) * r * 0.15);
+        g.stroke();
+      }
+      g.fillStyle = v.furL;
+      fillRound(g, -r * 1.3, headY - r * 0.85, r * 2.6, r * 0.62, r * 0.3);
+      g.fillStyle = v.fur;
+      fillRound(g, -r * 1.22, headY - r * 0.4, r * 0.5, r * 1.0, r * 0.22);
+      glowAdd(g, 0, headY - r * 1.9, r * 1.1, v.main, 0.25);
+    } else {
+      // кузнечные очки на лбу
+      g.fillStyle = '#2a1c12';
+      g.beginPath();
+      g.moveTo(-r * 1.02, headY - r * 0.48); g.quadraticCurveTo(0, headY - r * 0.82, r * 1.02, headY - r * 0.48);
+      g.lineTo(r * 1.02, headY - r * 0.26); g.quadraticCurveTo(0, headY - r * 0.6, -r * 1.02, headY - r * 0.26);
+      g.closePath(); g.fill();
+      var lens = [[r * 0.2, r * 0.36], [r * 0.82, r * 0.26]];
+      for (var i = 0; i < 2; i++) {
+        var lx = lens[i][0], lr = lens[i][1];
+        g.fillStyle = OUTLINE;
+        g.beginPath(); g.arc(lx, headY - r * 0.62, lr + 1.2, 0, TAU); g.fill();
+        g.fillStyle = v.brass;
+        g.beginPath(); g.arc(lx, headY - r * 0.62, lr, 0, TAU); g.fill();
+        g.fillStyle = v.glass;
+        g.beginPath(); g.arc(lx, headY - r * 0.62, lr * 0.62, 0, TAU); g.fill();
+        g.fillStyle = 'rgba(255,255,255,0.85)';
+        g.fillRect(lx - lr * 0.35, headY - r * 0.62 - lr * 0.35, 1, 1);
+      }
+      glowAdd(g, r * 0.2, headY - r * 0.62, r * 0.9, v.glass, 0.3);
     }
-    horn(-1); horn(1);
-    // самоцвет
-    g.fillStyle = v.main;
-    g.beginPath(); g.arc(0, headY - r * 0.78, r * 0.17, 0, TAU); g.fill();
-    g.fillStyle = 'rgba(255,255,255,0.8)';
-    g.beginPath(); g.arc(-r * 0.05, headY - r * 0.83, r * 0.06, 0, TAU); g.fill();
-    glowAdd(g, 0, headY - r * 0.78, r * 1.3, v.main, 0.35);
   }
 
+  /* щит Опоры: большой круглый кузнечный круг — сталь, латунный обод, кольцо заклёпок */
   function drawShieldA(g, a, v, bodyW, shY, hipY, t) {
     var up = !!a.shieldUp;
-    var R = (a.w || 24) * 0.44;
+    var R = (a.w || 24) * 0.48;
     var cx, cy;
     if (up) { cx = 2; cy = shY - (a.h || 44) * 0.22; }
     else { cx = bodyW * 0.78; cy = shY + (a.h || 44) * 0.3; }
@@ -2582,110 +2725,96 @@ window.SAGA2 = window.SAGA2 || {};
       fillRound(g, -21, py - 2.5, 42, 5.5, 2);
       g.fillStyle = 'rgba(255,242,200,0.85)';
       fillRound(g, -19, py - 1.2, 38, 2, 1);
-      // энергетические линии от щита к платформе
       g.strokeStyle = 'rgba(255,200,87,0.25)'; g.lineWidth = 1.2;
       g.beginPath(); g.moveTo(-10, cy - R * 0.6); g.lineTo(-12, py); g.moveTo(10, cy - R * 0.6); g.lineTo(12, py); g.stroke();
     }
-    // контур
     g.fillStyle = 'rgba(4,8,16,0.85)';
     g.beginPath(); g.arc(cx, cy, R + 1.6, 0, TAU); g.fill();
-    // металл
-    g.fillStyle = '#8a6d2c';
+    g.fillStyle = v.brass;
     g.beginPath(); g.arc(cx, cy, R, 0, TAU); g.fill();
-    g.fillStyle = up ? '#dcb659' : '#b08f3e';
-    g.beginPath(); g.arc(cx, cy, R * 0.92, 0, TAU); g.fill();
-    g.fillStyle = up ? '#efd489' : '#c9a94f';
-    g.beginPath(); g.arc(cx - R * 0.12, cy - R * 0.12, R * 0.74, 0, TAU); g.fill();
-    // сегменты
-    g.strokeStyle = 'rgba(90,64,20,0.5)'; g.lineWidth = 1.1;
-    for (var i = 0; i < 6; i++) {
-      var ang = i / 6 * TAU + 0.3;
-      g.beginPath();
-      g.moveTo(cx + Math.cos(ang) * R * 0.28, cy + Math.sin(ang) * R * 0.28);
-      g.lineTo(cx + Math.cos(ang) * R * 0.9, cy + Math.sin(ang) * R * 0.9);
-      g.stroke();
+    var sg = g.createLinearGradient(cx - R, cy - R, cx + R * 0.6, cy + R);
+    sg.addColorStop(0, '#eef3f8');
+    sg.addColorStop(0.45, up ? '#c6d0dc' : '#aab4c2');
+    sg.addColorStop(1, '#4e5866');
+    g.fillStyle = sg;
+    g.beginPath(); g.arc(cx, cy, R * 0.84, 0, TAU); g.fill();
+    // кольцо заклёпок
+    g.fillStyle = '#ffe9a8';
+    for (var i = 0; i < 10; i++) {
+      var ang = i / 10 * TAU + 0.2;
+      g.beginPath(); g.arc(cx + Math.cos(ang) * R * 0.66, cy + Math.sin(ang) * R * 0.66, 0.95, 0, TAU); g.fill();
     }
+    // следы молота
+    g.strokeStyle = 'rgba(40,50,64,0.35)'; g.lineWidth = 0.9;
+    g.beginPath(); g.arc(cx + R * 0.15, cy + R * 0.1, R * 0.42, 0.4, 2.2); g.stroke();
     // умбон
-    g.fillStyle = '#5d4a22';
-    g.beginPath(); g.arc(cx, cy, R * 0.25, 0, TAU); g.fill();
-    g.fillStyle = 'rgba(255,240,190,0.85)';
-    g.beginPath(); g.arc(cx - R * 0.07, cy - R * 0.07, R * 0.1, 0, TAU); g.fill();
+    g.fillStyle = '#3e4652';
+    g.beginPath(); g.arc(cx, cy, R * 0.26, 0, TAU); g.fill();
+    g.fillStyle = v.brass;
+    g.beginPath(); g.arc(cx - R * 0.06, cy - R * 0.06, R * 0.13, 0, TAU); g.fill();
     if (up) glowAdd(g, cx, cy + R * 0.4, R * 2.4, C.gold, 0.16 + 0.06 * Math.sin(t * 4));
   }
 
+  /* удар вплотную Стрелка: кузнечный молот (способность 'sword' — прежний идентификатор) */
   function drawSwordA(g, handX, handY, a, v, t) {
     var atk = a.attack || { t: 0 };
     var p = clamp(atk.t, 0, 1);
     var ang = lerp(-1.5, 0.95, p * p);
-    var len = (a.h || 46) * 0.72;
+    var len = (a.h || 46) * 0.62;
     g.save();
     g.translate(handX, handY);
     g.rotate(ang);
-    g.fillStyle = 'rgba(4,8,16,0.8)';
-    g.beginPath();
-    g.moveTo(-3.6, 0); g.lineTo(-4, -len); g.lineTo(0, -len - 6.5); g.lineTo(4, -len);
-    g.lineTo(3.6, 0); g.closePath(); g.fill();
-    g.beginPath();
-    g.moveTo(-2.4, 0); g.lineTo(-2.8, -len); g.lineTo(0, -len - 5); g.lineTo(2.8, -len);
-    g.lineTo(2.4, 0); g.closePath();
-    g.fillStyle = '#c3d4e8'; g.fill();
-    g.fillStyle = 'rgba(234,246,255,0.95)';
-    g.fillRect(-0.7, -len + 3, 1.4, len - 6);
-    g.fillStyle = 'rgba(124,248,255,0.55)';
-    g.fillRect(-2.4, -len + 3, 0.9, len - 6);
-    g.fillStyle = v.main;
-    g.fillRect(-6.4, -2, 12.8, 2.8);
-    g.fillStyle = '#3a2a18';
-    g.fillRect(-1.8, 0.6, 3.6, 7);
+    g.strokeStyle = OUTLINE; g.lineWidth = 4.4; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(0, 4); g.lineTo(0, -len); g.stroke();
+    g.strokeStyle = '#7a5232'; g.lineWidth = 2.6;
+    g.beginPath(); g.moveTo(0, 4); g.lineTo(0, -len); g.stroke();
+    g.fillStyle = OUTLINE; fillRound(g, -6.6, -len - 6, 13.2, 8.4, 1.8);
+    g.fillStyle = '#b4c2d4'; fillRound(g, -5.8, -len - 5.2, 11.6, 6.8, 1.4);
+    g.fillStyle = 'rgba(234,246,255,0.8)'; g.fillRect(-5, -len - 4.6, 10, 1.3);
+    g.fillStyle = v.main; g.fillRect(-1.6, -len + 1.6, 3.2, 2.2);
     g.restore();
     if (p > 0.15 && p < 0.85) {
       var al = 1 - Math.abs(p - 0.5) * 2;
-      g.strokeStyle = 'rgba(255,61,139,' + (0.8 * al) + ')';
+      g.strokeStyle = 'rgba(255,170,80,' + (0.8 * al) + ')';
       g.lineWidth = 4.5 * al + 1;
       g.lineCap = 'round';
       g.beginPath();
-      g.arc(handX, handY, len * 0.85, -2.2 + p * 2.6, -0.5 + p * 2.6);
+      g.arc(handX, handY, len * 0.95, -2.2 + p * 2.6, -0.5 + p * 2.6);
       g.stroke();
       g.strokeStyle = 'rgba(234,246,255,' + (0.55 * al) + ')';
       g.lineWidth = 1.6;
       g.beginPath();
-      g.arc(handX, handY, len * 0.85, -2.2 + p * 2.6, -0.5 + p * 2.6);
+      g.arc(handX, handY, len * 0.95, -2.2 + p * 2.6, -0.5 + p * 2.6);
       g.stroke();
     }
   }
 
+  /* выстрел Стрелка: арбалет (способность 'bow' — прежний идентификатор) */
   function drawBowA(g, handX, handY, a, v, t) {
     var aimUp = !!a.aimUp;
     var h = a.h || 46;
     g.save();
     g.translate(handX, handY);
     if (aimUp) g.rotate(-Math.PI * 0.5);
-    g.strokeStyle = OUTLINE; g.lineWidth = 4.4; g.lineCap = 'round';
-    g.beginPath();
-    g.moveTo(0, -h * 0.34); g.quadraticCurveTo(h * 0.2, 0, 0, h * 0.34);
-    g.stroke();
-    g.strokeStyle = '#9a7440'; g.lineWidth = 2.6;
-    g.beginPath();
-    g.moveTo(0, -h * 0.34); g.quadraticCurveTo(h * 0.2, 0, 0, h * 0.34);
-    g.stroke();
-    g.strokeStyle = 'rgba(255,220,150,0.6)'; g.lineWidth = 0.9;
-    g.beginPath();
-    g.moveTo(0, -h * 0.32); g.quadraticCurveTo(h * 0.17, 0, 0, h * 0.32);
-    g.stroke();
+    // ложе
+    g.fillStyle = OUTLINE; fillRound(g, -h * 0.2, -2.6, h * 0.5, 5.2, 1.6);
+    g.fillStyle = v.wood; fillRound(g, -h * 0.19, -1.8, h * 0.48, 3.6, 1.2);
+    g.fillStyle = 'rgba(255,220,160,0.35)'; g.fillRect(-h * 0.17, -1.6, h * 0.44, 0.9);
+    // стальная дуга поперёк
+    var bx = h * 0.26;
+    g.strokeStyle = OUTLINE; g.lineWidth = 4; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(bx - h * 0.05, -h * 0.22); g.quadraticCurveTo(bx + h * 0.06, 0, bx - h * 0.05, h * 0.22); g.stroke();
+    g.strokeStyle = '#c3d4e8'; g.lineWidth = 2.3;
+    g.beginPath(); g.moveTo(bx - h * 0.05, -h * 0.22); g.quadraticCurveTo(bx + h * 0.06, 0, bx - h * 0.05, h * 0.22); g.stroke();
     g.strokeStyle = 'rgba(234,246,255,0.8)'; g.lineWidth = 0.9;
-    g.beginPath();
-    g.moveTo(0, -h * 0.34); g.lineTo(-h * 0.06, 0); g.lineTo(0, h * 0.34);
-    g.stroke();
-    g.strokeStyle = 'rgba(255,200,87,0.9)'; g.lineWidth = 1.1;
-    g.beginPath(); g.moveTo(h * 0.19, 0); g.lineTo(-h * 0.06, 0); g.stroke();
+    g.beginPath(); g.moveTo(bx - h * 0.05, -h * 0.22); g.lineTo(h * 0.02, 0); g.lineTo(bx - h * 0.05, h * 0.22); g.stroke();
+    // болт
     g.fillStyle = '#cfe0f2';
-    g.fillRect(-h * 0.06, -1.1, h * 0.56, 2.2);
+    g.fillRect(h * 0.02, -1, h * 0.46, 2);
     g.fillStyle = '#e8f6ff';
-    g.beginPath();
-    g.moveTo(h * 0.5, -3.6); g.lineTo(h * 0.63, 0); g.lineTo(h * 0.5, 3.6);
-    g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(h * 0.46, -3.2); g.lineTo(h * 0.58, 0); g.lineTo(h * 0.46, 3.2); g.closePath(); g.fill();
     g.fillStyle = C.gold;
-    g.fillRect(-h * 0.085, -3.2, 4.4, 6.4);
+    g.fillRect(-h * 0.04, -2.6, 3.4, 5.2);
     g.restore();
   }
 
@@ -3361,23 +3490,92 @@ window.SAGA2 = window.SAGA2 || {};
       g.globalCompositeOperation = 'lighter';
       glow(g, 0, -26, 52, v.main, 0.14);
       g.globalCompositeOperation = 'source-over';
+      var isS = actorId === 'snorri', isG = actorId === 'gunnar', isB = actorId === 'bjorn';
+      if (!isG && !isB) isS = true;
+      // предметы за спиной
+      if (isB) {
+        // щит-кузнечный круг
+        g.fillStyle = v.brass;
+        g.beginPath(); g.arc(34, 30, 24, 0, TAU); g.fill();
+        var sgr = g.createLinearGradient(14, 8, 50, 52);
+        sgr.addColorStop(0, '#eef3f8'); sgr.addColorStop(0.5, '#aab4c2'); sgr.addColorStop(1, '#4e5866');
+        g.fillStyle = sgr;
+        g.beginPath(); g.arc(34, 30, 20, 0, TAU); g.fill();
+        g.fillStyle = '#ffe9a8';
+        for (var rv = 0; rv < 10; rv++) {
+          var ra = rv / 10 * TAU;
+          g.beginPath(); g.arc(34 + Math.cos(ra) * 15.5, 30 + Math.sin(ra) * 15.5, 1.3, 0, TAU); g.fill();
+        }
+        g.fillStyle = '#3e4652';
+        g.beginPath(); g.arc(34, 30, 5.5, 0, TAU); g.fill();
+      } else if (isG) {
+        // арбалет за плечом
+        g.save();
+        g.translate(-30, 10); g.rotate(-0.55);
+        g.fillStyle = v.wood; fillRound(g, -2.6, -34, 5.2, 70, 2);
+        g.strokeStyle = '#c3d4e8'; g.lineWidth = 3.2; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(-18, -24); g.quadraticCurveTo(0, -36, 18, -24); g.stroke();
+        g.strokeStyle = 'rgba(234,246,255,0.6)'; g.lineWidth = 0.9;
+        g.beginPath(); g.moveTo(-18, -24); g.lineTo(18, -24); g.stroke();
+        g.restore();
+      } else {
+        // рукоять молота над плечом
+        g.save();
+        g.translate(34, 4); g.rotate(0.35);
+        g.fillStyle = '#6a4428'; fillRound(g, -2, -30, 4, 60, 1.6);
+        g.fillStyle = '#9aa8bc'; fillRound(g, -10, -40, 20, 11, 2);
+        g.fillStyle = 'rgba(234,246,255,0.5)'; g.fillRect(-9, -39, 18, 2);
+        g.restore();
+      }
       // плечи
       g.fillStyle = v.cloth;
       g.beginPath();
-      g.moveTo(-46, 58); g.quadraticCurveTo(-40, 12, -14, 6);
-      g.lineTo(14, 6); g.quadraticCurveTo(40, 12, 46, 58);
+      g.moveTo(isB ? -52 : -46, 58); g.quadraticCurveTo(isB ? -46 : -40, 12, -14, 6);
+      g.lineTo(14, 6); g.quadraticCurveTo(isB ? 46 : 40, 12, isB ? 52 : 46, 58);
       g.closePath(); g.fill();
       g.fillStyle = 'rgba(234,246,255,0.09)';
       g.beginPath();
       g.moveTo(-30, 56); g.quadraticCurveTo(-18, 18, 0, 16);
       g.lineTo(6, 56); g.closePath(); g.fill();
-      // мех
-      g.fillStyle = 'rgba(120,140,170,0.5)';
-      g.beginPath(); g.ellipse(-20, 14, 12, 7, -0.3, 0, TAU); g.fill();
-      g.beginPath(); g.ellipse(20, 14, 12, 7, 0.3, 0, TAU); g.fill();
+      if (isS) {
+        // фартук с лямками и медный наплечник
+        g.fillStyle = v.apron;
+        g.beginPath(); g.moveTo(-14, 58); g.lineTo(-12, 22); g.lineTo(12, 22); g.lineTo(14, 58); g.closePath(); g.fill();
+        g.strokeStyle = '#2a1c12'; g.lineWidth = 2.4;
+        g.beginPath(); g.moveTo(-11, 23); g.lineTo(-18, 8); g.moveTo(11, 23); g.lineTo(18, 8); g.stroke();
+        g.fillStyle = v.copper;
+        g.beginPath();
+        g.moveTo(-44, 30); g.quadraticCurveTo(-36, 6, -16, 10); g.lineTo(-18, 20); g.quadraticCurveTo(-32, 18, -36, 34);
+        g.closePath(); g.fill();
+        g.fillStyle = 'rgba(255,230,190,0.55)';
+        g.beginPath(); g.moveTo(-40, 24); g.quadraticCurveTo(-34, 10, -20, 11); g.lineTo(-20, 13); g.quadraticCurveTo(-33, 13, -38, 26); g.closePath(); g.fill();
+        g.fillStyle = '#fff2b8';
+        g.beginPath(); g.arc(-30, 16, 1.4, 0, TAU); g.fill();
+        g.beginPath(); g.arc(-24, 13, 1.4, 0, TAU); g.fill();
+      } else if (isG) {
+        // меховой ворот кафтана, застёжки
+        g.fillStyle = v.furL;
+        g.beginPath(); g.ellipse(-18, 12, 16, 8, -0.25, 0, TAU); g.fill();
+        g.beginPath(); g.ellipse(18, 12, 16, 8, 0.25, 0, TAU); g.fill();
+        g.strokeStyle = 'rgba(4,8,16,0.4)'; g.lineWidth = 1.4;
+        g.beginPath(); g.moveTo(2, 18); g.lineTo(3, 58); g.stroke();
+        g.fillStyle = '#c3d4e8'; g.fillRect(5, 28, 3, 3); g.fillRect(5, 40, 3, 3);
+      } else {
+        // кольчужные наплечья, стёжка жилета
+        g.fillStyle = v.mail;
+        g.beginPath(); g.ellipse(-34, 22, 16, 10, -0.4, 0, TAU); g.fill();
+        g.beginPath(); g.ellipse(34, 22, 16, 10, 0.4, 0, TAU); g.fill();
+        g.strokeStyle = 'rgba(4,8,16,0.35)'; g.lineWidth = 1.2;
+        g.beginPath(); g.moveTo(-10, 16); g.lineTo(-12, 58); g.moveTo(10, 16); g.lineTo(12, 58); g.stroke();
+      }
       // шея
       g.fillStyle = v.skin;
       g.fillRect(-8, -2, 16, 14);
+      // хвост капюшона
+      if (isS) {
+        g.fillStyle = v.hoodS;
+        g.beginPath(); g.moveTo(-16, -30); g.quadraticCurveTo(-34, -20, -34, 4); g.lineTo(-24, 2); g.quadraticCurveTo(-24, -14, -14, -22); g.closePath(); g.fill();
+      }
       // голова
       g.fillStyle = v.skin;
       g.beginPath(); g.arc(0, -22, 18, 0, TAU); g.fill();
@@ -3385,17 +3583,20 @@ window.SAGA2 = window.SAGA2 || {};
       g.beginPath(); g.arc(-5, -18, 15, 0, TAU); g.fill();
       g.fillStyle = v.skin;
       g.beginPath(); g.arc(0, -22, 16.5, 0, TAU); g.fill();
-      // борода
-      if (actorId !== 'snorri') {
+      if (isB) {
+        // борода-косица, блик на бритой голове
+        g.fillStyle = 'rgba(255,240,220,0.35)';
+        g.beginPath(); g.ellipse(-5, -36, 7, 3, -0.3, 0, TAU); g.fill();
         g.fillStyle = v.hair;
         g.beginPath();
-        g.moveTo(-15, -16);
-        g.quadraticCurveTo(-14, 14, 0, 15);
-        g.quadraticCurveTo(14, 14, 15, -16);
+        g.moveTo(-14, -14); g.quadraticCurveTo(-12, 2, 0, 3); g.quadraticCurveTo(12, 2, 14, -14);
+        g.quadraticCurveTo(7, -7, 0, -8); g.quadraticCurveTo(-7, -7, -14, -14);
         g.closePath(); g.fill();
-        g.fillStyle = 'rgba(0,0,0,0.12)';
-        g.beginPath();
-        g.moveTo(-2, -6); g.quadraticCurveTo(0, 10, 8, 10); g.closePath(); g.fill();
+        g.strokeStyle = v.hair; g.lineWidth = 3; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(-7, -10); g.quadraticCurveTo(0, -13, 7, -10); g.stroke();
+        g.lineWidth = 4.4;
+        g.beginPath(); g.moveTo(0, 2); g.lineTo(0, 16); g.stroke();
+        g.fillStyle = v.brass; g.fillRect(-3.4, 13, 6.8, 3.4);
       }
       // глаза
       g.fillStyle = '#0b0f1a';
@@ -3403,37 +3604,67 @@ window.SAGA2 = window.SAGA2 || {};
       g.beginPath(); g.ellipse(6, -25, 2.4, 2.8, 0, 0, TAU); g.fill();
       g.fillStyle = 'rgba(255,255,255,0.85)';
       g.fillRect(-7, -27, 1.6, 1.6); g.fillRect(5, -27, 1.6, 1.6);
-      // шлем
-      g.fillStyle = '#4d5f7c';
-      g.beginPath(); g.arc(0, -27, 19, Math.PI * 1.05, Math.PI * 1.95); g.closePath(); g.fill();
-      g.fillStyle = '#6d829f';
-      g.beginPath(); g.arc(-4, -30, 15, Math.PI * 1.1, Math.PI * 1.9); g.closePath(); g.fill();
-      g.fillStyle = '#33475f';
-      g.fillRect(-19, -30, 38, 4.4);
-      g.fillStyle = 'rgba(234,246,255,0.5)';
-      g.fillRect(-18, -30.5, 36, 1.4);
-      g.fillStyle = '#3b4f6b';
-      g.fillRect(-2, -32, 4, 13);
-      // рога
-      g.strokeStyle = '#d9d2c0'; g.lineWidth = 3.4; g.lineCap = 'round';
-      g.beginPath(); g.moveTo(-13, -29); g.quadraticCurveTo(-30, -44, -22, -60); g.stroke();
-      g.beginPath(); g.moveTo(13, -29); g.quadraticCurveTo(30, -44, 22, -60); g.stroke();
-      g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 1.1;
-      g.beginPath(); g.moveTo(-16, -33); g.quadraticCurveTo(-26, -44, -20, -55); g.stroke();
-      g.fillStyle = v.main;
-      g.beginPath(); g.arc(0, -35, 3, 0, TAU); g.fill();
-      glow(g, 0, -35, 14, v.main, 0.5);
-      // оружие у плеча
-      if (actorId === 'bjorn') {
-        g.fillStyle = '#8f7430';
-        g.beginPath(); g.arc(42, 34, 15, 0, TAU); g.fill();
-        g.fillStyle = '#e6c977';
-        g.beginPath(); g.arc(41, 33, 12, 0, TAU); g.fill();
-      } else if (actorId === 'gunnar') {
-        g.fillStyle = '#aebfd6';
-        g.fillRect(38, -8, 5, 42);
-        g.fillStyle = v.main;
-        g.fillRect(33, 30, 15, 4);
+      g.strokeStyle = 'rgba(40,26,16,0.8)'; g.lineWidth = 1.8; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(-10, -31); g.lineTo(-3, -30.5); g.moveTo(3, -30.5); g.lineTo(10, -31); g.stroke();
+      if (!isG) {
+        g.strokeStyle = 'rgba(70,30,20,0.6)'; g.lineWidth = 1.2;
+        g.beginPath(); g.moveTo(-4, -12.5); g.quadraticCurveTo(0, -11.2, 4, -12.5); g.stroke();
+      }
+      if (isS) {
+        g.fillStyle = 'rgba(30,20,16,0.35)';
+        g.beginPath(); g.ellipse(9, -17, 3.4, 1.5, -0.4, 0, TAU); g.fill();
+        // кожаный капюшон
+        g.fillStyle = v.hood;
+        g.beginPath();
+        g.moveTo(-20, 4); g.quadraticCurveTo(-26, -20, -20, -36); g.quadraticCurveTo(-12, -48, 2, -47);
+        g.quadraticCurveTo(18, -46, 22, -32); g.quadraticCurveTo(26, -16, 18, 4);
+        g.lineTo(12, 0); g.quadraticCurveTo(17, -14, 14, -27); g.quadraticCurveTo(9, -36, 0, -36);
+        g.quadraticCurveTo(-11, -36, -14, -27); g.quadraticCurveTo(-17, -14, -12, 0);
+        g.closePath(); g.fill();
+        g.strokeStyle = v.hoodL; g.lineWidth = 1.6;
+        g.beginPath(); g.moveTo(-12, 0); g.quadraticCurveTo(-17, -14, -14, -27); g.quadraticCurveTo(-11, -36, 0, -36);
+        g.quadraticCurveTo(9, -36, 14, -27); g.quadraticCurveTo(17, -14, 12, 0); g.stroke();
+        g.fillStyle = v.hood;
+        g.beginPath(); g.moveTo(-30, 12); g.quadraticCurveTo(0, -4, 30, 12); g.quadraticCurveTo(0, 6, -30, 12); g.closePath(); g.fill();
+      } else if (isG) {
+        // шарф до носа
+        g.fillStyle = v.scarf;
+        g.beginPath(); g.moveTo(-18, -16); g.quadraticCurveTo(0, -22, 18, -16); g.lineTo(18, -2); g.quadraticCurveTo(0, 4, -18, -2); g.closePath(); g.fill();
+        g.strokeStyle = 'rgba(255,255,255,0.2)'; g.lineWidth = 1.2;
+        g.beginPath(); g.moveTo(-16, -14); g.quadraticCurveTo(0, -19, 16, -14); g.stroke();
+        g.fillStyle = v.scarf;
+        g.beginPath(); g.moveTo(10, -4); g.lineTo(20, -2); g.lineTo(18, 26); g.lineTo(10, 24); g.closePath(); g.fill();
+        // меховая шапка
+        g.fillStyle = v.fur;
+        g.beginPath();
+        g.moveTo(-21, -28); g.lineTo(-22, -50); g.quadraticCurveTo(-20, -62, 0, -62);
+        g.quadraticCurveTo(20, -62, 22, -50); g.lineTo(21, -28); g.closePath(); g.fill();
+        g.fillStyle = v.cloth;
+        g.beginPath(); g.ellipse(0, -59, 14, 3.4, 0, 0, TAU); g.fill();
+        g.strokeStyle = 'rgba(90,80,60,0.5)'; g.lineWidth = 1;
+        for (var fz = 0; fz < 9; fz++) {
+          g.beginPath(); g.moveTo(-17 + fz * 4.2, -54 + (fz % 3) * 3); g.lineTo(-16 + fz * 4.2, -46 + (fz % 3) * 3); g.stroke();
+        }
+        g.fillStyle = v.furL;
+        fillRound(g, -23, -38, 46, 10, 5);
+        g.fillStyle = v.fur;
+        fillRound(g, -24, -32, 8, 22, 3.6);
+        fillRound(g, 16, -32, 8, 22, 3.6);
+        glow(g, 0, -59, 14, v.main, 0.4);
+      } else {
+        // кузнечные очки на лбу
+        g.fillStyle = '#2a1c12';
+        g.beginPath(); g.moveTo(-18, -33); g.quadraticCurveTo(0, -39, 18, -33); g.lineTo(18, -29); g.quadraticCurveTo(0, -35, -18, -29); g.closePath(); g.fill();
+        for (var gz = 0; gz < 2; gz++) {
+          var gx = gz ? 8 : -8;
+          g.fillStyle = v.brass;
+          g.beginPath(); g.arc(gx, -36, 7, 0, TAU); g.fill();
+          g.fillStyle = v.glass;
+          g.beginPath(); g.arc(gx, -36, 4.6, 0, TAU); g.fill();
+          g.fillStyle = 'rgba(255,255,255,0.85)';
+          g.fillRect(gx - 2.4, -38.6, 1.8, 1.8);
+        }
+        glow(g, 0, -36, 16, v.glass, 0.35);
       }
       g.restore();
       g.restore();

@@ -109,7 +109,7 @@ window.SAGA2 = window.SAGA2 || {};
       'brief.diff.5': 'Финал',
       'brief.mech.0': [
         'Снорри таранит лёд и стены',
-        'Гуннар рубит мечом и бьёт из лука',
+        'Гуннар бьёт молотом и стреляет из арбалета',
         'Бьорн держит щит — по нему можно ходить'
       ],
       'brief.mech.1': [
@@ -129,7 +129,7 @@ window.SAGA2 = window.SAGA2 || {};
       ],
       'brief.mech.4': [
         'Комбинируйте крюк, щит и таран',
-        'Рычаги переключаются мечом и стрелами',
+        'Рычаги переключаются молотом и стрелами',
         'Чекпоинты сохраняют прогресс'
       ],
       'brief.mech.5': [
@@ -171,23 +171,23 @@ window.SAGA2 = window.SAGA2 || {};
 
       /* ---------- викинги и способности ---------- */
       'viking.snorri': 'Снорри',
-      'viking.snorri.role': 'Быстрый',
+      'viking.snorri.role': 'Таран',
       'viking.gunnar': 'Гуннар',
-      'viking.gunnar.role': 'Свирепый',
+      'viking.gunnar.role': 'Стрелок',
       'viking.bjorn': 'Бьорн',
-      'viking.bjorn.role': 'Могучий',
+      'viking.bjorn.role': 'Опора',
       'ability.headbutt': 'Таран',
       'ability.headbutt.key': 'J',
       'ability.headbutt.hint': 'Ломает лёд и бьёт врагов',
       'ability.glide': 'Парение',
       'ability.glide.key': 'Space',
       'ability.glide.hint': 'Держите Space в падении — Снорри планирует',
-      'ability.sword': 'Меч',
+      'ability.sword': 'Молот',
       'ability.sword.key': 'J',
       'ability.sword.hint': 'Урон вблизи и переключение рычага',
-      'ability.bow': 'Лук',
+      'ability.bow': 'Арбалет',
       'ability.bow.key': 'K',
-      'ability.bow.hint': 'Стрела вперёд, по ↑ — вверх',
+      'ability.bow.hint': 'Выстрел вперёд, по ↑ — вверх',
       'ability.hook': 'Крюк',
       'ability.hook.key': 'L',
       'ability.hook.hint': 'Цепляется за твёрдый потолок и подтягивает',
@@ -424,8 +424,8 @@ window.SAGA2 = window.SAGA2 || {};
       'brief.diff.4': 'Combination',
       'brief.diff.5': 'Finale',
       'brief.mech.0': [
-        'Snorri headbutts ice and walls',
-        'Gunnar swings his sword and shoots',
+        'Snorri rams through ice and walls',
+        'Gunnar swings his hammer and shoots',
         'Bjorn raises his shield — you can stand on it'
       ],
       'brief.mech.1': [
@@ -444,8 +444,8 @@ window.SAGA2 = window.SAGA2 || {};
         'Check the route for every viking'
       ],
       'brief.mech.4': [
-        'Combine hook, shield and headbutt',
-        'Levers flip from sword and arrows',
+        'Combine hook, shield and ram',
+        'Levers flip from hammer and bolts',
         'Checkpoints keep your progress'
       ],
       'brief.mech.5': [
@@ -487,23 +487,23 @@ window.SAGA2 = window.SAGA2 || {};
 
       /* ---------- vikings ---------- */
       'viking.snorri': 'Snorri',
-      'viking.snorri.role': 'Swift',
+      'viking.snorri.role': 'Ram',
       'viking.gunnar': 'Gunnar',
-      'viking.gunnar.role': 'Fierce',
+      'viking.gunnar.role': 'Marksman',
       'viking.bjorn': 'Bjorn',
-      'viking.bjorn.role': 'Mighty',
-      'ability.headbutt': 'Headbutt',
+      'viking.bjorn.role': 'Bulwark',
+      'ability.headbutt': 'Ram',
       'ability.headbutt.key': 'J',
       'ability.headbutt.hint': 'Breaks ice and hits enemies',
       'ability.glide': 'Glide',
       'ability.glide.key': 'Space',
       'ability.glide.hint': 'Hold Space while falling — Snorri glides',
-      'ability.sword': 'Sword',
+      'ability.sword': 'Hammer',
       'ability.sword.key': 'J',
       'ability.sword.hint': 'Melee damage and lever flips',
-      'ability.bow': 'Bow',
+      'ability.bow': 'Crossbow',
       'ability.bow.key': 'K',
-      'ability.bow.hint': 'Arrow forward, ↑ to shoot up',
+      'ability.bow.hint': 'Shot forward, ↑ to shoot up',
       'ability.hook': 'Hook',
       'ability.hook.key': 'L',
       'ability.hook.hint': 'Grabs any solid ceiling and pulls',

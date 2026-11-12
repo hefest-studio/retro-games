@@ -1936,7 +1936,7 @@ function fmtTime(t){
 const L10N = {
 ru: {
   title1:'РУБИКОН', title2:'',
-  subtitle:'1987 ГЕФЕСТ · ВЕБ-ОРИГИНАЛ',
+  subtitle:'ГЕФЕСТ ARCADE · ВЕБ-ОРИГИНАЛ',
   start:'ENTER - СТАРТ',
   brief:'I - БРИФИНГ',
   lang:'L - ЯЗЫК: РУС',
@@ -1953,7 +1953,7 @@ ru: {
   sound_off:'M - ЗВУК: ВЫКЛ',
   record:'РЕКОРД',
   credits:'ОРИГИНАЛ · ГЕФЕСТ',
-  footer:'ВЕБ-ОРИГИНАЛ · ГЕФЕСТ 1987',
+  footer:'ВЕБ-ОРИГИНАЛ · ГЕФЕСТ ARCADE',
   hud_level:'УРОВЕНЬ', hud_power:'ЭНЕРГИЯ', hud_points:'ОЧКИ',
   hud_lives:'ЖИЗНИ', hud_laser:'ЛАЗЕР', hud_record:'РЕКОРД',
   base:'БАЗА', dock:'ДОК', lift:'ЛИФТ',
@@ -1981,7 +1981,7 @@ ru: {
   over_title:'ИГРА ОКОНЧЕНА',
   st_score:'ОЧКИ', st_level:'УРОВЕНЬ', st_kills:'ВРАГОВ',
   st_record:'РЕКОРД', st_time:'ВРЕМЯ',
-  gameover_foot:'ГЕФЕСТ · 1987',
+  gameover_foot:'ГЕФЕСТ ARCADE',
   win_title:'МИССИЯ ВЫПОЛНЕНА',
   win_lines:[
     'ТАРАН-7 ВЫБРАЛСЯ НА ПОВЕРХНОСТЬ.',
@@ -2065,7 +2065,7 @@ en: {
   over_title:'GAME OVER',
   st_score:'SCORE', st_level:'LEVEL', st_kills:'KILLS',
   st_record:'RECORD', st_time:'TIME',
-  gameover_foot:'ГЕФЕСТ · 1987',
+  gameover_foot:'ГЕФЕСТ ARCADE',
   win_title:'MISSION COMPLETE',
   win_lines:[
     'TARAN-7 REACHED THE SURFACE.',
@@ -3098,7 +3098,7 @@ function mTitle(){
   const t2 = LANG === 'ru' ? '' : '';
 
   mBadge(L.neon_badge || 'NEON EDITION', 16, 14, MC.cyan);
-  mTxt('ГЕФЕСТ · 1987', 304, 14, 3.2, MC.dim, {align:'right', sp:1.4});
+  mTxt('ГЕФЕСТ ARCADE', 304, 14, 3.2, MC.dim, {align:'right', sp:1.4});
 
   ctx.save();
   ctx.textAlign = 'left';

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ВИХРЬ · ВИХРЬ — веб-оригинал аркадного скролл-шутера Гефест (1988)
+   ВИХРЬ · ВИХРЬ — веб-оригинал аркадного скролл-шутера Гефест
    --------------------------------------------------------------------------
    Один файл, без зависимостей. Внутреннее разрешение 320×224 (аркадное поле
    + HUD). Два визуальных режима: 8-битный пиксельный и современный неоновый.
@@ -87,7 +87,7 @@ const I18N = {
     pressEnter: 'НАЖМИТЕ ENTER',
     orTap: 'ИЛИ КОСНИТЕСЬ ЭКРАНА',
     record: 'РЕКОРД',
-    unofficial: 'ОРИГИНАЛ СТУДИИ ГЕФЕСТ · 1988',
+    unofficial: 'ОРИГИНАЛ СТУДИИ ГЕФЕСТ',
     hintKeys: 'G - ГРАФИКА   L - ЯЗЫК   M - ЗВУК',
     score: 'ОЧКИ',
     lives: 'ЖИЗНИ',
@@ -154,7 +154,7 @@ const I18N = {
     pressEnter: 'PRESS ENTER',
     orTap: 'OR TAP THE SCREEN',
     record: 'HI-SCORE',
-    unofficial: 'ORIGINAL BY HEFEST · 1988',
+    unofficial: 'ORIGINAL BY HEFEST',
     hintKeys: 'G - GRAPHICS   L - LANGUAGE   M - SOUND',
     score: 'SCORE',
     lives: 'LIVES',
@@ -2969,7 +2969,7 @@ function drawTitle() {
     ctx.fillStyle = 'rgba(255,209,102,.35)';
     ctx.fillRect(W / 2 - 42, 60, 84, 1);
     label('ВИХРЬ', W / 2, 63, { size: 12, color: '#9fe8ff', align: 'center' });
-    label('ГЕФЕСТ ARCADE 1988', W / 2, 80, { size: 8, color: '#a9b6c8', align: 'center' });
+    label('ГЕФЕСТ ARCADE', W / 2, 80, { size: 8, color: '#a9b6c8', align: 'center' });
   } else {
     ctx.save();
     ctx.textAlign = 'center';
@@ -2993,7 +2993,7 @@ function drawTitle() {
     ctx.fillText('ВИХРЬ', W / 2, 44);
     ctx.restore();
     label('ВИХРЬ', W / 2, 63, { size: 9, color: '#cfe9ff', align: 'center', spacing: 4, alpha: 0.95 });
-    label('ГЕФЕСТ ARCADE 1988', W / 2, 75, { size: 5.5, color: 'rgba(160,185,220,.8)', align: 'center', spacing: 2.6 });
+    label('ГЕФЕСТ ARCADE', W / 2, 75, { size: 5.5, color: 'rgba(160,185,220,.8)', align: 'center', spacing: 2.6 });
   }
   // меню
   const items = menuItems();

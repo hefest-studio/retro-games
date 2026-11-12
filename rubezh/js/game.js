@@ -1,7 +1,7 @@
 /* ============================================================================
    РУБЕЖ: НЕОНОВЫЙ РАССВЕТ / NEON DAWN
    An original HTML5 run-and-gun by Hefest studio. Single file, no dependencies.
-   Two renderers (modern NEON / 1988 8-BIT), Russian + English UI,
+   Two renderers (modern NEON / 8-BIT), Russian + English UI,
    original WebAudio chiptune soundtrack (see audio.js).
    ============================================================================ */
 (function () {
@@ -179,7 +179,7 @@
       gfxModern: 'НЕОН',
       gfxRetro: '8-БИТ',
       gfxModernLong: 'НЕОН · 20XX',
-      gfxRetroLong: '8-БИТ · 1988',
+      gfxRetroLong: '8-БИТ',
       langRu: 'РУССКИЙ',
       langEn: 'АНГЛИЙСКИЙ',
       langRuShort: 'РУС',
@@ -286,7 +286,7 @@
       gfxModern: 'NEON',
       gfxRetro: '8-BIT',
       gfxModernLong: 'NEON · 20XX',
-      gfxRetroLong: '8-BIT · 1988',
+      gfxRetroLong: '8-BIT',
       langRu: 'RUSSIAN',
       langEn: 'ENGLISH',
       langRuShort: 'RUS',

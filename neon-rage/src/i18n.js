@@ -51,14 +51,14 @@
     'select.start': 'ENTER — В БОЙ',
 
     /* ---------- персонажи ---------- */
-    'char.dragon.name': 'КАЙ',
-    'char.dragon.alias': 'КОМЕТА',
-    'char.dragon.desc': 'Быстрый и точный. Серии из трёх ударов, огненный апперкот.',
-    'char.dragon.spec': 'СПЕЦ: ОГНЕННОЕ КОЛЬЦО',
-    'char.toad.name': 'РОК',
-    'char.toad.alias': 'МОЛОТ',
-    'char.toad.desc': 'Тяжёлый и злой. Больше здоровья, сокрушительный слэм.',
-    'char.toad.spec': 'СПЕЦ: ЗЕМЛЯНОЙ СЛЭМ',
+    'char.comet.name': 'КАЙ',
+    'char.comet.alias': 'КОМЕТА',
+    'char.comet.desc': 'Быстрый и точный. Серии из трёх ударов, огненный апперкот.',
+    'char.comet.spec': 'СПЕЦ: ОГНЕННОЕ КОЛЬЦО',
+    'char.hammer.name': 'РОК',
+    'char.hammer.alias': 'МОЛОТ',
+    'char.hammer.desc': 'Киборг-кузнец с рукой-молотом. Больше здоровья.',
+    'char.hammer.spec': 'СПЕЦ: ЗЕМЛЯНОЙ СЛЭМ',
     'stat.power': 'СИЛА',
     'stat.speed': 'СКОРОСТЬ',
     'stat.armor': 'БРОНЯ',
@@ -70,7 +70,7 @@
     /* ---------- сюжетная карточка ---------- */
     'intro.chapter': 'ГЛАВА 1',
     'intro.title': 'УКРАДЕННЫЙ ЧИП',
-    'intro.text1': 'НЕОН-СИТИ, 1987. Корпорация «ТОКСИК» украла чип NEON-8 — сердце города.',
+    'intro.text1': 'НЕОН-СИТИ. Корпорация «ТОКСИК» украла чип NEON-8 — сердце города.',
     'intro.text2': 'Без него гаснут вывески, а улицы делят банды. Город вот-вот замолчит.',
     'intro.text3': 'Кай-Комета и Рок-Молот выходят на улицу. Вдвоём. Но играть будешь одним.',
     'intro.start': 'ENTER — НАЧАТЬ',
@@ -147,7 +147,7 @@
     'hud.wave': 'ВОЛНА',
     'hud.rage': 'ЯРОСТЬ',
     'hud.combo': 'КОМБО',
-    'hud.boss': 'КОРОЛЕВА ХРОМ',
+    'hud.boss': 'ИИ ХРОМ-9',
     'hud.fight': 'В БОЙ!',
     'hud.clear': 'ЗАЧИЩЕНО',
     'hud.advance': 'ВПЕРЁД →',
@@ -165,7 +165,7 @@
     'banner.advance': 'ВПЕРЁД →',
     'banner.zone': '{name}',
     'banner.boss': 'ФИНАЛЬНЫЙ БОСС',
-    'banner.bossSub': 'ХОЗЯЙКА «ТОКСИК»',
+    'banner.bossSub': 'ЯДРО КОРПОРАЦИИ «ТОКСИК»',
     'banner.victory': 'ГОРОД СВОБОДЕН',
     'banner.defeat': 'УЛИЦА СИЛЬНЕЕ',
 
@@ -175,11 +175,11 @@
     'popup.score': '+{n}',
 
     /* ---------- босс ---------- */
-    'boss.name': 'КОРОЛЕВА ХРОМ',
-    'boss.sub': 'ХОЗЯЙКА «ТОКСИК»',
-    'boss.taunt1': '«Вы опоздали. Город уже мой.»',
-    'boss.taunt2': '«Неон — это моя корона.»',
-    'boss.phase2': '«ДОСТАТОЧНО!»',
+    'boss.name': 'ИИ ХРОМ-9',
+    'boss.sub': 'ЯДРО КОРПОРАЦИИ «ТОКСИК»',
+    'boss.taunt1': '«Вы опоздали. Город уже подключён ко мне.»',
+    'boss.taunt2': '«Весь неон города — моё питание.»',
+    'boss.phase2': '«ПЕРЕГРУЗКА!»',
 
     /* ---------- пауза ---------- */
     'pause.title': 'ПАУЗА',
@@ -240,14 +240,14 @@
     'select.start': 'ENTER — FIGHT',
 
     /* ---------- characters ---------- */
-    'char.dragon.name': 'KAI',
-    'char.dragon.alias': 'COMET',
-    'char.dragon.desc': 'Fast and precise. Three-hit chains and a fire uppercut.',
-    'char.dragon.spec': 'SPECIAL: FIRE RING',
-    'char.toad.name': 'ROCK',
-    'char.toad.alias': 'HAMMER',
-    'char.toad.desc': 'Heavy and mean. More health and a crushing slam.',
-    'char.toad.spec': 'SPECIAL: EARTH SLAM',
+    'char.comet.name': 'KAI',
+    'char.comet.alias': 'COMET',
+    'char.comet.desc': 'Fast and precise. Three-hit chains and a fire uppercut.',
+    'char.comet.spec': 'SPECIAL: FIRE RING',
+    'char.hammer.name': 'ROCK',
+    'char.hammer.alias': 'HAMMER',
+    'char.hammer.desc': 'Cyborg smith with a hammer arm. More health.',
+    'char.hammer.spec': 'SPECIAL: EARTH SLAM',
     'stat.power': 'POWER',
     'stat.speed': 'SPEED',
     'stat.armor': 'ARMOR',
@@ -259,7 +259,7 @@
     /* ---------- intro ---------- */
     'intro.chapter': 'CHAPTER 1',
     'intro.title': 'THE STOLEN CHIP',
-    'intro.text1': 'NEON CITY, 1987. The TOXIC corporation stole the NEON-8 chip — the heart of the city.',
+    'intro.text1': 'NEON CITY. The TOXIC corporation stole the NEON-8 chip — the heart of the city.',
     'intro.text2': 'Without it the neon dies and the gangs split the streets. Soon the city goes silent.',
     'intro.text3': 'Kai the Comet and Rock the Hammer step out. Two heroes. One player. You.',
     'intro.start': 'ENTER — START',
@@ -336,7 +336,7 @@
     'hud.wave': 'WAVE',
     'hud.rage': 'RAGE',
     'hud.combo': 'COMBO',
-    'hud.boss': 'QUEEN CHROME',
+    'hud.boss': 'KHROM-9 AI',
     'hud.fight': 'FIGHT!',
     'hud.clear': 'CLEARED',
     'hud.advance': 'GO →',
@@ -354,7 +354,7 @@
     'banner.advance': 'GO →',
     'banner.zone': '{name}',
     'banner.boss': 'FINAL BOSS',
-    'banner.bossSub': 'MISTRESS OF TOXIC',
+    'banner.bossSub': 'TOXIC CORPORATE CORE',
     'banner.victory': 'THE CITY IS FREE',
     'banner.defeat': 'THE STREET WINS',
 
@@ -364,11 +364,11 @@
     'popup.score': '+{n}',
 
     /* ---------- boss ---------- */
-    'boss.name': 'QUEEN CHROME',
-    'boss.sub': 'MISTRESS OF TOXIC',
-    'boss.taunt1': 'Too late. The city is already mine.',
-    'boss.taunt2': 'Neon is my crown.',
-    'boss.phase2': 'ENOUGH!',
+    'boss.name': 'KHROM-9 AI',
+    'boss.sub': 'TOXIC CORPORATE CORE',
+    'boss.taunt1': 'Too late. The city is already wired to me.',
+    'boss.taunt2': 'Every neon sign is my power supply.',
+    'boss.phase2': 'OVERLOAD!',
 
     /* ---------- pause ---------- */
     'pause.title': 'PAUSED',

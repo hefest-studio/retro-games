@@ -200,6 +200,49 @@ test('оболочка: временные маркеры у края экран
   ok(!/function offscreen|offscreen\(ctx/.test(html), 'маркеры «◀ ПЫЖ / ТЯПА ▶» всё ещё рисуются');
 });
 
+// ---------- Появление на опоре (решение владельца 12.11: цеха 3–4 — ниша была закрыта сверху) ----------
+// Твёрдая клетка сетки (за нижним краем — пол, как в движке).
+function solidCell(s, c, r) { if (c < 0 || c >= s.cols || r < 0) return false; if (r >= s.rows) return true; const ch = s.grid[r][c]; return ch === '#' || ch === '='; }
+function hitsSolid(s, p) {
+  for (let r = Math.floor(p.y / 30); r <= Math.floor((p.y + p.h - 1) / 30); r++)
+    for (let c = Math.floor(p.x / 30); c <= Math.floor((p.x + p.w - 1) / 30); c++) if (solidCell(s, c, r)) return true;
+  return false;
+}
+// 60 кадров без ввода: никто не уходит вверх больше чем на 1 px (нет выталкивания коллизией) и не оказывается в блоке.
+function idle60(g, s, tag) {
+  s.intro = 0; s.enemies = []; s.boss = null;
+  const y0 = s.players.map(p => p.y);
+  for (let i = 0; i < 60; i++) {
+    g.step(1 / 60);
+    s.players.forEach((p, k) => {
+      ok(p.y >= y0[k] - 1, tag + ', кадр ' + i + ': герой ' + (k + 1) + ' вытолкнут вверх на ' + (y0[k] - p.y).toFixed(2) + ' px');
+      ok(!hitsSolid(s, p), tag + ', кадр ' + i + ': герой ' + (k + 1) + ' в блоке');
+    });
+  }
+  // опора под ногами: сдвиг вниз на 2 px упирается в блок или в лежащий ящик (флаг onGround в покое мерцает — шаг гравитации < 1 px)
+  const onBox = p => s.boxes.some(b => !b.held && p.x < b.x + b.w && p.x + p.w > b.x && Math.abs(p.y + p.h - b.y) <= 2);
+  s.players.forEach((p, k) => ok(hitsSolid(s, { x: p.x, y: p.y + 2, w: p.w, h: p.h }) || onBox(p), tag + ': герой ' + (k + 1) + ' не стоит на опоре, y=' + p.y));
+}
+for (let L = 0; L < Z.consts.LEVELS; L++) for (const twoP of [false, true]) {
+  const tag = 'цех ' + (L + 1) + (twoP ? ', вдвоём' : ', один');
+  test(tag + ': появление на опоре — ни один герой не в блоке, без выталкивания 60 кадров', () => {
+    const g = Z.Game({ twoP }); g.start(); const s = gotoLevel(g, L); eq(s.level, L);
+    s.players.forEach((p, k) => ok(!hitsSolid(s, p), 'герой ' + (k + 1) + ' появился в блоке: x=' + p.x + ' y=' + p.y));
+    idle60(g, s, tag);
+  });
+  test(tag + ': возрождение после потери жизни — тоже не в блоке и без выталкивания', () => {
+    const g = Z.Game({ twoP }); g.start(); const s = gotoLevel(g, L); s.intro = 0; s.enemies = []; s.boss = null; s.lives = 9;
+    for (let i = 0; i < 30; i++) g.step(1 / 60);              // встали на опору
+    const p = s.players[0]; p.invuln = 0;
+    s.enemies = [{ type: 'walker', x: p.x, y: p.y, w: 26, h: 24, vx: 0, dir: 1, t: 0 }];
+    g.step(1 / 60); ok(!p.alive, 'урон не прошёл'); s.enemies = [];
+    for (let i = 0; i < 120 && !p.alive; i++) g.step(1 / 60);
+    ok(p.alive, 'не возродился'); ok(!hitsSolid(s, p), 'возродился в блоке: x=' + p.x + ' y=' + p.y);
+    for (let i = 0; i < 30; i++) g.step(1 / 60);              // приземлился (с напарником — падает с 20 px)
+    idle60(g, s, tag + ', после возрождения');
+  });
+}
+
 // ---------- Оболочка v2 (index.html на движке Arcade): музыка, порядок скриптов, кооп-раскладка ----------
 {
   const SLUG = path.basename(ROOT);

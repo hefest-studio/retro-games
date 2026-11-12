@@ -8,6 +8,7 @@
      звук M → звук игры; переключение героев 1/2/3 и Tab уходит в игру;
    • финал саги → экран win движка и рекорд arcade.best.saga; «Продолжить» и «Уровни» из меню;
    • прогресс игроков (saga.progress.v1, saga.story.v1) не теряется, старые ключи «lv.*» мигрируют; ?gfx= / ?level= / #gfx= работают;
+   • облик героев: блок HERO-SPRITES дословно и попиксельно общий для саг 1 и 2, прозвища — свои;
    • 0 ошибок pageerror / console.error. */
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -208,6 +209,55 @@ try {
       shots.push(await o.p.locator('#stage').screenshot()); await o.close();
     }
     ok(!shots[0].equals(shots[1]), 'кадры совпали');
+  });
+  // Облик героев (решение владельца 12.11): свои мастера кузни; пиксельные спрайты общие для двух саг
+  await test('спрайты героев саги 1 и саги 2 совпадают: блок HERO-SPRITES дословно и попиксельно', async () => {
+    const { readFileSync } = await import('node:fs');
+    const blk = (f) => { const m = readFileSync(join(ROOT, f), 'utf8').match(/\/\* ==== HERO-SPRITES:BEGIN ====[\s\S]*?\/\* ==== HERO-SPRITES:END ==== \*\//); return m ? m[0] : null; };
+    const A = blk('saga/js/game.js'), B = blk('saga-2/js/vikings-retro.js');
+    ok(A && B && A === B, 'блоки HERO-SPRITES в saga/js/game.js и saga-2/js/vikings-retro.js различаются');
+    const frames = async (url, side) => {
+      const ctx = await browser.newContext(); const p = await ctx.newPage();
+      p.on('pageerror', (e) => errors.push('heroes ' + side + ': ' + e.message));
+      await p.goto(new URL(url, BASE).href, { waitUntil: 'load' }); await wait(400);
+      const r = await p.evaluate((side) => {
+        const draw = side === 1
+          ? { hero: (g, id, s, an, act) => window.SAGA_RETRO.drawHero(g, id, s, an, 0, act), dead: (g, id, act) => window.SAGA_RETRO.drawHeroDead(g, id, act) }
+          : { hero: (g, id, s, an, act) => window.SAGA2VIK.drawChar(g, id, s, an, 0, act), dead: (g, id, act) => window.SAGA2VIK.drawDead(g, id, act) };
+        const c = document.createElement('canvas'); c.width = 32; c.height = 40;
+        const g = c.getContext('2d', { willReadFrequently: true });
+        const out = [];
+        const hash = () => { const d = g.getImageData(0, 0, 32, 40).data; let h = 2166136261; for (let i = 0; i < d.length; i++) { h ^= d[i]; h = Math.imul(h, 16777619); } return (h >>> 0).toString(16); };
+        for (const id of ['snorri', 'gunnar', 'bjorn']) {
+          for (const act of [true, false]) {
+            for (const s of ['idle', 'run', 'jump', 'fall', 'act', 'brace', 'dead']) {
+              for (const an of [0, 0.14, 0.27, 0.4, 0.55]) {
+                g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, 32, 40); g.translate(16, 36);
+                if (s === 'dead') draw.dead(g, id, act); else draw.hero(g, id, s, an, act);
+                out.push(id + ':' + s + ':' + an + ':' + act + '=' + hash());
+              }
+            }
+          }
+        }
+        return out;
+      }, side);
+      await ctx.close(); return r;
+    };
+    const f1 = await frames('/saga/', 1), f2 = await frames('/saga-2/', 2);
+    ok(f1.length === 210 && f1.length === f2.length, 'кадров ' + f1.length + '/' + f2.length);
+    const diff = f1.filter((x, i) => x !== f2[i]);
+    ok(diff.length === 0, 'различаются кадры: ' + diff.slice(0, 4).join(', '));
+    const uniq = new Set(f1.map((x) => x.split('=')[1]));
+    ok(uniq.size > 60, 'слишком мало разных кадров: ' + uniq.size);
+  });
+  await test('прозвища героев — свои (RU/EN), legacy.html синхронна с js/game.js', async () => {
+    const { readFileSync } = await import('node:fs');
+    const g = readFileSync(join(ROOT, 'saga/js/game.js'), 'utf8');
+    for (const s of ['"snorri.role": "Таран"', '"gunnar.role": "Стрелок"', '"bjorn.role": "Опора"', '"snorri.role": "Ram"', '"gunnar.role": "Marksman"', '"bjorn.role": "Bulwark"']) ok(g.includes(s), 'нет ' + s);
+    ok(!/"(snorri|gunnar|bjorn)\.role": "(Быстрый|Свирепый|Стойкий|Swift|Fierce|Stout)"/.test(g), 'остались старые прозвища');
+    const leg = readFileSync(join(ROOT, 'saga/legacy.html'), 'utf8');
+    const body = g.slice(g.indexOf('\n') + 1);
+    ok(leg.includes(body.trimEnd()), 'инлайн-скрипт legacy.html расходится с js/game.js');
   });
   await test('ошибок в браузере нет', async () => { ok(errors.length === 0, errors.join(' | ')); });
 } finally {

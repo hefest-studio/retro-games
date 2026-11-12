@@ -47,7 +47,7 @@
       },
       "languages": "RU / EN",
       "accent": "#3ce6a8",
-      "version": "1.1.1"
+      "version": "1.1.2"
     },
     {
       "slug": "krot",
@@ -182,7 +182,7 @@
       },
       "languages": "RU / EN",
       "accent": "#ff4d9d",
-      "version": "1.1.1"
+      "version": "1.1.2"
     },
     {
       "slug": "proryv",
@@ -242,7 +242,7 @@
       },
       "languages": "RU / EN",
       "accent": "#ff4fd8",
-      "version": "1.1.1"
+      "version": "1.1.2"
     },
     {
       "slug": "vihr",
@@ -272,7 +272,7 @@
       },
       "languages": "RU / EN",
       "accent": "#ff8a3d",
-      "version": "1.1.1"
+      "version": "1.1.2"
     },
     {
       "slug": "saga",
@@ -302,7 +302,7 @@
       },
       "languages": "RU / EN",
       "accent": "#5eead4",
-      "version": "1.1.1"
+      "version": "1.2.0"
     },
     {
       "slug": "neon-rage",
@@ -332,7 +332,7 @@
       },
       "languages": "RU / EN",
       "accent": "#ff2e88",
-      "version": "1.1.1"
+      "version": "1.2.0"
     },
     {
       "slug": "saga-2",
@@ -362,7 +362,7 @@
       },
       "languages": "RU / EN",
       "accent": "#56e0b0",
-      "version": "1.1.1"
+      "version": "1.2.0"
     },
     {
       "slug": "bolt",
@@ -489,7 +489,7 @@
       },
       "languages": "RU / EN",
       "accent": "#f5a33c",
-      "version": "1.2.0"
+      "version": "1.2.1"
     },
     {
       "slug": "zvero-otryad-2",
@@ -514,7 +514,7 @@
       },
       "languages": "RU / EN",
       "accent": "#5cc8ff",
-      "version": "1.2.0"
+      "version": "1.2.1"
     },
     {
       "slug": "roy",

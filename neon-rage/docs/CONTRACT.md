@@ -84,8 +84,8 @@ DD.settings = {
 из титула — в титул. `state.helpFrom`, `state.aboutFrom` аналогично.
 
 **Сюжет.** НЕОН-СИТИ, 1987. Корпорация «ТОКСИК» украла чип `NEON-8` — сердце города.
-Гаснут вывески, улицы делят банды. Дракон **Кай** и жаба **Рок** идут возвращать чип.
-В финале — **КОРОЛЕВА ХРОМ** на крыше башни «ТОКСИК».
+Гаснут вывески, улицы делят банды. **Кай-Комета** и киборг-кузнец **Рок-Молот** идут возвращать чип.
+В финале — корпоративный ИИ **ХРОМ-9** на крыше башни «ТОКСИК».
 
 **Зоны и волны** (5 волн, один забег ~5–7 минут):
 
@@ -94,8 +94,8 @@ DD.settings = {
 3. `roof` «КРЫША „ТОКСИК“» — волна 4 (2 бугая + 2 ниндзя), волна 5 — босс
 
 Типы врагов: `punk` (маджента-ирокез), `ninja` (фиолетовый), `brute` (оранжевый, тяжёлый),
-`boss` (`char:'queen'`, королева Хром с плетью, парит). Босс: 2 фазы, телепорт,
-удар плетью, веер энергошаров, при 50 % HP призывает двух ниндзя.
+`boss` (`char:'khrom'`, ИИ ХРОМ-9 в теле ховер-погрузчика, парит). Босс: 2 фазы, телепорт,
+удар силовым кабелем (атака `cable`), веер энергошаров, при 50 % HP призывает двух ниндзя.
 
 ---
 
@@ -157,7 +157,7 @@ DD.debug = { ... }   // §6
   boss: actor|null,
   props: [ { id, type:'crate'|'barrel'|'vending', x, y, w, h, broken, breakT, shakeT, contains } ],
   pickups: [ { id, kind:'coin'|'food', x, y, z, life, value, heal } ],
-  projectiles: [ { id, kind:'orb'|'shock'|'whip', x, y, z, vx, vy, life, maxLife, r, dmg, owner } ],
+  projectiles: [ { id, kind:'orb'|'shock'|'cable', x, y, z, vx, vy, life, maxLife, r, dmg, owner } ],
   particles: [ particle ],
   popups: [ { text, sub, x, y, z, t, dur, color, kind } ]
 }
@@ -168,13 +168,13 @@ DD.debug = { ... }   // §6
 ```js
 {
   id, kind: 'player'|'punk'|'ninja'|'brute'|'boss',
-  char: 'dragon'|'toad'|'queen',
+  char: 'comet'|'hammer'|'khrom',
   x, y, z,                 // x — по улице, y — глубина (ступни), z — высота прыжка
   vx, vy, vz, facing: 1|-1,
   hp, maxHp,
   state: 'idle'|'walk'|'jump'|'attack'|'hurt'|'down'|'getup'|'special'|'victory'|'dead'|'intro',
   anim: 'idle'|'walk'|'jump'|'punch1'|'punch2'|'punch3'|'kick'|'jumpkick'|'special'
-       |'hurt'|'down'|'getup'|'victory'|'roar'|'slam'|'whip'|'charge'|'cast'|'dash',
+       |'hurt'|'down'|'getup'|'victory'|'roar'|'slam'|'cable'|'charge'|'cast'|'dash',
   animT,                   // секунды в текущей анимации
   attack: null | { type, phase:'wind'|'hit'|'recover', t },
   hurtT, invuln, flash, dead, deadT,
@@ -336,15 +336,20 @@ main.js поддерживает URL-хэш для QA:
 но «ремастер»: объём, свет, частицы.
 
 **Герои:**
-* Кай «Дракон» — стройный, тёмно-синяя куртка с циановыми полосами, красный шарф, острые
-  волосы, драконья татуировка/эмблема. Стиль: скорость, точность.
-* Рок «Жаба» — массивный, лаймовая кожа, фиолетовый жилет, очки-гогглы, тяжёлые ботинки.
-  Стиль: сила, броня.
+* Кай «Комета» (`comet`) — стройный, светлая серебристая куртка с циановыми полосами,
+  оранжевый шарф-«хвост кометы», острые чёрные волосы, эмблема-комета. Стиль: скорость, точность.
+* Рок «Молот» (`hammer`) — человек-киборг, кузнец: массивный, бритая голова, борода,
+  кибер-глаз в стальной оправе, кожаный фартук на лямках, голые руки; передняя рука —
+  механическая, с раскалённым бойком молота вместо кулака, на другой — стальной наруч.
+  Палитра: бронзовая кожа, сталь, кожа фартука, оранжевый «огонь горна». Стиль: сила, броня.
 * Гопник — мадженты волосы-ирокез, косуха.
 * Ниндзя — фиолетовый силуэт, маска, шарф.
 * Бугай — оранжевый гигант, цепи.
-* Тёмная Королева — высокая, чёрно-фиолетовая мантия, корона-неон, светящиеся глаза,
-  плеть, парит над полом, вокруг частицы.
+* ИИ ХРОМ-9 (`khrom`) — корпоративный ИИ «ТОКСИК» в теле промышленного погрузчика:
+  ховер-шасси с реактивными струями и полосой «осторожно», бронекорпус с пульсирующим
+  реактором, голова-монитор с лицом-осциллограммой и антенной, два манипулятора с клешнями.
+  Дальняя атака — силовой кабель с захватом из переднего манипулятора. Во 2-й фазе
+  («перегрузка») экран и реактор из циановых становятся оранжевыми.
 
 **Фоны:**
 * street: небоскрёбы, луна, вывески «АРКАДА», «24/7», провода, дождь, лужи,
@@ -399,8 +404,8 @@ title.tagline, title.press, title.best, title.hint, title.version
 
 select.title, select.subtitle, select.difficulty, select.hint, select.start
 
-char.dragon.name, char.dragon.alias, char.dragon.desc, char.dragon.spec,
-char.toad.name, char.toad.alias, char.toad.desc, char.toad.spec
+char.comet.name, char.comet.alias, char.comet.desc, char.comet.spec,
+char.hammer.name, char.hammer.alias, char.hammer.desc, char.hammer.spec
 stat.power, stat.speed, stat.armor, stat.range
 diff.easy, diff.normal, diff.hard
 
@@ -466,14 +471,14 @@ select.subtitle  ДВА СТИЛЯ. ОДНА ЦЕЛЬ.
 select.difficulty СЛОЖНОСТЬ
 select.hint      ← → — боец · ↑ ↓ — сложность · ENTER — в бой
 select.start     ENTER — В БОЙ
-char.dragon.name КАЙ
-char.dragon.alias КОМЕТА
-char.dragon.desc Быстрый и точный. Серии из трёх ударов и огненный апперкот.
-char.dragon.spec СПЕЦ: ОГНЕННОЕ КОЛЬЦО
-char.toad.name   РОК
-char.toad.alias  МОЛОТ
-char.toad.desc   Тяжёлый и злой. Больше здоровья и сокрушительный слэм.
-char.toad.spec   СПЕЦ: ЗЕМЛЯНОЙ СЛЭМ
+char.comet.name КАЙ
+char.comet.alias КОМЕТА
+char.comet.desc Быстрый и точный. Серии из трёх ударов и огненный апперкот.
+char.comet.spec СПЕЦ: ОГНЕННОЕ КОЛЬЦО
+char.hammer.name   РОК
+char.hammer.alias  МОЛОТ
+char.hammer.desc   Киборг-кузнец с рукой-молотом. Больше здоровья.
+char.hammer.spec   СПЕЦ: ЗЕМЛЯНОЙ СЛЭМ
 stat.power СИЛА · stat.speed СКОРОСТЬ · stat.armor БРОНЯ · stat.range РАДИУС
 diff.easy ЛЕГКО · diff.normal НОРМА · diff.hard ХАРД
 intro.chapter    ГЛАВА 1
@@ -508,20 +513,20 @@ zone.street НЕОНОВЫЙ ПРОСПЕКТ · zone.streetSub КВАРТАЛ 7
 zone.arcade АРКАДНЫЙ ПЕРЕУЛОК · zone.arcadeSub ПОД ВЫВЕСКОЙ «24/7»
 zone.roof КРЫША «ТОКСИК» · zone.roofSub ВЫСОТА 300 М · ВЕТЕР
 hud.score ОЧКИ · hud.best РЕКОРД · hud.lives ЖИЗНИ · hud.wave ВОЛНА
-hud.rage ЯРОСТЬ · hud.combo КОМБО · hud.boss КОРОЛЕВА ХРОМ
+hud.rage ЯРОСТЬ · hud.combo КОМБО · hud.boss ИИ ХРОМ-9
 hud.fight В БОЙ! · hud.clear ЗАЧИЩЕНО · hud.advance ВПЕРЁД →
 hud.specialReady ЯРОСТЬ ГОТОВА · hud.ready ГОТОВ · hud.go ВПЕРЁД
 hud.mul МНОЖИТЕЛЬ · hud.x × · hud.time ВРЕМЯ
 banner.wave ВОЛНА {n}/{total} · banner.final ФИНАЛЬНАЯ ВОЛНА
 banner.clear ВОЛНА ЗАЧИЩЕНА · banner.advance ВПЕРЁД →
 banner.zone {name} · banner.boss ФИНАЛЬНЫЙ БОСС
-banner.bossSub ХОЗЯЙКА «ТОКСИК» · banner.victory ГОРОД СВОБОДЕН
+banner.bossSub ЯДРО КОРПОРАЦИИ «ТОКСИК» · banner.victory ГОРОД СВОБОДЕН
 banner.defeat УЛИЦА СИЛЬНЕЕ
 popup.heal +{n} HP · popup.rage ЯРОСТЬ ГОТОВА! · popup.score +{n}
-boss.name КОРОЛЕВА ХРОМ · boss.sub ХОЗЯЙКА «ТОКСИК»
-boss.taunt1 «Вы опоздали. Город уже мой.»
-boss.taunt2 «Неон — это моя корона.»
-boss.phase2 «ДОСТАТОЧНО!»
+boss.name ИИ ХРОМ-9 · boss.sub ЯДРО КОРПОРАЦИИ «ТОКСИК»
+boss.taunt1 «Вы опоздали. Город уже подключён ко мне.»
+boss.taunt2 «Весь неон города — моё питание.»
+boss.phase2 «ПЕРЕГРУЗКА!»
 pause.title ПАУЗА · pause.hint ESC — продолжить
 end.gameoverTitle ИГРА ОКОНЧЕНА · end.gameoverSub УЛИЦА ЗАБРАЛА ЕЩЁ ОДНОГО
 end.victoryTitle ГОРОД СПАСЁН · end.victorySub ЧИП NEON-8 ВОЗВРАЩЁН. ГОРОД СНОВА ЗВУЧИТ.
