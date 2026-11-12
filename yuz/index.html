@@ -1,0 +1,26 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ЮЗ · Гонки на мини-машинках — HTML5</title>
+<meta name="description" content="ЮЗ — оригинальная аркада студии «Гефест»: гонки на мини-машинках с видом сверху на 1–2 игроков против ботов. Занос, инерция, песок, лёд, вода и масло, трамплины, бонусы, 8 трасс-комнат и чемпионат. Темы retro/modern, RU/EN, офлайн.">
+<meta name="theme-color" content="#10131b">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="./css/style.css">
+</head><body data-theme="modern">
+<a class="back" id="backLink" href="../" data-catalog-back="1">&larr; Каталог</a>
+<div class="wrap"><canvas id="c" width="640" height="440" aria-label="ЮЗ"></canvas></div>
+<div class="pad">
+  <button data-d="L" aria-label="Руль влево">◀</button><button data-d="R" aria-label="Руль вправо">▶</button>
+  <button data-d="A" class="drift" aria-label="Занос">≈</button>
+  <button data-d="D" class="brake" aria-label="Тормоз">■</button><button data-d="U" class="gas" aria-label="Газ">▲</button><button data-pause="1" aria-label="Пауза">II</button>
+</div>
+<div class="foot" id="foot"><b>ЮЗ</b> · И1: ← → руль, ↑ газ, ↓ тормоз, / — занос · И2: A D руль, W газ, S тормоз, F — занос · 1/2 на заставке — игроки · P/Esc пауза · L язык, T тема, M звук. Тач — только И1.</div>
+<script src="./engine.js"></script>
+<script src="./js/music.js"></script>
+<script src="./js/i18n.js"></script>
+<script src="./js/game.js"></script>
+<script src="./js/audio.js"></script>
+<script src="./js/ui.js"></script>
+<script src="./js/modern.js"></script>
+<script src="./js/classic.js"></script>
+<script src="./js/main.js"></script>
+</body></html>
