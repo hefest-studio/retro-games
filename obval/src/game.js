@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ОБВАЛ · КРИСТАЛЬНЫЕ ГЛУБИНЫ
+   ОБВАЛ · ШАХТА САМОЦВЕТОВ
    A self-contained original HTML5 game by Hefest studio. Canvas 2D + WebAudio. No dependencies.
    ========================================================================== */
 'use strict';
@@ -72,7 +72,7 @@ Store.migrate();
    -------------------------------------------------------------------------- */
 const I18N = {
   ru: {
-    'brand.sub': 'КРИСТАЛЬНЫЕ ГЛУБИНЫ',
+    'brand.sub': 'ШАХТА САМОЦВЕТОВ',
     'ui.graphics': 'ГРАФИКА',
     'gfx.modern': 'НЕО',
     'gfx.retro': 'РЕТРО',
@@ -163,7 +163,7 @@ const I18N = {
     'start.prompt': 'Enter — старт',
   },
   en: {
-    'brand.sub': 'CRYSTAL DEPTHS',
+    'brand.sub': 'GEM SHAFT',
     'ui.graphics': 'GRAPHICS',
     'gfx.modern': 'NEO',
     'gfx.retro': 'RETRO',
@@ -235,7 +235,7 @@ const I18N = {
     'gameover.best': 'BEST',
     'gameover.new': 'New run',
     'gameover.menu': 'Menu',
-    'victory.eyebrow': 'HEART OF THE DEEP',
+    'victory.eyebrow': 'THE LAST CHAMBER',
     'victory.title': 'Eight of eight',
     'victory.text': 'Every chamber cleared, every vein mined. Can you hear the underground wind?',
     'victory.score': 'TOTAL',
@@ -2409,7 +2409,7 @@ function applyStaticI18n() {
     UI.btnLang.setAttribute('aria-label', UI.btnLang.title);
   }
   document.documentElement.lang = lang === 'ru' ? 'ru' : 'en';
-  document.title = lang === 'ru' ? 'ОБВАЛ · Кристальные глубины' : 'ОБВАЛ · Crystal Depths';
+  document.title = lang === 'ru' ? 'ОБВАЛ · Шахта самоцветов' : 'ОБВАЛ · Gem Shaft';
 }
 
 function updateGraphicsUI() {
@@ -2866,7 +2866,7 @@ function init() {
 
   const issues = validateLevels();
   if (issues.length) console.warn('ОБВАЛ level issues:', issues);
-  console.info('ОБВАЛ · Crystal Depths ready.', { levels: LEVELS.length, issues: issues.length });
+  console.info('ОБВАЛ · Gem Shaft ready.', { levels: LEVELS.length, issues: issues.length });
 
   window.OBVAL = {
     version: '1.0.0',

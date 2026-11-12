@@ -1,5 +1,5 @@
 /* ============================================================
-   НЕОН × ЯРОСТЬ: NEON RAGE — 8-bit / synthwave audio engine
+   НЕОН × ЯРОСТЬ: NEON YAROST — 8-bit / synthwave audio engine
    ------------------------------------------------------------
    One classic script, no modules, no assets, no network: defines window.NR_AUDIO.
    Everything is synthesised with WebAudio (pulse / triangle / noise / saw),

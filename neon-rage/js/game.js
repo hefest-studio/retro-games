@@ -1,4 +1,4 @@
-/* НЕОН × ЯРОСТЬ: NEON RAGE — сгенерировано tools/build.mjs, не редактировать вручную */
+/* НЕОН × ЯРОСТЬ: NEON YAROST — сгенерировано tools/build.mjs, не редактировать вручную */
 'use strict';
 /* ==== src/font.js ==== */
 /* ============================================================
@@ -246,7 +246,7 @@
 
 /* ==== src/i18n.js ==== */
 /* ============================================================
-   НЕОН × ЯРОСТЬ: NEON RAGE — локализация RU/EN
+   НЕОН × ЯРОСТЬ: NEON YAROST — локализация RU/EN
    ------------------------------------------------------------
    Канонические ключи — docs/CONTRACT.md §9. Наборы ключей в `ru` и `en`
    обязаны совпадать: tmp/check-i18n.mjs проверяет паритет, плейсхолдеры
@@ -268,7 +268,7 @@
   var ru = {
     /* ---------- приложение ---------- */
     'app.title': 'НЕОН × ЯРОСТЬ',
-    'app.subtitle': 'NEON RAGE',
+    'app.subtitle': 'NEON YAROST',
     'app.tribute': 'оригинал студии «Гефест»',
     'app.footer': 'Canvas 2D · WebAudio · один HTML-файл',
     'app.loading': 'ЗАГРУЗКА НЕОНА…',
@@ -457,7 +457,7 @@
   var en = {
     /* ---------- app ---------- */
     'app.title': 'НЕОН × ЯРОСТЬ',
-    'app.subtitle': 'NEON RAGE',
+    'app.subtitle': 'NEON YAROST',
     'app.tribute': 'an original by Hefest studio',
     'app.footer': 'Canvas 2D · WebAudio · one HTML file',
     'app.loading': 'LOADING NEON…',
@@ -522,7 +522,7 @@
     'help.punchKeys': 'J / Z — 3-hit chain',
     'help.kick': 'KICK',
     'help.kickKeys': 'K / X — heavy',
-    'help.special': 'RAGE',
+    'help.special': 'FURY',
     'help.specialKeys': 'V — when the meter is full',
     'help.pause': 'PAUSE',
     'help.pauseKeys': 'ESC / P',
@@ -581,7 +581,7 @@
     'hud.best': 'BEST',
     'hud.lives': 'LIVES',
     'hud.wave': 'WAVE',
-    'hud.rage': 'RAGE',
+    'hud.rage': 'FURY',
     'hud.combo': 'COMBO',
     'hud.boss': 'KHROM-9 AI',
     'hud.fight': 'FIGHT!',
@@ -703,7 +703,7 @@
 
 /* ==== src/audio.js ==== */
 /* ============================================================
-   НЕОН × ЯРОСТЬ: NEON RAGE — 8-bit / synthwave audio engine
+   НЕОН × ЯРОСТЬ: NEON YAROST — 8-bit / synthwave audio engine
    ------------------------------------------------------------
    One classic script, no modules, no assets, no network: defines window.NR_AUDIO.
    Everything is synthesised with WebAudio (pulse / triangle / noise / saw),
@@ -2180,7 +2180,7 @@
 
 /* ==== src/game.js ==== */
 /* ============================================================
-   НЕОН × ЯРОСТЬ: NEON RAGE
+   НЕОН × ЯРОСТЬ: NEON YAROST
    game.js — состояние, меню, бой, волны, босс, камера, отладка.
    Владелец: Lead. Контракт: docs/CONTRACT.md.
    ============================================================ */
@@ -4469,7 +4469,7 @@
 
 /* ==== src/render-retro.js ==== */
 /* ============================================================
-   НЕОН × ЯРОСТЬ: NEON RAGE — RETRO 8-BIT RENDERER
+   НЕОН × ЯРОСТЬ: NEON YAROST — RETRO 8-BIT RENDERER
    ------------------------------------------------------------
    window.NR_RENDER_RETRO = { draw(ctx, view) }
 
@@ -5618,7 +5618,7 @@
     neonSign(ctx, 356, 34, textW('24/7', 2) + 14, 18, '24/7', C.cyan, t, 2, { board: true });
     /* граффити */
     drawGraffiti(ctx, 128 - camx * 0.35, 84, 'TOXIC', C.magenta, t);
-    drawGraffiti(ctx, 300 - camx * 0.35, 78, 'RAGE', C.lime, t);
+    drawGraffiti(ctx, 300 - camx * 0.35, 78, 'YAROST', C.lime, t);
     /* автоматы (ряд) */
     var f = 0.72;
     var off = camx * f;
@@ -5626,7 +5626,7 @@
     var start = Math.floor((off - 160) / tileW);
     var end = Math.ceil((off + 480 + 160) / tileW);
     var pal = [C.cyan, C.magenta, C.amber, C.lime];
-    var labels = ['NEON', 'RAGE', 'NR', 'HAMMER'];
+    var labels = ['NEON', 'YAROST', 'NR', 'HAMMER'];
     for (i = start; i <= end; i++) {
       var bx = Math.round(i * tileW - off + 20);
       if (bx < -80 || bx > 500) continue;
@@ -5784,7 +5784,7 @@
     /* неоновая вывеска на парапете */
     var bx2 = norm(620 - camx * 0.6, 780) - 120;
     if (bx2 > -60 && bx2 < 500) {
-      neonSign(ctx, bx2, 140, 50, 13, 'RAGE', C.magenta, t, 1, null);
+      neonSign(ctx, bx2, 140, 50, 13, 'YAROST', C.magenta, t, 1, null);
     }
     drawRain(ctx, t, camx, { density: 96, alpha: 0.45, speed: 1.15 });
     dith(ctx, 0, 0, 480, 8, C.ink, C.bg, 0.4);
@@ -5991,7 +5991,7 @@
 
   function ensureLogo() {
     var title = T('app.title') || 'НЕОН × ЯРОСТЬ';
-    var sub = T('app.subtitle') || 'NEON RAGE';
+    var sub = T('app.subtitle') || 'NEON YAROST';
     var sig = title + '|' + sub;
     if (logoCanvas && logoSig === sig) return logoCanvas;
     var cv = document.createElement('canvas');
@@ -6077,14 +6077,14 @@
     drawSkyline(ctx, camx, t, {
       f: 0.24, tileW: 98, baseY: 254, minH: 96, maxH: 206,
       color: C.panel, edge: C.deep, win1: C.amber, win2: C.cyan,
-      winProb: 0.18, seed: 17, signs: ['COMET', 'ARCADE', '24/7', 'NEON', 'RAGE', 'TOXIC'],
+      winProb: 0.18, seed: 17, signs: ['COMET', 'ARCADE', '24/7', 'NEON', 'YAROST', 'TOXIC'],
       signChance: 0.4, vertical: ['HOTEL', 'CLUB']
     });
     /* глубокая тень под логотипом */
     dith(ctx, 60, 8, 360, 112, C.ink, C.bg, 0.42);
     /* боковые вертикальные вывески */
     neonSignV(ctx, 26, 68, 'COMET', C.magenta, t, 2);
-    neonSignV(ctx, 430, 92, 'RAGE', C.cyan, t, 2);
+    neonSignV(ctx, 430, 92, 'YAROST', C.cyan, t, 2);
     neonSign(ctx, 360, 208, textW('24/7', 1) + 12, 13, '24/7', C.amber, t, 1, { board: true });
     drawWires(ctx, camx, t, 34, 6, C.ink);
     drawWires(ctx, camx, t, 44, 4, C.ink);
@@ -7698,7 +7698,7 @@
     drawSkyline(ctx, 170, t, {
       f: 0.18, tileW: 88, baseY: 264, minH: 70, maxH: 132,
       color: C.panel, edge: C.deep, win1: C.amber, win2: C.cyan,
-      winProb: 0.16, seed: 47, signs: ['COMET', 'HAMMER', 'RAGE', 'NEON'], signChance: 0.55
+      winProb: 0.16, seed: 47, signs: ['COMET', 'HAMMER', 'YAROST', 'NEON'], signChance: 0.55
     });
     /* затемнение города + цветные неоновые канты */
     ctx.globalAlpha = 0.3;
@@ -8121,7 +8121,7 @@
     drawSkyline(ctx, 130, t, {
       f: 0.24, tileW: 96, baseY: 260, minH: 90, maxH: 180,
       color: C.panel, edge: C.deep, win1: C.amber, win2: C.magenta,
-      winProb: 0.14, seed: 121, signs: ['TOXIC', 'GAME OVER', 'RAGE'], signChance: 0.5
+      winProb: 0.14, seed: 121, signs: ['TOXIC', 'GAME OVER', 'YAROST'], signChance: 0.5
     });
     drawTitleLedge(ctx, t, 130);
     drawRain(ctx, t, 200, { density: 110, alpha: 0.55 });
@@ -8248,7 +8248,7 @@
 
 /* ==== src/render-modern.js ==== */
 /* ============================================================
-   НЕОН × ЯРОСТЬ: NEON RAGE
+   НЕОН × ЯРОСТЬ: NEON YAROST
    src/render-modern.js — «неоновый ремастер»: Canvas 2D, 480×270
    ------------------------------------------------------------
    window.NR_RENDER_MODERN = { draw(ctx, view) }
@@ -12692,7 +12692,7 @@
     drawPosterLine(ctx, l2, W / 2, 86, {
       size: s2, c1: '#fff0fa', c2: '#ff8fc4', c3: '#ff2e88', glow: C.pink, glowAlpha: 0.85, skew: 0.03
     });
-    // подзаголовок NEON RAGE на неоновой плате
+    // подзаголовок NEON YAROST на неоновой плате
     ctx.save();
     ctx.translate(W / 2, 114);
     ctx.transform(1, 0, -0.16, 1, 0, 0);
@@ -13806,7 +13806,7 @@
 
 /* ==== src/main.js ==== */
 /* ============================================================
-   НЕОН × ЯРОСТЬ: NEON RAGE
+   НЕОН × ЯРОСТЬ: NEON YAROST
    main.js — оболочка: canvas, масштаб, ввод, звук, CRT, rAF, QA-хэши.
    Владелец: Lead. Контракт: docs/CONTRACT.md.
    ============================================================ */

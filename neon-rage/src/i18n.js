@@ -1,5 +1,5 @@
 /* ============================================================
-   НЕОН × ЯРОСТЬ: NEON RAGE — локализация RU/EN
+   НЕОН × ЯРОСТЬ: NEON YAROST — локализация RU/EN
    ------------------------------------------------------------
    Канонические ключи — docs/CONTRACT.md §9. Наборы ключей в `ru` и `en`
    обязаны совпадать: tmp/check-i18n.mjs проверяет паритет, плейсхолдеры
@@ -21,7 +21,7 @@
   var ru = {
     /* ---------- приложение ---------- */
     'app.title': 'НЕОН × ЯРОСТЬ',
-    'app.subtitle': 'NEON RAGE',
+    'app.subtitle': 'NEON YAROST',
     'app.tribute': 'оригинал студии «Гефест»',
     'app.footer': 'Canvas 2D · WebAudio · один HTML-файл',
     'app.loading': 'ЗАГРУЗКА НЕОНА…',
@@ -210,7 +210,7 @@
   var en = {
     /* ---------- app ---------- */
     'app.title': 'НЕОН × ЯРОСТЬ',
-    'app.subtitle': 'NEON RAGE',
+    'app.subtitle': 'NEON YAROST',
     'app.tribute': 'an original by Hefest studio',
     'app.footer': 'Canvas 2D · WebAudio · one HTML file',
     'app.loading': 'LOADING NEON…',
@@ -275,7 +275,7 @@
     'help.punchKeys': 'J / Z — 3-hit chain',
     'help.kick': 'KICK',
     'help.kickKeys': 'K / X — heavy',
-    'help.special': 'RAGE',
+    'help.special': 'FURY',
     'help.specialKeys': 'V — when the meter is full',
     'help.pause': 'PAUSE',
     'help.pauseKeys': 'ESC / P',
@@ -334,7 +334,7 @@
     'hud.best': 'BEST',
     'hud.lives': 'LIVES',
     'hud.wave': 'WAVE',
-    'hud.rage': 'RAGE',
+    'hud.rage': 'FURY',
     'hud.combo': 'COMBO',
     'hud.boss': 'KHROM-9 AI',
     'hud.fight': 'FIGHT!',
