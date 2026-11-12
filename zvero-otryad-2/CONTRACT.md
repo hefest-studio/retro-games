@@ -7,8 +7,8 @@ CDN/npm/сети, без внешних картинок/шрифтов/звук
 с новыми уровнями-«погребами», ледяной палитрой и пространством имён `ZVERO2`.
 
 > **v2 (оболочка Гефест Arcade).** С волны 2 `index.html` — оболочка на движке v2:
-> `engine.js` → `js/music.js` → `js/coop.js` → `js/i18n.js` → `js/game.js` → `js/classic.js` → `js/modern.js`
-> + инлайн-скрипт (меню/пауза/темы/язык/счёт — движок; кооп-ввод — `js/coop.js`).
+> `engine.js` → `js/music.js` → `js/i18n.js` → `js/game.js` → `js/classic.js` → `js/modern.js`
+> + инлайн-скрипт (меню/пауза/темы/язык/счёт — движок; кооп-ввод — движок v2.2 `g.usePlayers` + `g.input.player(i)`).
 > `js/audio.js`, `js/ui.js`, `js/main.js`, `css/style.css` используются только старой страницей `legacy.html`,
 > для неё §0 и §7 ниже остаются в силе. Раскладка в v2: И1 — стрелки, И2 — WASD (см. README).
 

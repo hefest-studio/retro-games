@@ -32,7 +32,6 @@ a.back{position:fixed;left:10px;top:8px;color:#6a86a8;font-size:12px;text-decora
 <div class="foot"><b>ЗВЕРО-ОТРЯД 2</b> · Пыж (И1): ← → бег, ↑ прыжок, / или пробел — схватить/бросить · Тяпа (И2): A D бег, W прыжок, F — схватить/бросить · 1/2 на заставке — игроки · P/Esc пауза · L язык, T тема, M звук. Тач — только И1.</div>
 <script src="./engine.js"></script>
 <script src="./js/music.js"></script>
-<script src="./js/coop.js"></script>
 <script src="./js/i18n.js"></script>
 <script src="./js/game.js"></script>
 <script src="./js/classic.js"></script>
@@ -49,7 +48,8 @@ var pad=document.querySelector('.pad');
 g.input.bindDpad(pad);
 g.fit(620); addEventListener('resize',function(){g.fit(620);});
 g.useStandardScreens({title:'ЗВЕРО-ОТРЯД 2',subtitle:STR.ru.subtitle,lives:0});
-var co=Arcade.coop(g,{
+// Кооп за одной клавиатурой — движок (g.usePlayers + g.input.player(i)): пункт «Игроки», 1/2, подсказка, тач — только И1.
+g.usePlayers({
   bind:{ p1:{left:['ArrowLeft'],right:['ArrowRight'],jump:['ArrowUp'],grab:['Slash','NumpadDivide','Period','Space']},
          p2:{left:['KeyA'],right:['KeyD'],jump:['KeyW'],grab:['KeyF','ShiftLeft']} },
   actions:['jump','grab'], pad:pad, touch:{L:'left',R:'right',U:'jump',A:'grab'},
@@ -58,7 +58,7 @@ var co=Arcade.coop(g,{
 });
 var game=null;
 function bp(f,d,t,v){ g.audio.beep(f,d,t,v); }
-function mkGame(){ return Z.Game({hi:g.state.best,twoP:co.players()===2,onEvent:function(type){
+function mkGame(){ return Z.Game({hi:g.state.best,twoP:g.input.playerCount===2,onEvent:function(type){
   if(type==='jump') bp(560,.05,'square',.05);
   else if(type==='grab') bp(420,.05,'triangle',.06);
   else if(type==='throw') bp(760,.06,'square',.05);
@@ -70,20 +70,20 @@ function mkGame(){ return Z.Game({hi:g.state.best,twoP:co.players()===2,onEvent:
   else if(type==='gameover'){ if(game) g.state.score=game.state().score; g.gameover(); }
   else if(type==='win'){ if(game) g.state.score=game.state().score; g.win(); }
 }}); }
-co.onAction(function(pi,name){ if(!game) return; if(name==='jump') game.jump(pi); else if(name==='grab') game.action(pi); });
+[0,1].forEach(function(pi){ g.input.player(pi).onPress(function(name){ if(!game) return; if(name==='jump') game.jump(pi); else if(name==='grab') game.action(pi); }); });
 function render(ctx){ var st=game?game.state():null; if(!st){ g.clear(); return; }
   if(Z.i18n) Z.i18n.lang=g.i18n.lang;
   (g.themeName==='retro'?Z.classic:Z.modern).draw(ctx,st); }
 // Кооп: оба героя всегда в кадре — И2 появляется рядом с И1, а движок держит «поводок»
 // (не дальше ширины экрана минус отступ) и камеру по середине пары (js/game.js).
 g.scene('play',{realtime:true,
-  enter:function(d){ co.arm(); if(!(d&&d.resume)){ game=mkGame(); game.start(); } },
+  enter:function(d){ if(!(d&&d.resume)){ game=mkGame(); game.start(); } },
   press:function(a){ if(a==='pause') this.pause(); },
   update:function(dt){ if(!game) return;
-    for(var pi=0;pi<co.players();pi++){ game.setHeld(pi,'left',co.held(pi,'left')); game.setHeld(pi,'right',co.held(pi,'right')); }
+    for(var pi=0;pi<g.input.playerCount;pi++){ var P=g.input.player(pi); game.setHeld(pi,'left',P.pressed('left')); game.setHeld(pi,'right',P.pressed('right')); }
     game.update(Math.min(dt,0.05)); if(game) g.state.score=game.state().score; },
   draw:function(ctx){ render(ctx); }
 });
-window.__ZVERO_V2={g:g,co:co,game:function(){return game;}};
+window.__ZVERO_V2={g:g,game:function(){return game;}};
 g.start('title');
 </script></body></html>

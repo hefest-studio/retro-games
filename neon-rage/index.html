@@ -112,7 +112,7 @@ html[data-arcade-scene="play"] a.back { display: none; } /* в бою не пе�
 
   var g = ArcadeHost.mount({
     gameId: 'neon-rage', mount: '#arcade-mount', width: 704, height: 396, scale: 2, strings: STR,
-    extra: ['help', 'settings'], subKeys: { Escape: 1, KeyP: 1 }, adapter: A
+    extra: ['help', 'settings'], subKeys: { Escape: 1, KeyP: 1 }, bootAdopt: true, adapter: A // bootAdopt: #demo=/#scene=/#wave= — сразу в бой
   });
   if (!g) return;
 

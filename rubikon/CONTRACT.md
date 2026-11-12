@@ -13,7 +13,7 @@
 - **Управление:** Стрелки / WASD, пробел — лазер, Shift — отделить башню
 - **Языки:** RU / EN
 - **Акцентный цвет:** `#ff4fd8`
-- **Движок:** Гефест Arcade v2 «оболочкой» (`js/host.js`, см. README): меню/пауза/темы retro+modern (modern по умолчанию)/RU-EN/рекорд `arcade.best.rubikon`; старая страница — `legacy.html`.
+- **Движок:** Гефест Arcade v2 «оболочкой» (`js/host.js` — копия `_shared/host.js`, кладёт `build.sh`; см. README): меню/пауза/темы retro+modern (modern по умолчанию)/RU-EN/рекорд `arcade.best.rubikon`; старая страница — `legacy.html`.
 
 ## Возможности
 - 10 подземных уровней + поверхность

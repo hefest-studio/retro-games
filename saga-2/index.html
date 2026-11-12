@@ -77,6 +77,7 @@
     ArcadeHost.mount({
       gameId: 'saga-2', mount: '#arcade-frame', width: 704, height: 396, strings: STR, extra: ['continue', 'levels'],
       gameKeys: { KeyL: 1 },                                   // L в игре — крюк Гуннара; язык в игре — Y (как раньше)
+      urlQuery: true, rawGameKeys: true, soundFromEngine: true, bootKeep: true, // адаптации общего _shared/host.js (как у saga)
       urlTheme: function (P) { var m = P.get('mode') || P.get('gfx'); return m === 'retro' ? 'retro' : (m === 'aurora' || m === 'modern') ? 'modern' : null; },
       adapter: {
         mode: function () {

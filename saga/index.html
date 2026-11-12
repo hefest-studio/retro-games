@@ -436,6 +436,8 @@ document.addEventListener('DOMContentLoaded', function () { // после boot()
                playing: 'play', dead: 'play', pause: 'paused', finale: 'win' };
   ArcadeHost.mount({
     gameId: 'saga', mount: '#stage', width: 640, height: 400, strings: STR, extra: ['continue', 'levels'],
+    // адаптации общего _shared/host.js: ?query+#hash, игровые клавиши — игре «как есть», звук движка главный, ?level= не сбрасывается
+    urlQuery: true, rawGameKeys: true, soundFromEngine: true, bootKeep: true,
     adapter: {
       mode: function () { return MODE[UI.getScreen()] || 'sub'; },
       start: function () { UI.nav('play'); },            // «Играть» — сага с начала (пролог при первом запуске, затем брифинг 1)

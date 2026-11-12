@@ -208,7 +208,6 @@ test('оболочка: временные маркеры у края экран
   box.window = box; box.globalThis = box; vm.createContext(box);
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), box, { filename: 'engine.js' });
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/music.js'), 'utf8'), box, { filename: 'music.js' });
-  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/coop.js'), 'utf8'), box, { filename: 'coop.js' });
   const A = box.Arcade;
 
   test('v2: engine.js — копия _shared/engine.js (v2.1+)', () => {
@@ -220,9 +219,10 @@ test('оболочка: временные маркеры у края экран
     const c = A.parseTrack(t); ok(c.melody.length >= 48, 'мелодия коротка: ' + c.melody.length);
     ok(c.bass.length > 0 && c.drums.length > 0, 'нет баса/ударных');
   });
-  test('v2: порядок скриптов — engine.js, сразу music.js, затем coop.js и родные модули', () => {
+  test('v2: порядок скриптов — engine.js, сразу music.js, затем родные модули (кооп — в движке, без js/coop.js)', () => {
     const srcs = [...html.matchAll(/<script[^>]*\ssrc=["']([^"']+)["']/g)].map(m => m[1].replace(/^\.\//, ''));
-    eq(srcs[0], 'engine.js'); eq(srcs[1], 'js/music.js'); eq(srcs[2], 'js/coop.js');
+    eq(srcs[0], 'engine.js'); eq(srcs[1], 'js/music.js'); ok(!srcs.includes('js/coop.js'), 'js/coop.js больше не нужен');
+    ok(!fs.existsSync(path.join(ROOT, 'js/coop.js')), 'осталась копия js/coop.js');
     ['js/game.js', 'js/classic.js', 'js/modern.js'].forEach(s => ok(srcs.includes(s), 'нет ' + s));
     ok(!srcs.includes('js/main.js') && !srcs.includes('js/audio.js'), 'старый загрузчик/аудио не должны грузиться');
     ok(html.includes("gameId:'" + SLUG + "'"), 'gameId ≠ slug');
@@ -241,7 +241,16 @@ test('оболочка: временные маркеры у края экран
     p1.concat(p2).forEach(c => ok(!HOT.includes(c), 'конфликт с горячей клавишей ' + c));
     p1.forEach(c => ok(!p2.includes(c), 'клавиша у обоих игроков: ' + c));
   });
-  test('v2: Arcade.coop — фабрика есть', () => { eq(typeof A.coop, 'function'); });
+  test('v2.2: кооп на движке — g.usePlayers + g.input.player(i), раскладка без конфликтов (Arcade.checkBindings)', () => {
+    ok(/^2\.([2-9]|\d\d)/.test(A.version), 'нужен движок 2.2+, а не ' + A.version);
+    ok(/g\.usePlayers\(\{/.test(html) && /g\.input\.player\(pi\)/.test(html), 'index.html не на API движка');
+    ok(!/Arcade\.coop|\bco\.(held|players|onAction|arm)\(/.test(html), 'остались вызовы старого coop');
+    const m = /bind:\{\s*p1:\{([^}]*)\},\s*p2:\{([^}]*)\}/.exec(html); ok(m, 'нет bind');
+    const bind = vm.runInNewContext('({p1:{' + m[1] + '},p2:{' + m[2] + '}})');
+    const c = A.checkBindings(bind, { reserved: ['Digit1', 'Digit2', 'Numpad1', 'Numpad2'] });
+    eq(c.length, 0, 'конфликты: ' + JSON.stringify(c));
+    ok(Object.keys(bind.p1).some(k => !['left', 'right', 'up', 'down'].includes(k) && bind.p1[k].includes('Space')), 'у И1 пропал пробел как действие');
+  });
 }
 
 console.log('\n' + (failed ? 'НЕУСПЕХ' : 'OK') + ' ' + passed + '/' + (passed + failed));

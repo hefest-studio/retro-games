@@ -13,7 +13,7 @@
 - **Управление:** Стрелки / WASD, Enter — старт, G — графика
 - **Языки:** RU / EN
 - **Акцентный цвет:** `#f2c14e`
-- **Движок:** Гефест Arcade v2 «оболочкой» (`js/host.js`, см. README): меню/пауза/темы retro+modern (modern по умолчанию)/RU-EN/рекорд `arcade.best.obval`; старая страница — `legacy.html`.
+- **Движок:** Гефест Arcade v2 «оболочкой» (`js/host.js` — копия `_shared/host.js`, кладёт `build.sh`; см. README): меню/пауза/темы retro+modern (modern по умолчанию)/RU-EN/рекорд `arcade.best.obval`; старая страница — `legacy.html`.
 
 ## Возможности
 - 8 уровней

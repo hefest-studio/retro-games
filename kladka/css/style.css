@@ -1,0 +1,22 @@
+/* КЛАДКА · стили страницы (сама игра рисуется в canvas). Тема страницы — body[data-theme]. */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#120e0d;--panel:#1a1412;--line:#2c211c;--ink:#eef2f8;--mut:#5a6273;--accent:#ff8a3d}
+body[data-theme="retro"]{--bg:#000000;--panel:#14101c;--line:#2b2230;--ink:#f3e9da;--mut:#8a7f6e;--accent:#ea6a12}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
+body[data-theme="retro"]{font-family:"Courier New",ui-monospace,monospace}
+.wrap{position:relative;width:min(94vw,480px);margin-top:32px;display:flex;justify-content:center}
+canvas{display:block;border:1px solid var(--line);border-radius:10px;background:var(--bg);touch-action:none}
+body[data-theme="retro"] canvas{border-radius:2px;image-rendering:pixelated}
+a.back{position:fixed;left:10px;top:7px;color:var(--mut);font-size:12px;text-decoration:none;font-weight:700;z-index:2}
+a.back:hover{color:var(--accent)}
+#bPause{position:fixed;right:10px;top:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  color:var(--ink);font-size:12px;font-weight:800;padding:4px 10px;z-index:2;cursor:pointer}
+.pad{width:min(94vw,480px);margin:10px 0 4px;display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:10px;max-width:400px}
+.pad button{height:62px;background:var(--panel);border:1px solid var(--line);border-radius:14px;color:var(--ink);font-size:24px;font-weight:800;touch-action:none}
+.pad button.fire{background:#3a1d0c;border-color:var(--accent);color:var(--accent);font-size:28px}
+.pad button:active{filter:brightness(1.4)}
+.foot{color:var(--mut);font-size:11px;margin:6px 12px 12px;text-align:center;max-width:520px}
+.foot b{color:var(--ink)}
+@media(min-width:760px){.pad{display:none}}

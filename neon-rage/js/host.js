@@ -14,21 +14,38 @@
  * как раньше (на них завязаны tools/ игр). #gfx=retro|modern и #lang=ru|en — задают тему/язык
  * движка на этот запуск (без сохранения), их же понимает игра (tools/thumbs.mjs).
  *
- * Копии файла: obval/js/host.js, rubikon/js/host.js, vihr/js/host.js (одинаковые).
- * neon-rage/js/host.js — та же копия с тремя обратно совместимыми расширениями (см. «NR:»):
- *   1) o.extra может быть массивом ключей — несколько доп. пунктов меню, A.openSub(key);
- *   2) o.subKeys {code:1} — в режиме 'sub' (родные экраны игры: сюжет, выбор героя…) эти клавиши
- *      идут в игру, а не движку (Esc = «пропустить сюжет» / «назад» самой игры);
- *   3) если при старте игра уже в 'play'/'sub' (отладочные #demo= / #scene= / #wave=) — движок
- *      не уводит её в меню, а сразу следует за ней.
+ * Источник — _shared/host.js (движок v2.2+); build.sh копирует его в <игра>/js/host.js всех игр,
+ * которые подключают ./js/host.js (obval, rubikon, vihr, rubezh, proryv, saga, saga-2, neon-rage).
+ * Правки — только здесь, копии в играх не редактировать.
+ *
+ * Адаптации отдельных игр — опциями mount() (по умолчанию выключены, поведение базовое):
+ *   o.extra       — строка ИЛИ массив ключей доп. пунктов меню (после «Играть»); A.openSub(key) получает ключ,
+ *                   A.extraHint(key) — необяз. приписка к подписи (saga: «Продолжить · 3»);
+ *   o.urlQuery    — параметры адреса читать и из ?query, и из #hash (hash важнее) (saga, saga-2);
+ *   o.urlTheme(P) — своя трактовка темы из адреса (saga-2: ?mode=retro|aurora);
+ *   o.gameKeys    — {code:1}: в сцене play эти клавиши уходят только в игру, даже если они «свои» для движка (saga-2: KeyL — крюк);
+ *   o.subKeys     — {code:1}: в режиме игры 'sub' (родные экраны: сюжет, выбор героя…) эти клавиши идут в игру (neon-rage: Esc, P);
+ *   o.rawGameKeys — в play игровые клавиши не проходят через ввод движка (без его preventDefault: Enter/пробел на
+ *                   сфокусированной родной кнопке работают); keyup клавиши, нажатой в меню движка, в игру не уходит (saga, saga-2);
+ *   o.soundFromEngine — при старте игра следует звуку движка (кроме ?mute= в адресе — отладка игры) (saga, saga-2);
+ *   o.bootKeep    — первый вход в title при монтировании не возвращает игру в титул: если игру уже запустил
+ *                   отладочный адрес (?level=N), движок на первом кадре следует за ней в play (saga, saga-2);
+ *   o.bootAdopt   — если при старте игра уже в 'play'/'sub' (#demo= / #scene= / #wave=), движок не уводит её
+ *                   в меню, а сразу следует за ней (neon-rage).
+ * Пункты меню добавляются публичным API движка: g.menu.addItem({ key, label, onSelect, after }).
  */
 (function (global) {
   'use strict';
   var doc = global.document;
 
-  function hashParams() {
-    var h = String((global.location && global.location.hash) || '').replace(/^#/, '');
-    try { return new URLSearchParams(h); } catch (e) { return { has: function () { return false; }, get: function () { return null; } }; }
+  function hashParams(withQuery) { // #hash; с withQuery — ?query + #hash (hash важнее)
+    var loc = global.location || {}, h = String(loc.hash || '').replace(/^#/, '');
+    try {
+      if (!withQuery) return new URLSearchParams(h);
+      var P = new URLSearchParams(String(loc.search || '').replace(/^\?/, '')), H = new URLSearchParams(h);
+      H.forEach(function (v, k) { P.set(k, v); });
+      return P;
+    } catch (e) { return { has: function () { return false; }, get: function () { return null; } }; }
   }
 
   /**
@@ -39,14 +56,15 @@
    *  o.strings  — {ru:{…}, en:{…}} строк движка (title, subtitle, extra и стандартные)
    *  o.adapter  — {
    *     mode()  → 'title' | 'sub' | 'play' | 'paused' | 'gameover' | 'win'
-   *     start(), toTitle(), pause(), resume(), openSub() (если есть доп. пункт меню)
+   *     start(), toTitle(), pause(), resume(), openSub(key) (если есть доп. пункты меню), extraHint(key) (необяз.)
    *     score() → число, best() → старый рекорд игры
    *     gfx() → 'retro'|'modern', setGfx(v); lang() → 'ru'|'en', setLang(v); setSound(on)
    *  }
-   *  o.extra    — ключ строки доп. пункта меню (уровни / брифинг / управление) или null
+   *  o.extra    — ключ строки доп. пункта меню (уровни / брифинг / управление), массив ключей или null
+   *  прочие опции адаптаций — см. шапку файла
    */
   function mount(o) {
-    var Arcade = global.Arcade, A = o.adapter, P = hashParams();
+    var Arcade = global.Arcade, A = o.adapter, P = hashParams(!!o.urlQuery);
     if (P.has('shot') || P.has('sim') || P.has('test')) { // отладка игры — без оболочки
       doc.documentElement.setAttribute('data-arcade-scene', 'off');
       return null;
@@ -70,7 +88,7 @@
     g.ctx.setTransform(k, 0, 0, k, 0, 0); g._applyPixel();
 
     // Параметры адреса: тема/язык только на этот запуск
-    var hg = P.get('gfx'), hl = P.get('lang');
+    var hg = o.urlTheme ? o.urlTheme(P) : P.get('gfx'), hl = P.get('lang');
     if (hg === 'retro' || hg === 'modern') { g.themeName = hg; g._applyPixel(); }
     if (hl === 'ru' || hl === 'en') g.i18n.lang = hl;
 
@@ -79,13 +97,13 @@
     Object.defineProperty(cfg, 'title', { get: function () { return g.t('title'); } });
     Object.defineProperty(cfg, 'subtitle', { get: function () { return g.t('subtitle', ''); } });
     g.useStandardScreens(cfg);
-    if (o.extra && A.openSub) {
-      // NR: o.extra — строка или массив ключей; в A.openSub(key) приходит ключ пункта
-      [].concat(o.extra).forEach(function (key, i) {
-        g.scenes.title._menu.items.splice(1 + i, 0, {
-          label: function () { return g.t(key); },
-          onSelect: function () { g.goto('play', { sub: key }); }
-        });
+    if (o.extra && A.openSub) { // доп. пункты — подряд сразу после «Играть»
+      var prev = 'play';
+      [].concat(o.extra).forEach(function (key) {
+        g.menu.addItem({ key: key, after: prev,
+          label: function () { return g.t(key) + (A.extraHint ? A.extraHint(key) || '' : ''); },
+          onSelect: function () { g.goto('play', { sub: key }); } });
+        prev = key;
       });
     }
 
@@ -113,12 +131,13 @@
     var wasPaused = false;
     g.scenes.pause.enter = function () { if (A.mode() === 'play') A.pause(); wasPaused = A.mode() === 'paused'; };
     g.scenes.pause.press = function (a) { if (a === 'pause') g.goto('play', { resume: true }); }; // P/Esc — снять паузу
-    var titleEnter = g.scenes.title.enter;
-    // NR: игра при загрузке уже в бою / на своём экране (отладочные адреса) — не уводим её в меню
-    var bootM = A.mode(), bootAdopt = bootM === 'play' || bootM === 'sub';
+    var titleEnter = g.scenes.title.enter, booted = false;
+    // bootAdopt: игра при загрузке уже в бою / на своём экране (отладочные адреса) — не уводим её в меню
+    var bootM = A.mode(), bootAdopt = !!o.bootAdopt && (bootM === 'play' || bootM === 'sub');
     g.scenes.title.enter = function (d) {
       if (titleEnter) titleEnter.call(this, d);
       if (bootAdopt) return;
+      if (o.bootKeep && !booted) return; // при старте не трогаем: игру мог запустить отладочный адрес (?level=)
       if (A.mode() !== 'title') A.toTitle();
     };
 
@@ -132,21 +151,24 @@
 
     // Клавиатура: движок слушает сам (capture), в игру пропускаем только игровые клавиши в play
     var OWN = { KeyP: 1, Escape: 1, KeyL: 1, KeyT: 1, KeyM: 1, KeyG: 1 };
-    var SUBK = o.subKeys || {};
+    var GAME = o.gameKeys || {}, SUBK = o.subKeys || {}, RAW = !!o.rawGameKeys, held = {};
     global.removeEventListener('keydown', g.input._kd);
     global.removeEventListener('keyup', g.input._ku);
     global.addEventListener('keydown', function (e) {
-      if (g._sceneName === 'play' && !OWN[e.code]) { g.input._kd(e); return; }
-      if (g._sceneName === 'play' && SUBK[e.code] && A.mode() === 'sub') return; // NR: клавиша — родному экрану игры
-      e.stopPropagation();
+      if (g._sceneName === 'play' && (!OWN[e.code] || GAME[e.code])) { if (!RAW) g.input._kd(e); return; } // игровая клавиша
+      if (g._sceneName === 'play' && SUBK[e.code] && A.mode() === 'sub') return; // клавиша — родному экрану игры
+      e.stopPropagation(); if (RAW) held[e.code] = 1;
       if (e.code === 'KeyG') { e.preventDefault(); if (!e.repeat) g.toggleTheme(); return; }
       if (e.repeat && OWN[e.code]) { e.preventDefault(); return; }
       g.input._kd(e);
     }, true);
-    global.addEventListener('keyup', function (e) { g.input._ku(e); }, true);
+    global.addEventListener('keyup', function (e) {
+      g.input._ku(e);
+      if (held[e.code]) { held[e.code] = 0; e.stopPropagation(); e.preventDefault(); } // нажата в меню движка (rawGameKeys)
+    }, true);
 
     // Синхронизация каждый кадр: тема, язык, звук, сцены по состоянию игры
-    var lastTheme = null, lastLang = null, lastSound = true;
+    var lastTheme = null, lastLang = null, lastSound = (o.soundFromEngine && !P.has('mute')) ? null : true;
     function gfxOf(theme) { return theme === 'retro' ? 'retro' : 'modern'; }
     function sync() {
       global.requestAnimationFrame(sync);
@@ -175,8 +197,8 @@
       }
     }
 
-    g.start('title');
-    if (bootAdopt) { bootAdopt = false; g.goto('play', { adopt: true }); } // NR
+    g.start('title'); booted = true;
+    if (bootAdopt) { bootAdopt = false; g.goto('play', { adopt: true }); }
     global.requestAnimationFrame(sync);
     global.__arcadeHost = { g: g, adapter: A };
     return g;

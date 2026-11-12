@@ -4,7 +4,7 @@
  * настройки: язык/тема/звук), сцены, сетка, частицы, HUD, счёт+рекорд (localStorage по игре).
  * Встроены критерии: проходимость (win/lose+финал, difficulty), играбельность (отклик, фидбек),
  * непресность (нарастание). Игры самодостаточны: build.sh копирует файл в игру. API — README.
- * (c) Студия «Гефест». v2.1.0 (процедурная музыка-секвенсор)
+ * (c) Студия «Гефест». v2.2.0 (API пунктов меню g.menu, ввод по игрокам g.input.player(i) + g.usePlayers, g.input.touchOnly)
  */
 (function (global) {
   'use strict';
@@ -49,14 +49,46 @@
   };
 
   // ---------- Ввод: клавиатура + тач-дпад (унифицировано) ----------
+  // Горячие клавиши движка (e.code): их нельзя отдавать игрокам (Space допустим у И1 как действие).
+  var HOTKEYS = ['KeyP', 'Escape', 'KeyM', 'KeyL', 'KeyT', 'Enter', 'NumpadEnter', 'Space'];
+  var DIRN = { left: 1, right: 1, up: 1, down: 1 };
+  function now() { var p = global.performance; return p && p.now ? p.now() : Date.now(); }
+  // bind: [раскладкаИ1, раскладкаИ2] или { p1:{…}, p2:{…} }; раскладка = { имя: ['KeyCode', …] }
+  function normBind(b) { if (!b) return [{}, {}]; if (Array.isArray(b)) return [b[0] || {}, b[1] || {}]; return [b.p1 || {}, b.p2 || {}]; }
+  // Проверка раскладок: горячие клавиши движка (+ o.reserved) и клавиши, общие для двух игроков.
+  // → [{ player, name, code, why:'hotkey'|'shared' }] (пусто — конфликтов нет).
+  function checkBindings(bind, o) {
+    o = o || {}; var list = normBind(bind), out = [], hot = HOTKEYS.concat(o.reserved || []), owner = Object.create(null);
+    list.forEach(function (m, pi) {
+      Object.keys(m).forEach(function (name) {
+        (m[name] || []).forEach(function (code) {
+          if (hot.indexOf(code) >= 0 && !(code === 'Space' && pi === 0 && !DIRN[name])) out.push({ player: pi, name: name, code: code, why: 'hotkey' });
+          if (owner[code] != null && owner[code] !== pi) out.push({ player: pi, name: name, code: code, why: 'shared' });
+          owner[code] = pi;
+        });
+      });
+    });
+    return out;
+  }
   function Input() {
     this.keys = Object.create(null); this.dir = { x: 0, y: 0 }; this._press = [];
+    this.codes = Object.create(null); // сырые e.code, зажатые сейчас
+    // «Только тач»: устройство с грубым указателем без hover и ещё ни одного keydown (снимается первым keydown).
+    this.touchOnly = false;
+    try { this.touchOnly = !!(global.matchMedia && global.matchMedia('(hover: none) and (pointer: coarse)').matches); } catch (e) {}
+    this.playerCount = 1; this._pl = null; this._plCbs = [[], []]; this._touch = Object.create(null); this._players = [];
+    this._inPlay = null; this._armedAt = -1e9; this.conflicts = [];
     var map = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left',
       ArrowRight: 'right', KeyD: 'right', Space: 'action', Enter: 'start', Escape: 'pause', KeyP: 'pause', KeyM: 'mute', KeyL: 'lang', KeyT: 'theme' };
     var self = this;
-    this._kd = function (e) { var a = map[e.code]; if (!a) return; if (!self.keys[a]) self._emit(a); self.keys[a] = true; self._setDir(); if (a !== 'mute' && a !== 'lang' && a !== 'theme') e.preventDefault(); };
-    this._ku = function (e) { var a = map[e.code]; if (!a) return; self.keys[a] = false; self._setDir(); };
+    this._kd = function (e) {
+      if (e.isTrusted !== false) self.touchOnly = false; // физическая клавиатура есть (синтетические события тач-кнопок не в счёт)
+      self._plKey(e, true);
+      var a = map[e.code]; if (!a) return; if (!self.keys[a]) self._emit(a); self.keys[a] = true; self._setDir(); if (a !== 'mute' && a !== 'lang' && a !== 'theme') e.preventDefault();
+    };
+    this._ku = function (e) { self._plKey(e, false); var a = map[e.code]; if (!a) return; self.keys[a] = false; self._setDir(); };
     addEventListener('keydown', this._kd, { passive: false }); addEventListener('keyup', this._ku);
+    addEventListener('blur', function () { self.codes = Object.create(null); self._touch = Object.create(null); });
   }
   Input.prototype._setDir = function () { this.dir.x = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0); this.dir.y = (this.keys.down ? 1 : 0) - (this.keys.up ? 1 : 0); };
   Input.prototype.onPress = function (cb) { this._press.push(cb); };
@@ -65,14 +97,70 @@
   Input.prototype.bindDpad = function (root) {
     if (!root) return; var self = this; var keyFor = { U: 'up', D: 'down', L: 'left', R: 'right', A: 'action' };
     root.querySelectorAll('[data-d]').forEach(function (btn) {
-      var a = keyFor[btn.dataset.d]; if (!a) return;
-      var on = function (e) { e.preventDefault(); if (!self.keys[a]) self._emit(a); self.keys[a] = true; self._setDir(); };
-      var off = function (e) { e.preventDefault(); self.keys[a] = false; self._setDir(); };
+      var d = btn.dataset.d, a = keyFor[d]; if (!a) return;
+      var on = function (e) { e.preventDefault(); if (!self.keys[a]) self._emit(a); self.keys[a] = true; self._setDir(); self._padPl(d, true); };
+      var off = function (e) { e.preventDefault(); self.keys[a] = false; self._setDir(); self._padPl(d, false); };
       btn.addEventListener('touchstart', on, { passive: false }); btn.addEventListener('touchend', off, { passive: false });
       btn.addEventListener('touchcancel', off, { passive: false }); btn.addEventListener('mousedown', on);
       btn.addEventListener('mouseup', off); btn.addEventListener('mouseleave', off);
     });
   };
+
+  // --- Ввод по игрокам (локальный кооп за одной клавиатурой) ---
+  // g.input.setPlayers({ bind:{p1:{left:['ArrowLeft'],…,fire:['Slash']}, p2:{…}}, actions:['fire'], repeat:['fire'],
+  //   touch:{L:'left',R:'right',U:'up',D:'down',A:'fire'}, count:1|2, reserved:['Digit1'] }) → конфликты (+ console.warn).
+  // g.input.player(i) → { index, dir{x,y}, pressed(name), onPress(cb(name)) }. playerCount=1 — обе раскладки ведут И1.
+  // onPress игроков срабатывает только в сцене play (через 120 мс после входа — чтобы не «дострелить» клавишей старта);
+  // в play у привязанных клавиш снимается действие браузера (Slash — быстрый поиск и т.п.). Тач-дпад — только И1.
+  Input.prototype.setPlayers = function (cfg) {
+    cfg = cfg || {}; var b = normBind(cfg.bind), acts = cfg.actions;
+    if (!acts) { acts = []; b.forEach(function (m) { Object.keys(m).forEach(function (n) { if (!DIRN[n] && acts.indexOf(n) < 0) acts.push(n); }); }); }
+    this._pl = { bind: b, actions: acts, repeat: cfg.repeat || [], touch: cfg.touch || null };
+    if (cfg.count) this.setPlayerCount(cfg.count);
+    var c = checkBindings(b, { reserved: cfg.reserved });
+    c.forEach(function (x) { if (global.console && console.warn) console.warn('Arcade: раскладка И' + (x.player + 1) + ' «' + x.name + '» — ' + x.code + (x.why === 'hotkey' ? ' занята горячей клавишей движка' : ' уже у другого игрока')); });
+    this.conflicts = c; return c;
+  };
+  Input.prototype.setPlayerCount = function (n) { this.playerCount = n === 2 ? 2 : 1; return this.playerCount; };
+  Input.prototype.player = function (i) { i = i ? 1 : 0; return this._players[i] || (this._players[i] = new PlayerInput(this, i)); };
+  Input.prototype._live = function () { return (!this._inPlay || this._inPlay()) && now() - this._armedAt > 120; };
+  Input.prototype._isAct = function (name) { return this._pl.actions.indexOf(name) >= 0; };
+  Input.prototype._emitPl = function (pi, name) { var l = this._plCbs[pi]; for (var i = 0; i < l.length; i++) l[i](name); };
+  Input.prototype._lookup = function (code) { // code → [{pi,name}]; в одиночке P2-клавиши тоже ведут И1
+    var out = [], b = this._pl.bind, two = this.playerCount === 2;
+    for (var p = 0; p < 2; p++) for (var name in b[p]) if ((b[p][name] || []).indexOf(code) >= 0) out.push({ pi: two ? p : 0, name: name });
+    return out;
+  };
+  Input.prototype._plKey = function (e, down) {
+    this.codes[e.code] = !!down;
+    if (!down || !this._pl) return;
+    var hits = this._lookup(e.code); if (!hits.length) return;
+    if (this._inPlay && !this._inPlay()) return;
+    if (e.preventDefault) e.preventDefault();
+    if (!this._live()) return;
+    for (var i = 0; i < hits.length; i++) { var h = hits[i]; if (this._isAct(h.name) && (!e.repeat || this._pl.repeat.indexOf(h.name) >= 0)) this._emitPl(h.pi, h.name); }
+  };
+  Input.prototype._padPl = function (d, on) {
+    var pl = this._pl, name = pl && pl.touch && pl.touch[d]; if (!name) return;
+    if (!on) { this._touch[name] = false; return; }
+    if (this._touch[name]) return; this._touch[name] = true;
+    if (this._live() && this._isAct(name)) this._emitPl(0, name);
+  };
+  Input.prototype._held = function (pi, name) {
+    if (!this._pl) return false;
+    if (pi === 0 && this._touch[name]) return true;
+    var b = this._pl.bind, lists = [];
+    if (pi === 0) { lists.push(b[0][name]); if (this.playerCount === 1) lists.push(b[1][name]); }
+    else if (this.playerCount === 2) lists.push(b[1][name]);
+    for (var i = 0; i < lists.length; i++) { var l = lists[i] || []; for (var j = 0; j < l.length; j++) if (this.codes[l[j]]) return true; }
+    return false;
+  };
+  function PlayerInput(input, i) { this.input = input; this.index = i; }
+  PlayerInput.prototype.pressed = function (name) { return this.input._held(this.index, name); };
+  PlayerInput.prototype.onPress = function (cb) { this.input._plCbs[this.index].push(cb); return this; };
+  Object.defineProperty(PlayerInput.prototype, 'dir', { get: function () {
+    return { x: (this.pressed('right') ? 1 : 0) - (this.pressed('left') ? 1 : 0), y: (this.pressed('down') ? 1 : 0) - (this.pressed('up') ? 1 : 0) };
+  } });
 
   // ---------- Звук: 8-бит SFX + процедурная чиптюн-музыка (секвенсор на WebAudio) ----------
   // Политика автоплея: AudioContext создаётся/возобновляется ТОЛЬКО после первого жеста
@@ -277,9 +365,25 @@
   function loadSprites(map, done) { var out = {}, keys = Object.keys(map), left = keys.length; if (!left) { done && done(out); return out; } keys.forEach(function (k) { var img = new Image(); img.onload = img.onerror = function () { out[k] = img; if (--left === 0) done && done(out); }; img.src = map[k]; }); return out; }
 
   // ---------- Меню (навигация стрелками + action + клик/тап) ----------
+  // Пункт: { key, label: строка|()=>строка, onSelect() }. key — для add/remove (встроенные: title — play/lang/theme/sound,
+  // pause — resume/sound/menu).
   function Menu(items) { this.items = items; this.sel = 0; }
   Menu.prototype.move = function (d) { this.sel = (this.sel + d + this.items.length) % this.items.length; };
   Menu.prototype.current = function () { return this.items[this.sel]; };
+  Menu.prototype.indexOf = function (key) { for (var i = 0; i < this.items.length; i++) if (this.items[i].key === key) return i; return -1; };
+  Menu.prototype.keys = function () { return this.items.map(function (it) { return it.key; }); };
+  // where: { after:key } | { before:key } | { index:n }; без where (или ключ не найден) — в конец. Тот же key — заменяется.
+  Menu.prototype.add = function (item, where) {
+    where = where || {}; var cur = this.items[this.sel];
+    if (item.key != null) { var old = this.indexOf(item.key); if (old >= 0) this.items.splice(old, 1); }
+    var i = this.items.length, j;
+    if (where.after != null) { j = this.indexOf(where.after); if (j >= 0) i = j + 1; }
+    else if (where.before != null) { j = this.indexOf(where.before); if (j >= 0) i = j; }
+    else if (where.index != null) i = Math.max(0, Math.min(this.items.length, where.index | 0));
+    this.items.splice(i, 0, item); this._keep(cur); return item;
+  };
+  Menu.prototype.remove = function (key) { var i = this.indexOf(key); if (i < 0) return false; var cur = this.items[this.sel]; this.items.splice(i, 1); this._keep(cur); return true; };
+  Menu.prototype._keep = function (cur) { var i = this.items.indexOf(cur); this.sel = i >= 0 ? i : Math.max(0, Math.min(this.sel, this.items.length - 1)); };
   Menu.prototype.draw = function (g, x, y, lh) {
     lh = lh || 30; var c = g.ctx, th = g.th();
     for (var i = 0; i < this.items.length; i++) {
@@ -290,6 +394,37 @@
   };
   Menu.prototype.pointer = function (py) { for (var i = 0; i < this.items.length; i++) { if (this.items[i]._y != null && Math.abs(py - (this.items[i]._y - 6)) < 16) { this.sel = i; return true; } } return false; };
 
+  // Публичный API меню стандартных экранов: g.menu.addItem/removeItem/items/get/setHint.
+  // Можно звать до useStandardScreens — пункты применятся, когда меню появится.
+  function MenuApi(g) { this.g = g; this._menus = Object.create(null); this._pending = []; this._hints = Object.create(null); }
+  // o = { key, label, onSelect, scene:'title'|'pause' (по умолч. title), after|before|index }
+  MenuApi.prototype.addItem = function (o) {
+    var sc = o.scene || 'title', item = { key: o.key, label: o.label, onSelect: o.onSelect }, where = { after: o.after, before: o.before, index: o.index };
+    var m = this._menus[sc]; if (m) m.add(item, where); else this._pending.push({ scene: sc, item: item, where: where });
+    return this;
+  };
+  MenuApi.prototype.removeItem = function (key, scene) {
+    var sc = scene || 'title', m = this._menus[sc];
+    this._pending = this._pending.filter(function (p) { return !(p.scene === sc && p.item.key === key); });
+    return m ? m.remove(key) : false;
+  };
+  MenuApi.prototype.get = function (scene) { return this._menus[scene || 'title'] || null; };
+  MenuApi.prototype.items = function (scene) { var m = this.get(scene); return m ? m.keys() : []; };
+  // Подсказка под меню: fn() → строки или { text, dim } (dim — приглушённо); рисуется внизу экрана сцены.
+  MenuApi.prototype.setHint = function (fn, scene) { this._hints[scene || 'title'] = fn || null; return this; };
+  MenuApi.prototype._register = function (scene, menu) {
+    this._menus[scene] = menu; var rest = [];
+    this._pending.forEach(function (p) { if (p.scene === scene) menu.add(p.item, p.where); else rest.push(p); });
+    this._pending = rest;
+  };
+  MenuApi.prototype._drawHint = function (scene) {
+    var fn = this._hints[scene]; if (!fn) return; var g = this.g, th = g.th(), lines = fn.call(g) || [];
+    for (var i = 0; i < lines.length; i++) {
+      var ln = lines[i], txt = typeof ln === 'string' ? ln : ln.text, dim = typeof ln === 'object' && ln && ln.dim;
+      g.text(txt, g.W / 2, g.H - 72 + i * 20, { size: 13, align: 'center', weight: 700, color: dim ? th.muted : th.ink });
+    }
+  };
+
   // ---------- Движок ----------
   function Engine(opts) {
     opts = opts || {};
@@ -299,6 +434,7 @@
     this.W = opts.width || this.canvas.width || 480; this.H = opts.height || this.canvas.height || 480;
     this.canvas.width = this.W; this.canvas.height = this.H; this.ctx = this.canvas.getContext('2d');
     this.input = new Input(); this.audio = new Audio(); this.particles = new Particles();
+    this.menu = new MenuApi(this);
     this.musicAuto = opts.musicAuto !== false; // музыка по сценам: play — звучит, pause — пауза, прочие — стоп
     this.i18n = new I18n(opts.strings, opts.lang);
     this.themeName = Store.get('arcade.theme', opts.theme || 'modern'); // modern по умолчанию
@@ -309,6 +445,7 @@
     this._applyPixel();
     var self = this;
     this.audio.music.theme = function () { return self.themeName; };
+    this.input._inPlay = function () { return self._sceneName === 'play'; }; // ввод игроков — только в play
     var preset = opts.music || (Arcade.tracks && Arcade.tracks[this.gameId]); // трек из js/music.js игры
     if (preset) this.audio.setMusic(preset);
     this.canvas.addEventListener('click', function (e) { self._click(e); });
@@ -323,7 +460,7 @@
   Engine.prototype.saveBest = function () { if (this.state.score > this.state.best) { this.state.best = this.state.score; Store.set('arcade.best.' + this.gameId, String(this.state.best)); } };
 
   Engine.prototype.scene = function (name, def) { this.scenes[name] = def; return this; };
-  Engine.prototype.goto = function (name, data) { this.current = this.scenes[name]; this._sceneName = name; this._acc = 0; this._musicScene(name, data || {}); if (this.current && this.current.enter) this.current.enter.call(this, data || {}); };
+  Engine.prototype.goto = function (name, data) { this.current = this.scenes[name]; this._sceneName = name; this._acc = 0; if (name === 'play') this.input._armedAt = now(); this._musicScene(name, data || {}); if (this.current && this.current.enter) this.current.enter.call(this, data || {}); };
   // Музыка следует за сценой (если musicAuto): play — играет (resume — с того же места, иначе с начала),
   // pause — пауза, title/win/gameover и прочие — стоп (на win/gameover звучит SFX движка, музыка не мешает).
   Engine.prototype._musicScene = function (name, data) {
@@ -388,22 +525,58 @@
     cfg = cfg || {}; var self = this; this._allowNeon = !!cfg.neon;
     var startPlay = function () { self.state.score = 0; self.state.lives = cfg.lives || 3; self.state.level = 1; self.goto('play'); };
     var titleMenu = new Menu([
-      { label: function () { return self.t('play', 'Играть'); }, onSelect: startPlay },
-      { label: function () { return (self.t('language', 'Язык') + ': ' + (self.i18n.lang === 'ru' ? 'RU' : 'EN')); }, onSelect: function () { self.i18n.toggle(); } },
-      { label: function () { return (self.t('theme', 'Тема') + ': ' + self.themeName); }, onSelect: function () { self.toggleTheme(); } },
-      { label: function () { return (self.t('sound', 'Звук') + ': ' + (self.audio.enabled ? self.t('on', 'вкл') : self.t('off', 'выкл'))); }, onSelect: function () { self.audio.toggle(); } },
+      { key: 'play', label: function () { return self.t('play', 'Играть'); }, onSelect: startPlay },
+      { key: 'lang', label: function () { return (self.t('language', 'Язык') + ': ' + (self.i18n.lang === 'ru' ? 'RU' : 'EN')); }, onSelect: function () { self.i18n.toggle(); } },
+      { key: 'theme', label: function () { return (self.t('theme', 'Тема') + ': ' + self.themeName); }, onSelect: function () { self.toggleTheme(); } },
+      { key: 'sound', label: function () { return (self.t('sound', 'Звук') + ': ' + (self.audio.enabled ? self.t('on', 'вкл') : self.t('off', 'выкл'))); }, onSelect: function () { self.audio.toggle(); } },
     ]);
     this.scene('title', { realtime: true, _menu: titleMenu, enter: function () { this.audio.beep(520, 0.08); },
-      draw: function () { this.clear(); this.text(cfg.title || this.t('title', 'ИГРА'), this.W / 2, this.H / 2 - 70, { size: Math.min(40, this.W / 9), align: 'center', color: this.th().accent }); if (cfg.subtitle) this.text(cfg.subtitle, this.W / 2, this.H / 2 - 42, { size: 13, align: 'center', color: this.th().muted, weight: 600 }); titleMenu.draw(this, this.W / 2, this.H / 2, 30); if (this.state.best) this.text((this.t('best', 'Рекорд')) + ': ' + this.state.best, this.W / 2, this.H - 20, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); } });
+      draw: function () { this.clear(); this.text(cfg.title || this.t('title', 'ИГРА'), this.W / 2, this.H / 2 - 70, { size: Math.min(40, this.W / 9), align: 'center', color: this.th().accent }); if (cfg.subtitle) this.text(cfg.subtitle, this.W / 2, this.H / 2 - 42, { size: 13, align: 'center', color: this.th().muted, weight: 600 }); titleMenu.draw(this, this.W / 2, this.H / 2, 30); if (this.state.best) this.text((this.t('best', 'Рекорд')) + ': ' + this.state.best, this.W / 2, this.H - 20, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); this.menu._drawHint('title'); } });
+    this.menu._register('title', titleMenu);
     var pauseMenu = new Menu([
-      { label: function () { return self.t('resume', 'Продолжить'); }, onSelect: function () { self.goto('play', { resume: true }); } },
-      { label: function () { return (self.t('sound', 'Звук') + ': ' + (self.audio.enabled ? self.t('on', 'вкл') : self.t('off', 'выкл'))); }, onSelect: function () { self.audio.toggle(); } },
-      { label: function () { return self.t('menu', 'В меню'); }, onSelect: function () { self.goto('title'); } },
+      { key: 'resume', label: function () { return self.t('resume', 'Продолжить'); }, onSelect: function () { self.goto('play', { resume: true }); } },
+      { key: 'sound', label: function () { return (self.t('sound', 'Звук') + ': ' + (self.audio.enabled ? self.t('on', 'вкл') : self.t('off', 'выкл'))); }, onSelect: function () { self.audio.toggle(); } },
+      { key: 'menu', label: function () { return self.t('menu', 'В меню'); }, onSelect: function () { self.goto('title'); } },
     ]);
-    this.scene('pause', { realtime: true, _menu: pauseMenu, draw: function () { if (this.scenes.play && this.scenes.play.draw) this.scenes.play.draw.call(this, this.ctx); this.overlay(this.t('pause', 'ПАУЗА'), '', this.th().warn); pauseMenu.draw(this, this.W / 2, this.H / 2 + 20, 28); } });
+    this.scene('pause', { realtime: true, _menu: pauseMenu, draw: function () { if (this.scenes.play && this.scenes.play.draw) this.scenes.play.draw.call(this, this.ctx); this.overlay(this.t('pause', 'ПАУЗА'), '', this.th().warn); pauseMenu.draw(this, this.W / 2, this.H / 2 + 20, 28); this.menu._drawHint('pause'); } });
+    this.menu._register('pause', pauseMenu);
     this.scene('win', { realtime: true, enter: function () { this.saveBest(); this.audio.beep(1200, 0.2, 'triangle'); }, draw: function () { this.clear(); this.overlay(this.t('win', 'ПОБЕДА!'), this.t('score', 'Счёт') + ': ' + (this.state.score | 0) + (this.state.best ? '   ' + this.t('best', 'Рекорд') + ': ' + this.state.best : ''), this.th().good); this.text(this.t('tapstart', 'пробел / тап'), this.W / 2, this.H - 24, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); }, press: function () { this.goto('title'); } });
     this.scene('gameover', { realtime: true, enter: function () { this.saveBest(); this.audio.beep(140, 0.3, 'sawtooth'); }, draw: function () { this.clear(); this.overlay(this.t('gameover', 'КОНЕЦ ИГРЫ'), this.t('score', 'Счёт') + ': ' + (this.state.score | 0) + (this.state.best ? '   ' + this.t('best', 'Рекорд') + ': ' + this.state.best : ''), this.th().bad); this.text(this.t('tapstart', 'пробел / тап'), this.W / 2, this.H - 24, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); }, press: function () { this.goto('title'); } });
     return this;
+  };
+  // Локальный кооп «1–2 игрока за одной клавиатурой» поверх g.input.setPlayers (cfg — те же поля + hint, pad):
+  // пункт меню «Игроки: 1/2» (key 'players', после «Играть») + клавиши 1/2 на заставке; выбор — arcade.players.<gameId>;
+  // на «только тач» — 1 игрок (2 недоступно до первой физической клавиши); подсказка раскладки cfg.hint{ru,en}
+  // под меню заставки (вторая строка яркая только при 2 игроках); кнопка [data-pause] в cfg.pad — пауза/продолжить.
+  // → { count(), set(n) }; ввод — g.input.player(i).
+  Engine.prototype.usePlayers = function (cfg) {
+    cfg = cfg || {}; var self = this, inp = this.input, key = 'arcade.players.' + this.gameId, NUM = ['Digit1', 'Digit2', 'Numpad1', 'Numpad2'];
+    inp.setPlayers({ bind: cfg.bind, actions: cfg.actions, repeat: cfg.repeat, touch: cfg.touch, reserved: NUM.concat(cfg.reserved || []) });
+    inp.setPlayerCount(Store.get(key, '1') === '2' && !inp.touchOnly ? 2 : 1);
+    var setN = function (v) {
+      if (inp.touchOnly && v === 2) { self.audio.beep(200, 0.06); return; }
+      inp.setPlayerCount(v); Store.set(key, String(inp.playerCount)); self.audio.beep(700, 0.04);
+    };
+    addEventListener('keydown', function (e) { // capture: раньше ввода движка
+      if (e.isTrusted !== false) inp.touchOnly = false;
+      if (self._sceneName !== 'title') return;
+      if (e.code === 'Digit1' || e.code === 'Numpad1') setN(1); else if (e.code === 'Digit2' || e.code === 'Numpad2') setN(2);
+    }, true);
+    this.menu.addItem({ key: 'players', after: 'play',
+      label: function () { return self.t('players', 'Игроки') + ': ' + inp.playerCount + (inp.touchOnly ? ' · ' + self.t('touch1p', 'тач — 1 игрок') : ''); },
+      onSelect: function () { setN(inp.playerCount === 2 ? 1 : 2); } });
+    if (cfg.hint) this.menu.setHint(function () {
+      var lines = cfg.hint[self.i18n.lang] || cfg.hint.ru || [];
+      if (inp.touchOnly) lines = lines.slice(0, 1);
+      return lines.map(function (s, i) { return { text: s, dim: !(i === 0 || (i === 1 && inp.playerCount === 2)) }; });
+    }, 'title');
+    var pb = cfg.pad && cfg.pad.querySelector && cfg.pad.querySelector('[data-pause]');
+    if (pb) {
+      var hp = function (e) { e.preventDefault(); if (self._sceneName === 'play') self.pause(); else if (self._sceneName === 'pause') self.goto('play', { resume: true }); };
+      pb.addEventListener('touchstart', hp, { passive: false }); pb.addEventListener('mousedown', hp);
+    }
+    this.players = { count: function () { return inp.playerCount; }, set: setN };
+    return this.players;
   };
   Engine.prototype.win = function () { this.goto('win'); };
   Engine.prototype.gameover = function () { this.goto('gameover'); };
@@ -419,7 +592,7 @@
 
   // Arcade.tracks[gameId] = track — так js/music.js игры регистрирует свою мелодию до createGame.
   var Arcade = (global.Arcade && global.Arcade.tracks) ? global.Arcade : {};
-  Object.assign(Arcade, { createGame: function (o) { return new Engine(o); }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, themes: THEMES, Store: Store, version: '2.1.0' });
+  Object.assign(Arcade, { createGame: function (o) { return new Engine(o); }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, version: '2.2.0' });
   Arcade.tracks = Arcade.tracks || {};
   if (typeof module !== 'undefined' && module.exports) module.exports = Arcade;
   global.Arcade = Arcade;

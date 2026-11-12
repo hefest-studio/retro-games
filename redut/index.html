@@ -33,7 +33,6 @@ a.back{position:fixed;left:10px;top:8px;color:#6f7d5c;font-size:12px;text-decora
 <div class="foot"><b>РЕДУТ</b> · И1: стрелки + / (или пробел) — огонь · И2: WASD + F — огонь · 1/2 на заставке — игроки · P/Esc пауза · L язык, T тема, M звук. Тач — только И1.</div>
 <script src="./engine.js"></script>
 <script src="./js/music.js"></script>
-<script src="./js/coop.js"></script>
 <script src="./js/i18n.js"></script>
 <script src="./js/game.js"></script>
 <script src="./js/classic.js"></script>
@@ -54,7 +53,8 @@ var pad=document.querySelector('.pad');
 g.input.bindDpad(pad);
 g.fit(620); addEventListener('resize',function(){g.fit(620);});
 g.useStandardScreens({title:'РЕДУТ',subtitle:STR.ru.subtitle,lives:0});
-var co=Arcade.coop(g,{
+// Кооп за одной клавиатурой — движок (g.usePlayers + g.input.player(i)): пункт «Игроки», 1/2, подсказка, тач — только И1.
+g.usePlayers({
   bind:{ p1:{left:['ArrowLeft'],right:['ArrowRight'],up:['ArrowUp'],down:['ArrowDown'],fire:['Slash','NumpadDivide','Period','Space']},
          p2:{left:['KeyA'],right:['KeyD'],up:['KeyW'],down:['KeyS'],fire:['KeyF','ShiftLeft']} },
   actions:['fire'], repeat:['fire'], pad:pad, touch:{L:'left',R:'right',U:'up',D:'down',A:'fire'},
@@ -63,7 +63,7 @@ var co=Arcade.coop(g,{
 });
 var game=null, prev=[{},{}], DIRS=['up','down','left','right'];
 function bp(f,d,t,v){ g.audio.beep(f,d,t,v); }
-function mkGame(){ return REDUT.Game({hi:g.state.best,players:co.players(),onEvent:function(type){
+function mkGame(){ return REDUT.Game({hi:g.state.best,players:g.input.playerCount,onEvent:function(type){
   if(type==='shoot') bp(880,.04,'square',.04);
   else if(type==='brick') bp(240,.05,'square',.05);
   else if(type==='steel') bp(1500,.04,'square',.04);
@@ -76,19 +76,19 @@ function mkGame(){ return REDUT.Game({hi:g.state.best,players:co.players(),onEve
   else if(type==='gameover'){ if(game) g.state.score=game.state().score; g.gameover(); }
   else if(type==='win'){ if(game) g.state.score=game.state().score; g.win(); }
 }}); }
-co.onAction(function(pi,name){ if(game&&name==='fire') game.fire(pi); });
+[0,1].forEach(function(pi){ g.input.player(pi).onPress(function(name){ if(game&&name==='fire') game.fire(pi); }); });
 function render(ctx){ var st=game?game.state():null; if(!st){ g.clear(); return; }
   if(window.REDUT&&REDUT.i18n) REDUT.i18n.lang=g.i18n.lang;
   (g.themeName==='retro'?REDUT.classic:REDUT.modern).draw(ctx,st); }
 g.scene('play',{realtime:true,
-  enter:function(d){ co.arm(); if(!(d&&d.resume)){ game=mkGame(); game.start(); prev=[{},{}]; } },
+  enter:function(d){ if(!(d&&d.resume)){ game=mkGame(); game.start(); prev=[{},{}]; } },
   press:function(a){ if(a==='pause') this.pause(); },
   update:function(dt){ if(!game) return;
     // held — только по изменению: движок РЕДУТа запоминает lastDir по моменту нажатия.
-    for(var pi=0;pi<co.players();pi++) for(var i=0;i<4;i++){ var d=DIRS[i], h=co.held(pi,d); if(h!==!!prev[pi][d]){ prev[pi][d]=h; game.setHeld(pi,d,h); } }
+    for(var pi=0;pi<g.input.playerCount;pi++) for(var i=0;i<4;i++){ var d=DIRS[i], h=g.input.player(pi).pressed(d); if(h!==!!prev[pi][d]){ prev[pi][d]=h; game.setHeld(pi,d,h); } }
     game.update(Math.min(dt,0.05)); if(game) g.state.score=game.state().score; },
   draw:function(ctx){ render(ctx); }
 });
-window.__REDUT_V2={g:g,co:co,game:function(){return game;}};
+window.__REDUT_V2={g:g,game:function(){return game;}};
 g.start('title');
 </script></body></html>
