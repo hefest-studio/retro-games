@@ -236,6 +236,11 @@
   Engine.prototype.pause = function () { this.goto('pause'); };
   Engine.prototype.nextLevel = function () { this.state.level++; };
   Engine.prototype.difficulty = function (base, step, max) { var v = base + (this.state.level - 1) * step; return max == null ? v : (step >= 0 ? Math.min(v, max) : Math.max(v, max)); };
+  // Музыка разведена по ТЕМАМ: регистрируй плеер под именем темы (registerMusic('modern', player)),
+  // playMusic() сам выберет плеер текущей темы. Под modern — задел на не-8-бит музыку (richer/сэмплы),
+  // TODO: зарегистрировать modern-плеер; retro — 8-бит чиптюн. Сейчас без плеера — no-op.
+  Engine.prototype.playMusic = function () { this.audio.playMusic(this.themeName); };
+  Engine.prototype.stopMusic = function () { this.audio.stopMusic(); };
   Engine.prototype.fit = function (maxCssWidth) { var w = Math.min(maxCssWidth || 520, (this.canvas.parentElement || doc.body).clientWidth || this.W); this.canvas.style.width = w + 'px'; this.canvas.style.height = (w * this.H / this.W) + 'px'; };
 
   var Arcade = { createGame: function (o) { return new Engine(o); }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Particles: Particles, Menu: Menu, themes: THEMES, Store: Store, version: '2.0.0' };
