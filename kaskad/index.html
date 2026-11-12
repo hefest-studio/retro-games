@@ -1,67 +1,119 @@
-<!doctype html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>КАСКАД · Головоломка — HTML5</title>
-<meta name="description" content="Оригинальная головоломка с падающими фигурами студии «Гефест» на чистом HTML5/Canvas: 8-бит и неон, RU/EN, офлайн.">
-<link rel="stylesheet" href="css/style.css">
-</head>
-<body data-ttheme="classic">
-  <div class="shell">
-    <header class="bar">
-      <a class="logo" href="../"><span class="mk"></span><b>КАСКАД</b><i>головоломка</i></a>
-      <nav class="ctl">
-        <button id="btnGfx" class="b"><span id="lblGfx">ГРАФИКА</span> <em id="valGfx">8-БИТ</em></button>
-        <button id="btnLang" class="b"><em id="valLang">RU</em></button>
-        <button id="btnSnd" class="b"><span id="lblSnd">ЗВУК</span> <em id="valSnd">ВКЛ</em></button>
-        <button id="btnPause" class="b" title="Пауза (P)">II</button>
-      </nav>
-    </header>
+<meta name="description" content="Оригинальная головоломка с падающими фигурами студии «Гефест» на фреймворке Гефест Arcade: темы retro/modern, RU/EN, офлайн.">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#0e1016;color:#eef2f8;font-family:Inter,system-ui,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
+.wrap{position:relative;width:min(94vw,440px);margin-top:12px}
+canvas{width:100%;display:block;border:1px solid #222838;border-radius:10px;background:#0e1016}
+.pad{width:min(94vw,440px);margin:10px 0;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:360px}
+.pad button{height:52px;background:#161a24;border:1px solid #222838;border-radius:12px;color:#eef2f8;font-size:20px;font-weight:800}
+.pad button:active{background:#232a38}
+.foot{color:#5a6273;font-size:11px;margin:2px 12px 16px;text-align:center}
+@media(min-width:760px){.pad{display:none}}
+</style></head><body>
+<div class="wrap"><canvas id="c" width="420" height="640"></canvas></div>
+<div class="pad">
+  <button data-d="L">◀</button><button data-d="D">▼</button><button data-d="R">▶</button>
+  <button data-d="U">⟳</button><button data-d="A">⬇</button>
+</div>
+<div class="foot"><b>КАСКАД</b> на фреймворке Гефест Arcade · ◀▶ ход, ▼ мягкий сброс, ⟳ поворот, ⬇ жёсткий сброс, C — холд, P — пауза · L язык, T тема, M звук.</div>
+<script src="./engine.js"></script>
+<script src="./js/game.js"></script>
+<script>
+const STR = {
+  ru:{ play:'Играть', language:'Язык', theme:'Тема', sound:'Звук', on:'вкл', off:'выкл', score:'Счёт', level:'Ур.', lines:'Линии', best:'Рекорд', next:'След', hold:'Холд', win:'ПОБЕДА!', gameover:'ИГРА ОКОНЧЕНА', pause:'ПАУЗА', resume:'Продолжить', menu:'В меню', tapstart:'пробел / тап', title:'КАСКАД', subtitle:'Складывай линии · цель — 40' },
+  en:{ play:'Play', language:'Language', theme:'Theme', sound:'Sound', on:'on', off:'off', score:'Score', level:'Lvl', lines:'Lines', best:'Best', next:'Next', hold:'Hold', win:'YOU WIN!', gameover:'GAME OVER', pause:'PAUSE', resume:'Resume', menu:'Menu', tapstart:'space / tap', title:'KASKAD', subtitle:'Clear lines · goal 40' },
+};
+// Палитра фигур по теме (I O T S Z J L -> id 1..7)
+const PAL = {
+  modern: [null,'#4cc9f0','#ffd60a','#c77dff','#4ade80','#ef4444','#4361ee','#f3722c'],
+  retro:  [null,'#55ffff','#ffff55','#ff55ff','#55ff55','#ff5555','#5577ff','#ffaa00'],
+  neon:   [null,'#39e7ff','#ffe14d','#ff2f9c','#49ffb0','#ff5d6c','#6a8cff','#ff9f1c'],
+};
+const g = Arcade.createGame({ canvas:'#c', width:420, height:640, gameId:'kaskad', strings:STR, theme:'modern' });
+g.input.bindDpad(document.querySelector('.pad'));
+g.fit(440); addEventListener('resize', ()=>g.fit(440));
+function pcol(id){ return (PAL[g.themeName]||PAL.modern)[id] || g.th().accent; }
 
-    <a id="backLink" class="backlink" href="../" data-catalog-back="1">&larr; Каталог</a>
+const CELL=28, BX=14, BY=28, BW=10, BH=20;
+let tetris=null;
+function newTetris(){
+  return TT.Game({ hi: g.state.best, onEvent:(type)=>{
+    if(type==='move'||type==='rotate') g.audio.beep(420,0.03,'square',0.05);
+    else if(type==='lock') g.audio.beep(180,0.05,'square',0.06);
+    else if(type==='clear') g.audio.beep(900,0.12,'triangle');
+    else if(type==='levelup') g.audio.beep(1200,0.18,'sawtooth');
+    else if(type==='harddrop') g.audio.beep(140,0.05,'square',0.07);
+    else if(type==='win'){ syncScore(); g.win(); }
+    else if(type==='gameover'){ syncScore(); g.gameover(); }
+  }});
+}
+function syncScore(){ if(!tetris) return; const s=tetris.state(); g.state.score=s.score; g.state.level=s.level; }
 
-    <div class="stage">
-      <canvas id="game" width="960" height="600" aria-label="Игровое поле КАСКАД"></canvas>
+function drawCell(ctx,x,y,id,ghost){
+  const px=BX+x*CELL, py=BY+y*CELL;
+  if(ghost){ ctx.strokeStyle=pcol(id); ctx.lineWidth=2; ctx.strokeRect(px+2.5,py+2.5,CELL-5,CELL-5); return; }
+  ctx.fillStyle=pcol(id); ctx.fillRect(px+1,py+1,CELL-2,CELL-2);
+  ctx.fillStyle='rgba(255,255,255,.18)'; ctx.fillRect(px+1,py+1,CELL-2,3);
+  ctx.fillStyle='rgba(0,0,0,.22)'; ctx.fillRect(px+1,py+CELL-4,CELL-2,3);
+}
+function drawMini(ctx,type,ox,oy){
+  if(!type) return; const m=TT.consts.SHAPES[type], id=TT.consts.COLOR[type], s=14;
+  for(let y=0;y<m.length;y++)for(let x=0;x<m.length;x++) if(m[y][x]){ ctx.fillStyle=pcol(id); ctx.fillRect(ox+x*s, oy+y*s, s-1, s-1); }
+}
 
-      <div id="ovTitle" class="ov" style="display:flex">
-        <div class="box">
-          <div class="kick">ОРИГИНАЛЬНАЯ ГОЛОВОЛОМКА · ГЕФЕСТ</div>
-          <h1>КАС<span>КАД</span></h1>
-          <div class="sub" id="tSub">КАСКАД</div>
-          <p id="tTagline">Складывай линии. Не дай стакану переполниться.</p>
-          <div class="row">
-            <button id="btnStart" class="big">НАЧАТЬ <kbd>Enter</kbd></button>
-            <button id="btnHow" class="ghost">КАК ИГРАТЬ</button>
-          </div>
-          <div id="helpBox" class="helpbox" style="display:none"><ul id="helpList"></ul></div>
-          <div class="hint">Enter — старт · G — графика · M — звук · L — язык</div>
-        </div>
-      </div>
-
-      <div id="ovPause" class="ov" style="display:none">
-        <div class="box">
-          <h2 id="tPause">ПАУЗА</h2>
-          <button id="btnResume" class="big">ПРОДОЛЖИТЬ</button>
-        </div>
-      </div>
-
-      <div id="ovOver" class="ov" style="display:none">
-        <div class="box">
-          <h2 id="tOver">ИГРА ОКОНЧЕНА</h2>
-          <div class="stats"><span>ОЧКИ <b id="overScore">0</b></span><span>РЕКОРД <b id="overBest">0</b></span></div>
-          <button id="btnAgain" class="big">ЕЩЁ РАЗ</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="js/i18n.js"></script>
-  <script src="js/audio.js"></script>
-  <script src="js/game.js"></script>
-  <script src="js/classic.js"></script>
-  <script src="js/modern.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/main.js"></script>
-</body>
-</html>
+g.useStandardScreens({ title:'КАСКАД', subtitle:STR.ru.subtitle, lives:0 });
+g.scene('play', { realtime:true,
+  enter(d){ if(!(d&&d.resume)){ tetris=newTetris(); tetris.start(); } else if(tetris){ tetris.pause(false); } },
+  press(a){ if(!tetris) return;
+    if(a==='pause'){ this.pause(); return; }
+    if(a==='up'){ tetris.rotateCW(); return; }
+    if(a==='action'){ tetris.hardDrop(); return; }
+    if(a==='left'){ tetris.left(); this._mv=0.12; return; }
+    if(a==='right'){ tetris.right(); this._mv=0.12; return; }
+  },
+  update(dt){ if(!tetris) return; tetris.step(dt);
+    const d=this.input.dir;
+    this._mv=(this._mv||0)-dt;
+    if(d.x && this._mv<=0){ d.x<0?tetris.left():tetris.right(); this._mv=0.10; }
+    if(!d.x) this._mv=0;
+    if(d.y>0){ this._sd=(this._sd||0)-dt; if(this._sd<=0){ tetris.softDrop(); this._sd=0.045; } }
+    syncScore();
+  },
+  draw(ctx){ const th=this.th(); this.clear();
+    const s=tetris?tetris.state():null;
+    // стакан
+    ctx.fillStyle=th.panel; ctx.fillRect(BX-3,BY-3,BW*CELL+6,BH*CELL+6);
+    ctx.fillStyle=th.bg; ctx.fillRect(BX,BY,BW*CELL,BH*CELL);
+    ctx.strokeStyle=th.grid; ctx.lineWidth=1;
+    for(let x=1;x<BW;x++){ ctx.beginPath(); ctx.moveTo(BX+x*CELL,BY); ctx.lineTo(BX+x*CELL,BY+BH*CELL); ctx.stroke(); }
+    for(let y=1;y<BH;y++){ ctx.beginPath(); ctx.moveTo(BX,BY+y*CELL); ctx.lineTo(BX+BW*CELL,BY+y*CELL); ctx.stroke(); }
+    if(s){
+      for(let y=0;y<BH;y++)for(let x=0;x<BW;x++) if(s.board[y][x]) drawCell(ctx,x,y,s.board[y][x]);
+      if(s.cur){ const m=s.cur.m, id=TT.consts.COLOR[s.cur.type];
+        for(let y=0;y<m.length;y++)for(let x=0;x<m.length;x++) if(m[y][x] && s.ghostY+y>=0) drawCell(ctx,s.cur.x+x,s.ghostY+y,id,true);
+        for(let y=0;y<m.length;y++)for(let x=0;x<m.length;x++) if(m[y][x] && s.cur.y+y>=0) drawCell(ctx,s.cur.x+x,s.cur.y+y,id);
+      }
+    }
+    // правая панель
+    const PX=BX+BW*CELL+16;
+    this.text(this.t('next','След'), PX, BY+6, {size:12, color:th.muted, weight:700});
+    if(s) drawMini(ctx, s.next&&s.next[0], PX, BY+14);
+    this.text(this.t('hold','Холд'), PX, BY+96, {size:12, color:th.muted, weight:700});
+    if(s) drawMini(ctx, s.hold, PX, BY+104);
+    this.text(this.t('score','Счёт'), PX, BY+190, {size:12, color:th.muted, weight:700});
+    this.text(String(s?s.score:0), PX, BY+210, {size:20});
+    this.text(this.t('lines','Линии'), PX, BY+244, {size:12, color:th.muted, weight:700});
+    this.text((s?s.lines:0)+' / 40', PX, BY+264, {size:16});
+    this.text(this.t('level','Ур.'), PX, BY+298, {size:12, color:th.muted, weight:700});
+    this.text(String(s?s.level:0), PX, BY+318, {size:16});
+    if(g.state.best){ this.text(this.t('best','Рекорд'), PX, BY+352, {size:12, color:th.muted, weight:700}); this.text(String(g.state.best), PX, BY+372, {size:14, color:th.accent}); }
+  },
+});
+// холд — отдельной клавишей/кнопкой (движок не маппит C)
+addEventListener('keydown', e=>{ if((e.code==='KeyC'||e.code==='ShiftLeft'||e.code==='ShiftRight') && g._sceneName==='play' && tetris){ tetris.hold(); e.preventDefault(); } });
+g.start('title');
+</script></body></html>
