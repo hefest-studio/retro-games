@@ -1,0 +1,26 @@
+/* ЗАСЛОН · стили страницы (сама игра рисуется в canvas). Тема страницы — body[data-theme]. */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#060914;--panel:#141a28;--line:#22304a;--ink:#eef2f8;--mut:#64708a;--accent:#ff7a1a;--cyan:#38d9ff}
+body[data-theme="retro"]{--bg:#000000;--panel:#14101c;--line:#2b2230;--ink:#f3e9da;--mut:#8a7f6e;--accent:#fc9838;--cyan:#3cbcfc}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
+body[data-theme="retro"]{font-family:"Courier New",ui-monospace,monospace}
+.wrap{position:relative;width:min(94vw,480px);margin-top:32px;display:flex;justify-content:center}
+canvas{display:block;border:1px solid var(--line);border-radius:10px;background:var(--bg);touch-action:none}
+body[data-theme="retro"] canvas{border-radius:2px;image-rendering:pixelated}
+a.back{position:fixed;left:10px;top:7px;color:var(--mut);font-size:12px;text-decoration:none;font-weight:700;z-index:2}
+a.back:hover{color:var(--accent)}
+#bPause{position:fixed;right:10px;top:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  color:var(--ink);font-size:12px;font-weight:800;padding:4px 10px;z-index:2;cursor:pointer}
+.pad{width:min(94vw,480px);margin:8px 0 4px;display:flex;justify-content:space-between;align-items:center;gap:12px;max-width:420px}
+.pad button{background:var(--panel);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-size:20px;font-weight:800;touch-action:none}
+.cross{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,44px);gap:4px}
+.cross .u{grid-column:2;grid-row:1}.cross .l{grid-column:1;grid-row:2}.cross .r{grid-column:3;grid-row:2}.cross .d{grid-column:2;grid-row:3}
+.acts{display:flex;gap:12px;align-items:center}
+.acts .fire{width:84px;height:84px;border-radius:50%;background:#3a1d0c;border-color:var(--accent);color:var(--accent);font-size:30px}
+.acts .bomb{width:60px;height:60px;border-radius:50%;background:#0c2a36;border-color:var(--cyan);color:var(--cyan);font-size:26px}
+.pad button:active{filter:brightness(1.4)}
+.foot{color:var(--mut);font-size:11px;margin:6px 12px 12px;text-align:center;max-width:520px}
+.foot b{color:var(--ink)}
+@media(min-width:760px){.pad{display:none}}
