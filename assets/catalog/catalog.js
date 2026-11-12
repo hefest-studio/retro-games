@@ -18,6 +18,9 @@
   const THEME_KEY = 'retro-games-catalog-theme';
   const DATA_URL = 'assets/catalog/games.json';
   const THUMB_BASE = 'assets/catalog/thumbs/';
+  /* Ревизия превью: менять при перегенерации thumbs — сбрасывает кэш браузера и CDN.
+     Итоговый ключ = версия игры + ревизия набора превью. */
+  const THUMB_REV = '20261112';
 
   /* На file:// адреса вида "contra/" открывают листинг каталога, а не игру,
      поэтому в этом режиме ведём прямо на "contra/index.html". На http(s)
@@ -94,10 +97,11 @@
     .replace(/\s+/g, ' ')
     .trim();
 
+  const thumbBust = (game) => `?v=${encodeURIComponent(game.version || '0')}-${THUMB_REV}`;
   const thumbSrc = (game, theme) => {
     const fromData = game.thumb && game.thumb[theme];
-    if (typeof fromData === 'string' && fromData.trim()) return fromData.replace(/^\/+/, '');
-    return `${THUMB_BASE}${game.slug}-${theme}.webp`;
+    if (typeof fromData === 'string' && fromData.trim()) return fromData.replace(/^\/+/, '').replace(/\?.*$/, '') + thumbBust(game);
+    return `${THUMB_BASE}${game.slug}-${theme}.webp${thumbBust(game)}`;
   };
 
   const cardAlt = (game, theme) => `${game.title} — превью игры в ${theme === 'modern' ? 'неоновом стиле' : 'ретро-стиле'}`;

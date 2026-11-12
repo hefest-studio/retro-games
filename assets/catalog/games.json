@@ -393,7 +393,7 @@
       },
       "languages": "RU / EN",
       "accent": "#EA6A12",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "kolobok",
@@ -417,7 +417,7 @@
       },
       "languages": "RU / EN",
       "accent": "#f4c84a",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "plashch",
@@ -441,7 +441,7 @@
       },
       "languages": "RU / EN",
       "accent": "#9b4dff",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "redut",
