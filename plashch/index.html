@@ -1,103 +1,80 @@
-<!doctype html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>ПЛАЩ · Ночной мститель — HTML5</title>
-<meta name="description" content="ПЛАЩ — оригинальный экшен-платформер на чистом HTML5/Canvas. Ночной мститель в плаще зачищает Чёрный квартал: бег, прыжки, сюрикены, присед и крюк-кошка. 8-бит и неон, RU/EN, офлайн.">
+<meta name="description" content="ПЛАЩ — оригинальный платформер студии «Гефест» на фреймворке Гефест Arcade: крюк-кошка, темы retro/modern, RU/EN, офлайн.">
 <meta name="theme-color" content="#0b0a1e">
 <link rel="canonical" href="https://arcade.hefest.ru/plashch/">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect x='4' y='4' width='40' height='40' rx='11' fill='%237A3BD4'/%3E%3Cpath d='M24 11 L37 17 L31 20 Q24 16 17 20 L11 17 Z' fill='%2315182C'/%3E%3Crect x='18' y='21' width='5' height='3' rx='1' fill='%2349E0FF'/%3E%3Crect x='25' y='21' width='5' height='3' rx='1' fill='%2349E0FF'/%3E%3Cpath d='M19 26 h10 l-5 11 Z' fill='%2315182C'/%3E%3C/svg%3E">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Гефест · Зал ретро-игр">
-<meta property="og:title" content="ПЛАЩ · Ночной мститель">
-<meta property="og:description" content="Оригинальный экшен-платформер студии «Гефест»: ночной мститель в плаще зачищает Чёрный квартал. Присед, крюк-кошка, босс. 8-бит и неон, RU/EN, офлайн.">
-<meta property="og:url" content="https://arcade.hefest.ru/plashch/">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Гефест · Зал ретро-игр">
+<meta property="og:title" content="ПЛАЩ · Ночной мститель"><meta property="og:url" content="https://arcade.hefest.ru/plashch/">
 <meta property="og:image" content="https://arcade.hefest.ru/plashch/og.png">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="ПЛАЩ · Ночной мститель">
-<meta name="twitter:description" content="Экшен-платформер на чистом HTML5. Присед, крюк-кошка, босс. 8-бит и неон, RU/EN, офлайн.">
-<meta name="twitter:image" content="https://arcade.hefest.ru/plashch/og.png">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"ПЛАЩ · Ночной мститель","url":"https://arcade.hefest.ru/plashch/","image":"https://arcade.hefest.ru/plashch/og.png","description":"Оригинальный экшен-платформер студии «Гефест» на чистом HTML5/Canvas: ночной мститель Плащ зачищает Чёрный квартал — бег, прыжки, сюрикены, присед и крюк-кошка, финальный босс. Два режима графики (8-бит и неон), RU/EN, офлайн.","genre":"Аркада","applicationCategory":"Game","operatingSystem":"Web","inLanguage":["ru","en"],"author":{"@type":"Organization","name":"Гефест"},"offers":{"@type":"Offer","price":"0","priceCurrency":"RUB"}}</script>
-<link rel="stylesheet" href="css/style.css">
-</head>
-<body data-gfx="retro">
-  <div class="shell">
-    <header class="bar">
-      <a class="logo" href="../"><span class="mk"></span><b>ПЛАЩ</b><i>ночной мститель</i></a>
-      <nav class="ctl">
-        <button id="btnGfx" class="b" title="Графика (G)"><span id="lblGfx">ГРАФИКА</span> <em id="valGfx">8-БИТ</em></button>
-        <button id="btnLang" class="b" title="Язык (L)"><em id="valLang">RU</em></button>
-        <button id="btnSnd" class="b" title="Звук (M)"><span id="lblSnd">ЗВУК</span> <em id="valSnd">ВКЛ</em></button>
-        <button id="btnPause" class="b" title="Пауза (P)">II</button>
-      </nav>
-    </header>
-
-    <a id="backLink" class="backlink" href="../" data-catalog-back="1">&larr; Каталог</a>
-
-    <div class="stage">
-      <canvas id="game" width="960" height="600" aria-label="Игровое поле платформера ПЛАЩ"></canvas>
-
-      <div id="ovTitle" class="ov" style="display:flex">
-        <div class="box">
-          <div class="kick">ЭКШЕН-ПЛАТФОРМЕР · ОРИГИНАЛ</div>
-          <h1>ПЛ<span>АЩ</span></h1>
-          <div class="sub" id="tSub">НОЧНОЙ МСТИТЕЛЬ</div>
-          <p id="tTagline">Ночной мститель Плащ вышел на охоту. Зачисти Чёрный квартал до рассвета.</p>
-          <div class="row">
-            <button id="btnStart" class="big">НАЧАТЬ <kbd>Enter</kbd></button>
-            <button id="btnHow" class="ghost">КАК ИГРАТЬ</button>
-          </div>
-          <div id="helpBox" class="helpbox" style="display:none"><ul id="helpList"></ul></div>
-          <div class="hint">Enter — старт · G — графика · M — звук · L — язык · P — пауза</div>
-        </div>
-      </div>
-
-      <div id="ovPause" class="ov" style="display:none">
-        <div class="box">
-          <h2 id="tPause">ПАУЗА</h2>
-          <button id="btnResume" class="big">ПРОДОЛЖИТЬ</button>
-        </div>
-      </div>
-
-      <div id="ovOver" class="ov" style="display:none">
-        <div class="box">
-          <h2 id="tOver">ПЛАЩ ПАЛ</h2>
-          <div class="stats"><span>ОЧКИ <b id="overScore">0</b></span><span>РЕКОРД <b id="overBest">0</b></span></div>
-          <button id="btnAgain" class="big">ЕЩЁ РАЗ</button>
-        </div>
-      </div>
-
-      <div id="ovWin" class="ov" style="display:none">
-        <div class="box">
-          <h2 id="tWin">КВАРТАЛ ЗАЧИЩЕН!</h2>
-          <p id="tWinSub">Плащ одолел Барона. Город может спать.</p>
-          <div class="stats"><span>ОЧКИ <b id="winScore">0</b></span><span>РЕКОРД <b id="winBest">0</b></span></div>
-          <button id="btnWinAgain" class="big">ЕЩЁ РАЗ</button>
-        </div>
-      </div>
-
-      <div class="touch" aria-hidden="true">
-        <div class="tpad">
-          <button id="tLeft" class="tbtn">&larr;</button>
-          <button id="tRight" class="tbtn">&rarr;</button>
-          <button id="tDuck" class="tbtn">&darr;</button>
-        </div>
-        <div class="tpad">
-          <button id="tHook" class="tbtn hook">&#8618;</button>
-          <button id="tShoot" class="tbtn fire">&#9733;</button>
-          <button id="tJump" class="tbtn jump">&uarr;</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="js/i18n.js"></script>
-  <script src="js/audio.js"></script>
-  <script src="js/game.js"></script>
-  <script src="js/classic.js"></script>
-  <script src="js/modern.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/main.js"></script>
-</body>
-</html>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#0b0a1e;color:#eef2f8;font-family:Inter,system-ui,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
+.wrap{position:relative;width:min(96vw,620px);margin-top:10px}
+canvas{width:100%;display:block;border:1px solid #241f3a;border-radius:10px;background:#0b0a1e}
+.pad{width:min(96vw,620px);margin:10px 0;display:grid;grid-template-columns:repeat(5,1fr);gap:7px;max-width:470px}
+.pad button{height:54px;background:#17142a;border:1px solid #2a2446;border-radius:12px;color:#eef2f8;font-size:19px;font-weight:800}
+.pad button:active{background:#241f3a}
+.foot{color:#6a6290;font-size:11px;margin:2px 12px 16px;text-align:center;max-width:620px}
+a.back{position:fixed;left:10px;top:8px;color:#6a6290;font-size:12px;text-decoration:none}
+@media(min-width:760px){.pad{display:none}}
+</style></head><body>
+<a class="back" href="../">← Каталог</a>
+<div class="wrap"><canvas id="c" width="960" height="600" aria-label="ПЛАЩ"></canvas></div>
+<div class="pad">
+  <button data-d="L">◀</button><button data-d="R">▶</button>
+  <button data-d="U">⤒</button><button id="bFire">●</button><button id="bHook">⚓</button>
+</div>
+<div class="foot"><b>ПЛАЩ</b> · ◀▶ ход, ↑/W/пробел — прыжок, J/X/● — выстрел, K/Shift/⚓ — крюк, P — пауза · L язык, T тема, M звук.</div>
+<script src="./engine.js"></script>
+<script src="./js/i18n.js"></script>
+<script src="./js/game.js"></script>
+<script src="./js/classic.js"></script>
+<script src="./js/modern.js"></script>
+<script>
+'use strict';
+var STR={
+ ru:{play:'Играть',language:'Язык',theme:'Тема',sound:'Звук',on:'вкл',off:'выкл',score:'Счёт',level:'Ур.',best:'Рекорд',win:'ГОРОД СПАСЁН!',gameover:'ПОВЕРЖЕН',pause:'ПАУЗА',resume:'Продолжить',menu:'В меню',tapstart:'пробел / тап',title:'ПЛАЩ',subtitle:'Ночной мститель · крюк-кошка'},
+ en:{play:'Play',language:'Language',theme:'Theme',sound:'Sound',on:'on',off:'off',score:'Score',level:'Lvl',best:'Best',win:'CITY SAVED!',gameover:'DEFEATED',pause:'PAUSE',resume:'Resume',menu:'Menu',tapstart:'space / tap',title:'PLASHCH',subtitle:'Night avenger · grappling hook'}
+};
+var g=Arcade.createGame({canvas:'#c',width:960,height:600,gameId:'plashch',strings:STR,theme:'modern'});
+g.input.bindDpad(document.querySelector('.pad'));
+g.fit(620); addEventListener('resize',function(){g.fit(620);});
+var game=null;
+function bp(f,d,t,v){ g.audio.beep(f,d,t,v); }
+function mkGame(){ return PLASHCH.Game({hi:g.state.best,onEvent:function(type){
+  if(type==='jump') bp(520,.05,'square',.05);
+  else if(type==='shoot') bp(900,.04,'square',.05);
+  else if(type==='grapple') bp(640,.06,'triangle',.05);
+  else if(type==='explode'||type==='bosshit') bp(140,.12,'sawtooth',.07);
+  else if(type==='pickup'||type==='medkit') bp(1100,.06,'triangle');
+  else if(type==='door') bp(1300,.12,'triangle');
+  else if(type==='hurt') bp(200,.12,'sawtooth',.07);
+  else if(type==='gameover'){ if(game) g.state.score=game.state().score; g.gameover(); }
+  else if(type==='win'){ if(game) g.state.score=game.state().score; g.win(); }
+}}); }
+function render(ctx){ var st=game?game.state():null; if(!st){ g.clear(); return; }
+  (g.themeName==='modern'?PLASHCH.modern:PLASHCH.classic).draw(ctx,st); }
+g.useStandardScreens({title:'ПЛАЩ',subtitle:STR.ru.subtitle,lives:0});
+g.scene('play',{realtime:true,
+  enter:function(d){ if(!(d&&d.resume)){ game=mkGame(); game.start(); } },
+  press:function(a){ if(!game) return; if(a==='pause'){ this.pause(); return; } if(a==='up'){ game.jump(); return; } },
+  update:function(dt){ if(!game) return; var dx=this.input.dir.x, dy=this.input.dir.y;
+    game.setHeld('left',dx<0); game.setHeld('right',dx>0); game.setHeld('up',dy<0); game.setHeld('down',dy>0);
+    if(window.PLASHCH&&PLASHCH.i18n) PLASHCH.i18n.lang=g.i18n.lang; game.update(dt); g.state.score=game.state().score; },
+  draw:function(ctx){ render(ctx); }
+});
+addEventListener('keydown',function(e){ if(g._sceneName!=='play'||!game) return;
+  if(e.code==='Space'){ game.jump(); e.preventDefault(); }
+  else if(e.code==='KeyJ'||e.code==='KeyX'){ game.shoot(); e.preventDefault(); }
+  else if(e.code==='KeyK'||e.code==='ShiftLeft'||e.code==='ShiftRight'){ game.grapple(); e.preventDefault(); }
+});
+(function(){ function bind(id,fn){ var el=document.getElementById(id); if(!el) return;
+    var h=function(e){ e.preventDefault(); if(g._sceneName==='play'&&game) fn(); };
+    el.addEventListener('touchstart',h,{passive:false}); el.addEventListener('mousedown',h); }
+  bind('bFire',function(){ game.shoot(); }); bind('bHook',function(){ game.grapple(); });
+})();
+g.start('title');
+</script></body></html>
