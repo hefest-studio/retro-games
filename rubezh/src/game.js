@@ -121,7 +121,7 @@
       ctlToggles: '<b>Графика</b> (неон / 8-бит), <b>язык</b>, <b>звук</b> — работают в любой момент',
       fieldNotes: 'ЗАМЕТКИ С ФРОНТА',
       tip1: 'Бей <b>летающие капсулы</b>: из них выпадает оружие <b>S</b> (дробовик), <b>M</b> (пулемёт), <b>L</b> (лазер) и <b>B</b> (щит).',
-      tip2: 'У каждого босса есть <b>слабое место</b> и свой ритм атаки. Учись, умирай, повторяй — это Contra.',
+      tip2: 'У каждого босса есть <b>слабое место</b> и свой ритм атаки. Учись, умирай, повторяй — это РУБЕЖ.',
       tip3: 'Прыжок <b>гасится</b>, если отпустить кнопку раньше. Это спасает от пуль.',
       tip4: 'Секрет: на титуле попробуй <b>↑ ↑ ↓ ↓ ← → ← → B A</b>.',
       system: 'СИСТЕМА',
@@ -179,7 +179,7 @@
       weaponGot: 'ОРУЖИЕ: {name}',
       shieldGot: 'ЩИТ: 3 ЗАРЯДА',
       extraLife: 'БОНУС · +1 ЖИЗНЬ',
-      konami: 'КОД КОНАМИ · +30 ЖИЗНЕЙ',
+      konami: 'СЕКРЕТНЫЙ КОД · +30 ЖИЗНЕЙ',
       bossWarning: 'ВНИМАНИЕ · БОСС',
       bossLabel: 'БОСС',
       stageStart: 'ЭТАП {n} · {name}',
@@ -191,11 +191,11 @@
       menuHint: '↑ ↓ — ВЫБОР · ENTER — ПОДТВЕРДИТЬ',
       touchHint: 'КАСАЙТЕСЬ КНОПОК НА ЭКРАНЕ',
       rotateTitle: 'ПОВЕРНИ УСТРОЙСТВО',
-      rotateText: 'Contra играется в горизонтальной ориентации. Поверни телефон — и в бой.',
+      rotateText: 'РУБЕЖ играется в горизонтальной ориентации. Поверни телефон — и в бой.',
       debug: 'ОТЛАДКА'
     },
     en: {
-      eyebrow: 'FAN REMAKE · 1988 / 20XX',
+      eyebrow: 'ORIGINAL · HEFEST STUDIO',
       subtitle: 'NEON DAWN',
       tagline: 'The jungle is burning. The fortress is waiting. You are humanity’s last chance. Break through hell and tear out the heart of Helios.',
       menuHead: 'MAIN MENU',
@@ -228,7 +228,7 @@
       ctlToggles: '<b>Graphics</b> (neon / 8-bit), <b>language</b>, <b>sound</b> — work anytime',
       fieldNotes: 'FIELD NOTES',
       tip1: 'Shoot the <b>flying capsules</b>: they drop <b>S</b> (spread), <b>M</b> (machine gun), <b>L</b> (laser) and <b>B</b> (shield).',
-      tip2: 'Every boss has a <b>weak spot</b> and an attack rhythm. Learn, die, repeat — this is Contra.',
+      tip2: 'Every boss has a <b>weak spot</b> and an attack rhythm. Learn, die, repeat — this is РУБЕЖ.',
       tip3: 'Your jump is <b>cut</b> when you release the button early. It saves lives.',
       tip4: 'Secret: on the title screen try <b>↑ ↑ ↓ ↓ ← → ← → B A</b>.',
       system: 'SYSTEM',
@@ -286,7 +286,7 @@
       weaponGot: 'WEAPON: {name}',
       shieldGot: 'SHIELD: 3 CHARGES',
       extraLife: 'BONUS · +1 LIFE',
-      konami: 'KONAMI CODE · +30 LIVES',
+      konami: 'SECRET CODE · +30 LIVES',
       bossWarning: 'WARNING · BOSS',
       bossLabel: 'BOSS',
       stageStart: 'STAGE {n} · {name}',
@@ -298,7 +298,7 @@
       menuHint: '↑ ↓ — SELECT · ENTER — CONFIRM',
       touchHint: 'USE THE ON-SCREEN CONTROLS',
       rotateTitle: 'ROTATE YOUR DEVICE',
-      rotateText: 'Contra is played in landscape. Turn your phone sideways and get in the fight.',
+      rotateText: 'РУБЕЖ is played in landscape. Turn your phone sideways and get in the fight.',
       debug: 'DEBUG'
     }
   };
@@ -4279,7 +4279,7 @@
      -------------------------------------------------------------------------- */
   function applyLang() {
     document.documentElement.lang = G.lang;
-    document.title = G.lang === 'ru' ? 'CONTRA: НЕОНОВЫЙ РАССВЕТ — HTML5' : 'CONTRA: NEON DAWN — HTML5';
+    document.title = G.lang === 'ru' ? 'РУБЕЖ: Неоновый рассвет — HTML5' : 'РУБЕЖ: Neon Dawn — HTML5';
     var nodes = document.querySelectorAll('[data-i18n]');
     for (var i = 0; i < nodes.length; i++) {
       var key = nodes[i].getAttribute('data-i18n');
@@ -4839,6 +4839,9 @@
   }
 
   function installDebugApi() {
+    // для оболочки движка v2 (index.html + js/host.js) — только экспорт функций, логика не меняется
+    window.__RUBEZH = { G: G, startNewRun: startNewRun, backToMenu: backToMenu, togglePause: togglePause,
+      resumeGame: resumeGame, openHowto: openHowto, setMuted: setMuted, setLang: setLang, audioUnlock: audioUnlock };
     window.__CONTRA = {
       state: snapshot,
       start: function (i) { beginStage(clamp(parseInt(i, 10) || 0, 0, STAGES.length - 1)); return snapshot(); },
@@ -5196,3 +5199,4 @@
 
   init();
 })();
+

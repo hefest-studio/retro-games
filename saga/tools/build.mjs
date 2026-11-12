@@ -16,7 +16,14 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(ROOT, "src");
-const OUT = join(ROOT, "index.html");
+/* Порт на движок v2: страница игры теперь index.html (оболочка) + js/game.js + css/style.css, а src/ —
+ * исходники ДО ребрендинга (устарели). Чтобы сборка не затёрла index.html, файл-результат задаётся явно:
+ *   node saga/tools/build.mjs <выходной.html>      (например, /tmp/saga-src.html) */
+if (!process.argv[2]) {
+  console.error("✗ укажите выходной файл: node saga/tools/build.mjs <out.html> (index.html не перезаписывается — см. README)");
+  process.exit(1);
+}
+const OUT = resolve(process.argv[2]);
 
 /** Порядок подключения — менять только вместе с docs/CONTRACT.md */
 const SCRIPTS = [
@@ -70,4 +77,4 @@ if (html.includes("__STYLE__") || html.includes("__SCRIPT__")) {
 writeFileSync(OUT, html);
 
 const kb = (statSync(OUT).size / 1024).toFixed(1);
-console.log(`✓ lost-vikings/index.html — ${kb} KB, скриптов: ${SCRIPTS.length}, css: ${(css.length / 1024).toFixed(1)} KB`);
+console.log(`✓ ${OUT} — ${kb} KB, скриптов: ${SCRIPTS.length}, css: ${(css.length / 1024).toFixed(1)} KB`);

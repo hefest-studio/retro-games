@@ -4,17 +4,34 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#05070f">
-  <meta name="description" content="Оригинальная браузерная игра The Северная сага 2 · Гефест: «Северное сияние». Три викинга, шесть саг, два режима графики.">
+  <meta name="description" content="СЕВЕРНАЯ САГА 2 «Северное сияние» — оригинальная платформер-головоломка с тремя героями студии «Гефест» на фреймворке Гефест Arcade: шесть саг, два стиля графики (retro / modern), RU/EN, офлайн.">
   <title>СЕВЕРНАЯ САГА 2 · Северное сияние</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/style.css">
+  <style>
+  /* Движок v2 поверх игры (js/host.js): canvas движка (меню/пауза/финал) — в рамке 16:9 по центру экрана,
+     над родными экранами и тач-кнопками, под тостами. Родные титул, пауза и финал скрыты — их заменяют
+     экраны движка; брифинг саги, выбор саги, «Сага пройдена», помощь — родные. */
+  #arcade-frame { position: fixed; inset: 0; margin: auto; z-index: 45; pointer-events: none;
+    width: min(100vw, calc(100vh * 16 / 9)); height: min(100vh, calc(100vw * 9 / 16)); }
+  canvas.arcade-host { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: auto; }
+  html:not([data-arcade-scene="off"]) .screen-root > section[data-screen="title"],
+  html:not([data-arcade-scene="off"]) .screen-root > section[data-screen="pause"],
+  html:not([data-arcade-scene="off"]) .screen-root > section[data-screen="ending"] { display: none !important; }
+  a.back { position: fixed; left: 10px; top: 8px; z-index: 70; color: #8a93a8; font: 12px Inter, system-ui, sans-serif; text-decoration: none; }
+  a.back:hover { color: #eaf6ff; }
+  body[data-screen="play"] a.back { display: none; } /* в игре не перекрывает HUD; в меню/паузе — видна */
+  </style>
 </head>
 <body data-screen="boot" class="mode-retro" data-lang="ru">
+  <a class="back" href="../">← Каталог</a>
 
   <div id="stage">
     <canvas id="game" width="1024" height="576" role="img"
       aria-label="Игровое поле: платформенные головоломки с тремя викингами"></canvas>
     <div id="ui" class="ui"></div>
   </div>
+  <div id="arcade-frame"></div>
 
   <div id="toasts" class="toasts" role="status" aria-live="polite" aria-atomic="false"></div>
   <div id="touch" class="touch-layer"></div>
@@ -23,7 +40,9 @@
     <p class="noscript">Для игры нужен JavaScript. Включите его и перезагрузите страницу.</p>
   </noscript>
 
-  <!-- Порядок скриптов строго по CONTRACT.md §0 -->
+  <script src="./engine.js"></script>
+  <script src="./js/host.js"></script>
+  <!-- Порядок скриптов игры строго по CONTRACT.md §0 -->
   <script src="js/i18n.js"></script>
   <script src="js/levels.js"></script>
   <script src="js/audio.js"></script>
@@ -32,100 +51,55 @@
   <script src="js/game.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
-<!-- catalog-backlink: ссылка на стартовую страницу проекта (встроена tools/add-catalog-back.mjs) -->
-<style>
-#catalog-back{position:fixed!important;left:0!important;top:50%!important;transform:translateY(-50%)!important;z-index:2147483647!important;display:inline-flex!important;align-items:center!important;gap:6px!important;padding:8px 12px 8px 9px!important;margin:0!important;background:rgba(6,8,14,.82)!important;color:#ffd27a!important;border:1px solid rgba(255,190,80,.6)!important;border-left:0!important;border-radius:0 10px 10px 0!important;font:600 11px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important;letter-spacing:.1em!important;text-transform:uppercase!important;text-decoration:none!important;box-shadow:0 6px 22px rgba(0,0,0,.45)!important;cursor:pointer!important;opacity:.82!important;transition:opacity .15s ease,background .15s ease,color .15s ease!important;-webkit-font-smoothing:antialiased!important;}
-#catalog-back.catalog-back-round{border-left:1px solid rgba(255,190,80,.6)!important;border-radius:10px!important;}
-#catalog-back:hover,#catalog-back:focus-visible{opacity:1!important;background:rgba(255,190,80,.94)!important;color:#0a0b10!important;outline:2px solid #7cf5d2!important;outline-offset:2px!important;}
-#catalog-back .catalog-back-arrow{font-size:13px!important;line-height:1!important;}
-@media (max-width:480px){#catalog-back{font-size:10px!important;padding:6px 9px 6px 7px!important;gap:4px!important;}}
-@media (prefers-reduced-motion:reduce){#catalog-back{transition:none!important;}}
-</style>
-<a id="catalog-back" href="../" title="На стартовую страницу проекта — в каталог игр" aria-label="Вернуться на стартовую страницу проекта — каталог игр" data-catalog-back="1"><span class="catalog-back-arrow" aria-hidden="true">&larr;</span>Каталог</a>
-<script>
-(function () {
-  var link = document.getElementById('catalog-back');
-  if (!link) return;
-
-  /* На file:// каталог лежит в index.html корня: «../» открыл бы листинг. */
-  if (location.protocol === 'file:') link.setAttribute('href', '../index.html');
-
-  /* Не даём клику/Enter всплывать в игровые обработчики (старт, пауза и т.п.). */
-  ['pointerdown', 'click', 'keydown'].forEach(function (type) {
-    link.addEventListener(type, function (event) { event.stopPropagation(); }, true);
-  });
-
-  /* --- адаптивное размещение, чтобы не перекрывать меню и кнопки игр --- */
-  var INTERACTIVE = 'a,button,input,select,textarea,[role="button"],[tabindex],[onclick]';
-  link.style.setProperty('transform', 'none', 'important');
-
-  function interactiveBoxes() {
-    var boxes = [];
-    var nodes = document.querySelectorAll(INTERACTIVE);
-    for (var i = 0; i < nodes.length; i += 1) {
-      var el = nodes[i];
-      if (el === link || el.contains(link)) continue;
-      var r = el.getBoundingClientRect();
-      if (r.width < 4 || r.height < 4) continue;
-      var cs = window.getComputedStyle(el);
-      if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) < 0.05) continue;
-      if (cs.pointerEvents === 'none') continue;
-      boxes.push({ left: r.left, top: r.top, right: r.right, bottom: r.bottom });
+  <script>
+  'use strict';
+  /* СЕВЕРНАЯ САГА 2 на движке v2 — «оболочка» (js/host.js): родные js/*.js (логика, уровни, баланс,
+     рендеры AURORA = modern и 8-BIT = retro, своя музыка, HUD, брифинги) работают без изменений,
+     движок даёт меню/паузу/финал/тему/язык/звук/рекорд. Связь — через публичные window.LV.main / LV.ui.
+     Прогресс игры (lv2.progress) не трогается. */
+  document.addEventListener('DOMContentLoaded', function () { // после boot() игры (его слушатель раньше)
+    var LV = window.LV, M = LV.main;
+    if (!M) return; // уровни не загрузились — игра показала свою заглушку
+    var STR = {
+      ru: { play: 'Играть', language: 'Язык', theme: 'Тема', sound: 'Звук', on: 'вкл', off: 'выкл', score: 'Очки', level: 'Ур.', best: 'Рекорд',
+            win: 'РУНЫ СОБРАНЫ!', gameover: 'ВИКИНГИ ПАЛИ', pause: 'ПАУЗА', resume: 'Продолжить', menu: 'В меню', tapstart: 'Enter / тап',
+            title: 'СЕВЕРНАЯ САГА 2', subtitle: 'Северное сияние · платформер-головоломка с тремя героями', 'continue': 'Продолжить', levels: 'Саги' },
+      en: { play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off', score: 'Score', level: 'Lvl', best: 'Best',
+            win: 'ALL RUNES FOUND!', gameover: 'THE VIKINGS FELL', pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'Enter / tap',
+            title: 'NORTHERN SAGA 2', subtitle: 'Nordic Aurora · a puzzle platformer with three heroes', 'continue': 'Continue', levels: 'Sagas' }
+    };
+    // экраны игры (body[data-screen]) → режимы оболочки; родные экраны между уровнями — 'sub'
+    var MODE = { title: 'title', levels: 'sub', brief: 'sub', complete: 'sub', play: 'play', pause: 'paused', ending: 'win' };
+    function screen() { return document.body.getAttribute('data-screen'); }
+    function progress() { // lv2.progress — только чтение (старый рекорд = сумма лучших очков по сагам)
+      try { var p = JSON.parse(localStorage.getItem('lv2.progress') || '{}'), s = 0, k; for (k in (p.levels || {})) s += +(p.levels[k].score || 0); return s; } catch (e) { return 0; }
     }
-    return boxes;
-  }
-
-  function overlap(a, b) {
-    return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-  }
-
-  function place() {
-    var w = link.offsetWidth;
-    var h = link.offsetHeight;
-    if (!w || !h) return;
-    var W = window.innerWidth;
-    var H = window.innerHeight;
-    var m = 10;
-    var candidates = [
-      { name: 'left-mid', left: 0, top: Math.round((H - h) / 2), shape: 'tab' },
-      { name: 'bottom-left', left: m, top: H - h - m, shape: 'round' },
-      { name: 'top-left', left: m, top: m, shape: 'round' },
-      { name: 'bottom-right', left: W - w - m, top: H - h - m, shape: 'round' },
-      { name: 'top-right', left: W - w - m, top: m, shape: 'round' },
-      { name: 'bottom-center', left: Math.round((W - w) / 2), top: H - h - m, shape: 'round' },
-      { name: 'top-center', left: Math.round((W - w) / 2), top: m, shape: 'round' }
-    ];
-    var boxes = interactiveBoxes();
-    var chosen = candidates[0];
-    for (var i = 0; i < candidates.length; i += 1) {
-      var c = candidates[i];
-      var box = { left: c.left, top: c.top, right: c.left + w, bottom: c.top + h };
-      var hit = false;
-      for (var j = 0; j < boxes.length; j += 1) {
-        if (overlap(box, boxes[j])) { hit = true; break; }
+    ArcadeHost.mount({
+      gameId: 'saga-2', mount: '#arcade-frame', width: 704, height: 396, strings: STR, extra: ['continue', 'levels'],
+      gameKeys: { KeyL: 1 },                                   // L в игре — крюк Гуннара; язык в игре — Y (как раньше)
+      urlTheme: function (P) { var m = P.get('mode') || P.get('gfx'); return m === 'retro' ? 'retro' : (m === 'aurora' || m === 'modern') ? 'modern' : null; },
+      adapter: {
+        mode: function () {
+          var s = screen();
+          if (LV.ui.isHelpOpen() && (s === 'title' || s === 'levels')) return 'sub'; // помощь поверх меню — родная
+          return MODE[s] || 'sub';
+        },
+        start: function () { M.newGame(); },                 // «Играть» — новая сага с первой земли (прогресс не сбрасывается)
+        toTitle: function () { M.showTitle(); },
+        pause: function () { M.pause(); },
+        resume: function () { M.resume(); },
+        openSub: function (key) { if (key === 'levels') LV.ui.screen('levels'); else M.continueGame(); },
+        extraHint: function (key) { return key === 'continue' ? ' · ' + M.state.progress.unlocked : ''; },
+        score: function () { var g = M.game(); return (g && g.runScore) || 0; },
+        best: progress,
+        gfx: function () { return M.state.mode === 'retro' ? 'retro' : 'modern'; },
+        setGfx: function (v) { if ((M.state.mode === 'retro') !== (v === 'retro')) M.toggleGraphics(); },
+        lang: function () { return M.state.lang === 'en' ? 'en' : 'ru'; },
+        setLang: function (v) { if (M.state.lang !== v) M.toggleLang(); },
+        setSound: function (on) { if (M.state.muted === on) M.toggleMute(); }
       }
-      if (!hit) { chosen = c; break; }
-    }
-    link.style.setProperty('left', chosen.left + 'px', 'important');
-    link.style.setProperty('top', chosen.top + 'px', 'important');
-    link.classList.toggle('catalog-back-round', chosen.shape === 'round');
-    link.dataset.place = chosen.name;
-  }
-
-  var timer = 0;
-  function schedule() {
-    window.clearTimeout(timer);
-    timer = window.setTimeout(place, 120);
-  }
-
-  place();
-  window.setTimeout(place, 350);
-  window.setTimeout(place, 1200);
-  window.addEventListener('resize', schedule, { passive: true });
-  window.addEventListener('orientationchange', schedule, { passive: true });
-  document.addEventListener('fullscreenchange', schedule);
-})();
-</script>
-<!-- /catalog-backlink -->
+    });
+  });
+  </script>
 </body>
 </html>

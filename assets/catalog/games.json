@@ -47,7 +47,7 @@
       },
       "languages": "RU / EN",
       "accent": "#3ce6a8",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "krot",
@@ -77,7 +77,7 @@
       },
       "languages": "RU / EN",
       "accent": "#e8833a",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "staratel",
@@ -102,9 +102,9 @@
         "Клавиатура + тач-дпад для телефона"
       ],
       "controls": "Стрелки / WASD — ход и копка, тач-крестовина на телефоне",
-      "languages": "RU",
+      "languages": "RU / EN",
       "accent": "#f0b429",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "obval",
@@ -134,7 +134,7 @@
       },
       "languages": "RU / EN",
       "accent": "#f2c14e",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "kaskad",
@@ -182,7 +182,7 @@
       },
       "languages": "RU / EN",
       "accent": "#ff4d9d",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "proryv",
@@ -212,7 +212,7 @@
       },
       "languages": "RU / EN",
       "accent": "#22e6ff",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "rubikon",
@@ -242,7 +242,7 @@
       },
       "languages": "RU / EN",
       "accent": "#ff4fd8",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "vihr",
@@ -272,7 +272,7 @@
       },
       "languages": "RU / EN",
       "accent": "#ff8a3d",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "saga",
@@ -302,7 +302,7 @@
       },
       "languages": "RU / EN",
       "accent": "#5eead4",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "neon-rage",
@@ -332,7 +332,7 @@
       },
       "languages": "RU / EN",
       "accent": "#ff2e88",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "saga-2",
@@ -362,7 +362,7 @@
       },
       "languages": "RU / EN",
       "accent": "#56e0b0",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "bolt",
@@ -465,7 +465,7 @@
       },
       "languages": "RU / EN",
       "accent": "#6dbe45",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "zvero-otryad",
@@ -489,7 +489,7 @@
       },
       "languages": "RU / EN",
       "accent": "#f5a33c",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "zvero-otryad-2",
@@ -514,7 +514,7 @@
       },
       "languages": "RU / EN",
       "accent": "#5cc8ff",
-      "version": "1.0.0"
+      "version": "1.1.0"
     },
     {
       "slug": "roy",

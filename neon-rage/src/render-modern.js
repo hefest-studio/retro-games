@@ -3790,7 +3790,7 @@
       var r = list[i];
       if (!r) continue;
       var act = r.action;
-      var key = act === 'gfx' ? 'G' : act === 'lang' ? 'T' : act === 'music' ? 'M' : 'F';
+      var key = act === 'gfx' ? 'G' : act === 'lang' ? 'L' : act === 'music' ? 'M' : 'F';
       var val = '';
       var accent = C.cyan;
       if (act === 'gfx') {
@@ -4286,7 +4286,7 @@
     });
     ctx.restore();
 
-    // трибьют + слоган + press
+    // подпись + слоган + press
     drawText(ctx, tt('app.tribute'), W / 2, 134, {
       size: 6, weight: 700, fam: F_SANS, color: rgba(C.white, 0.55), spacing: 1.6
     });

@@ -1,15 +1,15 @@
 /* ============================================================
-   EXOLON HTML5 — локализация RU / EN
+   ПРОРЫВ HTML5 — локализация RU / EN
    EX_I18N.ручные строки; EX_T(key, vars) — доступ с подстановкой {var}.
    ============================================================ */
 (function () {
   'use strict';
 
   const RU = {
-    'brand': 'EXOLON',
+    'brand': 'ПРОРЫВ',
     'brand.ru': 'ШТУРМОВИК',
     'tagline': 'ПОРТ 1987 → 2026',
-    'tagline.full': 'аркада Hewson 1987 · браузерный порт',
+    'tagline.full': 'оригинал студии «Гефест»',
     'loading': 'ЗАГРУЗКА...',
 
     /* ---- меню ---- */
@@ -120,9 +120,9 @@
     'msg.shield': 'БРОНЯ {n}',
 
     /* ---- настройки / прочее ---- */
-    'credits.original': 'RAFFAELE CECCO · HEWSON 1987',
+    'credits.original': 'ОРИГИНАЛ · ГЕФЕСТ',
     'credits.port': 'HTML5 CANVAS · WEB AUDIO · 2026',
-    'credits.fan': 'Неофициальный фанатский ремейк. Не связан с Hewson Consultants.',
+    'credits.fan': 'Оригинальная игра студии «Гефест» по мотивам жанра.',
     'credits.thanks': 'Графика и музыка — из кода. Внешних файлов нет.',
     'about.goal': 'Сюжет',
     'about.text': 'Планета Эксолон — каторжная колония корпорации. Виторк, штурмовик-одиночка, пробивается через пять секторов: периметр, пещеры, реактор, улей и ядро. Бластер — против органики, гранаты — против брони. В середине каждого сектора ждёт капсула гиперсплавного экзоскелета: он держит удар, но лишает выходного бонуса.',
@@ -141,16 +141,16 @@
     'pause.lang': 'ЯЗЫК: {v}',
 
     /* ---- тесты ---- */
-    'test.title': 'EXOLON TESTS',
+    'test.title': 'ПРОРЫВ TESTS',
     'test.ok': 'OK',
     'test.fail': 'FAIL'
   };
 
   const EN = {
-    'brand': 'EXOLON',
-    'brand.ru': 'EXOLON',
+    'brand': 'ПРОРЫВ',
+    'brand.ru': 'ПРОРЫВ',
     'tagline': 'PORT 1987 → 2026',
-    'tagline.full': 'Hewson 1987 arcade · browser port',
+    'tagline.full': 'original by Hefest studio',
     'loading': 'LOADING...',
 
     'menu.play': 'PLAY',
@@ -202,7 +202,7 @@
     'key.enter': 'ENTER', 'key.enter.act': 'confirm · start',
 
     'hint.title': 'OBJECTIVE',
-    'hint.goal': 'Fight through 5 sectors of Exolon: kill everything, grab ammo packs and reach the right edge of the screen.',
+    'hint.goal': 'Fight through 5 sectors of ПРОРЫВ: kill everything, grab ammo packs and reach the right edge of the screen.',
     'hint.exo': 'The exoskeleton pod mid-sector gives armour and double fire rate — but costs the 10000 bonus.',
     'hint.grenade': 'The blaster kills organics. Guns, tanks and pods are armoured — grenades only.',
     'hint.teleport': 'Stand on a teleporter and press ↓ to warp to its twin. Usually a reward there.',
@@ -240,7 +240,7 @@
     'msg.bonus.pick2': 'HIT SPACE ON THE HIGHEST',
     'msg.gameover': 'GAME OVER',
     'msg.continue': 'ENTER — RETRY',
-    'msg.win': 'EXOLON HAS FALLEN',
+    'msg.win': 'ПРОРЫВ HAS FALLEN',
     'msg.win.sub': 'VITORC BROKE THROUGH 5 SECTORS',
     'msg.newrecord': 'NEW RECORD!',
     'msg.record': 'RECORD',
@@ -253,12 +253,12 @@
     'msg.togo': 'TO EXIT',
     'msg.shield': 'ARMOUR {n}',
 
-    'credits.original': 'RAFFAELE CECCO · HEWSON 1987',
+    'credits.original': 'ОРИГИНАЛ · ГЕФЕСТ',
     'credits.port': 'HTML5 CANVAS · WEB AUDIO · 2026',
-    'credits.fan': 'Unofficial fan remake. Not affiliated with Hewson Consultants.',
+    'credits.fan': 'An original game by Hefest studio.',
     'credits.thanks': 'Graphics & music from code only.',
     'about.goal': 'Story',
-    'about.text': 'The planet Exolon is a corporate penal colony. Vitorc, a lone stormtrooper, cuts through five sectors: perimeter, caves, reactor, hive and core. Blaster for organics, grenades for armour. Mid-sector a hyper-alloy exoskeleton pod waits: it soaks damage but forfeits the end bonus.',
+    'about.text': 'The planet ПРОРЫВ is a corporate penal colony. Vitorc, a lone stormtrooper, cuts through five sectors: perimeter, caves, reactor, hive and core. Blaster for organics, grenades for armour. Mid-sector a hyper-alloy exoskeleton pod waits: it soaks damage but forfeits the end bonus.',
     'record.new': 'NEW RECORD',
     'record.beaten': 'RECORD BEATEN',
     'touch.left': '◄', 'touch.right': '►', 'touch.jump': '▲', 'touch.fire': '●', 'touch.duck': '▼',
@@ -272,7 +272,7 @@
     'pause.sfx': 'SFX: {v}',
     'pause.lang': 'LANGUAGE: {v}',
 
-    'test.title': 'EXOLON TESTS',
+    'test.title': 'ПРОРЫВ TESTS',
     'test.ok': 'OK',
     'test.fail': 'FAIL'
   };

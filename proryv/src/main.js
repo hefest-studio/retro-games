@@ -1,5 +1,5 @@
 /* ============================================================
-   EXOLON HTML5 — оболочка: загрузка, масштабирование, цикл,
+   ПРОРЫВ HTML5 — оболочка: загрузка, масштабирование, цикл,
    ввод, звук, отладочные режимы (#test, #shot=...).
    ============================================================ */
 (function () {
@@ -238,10 +238,10 @@
     const res = EX.runTests();
     const fails = res.filter(function (r) { return !r.ok; });
     const lines = res.map(function (r) { return (r.ok ? '  ok  ' : ' FAIL ') + r.name; });
-    document.title = 'EXOLON TESTS ' + (res.length - fails.length) + '/' + res.length + (fails.length ? ' FAIL' : ' PASS');
+    document.title = 'ПРОРЫВ TESTS ' + (res.length - fails.length) + '/' + res.length + (fails.length ? ' FAIL' : ' PASS');
     if (testBox) {
       testBox.style.display = 'block';
-      testBox.textContent = 'EXOLON TESTS\n' + lines.join('\n') + '\n\n' +
+      testBox.textContent = 'ПРОРЫВ TESTS\n' + lines.join('\n') + '\n\n' +
         (fails.length ? 'ПРОВАЛЕНО: ' + fails.length : 'ВСЁ ПРОШЛО: ' + res.length + '/' + res.length) +
         (EX.state.debug.missingGlyphs ? '\nнет глифов: ' + EX.state.debug.missingGlyphs : '');
     }

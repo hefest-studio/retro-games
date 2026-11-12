@@ -1,20 +1,20 @@
-# DOUBLE DRAGON × BATTLE TOADS: NEON RAGE — контракт модулей
+# НЕОН × ЯРОСТЬ: NEON RAGE — контракт модулей
 
-Фанатский HTML5-трибьют культовому beat'em-up кроссоверу **Battletoads / Double Dragon (1993)**.
-Один автономный `index.html` (работает по `file://`, без CDN, шрифтов, картинок и аудиофайлов).
+Оригинальный HTML5 beat 'em up студии «Гефест».
+С волны 2 — на движке v2: `index.html` + `engine.js` + `js/host.js` + собранный `js/game.js`
+(см. README); прежний автономный файл — `legacy.html`. Без CDN, шрифтов, картинок и аудиофайлов.
 Внутренняя логическая сцена — **480×270** (16:9). Вся графика рисуется кодом на Canvas 2D,
 вся музыка и звук синтезируются WebAudio. Языки: **русский (по умолчанию) и английский**.
 
-Название в титрах: **DOUBLE DRAGON × BATTLE TOADS**, подзаголовок **NEON RAGE**,
-пометка «неофициальный фанатский трибьют». Используются оригинальные герои и арт,
-не копии спрайтов/мелодий из игр 1993 года.
+Название в титрах: **НЕОН × ЯРОСТЬ**, подзаголовок **NEON RAGE**.
+Герои, арт и мелодии — оригинальные.
 
 ## Сборка и проверка
 
 ```bash
-node double-dragon-battletoads/tools/build.mjs          # src/* + style.css -> index.html
-node --check double-dragon-battletoads/src/<file>.js    # синтаксис
-node double-dragon-battletoads/tools/probe.mjs double-dragon-battletoads/index.html reports/x.png \
+node neon-rage/tools/build.mjs          # src/* -> js/game.js, src/style.css -> css/style.css
+node --check neon-rage/src/<file>.js    # синтаксис
+node neon-rage/tools/probe.mjs neon-rage/index.html reports/x.png \
      --w=1440 --h=900 --wait=1200 --eval='DD.state.mode'
 ```
 
@@ -449,9 +449,9 @@ about.credits, about.back
 Рекомендуемые русские значения (локализатор может улучшить формулировки):
 
 ```text
-app.title        DOUBLE DRAGON × BATTLE TOADS
+app.title        НЕОН × ЯРОСТЬ
 app.subtitle     NEON RAGE
-app.tribute      неофициальный фанатский трибьют
+app.tribute      оригинал студии «Гефест»
 app.footer       Canvas 2D · WebAudio · один HTML-файл
 app.loading      ЗАГРУЗКА НЕОНА...
 
@@ -528,7 +528,7 @@ end.victoryTitle ГОРОД СПАСЁН · end.victorySub ЧИП NEON-8 ВОЗ�
 end.score ОЧКИ · end.time ВРЕМЯ · end.kills ПОБЕД · end.maxCombo МАКС. КОМБО
 end.newBest НОВЫЙ РЕКОРД! · end.best РЕКОРД
 about.title ОБ ИГРЕ
-about.text1 Фанатский трибьют кроссоверу Double Dragon × Battletoads (1993).
+about.text1 Оригинальный beat-em-up студии «Гефест».
 about.text2 Все персонажи, графика и музыка оригинальны и созданы кодом — без внешних ассетов.
 about.text3 Retro- и modern-рендеры рисуют один и тот же бой; музыка синтезируется WebAudio.
 about.tech Canvas 2D · WebAudio · ES2019 · 0 внешних файлов

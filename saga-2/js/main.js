@@ -652,6 +652,11 @@
       toggleMute: toggleMute,
       startLevel: function (i) { startLevel(i); beginLevelFromLoaded(); },
       showTitle: quitToTitle,
+      // экспорт для оболочки движка v2 (index.html + js/host.js); логика не менялась
+      newGame: newGame,
+      continueGame: continueGame,
+      pause: pauseGame,
+      resume: resumeGame,
       state: state,
       game: function () { return game; }
     };

@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_DIR = join(ROOT, 'screenshots');
-const PAGE = 'file://' + join(ROOT, 'index.html');
+const PAGE = 'file://' + join(ROOT, 'legacy.html'); // родные экраны игры (index.html — движок v2)
 const CHROME_CANDIDATES = [
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   '/Applications/Chromium.app/Contents/MacOS/Chromium',

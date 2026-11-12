@@ -527,7 +527,7 @@
       fill(ctx, x, y, w, h, C.ink);
       rectB(ctx, x, y, w, h, C.shadow);
       fill(ctx, x + 1, y + 1, 2, h - 2, active ? accent : C.deep);
-      var key = action === 'gfx' ? 'G' : action === 'lang' ? 'T' : action === 'music' ? 'M' : 'F';
+      var key = action === 'gfx' ? 'G' : action === 'lang' ? 'L' : action === 'music' ? 'M' : 'F';
       text(ctx, key, x + 5, y + 3, 1, active ? accent : C.lav, null);
       if (action === 'fullscreen') {
         /* иконка экрана */

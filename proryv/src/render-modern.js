@@ -1,5 +1,5 @@
 /* ============================================================
-   EXOLON HTML5 — MODERN-рендерер «NEON 2026»
+   ПРОРЫВ HTML5 — MODERN-рендерер «NEON 2026»
    Тот же мир 256×208, но векторная неоновая графика: свечение,
    параллакс, частицы, стеклянный HUD, современная типографика.
    Координаты — логические (1 юнит = 1 «пиксель» ZX), масштаб
@@ -847,9 +847,9 @@
     const lv = EX.levelData(st.level);
     const inRun = ['play', 'paused', 'dead', 'bonus', 'levelclear', 'briefing', 'gameover', 'win'].indexOf(st.mode) >= 0;
     const label = inRun
-      ? 'EXOLON // ' + EX.t('hud.sector') + ' ' + String(st.level + 1).padStart(2, '0') +
+      ? 'ПРОРЫВ // ' + EX.t('hud.sector') + ' ' + String(st.level + 1).padStart(2, '0') +
         (lv ? ' · ' + (lv.name[EX.settings.lang] || lv.name.ru) : '')
-      : 'EXOLON // ' + EX.t('tagline');
+      : 'ПРОРЫВ // ' + EX.t('tagline');
     g.font = '600 ' + Math.max(10, s.h * 0.016) + 'px ' + UI_FONT;
     const above = s.y > 26;
     const ty = above ? s.y - 8 : s.y + 12;
@@ -897,7 +897,7 @@
       g.font = '800 ' + Math.round(side * 0.36) + 'px ' + HEAD_FONT;
       g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillStyle = 'rgba(160,175,255,0.10)';
-      g.fillText('EXOLON', 0, 0);
+      g.fillText('ПРОРЫВ', 0, 0);
       g.restore();
     }
 
@@ -1001,18 +1001,18 @@
     lg.addColorStop(1, '#ff3ff0');
     /* хроматическая аберрация */
     try { g.letterSpacing = '4px'; } catch (e) { /* ok */ }
-    g.globalAlpha = 0.5; g.fillStyle = 'rgba(255,63,240,0.55)'; g.fillText('EXOLON', W / 2 - 1.4, 41);
-    g.fillStyle = 'rgba(57,246,255,0.55)'; g.fillText('EXOLON', W / 2 + 1.4, 42);
+    g.globalAlpha = 0.5; g.fillStyle = 'rgba(255,63,240,0.55)'; g.fillText('ПРОРЫВ', W / 2 - 1.4, 41);
+    g.fillStyle = 'rgba(57,246,255,0.55)'; g.fillText('ПРОРЫВ', W / 2 + 1.4, 42);
     g.globalAlpha = 1;
     g.save();
     g.shadowColor = 'rgba(57,246,255,0.65)';
     g.shadowBlur = 22;
     g.fillStyle = lg;
-    g.fillText('EXOLON', W / 2, 41.5);
+    g.fillText('ПРОРЫВ', W / 2, 41.5);
     g.restore();
     g.fillStyle = 'rgba(255,255,255,0.85)';
     g.globalAlpha = 0.9;
-    g.fillText('EXOLON', W / 2, 41.5 - 0.35);
+    g.fillText('ПРОРЫВ', W / 2, 41.5 - 0.35);
     g.globalAlpha = 1;
     try { g.letterSpacing = '0px'; } catch (e) { /* ok */ }
 
@@ -1121,7 +1121,7 @@
     g.font = '800 16px ' + HEAD_FONT;
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillStyle = lg;
-    g.fillText('EXOLON', W / 2, 24);
+    g.fillText('ПРОРЫВ', W / 2, 24);
     text(EX.t('tagline'), W / 2, 38, 3.4, 'rgba(235,235,255,0.8)', 'center', '500', 1);
     g.fillStyle = 'rgba(255,63,240,0.3)'; g.fillRect(30, 45, W - 60, 0.7);
     let y = 53;

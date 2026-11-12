@@ -177,7 +177,7 @@ async function screenshot(out) {
 /* ---------- main ---------- */
 try {
   await open();
-  const page = fileUrl(A.page || "index.html");
+  const page = fileUrl(A.page || "legacy.html"); // родные экраны игры (index.html — движок v2)
   await navigate(page);
 
   if (A.script) {

@@ -39,9 +39,8 @@ const TOGGLE_DEFAULT_MODERN = new Set(['saga']);
 const START = {
   staratel: async (p) => { await p.click('#startBtn', { timeout: 3000 }).catch(() => {}); },
   'saga-2': async (p) => {
-    await p.getByText(/новая сага/i).first().click({ timeout: 3000 }).catch(() => {});
-    await p.waitForTimeout(600);
-    await p.getByText(/в путь/i).first().click({ timeout: 3000 }).catch(() => {});
+    /* с v2: меню движка → Enter, затем родной брифинг «В путь» → Enter */
+    for (let i = 0; i < 3; i += 1) { await p.keyboard.press('Enter'); await p.waitForTimeout(700); }
   },
   rubezh: async (p) => {
     await p.keyboard.press('Enter'); await p.waitForTimeout(500);

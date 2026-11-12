@@ -101,7 +101,7 @@ const errorLines = [];
 function runJob(job) {
   return new Promise((res) => {
     const outPath = join(OUT, `${job.name}.png`);
-    const page = join(ROOT, "index.html") + "#" + job.hash;
+    const page = join(ROOT, "legacy.html") + "#" + job.hash; // родные экраны игры (index.html — движок v2)
     const p = spawn(process.execPath, [
       join(ROOT, "tools", "probe.mjs"),
       page,
@@ -220,7 +220,7 @@ async function runStorageTest() {
     await send("Page.enable");
     await send("Runtime.enable");
     await send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
-    const pageUrl = "file://" + join(ROOT, "index.html");
+    const pageUrl = "file://" + join(ROOT, "legacy.html");
     let loaded = once("Page.loadEventFired");
     await send("Page.navigate", { url: pageUrl });
     await loaded;

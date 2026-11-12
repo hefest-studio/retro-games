@@ -122,7 +122,7 @@
     DD.setHeld('jump', !!heldKeys.Space);
     DD.setHeld('punch', !!(heldKeys.KeyJ || heldKeys.KeyZ));
     DD.setHeld('kick', !!(heldKeys.KeyK || heldKeys.KeyX));
-    DD.setHeld('special', !!(heldKeys.KeyL || heldKeys.KeyV));
+    DD.setHeld('special', !!heldKeys.KeyV);  /* L — язык (стандарт аркады), ярость — V */
   }
 
   function menuMode() {
@@ -157,12 +157,13 @@
         break;
       case 'KeyJ': case 'KeyZ': DD.press('punch'); break;
       case 'KeyK': case 'KeyX': DD.press('kick'); break;
-      case 'KeyL': case 'KeyV': DD.press('special'); break;
+      case 'KeyV': DD.press('special'); break;
       case 'Enter': case 'NumpadEnter': DD.press('confirm'); break;
       case 'Escape': DD.press('back'); break;
       case 'KeyP': DD.press('pause'); break;
-      case 'KeyG': DD.press('gfx'); break;
-      case 'KeyT': DD.press('lang'); break;
+      /* раскладка аркады «Гефест»: T и G — тема (графика), L — язык */
+      case 'KeyG': case 'KeyT': DD.press('gfx'); break;
+      case 'KeyL': DD.press('lang'); break;
       case 'KeyM': DD.press('music'); break;
       case 'KeyF': DD.press('fullscreen'); break;
       default: break;

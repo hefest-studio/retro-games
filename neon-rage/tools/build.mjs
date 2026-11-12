@@ -1,22 +1,23 @@
 #!/usr/bin/env node
 /**
- * Сборка одного автономного HTML-файла из исходников.
+ * Сборка игры из исходников (движок v2, «хост поверх игры»).
  *
- *   node double-dragon-battletoads/tools/build.mjs
+ *   node neon-rage/tools/build.mjs
  *
- * src/template.html содержит два маркера:
- *   <!--__STYLE__-->  -> src/style.css
- *   <!--__SCRIPT__--> -> src/*.js в фиксированном порядке, внутри <script>
+ *   src/*.js в фиксированном порядке -> js/game.js (один скрипт, IIFE-модули)
+ *   src/style.css                    -> css/style.css
  *
- * Результат: double-dragon-battletoads/index.html (file://, без внешних файлов).
+ * Страница index.html (разметка + engine.js + js/host.js + адаптер) правится вручную.
+ * legacy.html — прежний автономный монолит, сборкой не трогается.
  */
-import { readFileSync, writeFileSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, statSync, mkdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(ROOT, "src");
-const OUT = join(ROOT, "index.html");
+const OUT_JS = join(ROOT, "js", "game.js");
+const OUT_CSS = join(ROOT, "css", "style.css");
 
 /** Порядок подключения — менять только вместе с docs/CONTRACT.md */
 const SCRIPTS = [
@@ -31,7 +32,6 @@ const SCRIPTS = [
 
 const read = (p) => readFileSync(p, "utf8");
 
-const template = read(join(SRC, "template.html"));
 const css = read(join(SRC, "style.css"));
 
 const parts = [];
@@ -52,21 +52,15 @@ for (const name of SCRIPTS) {
 }
 
 const js = [
-  "/* DOUBLE DRAGON × BATTLE TOADS: NEON RAGE — сгенерировано tools/build.mjs, не редактировать вручную */",
+  "/* НЕОН × ЯРОСТЬ: NEON RAGE — сгенерировано tools/build.mjs, не редактировать вручную */",
   "'use strict';",
   ...parts,
 ].join("\n");
 
-let html = template
-  .replace("<!--__STYLE__-->", css.trim())
-  .replace("<!--__SCRIPT__-->", js);
+mkdirSync(dirname(OUT_JS), { recursive: true });
+mkdirSync(dirname(OUT_CSS), { recursive: true });
+writeFileSync(OUT_JS, js + "\n");
+writeFileSync(OUT_CSS, css.trim() + "\n");
 
-if (html.includes("__STYLE__") || html.includes("__SCRIPT__")) {
-  console.error("✗ в шаблоне остались маркеры");
-  process.exit(1);
-}
-
-writeFileSync(OUT, html);
-
-const kb = (statSync(OUT).size / 1024).toFixed(1);
-console.log(`✓ index.html — ${kb} KB, скриптов: ${SCRIPTS.length}, css: ${(css.length / 1024).toFixed(1)} KB`);
+const kb = (p) => (statSync(p).size / 1024).toFixed(1);
+console.log(`✓ js/game.js — ${kb(OUT_JS)} KB, скриптов: ${SCRIPTS.length}; css/style.css — ${kb(OUT_CSS)} KB`);

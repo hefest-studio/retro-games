@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#04060e" />
+<title>РУБЕЖ: Неоновый рассвет — HTML5 (legacy)</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="retro">
+<div id="app">
+  <div id="stage">
+    <canvas id="game" width="1440" height="810" aria-label="Игровое поле РУБЕЖ"></canvas>
+    <div class="fx">
+      <div class="scan"></div>
+      <div class="glowline"></div>
+      <div class="vignette"></div>
+    </div>
+
+    <!-- ================= HUD ================= -->
+    <div id="hud">
+      <div class="hud-top">
+        <div class="hud-chip lives"><span class="k" data-i18n="hudLives">ЖИЗНИ</span><span class="v" id="hud-lives"><span class="x">×</span>3</span></div>
+        <div class="hud-chip"><span class="k" data-i18n="hudScore">СЧЁТ</span><span class="v" id="hud-score">000000</span></div>
+        <div class="hud-chip weapon"><span class="k" data-i18n="hudWeapon">ОРУЖИЕ</span><span class="v" id="hud-weapon">ВИНТОВКА</span></div>
+        <div class="hud-chip" id="shield-chip" style="display:none"><span class="k" data-i18n="hudShield">ЩИТ</span><span class="v" id="hud-shield">•••</span></div>
+        <div class="hud-stage"><b id="hud-stage">ЭТАП 01 · ДЖУНГЛИ</b><br><span id="hud-check">КОНТРОЛЬНАЯ ТОЧКА: СТАРТ</span></div>
+      </div>
+      <div id="bossbar"><div class="bn" id="boss-name">ВЕРТОЛЁТ «СТРАЖ»</div><div class="bar"><i id="boss-fill"></i></div></div>
+      <div class="hud-bottom">
+        <span class="left"><span><b>← →</b> БЕГ</span><span><b>↑ ↓</b> ПРИЦЕЛ</span><span><b>ПРОБЕЛ</b> ПРЫЖОК</span><span><b>J</b> ОГОНЬ</span><span><b>P</b> ПАУЗА</span></span>
+        <span id="gfx-tag">NEON</span>
+      </div>
+    </div>
+    <div id="toast"></div>
+
+    <!-- ================= TOUCH ================= -->
+    <div id="touch">
+      <div class="touch-pad left">
+        <button class="tbtn" data-touch="up" aria-label="Вверх">▲</button>
+        <button class="tbtn" data-touch="left" aria-label="Влево">◀</button>
+        <button class="tbtn" data-touch="down" aria-label="Вниз">▼</button>
+        <button class="tbtn" data-touch="right" aria-label="Вправо">▶</button>
+      </div>
+      <div class="touch-pad right">
+        <button class="tbtn jump" data-touch="jump" aria-label="Прыжок">A</button>
+        <button class="tbtn fire" data-touch="fire" aria-label="Огонь">B</button>
+      </div>
+    </div>
+
+    <!-- ================= TITLE ================= -->
+    <section id="screen-title" class="screen on">
+      <div class="title-top">
+        <span class="eyebrow"><span class="dot"></span><span data-i18n="eyebrow">ОРИГИНАЛ СТУДИИ · ГЕФЕСТ</span></span>
+        <div class="title-meta">
+          <span>OPERATION <b>NEON DAWN</b></span>
+          <span>1 PLAYER · ARCADE</span>
+        </div>
+      </div>
+
+      <div class="title-main">
+        <div class="logo-wrap"><h1 class="logo" data-text="РУБЕЖ">РУБЕЖ</h1></div>
+        <div class="subtitle" data-i18n="subtitle">НЕОНОВЫЙ РАССВЕТ</div>
+        <p class="tagline" data-i18n="tagline">Джунгли горят. Крепость ждёт. Ты — последний шанс человечества. Прорвись сквозь ад и вырви сердце «Гелиоса».</p>
+      </div>
+
+      <div>
+        <div class="menu-panel">
+          <div class="menu-head"><span data-i18n="menuHead">ГЛАВНОЕ МЕНЮ</span><span>V1.0</span></div>
+          <button class="menu-item sel" data-action="start">
+            <kbd>ENTER</kbd><span class="mi-label" data-i18n="menuStart">Начать операцию</span><span class="mi-arrow">›</span>
+          </button>
+          <button class="menu-item" data-action="howto">
+            <kbd>I</kbd><span class="mi-label" data-i18n="menuHowto">Как играть</span><span class="mi-arrow">›</span>
+          </button>
+          <button class="menu-item" data-action="settings">
+            <kbd>O</kbd><span class="mi-label" data-i18n="menuSettings">Настройки</span><span class="mi-arrow">›</span>
+          </button>
+        </div>
+        <div class="title-bottom">
+          <div class="record"><span class="k" data-i18n="record">РЕКОРД</span><span class="v js-best">000000</span></div>
+          <div class="quick-toggles">
+            <button data-action="gfx"><span data-i18n="graphicsShort">ГРАФИКА</span> <b class="js-gfx">НЕОН</b></button>
+            <button data-action="lang"><span data-i18n="languageShort">ЯЗЫК</span> <b class="js-lang">РУС</b></button>
+            <button data-action="sound"><span data-i18n="soundShort">ЗВУК</span> <b class="js-sound">ВКЛ</b></button>
+            <span class="build-tag">G · L · M</span>
+          </div>
+        </div>
+      </div>
+      <div class="title-side"><b>OPERATION NEON DAWN</b> · RUN &amp; GUN · 20XX</div>
+    </section>
+
+    <!-- ================= BRIEF ================= -->
+    <section id="screen-brief" class="screen dimmer">
+      <div class="panel">
+        <div class="panel-top">
+          <span class="tag" id="brief-stage">ЭТАП 01</span>
+          <span class="tag danger" data-i18n="opName">ОПЕРАЦИЯ «РАССВЕТ»</span>
+        </div>
+        <h2><span class="accent" id="brief-title">ДЖУНГЛИ</span></h2>
+        <p class="lede" id="brief-text">Отряд «Рубеж» высажен на побережье. Прорвись через джунгли, уничтожь вертолёт «Страж» и захвати плацдарм у крепости.</p>
+        <div class="brief-grid">
+          <div>
+            <h3 data-i18n="objectives">ЗАДАЧИ</h3>
+            <ul class="objectives" id="brief-objectives"></ul>
+          </div>
+          <div class="stage-card">
+            <div class="row"><span data-i18n="briefZone">ЗОНА</span><b id="brief-zone">ДЖУНГЛИ</b></div>
+            <div class="row"><span data-i18n="briefBoss">ЦЕЛЬ</span><b class="hot" id="brief-boss">«СТРАЖ»</b></div>
+            <div class="row"><span data-i18n="briefWeapons">АРСЕНАЛ</span><b>S · M · L · B</b></div>
+            <div class="row"><span data-i18n="briefLives">ЖИЗНИ</span><b>3</b></div>
+          </div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn primary" data-action="brief-go"><kbd>ENTER</kbd><span data-i18n="beginOperation">НАЧАТЬ ОПЕРАЦИЮ</span></button>
+          <button class="btn ghost" data-action="brief-back"><kbd>ESC</kbd><span data-i18n="back">НАЗАД</span></button>
+        </div>
+        <p class="hint-line" data-i18n="briefHint">СОВЕТ: ДЕРЖИ ↑ ИЛИ ↓, ЧТОБЫ СТРЕЛЯТЬ ПО ДИАГОНАЛИ. ↓ НА ЗЕМЛЕ — ЛОЖИТЬСЯ.</p>
+      </div>
+    </section>
+
+    <!-- ================= HOWTO ================= -->
+    <section id="screen-howto" class="screen dimmer">
+      <div class="panel">
+        <div class="panel-top">
+          <span class="tag" data-i18n="training">ПОДГОТОВКА</span>
+          <span class="tag magenta" data-i18n="oneHit">ОДИН УДАР — СМЕРТЬ</span>
+        </div>
+        <h2><span class="accent" data-i18n="howtoTitle">КАК ИГРАТЬ</span></h2>
+        <p class="lede" data-i18n="howtoLede">Классический run-and-gun: беги вправо, стреляй в восьми направлениях, собирай оружие и не дай врагам зажать тебя в углу. Один контакт с пулей или телом врага — потеря жизни.</p>
+        <h3 data-i18n="controls">УПРАВЛЕНИЕ</h3>
+        <div class="ctl-list">
+          <div class="ctl-row"><div class="keys"><kbd>←</kbd><kbd>→</kbd><span>/</span><kbd>A</kbd><kbd>D</kbd></div><div class="what" data-i18n="ctlMove"><b>Бег</b> влево и вправо</div></div>
+          <div class="ctl-row"><div class="keys"><kbd>↑</kbd><kbd>↓</kbd><span>/</span><kbd>W</kbd><kbd>S</kbd></div><div class="what" data-i18n="ctlAim"><b>Прицел</b> вверх, вниз и по диагонали; <b>↓</b> на земле — лечь</div></div>
+          <div class="ctl-row"><div class="keys"><kbd>ПРОБЕЛ</kbd><span>/</span><kbd>Z</kbd></div><div class="what" data-i18n="ctlJump"><b>Прыжок</b>; держи дольше — прыгнешь выше. <b>↓ + прыжок</b> — спрыгнуть с платформы</div></div>
+          <div class="ctl-row"><div class="keys"><kbd>J</kbd><span>/</span><kbd>X</kbd></div><div class="what" data-i18n="ctlFire"><b>Огонь</b>. Удерживай для автоматической стрельбы</div></div>
+          <div class="ctl-row"><div class="keys"><kbd>P</kbd><span>/</span><kbd>ESC</kbd></div><div class="what" data-i18n="ctlPause"><b>Пауза</b> и меню</div></div>
+          <div class="ctl-row"><div class="keys"><kbd>G</kbd><kbd>L</kbd><kbd>M</kbd></div><div class="what" data-i18n="ctlToggles"><b>Графика</b> (неон / 8-бит), <b>язык</b>, <b>звук</b> — работают в любой момент</div></div>
+        </div>
+        <h3 data-i18n="fieldNotes">ЗАМЕТКИ С ФРОНТА</h3>
+        <ul class="tips">
+          <li data-i18n="tip1">Бей <b>летающие капсулы</b>: из них выпадает оружие <b>S</b> (дробовик), <b>M</b> (пулемёт), <b>L</b> (лазер) и <b>B</b> (щит).</li>
+          <li data-i18n="tip2">У каждого босса есть <b>слабое место</b> и свой ритм атаки. Учись, умирай, повторяй — это РУБЕЖ.</li>
+          <li data-i18n="tip3">Прыжок <b>гасится</b>, если отпустить кнопку раньше. Это спасает от пуль.</li>
+          <li data-i18n="tip4">Секрет: на титуле попробуй <b>↑ ↑ ↓ ↓ ← → ← → B A</b>.</li>
+        </ul>
+        <div class="panel-actions">
+          <button class="btn" data-action="howto-back"><kbd>ESC</kbd><span data-i18n="back">НАЗАД</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SETTINGS ================= -->
+    <section id="screen-settings" class="screen dimmer">
+      <div class="panel">
+        <div class="panel-top">
+          <span class="tag" data-i18n="system">СИСТЕМА</span>
+          <span class="tag magenta" data-i18n="offline">РАБОТАЕТ ОФЛАЙН</span>
+        </div>
+        <h2><span class="accent" data-i18n="settingsTitle">НАСТРОЙКИ</span></h2>
+        <p class="lede" data-i18n="settingsLede">Игра сохраняет выбор автоматически. Переключай стиль на лету — геймплей не меняется, меняется только мир вокруг.</p>
+        <div class="set-list">
+          <button class="set-row" data-action="gfx">
+            <span class="si">G</span>
+            <span class="sl"><span data-i18n="graphics">ГРАФИКА</span><b class="js-gfx-long">НЕОН · 20XX</b></span>
+            <span class="sv"><span class="sw"><i class="on"></i><i></i></span><span class="js-gfx">НЕОН</span></span>
+          </button>
+          <button class="set-row" data-action="lang">
+            <span class="si">L</span>
+            <span class="sl"><span data-i18n="language">ЯЗЫК</span><b class="js-lang-long">РУССКИЙ</b></span>
+            <span class="sv"><span class="js-lang">РУС</span></span>
+          </button>
+          <button class="set-row" data-action="sound">
+            <span class="si">M</span>
+            <span class="sl"><span data-i18n="sound">ЗВУК</span><b class="js-sound-long">ВКЛЮЧЁН</b></span>
+            <span class="sv"><span class="sw"><i class="on js-sound-dot"></i></span><span class="js-sound">ВКЛ</span></span>
+          </button>
+        </div>
+        <h3 data-i18n="audioNote">ЗВУК</h3>
+        <p class="epilogue" data-i18n="audioDesc">Оригинальный чиптюн-саундтрек: четыре канала, живой секвенсор WebAudio, никаких файлов. Музыка включается после первого нажатия клавиши — так требуют браузеры.</p>
+        <div class="panel-actions">
+          <button class="btn" data-action="settings-back"><kbd>ESC</kbd><span data-i18n="back">НАЗАД</span></button>
+          <button class="btn ghost" data-action="howto-from-settings"><kbd>I</kbd><span data-i18n="menuHowto">КАК ИГРАТЬ</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PAUSE ================= -->
+    <section id="screen-pause" class="screen dimmer">
+      <div class="panel" style="max-width:560px">
+        <div class="panel-top">
+          <span class="tag" data-i18n="pauseTag">ПАУЗА</span>
+          <span class="tag magenta" id="pause-stage">ЭТАП 01 · ДЖУНГЛИ</span>
+        </div>
+        <h2><span class="accent" data-i18n="pauseTitle">ПЕРЕДЫШКА</span></h2>
+        <p class="lede" data-i18n="pauseLede">Война подождёт. Но недолго.</p>
+        <div class="panel-actions" style="flex-direction:column;align-items:stretch">
+          <button class="btn primary" data-action="resume"><kbd>P</kbd><span data-i18n="resume">ПРОДОЛЖИТЬ</span></button>
+          <button class="btn" data-action="pause-howto"><kbd>I</kbd><span data-i18n="menuHowto">КАК ИГРАТЬ</span></button>
+          <button class="btn" data-action="pause-settings"><kbd>O</kbd><span data-i18n="menuSettings">НАСТРОЙКИ</span></button>
+          <button class="btn ghost" data-action="menu"><kbd>ESC</kbd><span data-i18n="toMenu">В ГЛАВНОЕ МЕНЮ</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= GAME OVER ================= -->
+    <section id="screen-over" class="screen dimmer">
+      <div class="panel" style="max-width:640px">
+        <div class="panel-top">
+          <span class="tag danger" data-i18n="missionFailed">СИГНАЛ ПОТЕРЯН</span>
+          <span class="tag" id="over-stage">ЭТАП 01</span>
+        </div>
+        <h2 class="big-title fail" data-i18n="gameOverTitle">ОПЕРАЦИЯ ПРОВАЛЕНА</h2>
+        <p class="lede" data-i18n="gameOverLede">Отряд «Рубеж» потерял связь. Но у тебя ещё есть шанс — перегруппируйся и войди снова.</p>
+        <div class="stats">
+          <div class="stat"><span class="k" data-i18n="hudScore">СЧЁТ</span><span class="v" id="over-score">000000</span></div>
+          <div class="stat"><span class="k" data-i18n="record">РЕКОРД</span><span class="v hot js-best">000000</span></div>
+          <div class="stat"><span class="k" data-i18n="stage">ЭТАП</span><span class="v" id="over-stage-num">01</span></div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn primary" data-action="retry"><kbd>ENTER</kbd><span data-i18n="retry">ПОВТОРИТЬ ЭТАП</span></button>
+          <button class="btn ghost" data-action="menu"><kbd>ESC</kbd><span data-i18n="toMenu">В ГЛАВНОЕ МЕНЮ</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= STAGE CLEAR ================= -->
+    <section id="screen-clear" class="screen dimmer">
+      <div class="panel" style="max-width:680px">
+        <div class="panel-top">
+          <span class="tag" data-i18n="stageClearTag">СЕКТОР ЗАЧИЩЕН</span>
+          <span class="tag magenta" id="clear-stage">ЭТАП 01</span>
+        </div>
+        <h2 class="big-title hero" data-i18n="stageClearTitle">ЭТАП ПРОЙДЕН</h2>
+        <p class="lede" data-i18n="stageClearLede">Вертолёт «Страж» рухнул в джунгли. Дорога к крепости открыта — но это только начало.</p>
+        <div class="stats">
+          <div class="stat"><span class="k" data-i18n="hudScore">СЧЁТ</span><span class="v" id="clear-score">000000</span></div>
+          <div class="stat"><span class="k" data-i18n="time">ВРЕМЯ</span><span class="v" id="clear-time">00:00</span></div>
+          <div class="stat"><span class="k" data-i18n="lives">ЖИЗНИ</span><span class="v" id="clear-lives">×3</span></div>
+        </div>
+        <div class="panel-actions">
+          <button class="btn primary" data-action="clear-next"><kbd>ENTER</kbd><span data-i18n="continueOp">ПРОДОЛЖИТЬ ОПЕРАЦИЮ</span></button>
+          <button class="btn ghost" data-action="menu"><kbd>ESC</kbd><span data-i18n="toMenu">В ГЛАВНОЕ МЕНЮ</span></button>
+        </div>
+        <p class="hint-line" data-i18n="nextHint">СЛЕДУЮЩАЯ ЦЕЛЬ: КРЕПОСТЬ «ГЕЛИОС»</p>
+      </div>
+    </section>
+
+    <!-- ================= WIN ================= -->
+    <section id="screen-win" class="screen dimmer">
+      <div class="panel" style="max-width:720px">
+        <div class="panel-top">
+          <span class="tag" data-i18n="missionComplete">МИССИЯ ВЫПОЛНЕНА</span>
+          <span class="tag magenta">РУБЕЖ · 20XX</span>
+        </div>
+        <h2 class="big-title hero" data-i18n="winTitle">РАССВЕТ</h2>
+        <p class="epilogue" data-i18n="winText">Ядро «Гелиос» погасло. Крепость пала. Над джунглями впервые за десять лет встаёт солнце — и ты встречаешь его стоя. Легенда «Контры» вернулась.</p>
+        <div class="stats">
+          <div class="stat"><span class="k" data-i18n="hudScore">СЧЁТ</span><span class="v" id="win-score">000000</span></div>
+          <div class="stat"><span class="k" data-i18n="record">РЕКОРД</span><span class="v hot js-best">000000</span></div>
+          <div class="stat"><span class="k" data-i18n="time">ВРЕМЯ</span><span class="v" id="win-time">00:00</span></div>
+        </div>
+        <div class="badge-row">
+          <span class="tag hidden" id="badge-nodeath" data-i18n="badgeNoDeath">БЕЗ ПОТЕРЬ</span>
+          <span class="tag hidden" id="badge-speed" data-i18n="badgeSpeed">СКОРОСТНОЙ ПРОРЫВ</span>
+          <span class="tag magenta hidden" id="badge-code" data-i18n="badgeCode">КОД КОНАМИ</span>
+        </div>
+        <div class="panel-actions">
+          <button class="btn primary" data-action="menu"><kbd>ENTER</kbd><span data-i18n="toMenu">В ГЛАВНОЕ МЕНЮ</span></button>
+          <button class="btn ghost" data-action="retry"><kbd>R</kbd><span data-i18n="newRun">НОВЫЙ ЗАБЕГ</span></button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+<div id="rotate-hint" role="status" aria-live="polite">
+  <div class="rotate-mark">⟳</div>
+  <b data-i18n="rotateTitle">ПОВЕРНИ УСТРОЙСТВО</b>
+  <span data-i18n="rotateText">РУБЕЖ играется в горизонтальной ориентации. Поверни телефон — и в бой.</span>
+  <span class="rotate-sub">РУБЕЖ · NEON DAWN · 20XX</span>
+</div>
+<noscript><div style="position:fixed;inset:0;display:grid;place-items:center;background:#04060e;color:#64f7ff;font-family:monospace;font-size:16px;text-align:center;padding:24px">Для игры нужен JavaScript. Включите его и обновите страницу.<br>РУБЕЖ needs JavaScript.</div></noscript>
+<pre id="testout" class="hidden" style="position:fixed;left:0;top:0;z-index:99;max-width:100vw;max-height:100vh;overflow:auto;margin:0;padding:10px;background:#01060a;color:#8ef07a;font:11px/1.45 ui-monospace,Menlo,monospace;white-space:pre"></pre>
+<script src="js/audio.js"></script>
+<script src="js/game.js"></script>
+<!-- catalog-backlink: ссылка на стартовую страницу проекта (встроена tools/add-catalog-back.mjs) -->
+<style>
+#catalog-back{position:fixed!important;left:0!important;top:50%!important;transform:translateY(-50%)!important;z-index:2147483647!important;display:inline-flex!important;align-items:center!important;gap:6px!important;padding:8px 12px 8px 9px!important;margin:0!important;background:rgba(6,8,14,.82)!important;color:#ffd27a!important;border:1px solid rgba(255,190,80,.6)!important;border-left:0!important;border-radius:0 10px 10px 0!important;font:600 11px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important;letter-spacing:.1em!important;text-transform:uppercase!important;text-decoration:none!important;box-shadow:0 6px 22px rgba(0,0,0,.45)!important;cursor:pointer!important;opacity:.82!important;transition:opacity .15s ease,background .15s ease,color .15s ease!important;-webkit-font-smoothing:antialiased!important;}
+#catalog-back.catalog-back-round{border-left:1px solid rgba(255,190,80,.6)!important;border-radius:10px!important;}
+#catalog-back:hover,#catalog-back:focus-visible{opacity:1!important;background:rgba(255,190,80,.94)!important;color:#0a0b10!important;outline:2px solid #7cf5d2!important;outline-offset:2px!important;}
+#catalog-back .catalog-back-arrow{font-size:13px!important;line-height:1!important;}
+@media (max-width:480px){#catalog-back{font-size:10px!important;padding:6px 9px 6px 7px!important;gap:4px!important;}}
+@media (prefers-reduced-motion:reduce){#catalog-back{transition:none!important;}}
+</style>
+<a id="catalog-back" href="../" title="На стартовую страницу проекта — в каталог игр" aria-label="Вернуться на стартовую страницу проекта — каталог игр" data-catalog-back="1"><span class="catalog-back-arrow" aria-hidden="true">&larr;</span>Каталог</a>
+<script>
+(function () {
+  var link = document.getElementById('catalog-back');
+  if (!link) return;
+
+  /* На file:// каталог лежит в index.html корня: «../» открыл бы листинг. */
+  if (location.protocol === 'file:') link.setAttribute('href', '../index.html');
+
+  /* Не даём клику/Enter всплывать в игровые обработчики (старт, пауза и т.п.). */
+  ['pointerdown', 'click', 'keydown'].forEach(function (type) {
+    link.addEventListener(type, function (event) { event.stopPropagation(); }, true);
+  });
+
+  /* --- адаптивное размещение, чтобы не перекрывать меню и кнопки игр --- */
+  var INTERACTIVE = 'a,button,input,select,textarea,[role="button"],[tabindex],[onclick]';
+  link.style.setProperty('transform', 'none', 'important');
+
+  function interactiveBoxes() {
+    var boxes = [];
+    var nodes = document.querySelectorAll(INTERACTIVE);
+    for (var i = 0; i < nodes.length; i += 1) {
+      var el = nodes[i];
+      if (el === link || el.contains(link)) continue;
+      var r = el.getBoundingClientRect();
+      if (r.width < 4 || r.height < 4) continue;
+      var cs = window.getComputedStyle(el);
+      if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) < 0.05) continue;
+      if (cs.pointerEvents === 'none') continue;
+      boxes.push({ left: r.left, top: r.top, right: r.right, bottom: r.bottom });
+    }
+    return boxes;
+  }
+
+  function overlap(a, b) {
+    return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  }
+
+  function place() {
+    var w = link.offsetWidth;
+    var h = link.offsetHeight;
+    if (!w || !h) return;
+    var W = window.innerWidth;
+    var H = window.innerHeight;
+    var m = 10;
+    var candidates = [
+      { name: 'left-mid', left: 0, top: Math.round((H - h) / 2), shape: 'tab' },
+      { name: 'bottom-left', left: m, top: H - h - m, shape: 'round' },
+      { name: 'top-left', left: m, top: m, shape: 'round' },
+      { name: 'bottom-right', left: W - w - m, top: H - h - m, shape: 'round' },
+      { name: 'top-right', left: W - w - m, top: m, shape: 'round' },
+      { name: 'bottom-center', left: Math.round((W - w) / 2), top: H - h - m, shape: 'round' },
+      { name: 'top-center', left: Math.round((W - w) / 2), top: m, shape: 'round' }
+    ];
+    var boxes = interactiveBoxes();
+    var chosen = candidates[0];
+    for (var i = 0; i < candidates.length; i += 1) {
+      var c = candidates[i];
+      var box = { left: c.left, top: c.top, right: c.left + w, bottom: c.top + h };
+      var hit = false;
+      for (var j = 0; j < boxes.length; j += 1) {
+        if (overlap(box, boxes[j])) { hit = true; break; }
+      }
+      if (!hit) { chosen = c; break; }
+    }
+    link.style.setProperty('left', chosen.left + 'px', 'important');
+    link.style.setProperty('top', chosen.top + 'px', 'important');
+    link.classList.toggle('catalog-back-round', chosen.shape === 'round');
+    link.dataset.place = chosen.name;
+  }
+
+  var timer = 0;
+  function schedule() {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(place, 120);
+  }
+
+  place();
+  window.setTimeout(place, 350);
+  window.setTimeout(place, 1200);
+  window.addEventListener('resize', schedule, { passive: true });
+  window.addEventListener('orientationchange', schedule, { passive: true });
+  document.addEventListener('fullscreenchange', schedule);
+})();
+</script>
+<!-- /catalog-backlink -->
+</body>
+</html>

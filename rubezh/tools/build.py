@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
-"""Сборка CONTRA: src/shell.html + src/audio.js + src/game.js -> index.html (один файл).
+"""РУБЕЖ: сборка js/ и css/ из src/ (раньше — монолит index.html из src/shell.html).
 
-Запуск:  python3 tools/build.py [--check]
+После порта на движок v2 страницы подключают собранные файлы:
+  index.html  — движок v2 (engine.js + js/host.js) поверх js/audio.js + js/game.js;
+  legacy.html — старая страница со своим меню, те же js/audio.js + js/game.js;
+  обе — css/style.css.
 
-Проверки:
-  * на месте все фрагменты и маркеры <!--AUDIO--> / <!--GAME-->;
-  * JavaScript проходит `node --check`;
-  * в JS нет закрывающего тега </script> (иначе развалится инлайнинг);
-  * extern-ссылки запрещены — порт должен работать офлайн с file://;
-  * index.html перезаписывается только если все проверки прошли.
+  src/audio.js  -> js/audio.js
+  src/game.js   -> js/game.js
+  src/style.css -> css/style.css
+
+Запуск:  python3 tools/build.py [--check]   (--check: только сравнить, код выхода 1 при расхождении)
+
+Проверки перед записью: JS проходит `node --check` (если node есть), в коде нет '</script>',
+нет внешних ссылок (игра работает офлайн и по file://).
 """
 from __future__ import annotations
 
-import argparse
 import re
 import shutil
 import subprocess
@@ -22,13 +26,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
-OUT = ROOT / "index.html"
-
-PARTS = {
-    "AUDIO": SRC / "audio.js",
-    "GAME": SRC / "game.js",
+OUT = {
+    ROOT / "js" / "audio.js": SRC / "audio.js",
+    ROOT / "js" / "game.js": SRC / "game.js",
+    ROOT / "css" / "style.css": SRC / "style.css",
 }
-
 EXTERNAL = re.compile(r"""(?:src|href)\s*=\s*["']https?://|@import\s+url\(\s*["']?https?://|fetch\s*\(\s*["']https?://""", re.I)
 
 
@@ -37,75 +39,46 @@ def fail(msg: str) -> None:
     sys.exit(1)
 
 
-def check_js(path: Path, text: str) -> None:
+def check_js(name: str, text: str) -> None:
     if "</script" in text.lower():
-        fail(f"{path.name}: содержит '</script>' — инлайн сломается")
-    if not text.strip():
-        fail(f"{path.name}: пустой файл")
+        fail(f"{name}: содержит '</script>'")
     node = shutil.which("node")
-    if node:
-        with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as tmp:
-            tmp.write(text)
-            tmp_path = Path(tmp.name)
-        try:
-            proc = subprocess.run([node, "--check", str(tmp_path)], capture_output=True, text=True)
-        finally:
-            tmp_path.unlink(missing_ok=True)
-        if proc.returncode != 0:
-            fail(f"{path.name}: node --check не прошёл\n{proc.stderr.strip()}")
-        print(f"  · {path.name}: node --check OK, {len(text.splitlines())} строк, {len(text) / 1024:.1f} КБ")
-    else:
-        print(f"  · {path.name}: {len(text.splitlines())} строк, {len(text) / 1024:.1f} КБ (node не найден, --check пропущен)")
+    if not node:
+        return
+    with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as tmp:
+        tmp.write(text)
+        tmp_path = Path(tmp.name)
+    try:
+        proc = subprocess.run([node, "--check", str(tmp_path)], capture_output=True, text=True)
+    finally:
+        tmp_path.unlink(missing_ok=True)
+    if proc.returncode != 0:
+        fail(f"{name}: node --check не прошёл\n{proc.stderr.strip()}")
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--check", action="store_true", help="только проверить, не писать index.html")
-    args = ap.parse_args()
-
-    shell_path = SRC / "shell.html"
-    print("CONTRA build")
-    if not shell_path.exists():
-        fail("нет src/shell.html")
-    shell = shell_path.read_text(encoding="utf-8")
-    print(f"  · shell.html: {len(shell.splitlines())} строк")
-
-    for marker in PARTS:
-        if f"<!--{marker}-->" not in shell:
-            fail(f"в shell.html нет маркера <!--{marker}-->")
-
-    payload: dict[str, str] = {}
-    for marker, path in PARTS.items():
-        if not path.exists():
-            fail(f"нет фрагмента src/{path.name}")
-        text = path.read_text(encoding="utf-8")
-        check_js(path, text)
-        payload[marker] = f'<script data-part="{marker.lower()}">\n{text}\n</script>'
-
-    html = shell
-    for marker, block in payload.items():
-        html = html.replace(f"<!--{marker}-->", block)
-    if re.search(r"<!--(AUDIO|GAME)-->", html):
-        fail("маркеры не подставились")
-
-    m = EXTERNAL.search(html)
-    if m:
-        fail(f"внешняя ссылка в ассетах: {html[max(0, m.start()-40):m.start()+60]!r}")
-
-    if "<style>" not in html or "<canvas" not in html:
-        fail("shell.html повреждён: нет <style> или <canvas>")
-    if html.count("<script") != 2:
-        fail(f"ожидалось 2 инлайн-скрипта, найдено {html.count('<script')}")
-
-    size = len(html.encode("utf-8"))
-    print(f"  · результат: {len(html.splitlines())} строк, {size / 1024:.1f} КБ")
-
-    if args.check:
-        print("  ✓ проверки пройдены (index.html не изменён)")
-        return
-
-    OUT.write_text(html, encoding="utf-8")
-    print(f"  ✓ записан {OUT.relative_to(ROOT)}")
+    check = "--check" in sys.argv
+    print("РУБЕЖ build")
+    bad = 0
+    for out, src in OUT.items():
+        if not src.exists():
+            fail(f"нет {src.relative_to(ROOT)}")
+        text = src.read_text(encoding="utf-8")
+        if src.suffix == ".js":
+            check_js(src.name, text)
+        m = EXTERNAL.search(text)
+        if m:
+            fail(f"{src.name}: внешняя ссылка {text[max(0, m.start()-40):m.start()+60]!r}")
+        rel = out.relative_to(ROOT)
+        if check:
+            same = out.exists() and out.read_text(encoding="utf-8") == text
+            print(("  ✓ " if same else "  ✗ ") + f"{rel} {'совпадает с src' if same else 'отличается от src — запустите без --check'}")
+            bad += 0 if same else 1
+        else:
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(text, encoding="utf-8")
+            print(f"  · {rel}: {len(text.splitlines())} строк, {len(text) / 1024:.1f} КБ")
+    sys.exit(1 if bad else 0)
 
 
 if __name__ == "__main__":

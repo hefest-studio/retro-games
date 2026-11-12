@@ -1,5 +1,5 @@
 /* ============================================================
-   EXOLON HTML5 — RETRO-рендерер (ZX Spectrum 1987)
+   ПРОРЫВ HTML5 — RETRO-рендерер (ZX Spectrum 1987)
    Рисует всё в логическом пространстве 256×208, 1 px = 1 пиксель.
    Стиль: чёрный фон, насыщенные цвета, 8×8 «атрибутные» блоки,
    пиксельный шрифт 6×8, минимум сглаживания.
@@ -592,7 +592,7 @@
   function drawTitle() {
     const st = EX.state;
     background(themeOf({ theme: 'space' }));
-    const logo = 'EXOLON';
+    const logo = 'ПРОРЫВ';
     const colors = [P.byellow, P.bcyan, P.bmagenta, P.bgreen, P.bcyan, P.bwhite];
     const sc = 4;
     const tw = textW(logo, sc);
@@ -624,7 +624,7 @@
     }
     /* рекорд */
     text(EX.t('msg.record') + ' ' + String(st.record).padStart(6, '0'), W - 4, 2, P.byellow, 1, 'right');
-    text('HEWSON 1987', 4, 2, P.blue, 1);
+    text('ГЕФЕСТ', 4, 2, P.blue, 1);
     text(EX.t('menu.hint.quick'), W / 2, VH - 9, P.blue, 1, 'center');
     if (EX.BUILD) text(EX.t('settings.build.short', { v: EX.BUILD }), W / 2, 76, P.bblue, 1, 'center');
   }
@@ -928,7 +928,7 @@
       case 'win': drawWin(); break;
       default:
         px('#000000', 0, 0, W, VH);
-        text('EXOLON', W / 2, 90, P.bwhite, 3, 'center');
+        text('ПРОРЫВ', W / 2, 90, P.bwhite, 3, 'center');
         break;
     }
     g.restore();
