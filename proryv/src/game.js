@@ -95,36 +95,36 @@
     return s;
   }
 
-  const EX = (window.EX = window.EX || {});
-  EX.HASH = HASH;
-  EX.TILE = TILE; EX.COLS = COLS; EX.ROWS = ROWS; EX.W = W; EX.H = H;
-  EX.HUD = HUD; EX.VH = VH; EX.PAL = PAL; EX.NEON = NEON;
-  EX.TILES = { EMPTY: T_EMPTY, SOLID: T_SOLID, THIN: T_THIN, ROCK: T_ROCK, SPIKE: T_SPIKE, FLORA: T_FLORA };
-  EX.clamp = clamp;
-  EX.settings = loadSettings();
+  const PR = (window.PR = window.PR || {});
+  PR.HASH = HASH;
+  PR.TILE = TILE; PR.COLS = COLS; PR.ROWS = ROWS; PR.W = W; PR.H = H;
+  PR.HUD = HUD; PR.VH = VH; PR.PAL = PAL; PR.NEON = NEON;
+  PR.TILES = { EMPTY: T_EMPTY, SOLID: T_SOLID, THIN: T_THIN, ROCK: T_ROCK, SPIKE: T_SPIKE, FLORA: T_FLORA };
+  PR.clamp = clamp;
+  PR.settings = loadSettings();
 
-  EX.t = function (key, vars) { return window.EX_T(key, vars); };
-  EX.saveSettings = function () {
+  PR.t = function (key, vars) { return window.PR_T(key, vars); };
+  PR.saveSettings = function () {
     try {
       /* gfx не сохраняем: при каждом запуске — RETRO, переключение только на сессию */
       const toSave = {
-        lang: EX.settings.lang,
-        music: EX.settings.music,
-        sfx: EX.settings.sfx,
-        crt: EX.settings.crt
+        lang: PR.settings.lang,
+        music: PR.settings.music,
+        sfx: PR.settings.sfx,
+        crt: PR.settings.crt
       };
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(toSave));
     } catch (e) { /* ok */ }
   };
-  EX.loadRecord = function () {
+  PR.loadRecord = function () {
     try { return parseInt(localStorage.getItem(RECORD_KEY) || '0', 10) || 0; } catch (e) { return 0; }
   };
-  EX.saveRecord = function (v) {
+  PR.saveRecord = function (v) {
     try { localStorage.setItem(RECORD_KEY, String(v | 0)); } catch (e) { /* ok */ }
   };
 
   /* ---------- аудио-хелперы (модуль может быть заглушкой) ---------- */
-  const A = () => window.EX_AUDIO;
+  const A = () => window.PR_AUDIO;
   function snd(id) { try { const a = A(); if (a && a.sfx) a.sfx(id); } catch (e) { /* ok */ } }
   function music(id) { try { const a = A(); if (a && a.playMusic) a.playMusic(id); } catch (e) { /* ok */ } }
   function duck(on) { try { const a = A(); if (a && a.duck) a.duck(on); } catch (e) { /* ok */ } }
@@ -134,18 +134,18 @@
      ВВОД
      main.js пишет сюда состояния; ядро читает и потребляет actions.
      ============================================================ */
-  const input = EX.input = {
+  const input = PR.input = {
     left: false, right: false, up: false, down: false, fire: false,
     actions: [],              // строки: 'enter','escape','pause','lang','gfx','music','sfx','restart','fullscreen','action'
     pointer: { x: -1, y: -1, down: false, clicked: false },
     prevFire: false
   };
-  EX.pushAction = function (a) { input.actions.push(a); };
+  PR.pushAction = function (a) { input.actions.push(a); };
 
   /* ============================================================
      СОСТОЯНИЕ
      ============================================================ */
-  const state = EX.state = {
+  const state = PR.state = {
     mode: 'boot',
     t: 0,                  // глобальное время, c
     screenT: 0,            // время на текущем экране
@@ -182,15 +182,15 @@
      УРОВНИ / ЭКРАНЫ
      ============================================================ */
   function levelData(i) {
-    const L = window.EX_LEVELS || [];
+    const L = window.PR_LEVELS || [];
     return L[clamp(i, 0, Math.max(0, L.length - 1))] || null;
   }
-  EX.levelData = levelData;
-  EX.levelCount = function () { return (window.EX_LEVELS || []).length; };
-  EX.screenCount = function (li) { const l = levelData(li); return l ? l.screens.length : 0; };
+  PR.levelData = levelData;
+  PR.levelCount = function () { return (window.PR_LEVELS || []).length; };
+  PR.screenCount = function (li) { const l = levelData(li); return l ? l.screens.length : 0; };
 
   const TIDX = (x, y) => y * COLS + x;
-  const world = (window.EX_WORLD = window.EX_WORLD || {});
+  const world = (window.PR_WORLD = window.PR_WORLD || {});
 
   function tileIdAt(tx, ty) {
     const w = state.world;
@@ -200,13 +200,13 @@
     if (ty < 0) return T_EMPTY;
     return w.tiles[TIDX(tx, ty)];
   }
-  EX.tileAt = tileIdAt;
+  PR.tileAt = tileIdAt;
 
   function isBlocking(tx, ty) {
     const t = tileIdAt(tx, ty);
     return t === T_SOLID || t === T_ROCK;
   }
-  EX.isBlocking = isBlocking;
+  PR.isBlocking = isBlocking;
 
   function findSpawn(tiles) {
     for (let y = ROWS - 2; y >= 0; y--) {
@@ -282,7 +282,7 @@
     if (opts.freshAmmo) { p.laser = 60; p.rockets = 2; }
     if (opts.keepExo) { p.exo = true; p.armor = 3; } else if (!opts.keepExo) { p.exo = false; p.armor = 0; }
   }
-  EX.loadScreen = loadScreen;
+  PR.loadScreen = loadScreen;
 
   function makePlayer() {
     return {
@@ -294,7 +294,7 @@
       anim: 0, step: 0, air: 0, hitT: 0
     };
   }
-  EX.makePlayer = makePlayer;
+  PR.makePlayer = makePlayer;
 
   /* ============================================================
      СУЩНОСТИ
@@ -316,7 +316,7 @@
     exo: { w: 16, h: 20, hp: 1, score: 0, blast: false, grenade: false },
     teleporter: { w: 12, h: 16, hp: 1, score: 0, blast: false, grenade: false }
   };
-  EX.ENEMY = ENEMY;
+  PR.ENEMY = ENEMY;
 
   function addEntity(d) {
     const spec = ENEMY[d.t];
@@ -341,7 +341,7 @@
     state.ents.push(e);
     return e;
   }
-  EX.addEntity = addEntity;
+  PR.addEntity = addEntity;
 
   /* ============================================================
      ФИЗИКА
@@ -407,7 +407,7 @@
     gravity: 900, jump: -252, jumpCut: 0.42, maxFall: 420,
     duckSpeed: 32
   };
-  EX.PHYS = PHYS;
+  PR.PHYS = PHYS;
 
   function updatePlayer(dt) {
     const p = state.player;
@@ -681,8 +681,8 @@
       if (e.dead || e.t === 'teleporter') continue;
       const spec = ENEMY[e.t];
       if (!spec || !spec.grenade) continue;
-      const ex = e.x + e.w / 2, ey = e.y + e.h / 2;
-      if (Math.hypot(ex - x, ey - y) < radius + Math.max(e.w, e.h) / 2) damageEntity(e, 1, 'grenade');
+      const ecx = e.x + e.w / 2, ecy = e.y + e.h / 2;
+      if (Math.hypot(ecx - x, ecy - y) < radius + Math.max(e.w, e.h) / 2) damageEntity(e, 1, 'grenade');
     }
     /* мины детонируют цепочкой */
     for (let j = 0; j < state.ents.length; j++) {
@@ -695,13 +695,13 @@
       }
     }
   }
-  EX.explode = explode;
+  PR.explode = explode;
 
   function addScore(n, x, y) {
     state.score += n;
     if (x != null) state.pops.push({ x, y, text: (n > 0 ? '+' : '') + n, life: 0.9, max: 0.9, color: PAL.byellow });
   }
-  EX.addScore = addScore;
+  PR.addScore = addScore;
 
   function damageEntity(e, dmg, src) {
     const spec = ENEMY[e.t];
@@ -941,7 +941,7 @@
     }
     die(cause);
   }
-  EX.hurtPlayer = hurtPlayer;
+  PR.hurtPlayer = hurtPlayer;
 
   function die(cause) {
     const p = state.player;
@@ -960,7 +960,7 @@
     snd('death');
     duck(true);
   }
-  EX.die = die;
+  PR.die = die;
 
   /* ============================================================
      ПЕРЕХОД ЭКРАНОВ
@@ -1013,7 +1013,7 @@
     b.chosen = chosen;
     b.index = b.values.indexOf(chosen);
     let gained = chosen;
-    b.lines = [EX.t('msg.bonus.pick2')];
+    b.lines = [PR.t('msg.bonus.pick2')];
     const livesBonus = state.lives * 1000;
     gained += livesBonus;
     b.livesBonus = livesBonus;
@@ -1030,7 +1030,7 @@
 
   function nextLevel() {
     const lv = levelData(state.level);
-    const last = !lv || state.level + 1 >= EX.levelCount();
+    const last = !lv || state.level + 1 >= PR.levelCount();
     if (last) {
       state.mode = 'win';
       state.winTimer = 0;
@@ -1038,7 +1038,7 @@
       snd('win');
       if (state.score > state.record) {
         state.record = state.score;
-        EX.saveRecord(state.record);
+        PR.saveRecord(state.record);
         state.newRecord = true;
       }
       duck(true);
@@ -1072,7 +1072,7 @@
     music('game');
     intensity(0);
   }
-  EX.newGame = newGame;
+  PR.newGame = newGame;
 
   function respawn() {
     state.mode = 'play';
@@ -1083,7 +1083,7 @@
     music(state.level >= 4 ? 'final' : 'game');
     intensity(state.exo === true ? 0.7 : 0);
   }
-  EX.respawn = respawn;
+  PR.respawn = respawn;
 
   /* ============================================================
      РЕЖИМЫ / МЕНЮ
@@ -1101,57 +1101,57 @@
       duck(true);
       if (state.score > state.record) {
         state.record = state.score;
-        EX.saveRecord(state.record);
+        PR.saveRecord(state.record);
         state.newRecord = true;
       }
       music('gameover');
     }
   }
-  EX.setMode = setMode;
+  PR.setMode = setMode;
 
   function titleItems() {
     return [
-      { key: 'play', label: EX.t('menu.play') },
-      { key: 'help', label: EX.t('menu.help') },
-      { key: 'settings', label: EX.t('menu.settings') },
-      { key: 'about', label: EX.t('menu.about') }
+      { key: 'play', label: PR.t('menu.play') },
+      { key: 'help', label: PR.t('menu.help') },
+      { key: 'settings', label: PR.t('menu.settings') },
+      { key: 'about', label: PR.t('menu.about') }
     ];
   }
   function pauseItems() {
     return [
-      { key: 'resume', label: EX.t('pause.resume') },
-      { key: 'restart', label: EX.t('pause.restart') },
-      { key: 'settings', label: EX.t('pause.settings') },
-      { key: 'menu', label: EX.t('pause.menu') }
+      { key: 'resume', label: PR.t('pause.resume') },
+      { key: 'restart', label: PR.t('pause.restart') },
+      { key: 'settings', label: PR.t('pause.settings') },
+      { key: 'menu', label: PR.t('pause.menu') }
     ];
   }
   function settingsItems() {
-    const s = EX.settings;
+    const s = PR.settings;
     return [
-      { key: 'lang', label: EX.t('settings.lang'), value: s.lang === 'ru' ? 'РУССКИЙ' : 'ENGLISH' },
-      { key: 'gfx', label: EX.t('settings.gfx'), value: s.gfx === 'retro' ? EX.t('gfx.retro') : EX.t('gfx.modern') },
-      { key: 'music', label: EX.t('settings.music'), value: s.music ? EX.t('settings.on') : EX.t('settings.off') },
-      { key: 'sfx', label: EX.t('settings.sfx'), value: s.sfx ? EX.t('settings.on') : EX.t('settings.off') },
-      { key: 'crt', label: EX.t('settings.crt'), value: s.crt ? EX.t('settings.on') : EX.t('settings.off') },
-      { key: 'reset', label: EX.t('settings.reset'), value: '' },
-      { key: 'back', label: 'ESC', value: EX.t('settings.back') }
+      { key: 'lang', label: PR.t('settings.lang'), value: s.lang === 'ru' ? 'РУССКИЙ' : 'ENGLISH' },
+      { key: 'gfx', label: PR.t('settings.gfx'), value: s.gfx === 'retro' ? PR.t('gfx.retro') : PR.t('gfx.modern') },
+      { key: 'music', label: PR.t('settings.music'), value: s.music ? PR.t('settings.on') : PR.t('settings.off') },
+      { key: 'sfx', label: PR.t('settings.sfx'), value: s.sfx ? PR.t('settings.on') : PR.t('settings.off') },
+      { key: 'crt', label: PR.t('settings.crt'), value: s.crt ? PR.t('settings.on') : PR.t('settings.off') },
+      { key: 'reset', label: PR.t('settings.reset'), value: '' },
+      { key: 'back', label: 'ESC', value: PR.t('settings.back') }
     ];
   }
   function gameoverItems() {
     return [
-      { key: 'retry', label: EX.t('msg.continue') },
-      { key: 'menu', label: EX.t('pause.menu') }
+      { key: 'retry', label: PR.t('msg.continue') },
+      { key: 'menu', label: PR.t('pause.menu') }
     ];
   }
 
-  const UI = EX.ui = {
+  const UI = PR.ui = {
     items: function () {
       const m = state.mode;
       if (m === 'title') return titleItems();
       if (m === 'paused') return pauseItems();
       if (m === 'settings') return settingsItems();
       if (m === 'gameover') return gameoverItems();
-      if (m === 'win') return [{ key: 'menu', label: EX.t('pause.menu') }];
+      if (m === 'win') return [{ key: 'menu', label: PR.t('pause.menu') }];
       return [];
     },
     /* раскладка — общая для обоих рендереров; координаты логические 256×208 */
@@ -1205,12 +1205,12 @@
         else if (it.key === 'menu') { setMode('title'); }
         break;
       case 'settings':
-        if (it.key === 'lang') { EX.toggleLang(); }
-        else if (it.key === 'gfx') { EX.toggleGfx(); }
-        else if (it.key === 'music') { EX.toggleMusic(); }
-        else if (it.key === 'sfx') { EX.toggleSfx(); }
-        else if (it.key === 'crt') { EX.toggleCrt(); }
-        else if (it.key === 'reset') { EX.resetRecord(); state.resetAsk = 1.2; }
+        if (it.key === 'lang') { PR.toggleLang(); }
+        else if (it.key === 'gfx') { PR.toggleGfx(); }
+        else if (it.key === 'music') { PR.toggleMusic(); }
+        else if (it.key === 'sfx') { PR.toggleSfx(); }
+        else if (it.key === 'crt') { PR.toggleCrt(); }
+        else if (it.key === 'reset') { PR.resetRecord(); state.resetAsk = 1.2; }
         else if (it.key === 'back') { leaveSettings(); }
         break;
       case 'gameover':
@@ -1230,48 +1230,48 @@
   }
 
   /* переключатели настроек */
-  EX.toggleLang = function () {
-    EX.settings.lang = EX.settings.lang === 'ru' ? 'en' : 'ru';
-    EX.saveSettings();
+  PR.toggleLang = function () {
+    PR.settings.lang = PR.settings.lang === 'ru' ? 'en' : 'ru';
+    PR.saveSettings();
     snd('select');
     if (state.mode === 'briefing' || state.mode === 'levelclear') { /* тексты берутся заново */ }
   };
-  EX.toggleGfx = function () {
-    EX.settings.gfx = EX.settings.gfx === 'retro' ? 'modern' : 'retro';
-    EX.saveSettings();
+  PR.toggleGfx = function () {
+    PR.settings.gfx = PR.settings.gfx === 'retro' ? 'modern' : 'retro';
+    PR.saveSettings();
     snd('select');
     state.fx.flash = 0.18;
-    state.fx.flashColor = EX.settings.gfx === 'modern' ? NEON.cyan : PAL.bwhite;
+    state.fx.flashColor = PR.settings.gfx === 'modern' ? NEON.cyan : PAL.bwhite;
   };
-  EX.toggleMusic = function () {
-    EX.settings.music = !EX.settings.music;
-    EX.saveSettings();
+  PR.toggleMusic = function () {
+    PR.settings.music = !PR.settings.music;
+    PR.saveSettings();
     const a = A();
-    if (a && a.setMusic) a.setMusic(EX.settings.music);
-    if (EX.settings.music) {
+    if (a && a.setMusic) a.setMusic(PR.settings.music);
+    if (PR.settings.music) {
       music(state.mode === 'title' ? 'title' : state.mode === 'gameover' ? 'gameover' : state.level >= 4 ? 'final' : (state.player && state.player.exo ? 'exo' : 'game'));
     } else if (a && a.stopMusic) a.stopMusic();
     snd('select');
   };
-  EX.toggleSfx = function () {
-    EX.settings.sfx = !EX.settings.sfx;
-    EX.saveSettings();
+  PR.toggleSfx = function () {
+    PR.settings.sfx = !PR.settings.sfx;
+    PR.saveSettings();
     const a = A();
-    if (a && a.setSfx) a.setSfx(EX.settings.sfx);
+    if (a && a.setSfx) a.setSfx(PR.settings.sfx);
     snd('select');
   };
-  EX.toggleCrt = function () {
-    EX.settings.crt = !EX.settings.crt;
-    EX.saveSettings();
+  PR.toggleCrt = function () {
+    PR.settings.crt = !PR.settings.crt;
+    PR.saveSettings();
     snd('select');
   };
-  EX.resetRecord = function () {
+  PR.resetRecord = function () {
     state.record = 0;
-    EX.saveRecord(0);
+    PR.saveRecord(0);
     snd('deny');
   };
-  EX.setLang = function (lang) { EX.settings.lang = lang === 'en' ? 'en' : 'ru'; EX.saveSettings(); };
-  EX.setGfx = function (gfx) { EX.settings.gfx = gfx === 'modern' ? 'modern' : 'retro'; EX.saveSettings(); };
+  PR.setLang = function (lang) { PR.settings.lang = lang === 'en' ? 'en' : 'ru'; PR.saveSettings(); };
+  PR.setGfx = function (gfx) { PR.settings.gfx = gfx === 'modern' ? 'modern' : 'retro'; PR.saveSettings(); };
 
   /* ============================================================
      ОБРАБОТКА ДЕЙСТВИЙ И ХОТКЕЕВ
@@ -1283,16 +1283,16 @@
     for (let i = 0; i < acts.length; i++) {
       const a = acts[i];
       /* глобальные переключатели */
-      if (a === 'lang') { EX.toggleLang(); continue; }
-      if (a === 'gfx') { EX.toggleGfx(); continue; }
-      if (a === 'music') { EX.toggleMusic(); continue; }
-      if (a === 'sfx') { EX.toggleSfx(); continue; }
-      if (a === 'mute') { EX.toggleMusic(); continue; }
+      if (a === 'lang') { PR.toggleLang(); continue; }
+      if (a === 'gfx') { PR.toggleGfx(); continue; }
+      if (a === 'music') { PR.toggleMusic(); continue; }
+      if (a === 'sfx') { PR.toggleSfx(); continue; }
+      if (a === 'mute') { PR.toggleMusic(); continue; }
       const m = state.mode;
       if (a === 'enter' || a === 'action') {
         if (m === 'title' || m === 'paused' || m === 'settings' || m === 'gameover' || m === 'win') {
           if (m === 'settings' && state.resetAsk > 0 && UI.items()[state.menuIndex] && UI.items()[state.menuIndex].key === 'reset') {
-            EX.resetRecord(); state.resetAsk = 0; continue;
+            PR.resetRecord(); state.resetAsk = 0; continue;
           }
           activate(state.menuIndex);
         } else if (m === 'help' || m === 'about') {
@@ -1345,15 +1345,15 @@
     const items = UI.items();
     const it = items[index];
     if (!it) return;
-    if (it.key === 'lang') { EX.toggleLang(); return; }
-    if (it.key === 'gfx') { EX.toggleGfx(); return; }
-    if (it.key === 'music') { EX.toggleMusic(); return; }
-    if (it.key === 'sfx') { EX.toggleSfx(); return; }
-    if (it.key === 'crt') { EX.toggleCrt(); return; }
+    if (it.key === 'lang') { PR.toggleLang(); return; }
+    if (it.key === 'gfx') { PR.toggleGfx(); return; }
+    if (it.key === 'music') { PR.toggleMusic(); return; }
+    if (it.key === 'sfx') { PR.toggleSfx(); return; }
+    if (it.key === 'crt') { PR.toggleCrt(); return; }
   }
 
   /* клик мышью/тапом по меню */
-  EX.click = function (x, y) {
+  PR.click = function (x, y) {
     const m = state.mode;
     if (m === 'title' || m === 'paused' || m === 'settings' || m === 'gameover' || m === 'win') {
       const idx = UI.hit(x, y);
@@ -1362,7 +1362,7 @@
     }
     return false;
   };
-  EX.hover = function (x, y) {
+  PR.hover = function (x, y) {
     const m = state.mode;
     if (m === 'title' || m === 'paused' || m === 'settings' || m === 'gameover' || m === 'win') {
       const idx = UI.hit(x, y);
@@ -1437,7 +1437,7 @@
     } else {
       b.resultTimer += dt;
       if (b.resultTimer > 3.2 || b.resultTimer > 99) {
-        if (state.level + 1 >= EX.levelCount()) {
+        if (state.level + 1 >= PR.levelCount()) {
           nextLevel();
         } else {
           nextLevel();
@@ -1446,13 +1446,13 @@
     }
   }
 
-  EX.update = function (dt) {
+  PR.update = function (dt) {
     dt = Math.min(dt, 0.05);
     state.t += dt;
     handleActions();
     if (input.pointer.clicked) {
       input.pointer.clicked = false;
-      EX.click(input.pointer.x, input.pointer.y);
+      PR.click(input.pointer.x, input.pointer.y);
     }
     const m = state.mode;
     if (m === 'play') updatePlay(dt);
@@ -1479,13 +1479,13 @@
   };
 
   /* окно детерминированного шага для тестов */
-  EX.stepFixed = function (dt) { EX.update(dt); return state; };
+  PR.stepFixed = function (dt) { PR.update(dt); return state; };
 
   /* ============================================================
      НАЧАЛЬНОЕ СОСТОЯНИЕ / ДЕМО-РЕЖИМ
      ============================================================ */
-  EX.prepareTitle = function () {
-    state.record = EX.loadRecord();
+  PR.prepareTitle = function () {
+    state.record = PR.loadRecord();
     state.mode = 'title';
     state.menuIndex = 0;
     /* фоновая сцена для титульного экрана: первый экран первого уровня */
@@ -1499,11 +1499,11 @@
   };
 
   /* debug-сценарии для скриншотов (#shot=...) */
-  EX.prepareShot = function (shot, opts) {
+  PR.prepareShot = function (shot, opts) {
     opts = opts || {};
     const lv = opts.level != null ? opts.level : 0;
     const sc = opts.screen != null ? opts.screen : 0;
-    state.record = EX.loadRecord();
+    state.record = PR.loadRecord();
     state.lives = 4;
     state.score = 12750;
     state.level = lv;
@@ -1572,7 +1572,7 @@
         break;
       case 'title':
       default:
-        EX.prepareTitle();
+        PR.prepareTitle();
         break;
     }
     state.menuIndex = state.menuIndex || 0;
@@ -1582,10 +1582,10 @@
   /* ============================================================
      ТЕСТЫ (#test)
      ============================================================ */
-  EX.runTests = function () {
+  PR.runTests = function () {
     const res = [];
     const ok = function (name, cond) { res.push({ name, ok: !!cond }); };
-    const levels = window.EX_LEVELS || [];
+    const levels = window.PR_LEVELS || [];
 
     ok('уровней 5', levels.length === 5);
     ok('экранов по 5', levels.every((l) => l && l.screens && l.screens.length === 5));
@@ -1600,7 +1600,7 @@
     /* шрифт покрывает все строки локализации */
     const chars = new Set();
     ['ru', 'en'].forEach((lang) => {
-      Object.values(window.EX_I18N[lang]).forEach((s) => { for (const ch of String(s)) chars.add(ch); });
+      Object.values(window.PR_I18N[lang]).forEach((s) => { for (const ch of String(s)) chars.add(ch); });
     });
     levels.forEach((l) => {
       ['ru', 'en'].forEach((lang) => {
@@ -1608,20 +1608,20 @@
       });
     });
     const missing = [];
-    chars.forEach((ch) => { if (!/\s/.test(ch) && !window.EX_FONT.has(ch)) missing.push(ch); });
+    chars.forEach((ch) => { if (!/\s/.test(ch) && !window.PR_FONT.has(ch)) missing.push(ch); });
     ok('шрифт: все символы (' + (chars.size) + ')', missing.length === 0);
     if (missing.length) state.debug.missingGlyphs = missing.join('');
 
     ok('локализация: паритет ключей', (function () {
-      const a = Object.keys(window.EX_I18N.ru).sort().join('|');
-      const b = Object.keys(window.EX_I18N.en).sort().join('|');
+      const a = Object.keys(window.PR_I18N.ru).sort().join('|');
+      const b = Object.keys(window.PR_I18N.en).sort().join('|');
       return a === b;
     })());
 
     /* физика: игрок падает на землю */
-    EX.prepareShot('play', { level: 0, screen: 0 });
+    PR.prepareShot('play', { level: 0, screen: 0 });
     state.player.y = 40;
-    for (let i = 0; i < 90; i++) EX.stepFixed(1 / 60);
+    for (let i = 0; i < 90; i++) PR.stepFixed(1 / 60);
     ok('игрок стоит на земле', state.player.onGround === true);
 
     /* бластер убивает ходячего */
@@ -1632,7 +1632,7 @@
     state.player.x = w.x - 40; state.player.y = w.y; state.player.facing = 1; state.player.dir = 1;
     state.player.cool = 0; state.player.laser = 100;
     fireBlaster();
-    for (let i = 0; i < 40; i++) EX.stepFixed(1 / 60);
+    for (let i = 0; i < 40; i++) PR.stepFixed(1 / 60);
     ok('бластер убивает врага (+150)', w.dead && state.score - before >= 150);
 
     /* пушка не боится бластера */
@@ -1643,14 +1643,14 @@
     state.player.x = tur.x - 40;
     state.player.cool = 0;
     fireBlaster();
-    for (let i = 0; i < 40; i++) EX.stepFixed(1 / 60);
+    for (let i = 0; i < 40; i++) PR.stepFixed(1 / 60);
     ok('пушка неуязвима для бластера', !tur.dead);
 
     /* граната взрывает пушку */
     state.player.facing = 1;
     state.player.rockets = 3;
     throwGrenade();
-    for (let i = 0; i < 120 && !tur.dead; i++) EX.stepFixed(1 / 60);
+    for (let i = 0; i < 120 && !tur.dead; i++) PR.stepFixed(1 / 60);
     ok('граната убивает пушку', tur.dead);
 
     /* разрушаемый камень */
@@ -1667,32 +1667,32 @@
     ok('доп. жизнь за уровень', state.lives === 4);
 
     /* рекорд */
-    EX.saveRecord(12345);
-    ok('рекорд в localStorage', EX.loadRecord() === 12345);
-    EX.saveRecord(0);
+    PR.saveRecord(12345);
+    ok('рекорд в localStorage', PR.loadRecord() === 12345);
+    PR.saveRecord(0);
 
     /* переключения */
-    const g0 = EX.settings.gfx; EX.toggleGfx(); const g1 = EX.settings.gfx;
-    EX.toggleGfx();
-    ok('переключение графики', g0 !== g1 && EX.settings.gfx === g0);
-    const l0 = EX.settings.lang; EX.toggleLang();
-    ok('переключение языка', EX.settings.lang !== l0);
-    EX.toggleLang();
+    const g0 = PR.settings.gfx; PR.toggleGfx(); const g1 = PR.settings.gfx;
+    PR.toggleGfx();
+    ok('переключение графики', g0 !== g1 && PR.settings.gfx === g0);
+    const l0 = PR.settings.lang; PR.toggleLang();
+    ok('переключение языка', PR.settings.lang !== l0);
+    PR.toggleLang();
 
     /* меню */
-    EX.prepareTitle();
+    PR.prepareTitle();
     state.menuIndex = 1;
-    EX.pushAction('down');
-    EX.stepFixed(1 / 60);
+    PR.pushAction('down');
+    PR.stepFixed(1 / 60);
     ok('навигация меню', state.menuIndex === 2);
 
     /* пауза */
-    EX.prepareShot('play');
-    EX.pushAction('pause');
-    EX.stepFixed(1 / 60);
+    PR.prepareShot('play');
+    PR.pushAction('pause');
+    PR.stepFixed(1 / 60);
     ok('пауза', state.mode === 'paused');
-    EX.pushAction('pause');
-    EX.stepFixed(1 / 60);
+    PR.pushAction('pause');
+    PR.stepFixed(1 / 60);
     ok('снятие паузы', state.mode === 'play');
 
     /* переход на следующий экран */
@@ -1700,40 +1700,40 @@
     state.screen = 0;
     loadScreen(0, 0, { fresh: true, freshAmmo: true, invuln: 999 });
     state.player.x = W - 2;
-    EX.stepFixed(1 / 60);
+    PR.stepFixed(1 / 60);
     ok('выход за правый край = новый экран', state.screen === 1);
 
     /* последний экран уровня → уровень пройден */
     loadScreen(0, 4, { fresh: true, freshAmmo: true, invuln: 999 });
     state.player.x = W - 2;
-    EX.stepFixed(1 / 60);
+    PR.stepFixed(1 / 60);
     ok('конец уровня → зачёт бонуса', state.mode === 'levelclear');
 
     /* телепорт */
-    EX.prepareShot('play');
+    PR.prepareShot('play');
     state.ents = [];
     addEntity({ t: 'teleporter', x: 2, y: 20, group: 1 });
     addEntity({ t: 'teleporter', x: 26, y: 8, group: 1 });
     const p = state.player;
     p.x = 2 * 8 + 1; p.y = 21 * 8 - p.h; p.onGround = true;
     input.down = true;
-    EX.stepFixed(1 / 60);
+    PR.stepFixed(1 / 60);
     input.down = false;
     ok('телепорт переносит', p.x > 100);
 
     /* --- интеграционные проверки механик --- */
     /* смерть и респавн */
-    EX.newGame();
+    PR.newGame();
     state.mode = 'play';
     state.player.invuln = 0;
     const lives0 = state.lives;
     hurtPlayer(1, 'test');
     ok('смерть: -1 жизнь, режим dead', state.mode === 'dead' && state.lives === lives0 - 1);
-    for (let i = 0; i < 120; i++) EX.stepFixed(1 / 60);
+    for (let i = 0; i < 120; i++) PR.stepFixed(1 / 60);
     ok('респавн после смерти', state.mode === 'play' && state.player.alive === true);
 
     /* экзоскелет: 3 удара */
-    EX.newGame();
+    PR.newGame();
     state.mode = 'play';
     state.player.exo = true;
     state.player.armor = 3;
@@ -1742,22 +1742,22 @@
     ok('экзоскелет: 3 удара, потом потеря', arm.join(',') === '2,1,0' && !state.player.exo && state.player.alive);
 
     /* формула бонуса без экзо и с экзо */
-    EX.prepareShot('bonus');
+    PR.prepareShot('bonus');
     state.lives = 2; state.woreExo = false;
     state.bonus.phase = 'pick';
-    EX.pushAction('action'); EX.stepFixed(1 / 60);
+    PR.pushAction('action'); PR.stepFixed(1 / 60);
     const chosenV = state.bonus.chosen;
     const wantNoExo = chosenV + 2 * 1000 + 10000;
     const gotNoExo = state.bonus.gained;
-    EX.prepareShot('bonus');
+    PR.prepareShot('bonus');
     state.lives = 2; state.woreExo = true;
     state.bonus.phase = 'pick';
-    EX.pushAction('action'); EX.stepFixed(1 / 60);
+    PR.pushAction('action'); PR.stepFixed(1 / 60);
     const wantExo = state.bonus.chosen + 2 * 1000;
     ok('бонус: +10000 без экзо / 0 с экзо', gotNoExo === wantNoExo && state.bonus.gained === wantExo);
 
     /* полный проход первого уровня */
-    EX.newGame();
+    PR.newGame();
     state.mode = 'play';
     state.player.invuln = 1e6;
     input.left = input.right = input.up = input.down = input.fire = false;
@@ -1767,7 +1767,7 @@
       while (state.mode === 'play' && state.screen === scr && guard++ < 1200) {
         input.right = true; input.up = (guard % 26) < 4;
         state.player.invuln = 1e6;   /* проверяем геометрию, а не бой */
-        EX.stepFixed(1 / 60);
+        PR.stepFixed(1 / 60);
       }
       input.right = false; input.up = false;
       lastMode = state.mode;
@@ -1775,7 +1775,7 @@
     ok('экран за экраном → бонус сектора', lastMode === 'levelclear' || lastMode === 'bonus');
 
     /* телепорт */
-    EX.prepareShot('play');
+    PR.prepareShot('play');
     state.ents = [];
     addEntity({ t: 'teleporter', x: 2, y: 20, group: 1 });
     addEntity({ t: 'teleporter', x: 26, y: 9, group: 1 });
@@ -1783,27 +1783,27 @@
     state.player.y = 152;
     state.player.onGround = true;
     input.down = true;
-    EX.stepFixed(1 / 60);
+    PR.stepFixed(1 / 60);
     input.down = false;
     ok('телепорт переносит к паре', state.player.x > 150);
 
     /* режимы стрельбы: клик vs удержание */
-    EX.prepareShot('play');
+    PR.prepareShot('play');
     state.player.laser = 100;
     state.player.rockets = 3;
     input.fire = false;
-    EX.stepFixed(1 / 60);
+    PR.stepFixed(1 / 60);
     input.fire = true;
-    EX.stepFixed(1 / 60);
+    PR.stepFixed(1 / 60);
     const firedLaser = state.shots.length >= 1 && state.player.laser < 100;
-    for (let i = 0; i < 22; i++) EX.stepFixed(1 / 60);
+    for (let i = 0; i < 22; i++) PR.stepFixed(1 / 60);
     const firedGrenade = state.shots.some((sh) => sh.grenade) && state.player.rockets === 2;
     input.fire = false;
-    EX.stepFixed(1 / 60);
+    PR.stepFixed(1 / 60);
     ok('клик — бластер, удержание — граната', firedLaser && firedGrenade);
 
     /* пушка: бластер не берёт, граната берёт */
-    EX.prepareShot('play');
+    PR.prepareShot('play');
     state.ents = [];
     const tur2 = addEntity({ t: 'turret', x: 12, y: 20 });
     state.player.x = tur2.x - 44;
@@ -1812,28 +1812,28 @@
     state.player.laser = 100;
     state.shots = [];
     fireBlaster();
-    for (let i = 0; i < 30; i++) EX.stepFixed(1 / 60);
+    for (let i = 0; i < 30; i++) PR.stepFixed(1 / 60);
     const turAlive = !tur2.dead;
     state.player.rockets = 3;
     state.player.cool = 0;
     throwGrenade();
-    for (let i = 0; i < 150 && !tur2.dead; i++) EX.stepFixed(1 / 60);
+    for (let i = 0; i < 150 && !tur2.dead; i++) PR.stepFixed(1 / 60);
     ok('пушка: бластер мимо, граната в цель', turAlive && tur2.dead);
 
     /* аудио-модуль */
-    const A = window.EX_AUDIO || {};
+    const A = window.PR_AUDIO || {};
     ok('аудио-API на месте', ['init', 'unlock', 'setMusic', 'setSfx', 'playMusic', 'stopMusic', 'sfx', 'duck'].every((k) => typeof A[k] === 'function'));
 
     /* меню настроек открывается без исключений */
     let settingsOk = true;
     try {
-      EX.prepareShot('settings');
-      if (window.EX_RENDER_RETRO) window.EX_RENDER_RETRO.draw(document.createElement('canvas').getContext('2d'), { t: 0 });
+      PR.prepareShot('settings');
+      if (window.PR_RENDER_RETRO) window.PR_RENDER_RETRO.draw(document.createElement('canvas').getContext('2d'), { t: 0 });
     } catch (e) { settingsOk = false; }
     ok('экран настроек рисуется', settingsOk);
 
     /* режимы не падают */
-    ok('режим title', (EX.prepareTitle(), state.mode === 'title'));
+    ok('режим title', (PR.prepareTitle(), state.mode === 'title'));
 
     return res;
   };

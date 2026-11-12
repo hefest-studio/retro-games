@@ -41,9 +41,9 @@ a.back{position:fixed;left:10px;top:8px;color:#4f6378;font-size:12px;text-decora
 <script>
 'use strict';
 /* Оболочка v2: меню/пауза/темы/язык/счёт/рекорд/музыка — движок Arcade; полёт, река, враги, топливо —
-   родной js/game.js (без своего canvas#game он не запускает свой цикл и DOM-меню, управляется через RR.test),
+   родной js/game.js (без своего canvas#game он не запускает свой цикл и DOM-меню, управляется через RUSLO.test),
    отрисовка — родной js/render.js (retro = 8-бит, modern = неон). */
-// Перенос старого рекорда (ruslo.hi; ключи прежнего имени переносит RR.store.migrate в core.js)
+// Перенос старого рекорда (ruslo.hi; ключи прежнего имени переносит RUSLO.store.migrate в core.js)
 // в общий ключ движка — один раз.
 (function(){ try{ var S=Arcade.Store, k='arcade.best.ruslo';
   if(S.get('arcade.migrated.ruslo',null)) return;
@@ -65,12 +65,12 @@ var g=Arcade.createGame({canvas:'#c',width:360,height:540,gameId:'ruslo',strings
 g.input.bindDpad(document.querySelector('.pad'));
 function fit(){ g.fit(Math.min(420,Math.max(240,(innerHeight-70)*360/540))); }
 fit(); addEventListener('resize',fit);
-var started=false, lang=null, S=RR.S, T=RR.test;
-function syncLang(){ if(lang!==g.i18n.lang){ lang=g.i18n.lang; if(RR.getLang()!==lang) RR.setLang(lang);
+var started=false, lang=null, S=RUSLO.S, T=RUSLO.test;
+function syncLang(){ if(lang!==g.i18n.lang){ lang=g.i18n.lang; if(RUSLO.getLang()!==lang) RUSLO.setLang(lang);
   document.title=g.t('title')+(lang==='ru'?' · Над рекой — HTML5':' · Over the river — HTML5'); document.documentElement.lang=lang;
   document.getElementById('foot').innerHTML=g.t('foot',''); } }
-function syncCfg(){ S.gfx=g.themeName==='retro'?'retro':'modern'; RR.cfg.sound=g.audio.enabled;
-  try{ if(RR.cfg.audioReady) Chiptune.setMuted(!g.audio.enabled); }catch(e){} }
+function syncCfg(){ S.gfx=g.themeName==='retro'?'retro':'modern'; RUSLO.cfg.sound=g.audio.enabled;
+  try{ if(RUSLO.cfg.audioReady) Chiptune.setMuted(!g.audio.enabled); }catch(e){} }
 (function poll(){ syncLang(); syncCfg(); requestAnimationFrame(poll); })();
 // G — графика (старая клавиша) = смена темы движка.
 addEventListener('keydown',function(e){ if(e.code==='KeyG'&&!e.repeat) g.toggleTheme(); });
@@ -89,7 +89,7 @@ g.scene('play',{realtime:true,
     T.update(Math.min(0.05,dt));
     this.state.score=S.score; this.state.level=S.level; this.state.lives=S.lives;
     if(S.mode==='over'){ started=false; T.hold('fire',false); this.gameover(); } },
-  draw:function(ctx){ syncCfg(); RR.Render.draw(ctx,S); }
+  draw:function(ctx){ syncCfg(); RUSLO.Render.draw(ctx,S); }
 });
 g.start('title');
 </script></body></html>

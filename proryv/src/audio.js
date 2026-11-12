@@ -41,7 +41,7 @@
      ============================================================ */
 
   const AC = (typeof window !== 'undefined') ? (window.AudioContext || window.webkitAudioContext) : null;
-  const DEBUG = (typeof window !== 'undefined') && window.__EX_AUDIO_DEBUG__ === true;
+  const DEBUG = (typeof window !== 'undefined') && window.__PR_AUDIO_DEBUG__ === true;
 
   const LOOKAHEAD_MS = 25;        // период планировщика
   const SCHEDULE_AHEAD = 0.12;    // на сколько секунд вперёд планируем
@@ -1439,7 +1439,7 @@
     api._tracks = TRACKS;
   }
 
-  window.EX_AUDIO = api;
+  window.PR_AUDIO = api;
 
   /* ---------- автопробуждение по первому жесту и пауза во вкладке ---------- */
 

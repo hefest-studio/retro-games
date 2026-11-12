@@ -214,8 +214,8 @@ try {
   await test('спрайты героев саги 1 и саги 2 совпадают: блок HERO-SPRITES дословно и попиксельно', async () => {
     const { readFileSync } = await import('node:fs');
     const blk = (f) => { const m = readFileSync(join(ROOT, f), 'utf8').match(/\/\* ==== HERO-SPRITES:BEGIN ====[\s\S]*?\/\* ==== HERO-SPRITES:END ==== \*\//); return m ? m[0] : null; };
-    const A = blk('saga/js/game.js'), B = blk('saga-2/js/vikings-retro.js');
-    ok(A && B && A === B, 'блоки HERO-SPRITES в saga/js/game.js и saga-2/js/vikings-retro.js различаются');
+    const A = blk('saga/js/game.js'), B = blk('saga-2/js/northmen-retro.js');
+    ok(A && B && A === B, 'блоки HERO-SPRITES в saga/js/game.js и saga-2/js/northmen-retro.js различаются');
     const frames = async (url, side) => {
       const ctx = await browser.newContext(); const p = await ctx.newPage();
       p.on('pageerror', (e) => errors.push('heroes ' + side + ': ' + e.message));
@@ -223,7 +223,7 @@ try {
       const r = await p.evaluate((side) => {
         const draw = side === 1
           ? { hero: (g, id, s, an, act) => window.SAGA_RETRO.drawHero(g, id, s, an, 0, act), dead: (g, id, act) => window.SAGA_RETRO.drawHeroDead(g, id, act) }
-          : { hero: (g, id, s, an, act) => window.SAGA2VIK.drawChar(g, id, s, an, 0, act), dead: (g, id, act) => window.SAGA2VIK.drawDead(g, id, act) };
+          : { hero: (g, id, s, an, act) => window.SAGA2NORTH.drawChar(g, id, s, an, 0, act), dead: (g, id, act) => window.SAGA2NORTH.drawDead(g, id, act) };
         const c = document.createElement('canvas'); c.width = 32; c.height = 40;
         const g = c.getContext('2d', { willReadFrequently: true });
         const out = [];

@@ -4,17 +4,17 @@
    ========================================================================== */
 (function (global) {
   'use strict';
-  var DG = global.DG = global.DG || {};
+  var KROT = global.KROT = global.KROT || {};
   var doc = global.document;
 
   /* ------------------------------- настройки ------------------------------ */
-  var SET_KEY = DG.STORE_KEYS.settings;
-  var HI_KEY = DG.STORE_KEYS.hi;
-  try { DG.migrateStorage(global.localStorage); } catch (e) { /* нет хранилища */ }
+  var SET_KEY = KROT.STORE_KEYS.settings;
+  var HI_KEY = KROT.STORE_KEYS.hi;
+  try { KROT.migrateStorage(global.localStorage); } catch (e) { /* нет хранилища */ }
 
   var defaults = { gfx: 'classic', lang: 'ru', music: true, sfx: true, crt: true };
   var settings = { gfx: defaults.gfx, lang: defaults.lang, music: defaults.music, sfx: defaults.sfx, crt: defaults.crt };
-  DG.settings = settings;
+  KROT.settings = settings;
 
   function storeGet(key) {
     try { var raw = global.localStorage.getItem(key); return raw ? JSON.parse(raw) : null; }
@@ -53,7 +53,7 @@
   global.addEventListener('error', function (ev) { showError(ev.error || ev.message); });
   global.addEventListener('unhandledrejection', function (ev) { showError(ev.reason); });
 
-  var audio = DG.audio || null;
+  var audio = KROT.audio || null;
   function tryAudio(fn, arg) { if (!audio || typeof audio[fn] !== 'function') return; try { audio[fn](arg); } catch (e) { showError(e); } }
 
   /* ------------------------------ параметры -------------------------------- */
@@ -76,16 +76,16 @@
   var testMode = 'test' in params;
   var freeze = 'freeze' in params || shotMode || testMode;
 
-  DG.i18n.setLang(settings.lang);
+  KROT.i18n.setLang(settings.lang);
 
   /* ------------------------------- движок --------------------------------- */
   var seed = (Date.now() ^ ((global.Math.random() * 0x7fffffff) | 0)) >>> 0;
-  var engine = DG.Game({
+  var engine = KROT.Game({
     seed: freeze ? 20240501 : seed,
     hiscore: hiscore,
     onEvent: onEngineEvent
   });
-  DG.engine = engine;
+  KROT.engine = engine;
   var S = engine.state;
 
   /* ------------------------------- аудио ---------------------------------- */
@@ -175,17 +175,17 @@
   var lastScreen = '@none';
 
   function uiShow(name, data) {
-    if (!DG.ui || typeof DG.ui.show !== 'function') return;
-    try { DG.ui.show(name, data); } catch (e) { showError(e); }
+    if (!KROT.ui || typeof KROT.ui.show !== 'function') return;
+    try { KROT.ui.show(name, data); } catch (e) { showError(e); }
   }
   function uiCurrent() {
-    if (!DG.ui || typeof DG.ui.current !== 'function') return null;
-    try { return DG.ui.current(); } catch (e) { return null; }
+    if (!KROT.ui || typeof KROT.ui.current !== 'function') return null;
+    try { return KROT.ui.current(); } catch (e) { return null; }
   }
 
   function initUI() {
-    if (!DG.ui || typeof DG.ui.init !== 'function') return;
-    DG.ui.init({
+    if (!KROT.ui || typeof KROT.ui.init !== 'function') return;
+    KROT.ui.init({
       getSettings: function () { return settings; },
       setSetting: function (key, value) { applySetting(key, value); },
       start: startGame,
@@ -255,7 +255,7 @@
   function applySetting(key, value) {
     if (key === 'lang') {
       settings.lang = value === 'en' ? 'en' : 'ru';
-      DG.i18n.setLang(settings.lang);
+      KROT.i18n.setLang(settings.lang);
       doc.documentElement.setAttribute('lang', settings.lang);
     } else if (key === 'gfx') {
       settings.gfx = value === 'modern' ? 'modern' : 'classic';
@@ -272,11 +272,11 @@
     }
     syncBodyClasses();
     persistSettings();
-    if (DG.ui && typeof DG.ui.refresh === 'function') {
-      try { DG.ui.refresh(); } catch (e) { showError(e); }
+    if (KROT.ui && typeof KROT.ui.refresh === 'function') {
+      try { KROT.ui.refresh(); } catch (e) { showError(e); }
     }
   }
-  DG.applySetting = applySetting;
+  KROT.applySetting = applySetting;
 
   function resetHiscore() {
     hiscore = 0;
@@ -371,7 +371,7 @@
     }
     if (code === 'Enter' || code === 'NumpadEnter') {
       e.preventDefault();
-      if (panel) { if (DG.ui && DG.ui.activate) DG.ui.activate(); return; }
+      if (panel) { if (KROT.ui && KROT.ui.activate) KROT.ui.activate(); return; }
       if (S.mode === 'title') { startGame(); return; }
       if (S.mode === 'gameover') { startGame(); return; }
       if (S.paused) { resumeGame(); return; }
@@ -464,7 +464,7 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
-    var renderer = DG.render && DG.render[settings.gfx];
+    var renderer = KROT.render && KROT.render[settings.gfx];
     if (renderer && typeof renderer.draw === 'function') {
       try { renderer.draw(ctx, S); return; }
       catch (e) { showError(e); }
@@ -570,7 +570,7 @@
         results.push({ name: name, ok: false, detail: (e && e.message) || String(e) });
       }
     }
-    var g = DG.Game({ seed: 11 });
+    var g = KROT.Game({ seed: 11 });
     t('engine/state fields', function () {
       return g.state && g.state.grid && g.state.grid.length === 150 && g.state.player && g.state.stats;
     });
@@ -584,12 +584,12 @@
     });
     t('level: monster spawn is tunnel', function () { return g.state.grid[14] === 1; });
     t('level: deterministic seed', function () {
-      var a = DG.Game({ seed: 5 }).state, b = DG.Game({ seed: 5 }).state;
+      var a = KROT.Game({ seed: 5 }).state, b = KROT.Game({ seed: 5 }).state;
       for (var i = 0; i < 150; i++) if (a.grid[i] !== b.grid[i]) return false;
       return true;
     });
     t('digging removes dirt', function () {
-      var e = DG.Game({ seed: 3 }); e.start(); e.state.mode = 'play';
+      var e = KROT.Game({ seed: 3 }); e.start(); e.state.mode = 'play';
       var p = e.state.player, before = 0, i;
       for (i = 0; i < 150; i++) if (e.state.grid[i] === 0) before++;
       var dirs = [0, 1, 2, 3];
@@ -600,23 +600,23 @@
       return after < before;
     });
     t('shooting creates bullet', function () {
-      var e = DG.Game({ seed: 4 }); e.start(); e.state.mode = 'play'; e.state.readyT = 0;
+      var e = KROT.Game({ seed: 4 }); e.start(); e.state.mode = 'play'; e.state.readyT = 0;
       e.state.player.shootCd = 0;
       e.shoot();
       return e.state.bullets.length > 0 || e.state.stats.shots > 0;
     });
     t('i18n ru/en', function () {
-      return DG.t('score').length > 0 && DG.i18n.setLang('en') && DG.t('score') === 'SCORE' && DG.i18n.setLang('ru');
+      return KROT.t('score').length > 0 && KROT.i18n.setLang('en') && KROT.t('score') === 'SCORE' && KROT.i18n.setLang('ru');
     });
     t('renderers registered', function () {
-      return !!(DG.render && DG.render.classic && DG.render.classic.draw && DG.render.modern && DG.render.modern.draw);
+      return !!(KROT.render && KROT.render.classic && KROT.render.classic.draw && KROT.render.modern && KROT.render.modern.draw);
     });
-    t('ui api', function () { return !!(DG.ui && DG.ui.show && DG.ui.init && DG.ui.refresh); });
-    t('audio api', function () { return !!(DG.audio && DG.audio.sfx && DG.audio.startMusic && DG.audio.unlock); });
+    t('ui api', function () { return !!(KROT.ui && KROT.ui.show && KROT.ui.init && KROT.ui.refresh); });
+    t('audio api', function () { return !!(KROT.audio && KROT.audio.sfx && KROT.audio.startMusic && KROT.audio.unlock); });
     t('canvas 960x600', function () { return canvas.width === 960 && canvas.height === 600; });
     t('simulation 15s stays finite', function () {
-      var e = DG.Game({ seed: 9 }); e.start();
-      var r = DG.rng(3);
+      var e = KROT.Game({ seed: 9 }); e.start();
+      var r = KROT.rng(3);
       for (var i = 0; i < 900; i++) {
         if (i % 17 === 0) e.setDir(Math.floor(r() * 4));
         if (i % 29 === 0) e.setDir(-1);
@@ -656,7 +656,7 @@
     }
 
     syncScreens(true);
-    if (S.mode === 'title' && DG.ui) uiShow('title');
+    if (S.mode === 'title' && KROT.ui) uiShow('title');
     global.requestAnimationFrame(function (ts) { lastTs = ts / 1000; global.requestAnimationFrame(frame); });
     global.addEventListener('blur', function () {
       if (S.mode === 'play' || S.mode === 'bonus') { if (!S.paused) { engine.pause(true); stopMusic(); syncScreens(true); } }

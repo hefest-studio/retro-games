@@ -2,8 +2,8 @@
    Запуск: node neon-rage/tests/engine.test.mjs   (нужен Playwright: глобально или npm i -D playwright)
    Поднимает свой статический сервер по корню репо и проверяет в Chromium:
    • legacy.html — прежний монолит грузится и работает сам (без оболочки);
-   • перенос старого рекорда (dd-neon-settings-v1.best → arcade.best.neon-rage), тема modern по умолчанию;
-   • миграция ключа настроек dd-neon-settings-v1 → neon-rage.settings (index.html и legacy.html);
+   • перенос старого рекорда (OLD_KEY.best → arcade.best.neon-rage), тема modern по умолчанию;
+   • миграция ключа настроек OLD_KEY → neon-rage.settings (index.html и legacy.html);
    • меню движка → Enter → выбор героя игры → Enter → сюжет → Esc «пропустить» → бой, волна 1 стартует;
    • P/Esc — пауза движка = заморозка боя (без родного меню паузы), снятие; тач-кнопка II — через движок;
    • T/G — тема движка = графика игры, L — язык (в обе стороны); L в бою не тратит ярость, ярость — V;
@@ -20,6 +20,7 @@ import { createRequire } from 'node:module';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const SLUG = 'neon-rage';
+const OLD_KEY = 'dd-neon-settings-v1'; // ключ настроек прежней версии (только для теста миграции)
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' };
 let chromium;
 try { ({ chromium } = await import('playwright')); } catch { try { ({ chromium } = createRequire(import.meta.url)('playwright')); } catch { console.error('Нужен Playwright'); process.exit(1); } }
@@ -44,7 +45,7 @@ async function test(name, fn) { try { await fn(); passed++; console.log('ok   ' 
 function ok(c, m) { if (!c) throw new Error(m || 'ложь'); }
 async function open(hash = '', init = null, page = '') {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
-  if (init) await ctx.addInitScript(init);
+  if (init) await ctx.addInitScript(init, OLD_KEY); // init получает старый ключ аргументом
   const p = await ctx.newPage();
   p.on('pageerror', (e) => errors.push(`${page}${hash} pageerror: ${e.message}`));
   p.on('console', (m) => { if (m.type() === 'error') errors.push(`${page}${hash} console: ${m.text()}`); });
@@ -52,7 +53,7 @@ async function open(hash = '', init = null, page = '') {
   return { p, close: () => ctx.close() };
 }
 const st = (p) => p.evaluate(() => {
-  const h = window.__arcadeHost, D = window.DD, S = D.state;
+  const h = window.__arcadeHost, D = window.NR, S = D.state;
   return { scene: h.g._sceneName, theme: h.g.themeName, lang: h.g.i18n.lang, sound: h.g.audio.enabled, best: h.g.state.best,
     mode: S.mode, frozen: !!S.freeze, gfx: D.settings.gfx, glang: D.settings.lang, music: D.settings.music, sfx: D.settings.sfx,
     wave: S.run.wave, waveActive: S.run.waveActive, enemies: S.enemies.filter((e) => !e.dead).length };
@@ -62,14 +63,14 @@ const key = async (p, k, ms = 250) => { await p.keyboard.press(k); await wait(ms
 try {
   await test('legacy.html — прежний монолит грузится и работает сам', async () => {
     const o = await open('', null, 'legacy.html');
-    const r = await o.p.evaluate(() => ({ dd: !!window.DD, host: !!window.__arcadeHost, mode: window.DD.state.mode }));
+    const r = await o.p.evaluate(() => ({ nr: !!window.NR, host: !!window.__arcadeHost, mode: window.NR.state.mode }));
     await key(o.p, 'Enter', 300);
-    const mode = await o.p.evaluate(() => window.DD.state.mode);
-    await o.close(); ok(r.dd && !r.host && r.mode === 'title' && mode === 'select', JSON.stringify(r) + ' ' + mode);
+    const mode = await o.p.evaluate(() => window.NR.state.mode);
+    await o.close(); ok(r.nr && !r.host && r.mode === 'title' && mode === 'select', JSON.stringify(r) + ' ' + mode);
   });
 
-  const { p, close } = await open('', () => {
-    try { localStorage.clear(); localStorage.setItem('dd-neon-settings-v1', JSON.stringify({ lang: 'ru', gfx: 'retro', best: 777 })); } catch {}
+  const { p, close } = await open('', (OLD_KEY) => {
+    try { localStorage.clear(); localStorage.setItem(OLD_KEY, JSON.stringify({ lang: 'ru', gfx: 'retro', best: 777 })); } catch {}
   });
   await test('старт: меню движка, игра в title, тема modern по умолчанию, рекорд перенесён', async () => {
     const s = await st(p);
@@ -87,15 +88,25 @@ try {
   await test('Esc на сюжете — «пропустить» (игре, не движку) → бой; идём вправо → волна 1', async () => {
     await key(p, 'Escape'); let s = await st(p);
     ok(s.scene === 'play' && s.mode === 'play', 'бой ' + JSON.stringify(s));
-    await p.keyboard.down('KeyD'); await wait(2600); await p.keyboard.up('KeyD'); await wait(300);
-    s = await st(p); ok(s.waveActive && s.enemies > 0, 'волна ' + JSON.stringify(s));
+    // Ожидание по состоянию игры, а не по времени: под нагрузкой кадры реже, и за фиксированные 2.6 с
+    // игрок мог не дойти до триггера волны (x≈312 при пороге 300). Держим «вправо», пока волна не стартует
+    // (до 3 попыток по ~6 с: отпустить/нажать заново — на случай потерянного keydown).
+    const waveUp = () => p.evaluate(() => { const S = window.NR.state; return S.run.waveActive && S.enemies.some((e) => !e.dead); });
+    let started = false;
+    for (let attempt = 0; attempt < 3 && !started; attempt++) {
+      await p.keyboard.down('KeyD');
+      try { await p.waitForFunction(() => window.NR.state.run.waveActive, null, { timeout: 6000, polling: 50 }); started = true; } catch { /* повтор */ }
+      await p.keyboard.up('KeyD');
+    }
+    if (started) await p.waitForFunction(() => window.NR.state.enemies.some((e) => !e.dead), null, { timeout: 3000, polling: 50 }).catch(() => {});
+    s = await st(p); ok(started && (await waveUp()), 'волна ' + JSON.stringify(s));
   });
   await test('P → пауза движка = заморозка боя (без родного меню паузы); Enter → продолжить', async () => {
     await key(p, 'KeyP'); let s = await st(p);
     ok(s.scene === 'pause' && s.mode === 'play' && s.frozen, 'пауза ' + JSON.stringify(s));
-    const x0 = await p.evaluate(() => DD.state.enemies.map((e) => e.x + ',' + e.y).join(';'));
+    const x0 = await p.evaluate(() => NR.state.enemies.map((e) => e.x + ',' + e.y).join(';'));
     await wait(500);
-    ok(x0 === (await p.evaluate(() => DD.state.enemies.map((e) => e.x + ',' + e.y).join(';'))), 'враги двигаются на паузе');
+    ok(x0 === (await p.evaluate(() => NR.state.enemies.map((e) => e.x + ',' + e.y).join(';'))), 'враги двигаются на паузе');
     await key(p, 'Enter'); s = await st(p);
     ok(s.scene === 'play' && s.mode === 'play' && !s.frozen, 'продолжить ' + JSON.stringify(s));
   });
@@ -113,19 +124,19 @@ try {
     ok(s.theme === 'retro' && s.gfx === 'retro', 'T ' + JSON.stringify(s));
     await key(p, 'KeyG', 150); s = await st(p);
     ok(s.theme === 'modern' && s.gfx === 'modern', 'G ' + JSON.stringify(s));
-    await p.evaluate(() => DD.toggleGfx()); await wait(150); s = await st(p);
+    await p.evaluate(() => NR.toggleGfx()); await wait(150); s = await st(p);
     ok(s.theme === 'retro', 'игра→движок ' + JSON.stringify(s));
     await key(p, 'KeyT', 150);
   });
   await test('L → язык движка = язык игры (и обратно); в бою L не тратит ярость, ярость — V', async () => {
-    await p.evaluate(() => DD.debug.rage());
+    await p.evaluate(() => NR.debug.rage());
     await key(p, 'KeyL', 150); let s = await st(p);
     ok(s.lang === 'en' && s.glang === 'en', JSON.stringify(s));
-    ok(await p.evaluate(() => DD.state.player.rage === DD.state.player.maxRage), 'L потратил ярость');
-    await p.evaluate(() => DD.toggleLang()); await wait(150); s = await st(p);
+    ok(await p.evaluate(() => NR.state.player.rage === NR.state.player.maxRage), 'L потратил ярость');
+    await p.evaluate(() => NR.toggleLang()); await wait(150); s = await st(p);
     ok(s.lang === 'ru', 'игра→движок ' + JSON.stringify(s));
     await key(p, 'KeyV', 300);
-    ok(await p.evaluate(() => DD.state.player.rage < DD.state.player.maxRage), 'V не сработал');
+    ok(await p.evaluate(() => NR.state.player.rage < NR.state.player.maxRage), 'V не сработал');
   });
   await test('M → звук движка выкл = музыка и эффекты игры выкл, повтор — вкл', async () => {
     await key(p, 'KeyM', 150); let s = await st(p);
@@ -153,14 +164,14 @@ try {
   await test('финал игры → экран gameover движка, рекорд arcade.best.neon-rage; Enter → меню', async () => {
     await key(p, 'Enter'); await key(p, 'Enter'); await key(p, 'Enter');
     let s = await st(p); ok(s.mode === 'play', 'не в бою ' + JSON.stringify(s));
-    await p.evaluate(() => { DD.state.run.score = 4321; DD.finishRun(false); }); await wait(300);
+    await p.evaluate(() => { NR.state.run.score = 4321; NR.finishRun(false); }); await wait(300);
     s = await st(p); ok(s.scene === 'gameover' && s.best === 4321, JSON.stringify(s));
     ok((await p.evaluate(() => localStorage.getItem('arcade.best.neon-rage'))) === '4321', 'не сохранён');
     await key(p, 'Enter'); s = await st(p); ok(s.scene === 'title' && s.mode === 'title', JSON.stringify(s));
   });
   await test('победа → экран win движка', async () => {
     await key(p, 'Enter'); await key(p, 'Enter'); await key(p, 'Escape');
-    await p.evaluate(() => { DD.state.run.score = 100; DD.finishRun(true); }); await wait(300);
+    await p.evaluate(() => { NR.state.run.score = 100; NR.finishRun(true); }); await wait(300);
     const s = await st(p); ok(s.scene === 'win', JSON.stringify(s));
     await key(p, 'Enter');
   });
@@ -180,16 +191,16 @@ try {
     ok(s.scene === 'play' && s.mode === 'intro' && s.lang === 'en' && s.glang === 'en', JSON.stringify(s));
   });
   for (const page of ['', 'legacy.html']) {
-    await test(`миграция localStorage (${page || 'index.html'}): dd-neon-settings-v1 → neon-rage.settings, старый удалён, новый не затирается`, async () => {
-      const o = await open('', () => { try { if (sessionStorage.getItem('mig')) return; sessionStorage.setItem('mig', '1'); localStorage.clear();
-        localStorage.setItem('dd-neon-settings-v1', JSON.stringify({ lang: 'en', gfx: 'retro', best: 4242 })); } catch {} }, page);
-      const ls1 = await o.p.evaluate(() => ({ old: localStorage.getItem('dd-neon-settings-v1'), now: localStorage.getItem('neon-rage.settings'), best: window.DD.settings.best }));
+    await test(`миграция localStorage (${page || 'index.html'}): OLD_KEY → neon-rage.settings, старый удалён, новый не затирается`, async () => {
+      const o = await open('', (OLD_KEY) => { try { if (sessionStorage.getItem('mig')) return; sessionStorage.setItem('mig', '1'); localStorage.clear();
+        localStorage.setItem(OLD_KEY, JSON.stringify({ lang: 'en', gfx: 'retro', best: 4242 })); } catch {} }, page);
+      const ls1 = await o.p.evaluate((OLD_KEY) => ({ old: localStorage.getItem(OLD_KEY), now: localStorage.getItem('neon-rage.settings'), best: window.NR.settings.best }), OLD_KEY);
       await o.close();
       ok(ls1.old === null, 'старый ключ не удалён');
       ok(ls1.now && JSON.parse(ls1.now).best === 4242 && ls1.best === 4242, 'не перенесено: ' + JSON.stringify(ls1));
-      const o2 = await open('', () => { try { if (sessionStorage.getItem('mig')) return; sessionStorage.setItem('mig', '1'); localStorage.clear();
-        localStorage.setItem('dd-neon-settings-v1', JSON.stringify({ best: 1 })); localStorage.setItem('neon-rage.settings', JSON.stringify({ best: 5000 })); } catch {} }, page);
-      const ls2 = await o2.p.evaluate(() => ({ old: localStorage.getItem('dd-neon-settings-v1'), best: window.DD.settings.best }));
+      const o2 = await open('', (OLD_KEY) => { try { if (sessionStorage.getItem('mig')) return; sessionStorage.setItem('mig', '1'); localStorage.clear();
+        localStorage.setItem(OLD_KEY, JSON.stringify({ best: 1 })); localStorage.setItem('neon-rage.settings', JSON.stringify({ best: 5000 })); } catch {} }, page);
+      const ls2 = await o2.p.evaluate((OLD_KEY) => ({ old: localStorage.getItem(OLD_KEY), best: window.NR.settings.best }), OLD_KEY);
       await o2.close();
       ok(ls2.old === null && ls2.best === 5000, 'новый ключ затёрт старым: ' + JSON.stringify(ls2));
     });

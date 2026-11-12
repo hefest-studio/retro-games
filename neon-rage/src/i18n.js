@@ -6,11 +6,11 @@
    и отсутствие «чужих» букв (RU без латинских обрывков, EN без кириллицы).
 
    API:
-     window.DD_I18N = { ru: { 'menu.play': '...' }, en: { ... } }
-     window.DD_T(key, vars) -> строка
+     window.NR_I18N = { ru: { 'menu.play': '...' }, en: { ... } }
+     window.NR_T(key, vars) -> строка
        • разрешает плоские ключи и вложенные ('banner.wave');
        • подставляет {n}, {total}, {name}, {score}, {value} из vars;
-       • язык берёт из DD.settings.lang (ru по умолчанию, пока DD нет);
+       • язык берёт из NR.settings.lang (ru по умолчанию, пока NR нет);
        • нет строки в выбранном языке -> fallback на ru -> вернуть сам key;
        • не бросает исключений ни при каких аргументах.
    Строки короткие: UI-плашки 480×270, шрифт 6×8, тело текста переносится.
@@ -399,11 +399,11 @@
   var DICT = { ru: ru, en: en };
   var PLACEHOLDER = /\{([a-z][a-z0-9_]*)\}/gi;
 
-  /* язык: DD.settings.lang, пока DD нет — ru (по умолчанию по контракту) */
+  /* язык: NR.settings.lang, пока NR нет — ru (по умолчанию по контракту) */
   function currentLang() {
     try {
-      var dd = window.DD;
-      if (dd && dd.settings && dd.settings.lang === 'en') return 'en';
+      var nr = window.NR;
+      if (nr && nr.settings && nr.settings.lang === 'en') return 'en';
     } catch (e) { /* состояние ещё не поднято — молча ru */ }
     return 'ru';
   }
@@ -450,6 +450,6 @@
     }
   }
 
-  window.DD_I18N = DICT;
-  window.DD_T = t;
+  window.NR_I18N = DICT;
+  window.NR_T = t;
 })();

@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="css/style.css" />
 <style>
 /* Движок v2 поверх игры: прозрачный canvas движка (меню/пауза/финалы) лежит ровно над кадром
-   игры (#arcade-mount = прямоугольник сцены из DD_SHELL.stage()), над #stage и под тач-кнопками. */
+   игры (#arcade-mount = прямоугольник сцены из NR_SHELL.stage()), над #stage и под тач-кнопками. */
 #arcade-mount { position: fixed; left: 0; top: 0; width: 0; height: 0; z-index: 3; pointer-events: none; }
 canvas.arcade-host { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 a.back { position: fixed; left: 10px; top: 8px; z-index: 40; color: #8a86a8; font: 600 12px/1.2 ui-monospace, Menlo, Consolas, monospace; text-decoration: none; }
@@ -54,25 +54,25 @@ html[data-arcade-scene="play"] a.back { display: none; } /* в бою не пе�
 /* НЕОН × ЯРОСТЬ на движке v2 — «хост поверх игры» (js/host.js). Родной js/game.js (собран
    tools/build.mjs из src/: логика, волны, баланс, рендеры 8-БИТ = retro и НЕОН = modern, своя
    музыка, сюжет, выбор героя) работает своим циклом; движок даёт меню/паузу/финалы/тему/язык/
-   звук/рекорд arcade.best.neon-rage. Связь — только через публичный window.DD. */
+   звук/рекорд arcade.best.neon-rage. Связь — только через публичный window.NR. */
 (function () {
-  var DD = window.DD, SHELL = window.DD_SHELL;
-  if (!DD || !SHELL || !window.ArcadeHost) return;
-  function S() { return DD.state; }
+  var NR = window.NR, SHELL = window.NR_SHELL;
+  if (!NR || !SHELL || !window.ArcadeHost) return;
+  function S() { return NR.state; }
 
-  // Пауза движка = заморозка боя (DD.debug.freeze) + приглушение музыки: родное меню паузы игры
+  // Пауза движка = заморозка боя (NR.debug.freeze) + приглушение музыки: родное меню паузы игры
   // не рисуется под экраном паузы движка. Родные экраны игры (выбор героя, сюжет, справка,
   // настройки) — режим 'sub': движок прозрачен, ввод идёт игре (Esc — «пропустить»/«назад»).
   var frozen = false;
   var SUB = { select: 1, intro: 1, help: 1, settings: 1, about: 1, paused: 1 };
-  function duck(on) { try { if (window.DD_AUDIO && window.DD_AUDIO.duck) window.DD_AUDIO.duck(on); } catch (e) { /* тихо */ } }
-  function unfreeze() { if (frozen) { frozen = false; DD.debug.freeze(false); duck(false); } }
-  var press0 = DD.press;
+  function duck(on) { try { if (window.NR_AUDIO && window.NR_AUDIO.duck) window.NR_AUDIO.duck(on); } catch (e) { /* тихо */ } }
+  function unfreeze() { if (frozen) { frozen = false; NR.debug.freeze(false); duck(false); } }
+  var press0 = NR.press;
   function titleItem(i) {                         // пункт родного титула игры: 0 играть, 1 справка, 2 настройки
     unfreeze();
-    if (S().mode !== 'title') DD.debug.scene('title');
+    if (S().mode !== 'title') NR.debug.scene('title');
     S().menuIndex = i;
-    press0.call(DD, 'confirm');
+    press0.call(NR, 'confirm');
   }
 
   var A = {
@@ -85,19 +85,19 @@ html[data-arcade-scene="play"] a.back { display: none; } /* в бою не пе�
       return m === 'play' && frozen ? 'paused' : 'play';   // play / dead
     },
     start: function () { titleItem(0); },                  // → выбор героя и сложности → сюжет → бой
-    toTitle: function () { unfreeze(); DD.debug.scene('title'); },
-    pause: function () { if (S().mode !== 'play' || frozen) return; frozen = true; DD.debug.freeze(true); duck(true); },
+    toTitle: function () { unfreeze(); NR.debug.scene('title'); },
+    pause: function () { if (S().mode !== 'play' || frozen) return; frozen = true; NR.debug.freeze(true); duck(true); },
     resume: function () { unfreeze(); },
     openSub: function (key) { titleItem(key === 'help' ? 1 : 2); },
     score: function () { return S().run ? S().run.score : 0; },
-    best: function () { return DD.settings.best; },
-    gfx: function () { return DD.settings.gfx === 'retro' ? 'retro' : 'modern'; },
-    setGfx: function (v) { if (DD.settings.gfx !== v) DD.toggleGfx(); },
-    lang: function () { return DD.settings.lang === 'en' ? 'en' : 'ru'; },
-    setLang: function (v) { if (DD.settings.lang !== v) DD.toggleLang(); },
+    best: function () { return NR.settings.best; },
+    gfx: function () { return NR.settings.gfx === 'retro' ? 'retro' : 'modern'; },
+    setGfx: function (v) { if (NR.settings.gfx !== v) NR.toggleGfx(); },
+    lang: function () { return NR.settings.lang === 'en' ? 'en' : 'ru'; },
+    setLang: function (v) { if (NR.settings.lang !== v) NR.toggleLang(); },
     setSound: function (on) {                              // звук движка = музыка + эффекты игры
-      if (!!DD.settings.music !== on) DD.toggleMusic();
-      if (!!DD.settings.sfx !== on) DD.toggleSfx();
+      if (!!NR.settings.music !== on) NR.toggleMusic();
+      if (!!NR.settings.sfx !== on) NR.toggleSfx();
     }
   };
 
@@ -116,14 +116,14 @@ html[data-arcade-scene="play"] a.back { display: none; } /* в бою не пе�
   });
   if (!g) return;
 
-  // Рекорд: старый (dd-neon-settings-v1.best) уже перенесён host'ом; обратно — чтобы HUD игры видел тот же
+  // Рекорд: старый (best из прежнего ключа настроек) уже перенесён host'ом; обратно — чтобы HUD игры видел тот же
   var eb = Arcade.Store.getNum('arcade.best.neon-rage', 0);
-  if (eb > DD.settings.best) { DD.settings.best = eb; if (S().run) S().run.best = eb; }
+  if (eb > NR.settings.best) { NR.settings.best = eb; if (S().run) S().run.best = eb; }
 
   // Пауза из самой игры (тач-кнопка II, скрытие вкладки) — через движок
-  DD.press = function (a) {
+  NR.press = function (a) {
     if ((a === 'pause' || a === 'back') && S().mode === 'play') { if (frozen) A.resume(); else A.pause(); return; }
-    return press0.apply(DD, arguments);
+    return press0.apply(NR, arguments);
   };
 
   // Canvas движка — точно над кадром игры (кадр меняется при resize и смене графики)

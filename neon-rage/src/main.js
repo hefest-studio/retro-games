@@ -6,18 +6,18 @@
 (function () {
   'use strict';
 
-  var DD = window.DD;
+  var NR = window.NR;
   var canvas = document.getElementById('stage');
   var ctx = canvas.getContext('2d', { alpha: false });
   var errBox = document.getElementById('err');
   var testBox = document.getElementById('testout');
   var hint = document.getElementById('hint');
 
-  if (!DD || !canvas || !ctx) return;
+  if (!NR || !canvas || !ctx) return;
 
-  var W = DD.W || 480, H = DD.H || 270;
-  var RETRO = window.DD_RENDER_RETRO;
-  var MODERN = window.DD_RENDER_MODERN;
+  var W = NR.W || 480, H = NR.H || 270;
+  var RETRO = window.NR_RENDER_RETRO;
+  var MODERN = window.NR_RENDER_MODERN;
 
   var off = document.createElement('canvas');
   off.width = W;
@@ -59,7 +59,7 @@
     ctx.imageSmoothingEnabled = true;
 
     var s;
-    if (DD.settings.gfx === 'retro') {
+    if (NR.settings.gfx === 'retro') {
       var availW = Math.max(120, cw);
       var availH = Math.max(90, ch);
       s = Math.min(availW / W, availH / H);
@@ -98,7 +98,7 @@
 
   /* ---------- звук ---------- */
   function ensureAudio() {
-    var A = window.DD_AUDIO;
+    var A = window.NR_AUDIO;
     if (!A) return;
     try {
       if (!bootedAudio) {
@@ -106,8 +106,8 @@
         A.init();
       }
       var r = A.unlock ? A.unlock() : null;
-      if (r && r.then) r.then(function () { DD.syncAudio(); }).catch(function () { /* ok */ });
-      DD.syncAudio();
+      if (r && r.then) r.then(function () { NR.syncAudio(); }).catch(function () { /* ok */ });
+      NR.syncAudio();
     } catch (e) { report('audio: ' + (e && e.message ? e.message : e)); }
   }
 
@@ -115,18 +115,18 @@
   var heldKeys = {};
 
   function syncHeld() {
-    DD.setHeld('left', !!(heldKeys.ArrowLeft || heldKeys.KeyA));
-    DD.setHeld('right', !!(heldKeys.ArrowRight || heldKeys.KeyD));
-    DD.setHeld('up', !!(heldKeys.ArrowUp || heldKeys.KeyW));
-    DD.setHeld('down', !!(heldKeys.ArrowDown || heldKeys.KeyS));
-    DD.setHeld('jump', !!heldKeys.Space);
-    DD.setHeld('punch', !!(heldKeys.KeyJ || heldKeys.KeyZ));
-    DD.setHeld('kick', !!(heldKeys.KeyK || heldKeys.KeyX));
-    DD.setHeld('special', !!heldKeys.KeyV);  /* L — язык (стандарт аркады), ярость — V */
+    NR.setHeld('left', !!(heldKeys.ArrowLeft || heldKeys.KeyA));
+    NR.setHeld('right', !!(heldKeys.ArrowRight || heldKeys.KeyD));
+    NR.setHeld('up', !!(heldKeys.ArrowUp || heldKeys.KeyW));
+    NR.setHeld('down', !!(heldKeys.ArrowDown || heldKeys.KeyS));
+    NR.setHeld('jump', !!heldKeys.Space);
+    NR.setHeld('punch', !!(heldKeys.KeyJ || heldKeys.KeyZ));
+    NR.setHeld('kick', !!(heldKeys.KeyK || heldKeys.KeyX));
+    NR.setHeld('special', !!heldKeys.KeyV);  /* L — язык (стандарт аркады), ярость — V */
   }
 
   function menuMode() {
-    var m = DD.state.mode;
+    var m = NR.state.mode;
     return m !== 'play' && m !== 'dead';
   }
 
@@ -147,25 +147,25 @@
     heldKeys[code] = true;
     syncHeld();
     switch (code) {
-      case 'ArrowLeft': case 'KeyA': DD.press('left'); break;
-      case 'ArrowRight': case 'KeyD': DD.press('right'); break;
-      case 'ArrowUp': case 'KeyW': DD.press('up'); break;
-      case 'ArrowDown': case 'KeyS': DD.press('down'); break;
+      case 'ArrowLeft': case 'KeyA': NR.press('left'); break;
+      case 'ArrowRight': case 'KeyD': NR.press('right'); break;
+      case 'ArrowUp': case 'KeyW': NR.press('up'); break;
+      case 'ArrowDown': case 'KeyS': NR.press('down'); break;
       case 'Space':
-        if (menuMode()) DD.press('confirm');
-        else DD.press('jump');
+        if (menuMode()) NR.press('confirm');
+        else NR.press('jump');
         break;
-      case 'KeyJ': case 'KeyZ': DD.press('punch'); break;
-      case 'KeyK': case 'KeyX': DD.press('kick'); break;
-      case 'KeyV': DD.press('special'); break;
-      case 'Enter': case 'NumpadEnter': DD.press('confirm'); break;
-      case 'Escape': DD.press('back'); break;
-      case 'KeyP': DD.press('pause'); break;
+      case 'KeyJ': case 'KeyZ': NR.press('punch'); break;
+      case 'KeyK': case 'KeyX': NR.press('kick'); break;
+      case 'KeyV': NR.press('special'); break;
+      case 'Enter': case 'NumpadEnter': NR.press('confirm'); break;
+      case 'Escape': NR.press('back'); break;
+      case 'KeyP': NR.press('pause'); break;
       /* раскладка аркады «Гефест»: T и G — тема (графика), L — язык */
-      case 'KeyG': case 'KeyT': DD.press('gfx'); break;
-      case 'KeyL': DD.press('lang'); break;
-      case 'KeyM': DD.press('music'); break;
-      case 'KeyF': DD.press('fullscreen'); break;
+      case 'KeyG': case 'KeyT': NR.press('gfx'); break;
+      case 'KeyL': NR.press('lang'); break;
+      case 'KeyM': NR.press('music'); break;
+      case 'KeyF': NR.press('fullscreen'); break;
       default: break;
     }
   }
@@ -182,7 +182,7 @@
     syncHeld();
   });
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden && DD.state.mode === 'play') DD.press('pause');
+    if (document.hidden && NR.state.mode === 'play') NR.press('pause');
   });
 
   /* ---------- указатель / тач ---------- */
@@ -200,24 +200,24 @@
     ensureAudio();
     if (e.pointerType === 'touch') document.body.classList.add('touch');
     var p = logicalFromEvent(e);
-    DD.input.pointer.x = p.x;
-    DD.input.pointer.y = p.y;
-    DD.pointerDown(p.x, p.y);
+    NR.input.pointer.x = p.x;
+    NR.input.pointer.y = p.y;
+    NR.pointerDown(p.x, p.y);
     try { canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId); } catch (err) { /* ok */ }
     e.preventDefault();
   }, { passive: false });
 
   canvas.addEventListener('pointermove', function (e) {
     var p = logicalFromEvent(e);
-    DD.input.pointer.x = p.x;
-    DD.input.pointer.y = p.y;
+    NR.input.pointer.x = p.x;
+    NR.input.pointer.y = p.y;
   });
 
   canvas.addEventListener('pointerup', function (e) {
     var p = logicalFromEvent(e);
-    DD.pointerUp(p.x, p.y);
+    NR.pointerUp(p.x, p.y);
   });
-  canvas.addEventListener('pointercancel', function () { DD.pointerUp(0, 0); });
+  canvas.addEventListener('pointercancel', function () { NR.pointerUp(0, 0); });
   canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
   /* тач-кнопки из template.html */
@@ -238,13 +238,13 @@
           ensureAudio();
           e.preventDefault();
           btn.classList.add('active');
-          DD.setHeld(name, true);
+          NR.setHeld(name, true);
           try { btn.setPointerCapture && btn.setPointerCapture(e.pointerId); } catch (err) { /* ok */ }
         }
         function up(e) {
           if (e) e.preventDefault();
           btn.classList.remove('active');
-          DD.setHeld(name, false);
+          NR.setHeld(name, false);
         }
         btn.addEventListener('pointerdown', down, { passive: false });
         btn.addEventListener('pointerup', up, { passive: false });
@@ -260,7 +260,7 @@
           ensureAudio();
           e.preventDefault();
           btn.classList.add('active');
-          DD.press(action);
+          NR.press(action);
           try { btn.setPointerCapture && btn.setPointerCapture(e.pointerId); } catch (err) { /* ok */ }
         }, { passive: false });
         btn.addEventListener('pointerup', function () { btn.classList.remove('active'); });
@@ -276,7 +276,7 @@
       e.preventDefault();
       ensureAudio();
       touchPause.classList.add('active');
-      DD.press('pause');
+      NR.press('pause');
     }, { passive: false });
     touchPause.addEventListener('pointerup', function () { touchPause.classList.remove('active'); });
     touchPause.addEventListener('pointercancel', function () { touchPause.classList.remove('active'); });
@@ -285,8 +285,8 @@
 
   /* ---------- фуллскрин / подсказки ---------- */
   function handleFullscreen() {
-    if (!DD.wantFullscreen) return;
-    DD.wantFullscreen = false;
+    if (!NR.wantFullscreen) return;
+    NR.wantFullscreen = false;
     try {
       if (!document.fullscreenElement) {
         var r = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
@@ -306,37 +306,37 @@
   }
 
   function valueLabel(setting) {
-    var s = DD.settings;
-    if (setting === 'gfx') return DD.t(s.gfx === 'retro' ? 'gfx.retro' : 'gfx.modern');
-    if (setting === 'music') return DD.t(s.music ? 'common.on' : 'common.off');
+    var s = NR.settings;
+    if (setting === 'gfx') return NR.t(s.gfx === 'retro' ? 'gfx.retro' : 'gfx.modern');
+    if (setting === 'music') return NR.t(s.music ? 'common.on' : 'common.off');
     if (setting === 'lang') return String(s.lang).toUpperCase();
     return '';
   }
 
   function watchSettings() {
-    if (lastGfx !== null && DD.settings.gfx !== lastGfx) {
+    if (lastGfx !== null && NR.settings.gfx !== lastGfx) {
       resize();
-      showHint(DD.t('quick.gfx') + ' · ' + valueLabel('gfx'));
+      showHint(NR.t('quick.gfx') + ' · ' + valueLabel('gfx'));
     }
-    if (lastLang !== null && DD.settings.lang !== lastLang) {
-      showHint('ЯЗЫК · ' + String(DD.settings.lang).toUpperCase());
+    if (lastLang !== null && NR.settings.lang !== lastLang) {
+      showHint('ЯЗЫК · ' + String(NR.settings.lang).toUpperCase());
     }
-    if (lastMusic !== null && DD.settings.music !== lastMusic) {
-      showHint(DD.t('quick.music') + ' · ' + valueLabel('music'));
+    if (lastMusic !== null && NR.settings.music !== lastMusic) {
+      showHint(NR.t('quick.music') + ' · ' + valueLabel('music'));
     }
-    lastGfx = DD.settings.gfx;
-    lastLang = DD.settings.lang;
-    lastMusic = DD.settings.music;
-    document.documentElement.setAttribute('data-gfx', DD.settings.gfx);
-    document.documentElement.lang = DD.settings.lang;
-    var touchPlay = DD.state.mode === 'play' || DD.state.mode === 'dead';
+    lastGfx = NR.settings.gfx;
+    lastLang = NR.settings.lang;
+    lastMusic = NR.settings.music;
+    document.documentElement.setAttribute('data-gfx', NR.settings.gfx);
+    document.documentElement.lang = NR.settings.lang;
+    var touchPlay = NR.state.mode === 'play' || NR.state.mode === 'dead';
     document.body.classList.toggle('in-game', touchPlay);
-    document.body.classList.toggle('pausable', touchPlay || DD.state.mode === 'paused');
+    document.body.classList.toggle('pausable', touchPlay || NR.state.mode === 'paused');
   }
 
   /* ---------- отрисовка ---------- */
   function drawCrt(retro) {
-    if (!DD.settings.crt) return;
+    if (!NR.settings.crt) return;
     var sd = dpr;
     var s = stage;
     ctx.save();
@@ -378,13 +378,13 @@
 
     var s = stage;
     var sd = dpr;
-    var gfx = DD.settings.gfx;
+    var gfx = NR.settings.gfx;
 
     if (gfx === 'retro') {
       if (!RETRO) return;
       offCtx.setTransform(1, 0, 0, 1, 0, 0);
       offCtx.imageSmoothingEnabled = false;
-      RETRO.draw(offCtx, { w: W, h: H, t: DD.state.t });
+      RETRO.draw(offCtx, { w: W, h: H, t: NR.state.t });
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(off, 0, 0, W, H, Math.round(s.x * sd), Math.round(s.y * sd),
         Math.round(s.w * sd), Math.round(s.h * sd));
@@ -393,7 +393,7 @@
       if (!MODERN) return;
       var scale = s.scale * sd;
       ctx.setTransform(scale, 0, 0, scale, Math.round(s.x * sd), Math.round(s.y * sd));
-      MODERN.draw(ctx, { w: W, h: H, t: DD.state.t });
+      MODERN.draw(ctx, { w: W, h: H, t: NR.state.t });
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       drawCrt(false);
     }
@@ -409,13 +409,13 @@
       if (i < 0) params[decodeURIComponent(pair)] = '1';
       else params[decodeURIComponent(pair.slice(0, i))] = decodeURIComponent(pair.slice(i + 1));
     });
-    if (params.gfx === 'modern' || params.gfx === 'retro') DD.settings.gfx = params.gfx;
-    if (params.lang === 'ru' || params.lang === 'en') DD.settings.lang = params.lang;
-    if (params.scene && DD.debug) DD.debug.scene(params.scene);
-    if (params.wave && DD.debug) DD.debug.wave(parseInt(params.wave, 10) || 0);
+    if (params.gfx === 'modern' || params.gfx === 'retro') NR.settings.gfx = params.gfx;
+    if (params.lang === 'ru' || params.lang === 'en') NR.settings.lang = params.lang;
+    if (params.scene && NR.debug) NR.debug.scene(params.scene);
+    if (params.wave && NR.debug) NR.debug.wave(parseInt(params.wave, 10) || 0);
     if (params.touch === '1') document.body.classList.add('touch');
-    if (params.freeze === '1' && DD.debug) DD.debug.freeze(true);
-    if (params.demo === '1' && DD.debug) DD.debug.demo();
+    if (params.freeze === '1' && NR.debug) NR.debug.freeze(true);
+    if (params.demo === '1' && NR.debug) NR.debug.demo();
     watchSettings();
     resize();
   }
@@ -429,7 +429,7 @@
     if (dt > 0.1) dt = 0.033;
     try {
       handleFullscreen();
-      DD.update(dt);
+      NR.update(dt);
       watchSettings();
       render();
     } catch (e) {
@@ -442,21 +442,21 @@
 
   /* ---------- старт ---------- */
   try {
-    DD.init();
+    NR.init();
     resize();
-    lastGfx = DD.settings.gfx;
-    lastLang = DD.settings.lang;
-    lastMusic = DD.settings.music;
+    lastGfx = NR.settings.gfx;
+    lastLang = NR.settings.lang;
+    lastMusic = NR.settings.music;
     if (window.location.hash) applyHash();
-    lastGfx = DD.settings.gfx;
-    lastLang = DD.settings.lang;
-    lastMusic = DD.settings.music;
-    DD.syncAudio();
+    lastGfx = NR.settings.gfx;
+    lastLang = NR.settings.lang;
+    lastMusic = NR.settings.music;
+    NR.syncAudio();
     render();
     window.requestAnimationFrame(frame);
     setTimeout(function () {
       if (!window.location.hash && !document.body.classList.contains('touch')) {
-        showHint(DD.t('help.quickKeys'), 5200);
+        showHint(NR.t('help.quickKeys'), 5200);
       }
     }, 900);
   } catch (e) {
@@ -465,7 +465,7 @@
   }
 
   /* отладочный доступ для QA */
-  window.DD_SHELL = {
+  window.NR_SHELL = {
     stage: function () { return stage; },
     resize: resize,
     render: render,

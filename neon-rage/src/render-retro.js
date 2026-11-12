@@ -1,11 +1,11 @@
 /* ============================================================
    НЕОН × ЯРОСТЬ: NEON RAGE — RETRO 8-BIT RENDERER
    ------------------------------------------------------------
-   window.DD_RENDER_RETRO = { draw(ctx, view) }
+   window.NR_RENDER_RETRO = { draw(ctx, view) }
 
    Полностью процедурный 8-битный аркадный рендерер 480×270.
    Палитра ~16 цветов, дизеринг, чанки 2–3 px, пиксельный шрифт
-   DD_FONT (6×8, кириллица). Никаких внешних ассетов, fetch, import.
+   NR_FONT (6×8, кириллица). Никаких внешних ассетов, fetch, import.
    Состояние игры только читается. Внутренние кэши безопасны.
 
    Разделы:
@@ -63,13 +63,13 @@
   function blink(t, hz) { return (Math.sin(t * (hz || 6)) > 0) ? 1 : 0; }
 
   function T(key, vars) {
-    var DD = window.DD;
-    if (DD && typeof DD.t === 'function') {
-      try { return DD.t(key, vars); } catch (e) { /* ignore */ }
+    var NR = window.NR;
+    if (NR && typeof NR.t === 'function') {
+      try { return NR.t(key, vars); } catch (e) { /* ignore */ }
     }
-    var I = window.DD_I18N;
+    var I = window.NR_I18N;
     if (I) {
-      var lang = (DD && DD.settings && DD.settings.lang) || 'ru';
+      var lang = (NR && NR.settings && NR.settings.lang) || 'ru';
       var dict = I[lang] || I.ru;
       var s = dict && dict[key];
       if (s == null) s = key;
@@ -82,7 +82,7 @@
     }
     return key;
   }
-  function S_() { return (window.DD && window.DD.settings) || {}; }
+  function S_() { return (window.NR && window.NR.settings) || {}; }
   function uiOf(S) { return (S && S.uiRects) || {}; }
 
   /* индексы режимов/актёров */
@@ -94,7 +94,7 @@
      2. ШРИФТ
      ============================================================ */
 
-  var FONT = null; /* window.DD_FONT || window.EX_FONT */
+  var FONT = null; /* window.NR_FONT || window.NR_FONT */
   var FALLBACK = { W: 6, H: 8 };
 
   function fw() { return FONT && FONT.W ? FONT.W : FALLBACK.W; }
@@ -610,10 +610,10 @@
   function drawScreen(ctx, view) {
     var W = (view && view.w) || 480;
     var H = (view && view.h) || 270;
-    FONT = window.DD_FONT || window.EX_FONT || null;
+    FONT = window.NR_FONT || window.NR_FONT || null;
     ctx.imageSmoothingEnabled = false;
-    var DD = window.DD || {};
-    var S = DD.state || {};
+    var NR = window.NR || {};
+    var S = NR.state || {};
     var t = (view && view.t != null) ? view.t : (S.t || 0);
     var mode = S.mode || 'title';
 
@@ -1156,7 +1156,7 @@
     var start = Math.floor((off - 160) / tileW);
     var end = Math.ceil((off + 480 + 160) / tileW);
     var pal = [C.cyan, C.magenta, C.amber, C.lime];
-    var labels = ['NEON', 'RAGE', 'DD', 'HAMMER'];
+    var labels = ['NEON', 'RAGE', 'NR', 'HAMMER'];
     for (i = start; i <= end; i++) {
       var bx = Math.round(i * tileW - off + 20);
       if (bx < -80 || bx > 500) continue;
@@ -1773,14 +1773,14 @@
     var h = cfg.h;
     var anim = a.anim || a.state || 'idle';
     var at = a.animT || 0;
-    var ex = attackExt(a);
+    var atkExt = attackExt(a);
     var p = {
       crouch: 0, bob: 0, lean: 0,
       shoulderY: -h * 0.8, hipY: -h * 0.42,
       headX: 0, headY: -h * 0.92,
       footF: { x: 4, y: 0 }, footB: { x: -4, y: 0 },
       handF: { x: 6, y: -h * 0.46 }, handB: { x: -6, y: -h * 0.46 },
-      prone: false, ex: ex
+      prone: false, atkExt: atkExt
     };
     var ph, sw;
 
@@ -1807,7 +1807,7 @@
       p.handB.x = -6 + sw * 3;
       p.handB.y = -h * 0.46 - Math.cos(ph) * 1.5;
     } else if (anim === 'jumpkick') {
-      p.footF = { x: 6 + Math.max(0, ex) * h * 0.34, y: -h * 0.24 };
+      p.footF = { x: 6 + Math.max(0, atkExt) * h * 0.34, y: -h * 0.24 };
       p.footB = { x: -5, y: -h * 0.16 };
       p.handF = { x: 2, y: -h * 0.62 };
       p.handB = { x: -9, y: -h * 0.58 };
@@ -1819,29 +1819,29 @@
       p.handB = { x: -8, y: -h * 0.7 };
       p.lean = 2;
     } else if (anim === 'punch1') {
-      var e1 = Math.max(0, ex);
-      p.handF = { x: 6 + ex * h * 0.34, y: p.shoulderY + 5 };
+      var e1 = Math.max(0, atkExt);
+      p.handF = { x: 6 + atkExt * h * 0.34, y: p.shoulderY + 5 };
       p.handB = { x: -4, y: p.shoulderY + 4 };
       p.lean = e1 * 3;
       p.bob = e1 * 1;
-      if (ex < 0) { p.crouch = -ex * h * 0.03; p.handF.x = 6 + ex * 9; }
+      if (atkExt < 0) { p.crouch = -atkExt * h * 0.03; p.handF.x = 6 + atkExt * 9; }
     } else if (anim === 'punch2') {
-      var e2 = Math.max(0, ex);
-      p.handB = { x: -2 + ex * h * 0.38, y: p.shoulderY + 4 };
+      var e2 = Math.max(0, atkExt);
+      p.handB = { x: -2 + atkExt * h * 0.38, y: p.shoulderY + 4 };
       p.handF = { x: 3, y: p.shoulderY + 3 };
       p.lean = e2 * 4;
       p.headX = e2;
-      if (ex < 0) p.crouch = -ex * h * 0.03;
+      if (atkExt < 0) p.crouch = -atkExt * h * 0.03;
     } else if (anim === 'punch3') {
-      var e3 = Math.max(0, ex);
-      p.crouch = ex < 0 ? -ex * h * 0.07 : (1 - e3) * h * 0.02;
+      var e3 = Math.max(0, atkExt);
+      p.crouch = atkExt < 0 ? -atkExt * h * 0.07 : (1 - e3) * h * 0.02;
       var uy = (p.hipY + 6) + e3 * ((p.shoulderY - 10) - (p.hipY + 6));
       p.handF = { x: 5 + e3 * h * 0.2, y: uy };
       p.handB = { x: -3, y: p.shoulderY + 5 };
       p.lean = 2 + e3 * 3;
       p.bob = -e3 * 2;
     } else if (anim === 'kick') {
-      var e4 = Math.max(0, ex);
+      var e4 = Math.max(0, atkExt);
       p.footF = { x: 4 + e4 * h * 0.34, y: -e4 * h * 0.3 };
       p.footB = { x: -5, y: 0 };
       p.handF = { x: -2, y: p.shoulderY + 4 };
@@ -1875,18 +1875,18 @@
       p.headX = -2; p.lean = -3; p.crouch = 1;
       p.bob = Math.sin(t * 26);
     } else if (anim === 'cable') {
-      var e5 = Math.max(0, ex);
+      var e5 = Math.max(0, atkExt);
       p.handF = { x: 6 + e5 * h * 0.5, y: p.shoulderY + 6 - e5 * 8 };
       p.handB = { x: -6, y: p.shoulderY + 3 };
       p.lean = e5 * 3;
     } else if (anim === 'cast') {
-      var e6 = Math.max(0, ex);
+      var e6 = Math.max(0, atkExt);
       p.handF = { x: 6 + e6 * h * 0.3, y: p.shoulderY + 3 };
       p.handB = { x: 2 + e6 * h * 0.24, y: p.shoulderY + 7 };
       p.lean = e6 * 2;
     } else if (anim === 'slam') {
-      var e7 = Math.max(0, ex);
-      p.crouch = h * 0.14 * e7 + (ex < 0 ? -ex * h * 0.1 : 0);
+      var e7 = Math.max(0, atkExt);
+      p.crouch = h * 0.14 * e7 + (atkExt < 0 ? -atkExt * h * 0.1 : 0);
       p.handF = { x: 8 + e7 * 4, y: lerp(p.shoulderY, -2, e7) };
       p.handB = { x: -8 - e7 * 4, y: lerp(p.shoulderY, -2, e7) };
       p.lean = e7 * 4;
@@ -2193,8 +2193,8 @@
     var oc = fl ? C.lav : C.ink;
     function cc(v) { return fl ? C.white : v; }
     var anim = a.anim || 'idle';
-    var ex = attackExt(a);
-    var e = Math.max(0, ex);
+    var atkExt = attackExt(a);
+    var e = Math.max(0, atkExt);
     var sway = Math.sin(t * 1.8);
     var bob = Math.round(Math.sin(t * 2.1) * 2);
     var lean = anim === 'hurt' ? -3 : (anim === 'roar' ? -2 : (anim === 'cable' ? Math.round(e * 2) : 0));
@@ -2331,7 +2331,7 @@
 
     manip(shF, handF, false);
     shoulder(shF, false);
-    drawKhromCable(ctx, a, t, anim, ex, handF, oc, cc);
+    drawKhromCable(ctx, a, t, anim, atkExt, handF, oc, cc);
 
     /* искры-разряды вокруг */
     if (!fl) {
@@ -2345,9 +2345,9 @@
   }
 
   /* силовой кабель с захватом (атака на дальность — механика не менялась) */
-  function drawKhromCable(ctx, a, t, anim, ex, hand, oc, cc) {
+  function drawKhromCable(ctx, a, t, anim, atkExt, hand, oc, cc) {
     var on = anim === 'cable';
-    var e = Math.max(0, ex);
+    var e = Math.max(0, atkExt);
     var len = on ? 22 + e * 64 : 0;
     var pts = [];
     var n = 9;
@@ -3773,5 +3773,5 @@
   /* ============================================================
      9. ПУБЛИЧНЫЙ API
      ============================================================ */
-  window.DD_RENDER_RETRO = { draw: drawScreen };
+  window.NR_RENDER_RETRO = { draw: drawScreen };
 })();

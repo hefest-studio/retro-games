@@ -10,10 +10,10 @@
    В байте строки: бит 5 = левый пиксель, бит 0 = правый (6 колонок).
 
    API (docs/CONTRACT.md §1):
-     EX_FONT.W, EX_FONT.H      — размер знакоместа (6, 8)
-     EX_FONT.glyphs            — { 'A': [b0..b7], ... }
-     EX_FONT.has(ch)           — есть ли глиф
-     EX_FONT.glyph(ch)         — массив 8 байт (для неизвестного — глиф '?')
+     NR_FONT.W, NR_FONT.H      — размер знакоместа (6, 8)
+     NR_FONT.glyphs            — { 'A': [b0..b7], ... }
+     NR_FONT.has(ch)           — есть ли глиф
+     NR_FONT.glyph(ch)         — массив 8 байт (для неизвестного — глиф '?')
 
    Сгенерировано из пиксельной раскладки (генератор пиксельной раскладки студии).
    Правки вносить в генератор, а не в этот файл.
@@ -234,7 +234,7 @@
 
   const has = (ch) => Object.prototype.hasOwnProperty.call(G, ch);
 
-  window.EX_FONT = {
+  window.NR_FONT = {
     W: 6,
     H: 8,
     glyphs: G,
@@ -253,11 +253,11 @@
    и отсутствие «чужих» букв (RU без латинских обрывков, EN без кириллицы).
 
    API:
-     window.DD_I18N = { ru: { 'menu.play': '...' }, en: { ... } }
-     window.DD_T(key, vars) -> строка
+     window.NR_I18N = { ru: { 'menu.play': '...' }, en: { ... } }
+     window.NR_T(key, vars) -> строка
        • разрешает плоские ключи и вложенные ('banner.wave');
        • подставляет {n}, {total}, {name}, {score}, {value} из vars;
-       • язык берёт из DD.settings.lang (ru по умолчанию, пока DD нет);
+       • язык берёт из NR.settings.lang (ru по умолчанию, пока NR нет);
        • нет строки в выбранном языке -> fallback на ru -> вернуть сам key;
        • не бросает исключений ни при каких аргументах.
    Строки короткие: UI-плашки 480×270, шрифт 6×8, тело текста переносится.
@@ -646,11 +646,11 @@
   var DICT = { ru: ru, en: en };
   var PLACEHOLDER = /\{([a-z][a-z0-9_]*)\}/gi;
 
-  /* язык: DD.settings.lang, пока DD нет — ru (по умолчанию по контракту) */
+  /* язык: NR.settings.lang, пока NR нет — ru (по умолчанию по контракту) */
   function currentLang() {
     try {
-      var dd = window.DD;
-      if (dd && dd.settings && dd.settings.lang === 'en') return 'en';
+      var nr = window.NR;
+      if (nr && nr.settings && nr.settings.lang === 'en') return 'en';
     } catch (e) { /* состояние ещё не поднято — молча ru */ }
     return 'ru';
   }
@@ -697,15 +697,15 @@
     }
   }
 
-  window.DD_I18N = DICT;
-  window.DD_T = t;
+  window.NR_I18N = DICT;
+  window.NR_T = t;
 })();
 
 /* ==== src/audio.js ==== */
 /* ============================================================
    НЕОН × ЯРОСТЬ: NEON RAGE — 8-bit / synthwave audio engine
    ------------------------------------------------------------
-   One classic script, no modules, no assets, no network: defines window.DD_AUDIO.
+   One classic script, no modules, no assets, no network: defines window.NR_AUDIO.
    Everything is synthesised with WebAudio (pulse / triangle / noise / saw),
    no samples, no external files, file:// and headless safe.
 
@@ -749,7 +749,7 @@
              (typeof globalThis !== 'undefined' && globalThis) || {};
 
   /* never install twice (build may include the file once anyway) */
-  if (ROOT.DD_AUDIO && ROOT.DD_AUDIO.__engine === 'dd-neon-1') { return; }
+  if (ROOT.NR_AUDIO && ROOT.NR_AUDIO.__engine === 'nr-neon-1') { return; }
 
   var AC = (typeof window !== 'undefined') &&
            (window.AudioContext || window.webkitAudioContext) || null;
@@ -2143,7 +2143,7 @@
   }
 
   var api = {
-    __engine: 'dd-neon-1',
+    __engine: 'nr-neon-1',
     init: init,
     unlock: unlock,
     ready: ready,
@@ -2175,7 +2175,7 @@
     }
   };
 
-  ROOT.DD_AUDIO = api;
+  ROOT.NR_AUDIO = api;
 })();
 
 /* ==== src/game.js ==== */
@@ -2199,7 +2199,7 @@
   function sign(v) { return v < 0 ? -1 : 1; }
   function nowT() { return 0; }
   function T(key, vars) {
-    try { return window.DD_T ? window.DD_T(key, vars) : key; } catch (e) { return key; }
+    try { return window.NR_T ? window.NR_T(key, vars) : key; } catch (e) { return key; }
   }
   function saveTry(fn) { try { fn(); } catch (e) { /* localStorage/file:// может быть недоступен */ } }
 
@@ -2300,16 +2300,16 @@
   }
 
   /* ---------- состояние ---------- */
-  var DD = window.DD = {};
-  DD.W = W; DD.H = H;
-  DD.t = T;
-  DD.settings = loadSettings();
-  DD.input = {
+  var NR = window.NR = {};
+  NR.W = W; NR.H = H;
+  NR.t = T;
+  NR.settings = loadSettings();
+  NR.input = {
     left: false, right: false, up: false, down: false,
     jump: false, punch: false, kick: false, special: false,
     pointer: { x: 240, y: 135 }
   };
-  DD.wantFullscreen = false;
+  NR.wantFullscreen = false;
 
   var UID = 1;
   function uid() { return UID++; }
@@ -2332,7 +2332,7 @@
     return {
       char: clamp(charIdx || 0, 0, 1),
       difficulty: DIFF_IDS.indexOf(diffId) >= 0 ? diffId : 'normal',
-      score: 0, best: DD.settings.best, newBest: false, lives: 3,
+      score: 0, best: NR.settings.best, newBest: false, lives: 3,
       wave: 0, waveCount: WAVES.length, waveActive: false, zone: 0,
       elapsed: 0, kills: 0, maxCombo: 0,
       combo: 0, comboT: 0, hitstop: 0, shake: 0, flash: 0,
@@ -2349,7 +2349,7 @@
       mode: 'title', modeT: 0, t: 0, freeze: false, prevMode: 'title',
       menuIndex: 0, pauseIndex: 0, settingsIndex: 0, endIndex: 0,
       settingsFrom: 'title', helpFrom: 'title', aboutFrom: 'title',
-      select: { char: 0, diff: DIFF_IDS.indexOf(DD.settings.difficulty) },
+      select: { char: 0, diff: DIFF_IDS.indexOf(NR.settings.difficulty) },
       uiRects: null,
       camera: { x: 0, shakeX: 0, shakeY: 0, shake: 0 },
       world: {
@@ -2357,15 +2357,15 @@
         minY: 174, maxY: 250, groundTop: 158, groundBottom: 260
       },
       zones: ZONES,
-      run: makeRun(0, DD.settings.difficulty),
+      run: makeRun(0, NR.settings.difficulty),
       player: makePlayer(0), enemies: [], boss: null,
       props: [], pickups: [], projectiles: [], particles: [], popups: [],
       toast: null
     };
   }
 
-  DD.state = createState();
-  var S = DD.state;
+  NR.state = createState();
+  var S = NR.state;
 
   /* ---------- UI-прямоугольники ---------- */
   function R(x, y, w, h, extra) {
@@ -2402,17 +2402,17 @@
   var lastTrack = null;
 
   function sfx(id) {
-    try { if (window.DD_AUDIO && window.DD_AUDIO.sfx) window.DD_AUDIO.sfx(id); } catch (e) { /* тихо */ }
+    try { if (window.NR_AUDIO && window.NR_AUDIO.sfx) window.NR_AUDIO.sfx(id); } catch (e) { /* тихо */ }
   }
 
   function applyAudioSettings() {
-    var A = window.DD_AUDIO;
+    var A = window.NR_AUDIO;
     if (!A) return;
     try {
-      if (A.setMusic) A.setMusic(DD.settings.music);
-      if (A.setSfx) A.setSfx(DD.settings.sfx);
-      if (A.setVolume) A.setVolume(DD.settings.volume);
-      if (A.setStyle) A.setStyle(DD.settings.audioStyle);
+      if (A.setMusic) A.setMusic(NR.settings.music);
+      if (A.setSfx) A.setSfx(NR.settings.sfx);
+      if (A.setVolume) A.setVolume(NR.settings.volume);
+      if (A.setStyle) A.setStyle(NR.settings.audioStyle);
     } catch (e) { /* тихо */ }
   }
 
@@ -2436,7 +2436,7 @@
   }
 
   function syncMusic(force) {
-    var A = window.DD_AUDIO;
+    var A = window.NR_AUDIO;
     if (!A) return;
     try {
       if (A.duck) A.duck(ducked());
@@ -2450,64 +2450,64 @@
     } catch (e) { /* тихо */ }
   }
 
-  DD.syncAudio = function () {
+  NR.syncAudio = function () {
     applyAudioSettings();
     syncMusic(true);
   };
 
   function setIntensity(v) {
-    try { if (window.DD_AUDIO && window.DD_AUDIO.intensity) window.DD_AUDIO.intensity(clamp(v, 0, 1)); } catch (e) { /* тихо */ }
+    try { if (window.NR_AUDIO && window.NR_AUDIO.intensity) window.NR_AUDIO.intensity(clamp(v, 0, 1)); } catch (e) { /* тихо */ }
   }
 
   /* ---------- настройки / DOM ---------- */
   function saveSettings() {
-    saveTry(function () { window.localStorage.setItem(STORE_KEY, JSON.stringify(DD.settings)); });
+    saveTry(function () { window.localStorage.setItem(STORE_KEY, JSON.stringify(NR.settings)); });
   }
 
   function applyDom() {
     try {
-      document.documentElement.lang = DD.settings.lang;
-      document.documentElement.setAttribute('data-gfx', DD.settings.gfx);
+      document.documentElement.lang = NR.settings.lang;
+      document.documentElement.setAttribute('data-gfx', NR.settings.gfx);
     } catch (e) { /* тихо */ }
   }
 
-  DD.toggleGfx = function () {
-    DD.settings.gfx = DD.settings.gfx === 'retro' ? 'modern' : 'retro';
+  NR.toggleGfx = function () {
+    NR.settings.gfx = NR.settings.gfx === 'retro' ? 'modern' : 'retro';
     saveSettings(); applyDom(); sfx('ui_select');
   };
-  DD.toggleLang = function () {
-    DD.settings.lang = DD.settings.lang === 'ru' ? 'en' : 'ru';
+  NR.toggleLang = function () {
+    NR.settings.lang = NR.settings.lang === 'ru' ? 'en' : 'ru';
     saveSettings(); applyDom(); sfx('ui_select');
   };
-  DD.toggleMusic = function () {
-    DD.settings.music = !DD.settings.music;
+  NR.toggleMusic = function () {
+    NR.settings.music = !NR.settings.music;
     saveSettings();
     applyAudioSettings();
-    if (DD.settings.music) syncMusic(true);
+    if (NR.settings.music) syncMusic(true);
     sfx('ui_select');
   };
-  DD.toggleSfx = function () {
-    DD.settings.sfx = !DD.settings.sfx;
+  NR.toggleSfx = function () {
+    NR.settings.sfx = !NR.settings.sfx;
     saveSettings(); applyAudioSettings(); sfx('ui_select');
   };
-  DD.toggleCrt = function () {
-    DD.settings.crt = !DD.settings.crt;
+  NR.toggleCrt = function () {
+    NR.settings.crt = !NR.settings.crt;
     saveSettings(); sfx('ui_select');
   };
-  DD.toggleAudioStyle = function () {
-    DD.settings.audioStyle = DD.settings.audioStyle === 'chip' ? 'synth' : 'chip';
+  NR.toggleAudioStyle = function () {
+    NR.settings.audioStyle = NR.settings.audioStyle === 'chip' ? 'synth' : 'chip';
     saveSettings(); applyAudioSettings(); sfx('ui_select');
   };
 
   function setDifficulty(id) {
     if (DIFF_IDS.indexOf(id) < 0) return;
-    DD.settings.difficulty = id;
+    NR.settings.difficulty = id;
     S.select.diff = DIFF_IDS.indexOf(id);
     saveSettings();
   }
 
   function resetBest() {
-    DD.settings.best = 0;
+    NR.settings.best = 0;
     S.run.best = 0;
     S.run.newBest = false;
     saveSettings();
@@ -2516,17 +2516,17 @@
   }
 
   function adjustSetting(id, dir) {
-    if (id === 'lang') DD.toggleLang();
-    else if (id === 'gfx') DD.toggleGfx();
-    else if (id === 'music') DD.toggleMusic();
-    else if (id === 'audioStyle') DD.toggleAudioStyle();
-    else if (id === 'sfx') DD.toggleSfx();
-    else if (id === 'crt') DD.toggleCrt();
+    if (id === 'lang') NR.toggleLang();
+    else if (id === 'gfx') NR.toggleGfx();
+    else if (id === 'music') NR.toggleMusic();
+    else if (id === 'audioStyle') NR.toggleAudioStyle();
+    else if (id === 'sfx') NR.toggleSfx();
+    else if (id === 'crt') NR.toggleCrt();
     else if (id === 'volume') {
-      DD.settings.volume = Math.round(clamp(DD.settings.volume + dir * 0.1, 0, 1) * 10) / 10;
+      NR.settings.volume = Math.round(clamp(NR.settings.volume + dir * 0.1, 0, 1) * 10) / 10;
       saveSettings(); applyAudioSettings(); sfx('ui_move');
     } else if (id === 'difficulty') {
-      var i = DIFF_IDS.indexOf(DD.settings.difficulty);
+      var i = DIFF_IDS.indexOf(NR.settings.difficulty);
       i = (i + (dir > 0 ? 1 : DIFF_IDS.length - 1)) % DIFF_IDS.length;
       setDifficulty(DIFF_IDS[i]);
       sfx('ui_move');
@@ -2544,10 +2544,10 @@
     if (mode === 'paused') S.pauseIndex = 0;
     if (mode === 'settings') S.settingsIndex = 0;
     if (mode === 'gameover' || mode === 'victory') S.endIndex = 0;
-    if (DD.settings.audioStyle) applyAudioSettings();
+    if (NR.settings.audioStyle) applyAudioSettings();
     try {
-      if (window.DD_AUDIO && window.DD_AUDIO.duck) {
-        window.DD_AUDIO.duck(mode === 'paused' || (mode === 'settings' && S.settingsFrom === 'paused'));
+      if (window.NR_AUDIO && window.NR_AUDIO.duck) {
+        window.NR_AUDIO.duck(mode === 'paused' || (mode === 'settings' && S.settingsFrom === 'paused'));
       }
     } catch (e) { /* тихо */ }
     applyDom();
@@ -2579,7 +2579,7 @@
       S.mode = 'paused';
       S.modeT = 0;
       S.pauseIndex = 0;
-      try { if (window.DD_AUDIO && window.DD_AUDIO.duck) window.DD_AUDIO.duck(true); } catch (e) { /* тихо */ }
+      try { if (window.NR_AUDIO && window.NR_AUDIO.duck) window.NR_AUDIO.duck(true); } catch (e) { /* тихо */ }
       sfx('ui_back');
       return;
     }
@@ -2626,7 +2626,7 @@
     S.popups = [];
     S.camera = { x: 0, shakeX: 0, shakeY: 0, shake: 0 };
     S.freeze = false;
-    S.run.best = DD.settings.best;
+    S.run.best = NR.settings.best;
     if (skipIntro) beginRun();
     else setMode('intro');
   }
@@ -2654,7 +2654,7 @@
     S.run.banner = null;
     S.run.gate = { active: false, left: 0, right: 0 };
     S.run.startTime = S.t;
-    S.run.best = DD.settings.best;
+    S.run.best = NR.settings.best;
     S.enemies = [];
     S.boss = null;
     S.props = createProps();
@@ -2675,12 +2675,12 @@
 
   function finishRun(victory) {
     if (S.mode === 'gameover' || S.mode === 'victory') return;
-    if (S.run.score > DD.settings.best) {
-      DD.settings.best = S.run.score;
+    if (S.run.score > NR.settings.best) {
+      NR.settings.best = S.run.score;
       S.run.newBest = true;
       saveSettings();
     }
-    S.run.best = DD.settings.best;
+    S.run.best = NR.settings.best;
     S.run.victory = !!victory;
     if (S.player) {
       S.player.dead = !victory;
@@ -2906,10 +2906,10 @@
   }
 
   /* ---------- ввод ---------- */
-  DD.setHeld = function (name, on) {
+  NR.setHeld = function (name, on) {
     if (!name) return;
-    if (Object.prototype.hasOwnProperty.call(DD.input, name) && typeof DD.input[name] === 'boolean') {
-      DD.input[name] = !!on;
+    if (Object.prototype.hasOwnProperty.call(NR.input, name) && typeof NR.input[name] === 'boolean') {
+      NR.input[name] = !!on;
     }
   };
 
@@ -2919,13 +2919,13 @@
       S.mode === 'gameover' || S.mode === 'victory' || S.mode === 'intro';
   }
 
-  DD.press = function (action) {
+  NR.press = function (action) {
     if (!action) return;
     /* быстрые переключатели работают везде */
-    if (action === 'gfx') { DD.toggleGfx(); return; }
-    if (action === 'lang') { DD.toggleLang(); return; }
-    if (action === 'music') { DD.toggleMusic(); return; }
-    if (action === 'fullscreen') { DD.wantFullscreen = true; return; }
+    if (action === 'gfx') { NR.toggleGfx(); return; }
+    if (action === 'lang') { NR.toggleLang(); return; }
+    if (action === 'music') { NR.toggleMusic(); return; }
+    if (action === 'fullscreen') { NR.wantFullscreen = true; return; }
 
     if (S.mode === 'play' || S.mode === 'dead') {
       if (S.mode === 'dead') return;
@@ -3024,13 +3024,13 @@
     return null;
   }
 
-  DD.pointerDown = function (x, y) {
+  NR.pointerDown = function (x, y) {
     S.pointer = { x: x, y: y };
     if (!S.uiRects) return;
     var q = findQuick(x, y);
     if (q && (S.mode === 'title' || S.mode === 'select' || S.mode === 'help' ||
       S.mode === 'settings' || S.mode === 'about' || S.mode === 'paused')) {
-      DD.press(q.action);
+      NR.press(q.action);
       return;
     }
     var i;
@@ -3073,15 +3073,15 @@
       beginRun();
     } else if (S.mode === 'play') {
       /* тап по игровому полю — только подсказка-фокус; тач-кнопки отдельно */
-      DD.input.pointer.x = x; DD.input.pointer.y = y;
+      NR.input.pointer.x = x; NR.input.pointer.y = y;
     }
   };
 
-  DD.pointerUp = function () { /* пока не требуется */ };
+  NR.pointerUp = function () { /* пока не требуется */ };
 
   /* ---------- инициализация ---------- */
-  DD.init = function () {
-    S = DD.state;
+  NR.init = function () {
+    S = NR.state;
     S.uiRects = buildUIRects();
     applyDom();
     syncMusic(false);
@@ -3594,8 +3594,8 @@
     }
 
     if (p.z > 0) {
-      var airMx = (DD.input.left ? -1 : 0) + (DD.input.right ? 1 : 0);
-      var airMy = (DD.input.down ? 1 : 0) + (DD.input.up ? -1 : 0);
+      var airMx = (NR.input.left ? -1 : 0) + (NR.input.right ? 1 : 0);
+      var airMy = (NR.input.down ? 1 : 0) + (NR.input.up ? -1 : 0);
       if (airMx) { p.x += airMx * charOf(p).speed * 0.65 * dt; p.facing = airMx; }
       if (airMy) p.y += airMy * charOf(p).depth * 0.55 * dt;
       clampActor(p);
@@ -3610,8 +3610,8 @@
     }
 
     /* земля: движение */
-    var mx = (DD.input.left ? -1 : 0) + (DD.input.right ? 1 : 0);
-    var my = (DD.input.down ? 1 : 0) + (DD.input.up ? -1 : 0);
+    var mx = (NR.input.left ? -1 : 0) + (NR.input.right ? 1 : 0);
+    var my = (NR.input.down ? 1 : 0) + (NR.input.up ? -1 : 0);
     var moving = false;
     if (mx) {
       p.x += mx * charOf(p).speed * dt;
@@ -3663,7 +3663,7 @@
     p.animT += dt;
     updateJumpPhysics(p, dt);
     if (p.z > 0) {
-      var airMx = (DD.input.left ? -1 : 0) + (DD.input.right ? 1 : 0);
+      var airMx = (NR.input.left ? -1 : 0) + (NR.input.right ? 1 : 0);
       if (airMx) { p.x += airMx * charOf(p).speed * 0.4 * dt; p.facing = airMx; }
       clampActor(p);
     }
@@ -4265,7 +4265,7 @@
     }
   }
 
-  DD.update = function (dt) {
+  NR.update = function (dt) {
     dt = clamp(dt, 0, 0.045);
     S.t += dt;
     S.modeT += dt;
@@ -4320,15 +4320,15 @@
   }
 
   /* публичные функции для QA/консоли */
-  DD.startRun = startRun;
-  DD.beginRun = beginRun;
-  DD.finishRun = finishRun;
-  DD.saveSettings = saveSettings;
-  DD.setDifficulty = setDifficulty;
-  DD.pauseGame = pauseGame;
-  DD.resumeGame = resumeGame;
+  NR.startRun = startRun;
+  NR.beginRun = beginRun;
+  NR.finishRun = finishRun;
+  NR.saveSettings = saveSettings;
+  NR.setDifficulty = setDifficulty;
+  NR.pauseGame = pauseGame;
+  NR.resumeGame = resumeGame;
 
-  DD.debug = {
+  NR.debug = {
     freeze: function (on) { S.freeze = !!on; },
     scene: function (name) {
       name = String(name || 'title');
@@ -4455,7 +4455,7 @@
     },
     state: function () {
       return {
-        mode: S.mode, gfx: DD.settings.gfx, lang: DD.settings.lang,
+        mode: S.mode, gfx: NR.settings.gfx, lang: NR.settings.lang,
         wave: S.run.wave, waveActive: S.run.waveActive, zone: S.run.zone,
         score: S.run.score, lives: S.run.lives, combo: S.run.combo,
         hp: S.player ? S.player.hp : 0, enemies: S.enemies.length,
@@ -4471,11 +4471,11 @@
 /* ============================================================
    НЕОН × ЯРОСТЬ: NEON RAGE — RETRO 8-BIT RENDERER
    ------------------------------------------------------------
-   window.DD_RENDER_RETRO = { draw(ctx, view) }
+   window.NR_RENDER_RETRO = { draw(ctx, view) }
 
    Полностью процедурный 8-битный аркадный рендерер 480×270.
    Палитра ~16 цветов, дизеринг, чанки 2–3 px, пиксельный шрифт
-   DD_FONT (6×8, кириллица). Никаких внешних ассетов, fetch, import.
+   NR_FONT (6×8, кириллица). Никаких внешних ассетов, fetch, import.
    Состояние игры только читается. Внутренние кэши безопасны.
 
    Разделы:
@@ -4533,13 +4533,13 @@
   function blink(t, hz) { return (Math.sin(t * (hz || 6)) > 0) ? 1 : 0; }
 
   function T(key, vars) {
-    var DD = window.DD;
-    if (DD && typeof DD.t === 'function') {
-      try { return DD.t(key, vars); } catch (e) { /* ignore */ }
+    var NR = window.NR;
+    if (NR && typeof NR.t === 'function') {
+      try { return NR.t(key, vars); } catch (e) { /* ignore */ }
     }
-    var I = window.DD_I18N;
+    var I = window.NR_I18N;
     if (I) {
-      var lang = (DD && DD.settings && DD.settings.lang) || 'ru';
+      var lang = (NR && NR.settings && NR.settings.lang) || 'ru';
       var dict = I[lang] || I.ru;
       var s = dict && dict[key];
       if (s == null) s = key;
@@ -4552,7 +4552,7 @@
     }
     return key;
   }
-  function S_() { return (window.DD && window.DD.settings) || {}; }
+  function S_() { return (window.NR && window.NR.settings) || {}; }
   function uiOf(S) { return (S && S.uiRects) || {}; }
 
   /* индексы режимов/актёров */
@@ -4564,7 +4564,7 @@
      2. ШРИФТ
      ============================================================ */
 
-  var FONT = null; /* window.DD_FONT || window.EX_FONT */
+  var FONT = null; /* window.NR_FONT || window.NR_FONT */
   var FALLBACK = { W: 6, H: 8 };
 
   function fw() { return FONT && FONT.W ? FONT.W : FALLBACK.W; }
@@ -5080,10 +5080,10 @@
   function drawScreen(ctx, view) {
     var W = (view && view.w) || 480;
     var H = (view && view.h) || 270;
-    FONT = window.DD_FONT || window.EX_FONT || null;
+    FONT = window.NR_FONT || window.NR_FONT || null;
     ctx.imageSmoothingEnabled = false;
-    var DD = window.DD || {};
-    var S = DD.state || {};
+    var NR = window.NR || {};
+    var S = NR.state || {};
     var t = (view && view.t != null) ? view.t : (S.t || 0);
     var mode = S.mode || 'title';
 
@@ -5626,7 +5626,7 @@
     var start = Math.floor((off - 160) / tileW);
     var end = Math.ceil((off + 480 + 160) / tileW);
     var pal = [C.cyan, C.magenta, C.amber, C.lime];
-    var labels = ['NEON', 'RAGE', 'DD', 'HAMMER'];
+    var labels = ['NEON', 'RAGE', 'NR', 'HAMMER'];
     for (i = start; i <= end; i++) {
       var bx = Math.round(i * tileW - off + 20);
       if (bx < -80 || bx > 500) continue;
@@ -6243,14 +6243,14 @@
     var h = cfg.h;
     var anim = a.anim || a.state || 'idle';
     var at = a.animT || 0;
-    var ex = attackExt(a);
+    var atkExt = attackExt(a);
     var p = {
       crouch: 0, bob: 0, lean: 0,
       shoulderY: -h * 0.8, hipY: -h * 0.42,
       headX: 0, headY: -h * 0.92,
       footF: { x: 4, y: 0 }, footB: { x: -4, y: 0 },
       handF: { x: 6, y: -h * 0.46 }, handB: { x: -6, y: -h * 0.46 },
-      prone: false, ex: ex
+      prone: false, atkExt: atkExt
     };
     var ph, sw;
 
@@ -6277,7 +6277,7 @@
       p.handB.x = -6 + sw * 3;
       p.handB.y = -h * 0.46 - Math.cos(ph) * 1.5;
     } else if (anim === 'jumpkick') {
-      p.footF = { x: 6 + Math.max(0, ex) * h * 0.34, y: -h * 0.24 };
+      p.footF = { x: 6 + Math.max(0, atkExt) * h * 0.34, y: -h * 0.24 };
       p.footB = { x: -5, y: -h * 0.16 };
       p.handF = { x: 2, y: -h * 0.62 };
       p.handB = { x: -9, y: -h * 0.58 };
@@ -6289,29 +6289,29 @@
       p.handB = { x: -8, y: -h * 0.7 };
       p.lean = 2;
     } else if (anim === 'punch1') {
-      var e1 = Math.max(0, ex);
-      p.handF = { x: 6 + ex * h * 0.34, y: p.shoulderY + 5 };
+      var e1 = Math.max(0, atkExt);
+      p.handF = { x: 6 + atkExt * h * 0.34, y: p.shoulderY + 5 };
       p.handB = { x: -4, y: p.shoulderY + 4 };
       p.lean = e1 * 3;
       p.bob = e1 * 1;
-      if (ex < 0) { p.crouch = -ex * h * 0.03; p.handF.x = 6 + ex * 9; }
+      if (atkExt < 0) { p.crouch = -atkExt * h * 0.03; p.handF.x = 6 + atkExt * 9; }
     } else if (anim === 'punch2') {
-      var e2 = Math.max(0, ex);
-      p.handB = { x: -2 + ex * h * 0.38, y: p.shoulderY + 4 };
+      var e2 = Math.max(0, atkExt);
+      p.handB = { x: -2 + atkExt * h * 0.38, y: p.shoulderY + 4 };
       p.handF = { x: 3, y: p.shoulderY + 3 };
       p.lean = e2 * 4;
       p.headX = e2;
-      if (ex < 0) p.crouch = -ex * h * 0.03;
+      if (atkExt < 0) p.crouch = -atkExt * h * 0.03;
     } else if (anim === 'punch3') {
-      var e3 = Math.max(0, ex);
-      p.crouch = ex < 0 ? -ex * h * 0.07 : (1 - e3) * h * 0.02;
+      var e3 = Math.max(0, atkExt);
+      p.crouch = atkExt < 0 ? -atkExt * h * 0.07 : (1 - e3) * h * 0.02;
       var uy = (p.hipY + 6) + e3 * ((p.shoulderY - 10) - (p.hipY + 6));
       p.handF = { x: 5 + e3 * h * 0.2, y: uy };
       p.handB = { x: -3, y: p.shoulderY + 5 };
       p.lean = 2 + e3 * 3;
       p.bob = -e3 * 2;
     } else if (anim === 'kick') {
-      var e4 = Math.max(0, ex);
+      var e4 = Math.max(0, atkExt);
       p.footF = { x: 4 + e4 * h * 0.34, y: -e4 * h * 0.3 };
       p.footB = { x: -5, y: 0 };
       p.handF = { x: -2, y: p.shoulderY + 4 };
@@ -6345,18 +6345,18 @@
       p.headX = -2; p.lean = -3; p.crouch = 1;
       p.bob = Math.sin(t * 26);
     } else if (anim === 'cable') {
-      var e5 = Math.max(0, ex);
+      var e5 = Math.max(0, atkExt);
       p.handF = { x: 6 + e5 * h * 0.5, y: p.shoulderY + 6 - e5 * 8 };
       p.handB = { x: -6, y: p.shoulderY + 3 };
       p.lean = e5 * 3;
     } else if (anim === 'cast') {
-      var e6 = Math.max(0, ex);
+      var e6 = Math.max(0, atkExt);
       p.handF = { x: 6 + e6 * h * 0.3, y: p.shoulderY + 3 };
       p.handB = { x: 2 + e6 * h * 0.24, y: p.shoulderY + 7 };
       p.lean = e6 * 2;
     } else if (anim === 'slam') {
-      var e7 = Math.max(0, ex);
-      p.crouch = h * 0.14 * e7 + (ex < 0 ? -ex * h * 0.1 : 0);
+      var e7 = Math.max(0, atkExt);
+      p.crouch = h * 0.14 * e7 + (atkExt < 0 ? -atkExt * h * 0.1 : 0);
       p.handF = { x: 8 + e7 * 4, y: lerp(p.shoulderY, -2, e7) };
       p.handB = { x: -8 - e7 * 4, y: lerp(p.shoulderY, -2, e7) };
       p.lean = e7 * 4;
@@ -6663,8 +6663,8 @@
     var oc = fl ? C.lav : C.ink;
     function cc(v) { return fl ? C.white : v; }
     var anim = a.anim || 'idle';
-    var ex = attackExt(a);
-    var e = Math.max(0, ex);
+    var atkExt = attackExt(a);
+    var e = Math.max(0, atkExt);
     var sway = Math.sin(t * 1.8);
     var bob = Math.round(Math.sin(t * 2.1) * 2);
     var lean = anim === 'hurt' ? -3 : (anim === 'roar' ? -2 : (anim === 'cable' ? Math.round(e * 2) : 0));
@@ -6801,7 +6801,7 @@
 
     manip(shF, handF, false);
     shoulder(shF, false);
-    drawKhromCable(ctx, a, t, anim, ex, handF, oc, cc);
+    drawKhromCable(ctx, a, t, anim, atkExt, handF, oc, cc);
 
     /* искры-разряды вокруг */
     if (!fl) {
@@ -6815,9 +6815,9 @@
   }
 
   /* силовой кабель с захватом (атака на дальность — механика не менялась) */
-  function drawKhromCable(ctx, a, t, anim, ex, hand, oc, cc) {
+  function drawKhromCable(ctx, a, t, anim, atkExt, hand, oc, cc) {
     var on = anim === 'cable';
-    var e = Math.max(0, ex);
+    var e = Math.max(0, atkExt);
     var len = on ? 22 + e * 64 : 0;
     var pts = [];
     var n = 9;
@@ -8243,7 +8243,7 @@
   /* ============================================================
      9. ПУБЛИЧНЫЙ API
      ============================================================ */
-  window.DD_RENDER_RETRO = { draw: drawScreen };
+  window.NR_RENDER_RETRO = { draw: drawScreen };
 })();
 
 /* ==== src/render-modern.js ==== */
@@ -8251,8 +8251,8 @@
    НЕОН × ЯРОСТЬ: NEON RAGE
    src/render-modern.js — «неоновый ремастер»: Canvas 2D, 480×270
    ------------------------------------------------------------
-   window.DD_RENDER_MODERN = { draw(ctx, view) }
-   Читает DD.state / DD.settings / DD.t. Не мутирует состояние.
+   window.NR_RENDER_MODERN = { draw(ctx, view) }
+   Читает NR.state / NR.settings / NR.t. Не мутирует состояние.
    ES2019, IIFE, без импортов и внешних ассетов.
    ============================================================ */
 (function () {
@@ -8295,11 +8295,11 @@
     return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
   }
 
-  /* ---------- доступ к DD ---------- */
-  function DS() { return (typeof window !== 'undefined' && window.DD && window.DD.state) || {}; }
-  function DSet() { return (typeof window !== 'undefined' && window.DD && window.DD.settings) || {}; }
+  /* ---------- доступ к NR ---------- */
+  function DS() { return (typeof window !== 'undefined' && window.NR && window.NR.state) || {}; }
+  function DSet() { return (typeof window !== 'undefined' && window.NR && window.NR.settings) || {}; }
   function tt(key, vars) {
-    var D = (typeof window !== 'undefined' && window.DD) || null;
+    var D = (typeof window !== 'undefined' && window.NR) || null;
     if (D && typeof D.t === 'function') {
       try { var s = D.t(key, vars); if (s != null) return String(s); } catch (e) { /* ignore */ }
     }
@@ -10619,9 +10619,9 @@
     var hipB = [hip[0] - 3 * c, hip[1] - 3 * s];
 
     function chain(x, y, a1, a2, l1, l2) {
-      var ex = x + Math.sin(a1) * l1, ey = y + Math.cos(a1) * l1;
-      var hx2 = ex + Math.sin(a1 + a2) * l2, hy2 = ey + Math.cos(a1 + a2) * l2;
-      return { mid: [ex, ey], end: [hx2, hy2], a1: a1, a2: a2 };
+      var elbX = x + Math.sin(a1) * l1, elbY = y + Math.cos(a1) * l1;
+      var hx2 = elbX + Math.sin(a1 + a2) * l2, hy2 = elbY + Math.cos(a1 + a2) * l2;
+      return { mid: [elbX, elbY], end: [hx2, hy2], a1: a1, a2: a2 };
     }
     return {
       hip: hip, shoulder: shoulder, head: headC,
@@ -13484,7 +13484,7 @@
     drawSubHeader(ctx, tt('about.title'), tt('about.tech'), C.violet, 28);
 
     // логотип-марка
-    drawPosterLine(ctx, 'DD×BT', W / 2, 72, {
+    drawPosterLine(ctx, 'NR×BT', W / 2, 72, {
       size: 30, c1: '#ffffff', c2: '#ffb3db', c3: C.pink, glow: C.pink, glowAlpha: 0.55
     });
     drawText(ctx, tt('app.subtitle'), W / 2, 94, {
@@ -13800,7 +13800,7 @@
   }
 
   var API = { draw: draw, version: 1 };
-  if (typeof window !== 'undefined') window.DD_RENDER_MODERN = API;
+  if (typeof window !== 'undefined') window.NR_RENDER_MODERN = API;
   return API;
 })();
 
@@ -13813,18 +13813,18 @@
 (function () {
   'use strict';
 
-  var DD = window.DD;
+  var NR = window.NR;
   var canvas = document.getElementById('stage');
   var ctx = canvas.getContext('2d', { alpha: false });
   var errBox = document.getElementById('err');
   var testBox = document.getElementById('testout');
   var hint = document.getElementById('hint');
 
-  if (!DD || !canvas || !ctx) return;
+  if (!NR || !canvas || !ctx) return;
 
-  var W = DD.W || 480, H = DD.H || 270;
-  var RETRO = window.DD_RENDER_RETRO;
-  var MODERN = window.DD_RENDER_MODERN;
+  var W = NR.W || 480, H = NR.H || 270;
+  var RETRO = window.NR_RENDER_RETRO;
+  var MODERN = window.NR_RENDER_MODERN;
 
   var off = document.createElement('canvas');
   off.width = W;
@@ -13866,7 +13866,7 @@
     ctx.imageSmoothingEnabled = true;
 
     var s;
-    if (DD.settings.gfx === 'retro') {
+    if (NR.settings.gfx === 'retro') {
       var availW = Math.max(120, cw);
       var availH = Math.max(90, ch);
       s = Math.min(availW / W, availH / H);
@@ -13905,7 +13905,7 @@
 
   /* ---------- звук ---------- */
   function ensureAudio() {
-    var A = window.DD_AUDIO;
+    var A = window.NR_AUDIO;
     if (!A) return;
     try {
       if (!bootedAudio) {
@@ -13913,8 +13913,8 @@
         A.init();
       }
       var r = A.unlock ? A.unlock() : null;
-      if (r && r.then) r.then(function () { DD.syncAudio(); }).catch(function () { /* ok */ });
-      DD.syncAudio();
+      if (r && r.then) r.then(function () { NR.syncAudio(); }).catch(function () { /* ok */ });
+      NR.syncAudio();
     } catch (e) { report('audio: ' + (e && e.message ? e.message : e)); }
   }
 
@@ -13922,18 +13922,18 @@
   var heldKeys = {};
 
   function syncHeld() {
-    DD.setHeld('left', !!(heldKeys.ArrowLeft || heldKeys.KeyA));
-    DD.setHeld('right', !!(heldKeys.ArrowRight || heldKeys.KeyD));
-    DD.setHeld('up', !!(heldKeys.ArrowUp || heldKeys.KeyW));
-    DD.setHeld('down', !!(heldKeys.ArrowDown || heldKeys.KeyS));
-    DD.setHeld('jump', !!heldKeys.Space);
-    DD.setHeld('punch', !!(heldKeys.KeyJ || heldKeys.KeyZ));
-    DD.setHeld('kick', !!(heldKeys.KeyK || heldKeys.KeyX));
-    DD.setHeld('special', !!heldKeys.KeyV);  /* L — язык (стандарт аркады), ярость — V */
+    NR.setHeld('left', !!(heldKeys.ArrowLeft || heldKeys.KeyA));
+    NR.setHeld('right', !!(heldKeys.ArrowRight || heldKeys.KeyD));
+    NR.setHeld('up', !!(heldKeys.ArrowUp || heldKeys.KeyW));
+    NR.setHeld('down', !!(heldKeys.ArrowDown || heldKeys.KeyS));
+    NR.setHeld('jump', !!heldKeys.Space);
+    NR.setHeld('punch', !!(heldKeys.KeyJ || heldKeys.KeyZ));
+    NR.setHeld('kick', !!(heldKeys.KeyK || heldKeys.KeyX));
+    NR.setHeld('special', !!heldKeys.KeyV);  /* L — язык (стандарт аркады), ярость — V */
   }
 
   function menuMode() {
-    var m = DD.state.mode;
+    var m = NR.state.mode;
     return m !== 'play' && m !== 'dead';
   }
 
@@ -13954,25 +13954,25 @@
     heldKeys[code] = true;
     syncHeld();
     switch (code) {
-      case 'ArrowLeft': case 'KeyA': DD.press('left'); break;
-      case 'ArrowRight': case 'KeyD': DD.press('right'); break;
-      case 'ArrowUp': case 'KeyW': DD.press('up'); break;
-      case 'ArrowDown': case 'KeyS': DD.press('down'); break;
+      case 'ArrowLeft': case 'KeyA': NR.press('left'); break;
+      case 'ArrowRight': case 'KeyD': NR.press('right'); break;
+      case 'ArrowUp': case 'KeyW': NR.press('up'); break;
+      case 'ArrowDown': case 'KeyS': NR.press('down'); break;
       case 'Space':
-        if (menuMode()) DD.press('confirm');
-        else DD.press('jump');
+        if (menuMode()) NR.press('confirm');
+        else NR.press('jump');
         break;
-      case 'KeyJ': case 'KeyZ': DD.press('punch'); break;
-      case 'KeyK': case 'KeyX': DD.press('kick'); break;
-      case 'KeyV': DD.press('special'); break;
-      case 'Enter': case 'NumpadEnter': DD.press('confirm'); break;
-      case 'Escape': DD.press('back'); break;
-      case 'KeyP': DD.press('pause'); break;
+      case 'KeyJ': case 'KeyZ': NR.press('punch'); break;
+      case 'KeyK': case 'KeyX': NR.press('kick'); break;
+      case 'KeyV': NR.press('special'); break;
+      case 'Enter': case 'NumpadEnter': NR.press('confirm'); break;
+      case 'Escape': NR.press('back'); break;
+      case 'KeyP': NR.press('pause'); break;
       /* раскладка аркады «Гефест»: T и G — тема (графика), L — язык */
-      case 'KeyG': case 'KeyT': DD.press('gfx'); break;
-      case 'KeyL': DD.press('lang'); break;
-      case 'KeyM': DD.press('music'); break;
-      case 'KeyF': DD.press('fullscreen'); break;
+      case 'KeyG': case 'KeyT': NR.press('gfx'); break;
+      case 'KeyL': NR.press('lang'); break;
+      case 'KeyM': NR.press('music'); break;
+      case 'KeyF': NR.press('fullscreen'); break;
       default: break;
     }
   }
@@ -13989,7 +13989,7 @@
     syncHeld();
   });
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden && DD.state.mode === 'play') DD.press('pause');
+    if (document.hidden && NR.state.mode === 'play') NR.press('pause');
   });
 
   /* ---------- указатель / тач ---------- */
@@ -14007,24 +14007,24 @@
     ensureAudio();
     if (e.pointerType === 'touch') document.body.classList.add('touch');
     var p = logicalFromEvent(e);
-    DD.input.pointer.x = p.x;
-    DD.input.pointer.y = p.y;
-    DD.pointerDown(p.x, p.y);
+    NR.input.pointer.x = p.x;
+    NR.input.pointer.y = p.y;
+    NR.pointerDown(p.x, p.y);
     try { canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId); } catch (err) { /* ok */ }
     e.preventDefault();
   }, { passive: false });
 
   canvas.addEventListener('pointermove', function (e) {
     var p = logicalFromEvent(e);
-    DD.input.pointer.x = p.x;
-    DD.input.pointer.y = p.y;
+    NR.input.pointer.x = p.x;
+    NR.input.pointer.y = p.y;
   });
 
   canvas.addEventListener('pointerup', function (e) {
     var p = logicalFromEvent(e);
-    DD.pointerUp(p.x, p.y);
+    NR.pointerUp(p.x, p.y);
   });
-  canvas.addEventListener('pointercancel', function () { DD.pointerUp(0, 0); });
+  canvas.addEventListener('pointercancel', function () { NR.pointerUp(0, 0); });
   canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
   /* тач-кнопки из template.html */
@@ -14045,13 +14045,13 @@
           ensureAudio();
           e.preventDefault();
           btn.classList.add('active');
-          DD.setHeld(name, true);
+          NR.setHeld(name, true);
           try { btn.setPointerCapture && btn.setPointerCapture(e.pointerId); } catch (err) { /* ok */ }
         }
         function up(e) {
           if (e) e.preventDefault();
           btn.classList.remove('active');
-          DD.setHeld(name, false);
+          NR.setHeld(name, false);
         }
         btn.addEventListener('pointerdown', down, { passive: false });
         btn.addEventListener('pointerup', up, { passive: false });
@@ -14067,7 +14067,7 @@
           ensureAudio();
           e.preventDefault();
           btn.classList.add('active');
-          DD.press(action);
+          NR.press(action);
           try { btn.setPointerCapture && btn.setPointerCapture(e.pointerId); } catch (err) { /* ok */ }
         }, { passive: false });
         btn.addEventListener('pointerup', function () { btn.classList.remove('active'); });
@@ -14083,7 +14083,7 @@
       e.preventDefault();
       ensureAudio();
       touchPause.classList.add('active');
-      DD.press('pause');
+      NR.press('pause');
     }, { passive: false });
     touchPause.addEventListener('pointerup', function () { touchPause.classList.remove('active'); });
     touchPause.addEventListener('pointercancel', function () { touchPause.classList.remove('active'); });
@@ -14092,8 +14092,8 @@
 
   /* ---------- фуллскрин / подсказки ---------- */
   function handleFullscreen() {
-    if (!DD.wantFullscreen) return;
-    DD.wantFullscreen = false;
+    if (!NR.wantFullscreen) return;
+    NR.wantFullscreen = false;
     try {
       if (!document.fullscreenElement) {
         var r = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
@@ -14113,37 +14113,37 @@
   }
 
   function valueLabel(setting) {
-    var s = DD.settings;
-    if (setting === 'gfx') return DD.t(s.gfx === 'retro' ? 'gfx.retro' : 'gfx.modern');
-    if (setting === 'music') return DD.t(s.music ? 'common.on' : 'common.off');
+    var s = NR.settings;
+    if (setting === 'gfx') return NR.t(s.gfx === 'retro' ? 'gfx.retro' : 'gfx.modern');
+    if (setting === 'music') return NR.t(s.music ? 'common.on' : 'common.off');
     if (setting === 'lang') return String(s.lang).toUpperCase();
     return '';
   }
 
   function watchSettings() {
-    if (lastGfx !== null && DD.settings.gfx !== lastGfx) {
+    if (lastGfx !== null && NR.settings.gfx !== lastGfx) {
       resize();
-      showHint(DD.t('quick.gfx') + ' · ' + valueLabel('gfx'));
+      showHint(NR.t('quick.gfx') + ' · ' + valueLabel('gfx'));
     }
-    if (lastLang !== null && DD.settings.lang !== lastLang) {
-      showHint('ЯЗЫК · ' + String(DD.settings.lang).toUpperCase());
+    if (lastLang !== null && NR.settings.lang !== lastLang) {
+      showHint('ЯЗЫК · ' + String(NR.settings.lang).toUpperCase());
     }
-    if (lastMusic !== null && DD.settings.music !== lastMusic) {
-      showHint(DD.t('quick.music') + ' · ' + valueLabel('music'));
+    if (lastMusic !== null && NR.settings.music !== lastMusic) {
+      showHint(NR.t('quick.music') + ' · ' + valueLabel('music'));
     }
-    lastGfx = DD.settings.gfx;
-    lastLang = DD.settings.lang;
-    lastMusic = DD.settings.music;
-    document.documentElement.setAttribute('data-gfx', DD.settings.gfx);
-    document.documentElement.lang = DD.settings.lang;
-    var touchPlay = DD.state.mode === 'play' || DD.state.mode === 'dead';
+    lastGfx = NR.settings.gfx;
+    lastLang = NR.settings.lang;
+    lastMusic = NR.settings.music;
+    document.documentElement.setAttribute('data-gfx', NR.settings.gfx);
+    document.documentElement.lang = NR.settings.lang;
+    var touchPlay = NR.state.mode === 'play' || NR.state.mode === 'dead';
     document.body.classList.toggle('in-game', touchPlay);
-    document.body.classList.toggle('pausable', touchPlay || DD.state.mode === 'paused');
+    document.body.classList.toggle('pausable', touchPlay || NR.state.mode === 'paused');
   }
 
   /* ---------- отрисовка ---------- */
   function drawCrt(retro) {
-    if (!DD.settings.crt) return;
+    if (!NR.settings.crt) return;
     var sd = dpr;
     var s = stage;
     ctx.save();
@@ -14185,13 +14185,13 @@
 
     var s = stage;
     var sd = dpr;
-    var gfx = DD.settings.gfx;
+    var gfx = NR.settings.gfx;
 
     if (gfx === 'retro') {
       if (!RETRO) return;
       offCtx.setTransform(1, 0, 0, 1, 0, 0);
       offCtx.imageSmoothingEnabled = false;
-      RETRO.draw(offCtx, { w: W, h: H, t: DD.state.t });
+      RETRO.draw(offCtx, { w: W, h: H, t: NR.state.t });
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(off, 0, 0, W, H, Math.round(s.x * sd), Math.round(s.y * sd),
         Math.round(s.w * sd), Math.round(s.h * sd));
@@ -14200,7 +14200,7 @@
       if (!MODERN) return;
       var scale = s.scale * sd;
       ctx.setTransform(scale, 0, 0, scale, Math.round(s.x * sd), Math.round(s.y * sd));
-      MODERN.draw(ctx, { w: W, h: H, t: DD.state.t });
+      MODERN.draw(ctx, { w: W, h: H, t: NR.state.t });
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       drawCrt(false);
     }
@@ -14216,13 +14216,13 @@
       if (i < 0) params[decodeURIComponent(pair)] = '1';
       else params[decodeURIComponent(pair.slice(0, i))] = decodeURIComponent(pair.slice(i + 1));
     });
-    if (params.gfx === 'modern' || params.gfx === 'retro') DD.settings.gfx = params.gfx;
-    if (params.lang === 'ru' || params.lang === 'en') DD.settings.lang = params.lang;
-    if (params.scene && DD.debug) DD.debug.scene(params.scene);
-    if (params.wave && DD.debug) DD.debug.wave(parseInt(params.wave, 10) || 0);
+    if (params.gfx === 'modern' || params.gfx === 'retro') NR.settings.gfx = params.gfx;
+    if (params.lang === 'ru' || params.lang === 'en') NR.settings.lang = params.lang;
+    if (params.scene && NR.debug) NR.debug.scene(params.scene);
+    if (params.wave && NR.debug) NR.debug.wave(parseInt(params.wave, 10) || 0);
     if (params.touch === '1') document.body.classList.add('touch');
-    if (params.freeze === '1' && DD.debug) DD.debug.freeze(true);
-    if (params.demo === '1' && DD.debug) DD.debug.demo();
+    if (params.freeze === '1' && NR.debug) NR.debug.freeze(true);
+    if (params.demo === '1' && NR.debug) NR.debug.demo();
     watchSettings();
     resize();
   }
@@ -14236,7 +14236,7 @@
     if (dt > 0.1) dt = 0.033;
     try {
       handleFullscreen();
-      DD.update(dt);
+      NR.update(dt);
       watchSettings();
       render();
     } catch (e) {
@@ -14249,21 +14249,21 @@
 
   /* ---------- старт ---------- */
   try {
-    DD.init();
+    NR.init();
     resize();
-    lastGfx = DD.settings.gfx;
-    lastLang = DD.settings.lang;
-    lastMusic = DD.settings.music;
+    lastGfx = NR.settings.gfx;
+    lastLang = NR.settings.lang;
+    lastMusic = NR.settings.music;
     if (window.location.hash) applyHash();
-    lastGfx = DD.settings.gfx;
-    lastLang = DD.settings.lang;
-    lastMusic = DD.settings.music;
-    DD.syncAudio();
+    lastGfx = NR.settings.gfx;
+    lastLang = NR.settings.lang;
+    lastMusic = NR.settings.music;
+    NR.syncAudio();
     render();
     window.requestAnimationFrame(frame);
     setTimeout(function () {
       if (!window.location.hash && !document.body.classList.contains('touch')) {
-        showHint(DD.t('help.quickKeys'), 5200);
+        showHint(NR.t('help.quickKeys'), 5200);
       }
     }, 900);
   } catch (e) {
@@ -14272,7 +14272,7 @@
   }
 
   /* отладочный доступ для QA */
-  window.DD_SHELL = {
+  window.NR_SHELL = {
     stage: function () { return stage; },
     resize: resize,
     render: render,

@@ -18,7 +18,7 @@
   function sign(v) { return v < 0 ? -1 : 1; }
   function nowT() { return 0; }
   function T(key, vars) {
-    try { return window.DD_T ? window.DD_T(key, vars) : key; } catch (e) { return key; }
+    try { return window.NR_T ? window.NR_T(key, vars) : key; } catch (e) { return key; }
   }
   function saveTry(fn) { try { fn(); } catch (e) { /* localStorage/file:// может быть недоступен */ } }
 
@@ -119,16 +119,16 @@
   }
 
   /* ---------- состояние ---------- */
-  var DD = window.DD = {};
-  DD.W = W; DD.H = H;
-  DD.t = T;
-  DD.settings = loadSettings();
-  DD.input = {
+  var NR = window.NR = {};
+  NR.W = W; NR.H = H;
+  NR.t = T;
+  NR.settings = loadSettings();
+  NR.input = {
     left: false, right: false, up: false, down: false,
     jump: false, punch: false, kick: false, special: false,
     pointer: { x: 240, y: 135 }
   };
-  DD.wantFullscreen = false;
+  NR.wantFullscreen = false;
 
   var UID = 1;
   function uid() { return UID++; }
@@ -151,7 +151,7 @@
     return {
       char: clamp(charIdx || 0, 0, 1),
       difficulty: DIFF_IDS.indexOf(diffId) >= 0 ? diffId : 'normal',
-      score: 0, best: DD.settings.best, newBest: false, lives: 3,
+      score: 0, best: NR.settings.best, newBest: false, lives: 3,
       wave: 0, waveCount: WAVES.length, waveActive: false, zone: 0,
       elapsed: 0, kills: 0, maxCombo: 0,
       combo: 0, comboT: 0, hitstop: 0, shake: 0, flash: 0,
@@ -168,7 +168,7 @@
       mode: 'title', modeT: 0, t: 0, freeze: false, prevMode: 'title',
       menuIndex: 0, pauseIndex: 0, settingsIndex: 0, endIndex: 0,
       settingsFrom: 'title', helpFrom: 'title', aboutFrom: 'title',
-      select: { char: 0, diff: DIFF_IDS.indexOf(DD.settings.difficulty) },
+      select: { char: 0, diff: DIFF_IDS.indexOf(NR.settings.difficulty) },
       uiRects: null,
       camera: { x: 0, shakeX: 0, shakeY: 0, shake: 0 },
       world: {
@@ -176,15 +176,15 @@
         minY: 174, maxY: 250, groundTop: 158, groundBottom: 260
       },
       zones: ZONES,
-      run: makeRun(0, DD.settings.difficulty),
+      run: makeRun(0, NR.settings.difficulty),
       player: makePlayer(0), enemies: [], boss: null,
       props: [], pickups: [], projectiles: [], particles: [], popups: [],
       toast: null
     };
   }
 
-  DD.state = createState();
-  var S = DD.state;
+  NR.state = createState();
+  var S = NR.state;
 
   /* ---------- UI-прямоугольники ---------- */
   function R(x, y, w, h, extra) {
@@ -221,17 +221,17 @@
   var lastTrack = null;
 
   function sfx(id) {
-    try { if (window.DD_AUDIO && window.DD_AUDIO.sfx) window.DD_AUDIO.sfx(id); } catch (e) { /* тихо */ }
+    try { if (window.NR_AUDIO && window.NR_AUDIO.sfx) window.NR_AUDIO.sfx(id); } catch (e) { /* тихо */ }
   }
 
   function applyAudioSettings() {
-    var A = window.DD_AUDIO;
+    var A = window.NR_AUDIO;
     if (!A) return;
     try {
-      if (A.setMusic) A.setMusic(DD.settings.music);
-      if (A.setSfx) A.setSfx(DD.settings.sfx);
-      if (A.setVolume) A.setVolume(DD.settings.volume);
-      if (A.setStyle) A.setStyle(DD.settings.audioStyle);
+      if (A.setMusic) A.setMusic(NR.settings.music);
+      if (A.setSfx) A.setSfx(NR.settings.sfx);
+      if (A.setVolume) A.setVolume(NR.settings.volume);
+      if (A.setStyle) A.setStyle(NR.settings.audioStyle);
     } catch (e) { /* тихо */ }
   }
 
@@ -255,7 +255,7 @@
   }
 
   function syncMusic(force) {
-    var A = window.DD_AUDIO;
+    var A = window.NR_AUDIO;
     if (!A) return;
     try {
       if (A.duck) A.duck(ducked());
@@ -269,64 +269,64 @@
     } catch (e) { /* тихо */ }
   }
 
-  DD.syncAudio = function () {
+  NR.syncAudio = function () {
     applyAudioSettings();
     syncMusic(true);
   };
 
   function setIntensity(v) {
-    try { if (window.DD_AUDIO && window.DD_AUDIO.intensity) window.DD_AUDIO.intensity(clamp(v, 0, 1)); } catch (e) { /* тихо */ }
+    try { if (window.NR_AUDIO && window.NR_AUDIO.intensity) window.NR_AUDIO.intensity(clamp(v, 0, 1)); } catch (e) { /* тихо */ }
   }
 
   /* ---------- настройки / DOM ---------- */
   function saveSettings() {
-    saveTry(function () { window.localStorage.setItem(STORE_KEY, JSON.stringify(DD.settings)); });
+    saveTry(function () { window.localStorage.setItem(STORE_KEY, JSON.stringify(NR.settings)); });
   }
 
   function applyDom() {
     try {
-      document.documentElement.lang = DD.settings.lang;
-      document.documentElement.setAttribute('data-gfx', DD.settings.gfx);
+      document.documentElement.lang = NR.settings.lang;
+      document.documentElement.setAttribute('data-gfx', NR.settings.gfx);
     } catch (e) { /* тихо */ }
   }
 
-  DD.toggleGfx = function () {
-    DD.settings.gfx = DD.settings.gfx === 'retro' ? 'modern' : 'retro';
+  NR.toggleGfx = function () {
+    NR.settings.gfx = NR.settings.gfx === 'retro' ? 'modern' : 'retro';
     saveSettings(); applyDom(); sfx('ui_select');
   };
-  DD.toggleLang = function () {
-    DD.settings.lang = DD.settings.lang === 'ru' ? 'en' : 'ru';
+  NR.toggleLang = function () {
+    NR.settings.lang = NR.settings.lang === 'ru' ? 'en' : 'ru';
     saveSettings(); applyDom(); sfx('ui_select');
   };
-  DD.toggleMusic = function () {
-    DD.settings.music = !DD.settings.music;
+  NR.toggleMusic = function () {
+    NR.settings.music = !NR.settings.music;
     saveSettings();
     applyAudioSettings();
-    if (DD.settings.music) syncMusic(true);
+    if (NR.settings.music) syncMusic(true);
     sfx('ui_select');
   };
-  DD.toggleSfx = function () {
-    DD.settings.sfx = !DD.settings.sfx;
+  NR.toggleSfx = function () {
+    NR.settings.sfx = !NR.settings.sfx;
     saveSettings(); applyAudioSettings(); sfx('ui_select');
   };
-  DD.toggleCrt = function () {
-    DD.settings.crt = !DD.settings.crt;
+  NR.toggleCrt = function () {
+    NR.settings.crt = !NR.settings.crt;
     saveSettings(); sfx('ui_select');
   };
-  DD.toggleAudioStyle = function () {
-    DD.settings.audioStyle = DD.settings.audioStyle === 'chip' ? 'synth' : 'chip';
+  NR.toggleAudioStyle = function () {
+    NR.settings.audioStyle = NR.settings.audioStyle === 'chip' ? 'synth' : 'chip';
     saveSettings(); applyAudioSettings(); sfx('ui_select');
   };
 
   function setDifficulty(id) {
     if (DIFF_IDS.indexOf(id) < 0) return;
-    DD.settings.difficulty = id;
+    NR.settings.difficulty = id;
     S.select.diff = DIFF_IDS.indexOf(id);
     saveSettings();
   }
 
   function resetBest() {
-    DD.settings.best = 0;
+    NR.settings.best = 0;
     S.run.best = 0;
     S.run.newBest = false;
     saveSettings();
@@ -335,17 +335,17 @@
   }
 
   function adjustSetting(id, dir) {
-    if (id === 'lang') DD.toggleLang();
-    else if (id === 'gfx') DD.toggleGfx();
-    else if (id === 'music') DD.toggleMusic();
-    else if (id === 'audioStyle') DD.toggleAudioStyle();
-    else if (id === 'sfx') DD.toggleSfx();
-    else if (id === 'crt') DD.toggleCrt();
+    if (id === 'lang') NR.toggleLang();
+    else if (id === 'gfx') NR.toggleGfx();
+    else if (id === 'music') NR.toggleMusic();
+    else if (id === 'audioStyle') NR.toggleAudioStyle();
+    else if (id === 'sfx') NR.toggleSfx();
+    else if (id === 'crt') NR.toggleCrt();
     else if (id === 'volume') {
-      DD.settings.volume = Math.round(clamp(DD.settings.volume + dir * 0.1, 0, 1) * 10) / 10;
+      NR.settings.volume = Math.round(clamp(NR.settings.volume + dir * 0.1, 0, 1) * 10) / 10;
       saveSettings(); applyAudioSettings(); sfx('ui_move');
     } else if (id === 'difficulty') {
-      var i = DIFF_IDS.indexOf(DD.settings.difficulty);
+      var i = DIFF_IDS.indexOf(NR.settings.difficulty);
       i = (i + (dir > 0 ? 1 : DIFF_IDS.length - 1)) % DIFF_IDS.length;
       setDifficulty(DIFF_IDS[i]);
       sfx('ui_move');
@@ -363,10 +363,10 @@
     if (mode === 'paused') S.pauseIndex = 0;
     if (mode === 'settings') S.settingsIndex = 0;
     if (mode === 'gameover' || mode === 'victory') S.endIndex = 0;
-    if (DD.settings.audioStyle) applyAudioSettings();
+    if (NR.settings.audioStyle) applyAudioSettings();
     try {
-      if (window.DD_AUDIO && window.DD_AUDIO.duck) {
-        window.DD_AUDIO.duck(mode === 'paused' || (mode === 'settings' && S.settingsFrom === 'paused'));
+      if (window.NR_AUDIO && window.NR_AUDIO.duck) {
+        window.NR_AUDIO.duck(mode === 'paused' || (mode === 'settings' && S.settingsFrom === 'paused'));
       }
     } catch (e) { /* тихо */ }
     applyDom();
@@ -398,7 +398,7 @@
       S.mode = 'paused';
       S.modeT = 0;
       S.pauseIndex = 0;
-      try { if (window.DD_AUDIO && window.DD_AUDIO.duck) window.DD_AUDIO.duck(true); } catch (e) { /* тихо */ }
+      try { if (window.NR_AUDIO && window.NR_AUDIO.duck) window.NR_AUDIO.duck(true); } catch (e) { /* тихо */ }
       sfx('ui_back');
       return;
     }
@@ -445,7 +445,7 @@
     S.popups = [];
     S.camera = { x: 0, shakeX: 0, shakeY: 0, shake: 0 };
     S.freeze = false;
-    S.run.best = DD.settings.best;
+    S.run.best = NR.settings.best;
     if (skipIntro) beginRun();
     else setMode('intro');
   }
@@ -473,7 +473,7 @@
     S.run.banner = null;
     S.run.gate = { active: false, left: 0, right: 0 };
     S.run.startTime = S.t;
-    S.run.best = DD.settings.best;
+    S.run.best = NR.settings.best;
     S.enemies = [];
     S.boss = null;
     S.props = createProps();
@@ -494,12 +494,12 @@
 
   function finishRun(victory) {
     if (S.mode === 'gameover' || S.mode === 'victory') return;
-    if (S.run.score > DD.settings.best) {
-      DD.settings.best = S.run.score;
+    if (S.run.score > NR.settings.best) {
+      NR.settings.best = S.run.score;
       S.run.newBest = true;
       saveSettings();
     }
-    S.run.best = DD.settings.best;
+    S.run.best = NR.settings.best;
     S.run.victory = !!victory;
     if (S.player) {
       S.player.dead = !victory;
@@ -725,10 +725,10 @@
   }
 
   /* ---------- ввод ---------- */
-  DD.setHeld = function (name, on) {
+  NR.setHeld = function (name, on) {
     if (!name) return;
-    if (Object.prototype.hasOwnProperty.call(DD.input, name) && typeof DD.input[name] === 'boolean') {
-      DD.input[name] = !!on;
+    if (Object.prototype.hasOwnProperty.call(NR.input, name) && typeof NR.input[name] === 'boolean') {
+      NR.input[name] = !!on;
     }
   };
 
@@ -738,13 +738,13 @@
       S.mode === 'gameover' || S.mode === 'victory' || S.mode === 'intro';
   }
 
-  DD.press = function (action) {
+  NR.press = function (action) {
     if (!action) return;
     /* быстрые переключатели работают везде */
-    if (action === 'gfx') { DD.toggleGfx(); return; }
-    if (action === 'lang') { DD.toggleLang(); return; }
-    if (action === 'music') { DD.toggleMusic(); return; }
-    if (action === 'fullscreen') { DD.wantFullscreen = true; return; }
+    if (action === 'gfx') { NR.toggleGfx(); return; }
+    if (action === 'lang') { NR.toggleLang(); return; }
+    if (action === 'music') { NR.toggleMusic(); return; }
+    if (action === 'fullscreen') { NR.wantFullscreen = true; return; }
 
     if (S.mode === 'play' || S.mode === 'dead') {
       if (S.mode === 'dead') return;
@@ -843,13 +843,13 @@
     return null;
   }
 
-  DD.pointerDown = function (x, y) {
+  NR.pointerDown = function (x, y) {
     S.pointer = { x: x, y: y };
     if (!S.uiRects) return;
     var q = findQuick(x, y);
     if (q && (S.mode === 'title' || S.mode === 'select' || S.mode === 'help' ||
       S.mode === 'settings' || S.mode === 'about' || S.mode === 'paused')) {
-      DD.press(q.action);
+      NR.press(q.action);
       return;
     }
     var i;
@@ -892,15 +892,15 @@
       beginRun();
     } else if (S.mode === 'play') {
       /* тап по игровому полю — только подсказка-фокус; тач-кнопки отдельно */
-      DD.input.pointer.x = x; DD.input.pointer.y = y;
+      NR.input.pointer.x = x; NR.input.pointer.y = y;
     }
   };
 
-  DD.pointerUp = function () { /* пока не требуется */ };
+  NR.pointerUp = function () { /* пока не требуется */ };
 
   /* ---------- инициализация ---------- */
-  DD.init = function () {
-    S = DD.state;
+  NR.init = function () {
+    S = NR.state;
     S.uiRects = buildUIRects();
     applyDom();
     syncMusic(false);
@@ -1413,8 +1413,8 @@
     }
 
     if (p.z > 0) {
-      var airMx = (DD.input.left ? -1 : 0) + (DD.input.right ? 1 : 0);
-      var airMy = (DD.input.down ? 1 : 0) + (DD.input.up ? -1 : 0);
+      var airMx = (NR.input.left ? -1 : 0) + (NR.input.right ? 1 : 0);
+      var airMy = (NR.input.down ? 1 : 0) + (NR.input.up ? -1 : 0);
       if (airMx) { p.x += airMx * charOf(p).speed * 0.65 * dt; p.facing = airMx; }
       if (airMy) p.y += airMy * charOf(p).depth * 0.55 * dt;
       clampActor(p);
@@ -1429,8 +1429,8 @@
     }
 
     /* земля: движение */
-    var mx = (DD.input.left ? -1 : 0) + (DD.input.right ? 1 : 0);
-    var my = (DD.input.down ? 1 : 0) + (DD.input.up ? -1 : 0);
+    var mx = (NR.input.left ? -1 : 0) + (NR.input.right ? 1 : 0);
+    var my = (NR.input.down ? 1 : 0) + (NR.input.up ? -1 : 0);
     var moving = false;
     if (mx) {
       p.x += mx * charOf(p).speed * dt;
@@ -1482,7 +1482,7 @@
     p.animT += dt;
     updateJumpPhysics(p, dt);
     if (p.z > 0) {
-      var airMx = (DD.input.left ? -1 : 0) + (DD.input.right ? 1 : 0);
+      var airMx = (NR.input.left ? -1 : 0) + (NR.input.right ? 1 : 0);
       if (airMx) { p.x += airMx * charOf(p).speed * 0.4 * dt; p.facing = airMx; }
       clampActor(p);
     }
@@ -2084,7 +2084,7 @@
     }
   }
 
-  DD.update = function (dt) {
+  NR.update = function (dt) {
     dt = clamp(dt, 0, 0.045);
     S.t += dt;
     S.modeT += dt;
@@ -2139,15 +2139,15 @@
   }
 
   /* публичные функции для QA/консоли */
-  DD.startRun = startRun;
-  DD.beginRun = beginRun;
-  DD.finishRun = finishRun;
-  DD.saveSettings = saveSettings;
-  DD.setDifficulty = setDifficulty;
-  DD.pauseGame = pauseGame;
-  DD.resumeGame = resumeGame;
+  NR.startRun = startRun;
+  NR.beginRun = beginRun;
+  NR.finishRun = finishRun;
+  NR.saveSettings = saveSettings;
+  NR.setDifficulty = setDifficulty;
+  NR.pauseGame = pauseGame;
+  NR.resumeGame = resumeGame;
 
-  DD.debug = {
+  NR.debug = {
     freeze: function (on) { S.freeze = !!on; },
     scene: function (name) {
       name = String(name || 'title');
@@ -2274,7 +2274,7 @@
     },
     state: function () {
       return {
-        mode: S.mode, gfx: DD.settings.gfx, lang: DD.settings.lang,
+        mode: S.mode, gfx: NR.settings.gfx, lang: NR.settings.lang,
         wave: S.run.wave, waveActive: S.run.waveActive, zone: S.run.zone,
         score: S.run.score, lives: S.run.lives, combo: S.run.combo,
         hp: S.player ? S.player.hp : 0, enemies: S.enemies.length,

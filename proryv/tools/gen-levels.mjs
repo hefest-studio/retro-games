@@ -622,7 +622,7 @@ for (const lv of LEVELS) {
   levelsSrc += `    screens: [${lv.screens.join(', ')}]\n  }${lv.id === LEVELS.length - 1 ? '' : ','}\n\n`;
 }
 
-const tail = `  window.EX_LEVELS = [\n${levelsSrc}  ];\n})();\n`;
+const tail = `  window.PR_LEVELS = [\n${levelsSrc}  ];\n})();\n`;
 
 writeFileSync(OUT, head + body + tail, 'utf8');
 if (problems.length) {

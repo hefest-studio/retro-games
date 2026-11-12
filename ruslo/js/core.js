@@ -4,8 +4,8 @@
  * вспомогательные функции рисования. Без зависимостей, без сети.
  * ========================================================================== */
 'use strict';
-window.RR = window.RR || {};
-(function (RR) {
+window.RUSLO = window.RUSLO || {};
+(function (RUSLO) {
   /* ---------- геометрия сцены ---------- */
   const W = 360;                 // внутренняя ширина, px
   const H = 540;                 // внутренняя высота, px (портрет 2:3)
@@ -16,23 +16,23 @@ window.RR = window.RR || {};
   const PLANE_SY = Math.round(PLAY_H * 0.74); // экранная Y самолёта внутри игрового поля
   const ROW = 8;                 // шаг дискретизации реки, px
 
-  Object.assign(RR, { W, H, HUD_H, FOOT_H, PLAY_TOP, PLAY_H, PLANE_SY, ROW, MID: W / 2 });
+  Object.assign(RUSLO, { W, H, HUD_H, FOOT_H, PLAY_TOP, PLAY_H, PLANE_SY, ROW, MID: W / 2 });
 
   /* ---------- математика ---------- */
-  RR.clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
-  RR.lerp = (a, b, t) => a + (b - a) * t;
-  RR.smooth = (t) => t * t * (3 - 2 * t);
-  RR.approach = (v, target, step) => (v < target ? Math.min(v + step, target) : Math.max(v - step, target));
-  RR.pad = (n, len) => {
+  RUSLO.clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  RUSLO.lerp = (a, b, t) => a + (b - a) * t;
+  RUSLO.smooth = (t) => t * t * (3 - 2 * t);
+  RUSLO.approach = (v, target, step) => (v < target ? Math.min(v + step, target) : Math.max(v - step, target));
+  RUSLO.pad = (n, len) => {
     let s = String(Math.max(0, Math.floor(n)));
     while (s.length < len) s = '0' + s;
     return s.length > len ? s.slice(-len) : s;
   };
-  RR.rnd = (a, b) => a + Math.random() * (b - a);
-  RR.rndi = (a, b) => Math.floor(a + Math.random() * (b - a + 1));
+  RUSLO.rnd = (a, b) => a + Math.random() * (b - a);
+  RUSLO.rndi = (a, b) => Math.floor(a + Math.random() * (b - a + 1));
 
   /* Детерминированный ПСЧ: mulberry32 */
-  RR.mulberry32 = function (seed) {
+  RUSLO.mulberry32 = function (seed) {
     let a = seed >>> 0;
     return function () {
       a = (a + 0x6d2b79f5) >>> 0;
@@ -69,7 +69,7 @@ window.RR = window.RR || {};
       } catch (e) { /* приватный режим */ }
     },
   };
-  RR.store = LS;
+  RUSLO.store = LS;
   try { LS.migrate(localStorage); } catch (e) { /* нет хранилища */ }
 
   /* ---------- шрифт 5×7 ---------- */
@@ -201,9 +201,9 @@ window.RR = window.RR || {};
     return cv;
   }
 
-  RR.fontAdvance = ADV;
-  RR.pxWidth = (str, scale = 1) => String(str).length * ADV * scale - scale;
-  RR.pxHeight = (scale = 1) => GLYPH_H * scale;
+  RUSLO.fontAdvance = ADV;
+  RUSLO.pxWidth = (str, scale = 1) => String(str).length * ADV * scale - scale;
+  RUSLO.pxHeight = (scale = 1) => GLYPH_H * scale;
 
   /**
    * Пиксельный текст на canvas.
@@ -212,11 +212,11 @@ window.RR = window.RR || {};
    * @param {number} x @param {number} y  (y — верх строки)
    * @param {object} o { color, scale, align: 'left'|'center'|'right', shadow, alpha }
    */
-  RR.pxText = function (ctx, str, x, y, o = {}) {
+  RUSLO.pxText = function (ctx, str, x, y, o = {}) {
     const color = o.color || '#fff';
     const scale = o.scale || 1;
     const text = String(str).toUpperCase();
-    const width = RR.pxWidth(text, scale);
+    const width = RUSLO.pxWidth(text, scale);
     let px = Math.round(o.align === 'center' ? x - width / 2 : o.align === 'right' ? x - width : x);
     const py = Math.round(y);
     const a = atlas(color);
@@ -239,8 +239,8 @@ window.RR = window.RR || {};
 
   /* Системный шрифт для «современного» режима (canvas умеет кириллицу). */
   const SANS = '"SF Pro Display","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif';
-  RR.SANS = SANS;
-  RR.sans = function (ctx, str, x, y, o = {}) {
+  RUSLO.SANS = SANS;
+  RUSLO.sans = function (ctx, str, x, y, o = {}) {
     const size = o.size || 14;
     const weight = o.weight || 500;
     const spacing = o.spacing ?? 0.5;
@@ -257,19 +257,19 @@ window.RR = window.RR || {};
   };
 
   /* ---------- helpers для canvas ---------- */
-  RR.roundRect = function (ctx, x, y, w, h, r) {
-    const rr = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+  RUSLO.roundRect = function (ctx, x, y, w, h, r) {
+    const cr = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
     ctx.beginPath();
-    ctx.moveTo(x + rr, y);
-    ctx.arcTo(x + w, y, x + w, y + h, rr);
-    ctx.arcTo(x + w, y + h, x, y + h, rr);
-    ctx.arcTo(x, y + h, x, y, rr);
-    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.moveTo(x + cr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, cr);
+    ctx.arcTo(x + w, y + h, x, y + h, cr);
+    ctx.arcTo(x, y + h, x, y, cr);
+    ctx.arcTo(x, y, x + w, y, cr);
     ctx.closePath();
   };
 
   /* ---------- реакции интерфейса ---------- */
-  RR.on = { lang: [], gfx: [] };
-  RR.onLang = (fn) => RR.on.lang.push(fn);
-  RR.onGfx = (fn) => RR.on.gfx.push(fn);
-})(window.RR);
+  RUSLO.on = { lang: [], gfx: [] };
+  RUSLO.onLang = (fn) => RUSLO.on.lang.push(fn);
+  RUSLO.onGfx = (fn) => RUSLO.on.gfx.push(fn);
+})(window.RUSLO);

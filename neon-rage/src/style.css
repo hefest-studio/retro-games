@@ -20,18 +20,18 @@
 /* ---------- корень и фон ---------- */
 :root {
   color-scheme: dark;
-  --dd-bg: #07060f;
-  --dd-ink: #f4f0ff;
-  --dd-dim: #7d86c4;
-  --dd-magenta: #ff2e88;
-  --dd-cyan: #22e6ff;
-  --dd-lime: #b6ff3a;
-  --dd-amber: #ffb300;
-  --dd-btn: 64px;
-  --dd-safe-b: env(safe-area-inset-bottom, 0px);
-  --dd-safe-l: env(safe-area-inset-left, 0px);
-  --dd-safe-r: env(safe-area-inset-right, 0px);
-  --dd-safe-t: env(safe-area-inset-top, 0px);
+  --nr-bg: #07060f;
+  --nr-ink: #f4f0ff;
+  --nr-dim: #7d86c4;
+  --nr-magenta: #ff2e88;
+  --nr-cyan: #22e6ff;
+  --nr-lime: #b6ff3a;
+  --nr-amber: #ffb300;
+  --nr-btn: 64px;
+  --nr-safe-b: env(safe-area-inset-bottom, 0px);
+  --nr-safe-l: env(safe-area-inset-left, 0px);
+  --nr-safe-r: env(safe-area-inset-right, 0px);
+  --nr-safe-t: env(safe-area-inset-top, 0px);
 }
 
 *,
@@ -47,7 +47,7 @@ body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background: var(--dd-bg);
+  background: var(--nr-bg);
   overscroll-behavior: none;
 }
 
@@ -55,7 +55,7 @@ body {
   position: relative;
   min-height: 100vh;
   min-height: 100dvh;
-  color: var(--dd-ink);
+  color: var(--nr-ink);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
@@ -91,7 +91,7 @@ html[data-gfx="modern"] body::before {
     linear-gradient(158deg, #0a0718 0%, #07060f 44%, #0b0820 100%);
   background-size: 160% 160%, 160% 160%, 160% 160%, 100% 100%;
   background-position: 0% 0%, 100% 0%, 50% 100%, 0 0;
-  animation: dd-aurora 26s ease-in-out infinite alternate;
+  animation: nr-aurora 26s ease-in-out infinite alternate;
 }
 
 html[data-gfx="modern"] body {
@@ -100,7 +100,7 @@ html[data-gfx="modern"] body {
     #07060f;
 }
 
-@keyframes dd-aurora {
+@keyframes nr-aurora {
   from { background-position: 0% 0%, 100% 0%, 50% 100%, 0 0; }
   to   { background-position: 22% 12%, 78% 16%, 44% 88%, 0 0; }
 }
@@ -183,9 +183,9 @@ html[data-gfx="modern"] body::after {
   justify-content: space-between;
   gap: 12px;
   padding:
-    0 max(14px, var(--dd-safe-r))
-    calc(14px + var(--dd-safe-b))
-    max(14px, var(--dd-safe-l));
+    0 max(14px, var(--nr-safe-r))
+    calc(14px + var(--nr-safe-b))
+    max(14px, var(--nr-safe-l));
   pointer-events: none;
   touch-action: none;
   -webkit-user-select: none;
@@ -199,15 +199,15 @@ body.touch.in-game #touch {
 /* крестовина: 3×3 grid, кнопки в форме креста */
 .dpad {
   display: grid;
-  grid-template-columns: repeat(3, var(--dd-btn));
-  grid-template-rows: repeat(3, var(--dd-btn));
+  grid-template-columns: repeat(3, var(--nr-btn));
+  grid-template-rows: repeat(3, var(--nr-btn));
   gap: 6px;
   pointer-events: none;
 }
 
 .dpad .tbtn {
-  width: var(--dd-btn);
-  height: var(--dd-btn);
+  width: var(--nr-btn);
+  height: var(--nr-btn);
 }
 
 .dpad-up    { grid-area: 1 / 2 / 2 / 3; }
@@ -218,15 +218,15 @@ body.touch.in-game #touch {
 /* экшены: 2×2, спец — звезда в акценте */
 .tacts {
   display: grid;
-  grid-template-columns: repeat(2, var(--dd-btn));
-  grid-template-rows: repeat(2, var(--dd-btn));
+  grid-template-columns: repeat(2, var(--nr-btn));
+  grid-template-rows: repeat(2, var(--nr-btn));
   gap: 8px;
   pointer-events: none;
 }
 
 .tacts .tbtn {
-  width: var(--dd-btn);
-  height: var(--dd-btn);
+  width: var(--nr-btn);
+  height: var(--nr-btn);
 }
 
 .act-punch   { grid-area: 1 / 1 / 2 / 2; }
@@ -247,9 +247,9 @@ body.touch.in-game #touch {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0) 48%),
     rgba(9, 7, 22, 0.56);
-  color: var(--dd-ink);
+  color: var(--nr-ink);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  font-size: clamp(18px, calc(var(--dd-btn) * 0.30), 22px);
+  font-size: clamp(18px, calc(var(--nr-btn) * 0.30), 22px);
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0.02em;
@@ -284,12 +284,12 @@ body.touch.in-game #touch {
 /* стрелки крестовины — крупные, «пиксельные» */
 .dpad .tbtn {
   border-radius: 16px;
-  font-size: clamp(20px, calc(var(--dd-btn) * 0.38), 30px);
+  font-size: clamp(20px, calc(var(--nr-btn) * 0.38), 30px);
   text-shadow: 0 0 10px rgba(34, 230, 255, 0.85), 0 1px 0 rgba(0, 0, 0, 0.7);
 }
 
 .act-jump {
-  font-size: clamp(11px, calc(var(--dd-btn) * 0.20), 14px);
+  font-size: clamp(11px, calc(var(--nr-btn) * 0.20), 14px);
   letter-spacing: 0.06em;
 }
 
@@ -297,7 +297,7 @@ body.touch.in-game #touch {
 .act-special {
   border-color: rgba(255, 46, 136, 0.66);
   color: #ffd9ea;
-  font-size: clamp(22px, calc(var(--dd-btn) * 0.36), 30px);
+  font-size: clamp(22px, calc(var(--nr-btn) * 0.36), 30px);
   text-shadow: 0 0 12px rgba(255, 46, 136, 0.95), 0 1px 0 rgba(0, 0, 0, 0.7);
   box-shadow:
     inset 0 0 16px rgba(255, 46, 136, 0.18),
@@ -309,7 +309,7 @@ body.touch.in-game #touch {
 }
 
 .act-special > span {
-  color: var(--dd-amber);
+  color: var(--nr-amber);
   text-shadow: 0 0 8px rgba(255, 179, 0, 0.9);
   opacity: 0.95;
 }
@@ -320,7 +320,7 @@ body.touch.in-game #touch {
 .tbtn.is-down {
   transform: translateY(1px) scale(0.96);
   background: rgba(34, 230, 255, 0.30);
-  border-color: var(--dd-cyan);
+  border-color: var(--nr-cyan);
   color: #ffffff;
   box-shadow:
     0 0 26px rgba(34, 230, 255, 0.55),
@@ -331,7 +331,7 @@ body.touch.in-game #touch {
 .act-special.active,
 .act-special.is-down {
   background: rgba(255, 46, 136, 0.36);
-  border-color: var(--dd-magenta);
+  border-color: var(--nr-magenta);
   color: #ffffff;
   box-shadow:
     0 0 30px rgba(255, 46, 136, 0.66),
@@ -339,7 +339,7 @@ body.touch.in-game #touch {
 }
 
 .tbtn:focus-visible {
-  outline: 2px solid var(--dd-lime);
+  outline: 2px solid var(--nr-lime);
   outline-offset: 3px;
 }
 
@@ -360,7 +360,7 @@ html[data-gfx="retro"] .dpad .tbtn {
 }
 
 html[data-gfx="retro"] .act-special {
-  border-color: var(--dd-amber);
+  border-color: var(--nr-amber);
   color: #ffe9b0;
   background: rgba(38, 20, 6, 0.82);
   box-shadow:
@@ -379,7 +379,7 @@ html[data-gfx="retro"] .tbtn.is-down {
 #hint {
   position: fixed;
   left: 50%;
-  bottom: calc(18px + var(--dd-safe-b));
+  bottom: calc(18px + var(--nr-safe-b));
   z-index: 6;
   max-width: min(92vw, 620px);
   margin: 0;
@@ -387,7 +387,7 @@ html[data-gfx="retro"] .tbtn.is-down {
   border: 1px solid rgba(34, 230, 255, 0.34);
   border-radius: 999px;
   background: rgba(12, 10, 28, 0.76);
-  color: var(--dd-ink);
+  color: var(--nr-ink);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   font-size: 13px;
   line-height: 1.35;
@@ -419,7 +419,7 @@ html[data-gfx="retro"] .tbtn.is-down {
 
 /* на тач-экранах тост поднимается над кнопками */
 body.touch #hint {
-  bottom: calc(14px + var(--dd-safe-b) + var(--dd-btn) * 3 + 22px);
+  bottom: calc(14px + var(--nr-safe-b) + var(--nr-btn) * 3 + 22px);
 }
 
 /* ---------- оверлей ошибки (main выставляет style.display) ---------- */
@@ -430,10 +430,10 @@ body.touch #hint {
   z-index: 20;
   margin: 0;
   padding:
-    calc(18px + var(--dd-safe-t))
-    max(18px, var(--dd-safe-r))
-    calc(18px + var(--dd-safe-b))
-    max(18px, var(--dd-safe-l));
+    calc(18px + var(--nr-safe-t))
+    max(18px, var(--nr-safe-r))
+    calc(18px + var(--nr-safe-b))
+    max(18px, var(--nr-safe-l));
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
@@ -483,7 +483,7 @@ body.touch #hint {
   background:
     radial-gradient(70% 52% at 50% 38%, rgba(255, 46, 136, 0.16), transparent 72%),
     rgba(7, 6, 15, 0.97);
-  color: var(--dd-ink);
+  color: var(--nr-ink);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   font-size: 16px;
   line-height: 1.5;
@@ -497,7 +497,7 @@ body.touch #hint {
 /* ---------- адаптив: портрет, ландшафт, узкие экраны ---------- */
 @media (orientation: portrait) and (max-width: 620px) {
   :root {
-    --dd-btn: 54px;
+    --nr-btn: 54px;
   }
 
   .dpad {
@@ -509,23 +509,23 @@ body.touch #hint {
   }
 
   #touch {
-    padding-left: max(10px, var(--dd-safe-l));
-    padding-right: max(10px, var(--dd-safe-r));
-    padding-bottom: calc(12px + var(--dd-safe-b));
+    padding-left: max(10px, var(--nr-safe-l));
+    padding-right: max(10px, var(--nr-safe-r));
+    padding-bottom: calc(12px + var(--nr-safe-b));
   }
 }
 
 @media (orientation: landscape) and (max-height: 460px) {
   :root {
-    --dd-btn: 52px;
+    --nr-btn: 52px;
   }
 
   #touch {
-    padding-bottom: calc(8px + var(--dd-safe-b));
+    padding-bottom: calc(8px + var(--nr-safe-b));
   }
 
   body.touch #hint {
-    bottom: calc(8px + var(--dd-safe-b) + var(--dd-btn) * 3 + 14px);
+    bottom: calc(8px + var(--nr-safe-b) + var(--nr-btn) * 3 + 14px);
     font-size: 11px;
     padding: 6px 12px;
   }
@@ -533,7 +533,7 @@ body.touch #hint {
 
 @media (max-width: 380px) {
   :root {
-    --dd-btn: 52px;
+    --nr-btn: 52px;
   }
 
   .dpad {
@@ -545,8 +545,8 @@ body.touch #hint {
   }
 
   #touch {
-    padding-left: max(8px, var(--dd-safe-l));
-    padding-right: max(8px, var(--dd-safe-r));
+    padding-left: max(8px, var(--nr-safe-l));
+    padding-right: max(8px, var(--nr-safe-r));
   }
 }
 
@@ -585,7 +585,7 @@ body.touch.pausable #tpause {
   position: fixed;
   z-index: 30;
   left: 50%;
-  bottom: calc(10px + var(--dd-safe-b));
+  bottom: calc(10px + var(--nr-safe-b));
   transform: translateX(-50%);
   width: 46px;
   height: 32px;

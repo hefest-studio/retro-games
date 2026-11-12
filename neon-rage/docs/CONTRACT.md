@@ -15,7 +15,7 @@
 node neon-rage/tools/build.mjs          # src/* -> js/game.js, src/style.css -> css/style.css
 node --check neon-rage/src/<file>.js    # синтаксис
 node neon-rage/tools/probe.mjs neon-rage/index.html reports/x.png \
-     --w=1440 --h=900 --wait=1200 --eval='DD.state.mode'
+     --w=1440 --h=900 --wait=1200 --eval='NR.state.mode'
 ```
 
 `index.html` — **итоговый артефакт, собирает только Lead**. Агенты не редактируют
@@ -26,12 +26,12 @@ node neon-rage/tools/probe.mjs neon-rage/index.html reports/x.png \
 
 Порядок подключения (задан в `tools/build.mjs`):
 
-1. `src/font.js` → `window.DD_FONT` (готовый пиксельный шрифт 6×8 с кириллицей, не менять)
-2. `src/i18n.js` → `window.DD_I18N`, `window.DD_T`
-3. `src/audio.js` → `window.DD_AUDIO`
-4. `src/game.js` → `window.DD` (Lead)
-5. `src/render-retro.js` → `window.DD_RENDER_RETRO`
-6. `src/render-modern.js` → `window.DD_RENDER_MODERN`
+1. `src/font.js` → `window.NR_FONT` (готовый пиксельный шрифт 6×8 с кириллицей, не менять)
+2. `src/i18n.js` → `window.NR_I18N`, `window.NR_T`
+3. `src/audio.js` → `window.NR_AUDIO`
+4. `src/game.js` → `window.NR` (Lead)
+5. `src/render-retro.js` → `window.NR_RENDER_RETRO`
+6. `src/render-modern.js` → `window.NR_RENDER_MODERN`
 7. `src/main.js` → оболочка, rAF, масштаб, ввод (Lead)
 
 ## Владение файлами
@@ -49,10 +49,10 @@ node neon-rage/tools/probe.mjs neon-rage/index.html reports/x.png \
 
 # 1. Игра: режимы, персонажи, сюжет
 
-Настройки (сохраняются в `localStorage` ключ `dd-neon-settings-v1`):
+Настройки (сохраняются в `localStorage` ключ `neon-rage.settings`; ключ прежней версии переносится при старте и удаляется):
 
 ```js
-DD.settings = {
+NR.settings = {
   lang: 'ru'|'en',              // ru по умолчанию
   gfx: 'retro'|'modern',        // переключатель графики, G
   audioStyle: 'chip'|'synth',   // 8-бит или синтвейв, по умолчанию chip
@@ -64,7 +64,7 @@ DD.settings = {
 }
 ```
 
-Режимы `DD.state.mode` (рендереры обязаны нарисовать **каждый**):
+Режимы `NR.state.mode` (рендереры обязаны нарисовать **каждый**):
 
 | mode | что на экране |
 |---|---|
@@ -99,29 +99,29 @@ DD.settings = {
 
 ---
 
-# 2. `window.DD` — состояние и API (пишет Lead)
+# 2. `window.NR` — состояние и API (пишет Lead)
 
 ```js
-DD.W === 480, DD.H === 270
-DD.settings          // см. выше
-DD.state             // см. ниже
-DD.input             // см. §4
-DD.t(key, vars)      // локализация: DD_T(key, vars), поддержка {n} и {name}
-DD.saveSettings()
-DD.toggleGfx()       // 'retro' <-> 'modern', сохраняет, main сам заметит
-DD.toggleLang()      // 'ru' <-> 'en'
-DD.toggleMusic()
-DD.init()
-DD.update(dt)        // dt в секундах, клампится main'ом
-DD.startRun(charIdx, difficulty)
-DD.press(action)     // дискретные действия (см. §4)
-DD.setHeld(name, on) // held: left/right/up/down/jump/punch/kick/special
-DD.pointerDown(x,y)  // логические координаты 480×270
-DD.pointerUp(x,y)
-DD.debug = { ... }   // §6
+NR.W === 480, NR.H === 270
+NR.settings          // см. выше
+NR.state             // см. ниже
+NR.input             // см. §4
+NR.t(key, vars)      // локализация: NR_T(key, vars), поддержка {n} и {name}
+NR.saveSettings()
+NR.toggleGfx()       // 'retro' <-> 'modern', сохраняет, main сам заметит
+NR.toggleLang()      // 'ru' <-> 'en'
+NR.toggleMusic()
+NR.init()
+NR.update(dt)        // dt в секундах, клампится main'ом
+NR.startRun(charIdx, difficulty)
+NR.press(action)     // дискретные действия (см. §4)
+NR.setHeld(name, on) // held: left/right/up/down/jump/punch/kick/special
+NR.pointerDown(x,y)  // логические координаты 480×270
+NR.pointerUp(x,y)
+NR.debug = { ... }   // §6
 ```
 
-### `DD.state`
+### `NR.state`
 
 ```js
 {
@@ -199,22 +199,22 @@ popup    = { text, sub, x, y, z, t, dur, color, kind:'damage'|'score'|'combo'|'h
 
 ---
 
-# 3. `window.DD_AUDIO` — 8-бит музыка и звук
+# 3. `window.NR_AUDIO` — 8-бит музыка и звук
 
 ```js
-DD_AUDIO.init()                // идемпотентно, безопасно в headless/file://
-DD_AUDIO.unlock()              // по первому жесту; может быть Promise
-DD_AUDIO.ready()               // bool
-DD_AUDIO.setMusic(bool)
-DD_AUDIO.setSfx(bool)
-DD_AUDIO.setVolume(0..1)
-DD_AUDIO.setStyle('chip'|'synth')
-DD_AUDIO.playMusic(id)         // 'title'|'select'|'battle'|'boss'|'victory'|'gameover'
-DD_AUDIO.stopMusic()
-DD_AUDIO.duck(bool)            // приглушение на паузе
-DD_AUDIO.intensity(0..1)       // плотность 'battle', 0..1
-DD_AUDIO.sfx(id)
-DD_AUDIO.state()               // { ready, playing, style, music, sfx, volume, notes }
+NR_AUDIO.init()                // идемпотентно, безопасно в headless/file://
+NR_AUDIO.unlock()              // по первому жесту; может быть Promise
+NR_AUDIO.ready()               // bool
+NR_AUDIO.setMusic(bool)
+NR_AUDIO.setSfx(bool)
+NR_AUDIO.setVolume(0..1)
+NR_AUDIO.setStyle('chip'|'synth')
+NR_AUDIO.playMusic(id)         // 'title'|'select'|'battle'|'boss'|'victory'|'gameover'
+NR_AUDIO.stopMusic()
+NR_AUDIO.duck(bool)            // приглушение на паузе
+NR_AUDIO.intensity(0..1)       // плотность 'battle', 0..1
+NR_AUDIO.sfx(id)
+NR_AUDIO.state()               // { ready, playing, style, music, sfx, volume, notes }
 ```
 
 SFX id: `ui_move, ui_select, ui_back, punch, kick, hit, hit_heavy, block, jump, land,
@@ -228,28 +228,28 @@ gameover, win`.
 
 Музыка по режимам: `title`, `select`, `battle` (волны 1–4, intensity растёт),
 `boss` (волна 5), `victory`, `gameover`. Пауза — `duck(true)`. Смена — кроссфейд ~0.4 c.
-`DD_AUDIO.sfx` до `init/unlock` — тихий no-op.
+`NR_AUDIO.sfx` до `init/unlock` — тихий no-op.
 
 ---
 
 # 4. Ввод (main.js)
 
-`main.js` держит `DD.input`:
+`main.js` держит `NR.input`:
 
 ```js
-DD.input = {
+NR.input = {
   left,right,up,down,        // held, bool
   jump,punch,kick,special,   // held, bool (для буфера атак)
   pointer: {x,y}
 }
 ```
 
-`DD.press(action)` вызывается по нажатию (edge), где action:
+`NR.press(action)` вызывается по нажатию (edge), где action:
 `up, down, left, right, confirm, back, pause, jump, punch, kick, special,
 gfx, lang, music, fullscreen`.
-`DD.setHeld(name, on)` — для удержаний (движение, атаки).
-`DD.pointerDown/Up(x,y)` — клики/тапы по canvas в логических 480×270 (кнопки меню,
-чипы настроек). `DD.state.uiRects` даёт хитбоксы.
+`NR.setHeld(name, on)` — для удержаний (движение, атаки).
+`NR.pointerDown/Up(x,y)` — клики/тапы по canvas в логических 480×270 (кнопки меню,
+чипы настроек). `NR.state.uiRects` даёт хитбоксы.
 
 Клавиатура: `←→↑↓`/`WASD`; `SPACE` прыжок; `J`/`Z` удар; `K`/`X` пинок;
 `L`/`V` спец; `ENTER` подтвердить; `ESC`/`P` пауза/назад; `G` графика; `T` язык;
@@ -257,7 +257,7 @@ gfx, lang, music, fullscreen`.
 
 ---
 
-# 5. `DD.state.uiRects` и экранная сетка
+# 5. `NR.state.uiRects` и экранная сетка
 
 Координаты — логические 480×270. Начало — левый верх. `x,y,w,h` в пикселях.
 
@@ -296,22 +296,22 @@ uiRects = {
 
 # 6. Отладка и скриншоты
 
-`DD.debug` (Lead) обязан уметь:
+`NR.debug` (Lead) обязан уметь:
 
 ```js
-DD.debug.scene('title'|'select'|'help'|'settings'|'about'|'intro'|'play'|'boss'|'paused'|'gameover'|'victory')
-DD.debug.zone(0|1|2)     // перейти в зону в play
-DD.debug.spawn('punk'|'ninja'|'brute')
-DD.debug.killAll()       // зачистить волну
-DD.debug.rage()          // полная шкала
-DD.debug.hp(n)           // HP игрока
-DD.debug.freeze(bool)    // остановить симуляцию для скриншота
-DD.debug.demo()          // красивая боевая сцена: игрок, 3 врага, искры, комбо
+NR.debug.scene('title'|'select'|'help'|'settings'|'about'|'intro'|'play'|'boss'|'paused'|'gameover'|'victory')
+NR.debug.zone(0|1|2)     // перейти в зону в play
+NR.debug.spawn('punk'|'ninja'|'brute')
+NR.debug.killAll()       // зачистить волну
+NR.debug.rage()          // полная шкала
+NR.debug.hp(n)           // HP игрока
+NR.debug.freeze(bool)    // остановить симуляцию для скриншота
+NR.debug.demo()          // красивая боевая сцена: игрок, 3 врага, искры, комбо
 ```
 
 main.js поддерживает URL-хэш для QA:
 `#scene=play&gfx=modern&lang=en&freeze=1`, `#scene=boss`, `#scene=victory` и т.п.
-После загрузки вызывает `DD.debug.scene(...)`, ставит gfx/lang.
+После загрузки вызывает `NR.debug.scene(...)`, ставит gfx/lang.
 
 Каждый рендерер делает превью `tmp/preview-<name>.html`, подключающее `src/*.js`
 (обычные `<script src>`), с кнопками/хэшем, и проверяет себя через `probe.mjs`.
@@ -326,7 +326,7 @@ main.js поддерживает URL-хэш для QA:
 «стеклянные» панели, зерно/скан-линии, дождь, отражения.
 
 **Retro:** 8-бит, ограниченная палитра (~14 цветов), чанки 2–3 px, дизеринг, пиксельный
-шрифт `DD_FONT` (6×8), крупные пиксельные логотипы, CRT-полосы (main добавит сверху).
+шрифт `NR_FONT` (6×8), крупные пиксельные логотипы, CRT-полосы (main добавит сверху).
 Цвета: `#0a0718` фон, `#1b1440` тени, `#ff2e88` маджента, `#22e6ff` циан,
 `#b6ff3a` лайм, `#ffb300` янтарь, `#f4f0ff` белый.
 
@@ -365,16 +365,16 @@ main.js поддерживает URL-хэш для QA:
 
 ---
 
-# 8. `window.DD_RENDER_RETRO` / `DD_RENDER_MODERN`
+# 8. `window.NR_RENDER_RETRO` / `NR_RENDER_MODERN`
 
 ```js
-window.DD_RENDER_RETRO = { draw(ctx, view) };
-window.DD_RENDER_MODERN = { draw(ctx, view) };
-// view = { w:480, h:270, t:DD.state.t }
+window.NR_RENDER_RETRO = { draw(ctx, view) };
+window.NR_RENDER_MODERN = { draw(ctx, view) };
+// view = { w:480, h:270, t:NR.state.t }
 ```
 
 * Обе функции **полностью** заполняют кадр и рисуют **все** mode из §1.
-* Читают только `DD.state`, `DD.settings`, `DD.t()`, `DD_FONT`, локальные константы.
+* Читают только `NR.state`, `NR.settings`, `NR.t()`, `NR_FONT`, локальные константы.
   Не мутируют состояние игры (кроме безопасных кэшей).
 * Canvas уже трансформирован: 1 единица = 1 логический пиксель. Retro рисуется в
   offscreen 480×270 с `imageSmoothingEnabled=false`; modern — в полноразмерный canvas,
@@ -391,7 +391,7 @@ window.DD_RENDER_MODERN = { draw(ctx, view) };
 # 9. Канонические ключи локализации
 
 `src/i18n.js` обязан содержать **все** ключи ниже в `ru` и `en` (одинаковый набор).
-`DD_T(key, vars)` подставляет `{n}`, `{total}`, `{name}`, `{score}`, `{value}`.
+`NR_T(key, vars)` подставляет `{n}`, `{total}`, `{name}`, `{score}`, `{value}`.
 Рендереры и `game.js` используют только эти ключи (или сообщите Lead о новом).
 
 ```text

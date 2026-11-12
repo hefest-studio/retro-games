@@ -1,6 +1,6 @@
 # ПРОРЫВ HTML5 — музыка и звук
 
-Движок: `proryv/src/audio.js` → `window.EX_AUDIO`. Контракт API: `proryv/docs/CONTRACT.md §2`.
+Движок: `proryv/src/audio.js` → `window.PR_AUDIO`. Контракт API: `proryv/docs/CONTRACT.md §2`.
 Всё генерируется кодом на WebAudio, без сэмплов и внешних файлов. Файл читается сверху вниз:
 
 | Блок | Что внутри |
@@ -12,7 +12,7 @@
 | 4. Голоса | pulse (PeriodicWave, duty), triangle-бас, noise-ударные, огибающие, вибрато, глиссандо |
 | 5. Секвенсор | lookahead-планирование, кроссфейд треков, пауза по `visibilitychange` |
 | 6. SFX | 21 эффект, синтез «на месте» |
-| 7. API | `window.EX_AUDIO` |
+| 7. API | `window.PR_AUDIO` |
 
 ## 4 канала
 
@@ -144,7 +144,7 @@
 
 ## SFX (21 шт.)
 
-Вызов: `EX_AUDIO.sfx(id)` (до `init()` — тихий no-op; при `setSfx(false)` не играет).
+Вызов: `PR_AUDIO.sfx(id)` (до `init()` — тихий no-op; при `setSfx(false)` не играет).
 
 | id | Звук |
 |---|---|
@@ -192,7 +192,7 @@ BPM и признак лупа — в `TRACKS`. Громкость канала 
 node --check proryv/src/audio.js
 node proryv/tools/validate-music.mjs            # структура, длины, гармония, SFX/API, без внешних зависимостей
 node proryv/tools/probe.mjs proryv/tmp/audio-proof.html proryv/reports/audio-proof.png \
-     --w=1000 --h=700 --wait=1500 --eval='JSON.stringify({ready:EX_AUDIO.ready()})'
+     --w=1000 --h=700 --wait=1500 --eval='JSON.stringify({ready:PR_AUDIO.ready()})'
 ```
 
 * `validate-music.mjs` исполняет блок данных прямо в Node и проверяет: кратность такту, длины каналов,
@@ -206,6 +206,6 @@ node proryv/tools/probe.mjs proryv/tmp/audio-proof.html proryv/reports/audio-pro
 ## Отклонение от буквы контракта
 
 В `CONTRACT.md §2` одновременно указаны boolean-геттеры `music, sfx` и метод `sfx(id)` — на одном
-объекте это невозможно. Согласовано с Lead: `EX_AUDIO.sfx(id)` — метод, `EX_AUDIO.music` — boolean-геттер,
-состояние эффектов доступно как `EX_AUDIO.sfxOn`. Игра читает настройки из `EX.settings` и вызывает
+объекте это невозможно. Согласовано с Lead: `PR_AUDIO.sfx(id)` — метод, `PR_AUDIO.music` — boolean-геттер,
+состояние эффектов доступно как `PR_AUDIO.sfxOn`. Игра читает настройки из `PR.settings` и вызывает
 только `sfx(id)`, поэтому конфликта нет.

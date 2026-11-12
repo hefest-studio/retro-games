@@ -1,7 +1,7 @@
 /* ============================================================
    НЕОН × ЯРОСТЬ: NEON RAGE — 8-bit / synthwave audio engine
    ------------------------------------------------------------
-   One classic script, no modules, no assets, no network: defines window.DD_AUDIO.
+   One classic script, no modules, no assets, no network: defines window.NR_AUDIO.
    Everything is synthesised with WebAudio (pulse / triangle / noise / saw),
    no samples, no external files, file:// and headless safe.
 
@@ -45,7 +45,7 @@
              (typeof globalThis !== 'undefined' && globalThis) || {};
 
   /* never install twice (build may include the file once anyway) */
-  if (ROOT.DD_AUDIO && ROOT.DD_AUDIO.__engine === 'dd-neon-1') { return; }
+  if (ROOT.NR_AUDIO && ROOT.NR_AUDIO.__engine === 'nr-neon-1') { return; }
 
   var AC = (typeof window !== 'undefined') &&
            (window.AudioContext || window.webkitAudioContext) || null;
@@ -1439,7 +1439,7 @@
   }
 
   var api = {
-    __engine: 'dd-neon-1',
+    __engine: 'nr-neon-1',
     init: init,
     unlock: unlock,
     ready: ready,
@@ -1471,5 +1471,5 @@
     }
   };
 
-  ROOT.DD_AUDIO = api;
+  ROOT.NR_AUDIO = api;
 })();

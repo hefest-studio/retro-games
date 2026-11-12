@@ -20,7 +20,7 @@ window.SAGA2 = window.SAGA2 || {};
     '#b8d96a', '#5a3a1b', '#a56b2b', '#e0b35a', '#3a1a3a', '#7a2a5a', '#d94a6a', '#f2f2f2', '#111111'];
 
   /* цвета героев: main — цвет-метка героя (маркеры, HUD) — прежний; остальное — облик мастеров кузни */
-  var VIK = {
+  var NORTH = {
     snorri: { main: '#ff6b8a', dark: '#8a2e46', cloth: '#4c5263', cloth2: '#3f322b', armN: '#5a6274', armF: '#353a47',
       hand: '#5a3a26', skin: '#e8b48c', hair: '#2e2220', hood: '#6e5646', hoodL: '#9a7c64', hoodS: '#45352c',
       apron: '#8c5a34', copper: '#d27c3e', num: 1 },
@@ -2187,11 +2187,11 @@ window.SAGA2 = window.SAGA2 || {};
     }
   }
 
-  /* ================= ВИКИНГИ ================= */
+  /* ================= Северяне ================= */
 
   var OUTLINE = 'rgba(4,8,16,0.85)';
 
-  function vikGeom(a) {
+  function northGeom(a) {
     var h = a.h || 44, w = a.w || 24;
     return {
       h: h, w: w,
@@ -2225,7 +2225,7 @@ window.SAGA2 = window.SAGA2 || {};
     }
   }
 
-  /* аура активного викинга */
+  /* аура активного северянина */
   function drawActiveMarker(g, a, t, v) {
     var h = a.h || 44;
     g.save();
@@ -2248,7 +2248,7 @@ window.SAGA2 = window.SAGA2 || {};
     g.closePath(); g.fill();
   }
 
-  /* голограмма неактивного викинга */
+  /* голограмма неактивного северянина */
   function drawHoloMarker(g, a, t, v) {
     var h = a.h || 44, w = a.w || 24;
     var pulse = 0.5 + 0.5 * Math.sin(t * 2.1 + v.num);
@@ -2336,8 +2336,8 @@ window.SAGA2 = window.SAGA2 || {};
      Стрелок (gunnar) — меховая шапка, кафтан, шарф, арбалет и кузнечный молот;
      Опора (bjorn) — бритая голова, кузнечные очки, борода-косица, стёганый жилет, щит-кузнечный круг.
      Позы и фазы анимации — прежние. */
-  function drawVikingBodyA(g, a, v, t) {
-    var G = vikGeom(a), h = G.h, w = G.w, bodyW = G.bodyW, headR = G.headR;
+  function drawNorthmanBodyA(g, a, v, t) {
+    var G = northGeom(a), h = G.h, w = G.w, bodyW = G.bodyW, headR = G.headR;
     var stt = a.state || 'idle';
     var anim = a.anim || 0;
     var ph = anim * 15;
@@ -2864,8 +2864,8 @@ window.SAGA2 = window.SAGA2 || {};
     g.restore();
   }
 
-  function drawVikingA(g, a, t) {
-    var v = VIK[a.id] || VIK.snorri;
+  function drawNorthmanA(g, a, t) {
+    var v = NORTH[a.id] || NORTH.snorri;
     var h = a.h || 44;
     if (a.exited && a.state !== 'exit') return;
     var dead = a.dead || a.state === 'dead';
@@ -2897,9 +2897,9 @@ window.SAGA2 = window.SAGA2 || {};
         g.rotate(-Math.PI * 0.5);
         g.translate(0, -a.w * 0.1);
         g.globalAlpha = 0.6;
-        drawVikingBodyA(g, { id: a.id, w: a.w, h: a.h, state: 'idle', anim: 0, dir: 1, attack: null }, v, t);
+        drawNorthmanBodyA(g, { id: a.id, w: a.w, h: a.h, state: 'idle', anim: 0, dir: 1, attack: null }, v, t);
       } else {
-        drawVikingBodyA(g, a, v, t);
+        drawNorthmanBodyA(g, a, v, t);
       }
       g.restore();
     }
@@ -2907,10 +2907,10 @@ window.SAGA2 = window.SAGA2 || {};
     if (a.hook) drawHookLine(g, a, t);
   }
 
-  /* ================= ВИКИНГИ RETRO ================= */
+  /* ================= Северяне RETRO ================= */
 
-  function drawVikingR(g, a, t) {
-    var v = VIK[a.id] || VIK.snorri;
+  function drawNorthmanR(g, a, t) {
+    var v = NORTH[a.id] || NORTH.snorri;
     var idx = (R8VIK[a.id] !== undefined) ? R8VIK[a.id] : 3;
     var col = R8[idx];
     var H = Math.round((a.h || 44) / 2) * 2;
@@ -2932,10 +2932,10 @@ window.SAGA2 = window.SAGA2 || {};
     var hw = e(W2 / 2);
     // тень
     if (!dead) { g.fillStyle = R8[0]; g.fillRect(-hw, 0, hw * 2, 2); }
-    // тело — пиксель-арт викинга из саги 1 (SAGA2VIK); 1 арт-пиксель = 2 мировых px
+    // тело — пиксель-арт северянина из саги 1 (SAGA2NORTH); 1 арт-пиксель = 2 мировых px
     g.scale(2, 2);
-    if (dead) SAGA2VIK.drawDead(g, a.id, a.active);
-    else SAGA2VIK.drawChar(g, a.id, SAGA2VIK.mapState(a), anim, t, a.active);
+    if (dead) SAGA2NORTH.drawDead(g, a.id, a.active);
+    else SAGA2NORTH.drawChar(g, a.id, SAGA2NORTH.mapState(a), anim, t, a.active);
     g.restore();
     if (a.active && !dead) { g.fillStyle = R8[4]; g.fillRect(q(a.x) - 2, q(a.y) - (a.h || 44) - 12, 4, 2); }
 
@@ -3408,7 +3408,7 @@ window.SAGA2 = window.SAGA2 || {};
     drawEnemiesA(g, world, st.T);
     drawProjectilesA(g, world);
     var arr = world.actors || [], i;
-    for (i = 0; i < arr.length; i++) if (arr[i] && actorCull(arr[i])) drawVikingA(g, arr[i], st.T);
+    for (i = 0; i < arr.length; i++) if (arr[i] && actorCull(arr[i])) drawNorthmanA(g, arr[i], st.T);
     drawFxA(g);
 
     g.setTransform(S, 0, 0, S, 0, 0);
@@ -3440,7 +3440,7 @@ window.SAGA2 = window.SAGA2 || {};
     drawEnemiesR(g, world, st.T);
     drawProjectilesR(g, world);
     var arr = world.actors || [], i;
-    for (i = 0; i < arr.length; i++) if (arr[i] && actorCull(arr[i])) drawVikingR(g, arr[i], st.T);
+    for (i = 0; i < arr.length; i++) if (arr[i] && actorCull(arr[i])) drawNorthmanR(g, arr[i], st.T);
     drawFxR(g);
 
     g.setTransform(1, 0, 0, 1, 0, 0);
@@ -3457,11 +3457,11 @@ window.SAGA2 = window.SAGA2 || {};
       var g = canvas.getContext('2d');
       if (!g) return;
       var W = canvas.width || 64, H = canvas.height || 64;
-      var v = VIK[actorId] || VIK.snorri;
+      var v = NORTH[actorId] || NORTH.snorri;
       g.setTransform(1, 0, 0, 1, 0, 0);
       g.clearRect(0, 0, W, H);
       if (st.mode === 'retro') {
-        // бюст викинга тем же арт-кодом, что и в мире (SAGA2VIK) — единые спрайты
+        // бюст северянина тем же арт-кодом, что и в мире (SAGA2NORTH) — единые спрайты
         g.save();
         g.beginPath(); g.rect(0, 0, W, H); g.clip();
         g.imageSmoothingEnabled = false;
@@ -3470,7 +3470,7 @@ window.SAGA2 = window.SAGA2 || {};
         var sc = H / 26;
         g.translate(Math.round(W / 2), Math.round(H * 1.15));
         g.scale(sc, sc);
-        SAGA2VIK.drawChar(g, actorId, 'idle', 0, 0, true);
+        SAGA2NORTH.drawChar(g, actorId, 'idle', 0, 0, true);
         g.restore();
         return;
       }

@@ -2,18 +2,18 @@
    КРОТ · js/ui.js — DOM-оверлеи: титул, настройки, справка, «Об игре»,
    пауза, game over. Владелец: ui-i18n. См. CONTRACT.md §6.2, §6.4.
 
-   Только разметка + вызовы колбэков из DG.ui.init(opts). Игровая логика,
+   Только разметка + вызовы колбэков из KROT.ui.init(opts). Игровая логика,
    пауза, старт/рестарт и сохранение рекорда — в main.js (через колбэки).
-   Все строки — через DG.t (RU/EN), разметка собирается в #ui Lead-каркаса.
+   Все строки — через KROT.t (RU/EN), разметка собирается в #ui Lead-каркаса.
    ========================================================================== */
 (function (global) {
   'use strict';
-  var DG = global.DG = global.DG || {};
+  var KROT = global.KROT = global.KROT || {};
   var doc = global.document;
 
   /* ------------------------------- утилиты -------------------------------- */
   function noop() {}
-  function t(key, vars) { return DG.t ? DG.t(key, vars) : key; }
+  function t(key, vars) { return KROT.t ? KROT.t(key, vars) : key; }
 
   /** HTML-экранирование динамических значений (числа/строки из data). */
   function esc(value) {
@@ -63,7 +63,7 @@
 
   function icon(name) {
     var body = ICONS[name] || ICONS.info;
-    return '<svg class="dg-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    return '<svg class="krot-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
       'stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" ' +
       'aria-hidden="true" focusable="false">' + body + '</svg>';
   }
@@ -139,7 +139,7 @@
 
   /* ----------------------------- компоненты ------------------------------- */
   function btn(label, action, value, mods, focusKey, primary) {
-    var cls = 'dg-btn' + (mods ? ' ' + mods : '');
+    var cls = 'krot-btn' + (mods ? ' ' + mods : '');
     var attrs = ' data-action="' + esc(action) + '"';
     if (value != null) attrs += ' data-value="' + esc(value) + '"';
     attrs += ' data-focus-key="' + esc(focusKey || action) + '"';
@@ -148,11 +148,11 @@
   }
 
   function seg(key, value, entries, groupLabel) {
-    var html = '<div class="dg-seg" role="group" aria-label="' + esc(groupLabel) + '">';
+    var html = '<div class="krot-seg" role="group" aria-label="' + esc(groupLabel) + '">';
     for (var i = 0; i < entries.length; i++) {
       var en = entries[i];
       var active = en.value === value;
-      html += '<button type="button" class="dg-seg__btn' + (active ? ' is-active' : '') + '"' +
+      html += '<button type="button" class="krot-seg__btn' + (active ? ' is-active' : '') + '"' +
         ' data-action="set" data-key="' + esc(key) + '" data-value="' + esc(en.value) + '"' +
         ' data-focus-key="set:' + esc(key) + ':' + esc(en.value) + '"' +
         ' aria-pressed="' + (active ? 'true' : 'false') + '">' + esc(en.label) + '</button>';
@@ -162,44 +162,44 @@
 
   function sw(key, label, on) {
     var state = t(on ? 'on' : 'off');
-    return '<button type="button" class="dg-switch' + (on ? ' is-on' : '') + '" role="switch"' +
+    return '<button type="button" class="krot-switch' + (on ? ' is-on' : '') + '" role="switch"' +
       ' aria-checked="' + (on ? 'true' : 'false') + '"' +
       ' aria-label="' + esc(label) + ': ' + esc(state) + '"' +
       ' data-action="toggle" data-value="' + esc(key) + '"' +
       ' data-focus-key="toggle:' + esc(key) + '">' +
-      '<span class="dg-switch__track" aria-hidden="true"><span class="dg-switch__thumb"></span></span>' +
-      '<span class="dg-switch__label" aria-hidden="true">' + esc(state) + '</span>' +
+      '<span class="krot-switch__track" aria-hidden="true"><span class="krot-switch__thumb"></span></span>' +
+      '<span class="krot-switch__label" aria-hidden="true">' + esc(state) + '</span>' +
       '</button>';
   }
 
   function fieldSwitch(key, label, on) {
-    return '<div class="dg-field dg-field--row">' +
-      '<span class="dg-field__label">' + esc(label) + '</span>' + sw(key, label, on) + '</div>';
+    return '<div class="krot-field krot-field--row">' +
+      '<span class="krot-field__label">' + esc(label) + '</span>' + sw(key, label, on) + '</div>';
   }
 
   function choice(key, value, active, name, hint, ico) {
-    return '<button type="button" class="dg-choice__btn' + (active ? ' is-active' : '') + '"' +
+    return '<button type="button" class="krot-choice__btn' + (active ? ' is-active' : '') + '"' +
       ' data-action="set" data-key="' + esc(key) + '" data-value="' + esc(value) + '"' +
       ' data-focus-key="set:' + esc(key) + ':' + esc(value) + '"' +
       ' aria-pressed="' + (active ? 'true' : 'false') + '">' + icon(ico) +
-      '<span class="dg-choice__txt">' +
-      '<span class="dg-choice__name">' + esc(name) + '</span>' +
-      '<span class="dg-choice__hint">' + esc(hint) + '</span>' +
+      '<span class="krot-choice__txt">' +
+      '<span class="krot-choice__name">' + esc(name) + '</span>' +
+      '<span class="krot-choice__hint">' + esc(hint) + '</span>' +
       '</span></button>';
   }
 
   function panelHead(titleKey) {
-    return '<header class="dg-panel__head">' +
-      '<h2 class="dg-panel__title">' + esc(t(titleKey)) + '</h2>' +
-      '<button type="button" class="dg-x" data-action="close" data-focus-key="close"' +
+    return '<header class="krot-panel__head">' +
+      '<h2 class="krot-panel__title">' + esc(t(titleKey)) + '</h2>' +
+      '<button type="button" class="krot-x" data-action="close" data-focus-key="close"' +
       ' aria-label="' + esc(t('close')) + '">' + icon('close') + '</button>' +
       '</header>';
   }
 
   function panelFoot() {
-    return '<footer class="dg-panel__foot">' +
-      btn(esc(t('back')), 'close', null, 'dg-btn--primary', 'back', true) +
-      '<span class="dg-foot-hint">' + esc(t('navHint')) + '</span>' +
+    return '<footer class="krot-panel__foot">' +
+      btn(esc(t('back')), 'close', null, 'krot-btn--primary', 'back', true) +
+      '<span class="krot-foot-hint">' + esc(t('navHint')) + '</span>' +
       '</footer>';
   }
 
@@ -207,66 +207,66 @@
   function screenTitle(s) {
     var hi = hiscore(data && data.hi);
     return '' +
-      '<div class="dg-title">' +
-        '<div class="dg-title__top">' +
-          '<div class="dg-record">' +
-            '<span class="dg-record__k">' + esc(t('hiScoreLabel')) + '</span>' +
-            '<span class="dg-record__v">' + pad(hi) + '</span>' +
+      '<div class="krot-title">' +
+        '<div class="krot-title__top">' +
+          '<div class="krot-record">' +
+            '<span class="krot-record__k">' + esc(t('hiScoreLabel')) + '</span>' +
+            '<span class="krot-record__v">' + pad(hi) + '</span>' +
           '</div>' +
-          '<span class="dg-version">' + esc(t('version')) + '</span>' +
+          '<span class="krot-version">' + esc(t('version')) + '</span>' +
         '</div>' +
-        '<div class="dg-hero">' +
-          '<h1 class="dg-logo" aria-label="' + esc(t('appTitle')) + '">' + esc(t('appTitle')) + '</h1>' +
-          '<p class="dg-tagline">' + esc(t('appTagline')) + '</p>' +
+        '<div class="krot-hero">' +
+          '<h1 class="krot-logo" aria-label="' + esc(t('appTitle')) + '">' + esc(t('appTitle')) + '</h1>' +
+          '<p class="krot-tagline">' + esc(t('appTagline')) + '</p>' +
         '</div>' +
-        '<div class="dg-menu">' +
+        '<div class="krot-menu">' +
           btn(icon('play') + '<span>' + esc(t('play')) + '</span>', 'start', null,
-            'dg-btn--primary dg-btn--xl', 'start', true) +
-          '<div class="dg-menu__row">' +
-            btn(esc(t('settings')), 'panel', 'settings', 'dg-btn--ghost', 'panel:settings') +
-            btn(esc(t('help')), 'panel', 'help', 'dg-btn--ghost', 'panel:help') +
-            btn(esc(t('about')), 'panel', 'about', 'dg-btn--ghost', 'panel:about') +
+            'krot-btn--primary krot-btn--xl', 'start', true) +
+          '<div class="krot-menu__row">' +
+            btn(esc(t('settings')), 'panel', 'settings', 'krot-btn--ghost', 'panel:settings') +
+            btn(esc(t('help')), 'panel', 'help', 'krot-btn--ghost', 'panel:help') +
+            btn(esc(t('about')), 'panel', 'about', 'krot-btn--ghost', 'panel:about') +
           '</div>' +
         '</div>' +
-        '<div class="dg-quick">' +
-          '<div class="dg-quick__item">' +
-            '<span class="dg-quick__k">' + esc(t('language')) + '</span>' +
+        '<div class="krot-quick">' +
+          '<div class="krot-quick__item">' +
+            '<span class="krot-quick__k">' + esc(t('language')) + '</span>' +
             seg('lang', s.lang, [{ value: 'ru', label: 'RU' }, { value: 'en', label: 'EN' }], t('language')) +
           '</div>' +
-          '<div class="dg-quick__item">' +
-            '<span class="dg-quick__k">' + esc(t('gfx')) + '</span>' +
+          '<div class="krot-quick__item">' +
+            '<span class="krot-quick__k">' + esc(t('gfx')) + '</span>' +
             seg('gfx', s.gfx, [
               { value: 'classic', label: t('gfxClassic') },
               { value: 'modern', label: t('gfxModern') }
             ], t('gfx')) +
           '</div>' +
-          '<div class="dg-quick__item">' +
-            '<span class="dg-quick__k">' + esc(t('music')) + '</span>' + sw('music', t('music'), s.music) +
+          '<div class="krot-quick__item">' +
+            '<span class="krot-quick__k">' + esc(t('music')) + '</span>' + sw('music', t('music'), s.music) +
           '</div>' +
         '</div>' +
-        '<p class="dg-hint dg-hint--enter">' + esc(t('pressEnter')) + '</p>' +
-        '<p class="dg-hint dg-hint--touch">' + esc(t('touchMove')) + ' · ' + esc(t('touchShoot')) + '</p>' +
-        '<p class="dg-rotate">' + icon('rotate') + '<span>' + esc(t('rotateHint')) + '</span></p>' +
+        '<p class="krot-hint krot-hint--enter">' + esc(t('pressEnter')) + '</p>' +
+        '<p class="krot-hint krot-hint--touch">' + esc(t('touchMove')) + ' · ' + esc(t('touchShoot')) + '</p>' +
+        '<p class="krot-rotate">' + icon('rotate') + '<span>' + esc(t('rotateHint')) + '</span></p>' +
       '</div>' +
-      '<p class="dg-foot">' + esc(t('footerHint')) + '</p>';
+      '<p class="krot-foot">' + esc(t('footerHint')) + '</p>';
   }
 
   function screenSettings(s) {
     return '' +
-      '<div class="dg-panel dg-panel--settings">' +
+      '<div class="krot-panel krot-panel--settings">' +
         panelHead('settings') +
-        '<div class="dg-panel__body">' +
-          '<div class="dg-field">' +
-            '<span class="dg-field__label">' + esc(t('gfx')) + '</span>' +
-            '<div class="dg-choice">' +
+        '<div class="krot-panel__body">' +
+          '<div class="krot-field">' +
+            '<span class="krot-field__label">' + esc(t('gfx')) + '</span>' +
+            '<div class="krot-choice">' +
               choice('gfx', 'classic', s.gfx === 'classic', t('gfxClassic'),
                 t('graphicsClassicHint'), 'crt') +
               choice('gfx', 'modern', s.gfx === 'modern', t('gfxModern'),
                 t('graphicsModernHint'), 'neon') +
             '</div>' +
           '</div>' +
-          '<div class="dg-field dg-field--row">' +
-            '<span class="dg-field__label">' + esc(t('language')) + '</span>' +
+          '<div class="krot-field krot-field--row">' +
+            '<span class="krot-field__label">' + esc(t('language')) + '</span>' +
             seg('lang', s.lang, [
               { value: 'ru', label: 'RU · ' + t('langRu') },
               { value: 'en', label: 'EN · ' + t('langEn') }
@@ -275,14 +275,14 @@
           fieldSwitch('music', t('music'), s.music) +
           fieldSwitch('sfx', t('sfx'), s.sfx) +
           fieldSwitch('crt', t('crt'), s.crt) +
-          '<div class="dg-field dg-field--row dg-field--danger">' +
-            '<div class="dg-field__block">' +
-              '<span class="dg-field__label">' + esc(t('resetRecord')) + '</span>' +
-              '<span class="dg-field__note">' + esc(t('resetRecordHint')) + '</span>' +
+          '<div class="krot-field krot-field--row krot-field--danger">' +
+            '<div class="krot-field__block">' +
+              '<span class="krot-field__label">' + esc(t('resetRecord')) + '</span>' +
+              '<span class="krot-field__note">' + esc(t('resetRecordHint')) + '</span>' +
             '</div>' +
-            btn(esc(t('reset')), 'resetHi', null, 'dg-btn--danger dg-btn--sm', 'resetHi') +
+            btn(esc(t('reset')), 'resetHi', null, 'krot-btn--danger krot-btn--sm', 'resetHi') +
           '</div>' +
-          (resetFlash ? '<p class="dg-toast" role="status">' + esc(t('recordReset')) + '</p>' : '') +
+          (resetFlash ? '<p class="krot-toast" role="status">' + esc(t('recordReset')) + '</p>' : '') +
         '</div>' +
         panelFoot() +
       '</div>';
@@ -304,9 +304,9 @@
       var keys = row[1].split(' / ').map(function (k) {
         return '<kbd>' + esc(k) + '</kbd>';
       }).join('');
-      return '<li class="dg-keys__row">' +
-        '<span class="dg-keys__keys">' + keys + '</span>' +
-        '<span class="dg-keys__txt">' + esc(t(row[2])) + '</span>' +
+      return '<li class="krot-keys__row">' +
+        '<span class="krot-keys__keys">' + keys + '</span>' +
+        '<span class="krot-keys__txt">' + esc(t(row[2])) + '</span>' +
         '</li>';
     }).join('');
 
@@ -319,9 +319,9 @@
       ['weapon', 'mechWeaponTitle', 'mechWeapon']
     ];
     var mechHtml = mech.map(function (item) {
-      return '<li class="dg-mech__item">' +
-        '<span class="dg-mech__ico">' + icon(item[0]) + '</span>' +
-        '<div class="dg-mech__body">' +
+      return '<li class="krot-mech__item">' +
+        '<span class="krot-mech__ico">' + icon(item[0]) + '</span>' +
+        '<div class="krot-mech__body">' +
           '<b>' + esc(t(item[1])) + '</b>' +
           '<p>' + esc(t(item[2])) + '</p>' +
         '</div>' +
@@ -329,17 +329,17 @@
     }).join('');
 
     return '' +
-      '<div class="dg-panel dg-panel--wide dg-panel--scroll">' +
+      '<div class="krot-panel krot-panel--wide krot-panel--scroll">' +
         panelHead('help') +
-        '<div class="dg-panel__body dg-help">' +
-          '<section class="dg-help__col">' +
-            '<h3 class="dg-sub">' + icon('keyboard') + '<span>' + esc(t('keyboard')) + '</span></h3>' +
-            '<ul class="dg-keys">' + keysHtml + '</ul>' +
-            '<p class="dg-hint dg-hint--touch">' + esc(t('touchMove')) + ' · ' + esc(t('touchShoot')) + '</p>' +
+        '<div class="krot-panel__body krot-help">' +
+          '<section class="krot-help__col">' +
+            '<h3 class="krot-sub">' + icon('keyboard') + '<span>' + esc(t('keyboard')) + '</span></h3>' +
+            '<ul class="krot-keys">' + keysHtml + '</ul>' +
+            '<p class="krot-hint krot-hint--touch">' + esc(t('touchMove')) + ' · ' + esc(t('touchShoot')) + '</p>' +
           '</section>' +
-          '<section class="dg-help__col">' +
-            '<h3 class="dg-sub">' + icon('book') + '<span>' + esc(t('mechanics')) + '</span></h3>' +
-            '<ul class="dg-mech">' + mechHtml + '</ul>' +
+          '<section class="krot-help__col">' +
+            '<h3 class="krot-sub">' + icon('book') + '<span>' + esc(t('mechanics')) + '</span></h3>' +
+            '<ul class="krot-mech">' + mechHtml + '</ul>' +
           '</section>' +
         '</div>' +
         panelFoot() +
@@ -348,25 +348,25 @@
 
   function screenAbout() {
     return '' +
-      '<div class="dg-panel dg-panel--wide dg-panel--scroll">' +
+      '<div class="krot-panel krot-panel--wide krot-panel--scroll">' +
         panelHead('about') +
-        '<div class="dg-panel__body">' +
-          '<p class="dg-lead">' + esc(t('aboutText')) + '</p>' +
-          '<div class="dg-about-grid">' +
-            '<section class="dg-about-card">' +
+        '<div class="krot-panel__body">' +
+          '<p class="krot-lead">' + esc(t('aboutText')) + '</p>' +
+          '<div class="krot-about-grid">' +
+            '<section class="krot-about-card">' +
               '<h3>' + icon('star') + '<span>' + esc(t('originalGame')) + '</span></h3>' +
               '<p>' + esc(t('aboutOriginal')) + '</p>' +
             '</section>' +
-            '<section class="dg-about-card">' +
+            '<section class="krot-about-card">' +
               '<h3>' + icon('chip') + '<span>' + esc(t('technology')) + '</span></h3>' +
               '<p>' + esc(t('aboutTech')) + '</p>' +
             '</section>' +
           '</div>' +
-          '<section class="dg-about-card dg-about-card--credits">' +
+          '<section class="krot-about-card krot-about-card--credits">' +
             '<h3>' + icon('book') + '<span>' + esc(t('credits')) + '</span></h3>' +
             '<p>' + esc(t('aboutCredits')) + '</p>' +
           '</section>' +
-          '<div class="dg-about-meta">' +
+          '<div class="krot-about-meta">' +
             '<span>' + esc(t('version')) + '</span>' +
             '<span>' + esc(t('studioMark')) + ' · 2026</span>' +
           '</div>' +
@@ -377,17 +377,17 @@
 
   function screenPause() {
     return '' +
-      '<div class="dg-panel dg-panel--pause">' +
-        '<div class="dg-pause__head">' +
-          '<span class="dg-pause__ico" aria-hidden="true">' + icon('pause') + '</span>' +
-          '<h2 class="dg-panel__title">' + esc(t('paused')) + '</h2>' +
+      '<div class="krot-panel krot-panel--pause">' +
+        '<div class="krot-pause__head">' +
+          '<span class="krot-pause__ico" aria-hidden="true">' + icon('pause') + '</span>' +
+          '<h2 class="krot-panel__title">' + esc(t('paused')) + '</h2>' +
         '</div>' +
-        '<div class="dg-panel__body dg-pause__body">' +
-          btn(esc(t('resume')), 'resume', null, 'dg-btn--primary dg-btn--block', 'resume', true) +
-          btn(esc(t('restart')), 'restart', null, 'dg-btn--ghost dg-btn--block', 'restart') +
-          btn(esc(t('settings')), 'panel', 'settings', 'dg-btn--ghost dg-btn--block', 'panel:settings') +
-          btn(esc(t('toMenu')), 'menu', null, 'dg-btn--ghost dg-btn--block', 'menu') +
-          '<p class="dg-hint dg-hint--small">' + esc(t('escBack')) + '</p>' +
+        '<div class="krot-panel__body krot-pause__body">' +
+          btn(esc(t('resume')), 'resume', null, 'krot-btn--primary krot-btn--block', 'resume', true) +
+          btn(esc(t('restart')), 'restart', null, 'krot-btn--ghost krot-btn--block', 'restart') +
+          btn(esc(t('settings')), 'panel', 'settings', 'krot-btn--ghost krot-btn--block', 'panel:settings') +
+          btn(esc(t('toMenu')), 'menu', null, 'krot-btn--ghost krot-btn--block', 'menu') +
+          '<p class="krot-hint krot-hint--small">' + esc(t('escBack')) + '</p>' +
         '</div>' +
       '</div>';
   }
@@ -404,13 +404,13 @@
       var v = stats[defs[i][0]];
       if (v == null || !isFinite(Number(v))) continue;
       if (Number(v) > 0) positive = true;
-      rows += '<div class="dg-stats__item">' +
-        '<span class="dg-stats__k">' + esc(t(defs[i][1])) + '</span>' +
-        '<span class="dg-stats__v">' + num(v) + '</span>' +
+      rows += '<div class="krot-stats__item">' +
+        '<span class="krot-stats__k">' + esc(t(defs[i][1])) + '</span>' +
+        '<span class="krot-stats__v">' + num(v) + '</span>' +
         '</div>';
     }
     // Все нули (например, debug-скриншот) — блок скрываем, чтобы не выглядел пустым.
-    return rows && positive ? '<div class="dg-stats">' + rows + '</div>' : '';
+    return rows && positive ? '<div class="krot-stats">' + rows + '</div>' : '';
   }
 
   function screenGameover() {
@@ -420,18 +420,18 @@
     var isRecord = !!(d.record || score > hi && score > 0);
     if (score > hi) hi = score;
     return '' +
-      '<div class="dg-panel dg-panel--over">' +
-        '<h2 class="dg-over__title">' + esc(t('gameover')) + '</h2>' +
-        (isRecord ? '<div class="dg-badge">' + icon('star') + '<span>' + esc(t('newRecord')) + '</span></div>' : '') +
-        '<div class="dg-scoreboard">' +
-          '<span class="dg-scoreboard__k">' + esc(t('yourScore')) + '</span>' +
-          '<strong class="dg-scoreboard__v">' + pad(score) + '</strong>' +
-          '<span class="dg-scoreboard__hi">' + esc(t('hiscore')) + ' <b>' + pad(hi) + '</b></span>' +
+      '<div class="krot-panel krot-panel--over">' +
+        '<h2 class="krot-over__title">' + esc(t('gameover')) + '</h2>' +
+        (isRecord ? '<div class="krot-badge">' + icon('star') + '<span>' + esc(t('newRecord')) + '</span></div>' : '') +
+        '<div class="krot-scoreboard">' +
+          '<span class="krot-scoreboard__k">' + esc(t('yourScore')) + '</span>' +
+          '<strong class="krot-scoreboard__v">' + pad(score) + '</strong>' +
+          '<span class="krot-scoreboard__hi">' + esc(t('hiscore')) + ' <b>' + pad(hi) + '</b></span>' +
         '</div>' +
         statsHtml(d.stats) +
-        '<div class="dg-actions">' +
-          btn(esc(t('playAgain')), 'restart', null, 'dg-btn--primary', 'restart', true) +
-          btn(esc(t('toMenu')), 'menu', null, 'dg-btn--ghost', 'menu') +
+        '<div class="krot-actions">' +
+          btn(esc(t('playAgain')), 'restart', null, 'krot-btn--primary', 'restart', true) +
+          btn(esc(t('toMenu')), 'menu', null, 'krot-btn--ghost', 'menu') +
         '</div>' +
       '</div>';
   }
@@ -480,10 +480,10 @@
     ensureRoot();
     if (!root) return;
     if (!rotateEl || rotateEl.parentNode !== root) {
-      rotateEl = root.querySelector('.dg-rotate-overlay');
+      rotateEl = root.querySelector('.krot-rotate-overlay');
       if (!rotateEl) {
         rotateEl = doc.createElement('div');
-        rotateEl.className = 'dg-rotate-overlay';
+        rotateEl.className = 'krot-rotate-overlay';
         rotateEl.setAttribute('aria-hidden', 'true');
         root.appendChild(rotateEl);
       }
@@ -492,13 +492,13 @@
     rotateEl.classList.toggle('is-visible', show);
     if (show) {
       var text = t('rotateHint');
-      if (rotateEl.__dgText !== text) {
+      if (rotateEl.__krotText !== text) {
         rotateEl.innerHTML = icon('rotate') + '<span>' + esc(text) + '</span>';
-        rotateEl.__dgText = text;
+        rotateEl.__krotText = text;
       }
     } else if (rotateEl.innerHTML) {
       rotateEl.innerHTML = '';
-      rotateEl.__dgText = '';
+      rotateEl.__krotText = '';
     }
   }
 
@@ -527,7 +527,7 @@
   /* Куда ставить фокус по умолчанию: настройки — на активный контрол,
      остальные панели — на основное действие. */
   var DEFAULT_FOCUS = {
-    settings: '.dg-choice__btn.is-active, .dg-seg__btn.is-active, .dg-panel__body .dg-switch',
+    settings: '.krot-choice__btn.is-active, .krot-seg__btn.is-active, .krot-panel__body .krot-switch',
     help: '[data-primary="1"]',
     about: '[data-primary="1"]',
     pause: '[data-primary="1"]',
@@ -545,7 +545,7 @@
       try { target = root.querySelector(DEFAULT_FOCUS[current]); } catch (e2) { target = null; }
     }
     if (!target && current !== 'title') {
-      target = root.querySelector('[data-primary="1"]') || root.querySelector('.dg-btn');
+      target = root.querySelector('[data-primary="1"]') || root.querySelector('.krot-btn');
     }
     if (!target) return;
     try { target.focus({ preventScroll: true }); }
@@ -559,11 +559,11 @@
     var restore = focusedKey();
     var label = t(LABEL_KEYS[current] || 'appTitle');
     var animate = rendered !== current;
-    var cls = 'dg-screen dg-screen--' + current + (animate ? ' dg-screen--enter' : '');
+    var cls = 'krot-screen krot-screen--' + current + (animate ? ' krot-screen--enter' : '');
     var inner = RENDER[current] ? RENDER[current]() : '';
     root.innerHTML = '<section class="' + cls + '" role="dialog" aria-modal="true"' +
       ' aria-label="' + esc(label) + '" data-screen="' + esc(current) + '">' + inner + '</section>';
-    root.classList.add('dg-open');
+    root.classList.add('krot-open');
     root.setAttribute('aria-hidden', 'false');
     rendered = current;
     renderSeq++;
@@ -574,7 +574,7 @@
   function clearDom() {
     if (!root) return;
     root.innerHTML = '';
-    root.classList.remove('dg-open');
+    root.classList.remove('krot-open');
     root.removeAttribute('data-screen');
     root.setAttribute('aria-hidden', 'true');
     rendered = null;
@@ -626,7 +626,7 @@
 
   function fireClickSfx() {
     try {
-      if (DG.audio && typeof DG.audio.sfx === 'function') DG.audio.sfx('ui_click');
+      if (KROT.audio && typeof KROT.audio.sfx === 'function') KROT.audio.sfx('ui_click');
     } catch (e) { /* без звука тоже играбельно */ }
   }
 
@@ -650,8 +650,8 @@
     var before = renderSeq;
     setSetting(key, value);
     // Если main.js не перерисовал экран сам (кастомный setSetting) — рисуем здесь.
-    if (key === 'lang' && DG.i18n && typeof DG.i18n.setLang === 'function' && DG.i18n.lang !== value) {
-      try { DG.i18n.setLang(value); } catch (e) { /* ignore */ }
+    if (key === 'lang' && KROT.i18n && typeof KROT.i18n.setLang === 'function' && KROT.i18n.lang !== value) {
+      try { KROT.i18n.setLang(value); } catch (e) { /* ignore */ }
     }
     if (renderSeq === before) paint();
   }
@@ -690,7 +690,7 @@
       ensureRoot();
       if (root) {
         root.setAttribute('aria-hidden', current ? 'false' : 'true');
-        if (!root.classList.contains('dg-ui')) root.classList.add('dg-ui');
+        if (!root.classList.contains('krot-ui')) root.classList.add('krot-ui');
         updateRotateOverlay();
       }
       return api;
@@ -712,7 +712,7 @@
         el.click();
         return true;
       }
-      var primary = root.querySelector('[data-primary="1"]') || root.querySelector('.dg-btn');
+      var primary = root.querySelector('[data-primary="1"]') || root.querySelector('.krot-btn');
       if (primary) { primary.click(); return true; }
       return false;
     },
@@ -721,5 +721,5 @@
     sync: function () {}
   };
 
-  DG.ui = api;
+  KROT.ui = api;
 })(window);

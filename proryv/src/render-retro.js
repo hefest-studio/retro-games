@@ -7,8 +7,8 @@
 (function () {
   'use strict';
 
-  const EX = window.EX;
-  const P = EX.PAL;
+  const PR = window.PR;
+  const P = PR.PAL;
   const TILE = 8, COLS = 32, ROWS = 24, W = 256, H = 192, HUD = 16, VH = 208;
 
   let g = null;              // текущий ctx
@@ -17,7 +17,7 @@
   const px = function (c, x, y, w, h) { g.fillStyle = c; g.fillRect(x | 0, y | 0, w, h); };
 
   /* ---------- шрифт ---------- */
-  const FONT = () => window.EX_FONT;
+  const FONT = () => window.PR_FONT;
   function textW(str, scale) {
     const f = FONT();
     return str.length * (f ? f.W : 6) * (scale || 1);
@@ -152,7 +152,7 @@
   function drawTile(id, tx, ty, theme, seed) {
     const x = tx * TILE, y = ty * TILE;
     switch (id) {
-      case EX.TILES.SOLID: {
+      case PR.TILES.SOLID: {
         px(theme.sky[0], x, y, TILE, TILE);
         /* кирпичная «атрибутная» кладка 8×8: 2 цвета на клетку */
         g.fillStyle = theme.block;
@@ -163,7 +163,7 @@
         g.fillRect(x + 3, y + 1, 1, 1); g.fillRect(x + 6, y + 5, 1, 1);
         break;
       }
-      case EX.TILES.ROCK: {
+      case PR.TILES.ROCK: {
         px(theme.sky[0], x, y, TILE, TILE);
         const r = rng(tx * 73 + ty * 149 + 11);
         for (let i = 0; i < 12; i++) {
@@ -174,7 +174,7 @@
         dither(x + 1, y + 1, 6, 6, theme.rock, theme.sky[0], tx * 3 + ty);
         break;
       }
-      case EX.TILES.THIN: {
+      case PR.TILES.THIN: {
         g.fillStyle = theme.thin;
         g.fillRect(x, y, 8, 1);
         g.fillStyle = theme.block2;
@@ -183,7 +183,7 @@
         for (let i = 1; i < 8; i += 2) g.fillRect(x + i, y + 1, 1, 1);
         break;
       }
-      case EX.TILES.SPIKE: {
+      case PR.TILES.SPIKE: {
         g.fillStyle = theme.spike;
         for (let i = 0; i < 8; i += 2) {
           g.beginPath();
@@ -195,7 +195,7 @@
         px(theme.block2, x, y + 7, 8, 1);
         break;
       }
-      case EX.TILES.FLORA: {
+      case PR.TILES.FLORA: {
         const r = rng(tx * 41 + ty * 17 + 3);
         const h = 4 + Math.floor(r() * 5);
         g.fillStyle = theme.accent;
@@ -220,9 +220,9 @@
     px(P.bgreen, x + 1, y + 3, 1, 4);
     px(P.bgreen, x + 12, y + 3, 1, 4);
     /* глаза */
-    const ex = flip ? x + 8 : x + 3;
-    px(P.byellow, ex, y + 3, 2, 2);
-    px(P.black, ex + (flip ? 1 : 0), y + 4, 1, 1);
+    const eyeX = flip ? x + 8 : x + 3;
+    px(P.byellow, eyeX, y + 3, 2, 2);
+    px(P.black, eyeX + (flip ? 1 : 0), y + 4, 1, 1);
     /* рот/зубы */
     px(P.bmagenta, x + 5, y + 6, 4, 1);
     /* ноги */
@@ -456,7 +456,7 @@
 
   /* ---------- выстрелы / эффекты ---------- */
   function drawShots() {
-    const st = EX.state;
+    const st = PR.state;
     st.shots.forEach(function (s) {
       if (s.grenade) {
         px(P.bwhite, s.x - 2, s.y - 2, 5, 5);
@@ -481,7 +481,7 @@
   }
 
   function drawParticles() {
-    const st = EX.state;
+    const st = PR.state;
     st.particles.forEach(function (p) {
       const a = p.life / (p.max || 1);
       g.globalAlpha = a > 0.5 ? 1 : 0.7;
@@ -509,7 +509,7 @@
 
   /* ---------- HUD ---------- */
   function drawHUD() {
-    const st = EX.state;
+    const st = PR.state;
     const p = st.player || { laser: 0, maxLaser: 100, rockets: 0, armor: 0, exo: false };
     const y0 = H;
     px(P.black, 0, y0, W, HUD);
@@ -518,14 +518,14 @@
     for (let i = 0; i < W; i += 2) g.fillRect(i, y0, 1, 1);
 
     /* строка 1 */
-    text(EX.t('hud.score'), 4, y0, P.bcyan, 1);
-    const scoreX = 4 + textW(EX.t('hud.score'), 1) + 4;
+    text(PR.t('hud.score'), 4, y0, P.bcyan, 1);
+    const scoreX = 4 + textW(PR.t('hud.score'), 1) + 4;
     text(String(st.score).padStart(6, '0'), scoreX, y0, P.bwhite, 1);
     const lifeX = scoreX + 42;
     text('♥', lifeX, y0, P.bred, 1);
     text(String(st.lives), lifeX + 7, y0, P.bred, 1);
-    text(EX.t('hud.screen') + ' ' + (st.screen + 1) + '/' + EX.screenCount(st.level), 188, y0, P.byellow, 1, 'right');
-    text(EX.t('hud.sector') + ' ' + (st.level + 1) + '/' + EX.levelCount(), 252, y0, P.byellow, 1, 'right');
+    text(PR.t('hud.screen') + ' ' + (st.screen + 1) + '/' + PR.screenCount(st.level), 188, y0, P.byellow, 1, 'right');
+    text(PR.t('hud.sector') + ' ' + (st.level + 1) + '/' + PR.levelCount(), 252, y0, P.byellow, 1, 'right');
 
     /* строка 2 */
     const y1 = y0 + 8;
@@ -539,8 +539,8 @@
     }
     /* броня экзоскелета */
     if (p.exo) {
-      text(EX.t('hud.armor'), 72, y1, P.byellow, 1);
-      for (let i = 0; i < 3; i++) px(i < p.armor ? P.byellow : '#332a00', 72 + EX.t('hud.armor').length * 6 + 2 + i * 5, y1 + 2, 3, 4);
+      text(PR.t('hud.armor'), 72, y1, P.byellow, 1);
+      for (let i = 0; i < 3; i++) px(i < p.armor ? P.byellow : '#332a00', 72 + PR.t('hud.armor').length * 6 + 2 + i * 5, y1 + 2, 3, 4);
     }
   }
 
@@ -548,9 +548,9 @@
   function dim(alpha) { g.fillStyle = 'rgba(0,0,0,' + alpha + ')'; g.fillRect(0, 0, W, VH); }
 
   function drawMessage() {
-    const st = EX.state;
+    const st = PR.state;
     if (!st.message) return;
-    const s = EX.t(st.message.key);
+    const s = PR.t(st.message.key);
     const y = 78;
     const w = textW(s, 1) + 16;
     panel((W - w) / 2, y, w, 13, P.byellow, '#000');
@@ -558,8 +558,8 @@
   }
 
   function drawMenus() {
-    const st = EX.state;
-    const rects = EX.ui.layout();
+    const st = PR.state;
+    const rects = PR.ui.layout();
     rects.forEach(function (r, i) {
       const sel = i === st.menuIndex;
       const label = r.item.label + (r.item.value ? '  ' + r.item.value : '');
@@ -590,7 +590,7 @@
 
   /* ---------- экраны ---------- */
   function drawTitle() {
-    const st = EX.state;
+    const st = PR.state;
     background(themeOf({ theme: 'space' }));
     const logo = 'ПРОРЫВ';
     const colors = [P.byellow, P.bcyan, P.bmagenta, P.bgreen, P.bcyan, P.bwhite];
@@ -611,8 +611,8 @@
       }
     }
 
-    text(EX.t('brand.ru'), W / 2, 98, P.bwhite, 1, 'center', '#000');
-    text(EX.t('tagline.full'), W / 2, 108, P.bcyan, 1, 'center', '#000');
+    text(PR.t('brand.ru'), W / 2, 98, P.bwhite, 1, 'center', '#000');
+    text(PR.t('tagline.full'), W / 2, 108, P.bcyan, 1, 'center', '#000');
 
     drawMenus();
 
@@ -623,14 +623,14 @@
       drawWalker({ x: x, y: baseY - 12, dir: 1, anim: now * 2 + i, hitT: 0 });
     }
     /* рекорд */
-    text(EX.t('msg.record') + ' ' + String(st.record).padStart(6, '0'), W - 4, 2, P.byellow, 1, 'right');
+    text(PR.t('msg.record') + ' ' + String(st.record).padStart(6, '0'), W - 4, 2, P.byellow, 1, 'right');
     text('ГЕФЕСТ', 4, 2, P.blue, 1);
-    text(EX.t('menu.hint.quick'), W / 2, VH - 9, P.blue, 1, 'center');
-    if (EX.BUILD) text(EX.t('settings.build.short', { v: EX.BUILD }), W / 2, 76, P.bblue, 1, 'center');
+    text(PR.t('menu.hint.quick'), W / 2, VH - 9, P.blue, 1, 'center');
+    if (PR.BUILD) text(PR.t('settings.build.short', { v: PR.BUILD }), W / 2, 76, P.bblue, 1, 'center');
   }
 
   function background(theme) {
-    const st = EX.state;
+    const st = PR.state;
     const world = st.world;
     px('#000000', 0, 0, W, VH);
     if (world) starfield(world.seed || 1, now, theme);
@@ -641,16 +641,16 @@
   }
 
   function drawDeathOverlay() {
-    const st = EX.state;
+    const st = PR.state;
     dim(0.25);
-    const s = EX.t('msg.dead');
+    const s = PR.t('msg.dead');
     panel(W / 2 - 64, 78, 128, 22, P.bred, '#000');
     text(s, W / 2, 83, P.bred, 2, 'center', '#000');
-    text(EX.t('hud.lives') + ': ' + st.lives, W / 2, 92, P.bwhite, 1, 'center');
+    text(PR.t('hud.lives') + ': ' + st.lives, W / 2, 92, P.bwhite, 1, 'center');
   }
 
   function drawWorld() {
-    const st = EX.state;
+    const st = PR.state;
     const world = st.world;
     if (!world) return;
     const theme = themeOf(world);
@@ -692,18 +692,18 @@
     drawWorld();
     dim(0.55);
     panel(42, 34, 172, 132, P.bcyan, '#000');
-    text(EX.t('msg.paused'), W / 2, 44, P.byellow, 2, 'center', '#000');
+    text(PR.t('msg.paused'), W / 2, 44, P.byellow, 2, 'center', '#000');
     drawMenus();
-    text(EX.t('hint.nav'), W / 2, 150, P.bcyan, 1, 'center');
+    text(PR.t('hint.nav'), W / 2, 150, P.bcyan, 1, 'center');
   }
 
   function drawHelp() {
-    const st = EX.state;
+    const st = PR.state;
     const world = st.world;
     px('#000000', 0, 0, W, VH);
     starfield((world && world.seed) || 3, now * 0.3, THEMES.space);
     panel(3, 3, W - 6, VH - 6, P.bcyan, 'rgba(0,0,0,0.90)');
-    text(EX.t('help.title'), W / 2, 7, P.byellow, 2, 'center', '#000');
+    text(PR.t('help.title'), W / 2, 7, P.byellow, 2, 'center', '#000');
     g.fillStyle = P.bblue; g.fillRect(16, 26, W - 32, 1);
 
     const rows = [
@@ -716,47 +716,47 @@
     let y = 31;
     rows.forEach(function (r) {
       text(r[0], 8, y, P.byellow, 1);
-      text(EX.t(r[1]), 80, y, P.bwhite, 1);
+      text(PR.t(r[1]), 80, y, P.bwhite, 1);
       y += 9;
     });
 
     g.fillStyle = P.bblue; g.fillRect(16, y - 4, W - 32, 1);
-    text(EX.t('hint.title'), 8, y + 1, P.bcyan, 1);
+    text(PR.t('hint.title'), 8, y + 1, P.bcyan, 1);
     y += 10;
-    wrapMulti(EX.t('help.goal'), 40).forEach(function (l) { text(l, 8, y, P.white, 1); y += 8; });
+    wrapMulti(PR.t('help.goal'), 40).forEach(function (l) { text(l, 8, y, P.white, 1); y += 8; });
     y += 3;
     text('*', 6, y, P.byellow, 1);
-    wrapMulti(EX.t('hint.ammo'), 39).forEach(function (l) { text(l, 14, y, P.white, 1); y += 8; });
+    wrapMulti(PR.t('hint.ammo'), 39).forEach(function (l) { text(l, 14, y, P.white, 1); y += 8; });
     y += 3;
     text('*', 6, y, P.byellow, 1);
-    wrapMulti(EX.t('hint.teleport'), 39).forEach(function (l) { text(l, 14, y, P.white, 1); y += 8; });
-    text(EX.t('help.back'), W / 2, VH - 11, P.byellow, 1, 'center');
+    wrapMulti(PR.t('hint.teleport'), 39).forEach(function (l) { text(l, 14, y, P.white, 1); y += 8; });
+    text(PR.t('help.back'), W / 2, VH - 11, P.byellow, 1, 'center');
   }
 
   function drawAbout() {
     px('#000000', 0, 0, W, VH);
     starfield(9, now * 0.2, THEMES.space);
     panel(4, 4, W - 8, VH - 8, P.bmagenta, 'rgba(0,0,0,0.90)');
-    text(EX.t('brand'), W / 2, 10, P.byellow, 3, 'center', '#000');
-    text(EX.t('tagline'), W / 2, 38, P.bcyan, 1, 'center');
+    text(PR.t('brand'), W / 2, 10, P.byellow, 3, 'center', '#000');
+    text(PR.t('tagline'), W / 2, 38, P.bcyan, 1, 'center');
     g.fillStyle = P.bblue; g.fillRect(20, 48, W - 40, 1);
     let y = 53;
-    wrapMulti(EX.t('about.text'), 40).forEach(function (l) { text(l, 7, y, P.white, 1); y += 9; });
+    wrapMulti(PR.t('about.text'), 40).forEach(function (l) { text(l, 7, y, P.white, 1); y += 9; });
     y += 5;
-    text(EX.t('credits.original'), W / 2, y, P.byellow, 1, 'center'); y += 8;
-    text(EX.t('credits.port'), W / 2, y, P.bcyan, 1, 'center'); y += 8;
-    wrapMulti(EX.t('credits.thanks'), 40).forEach(function (l) { text(l, W / 2, y, P.bblue, 1, 'center'); y += 8; });
-    wrapMulti(EX.t('credits.fan'), 39).forEach(function (l) { text(l, W / 2, y, P.bblue, 1, 'center'); y += 8; });
-    text(EX.t('help.back'), W / 2, VH - 10, P.byellow, 1, 'center');
+    text(PR.t('credits.original'), W / 2, y, P.byellow, 1, 'center'); y += 8;
+    text(PR.t('credits.port'), W / 2, y, P.bcyan, 1, 'center'); y += 8;
+    wrapMulti(PR.t('credits.thanks'), 40).forEach(function (l) { text(l, W / 2, y, P.bblue, 1, 'center'); y += 8; });
+    wrapMulti(PR.t('credits.fan'), 39).forEach(function (l) { text(l, W / 2, y, P.bblue, 1, 'center'); y += 8; });
+    text(PR.t('help.back'), W / 2, VH - 10, P.byellow, 1, 'center');
   }
 
   function drawSettings() {
-    const st = EX.state;
+    const st = PR.state;
     drawWorld();
     dim(0.72);
     panel(20, 34, W - 40, 146, P.bcyan, '#000');
-    text(EX.t('settings.title'), W / 2, 38, P.byellow, 2, 'center', '#000');
-    const rects = EX.ui.layout();
+    text(PR.t('settings.title'), W / 2, 38, P.byellow, 2, 'center', '#000');
+    const rects = PR.ui.layout();
     rects.forEach(function (r, i) {
       const sel = i === st.menuIndex;
       const x = r.x - 16, w = r.w + 32;
@@ -779,31 +779,31 @@
         px(P.byellow, ax + 1, ay + 3, 2, 1);
       }
     });
-    if (st.resetAsk > 0) text(EX.t('settings.resetConfirm'), W / 2, 172, P.bred, 1, 'center');
-    else text(EX.t('msg.paused.hint'), W / 2, 172, P.blue, 1, 'center');
+    if (st.resetAsk > 0) text(PR.t('settings.resetConfirm'), W / 2, 172, P.bred, 1, 'center');
+    else text(PR.t('msg.paused.hint'), W / 2, 172, P.blue, 1, 'center');
   }
 
   function drawBriefing() {
-    const st = EX.state;
-    const lv = EX.levelData(st.level) || { name: { ru: '', en: '' }, intro: { ru: '', en: '' }, theme: 'space' };
+    const st = PR.state;
+    const lv = PR.levelData(st.level) || { name: { ru: '', en: '' }, intro: { ru: '', en: '' }, theme: 'space' };
     const theme = THEMES[lv.theme] || THEMES.space;
     px('#000000', 0, 0, W, VH);
     starfield((st.world && st.world.seed) || 1, now * 0.25, THEMES.space);
     panel(4, 4, W - 8, VH - 8, P.bcyan, 'rgba(0,0,0,0.84)');
 
-    text(EX.t('hud.sector') + '  ' + (st.level + 1) + ' / ' + EX.levelCount(), W / 2, 10, theme.accent, 1, 'center');
-    const name = (lv.name[EX.settings.lang] || lv.name.ru || '').toUpperCase();
+    text(PR.t('hud.sector') + '  ' + (st.level + 1) + ' / ' + PR.levelCount(), W / 2, 10, theme.accent, 1, 'center');
+    const name = (lv.name[PR.settings.lang] || lv.name.ru || '').toUpperCase();
     const nsc = name.length > 16 ? 1 : 2;
     text(name, W / 2, 20, P.byellow, nsc, 'center', '#000');
-    text(EX.t('level.screens', { n: EX.screenCount(st.level) }), W / 2, 40, P.bblue, 1, 'center');
+    text(PR.t('level.screens', { n: PR.screenCount(st.level) }), W / 2, 40, P.bblue, 1, 'center');
     g.fillStyle = P.bblue; g.fillRect(18, 49, W - 36, 1);
 
     let y = 55;
-    wrapMulti(lv.intro[EX.settings.lang] || lv.intro.ru, 40).forEach(function (l) { text(l, 10, y, P.white, 1); y += 8; });
+    wrapMulti(lv.intro[PR.settings.lang] || lv.intro.ru, 40).forEach(function (l) { text(l, 10, y, P.white, 1); y += 8; });
     y += 4;
     ['hint.grenade', 'hint.exo'].forEach(function (k) {
       text('*', 6, y, P.byellow, 1);
-      wrapMulti(EX.t(k), 39).forEach(function (l) { text(l, 13, y, P.bcyan, 1); y += 8; });
+      wrapMulti(PR.t(k), 39).forEach(function (l) { text(l, 13, y, P.bcyan, 1); y += 8; });
       y += 2;
     });
 
@@ -816,19 +816,19 @@
     drawPod({ x: base + 86, y: 158, anim: now + 0.9, hitT: 0 });
 
     if (Math.floor(now * 2) % 2 === 0) {
-      text(EX.t('level.start'), W / 2, 178, P.byellow, 1, 'center');
+      text(PR.t('level.start'), W / 2, 178, P.byellow, 1, 'center');
     }
     drawHUD();
   }
 
   function drawBonus() {
-    const st = EX.state;
+    const st = PR.state;
     drawWorld();
     dim(0.7);
     const b = st.bonus;
     if (!b) return;
     panel(16, 34, W - 32, 134, P.byellow, '#000');
-    text(EX.t('msg.bonus'), W / 2, 40, P.byellow, 2, 'center', '#000');
+    text(PR.t('msg.bonus'), W / 2, 40, P.byellow, 2, 'center', '#000');
     const bx = [42, 84, 126, 168];
     if (b.phase === 'pick') {
       for (let i = 0; i < b.values.length; i++) {
@@ -838,15 +838,15 @@
         text(String(b.values[i]), x + 15, 74, on ? P.bwhite : P.bcyan, 1, 'center');
         if (on) text('▼', x + 15, 58, P.byellow, 1, 'center');
       }
-      text(EX.t('msg.bonus.pick'), W / 2, 104, P.byellow, 1, 'center');
-      text(EX.t('msg.bonus.pick2'), W / 2, 116, P.bwhite, 1, 'center');
+      text(PR.t('msg.bonus.pick'), W / 2, 104, P.byellow, 1, 'center');
+      text(PR.t('msg.bonus.pick2'), W / 2, 116, P.bwhite, 1, 'center');
     } else {
       text(String(b.chosen), W / 2, 68, P.bwhite, 3, 'center', '#111');
-      text(EX.t('msg.bonus.lives') + ' → ' + b.livesBonus, W / 2, 100, P.bcyan, 1, 'center');
-      text(b.noExoBonus ? EX.t('msg.bonus.noexo') : EX.t('msg.bonus.exo'), W / 2, 112, b.noExoBonus ? P.bgreen : P.bred, 1, 'center');
-      if (b.extraLife) text(EX.t('msg.bonus.extra'), W / 2, 124, P.byellow, 1, 'center');
+      text(PR.t('msg.bonus.lives') + ' → ' + b.livesBonus, W / 2, 100, P.bcyan, 1, 'center');
+      text(b.noExoBonus ? PR.t('msg.bonus.noexo') : PR.t('msg.bonus.exo'), W / 2, 112, b.noExoBonus ? P.bgreen : P.bred, 1, 'center');
+      if (b.extraLife) text(PR.t('msg.bonus.extra'), W / 2, 124, P.byellow, 1, 'center');
     }
-    text(EX.t('msg.score') + ' ' + st.score, W / 2, 140, P.byellow, 1, 'center');
+    text(PR.t('msg.score') + ' ' + st.score, W / 2, 140, P.byellow, 1, 'center');
   }
 
   function bigCentered(str, y, color, scale) {
@@ -854,29 +854,29 @@
   }
 
   function drawLevelClear() {
-    const st = EX.state;
+    const st = PR.state;
     drawWorld();
     dim(0.6);
-    bigCentered(EX.t('msg.levelclear'), 62, P.byellow, 2);
-    text(EX.t('hud.sector') + ' ' + (st.level + 1), W / 2, 90, P.bcyan, 1, 'center');
-    text(EX.t('msg.score') + ' ' + st.score, W / 2, 104, P.bwhite, 1, 'center');
+    bigCentered(PR.t('msg.levelclear'), 62, P.byellow, 2);
+    text(PR.t('hud.sector') + ' ' + (st.level + 1), W / 2, 90, P.bcyan, 1, 'center');
+    text(PR.t('msg.score') + ' ' + st.score, W / 2, 104, P.bwhite, 1, 'center');
     if (Math.floor(now * 6) % 2 === 0) text('...', W / 2, 120, P.byellow, 2, 'center');
   }
 
   function drawGameOver() {
-    const st = EX.state;
+    const st = PR.state;
     drawWorld();
     dim(0.78);
     panel(20, 38, 216, 142, P.bred, '#000');
-    bigCentered(EX.t('msg.gameover'), 46, P.bred, 2);
-    text(EX.t('msg.score') + ' ' + st.score, W / 2, 74, P.bwhite, 1, 'center');
-    text(EX.t('msg.record') + ' ' + st.record, W / 2, 86, P.byellow, 1, 'center');
-    if (st.newRecord) text(EX.t('msg.newrecord'), W / 2, 98, P.bgreen, 1, 'center');
+    bigCentered(PR.t('msg.gameover'), 46, P.bred, 2);
+    text(PR.t('msg.score') + ' ' + st.score, W / 2, 74, P.bwhite, 1, 'center');
+    text(PR.t('msg.record') + ' ' + st.record, W / 2, 86, P.byellow, 1, 'center');
+    if (st.newRecord) text(PR.t('msg.newrecord'), W / 2, 98, P.bgreen, 1, 'center');
     drawMenus();
   }
 
   function drawWin() {
-    const st = EX.state;
+    const st = PR.state;
     px('#000000', 0, 0, W, VH);
     starfield(11, now * 0.5, THEMES.space);
     /* фейерверк */
@@ -891,21 +891,21 @@
       g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke();
       g.globalAlpha = 1;
     }
-    const winT = EX.t('msg.win');
+    const winT = PR.t('msg.win');
     bigCentered(winT, 40, P.byellow, textW(winT, 3) > 244 ? 2 : 3);
-    text(EX.t('msg.win.sub'), W / 2, 76, P.bcyan, 1, 'center');
-    text(EX.t('msg.score') + ' ' + st.score, W / 2, 96, P.bwhite, 2, 'center');
-    text(EX.t('msg.record') + ' ' + st.record, W / 2, 118, P.byellow, 1, 'center');
-    if (st.newRecord) text(EX.t('msg.newrecord'), W / 2, 130, P.bgreen, 1, 'center');
+    text(PR.t('msg.win.sub'), W / 2, 76, P.bcyan, 1, 'center');
+    text(PR.t('msg.score') + ' ' + st.score, W / 2, 96, P.bwhite, 2, 'center');
+    text(PR.t('msg.record') + ' ' + st.record, W / 2, 118, P.byellow, 1, 'center');
+    if (st.newRecord) text(PR.t('msg.newrecord'), W / 2, 130, P.bgreen, 1, 'center');
     drawMenus();
-    text(EX.t('credits.original'), W / 2, VH - 12, P.blue, 1, 'center');
+    text(PR.t('credits.original'), W / 2, VH - 12, P.blue, 1, 'center');
   }
 
   /* ---------- главный вход ---------- */
   function draw(ctx, view) {
     g = ctx;
-    now = (view && view.t) || EX.state.t;
-    const st = EX.state;
+    now = (view && view.t) || PR.state.t;
+    const st = PR.state;
     g.save();
     g.imageSmoothingEnabled = false;
     const shake = st.fx.shake;
@@ -941,5 +941,5 @@
     g.fillRect(0, 0, W, VH);
   }
 
-  window.EX_RENDER_RETRO = { draw: draw, W: W, H: VH };
+  window.PR_RENDER_RETRO = { draw: draw, W: W, H: VH };
 })();

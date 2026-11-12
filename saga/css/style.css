@@ -198,7 +198,7 @@ kbd {
 }
 .hud > * { pointer-events: auto; }
 .hud__team { display: flex; gap: 8px; align-items: stretch; }
-.viking-tab {
+.northman-tab {
   position: relative;
   display: flex;
   align-items: center;
@@ -212,16 +212,16 @@ kbd {
   text-align: left;
   transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, opacity 0.2s ease;
 }
-.viking-tab:hover { transform: translateY(-1px); border-color: var(--line-strong); }
-.viking-tab.is-active {
+.northman-tab:hover { transform: translateY(-1px); border-color: var(--line-strong); }
+.northman-tab.is-active {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent), 0 0 26px rgba(111, 242, 198, 0.3), inset 0 0 22px rgba(111, 242, 198, 0.08);
 }
-.viking-tab.is-dead { opacity: 0.42; filter: grayscale(0.8); }
-.viking-tab.is-gone { opacity: 0.55; }
-.viking-tab.is-gone .viking-tab__state { color: var(--accent); }
-.viking-tab.is-dead .viking-tab__state { color: var(--danger); }
-.viking-tab__face {
+.northman-tab.is-dead { opacity: 0.42; filter: grayscale(0.8); }
+.northman-tab.is-gone { opacity: 0.55; }
+.northman-tab.is-gone .northman-tab__state { color: var(--accent); }
+.northman-tab.is-dead .northman-tab__state { color: var(--danger); }
+.northman-tab__face {
   width: 40px;
   height: 48px;
   flex: 0 0 auto;
@@ -231,12 +231,12 @@ kbd {
   background: radial-gradient(circle at 50% 20%, rgba(255,255,255,0.10), rgba(0,0,0,0.35));
   overflow: hidden;
 }
-.viking-tab__face .portrait { width: 100%; height: 100%; object-fit: cover; }
+.northman-tab__face .portrait { width: 100%; height: 100%; object-fit: cover; }
 .portrait { display: block; }
-.viking-tab__meta { display: flex; flex-direction: column; line-height: 1.12; min-width: 0; }
-.viking-tab__name { font-size: clamp(11px, 1vw, 13px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
-.viking-tab__role { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
-.viking-tab__key {
+.northman-tab__meta { display: flex; flex-direction: column; line-height: 1.12; min-width: 0; }
+.northman-tab__name { font-size: clamp(11px, 1vw, 13px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+.northman-tab__role { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+.northman-tab__key {
   width: 18px; height: 18px;
   display: grid; place-items: center;
   border: 1px solid var(--line-strong);
@@ -244,7 +244,7 @@ kbd {
   font: 600 10px/1 var(--font-mono);
   color: var(--muted);
 }
-.viking-tab__state {
+.northman-tab__state {
   position: absolute;
   left: 10px;
   bottom: 2px;
@@ -253,7 +253,7 @@ kbd {
   text-transform: uppercase;
   color: var(--dim);
 }
-.viking-tab.is-active .viking-tab__state { color: var(--accent); }
+.northman-tab.is-active .northman-tab__state { color: var(--accent); }
 
 .hud__level {
   display: flex;
@@ -372,9 +372,9 @@ kbd {
     background: linear-gradient(180deg, rgba(4, 8, 16, 0.7), transparent);
   }
   .hud__team { gap: 4px; }
-  .viking-tab { padding: 2px; border-radius: 10px; }
-  .viking-tab__face { width: 30px; height: 36px; }
-  .viking-tab__meta, .viking-tab__key, .viking-tab__state, .viking-tab__role { display: none; }
+  .northman-tab { padding: 2px; border-radius: 10px; }
+  .northman-tab__face { width: 30px; height: 36px; }
+  .northman-tab__meta, .northman-tab__key, .northman-tab__state, .northman-tab__role { display: none; }
   .hud__levelnum { font-size: 9px; }
   .hud__levelname { font-size: 11px; letter-spacing: 0.02em; }
   .hud__levelhint, .hud__stats, .icon-btn__label { display: none; }
@@ -385,9 +385,9 @@ kbd {
   .toast { bottom: 84px; }
 }
 @media (pointer: coarse) and (max-width: 560px) {
-  .viking-tab__meta, .viking-tab__key, .viking-tab__state { display: none; }
-  .viking-tab { padding: 3px; border-radius: 10px; }
-  .viking-tab__face { width: 32px; height: 38px; }
+  .northman-tab__meta, .northman-tab__key, .northman-tab__state { display: none; }
+  .northman-tab { padding: 3px; border-radius: 10px; }
+  .northman-tab__face { width: 32px; height: 38px; }
   .hud__levelhint, .icon-btn__label { display: none; }
   .hud__stats { font-size: 10px; padding: 6px; }
   .icon-btn { min-width: 32px; height: 32px; }
@@ -580,7 +580,7 @@ kbd {
 .app[data-gfx="retro"] .btn::after { display: none; }
 .app[data-gfx="retro"] .btn:hover { background: #141d15; transform: none; box-shadow: 2px 2px 0 #000; }
 
-.viking-lineup {
+.northman-lineup {
   display: flex;
   justify-content: flex-end;
   align-items: flex-end;
@@ -588,25 +588,25 @@ kbd {
   padding-right: clamp(0px, 2vw, 18px);
   pointer-events: none;
 }
-.viking-card {
+.northman-card {
   width: clamp(70px, 10vw, 128px);
   text-align: center;
   opacity: 0.94;
   animation: card-float 7s ease-in-out infinite;
 }
-.viking-card:nth-child(2) { animation-delay: -2.2s; }
-.viking-card:nth-child(3) { animation-delay: -4.4s; }
-.viking-card__art { width: 100%; height: auto; aspect-ratio: 6 / 7; filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.5)); }
-.viking-card h3 {
+.northman-card:nth-child(2) { animation-delay: -2.2s; }
+.northman-card:nth-child(3) { animation-delay: -4.4s; }
+.northman-card__art { width: 100%; height: auto; aspect-ratio: 6 / 7; filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.5)); }
+.northman-card h3 {
   margin: 6px 0 0;
   font-size: clamp(10px, 1.1vw, 14px);
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
-.viking-card p { margin: 2px 0 0; font-size: clamp(8px, 0.8vw, 10px); letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
-.viking-card--snorri h3 { color: var(--accent-3); }
-.viking-card--gunnar h3 { color: var(--accent); }
-.viking-card--bjorn h3 { color: var(--accent-2); }
+.northman-card p { margin: 2px 0 0; font-size: clamp(8px, 0.8vw, 10px); letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+.northman-card--snorri h3 { color: var(--accent-3); }
+.northman-card--gunnar h3 { color: var(--accent); }
+.northman-card--bjorn h3 { color: var(--accent-2); }
 @keyframes card-float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-7px); }
@@ -890,15 +890,15 @@ kbd {
   .hud__levelname { font-size: 14px; }
   .title-top { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .menu { justify-self: start; width: min(420px, 100%); }
-  .viking-lineup { justify-content: center; padding-right: 0; }
+  .northman-lineup { justify-content: center; padding-right: 0; }
   .title-foot__keys { display: none; }
 }
 @media (max-width: 720px) {
   .site-foot { display: none; }
   .stage { width: min(100%, calc((100dvh - 24px) * 1.6)); }
   .hud__stats { display: none; }
-  .viking-tab__role { display: none; }
-  .viking-tab__key { display: none; }
+  .northman-tab__role { display: none; }
+  .northman-tab__key { display: none; }
   .hud { gap: 6px; padding: 6px 8px; }
   .icon-btn { min-width: 34px; height: 34px; }
   .icon-btn__label { display: none; }
@@ -914,12 +914,12 @@ kbd {
   .screen { padding: 10px; }
 }
 @media (max-width: 480px) {
-  .viking-tab__name { font-size: 10px; }
-  .viking-tab__face { width: 30px; height: 36px; }
-  .viking-tab { padding: 3px; }
+  .northman-tab__name { font-size: 10px; }
+  .northman-tab__face { width: 30px; height: 36px; }
+  .northman-tab { padding: 3px; }
   .hud__levelname { font-size: 11px; }
   .hud__levelnum { font-size: 10px; }
-  .viking-lineup { display: none; }
+  .northman-lineup { display: none; }
   .menu { gap: 6px; }
   .btn { padding: 9px 12px; }
   .btn__hint { display: none; }
@@ -960,6 +960,6 @@ kbd {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .bg-aurora__veil, .viking-card, .screen.is-active, .panel { animation: none !important; }
-  .btn, .viking-tab, .level-cell, .chip { transition: none !important; }
+  .bg-aurora__veil, .northman-card, .screen.is-active, .panel { animation: none !important; }
+  .btn, .northman-tab, .level-cell, .chip { transition: none !important; }
 }

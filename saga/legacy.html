@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#05070e" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23070b14'/%3E%3Cpath d='M12 44 L32 14 L52 44 Z' fill='%236ff2c6'/%3E%3Cpath d='M22 44 L32 28 L42 44 Z' fill='%238b7bff'/%3E%3C/svg%3E" />
 <title>СЕВЕРНАЯ САГА · HTML5</title>
-<meta name="description" content="СЕВЕРНАЯ САГА — оригинальная игра студии «Гефест»: три викинга, головоломки, 8-битная музыка, два режима графики, русский и английский." />
+<meta name="description" content="СЕВЕРНАЯ САГА — оригинальная игра студии «Гефест»: три северянина, головоломки, 8-битная музыка, два режима графики, русский и английский." />
 <style>
 /* ═══════════════════════════════════════════════════════════════
    СЕВЕРНАЯ САГА · style.css — две визуальные темы (modern / retro)
@@ -209,7 +209,7 @@ kbd {
 }
 .hud > * { pointer-events: auto; }
 .hud__team { display: flex; gap: 8px; align-items: stretch; }
-.viking-tab {
+.northman-tab {
   position: relative;
   display: flex;
   align-items: center;
@@ -223,16 +223,16 @@ kbd {
   text-align: left;
   transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, opacity 0.2s ease;
 }
-.viking-tab:hover { transform: translateY(-1px); border-color: var(--line-strong); }
-.viking-tab.is-active {
+.northman-tab:hover { transform: translateY(-1px); border-color: var(--line-strong); }
+.northman-tab.is-active {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent), 0 0 26px rgba(111, 242, 198, 0.3), inset 0 0 22px rgba(111, 242, 198, 0.08);
 }
-.viking-tab.is-dead { opacity: 0.42; filter: grayscale(0.8); }
-.viking-tab.is-gone { opacity: 0.55; }
-.viking-tab.is-gone .viking-tab__state { color: var(--accent); }
-.viking-tab.is-dead .viking-tab__state { color: var(--danger); }
-.viking-tab__face {
+.northman-tab.is-dead { opacity: 0.42; filter: grayscale(0.8); }
+.northman-tab.is-gone { opacity: 0.55; }
+.northman-tab.is-gone .northman-tab__state { color: var(--accent); }
+.northman-tab.is-dead .northman-tab__state { color: var(--danger); }
+.northman-tab__face {
   width: 40px;
   height: 48px;
   flex: 0 0 auto;
@@ -242,12 +242,12 @@ kbd {
   background: radial-gradient(circle at 50% 20%, rgba(255,255,255,0.10), rgba(0,0,0,0.35));
   overflow: hidden;
 }
-.viking-tab__face .portrait { width: 100%; height: 100%; object-fit: cover; }
+.northman-tab__face .portrait { width: 100%; height: 100%; object-fit: cover; }
 .portrait { display: block; }
-.viking-tab__meta { display: flex; flex-direction: column; line-height: 1.12; min-width: 0; }
-.viking-tab__name { font-size: clamp(11px, 1vw, 13px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
-.viking-tab__role { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
-.viking-tab__key {
+.northman-tab__meta { display: flex; flex-direction: column; line-height: 1.12; min-width: 0; }
+.northman-tab__name { font-size: clamp(11px, 1vw, 13px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+.northman-tab__role { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+.northman-tab__key {
   width: 18px; height: 18px;
   display: grid; place-items: center;
   border: 1px solid var(--line-strong);
@@ -255,7 +255,7 @@ kbd {
   font: 600 10px/1 var(--font-mono);
   color: var(--muted);
 }
-.viking-tab__state {
+.northman-tab__state {
   position: absolute;
   left: 10px;
   bottom: 2px;
@@ -264,7 +264,7 @@ kbd {
   text-transform: uppercase;
   color: var(--dim);
 }
-.viking-tab.is-active .viking-tab__state { color: var(--accent); }
+.northman-tab.is-active .northman-tab__state { color: var(--accent); }
 
 .hud__level {
   display: flex;
@@ -383,9 +383,9 @@ kbd {
     background: linear-gradient(180deg, rgba(4, 8, 16, 0.7), transparent);
   }
   .hud__team { gap: 4px; }
-  .viking-tab { padding: 2px; border-radius: 10px; }
-  .viking-tab__face { width: 30px; height: 36px; }
-  .viking-tab__meta, .viking-tab__key, .viking-tab__state, .viking-tab__role { display: none; }
+  .northman-tab { padding: 2px; border-radius: 10px; }
+  .northman-tab__face { width: 30px; height: 36px; }
+  .northman-tab__meta, .northman-tab__key, .northman-tab__state, .northman-tab__role { display: none; }
   .hud__levelnum { font-size: 9px; }
   .hud__levelname { font-size: 11px; letter-spacing: 0.02em; }
   .hud__levelhint, .hud__stats, .icon-btn__label { display: none; }
@@ -396,9 +396,9 @@ kbd {
   .toast { bottom: 84px; }
 }
 @media (pointer: coarse) and (max-width: 560px) {
-  .viking-tab__meta, .viking-tab__key, .viking-tab__state { display: none; }
-  .viking-tab { padding: 3px; border-radius: 10px; }
-  .viking-tab__face { width: 32px; height: 38px; }
+  .northman-tab__meta, .northman-tab__key, .northman-tab__state { display: none; }
+  .northman-tab { padding: 3px; border-radius: 10px; }
+  .northman-tab__face { width: 32px; height: 38px; }
   .hud__levelhint, .icon-btn__label { display: none; }
   .hud__stats { font-size: 10px; padding: 6px; }
   .icon-btn { min-width: 32px; height: 32px; }
@@ -591,7 +591,7 @@ kbd {
 .app[data-gfx="retro"] .btn::after { display: none; }
 .app[data-gfx="retro"] .btn:hover { background: #141d15; transform: none; box-shadow: 2px 2px 0 #000; }
 
-.viking-lineup {
+.northman-lineup {
   display: flex;
   justify-content: flex-end;
   align-items: flex-end;
@@ -599,25 +599,25 @@ kbd {
   padding-right: clamp(0px, 2vw, 18px);
   pointer-events: none;
 }
-.viking-card {
+.northman-card {
   width: clamp(70px, 10vw, 128px);
   text-align: center;
   opacity: 0.94;
   animation: card-float 7s ease-in-out infinite;
 }
-.viking-card:nth-child(2) { animation-delay: -2.2s; }
-.viking-card:nth-child(3) { animation-delay: -4.4s; }
-.viking-card__art { width: 100%; height: auto; aspect-ratio: 6 / 7; filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.5)); }
-.viking-card h3 {
+.northman-card:nth-child(2) { animation-delay: -2.2s; }
+.northman-card:nth-child(3) { animation-delay: -4.4s; }
+.northman-card__art { width: 100%; height: auto; aspect-ratio: 6 / 7; filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.5)); }
+.northman-card h3 {
   margin: 6px 0 0;
   font-size: clamp(10px, 1.1vw, 14px);
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
-.viking-card p { margin: 2px 0 0; font-size: clamp(8px, 0.8vw, 10px); letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
-.viking-card--snorri h3 { color: var(--accent-3); }
-.viking-card--gunnar h3 { color: var(--accent); }
-.viking-card--bjorn h3 { color: var(--accent-2); }
+.northman-card p { margin: 2px 0 0; font-size: clamp(8px, 0.8vw, 10px); letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
+.northman-card--snorri h3 { color: var(--accent-3); }
+.northman-card--gunnar h3 { color: var(--accent); }
+.northman-card--bjorn h3 { color: var(--accent-2); }
 @keyframes card-float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-7px); }
@@ -901,15 +901,15 @@ kbd {
   .hud__levelname { font-size: 14px; }
   .title-top { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .menu { justify-self: start; width: min(420px, 100%); }
-  .viking-lineup { justify-content: center; padding-right: 0; }
+  .northman-lineup { justify-content: center; padding-right: 0; }
   .title-foot__keys { display: none; }
 }
 @media (max-width: 720px) {
   .site-foot { display: none; }
   .stage { width: min(100%, calc((100dvh - 24px) * 1.6)); }
   .hud__stats { display: none; }
-  .viking-tab__role { display: none; }
-  .viking-tab__key { display: none; }
+  .northman-tab__role { display: none; }
+  .northman-tab__key { display: none; }
   .hud { gap: 6px; padding: 6px 8px; }
   .icon-btn { min-width: 34px; height: 34px; }
   .icon-btn__label { display: none; }
@@ -925,12 +925,12 @@ kbd {
   .screen { padding: 10px; }
 }
 @media (max-width: 480px) {
-  .viking-tab__name { font-size: 10px; }
-  .viking-tab__face { width: 30px; height: 36px; }
-  .viking-tab { padding: 3px; }
+  .northman-tab__name { font-size: 10px; }
+  .northman-tab__face { width: 30px; height: 36px; }
+  .northman-tab { padding: 3px; }
   .hud__levelname { font-size: 11px; }
   .hud__levelnum { font-size: 10px; }
-  .viking-lineup { display: none; }
+  .northman-lineup { display: none; }
   .menu { gap: 6px; }
   .btn { padding: 9px 12px; }
   .btn__hint { display: none; }
@@ -971,8 +971,8 @@ kbd {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .bg-aurora__veil, .viking-card, .screen.is-active, .panel { animation: none !important; }
-  .btn, .viking-tab, .level-cell, .chip { transition: none !important; }
+  .bg-aurora__veil, .northman-card, .screen.is-active, .panel { animation: none !important; }
+  .btn, .northman-tab, .level-cell, .chip { transition: none !important; }
 }
 </style>
 </head>
@@ -993,32 +993,32 @@ kbd {
       <!-- ───────────── HUD ───────────── -->
       <header class="hud" id="hud" hidden>
         <div class="hud__team" id="hud-team">
-          <button class="viking-tab" type="button" data-char="snorri" aria-label="Снорри">
-            <span class="viking-tab__face"><canvas class="portrait" data-portrait="snorri"></canvas></span>
-            <span class="viking-tab__meta">
-              <span class="viking-tab__name" data-i18n="char.snorri">Снорри</span>
-              <span class="viking-tab__role" data-i18n="char.snorri.role">Таран</span>
+          <button class="northman-tab" type="button" data-char="snorri" aria-label="Снорри">
+            <span class="northman-tab__face"><canvas class="portrait" data-portrait="snorri"></canvas></span>
+            <span class="northman-tab__meta">
+              <span class="northman-tab__name" data-i18n="char.snorri">Снорри</span>
+              <span class="northman-tab__role" data-i18n="char.snorri.role">Таран</span>
             </span>
-            <span class="viking-tab__key">1</span>
-            <span class="viking-tab__state" data-i18n="hud.ready">готов</span>
+            <span class="northman-tab__key">1</span>
+            <span class="northman-tab__state" data-i18n="hud.ready">готов</span>
           </button>
-          <button class="viking-tab" type="button" data-char="gunnar" aria-label="Гуннар">
-            <span class="viking-tab__face"><canvas class="portrait" data-portrait="gunnar"></canvas></span>
-            <span class="viking-tab__meta">
-              <span class="viking-tab__name" data-i18n="char.gunnar">Гуннар</span>
-              <span class="viking-tab__role" data-i18n="char.gunnar.role">Стрелок</span>
+          <button class="northman-tab" type="button" data-char="gunnar" aria-label="Гуннар">
+            <span class="northman-tab__face"><canvas class="portrait" data-portrait="gunnar"></canvas></span>
+            <span class="northman-tab__meta">
+              <span class="northman-tab__name" data-i18n="char.gunnar">Гуннар</span>
+              <span class="northman-tab__role" data-i18n="char.gunnar.role">Стрелок</span>
             </span>
-            <span class="viking-tab__key">2</span>
-            <span class="viking-tab__state" data-i18n="hud.ready">готов</span>
+            <span class="northman-tab__key">2</span>
+            <span class="northman-tab__state" data-i18n="hud.ready">готов</span>
           </button>
-          <button class="viking-tab" type="button" data-char="bjorn" aria-label="Бьорн">
-            <span class="viking-tab__face"><canvas class="portrait" data-portrait="bjorn"></canvas></span>
-            <span class="viking-tab__meta">
-              <span class="viking-tab__name" data-i18n="char.bjorn">Бьорн</span>
-              <span class="viking-tab__role" data-i18n="char.bjorn.role">Опора</span>
+          <button class="northman-tab" type="button" data-char="bjorn" aria-label="Бьорн">
+            <span class="northman-tab__face"><canvas class="portrait" data-portrait="bjorn"></canvas></span>
+            <span class="northman-tab__meta">
+              <span class="northman-tab__name" data-i18n="char.bjorn">Бьорн</span>
+              <span class="northman-tab__role" data-i18n="char.bjorn.role">Опора</span>
             </span>
-            <span class="viking-tab__key">3</span>
-            <span class="viking-tab__state" data-i18n="hud.ready">готов</span>
+            <span class="northman-tab__key">3</span>
+            <span class="northman-tab__state" data-i18n="hud.ready">готов</span>
           </button>
         </div>
 
@@ -1071,7 +1071,7 @@ kbd {
               <p class="brand__lead" data-i18n="brand.lead">Один герой за раз, три характера, десять земель. Переключайтесь, комбинируйте способности и выведите всех троих.</p>
               <div class="brand__badges">
                 <span class="badge"><b>10</b><i data-i18n="brand.badge.levels">земель</i></span>
-                <span class="badge"><b>3</b><i data-i18n="brand.badge.heroes">викинга</i></span>
+                <span class="badge"><b>3</b><i data-i18n="brand.badge.heroes">героя</i></span>
                 <span class="badge"><b>2</b><i data-i18n="brand.badge.styles">стиля графики</i></span>
                 <span class="badge"><b data-i18n="brand.badge.bit">8-бит</b><i data-i18n="brand.badge.music">музыка</i></span>
               </div>
@@ -1100,19 +1100,19 @@ kbd {
             </nav>
           </div>
 
-          <div class="viking-lineup" aria-hidden="true">
-            <article class="viking-card viking-card--snorri">
-              <canvas class="viking-card__art" data-portrait-big="snorri"></canvas>
+          <div class="northman-lineup" aria-hidden="true">
+            <article class="northman-card northman-card--snorri">
+              <canvas class="northman-card__art" data-portrait-big="snorri"></canvas>
               <h3 data-i18n="char.snorri">Снорри</h3>
               <p data-i18n="char.snorri.tag">Таран · удар плечом</p>
             </article>
-            <article class="viking-card viking-card--gunnar">
-              <canvas class="viking-card__art" data-portrait-big="gunnar"></canvas>
+            <article class="northman-card northman-card--gunnar">
+              <canvas class="northman-card__art" data-portrait-big="gunnar"></canvas>
               <h3 data-i18n="char.gunnar">Гуннар</h3>
               <p data-i18n="char.gunnar.tag">Стрелок · арбалет</p>
             </article>
-            <article class="viking-card viking-card--bjorn">
-              <canvas class="viking-card__art" data-portrait-big="bjorn"></canvas>
+            <article class="northman-card northman-card--bjorn">
+              <canvas class="northman-card__art" data-portrait-big="bjorn"></canvas>
               <h3 data-i18n="char.bjorn">Бьорн</h3>
               <p data-i18n="char.bjorn.tag">Опора · щит</p>
             </article>
@@ -1139,7 +1139,7 @@ kbd {
         <div class="panel panel--story">
           <p class="eyebrow" data-i18n="story.eyebrow">Пролог</p>
           <h2 class="panel__title" data-i18n="story.title">Похищение</h2>
-          <p class="story-text" data-i18n="story.text">Трое викингов возвращались домой, когда небо разверзлось и унесло их в чужие миры. Корабль разбит, ворота заперты, а впереди — десять земель, полных ловушек. Только вместе они смогут вернуться домой.</p>
+          <p class="story-text" data-i18n="story.text">Трое северян возвращались домой, когда небо разверзлось и унесло их в чужие миры. Корабль разбит, ворота заперты, а впереди — десять земель, полных ловушек. Только вместе они смогут вернуться домой.</p>
           <div class="story-roster">
             <article class="roster-card">
               <canvas class="portrait" data-portrait-big="snorri"></canvas>
@@ -1184,11 +1184,11 @@ kbd {
         <div class="panel panel--wide">
           <p class="eyebrow" data-i18n="help.eyebrow">Свиток</p>
           <h2 class="panel__title" data-i18n="help.title">Как играть</h2>
-          <p class="help-lead" data-i18n="help.lead">Ведите всех трёх викингов к выходам. Активен один — переключайтесь и используйте способности каждого.</p>
+          <p class="help-lead" data-i18n="help.lead">Ведите всех трёх северян к выходам. Активен один — переключайтесь и используйте способности каждого.</p>
           <div class="help-grid">
             <div class="help-card">
               <h3 data-i18n="help.objective.title">Цель</h3>
-              <p data-i18n="help.objective.text">Доведите Снорриа, Гуннара и Бьорна до трёх дверей-выходов. Двери занимаются по одной на викинга. Все трое ушли — уровень пройден.</p>
+              <p data-i18n="help.objective.text">Доведите Снорриа, Гуннара и Бьорна до трёх дверей-выходов. Двери занимаются по одной на северянина. Все трое ушли — уровень пройден.</p>
             </div>
             <div class="help-card">
               <h3 data-i18n="help.snorri.title">Снорри · таран</h3>
@@ -1204,7 +1204,7 @@ kbd {
             </div>
             <div class="help-card">
               <h3 data-i18n="help.gate.title">Плиты и ворота</h3>
-              <p data-i18n="help.gate.text">Плита открывает ворота, пока на ней кто-то стоит. Оставьте викинга на плите и переключитесь на другого.</p>
+              <p data-i18n="help.gate.text">Плита открывает ворота, пока на ней кто-то стоит. Оставьте северянина на плите и переключитесь на другого.</p>
             </div>
             <div class="help-card">
               <h3 data-i18n="help.death.title">Смерть</h3>
@@ -1215,7 +1215,7 @@ kbd {
             <span><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd> <i data-i18n="help.key.move">идти</i></span>
             <span><kbd>Space</kbd> / <kbd>W</kbd> <i data-i18n="help.key.jump">прыжок</i></span>
             <span><kbd>J</kbd> / <kbd>K</kbd> / <kbd>Enter</kbd> <i data-i18n="help.key.action">действие</i></span>
-            <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> / <kbd>Tab</kbd> <i data-i18n="help.key.switch">сменить викинга</i></span>
+            <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> / <kbd>Tab</kbd> <i data-i18n="help.key.switch">сменить северянина</i></span>
             <span><kbd>R</kbd> <i data-i18n="help.key.restart">рестарт</i></span>
             <span><kbd>P</kbd> / <kbd>Esc</kbd> <i data-i18n="help.key.pause">пауза</i></span>
             <span><kbd>G</kbd> <i data-i18n="help.key.gfx">графика</i></span>
@@ -1321,7 +1321,7 @@ kbd {
       <section class="screen screen--dead" data-screen="dead">
         <div class="panel panel--compact dead-panel">
           <p class="eyebrow" data-i18n="dead.eyebrow">Вальгалла ждёт</p>
-          <h2 class="panel__title" data-i18n="dead.title">Викинг пал</h2>
+          <h2 class="panel__title" data-i18n="dead.title">Северянин пал</h2>
           <p class="dead-text" id="dead-text">Шипы не прощают ошибок.</p>
           <div class="dead-timer"><span id="dead-countdown">3</span><em data-i18n="dead.auto">Возрождение…</em></div>
           <div class="panel__actions">
@@ -1335,7 +1335,7 @@ kbd {
         <div class="panel panel--compact finale-panel">
           <p class="eyebrow" data-i18n="finale.eyebrow">Сага окончена</p>
           <h2 class="panel__title" data-i18n="finale.title">Дом, милый дом</h2>
-          <p class="finale-text" data-i18n="finale.text">Корабль снова на воде, ворота открыты, а над фьордом встаёт солнце. Три викинга вернулись — и им есть что рассказать.</p>
+          <p class="finale-text" data-i18n="finale.text">Корабль снова на воде, ворота открыты, а над фьордом встаёт солнце. Три северянина вернулись — и им есть что рассказать.</p>
           <div class="result-stats">
             <div><span data-i18n="finale.totalTime">Всего времени</span><b id="finale-time">0:00</b></div>
             <div><span data-i18n="finale.totalTreasure">Сокровища</span><b id="finale-treasure">0/0</b></div>
@@ -1378,7 +1378,7 @@ kbd {
     ru: {
       brand: { kicker: "Сага о трёх", l1: "СЕВЕРНАЯ", l2: "САГА", sub: "Головоломка-платформер · оригинал студии «Гефест»",
         lead: "Один герой за раз, три характера, десять земель. Переключайтесь, комбинируйте способности и выведите всех троих.",
-        badge: { levels: "земель", heroes: "викинга", styles: "стиля графики", music: "музыка", bit: "8-бит" } },
+        badge: { levels: "земель", heroes: "героя", styles: "стиля графики", music: "музыка", bit: "8-бит" } },
       menu: {
         play: "Играть", "play.hint": "с начала",
         continue: "Продолжить", "levels": "Уровни", "levels.hint": "выбрать",
@@ -1413,7 +1413,7 @@ kbd {
       },
       story: {
         eyebrow: "Пролог", title: "Похищение",
-        text: "Трое викингов возвращались домой, когда небо разверзлось и унесло их в чужие миры. Корабль разбит, ворота заперты, а впереди — десять земель, полных ловушек. Только вместе они смогут вернуться домой.",
+        text: "Трое северян возвращались домой, когда небо разверзлось и унесло их в чужие миры. Корабль разбит, ворота заперты, а впереди — десять земель, полных ловушек. Только вместе они смогут вернуться домой.",
         begin: "В путь", "begin.hint": "уровень 1"
       },
       levels: {
@@ -1423,15 +1423,15 @@ kbd {
       theme: { cave: "Пещеры", forge: "Кузня", ice: "Ледники", forest: "Лес", castle: "Замок", void: "Пустота" },
       help: {
         eyebrow: "Свиток", title: "Как играть",
-        lead: "Ведите всех трёх викингов к выходам. Активен один — переключайтесь и используйте способности каждого.",
+        lead: "Ведите всех трёх северян к выходам. Активен один — переключайтесь и используйте способности каждого.",
         "objective.title": "Цель",
-        "objective.text": "У каждого викинга своя дверь — она подсвечена цветом героя. Доведите каждого до его двери; чужая не откроется. Все трое ушли — уровень пройден.",
+        "objective.text": "У каждого северянина своя дверь — она подсвечена цветом героя. Доведите каждого до его двери; чужая не откроется. Все трое ушли — уровень пройден.",
         "snorri.title": "Снорри · таран", "snorri.text": "Самый быстрый и высокий прыжок. «Действие» у ветхой стены — пробить проход.",
         "gunnar.title": "Гуннар · арбалет", "gunnar.text": "Болт убивает пещерных врагов и переключает рычаги. Вплотную бьёт молотом.",
         "bjorn.title": "Бьорн · щит", "bjorn.text": "Держите «действие»: щит над головой — платформа для друзей и защита от вражеских стрел.",
-        "gate.title": "Плиты и ворота", "gate.text": "Плита открывает ворота, пока на ней кто-то стоит. Оставьте викинга на плите и переключитесь на другого.",
+        "gate.title": "Плиты и ворота", "gate.text": "Плита открывает ворота, пока на ней кто-то стоит. Оставьте северянина на плите и переключитесь на другого.",
         "death.title": "Смерть", "death.text": "Шипы, враги и вражеские стрелы смертельны. Любая смерть — рестарт уровня; сокровища сбрасываются.",
-        "key.move": "идти", "key.jump": "прыжок", "key.action": "действие", "key.switch": "сменить викинга",
+        "key.move": "идти", "key.jump": "прыжок", "key.action": "действие", "key.switch": "сменить северянина",
         "key.restart": "рестарт", "key.pause": "пауза", "key.gfx": "графика", "key.lang": "язык", "key.mute": "звук"
       },
       settings: {
@@ -1447,16 +1447,16 @@ kbd {
       complete: {
         eyebrow: "Земля пройдена", title: "Все дома!", time: "Время", treasure: "Сокровища",
         deaths: "Смерти", score: "Очки", next: "Дальше", levels: "К уровням",
-        note: "Все три викинга спаслись."
+        note: "Все три северянина спаслись."
       },
       dead: {
-        eyebrow: "Вальгалла ждёт", title: "Викинг пал", restart: "Заново", auto: "Возрождение…",
+        eyebrow: "Вальгалла ждёт", title: "Северянин пал", restart: "Заново", auto: "Возрождение…",
         spikes: "Шипы не прощают ошибок.", enemy: "Пещерный враг оказался быстрее.",
         arrow: "Вражеская стрела нашла цель.", fall: "Падение в бездну."
       },
       finale: {
         eyebrow: "Сага окончена", title: "Дом, милый дом",
-        text: "Корабль снова на воде, ворота открыты, а над фьордом встаёт солнце. Три викинга вернулись — и им есть что рассказать.",
+        text: "Корабль снова на воде, ворота открыты, а над фьордом встаёт солнце. Три северянина вернулись — и им есть что рассказать.",
         totalTime: "Всего времени", totalTreasure: "Сокровища", totalDeaths: "Смерти", totalScore: "Очки",
         toTitle: "В главное меню"
       },
@@ -1470,7 +1470,7 @@ kbd {
     en: {
       brand: { kicker: "A saga of three", l1: "NORTHERN", l2: "SAGA", sub: "Puzzle platformer · original by Hefest studio",
         lead: "One hero at a time, three characters, ten lands. Switch, combine their skills and bring all three home.",
-        badge: { levels: "lands", heroes: "vikings", styles: "graphics styles", music: "music", bit: "8-bit" } },
+        badge: { levels: "lands", heroes: "northmen", styles: "graphics styles", music: "music", bit: "8-bit" } },
       menu: {
         play: "Play", "play.hint": "from the start",
         continue: "Continue", levels: "Levels", "levels.hint": "select",
@@ -1505,7 +1505,7 @@ kbd {
       },
       story: {
         eyebrow: "Prologue", title: "Taken",
-        text: "Three vikings were sailing home when the sky split open and carried them into strange worlds. The ship is wrecked, the gates are locked, and ten trap-filled lands lie ahead. Only together can they return home.",
+        text: "Three northmen were sailing home when the sky split open and carried them into strange worlds. The ship is wrecked, the gates are locked, and ten trap-filled lands lie ahead. Only together can they return home.",
         begin: "Set out", "begin.hint": "level 1"
       },
       levels: {
@@ -1515,15 +1515,15 @@ kbd {
       theme: { cave: "Caves", forge: "Forge", ice: "Glaciers", forest: "Forest", castle: "Castle", void: "The Void" },
       help: {
         eyebrow: "Scroll", title: "How to play",
-        lead: "Guide all three vikings to the exits. One is active at a time — switch and use each one's skill.",
+        lead: "Guide all three northmen to the exits. One is active at a time — switch and use each one's skill.",
         "objective.title": "Objective",
-        "objective.text": "Each viking has his own door, tinted with his colour. Bring each one to his door; another's door will not open. All three out — level cleared.",
+        "objective.text": "Each northman has his own door, tinted with his colour. Bring each one to his door; another's door will not open. All three out — level cleared.",
         "snorri.title": "Snorri · shoulder bash", "snorri.text": "Fastest, highest jump. Use Action at a crumbling wall to smash through.",
         "gunnar.title": "Gunnar · crossbow", "gunnar.text": "Bolts kill cave foes and toggle levers. The hammer strikes at close range.",
         "bjorn.title": "Bjorn · shield", "bjorn.text": "Hold Action: the shield above his head is a platform for friends and cover from enemy arrows.",
-        "gate.title": "Plates & gates", "gate.text": "A plate keeps gates open while someone stands on it. Leave a viking on the plate and switch to another.",
+        "gate.title": "Plates & gates", "gate.text": "A plate keeps gates open while someone stands on it. Leave a northman on the plate and switch to another.",
         "death.title": "Death", "death.text": "Spikes, foes and enemy arrows are deadly. Any death restarts the level; treasure resets.",
-        "key.move": "move", "key.jump": "jump", "key.action": "action", "key.switch": "switch viking",
+        "key.move": "move", "key.jump": "jump", "key.action": "action", "key.switch": "switch northman",
         "key.restart": "restart", "key.pause": "pause", "key.gfx": "graphics", "key.lang": "language", "key.mute": "sound"
       },
       settings: {
@@ -1539,16 +1539,16 @@ kbd {
       complete: {
         eyebrow: "Land cleared", title: "All home!", time: "Time", treasure: "Treasure",
         deaths: "Deaths", score: "Score", next: "Next", levels: "To levels",
-        note: "All three vikings made it."
+        note: "All three northmen made it."
       },
       dead: {
-        eyebrow: "Valhalla awaits", title: "A viking has fallen", restart: "Retry", auto: "Respawning…",
+        eyebrow: "Valhalla awaits", title: "A northman has fallen", restart: "Retry", auto: "Respawning…",
         spikes: "Spikes forgive nothing.", enemy: "A cave foe was faster.",
         arrow: "An enemy arrow found its mark.", fall: "A fall into the abyss."
       },
       finale: {
         eyebrow: "Saga complete", title: "Home at last",
-        text: "The ship is afloat again, the gates are open, and the sun rises over the fjord. Three vikings are back — with stories to tell.",
+        text: "The ship is afloat again, the gates are open, and the sun rises over the fjord. Three northmen are back — with stories to tell.",
         totalTime: "Total time", totalTreasure: "Treasure", totalDeaths: "Deaths", totalScore: "Score",
         toTitle: "Main menu"
       },
@@ -1629,7 +1629,7 @@ kbd {
       theme: "cave",
       exitFor: ["snorri", "gunnar", "bjorn"],
       name: { ru: "Пробуждение", en: "Awakening" },
-      hint: { ru: "Трое викингов, три двери. Переключайтесь: 1, 2, 3. Кирпич ломает только Снорри.", en: "Three vikings, three doors. Switch with 1, 2, 3. Only Snorri breaks bricks." },
+      hint: { ru: "Трое северян, три двери. Переключайтесь: 1, 2, 3. Кирпич ломает только Снорри.", en: "Three northmen, three doors. Switch with 1, 2, 3. Only Snorri breaks bricks." },
       rows: [
         "########################",
         "#......................#",
@@ -1845,7 +1845,7 @@ kbd {
       theme: "void",
       exitFor: ["snorri", "gunnar", "bjorn"],
       name: { ru: "Пустота", en: "The Void" },
-      hint: { ru: "Всё, чему научились: кирпич, рычаг, шипы, щит. Три двери, три викинга.", en: "Everything you learned: brick, lever, spikes, shield. Three doors, three vikings." },
+      hint: { ru: "Всё, чему научились: кирпич, рычаг, шипы, щит. Три двери, три северянина.", en: "Everything you learned: brick, lever, spikes, shield. Three doors, three northmen." },
       rows: [
         "########################",
         "#......................#",
@@ -3063,7 +3063,7 @@ kbd {
 })();
 
 /* ==== src/game.js ==== */
-/* СЕВЕРНАЯ САГА · game core — физика, три викинга, головоломки.
+/* СЕВЕРНАЯ САГА · game core — физика, три северянина, головоломки.
    Владелец: Lead. Контракт: CONTRACT.md §§1–2, 6. */
 (function () {
   "use strict";
@@ -3550,7 +3550,7 @@ kbd {
         if (G.held.right) move += 1;
       }
     } else if (a.id === "bjorn") {
-      // Бьорн держит щит, даже когда управляем другим викингом.
+      // Бьорн держит щит, даже когда управляем другим северянином.
       if (!a.onGround) a.braced = false;
     }
 
@@ -4086,7 +4086,7 @@ kbd {
     update: update,
     input: input,
     switchTo: setActive,
-    cycleViking: cycleActive,
+    cycleNorthman: cycleActive,
     pause: function (v) {
       G.paused = v == null ? !G.paused : !!v;
       try { if (audio && audio.setPaused) audio.setPaused(G.paused); } catch (e) {}
@@ -4930,7 +4930,7 @@ kbd {
 
   var RUNE_FALLBACK = ["##.", "#.#", "##.", "#.#", "#.#"];
 
-  /* each viking has a personal door: colour + carved rune (view.exits[i].who) */
+  /* each northman has a personal door: colour + carved rune (view.exits[i].who) */
   var OWNER_COLOR = { snorri: "#ff6b8a", gunnar: "#5ccfe0", bjorn: "#e0b85c" };
   var OWNER_DARK = { snorri: "#8a1e3a", gunnar: "#1e6a7a", bjorn: "#7a5a1e" };
   var OWNER_RUNE = {
@@ -4977,7 +4977,7 @@ kbd {
       rr(g, x + 5, y + 1, 6, 1, ownerDark);
       rr(g, x + 6, y + 1, 4, 1, owner);
       if (filled) {
-        /* filled portal: the viking has already walked through */
+        /* filled portal: the northman has already walked through */
         rr(g, x + 3, y + 2, 10, 13, mix(owner, "#0d0818", 0.66));
         rr(g, x + 4, y + 3, 8, 12, mix(owner, "#0d0818", 0.38));
         rr(g, x + 5, y + 4, 6, 11, mix(owner, "#0d0818", 0.14));
@@ -5075,7 +5075,7 @@ kbd {
       g.globalAlpha = 1;
     }
   }
-  /* ───────────────────────── vikings ───────────────────────── */
+  /* ───────────────────────── northmen ───────────────────────── */
 
   var CHAR_COLOR = { snorri: "#d94f6b", gunnar: "#3f9ea0", bjorn: "#d0a52f" };
 
@@ -5086,7 +5086,7 @@ kbd {
        bjorn  — Опора: широкие плечи, стёганый жилет, кольчужные рукава, кузнечные очки на лбу,
                 короткая борода-косица, большой круглый щит-кузнечный круг с заклёпками.
      Блок между маркерами HERO-SPRITES:BEGIN/END ДОСЛОВНО одинаков в saga/js/game.js и
-     saga-2/js/vikings-retro.js (проверяют tests/engine.test.mjs обеих саг) — правьте оба места сразу.
+     saga-2/js/northmen-retro.js (проверяют tests/engine.test.mjs обеих саг) — правьте оба места сразу.
      Позы (pickPose), кадры (heroFrame) и их тайминги — прежние; меняется только облик.
      Нужны из окружения: rr(g,x,y,w,h,col), shade(hex,k), fillCircle(g,cx,cy,r,col).
      Начало координат — ноги (0,0), корпус вверх по −y, лицом в +x, 1 арт-пиксель. */
@@ -5493,7 +5493,7 @@ kbd {
     else drawBjornShield(g, pal);
   }
 
-  function drawDeadViking(g, pal, id) {
+  function drawDeadNorthman(g, pal, id) {
     /* лежит на земле, головой в +x */
     if (id === "snorri") {
       rr(g, -7, -6, 12, 5, pal.sleeveS);
@@ -5571,7 +5571,7 @@ kbd {
 
   function drawHeroDead(g, id, active) {
     id = heroId(id);
-    drawDeadViking(g, active ? CHARS[id] : dimPal(id), id);
+    drawDeadNorthman(g, active ? CHARS[id] : dimPal(id), id);
   }
   /* ==== HERO-SPRITES:END ==== */
 
@@ -5587,7 +5587,7 @@ kbd {
     rr(g, x - 5, y - 1, 10, 1, "rgba(255,214,110,0.16)");
   }
 
-  function drawViking(g, a, v) {
+  function drawNorthman(g, a, v) {
     var id = heroId(a.id);
     var st = a.state || "idle";
     if (st === "gone") return;
@@ -6039,8 +6039,8 @@ kbd {
     for (i = 0; i < enemies.length; i++) if (enemies[i]) drawEnemy(g, enemies[i], view, theme);
 
     actors = view.actors || [];
-    for (i = 0; i < actors.length; i++) if (actors[i] && !actors[i].active) drawViking(g, actors[i], view);
-    for (i = 0; i < actors.length; i++) if (actors[i] && actors[i].active) drawViking(g, actors[i], view);
+    for (i = 0; i < actors.length; i++) if (actors[i] && !actors[i].active) drawNorthman(g, actors[i], view);
+    for (i = 0; i < actors.length; i++) if (actors[i] && actors[i].active) drawNorthman(g, actors[i], view);
 
     drawArrows(g, view);
     drawFx(g, view, theme);
@@ -6357,7 +6357,7 @@ kbd {
 
   /* ------------------------------------------------------- character colours */
   /* Палитры героев (modern). accent/accent2/glow — цвета-метки героя (двери, ауры, HUD) — прежние;
-     одежда и снаряжение — облик мастеров кузни (см. drawVikingBody). */
+     одежда и снаряжение — облик мастеров кузни (см. drawNorthmanBody). */
   var CHAR = {
     snorri: {
       accent: "#ff8a4d", accent2: "#ffc078", glow: "#ff7a3d",
@@ -7564,12 +7564,12 @@ kbd {
     x.fillStyle = "#02050a";
     x.fill();
     if (filled) {
-      /* sealed door: dark interior, faint owner light, the rescued viking */
+      /* sealed door: dark interior, faint owner light, the rescued northman */
       x.fillStyle = "#071019";
       x.globalAlpha = 0.9;
       x.fill();
       x.globalAlpha = 1;
-      /* the rescued viking is lit up inside */
+      /* the rescued northman is lit up inside */
       x.globalCompositeOperation = "lighter";
       x.fillStyle = col;
       x.globalAlpha = 0.3;
@@ -8460,7 +8460,7 @@ kbd {
      Стрелок — меховая шапка, длинный кафтан, шарф, арбалет; Опора — бритая голова, кузнечные очки,
      борода-косица, стёганый жилет, кольчужные рукава, большой круглый щит-кузнечный круг.
      Позы, руки/ноги и их фазы — прежние (геймплей и хитбоксы не зависят от отрисовки). */
-  function drawVikingBody(ctx, a, c, state, t, p) {
+  function drawNorthmanBody(ctx, a, c, state, t, p) {
     var id = a.id;
     var run = state === "run";
     var act = state === "act";
@@ -9027,7 +9027,7 @@ kbd {
     var scale = a.id === "bjorn" ? 1.06 : (a.id === "gunnar" ? 1.02 : 0.98);
     ctx.scale(scale, scale);
     if (!isActive) ctx.globalAlpha = 0.55;
-    drawVikingBody(ctx, a, c, state, t, p);
+    drawNorthmanBody(ctx, a, c, state, t, p);
     ctx.restore();
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = "source-over";
@@ -10213,7 +10213,7 @@ kbd {
     x.closePath();
     x.fill();
 
-    /* three tiny vikings on deck */
+    /* three tiny northmen on deck */
     var crew = [
       { x: -13, c: "#ff8a4d" },
       { x: -4.6, c: "#5af0a8" },
@@ -10621,13 +10621,13 @@ kbd {
     setText(dom.time, fmtTime(st.time));
 
     ORDER.forEach(function (id) {
-      var tab = $('.viking-tab[data-char="' + id + '"]');
+      var tab = $('.northman-tab[data-char="' + id + '"]');
       var a = st.actors[id];
       if (!tab || !a) return;
       tab.classList.toggle("is-active", st.activeId === id);
       tab.classList.toggle("is-dead", !!a.dead);
       tab.classList.toggle("is-gone", !!a.gone);
-      var stateEl = tab.querySelector(".viking-tab__state");
+      var stateEl = tab.querySelector(".northman-tab__state");
       if (stateEl) {
         var label = a.gone ? t("hud.gone") : a.dead ? t("hud.dead") : t("hud.ready");
         if (stateEl.textContent !== label) stateEl.textContent = label;

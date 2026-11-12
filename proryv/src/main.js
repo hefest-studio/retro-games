@@ -5,16 +5,16 @@
 (function () {
   'use strict';
 
-  const EX = window.EX;
+  const PR = window.PR;
   const canvas = document.getElementById('stage');
   const ctx = canvas.getContext('2d', { alpha: false });
   const errBox = document.getElementById('err');
   const testBox = document.getElementById('testout');
 
   const W = 256, VH = 208;
-  const RETRO = window.EX_RENDER_RETRO;
-  const MODERN = window.EX_RENDER_MODERN;
-  const HASH = EX.HASH || {};
+  const RETRO = window.PR_RENDER_RETRO;
+  const MODERN = window.PR_RENDER_MODERN;
+  const HASH = PR.HASH || {};
 
   /* offscreen для RETRO: ровно 256×208, потом масштабируем целым числом */
   const off = document.createElement('canvas');
@@ -45,7 +45,7 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
 
-    if (EX.settings.gfx === 'retro') {
+    if (PR.settings.gfx === 'retro') {
       const s = Math.max(1, Math.floor(Math.min(cw / W, (ch - 8) / VH)));
       stage = { x: Math.round((cw - W * s) / 2), y: Math.round((ch - VH * s) / 2), w: W * s, h: VH * s, scale: s };
     } else {
@@ -64,15 +64,15 @@
   function bootAudio() {
     if (audioBooted) return;
     audioBooted = true;
-    const A = window.EX_AUDIO;
+    const A = window.PR_AUDIO;
     if (!A) return;
     try {
       A.init();
       A.unlock();
-      A.setMusic(EX.settings.music);
-      A.setSfx(EX.settings.sfx);
+      A.setMusic(PR.settings.music);
+      A.setSfx(PR.settings.sfx);
       A.setVolume(0.8);
-      if (EX.state.mode === 'title') A.playMusic('title');
+      if (PR.state.mode === 'title') A.playMusic('title');
     } catch (e) { reportError('audio: ' + e.message); }
   }
 
@@ -80,7 +80,7 @@
   const heldKey = {};
   function setHeld(code, down) {
     heldKey[code] = down;
-    const i = EX.input;
+    const i = PR.input;
     i.left = !!(heldKey.ArrowLeft || heldKey.KeyA);
     i.right = !!(heldKey.ArrowRight || heldKey.KeyD);
     i.up = !!(heldKey.ArrowUp || heldKey.KeyW);
@@ -97,23 +97,23 @@
     bootAudio();
     if (e.repeat) { setHeld(code, true); return; }
     switch (code) {
-      case 'ArrowLeft': case 'KeyA': setHeld(code, true); EX.pushAction('left'); break;
-      case 'ArrowRight': case 'KeyD': setHeld(code, true); EX.pushAction('right'); break;
-      case 'ArrowUp': case 'KeyW': setHeld(code, true); EX.pushAction('up'); break;
-      case 'ArrowDown': case 'KeyS': setHeld(code, true); EX.pushAction('down'); break;
+      case 'ArrowLeft': case 'KeyA': setHeld(code, true); PR.pushAction('left'); break;
+      case 'ArrowRight': case 'KeyD': setHeld(code, true); PR.pushAction('right'); break;
+      case 'ArrowUp': case 'KeyW': setHeld(code, true); PR.pushAction('up'); break;
+      case 'ArrowDown': case 'KeyS': setHeld(code, true); PR.pushAction('down'); break;
       case 'Space': case 'KeyZ':
         setHeld(code, true);
-        if (GAME_MODES[EX.state.mode]) { /* огонь */ }
-        else EX.pushAction('action');
+        if (GAME_MODES[PR.state.mode]) { /* огонь */ }
+        else PR.pushAction('action');
         break;
-      case 'Enter': case 'NumpadEnter': EX.pushAction('enter'); break;
-      case 'Escape': case 'KeyP': EX.pushAction('pause'); break;
-      case 'KeyL': EX.pushAction('lang'); break;
-      case 'KeyG': EX.pushAction('gfx'); resize(); break;
-      case 'KeyM': EX.pushAction('music'); break;
-      case 'KeyN': EX.pushAction('sfx'); break;
+      case 'Enter': case 'NumpadEnter': PR.pushAction('enter'); break;
+      case 'Escape': case 'KeyP': PR.pushAction('pause'); break;
+      case 'KeyL': PR.pushAction('lang'); break;
+      case 'KeyG': PR.pushAction('gfx'); resize(); break;
+      case 'KeyM': PR.pushAction('music'); break;
+      case 'KeyN': PR.pushAction('sfx'); break;
       case 'KeyF': toggleFullscreen(); break;
-      case 'KeyR': EX.pushAction('restart'); break;
+      case 'KeyR': PR.pushAction('restart'); break;
       default: break;
     }
   });
@@ -123,7 +123,7 @@
     setHeld('x', false);
   });
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden && EX.state.mode === 'play') EX.setMode('paused');
+    if (document.hidden && PR.state.mode === 'play') PR.setMode('paused');
   });
 
   function toggleFullscreen() {
@@ -140,22 +140,22 @@
   canvas.addEventListener('pointerdown', function (e) {
     bootAudio();
     const p = logical(e.clientX, e.clientY);
-    EX.input.pointer.x = p.x;
-    EX.input.pointer.y = p.y;
-    EX.input.pointer.clicked = true;
+    PR.input.pointer.x = p.x;
+    PR.input.pointer.y = p.y;
+    PR.input.pointer.clicked = true;
     canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
   });
   canvas.addEventListener('pointermove', function (e) {
     const p = logical(e.clientX, e.clientY);
-    EX.input.pointer.x = p.x;
-    EX.input.pointer.y = p.y;
-    if (EX.hover) EX.hover(p.x, p.y);
+    PR.input.pointer.x = p.x;
+    PR.input.pointer.y = p.y;
+    if (PR.hover) PR.hover(p.x, p.y);
   });
   canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
   /* ---------- отрисовка ---------- */
   function render() {
-    const usingRetro = EX.settings.gfx === 'retro';
+    const usingRetro = PR.settings.gfx === 'retro';
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
 
@@ -178,7 +178,7 @@
 
       ctx.drawImage(off, 0, 0, W, VH, stage.x * d, stage.y * d, stage.w * d, stage.h * d);
 
-      if (EX.settings.crt) {
+      if (PR.settings.crt) {
         /* фосфорное послесвечение */
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
@@ -224,7 +224,7 @@
     const STEP = 1 / 60;
     let guard = 0;
     while (acc >= STEP && guard < 4) {
-      EX.update(STEP);
+      PR.update(STEP);
       acc -= STEP;
       guard++;
     }
@@ -235,7 +235,7 @@
 
   /* ---------- отладка ---------- */
   function runTests() {
-    const res = EX.runTests();
+    const res = PR.runTests();
     const fails = res.filter(function (r) { return !r.ok; });
     const lines = res.map(function (r) { return (r.ok ? '  ok  ' : ' FAIL ') + r.name; });
     document.title = 'ПРОРЫВ TESTS ' + (res.length - fails.length) + '/' + res.length + (fails.length ? ' FAIL' : ' PASS');
@@ -243,43 +243,43 @@
       testBox.style.display = 'block';
       testBox.textContent = 'ПРОРЫВ TESTS\n' + lines.join('\n') + '\n\n' +
         (fails.length ? 'ПРОВАЛЕНО: ' + fails.length : 'ВСЁ ПРОШЛО: ' + res.length + '/' + res.length) +
-        (EX.state.debug.missingGlyphs ? '\nнет глифов: ' + EX.state.debug.missingGlyphs : '');
+        (PR.state.debug.missingGlyphs ? '\nнет глифов: ' + PR.state.debug.missingGlyphs : '');
     }
     return res;
   }
-  EX.renderTests = runTests;
+  PR.renderTests = runTests;
 
   /* ---------- загрузка ---------- */
   function boot() {
     /* RETRO — режим по умолчанию при КАЖДОМ запуске.
        NEON включается только клавишей G в текущей сессии (и #gfx=modern для отладки). */
-    EX.settings.gfx = (EX.HASH && EX.HASH.gfx === 'modern') ? 'modern' : 'retro';
-    try { EX.saveSettings(); } catch (e) { /* ok */ }
-    EX.BUILD = '28.10.2026';
+    PR.settings.gfx = (PR.HASH && PR.HASH.gfx === 'modern') ? 'modern' : 'retro';
+    try { PR.saveSettings(); } catch (e) { /* ok */ }
+    PR.BUILD = '28.10.2026';
     resize();
-    EX.prepareTitle();
-    if (EX.settings.gfx === 'modern') resize();
+    PR.prepareTitle();
+    if (PR.settings.gfx === 'modern') resize();
 
     const shot = HASH.shot;
     if (shot) {
       const level = HASH.level != null ? parseInt(HASH.level, 10) - 1 : 0;
       const screen = HASH.screen != null ? parseInt(HASH.screen, 10) - 1 : 0;
-      EX.prepareShot(String(shot), { level: Math.max(0, level), screen: Math.max(0, screen) });
-      if (HASH.mode) EX.setMode(String(HASH.mode));
+      PR.prepareShot(String(shot), { level: Math.max(0, level), screen: Math.max(0, screen) });
+      if (HASH.mode) PR.setMode(String(HASH.mode));
     }
     if (HASH.test) {
       /* кадр для инициализации, затем тесты */
       requestAnimationFrame(function () {
         runTests();
-        EX.prepareShot('title');
-        if (EX.settings.gfx === 'modern') resize();
+        PR.prepareShot('title');
+        if (PR.settings.gfx === 'modern') resize();
       });
     }
     if (HASH.music === 'off') {
-      EX.settings.music = false;
-      if (window.EX_AUDIO && window.EX_AUDIO.setMusic) window.EX_AUDIO.setMusic(false);
+      PR.settings.music = false;
+      if (window.PR_AUDIO && window.PR_AUDIO.setMusic) window.PR_AUDIO.setMusic(false);
     }
-    if (HASH.crt === 'off') EX.settings.crt = false;
+    if (HASH.crt === 'off') PR.settings.crt = false;
 
     booted = true;
     requestAnimationFrame(frame);
@@ -289,7 +289,7 @@
   else boot();
 
   /* экспорт для QA-скриптов */
-  window.EX_MAIN = {
+  window.PR_MAIN = {
     resize: resize,
     render: render,
     tests: runTests,

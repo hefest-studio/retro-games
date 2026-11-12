@@ -4,7 +4,7 @@
  * скриншот + ошибки консоли/исключения + необязательный JS-eval.
  *
  *   node proryv/tools/probe.mjs <file.html|http://url> out.png \
- *        [--w=1280] [--h=800] [--wait=900] [--eval='EX.state.mode'] [--keys=Enter,Space]
+ *        [--w=1280] [--h=800] [--wait=900] [--eval='PR.state.mode'] [--keys=Enter,Space]
  *
  * --eval печатает результат (JSON или строку). --keys отправляет нажатия
  * (по одному keydown/keyup c паузой --keydelay мс, по умолчанию 120).

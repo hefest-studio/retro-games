@@ -1,7 +1,7 @@
 /* СЕВЕРНАЯ САГА 2 · tests/engine.test.mjs — автотесты порта на движок v2 («оболочка» js/host.js).
    Запуск: node saga-2/tests/engine.test.mjs   (нужен Playwright: глобально или npm i -D playwright)
    Поднимает свой статический сервер по корню репо и проверяет в Chromium:
-   • 6 саг на месте, пиксельные викинги подключены; legacy.html грузится и работает сама (без оболочки);
+   • 6 саг на месте, пиксельные северяне подключены; legacy.html грузится и работает сама (без оболочки);
    • меню движка (Играть / Продолжить / Саги / Язык / Тема / Звук) → брифинг (родной) → игра (Enter);
    • пауза P ↔ пауза игры, тема T/G ↔ графика игры (modern = AURORA, retro = 8-BIT), язык L (меню) / Y (игра),
      звук M → звук игры; в игре L — крюк Гуннара, 1/2/3/Tab — герои;
@@ -60,9 +60,9 @@ const PROGRESS = JSON.stringify({ unlocked: 3, levels: { 0: { done: true, runes:
 const seed = (pr) => { try { if (!sessionStorage.getItem('seeded')) { localStorage.clear(); if (pr) localStorage.setItem('saga2.progress', pr); sessionStorage.setItem('seeded', '1'); } } catch {} };
 
 try {
-  await test('уровни игры: 6 саг; пиксельные викинги (vikings-retro.js) подключены', async () => {
+  await test('уровни игры: 6 саг; пиксельные северяне (northmen-retro.js) подключены', async () => {
     const { p, close } = await open('');
-    const r = await p.evaluate(() => ({ n: (window.SAGA2.LEVELS || []).length, vr: !!document.querySelector('script[src="js/vikings-retro.js"]') }));
+    const r = await p.evaluate(() => ({ n: (window.SAGA2.LEVELS || []).length, vr: !!document.querySelector('script[src="js/northmen-retro.js"]') }));
     await close(); ok(r.n === 6 && r.vr, JSON.stringify(r));
   });
   await test('legacy.html — старая версия грузится и работает сама', async () => {
@@ -206,8 +206,8 @@ try {
   await test('спрайты героев саги 1 и саги 2 совпадают: блок HERO-SPRITES дословно и попиксельно', async () => {
     const { readFileSync } = await import('node:fs');
     const blk = (f) => { const m = readFileSync(join(ROOT, f), 'utf8').match(/\/\* ==== HERO-SPRITES:BEGIN ====[\s\S]*?\/\* ==== HERO-SPRITES:END ==== \*\//); return m ? m[0] : null; };
-    const A = blk('saga/js/game.js'), B = blk('saga-2/js/vikings-retro.js');
-    ok(A && B && A === B, 'блоки HERO-SPRITES в saga/js/game.js и saga-2/js/vikings-retro.js различаются');
+    const A = blk('saga/js/game.js'), B = blk('saga-2/js/northmen-retro.js');
+    ok(A && B && A === B, 'блоки HERO-SPRITES в saga/js/game.js и saga-2/js/northmen-retro.js различаются');
     const frames = async (url, side) => {
       const ctx = await browser.newContext(); const p = await ctx.newPage();
       p.on('pageerror', (e) => errors.push('heroes ' + side + ': ' + e.message));
@@ -215,7 +215,7 @@ try {
       const r = await p.evaluate((side) => {
         const draw = side === 1
           ? { hero: (g, id, s, an, act) => window.SAGA_RETRO.drawHero(g, id, s, an, 0, act), dead: (g, id, act) => window.SAGA_RETRO.drawHeroDead(g, id, act) }
-          : { hero: (g, id, s, an, act) => window.SAGA2VIK.drawChar(g, id, s, an, 0, act), dead: (g, id, act) => window.SAGA2VIK.drawDead(g, id, act) };
+          : { hero: (g, id, s, an, act) => window.SAGA2NORTH.drawChar(g, id, s, an, 0, act), dead: (g, id, act) => window.SAGA2NORTH.drawDead(g, id, act) };
         const c = document.createElement('canvas'); c.width = 32; c.height = 40;
         const g = c.getContext('2d', { willReadFrequently: true });
         const out = [];
@@ -245,8 +245,8 @@ try {
   await test('прозвища героев — свои (RU/EN)', async () => {
     const { readFileSync } = await import('node:fs');
     const t = readFileSync(join(ROOT, 'saga-2/js/i18n.js'), 'utf8');
-    for (const s of ["'viking.snorri.role': 'Таран'", "'viking.gunnar.role': 'Стрелок'", "'viking.bjorn.role': 'Опора'", "'viking.snorri.role': 'Ram'", "'viking.gunnar.role': 'Marksman'", "'viking.bjorn.role': 'Bulwark'"]) ok(t.includes(s), 'нет ' + s);
-    ok(!/'viking\.(snorri|gunnar|bjorn)\.role': '(Быстрый|Свирепый|Могучий|Swift|Fierce|Mighty)'/.test(t), 'остались старые прозвища');
+    for (const s of ["'northman.snorri.role': 'Таран'", "'northman.gunnar.role': 'Стрелок'", "'northman.bjorn.role': 'Опора'", "'northman.snorri.role': 'Ram'", "'northman.gunnar.role': 'Marksman'", "'northman.bjorn.role': 'Bulwark'"]) ok(t.includes(s), 'нет ' + s);
+    ok(!/'northman\.(snorri|gunnar|bjorn)\.role': '(Быстрый|Свирепый|Могучий|Swift|Fierce|Mighty)'/.test(t), 'остались старые прозвища');
   });
   await test('ошибок в браузере нет', async () => { ok(errors.length === 0, errors.join(' | ')); });
 } finally {

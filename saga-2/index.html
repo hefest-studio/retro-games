@@ -28,7 +28,7 @@
 
   <div id="stage">
     <canvas id="game" width="1024" height="576" role="img"
-      aria-label="Игровое поле: платформенные головоломки с тремя викингами"></canvas>
+      aria-label="Игровое поле: платформенные головоломки с тремя северянами"></canvas>
     <div id="ui" class="ui"></div>
   </div>
   <div id="arcade-frame"></div>
@@ -46,7 +46,7 @@
   <script src="js/i18n.js"></script>
   <script src="js/levels.js"></script>
   <script src="js/audio.js"></script>
-  <script src="js/vikings-retro.js"></script>
+  <script src="js/northmen-retro.js"></script>
   <script src="js/render.js"></script>
   <script src="js/game.js"></script>
   <script src="js/ui.js"></script>
@@ -62,10 +62,10 @@
     if (!M) return; // уровни не загрузились — игра показала свою заглушку
     var STR = {
       ru: { play: 'Играть', language: 'Язык', theme: 'Тема', sound: 'Звук', on: 'вкл', off: 'выкл', score: 'Очки', level: 'Ур.', best: 'Рекорд',
-            win: 'РУНЫ СОБРАНЫ!', gameover: 'ВИКИНГИ ПАЛИ', pause: 'ПАУЗА', resume: 'Продолжить', menu: 'В меню', tapstart: 'Enter / тап',
+            win: 'РУНЫ СОБРАНЫ!', gameover: 'Северяне ПАЛИ', pause: 'ПАУЗА', resume: 'Продолжить', menu: 'В меню', tapstart: 'Enter / тап',
             title: 'СЕВЕРНАЯ САГА 2', subtitle: 'Северное сияние · платформер-головоломка с тремя героями', 'continue': 'Продолжить', levels: 'Саги' },
       en: { play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off', score: 'Score', level: 'Lvl', best: 'Best',
-            win: 'ALL RUNES FOUND!', gameover: 'THE VIKINGS FELL', pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'Enter / tap',
+            win: 'ALL RUNES FOUND!', gameover: 'THE NORTHMEN FELL', pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'Enter / tap',
             title: 'NORTHERN SAGA 2', subtitle: 'Nordic Aurora · a puzzle platformer with three heroes', 'continue': 'Continue', levels: 'Sagas' }
     };
     // экраны игры (body[data-screen]) → режимы оболочки; родные экраны между уровнями — 'sub'

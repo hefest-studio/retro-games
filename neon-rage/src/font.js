@@ -7,10 +7,10 @@
    В байте строки: бит 5 = левый пиксель, бит 0 = правый (6 колонок).
 
    API (docs/CONTRACT.md §1):
-     EX_FONT.W, EX_FONT.H      — размер знакоместа (6, 8)
-     EX_FONT.glyphs            — { 'A': [b0..b7], ... }
-     EX_FONT.has(ch)           — есть ли глиф
-     EX_FONT.glyph(ch)         — массив 8 байт (для неизвестного — глиф '?')
+     NR_FONT.W, NR_FONT.H      — размер знакоместа (6, 8)
+     NR_FONT.glyphs            — { 'A': [b0..b7], ... }
+     NR_FONT.has(ch)           — есть ли глиф
+     NR_FONT.glyph(ch)         — массив 8 байт (для неизвестного — глиф '?')
 
    Сгенерировано из пиксельной раскладки (генератор пиксельной раскладки студии).
    Правки вносить в генератор, а не в этот файл.
@@ -231,7 +231,7 @@
 
   const has = (ch) => Object.prototype.hasOwnProperty.call(G, ch);
 
-  window.EX_FONT = {
+  window.NR_FONT = {
     W: 6,
     H: 8,
     glyphs: G,

@@ -6,9 +6,9 @@
  * Оба рисуют одно и то же состояние S из game.js.
  * ========================================================================== */
 'use strict';
-(function (RR) {
-  if (!RR) return;
-  const { W, H, HUD_H, FOOT_H, PLAY_TOP, PLAY_H, PLANE_SY, clamp, lerp, pxText, pxWidth } = RR;
+(function (RUSLO) {
+  if (!RUSLO) return;
+  const { W, H, HUD_H, FOOT_H, PLAY_TOP, PLAY_H, PLANE_SY, clamp, lerp, pxText, pxWidth } = RUSLO;
 
   /* ====================== палитры ====================== */
   const P = {
@@ -44,12 +44,12 @@
     ctx.beginPath();
     const step = 6;
     for (let sy = PLAY_TOP; sy <= PLAY_TOP + PLAY_H + step; sy += step) {
-      const r = RR.riverAt(worldY(S, sy));
+      const r = RUSLO.riverAt(worldY(S, sy));
       const x = r.L - inset;
       if (sy === PLAY_TOP) ctx.moveTo(x, sy); else ctx.lineTo(x, sy);
     }
     for (let sy = PLAY_TOP + PLAY_H + step; sy >= PLAY_TOP; sy -= step) {
-      const r = RR.riverAt(worldY(S, sy));
+      const r = RUSLO.riverAt(worldY(S, sy));
       ctx.lineTo(r.R + inset, sy);
     }
     ctx.closePath();
@@ -86,7 +86,7 @@
     const rows = [];
     for (let sy = PLAY_TOP; sy < PLAY_TOP + PLAY_H; sy += RH) {
       const wy = worldY(S, sy + RH / 2);
-      const r = RR.riverAt(wy);
+      const r = RUSLO.riverAt(wy);
       const L = Math.max(0, Math.floor(r.L));
       const R = Math.min(W, Math.ceil(r.R));
       const span = Math.max(1, R - L);
@@ -125,7 +125,7 @@
     }
     // острова: тёмная кромка, песчаная полоса, трава и подсветка
     for (const is of S.islands) {
-      const sy = RR.screenY(is.y);
+      const sy = RUSLO.screenY(is.y);
       if (sy < PLAY_TOP - 80 || sy > PLAY_TOP + PLAY_H + 80) continue;
       ellipseRow(ctx, is.x, sy, is.rx + 3, is.ry + 3, 4, '#123616');
       ellipseRow(ctx, is.x, sy, is.rx + 1.5, is.ry + 1.5, 4, P.sand);
@@ -134,13 +134,13 @@
       ctx.fillStyle = P.land4;
       for (let k = 0; k < 5; k++) {
         const a = hash(is.y + k) * Math.PI * 2;
-        const rr = hash(is.x + k * 3) * 0.6;
-        ctx.fillRect(Math.round(is.x + Math.cos(a) * is.rx * rr), Math.round(sy + Math.sin(a) * is.ry * rr), 2, 3);
+        const rf = hash(is.x + k * 3) * 0.6;
+        ctx.fillRect(Math.round(is.x + Math.cos(a) * is.rx * rf), Math.round(sy + Math.sin(a) * is.ry * rf), 2, 3);
       }
     }
 
     for (const d of S.depots) {
-      const sy = RR.screenY(d.y);
+      const sy = RUSLO.screenY(d.y);
       if (sy < PLAY_TOP - 40 || sy > PLAY_TOP + PLAY_H + 40) continue;
       drawDepotRetro(ctx, d, sy, S.time);
     }
@@ -151,7 +151,7 @@
     // враги
     for (const e of S.enemies) {
       if (e.dead) continue;
-      const sy = RR.screenY(e.y);
+      const sy = RUSLO.screenY(e.y);
       if (sy < PLAY_TOP - 40 || sy > PLAY_TOP + PLAY_H + 40) continue;
       if (e.type === 'boat') drawBoatRetro(ctx, e.x, sy);
       else if (e.type === 'heli') drawHeliRetro(ctx, e.x, sy, S.time, e.t);
@@ -167,7 +167,7 @@
     // пули
     ctx.fillStyle = P.white;
     for (const b of S.bullets) {
-      const sy = RR.screenY(b.y);
+      const sy = RUSLO.screenY(b.y);
       ctx.fillRect(Math.round(b.x) - 1, Math.round(sy), 2, 6);
       ctx.fillStyle = P.yellow;
       ctx.fillRect(Math.round(b.x) - 1, Math.round(sy) + 4, 2, 2);
@@ -191,7 +191,7 @@
       const wy = i * cell;
       const sy = PLAY_TOP + PLANE_SY - (wy - S.camY);
       if (sy < PLAY_TOP - cell || sy >= PLAY_TOP + PLAY_H) continue;
-      const r = RR.riverAt(wy);
+      const r = RUSLO.riverAt(wy);
       for (let x = 0; x < W; x += cell) {
         if (x + cell > r.L - 8 && x < r.R + 8) continue;
         const h = hash(i * 3.1 + x * 0.37);
@@ -371,9 +371,9 @@
   }
 
   function drawBridgeRetro(ctx, S, b) {
-    const sy = RR.screenY(b.y);
+    const sy = RUSLO.screenY(b.y);
     if (sy < PLAY_TOP - 90 || sy > PLAY_TOP + PLAY_H + 90) return;
-    const r = RR.riverAt(b.y);
+    const r = RUSLO.riverAt(b.y);
     const L = Math.max(-30, r.L - 26);
     const R = Math.min(W + 30, r.R + 26);
     const px = Math.round;
@@ -430,15 +430,15 @@
     ctx.fillRect(0, HUD_H - 2, W, 2);
 
     ctx.fillStyle = P.hudLabel;
-    pxText(ctx, RR.t('hudScore'), 10, 8, { scale: 1, color: P.hudLabel });
-    pxText(ctx, RR.pad(S.score, 6), 9, 20, { scale: 2, color: P.hudText });
+    pxText(ctx, RUSLO.t('hudScore'), 10, 8, { scale: 1, color: P.hudLabel });
+    pxText(ctx, RUSLO.pad(S.score, 6), 9, 20, { scale: 2, color: P.hudText });
 
-    pxText(ctx, RR.t('hudLevel'), W / 2, 8, { scale: 1, color: P.hudLabel, align: 'center' });
-    pxText(ctx, RR.pad(S.level, 2), W / 2, 19, { scale: 2, color: P.cyan, align: 'center' });
+    pxText(ctx, RUSLO.t('hudLevel'), W / 2, 8, { scale: 1, color: P.hudLabel, align: 'center' });
+    pxText(ctx, RUSLO.pad(S.level, 2), W / 2, 19, { scale: 2, color: P.cyan, align: 'center' });
 
     // топливо
     const fw = 92, fx = W - 10 - fw, fy = 20;
-    pxText(ctx, RR.t('hudFuel'), W - 10, 8, { scale: 1, color: P.hudLabel, align: 'right' });
+    pxText(ctx, RUSLO.t('hudFuel'), W - 10, 8, { scale: 1, color: P.hudLabel, align: 'right' });
     ctx.fillStyle = '#02040a';
     ctx.fillRect(fx - 2, fy - 2, fw + 4, 13);
     ctx.fillStyle = P.hudLine;
@@ -451,7 +451,7 @@
       ctx.fillRect(fx + i * (fw / segs) + 1, fy + 1, fw / segs - 2, 6);
     }
     if (S.fuel < 26 && Math.floor(S.time * 4) % 2 === 0) {
-      pxText(ctx, RR.t('lowFuel'), fx + fw, fy + 14, { scale: 1, color: P.fuelLow, align: 'right' });
+      pxText(ctx, RUSLO.t('lowFuel'), fx + fw, fy + 14, { scale: 1, color: P.fuelLow, align: 'right' });
     } else {
       pxText(ctx, Math.round(S.fuel) + '%', fx + fw, fy + 14, { scale: 1, color: P.hudLabel, align: 'right' });
     }
@@ -472,8 +472,8 @@
         }
       }
     }
-    pxText(ctx, RR.t('hudRecord'), W - 10, H - FOOT_H + 5, { scale: 1, color: P.hudLabel, align: 'right' });
-    pxText(ctx, RR.pad(S.hi, 6), W - 10, H - FOOT_H + 15, { scale: 1, color: P.hudText, align: 'right' });
+    pxText(ctx, RUSLO.t('hudRecord'), W - 10, H - FOOT_H + 5, { scale: 1, color: P.hudLabel, align: 'right' });
+    pxText(ctx, RUSLO.pad(S.hi, 6), W - 10, H - FOOT_H + 15, { scale: 1, color: P.hudText, align: 'right' });
 
     // предупреждение о мосте
     if (S.bridge && S.bridge.alive && S.bridgeAhead > 0.05) {
@@ -493,7 +493,7 @@
         }
         ctx.restore();
         if (blink) {
-          const label = RR.t('bridgeAhead') + ' ' + dist;
+          const label = RUSLO.t('bridgeAhead') + ' ' + dist;
           const tw = pxWidth(label, 1) + 10;
           ctx.fillStyle = 'rgba(7,10,18,.85)';
           ctx.fillRect(Math.round(W / 2 - tw / 2), PLAY_TOP + 30, Math.round(tw), 12);
@@ -533,7 +533,7 @@
     }
     for (let k = 0; k < 110; k++) {
       const sy = PLAY_TOP + hash(k * 3.3) * PLAY_H;
-      const r = RR.riverAt(worldY(S, sy));
+      const r = RUSLO.riverAt(worldY(S, sy));
       const left = hash(k * 1.7) < 0.5;
       const x = left
         ? hash(k * 5.1) * Math.max(1, r.L - 12)
@@ -579,7 +579,7 @@
     // блики
     for (let k = 0; k < 18; k++) {
       const sy = PLAY_TOP + hash(k) * PLAY_H;
-      const r = RR.riverAt(worldY(S, sy));
+      const r = RUSLO.riverAt(worldY(S, sy));
       const x = r.L + 6 + ((hash(k + 40) * (r.R - r.L - 12) + S.time * (6 + hash(k + 3) * 14)) % Math.max(1, r.R - r.L - 12));
       const a = 0.05 + 0.1 * (0.5 + 0.5 * Math.sin(S.time * 2 + k));
       ctx.fillStyle = 'rgba(190,250,255,' + a + ')';
@@ -601,7 +601,7 @@
     // пена вдоль берегов
     for (let k = 0; k < 40; k++) {
       const sy = PLAY_TOP + ((k * 37 + S.time * 26) % PLAY_H);
-      const r = RR.riverAt(worldY(S, sy));
+      const r = RUSLO.riverAt(worldY(S, sy));
       const left = k % 2 === 0;
       const a = 0.05 + 0.12 * (0.5 + 0.5 * Math.sin(S.time * 2.2 + k * 1.7));
       ctx.fillStyle = 'rgba(205,255,255,' + a + ')';
@@ -611,7 +611,7 @@
 
     // острова
     for (const is of S.islands) {
-      const sy = RR.screenY(is.y);
+      const sy = RUSLO.screenY(is.y);
       if (sy < PLAY_TOP - 100 || sy > PLAY_TOP + PLAY_H + 100) continue;
       const g = ctx.createRadialGradient(is.x - is.rx * 0.3, sy - is.ry * 0.3, 2, is.x, sy, Math.max(is.rx, is.ry) * 1.25);
       g.addColorStop(0, 'rgba(64,168,116,.98)');
@@ -635,15 +635,15 @@
       ctx.stroke();
       for (let k = 0; k < 7; k++) {
         const a = hash(is.y + k * 2.3) * Math.PI * 2;
-        const rr = 0.15 + hash(is.x + k) * 0.55;
+        const rf = 0.15 + hash(is.x + k) * 0.55;
         ctx.fillStyle = 'rgba(120,255,200,' + (0.12 + 0.2 * hash(k + is.y)) + ')';
-        ctx.fillRect(is.x + Math.cos(a) * is.rx * rr, sy + Math.sin(a) * is.ry * rr, 1.6, 1.6);
+        ctx.fillRect(is.x + Math.cos(a) * is.rx * rf, sy + Math.sin(a) * is.ry * rf, 1.6, 1.6);
       }
     }
 
     // заправки
     for (const d of S.depots) {
-      const sy = RR.screenY(d.y);
+      const sy = RUSLO.screenY(d.y);
       if (sy < PLAY_TOP - 50 || sy > PLAY_TOP + PLAY_H + 50) continue;
       drawDepotModern(ctx, d, sy, S.time);
     }
@@ -654,7 +654,7 @@
     // враги
     for (const e of S.enemies) {
       if (e.dead) continue;
-      const sy = RR.screenY(e.y);
+      const sy = RUSLO.screenY(e.y);
       if (sy < PLAY_TOP - 50 || sy > PLAY_TOP + PLAY_H + 50) continue;
       if (e.type === 'boat') drawBoatModern(ctx, e.x, sy, S.time);
       else if (e.type === 'heli') drawHeliModern(ctx, e.x, sy, S.time, e.t);
@@ -744,9 +744,9 @@
   }
 
   function drawBridgeModern(ctx, S, b) {
-    const sy = RR.screenY(b.y);
+    const sy = RUSLO.screenY(b.y);
     if (sy < PLAY_TOP - 120 || sy > PLAY_TOP + PLAY_H + 120) return;
-    const r = RR.riverAt(b.y);
+    const r = RUSLO.riverAt(b.y);
     const L = Math.max(-40, r.L - 30), R = Math.min(W + 40, r.R + 30);
     if (!b.alive) {
       ctx.fillStyle = 'rgba(20,30,36,.95)';
@@ -1060,7 +1060,7 @@
   }
 
   function drawBulletModern(ctx, b) {
-    const x = b.x, y = RR.screenY(b.y);
+    const x = b.x, y = RUSLO.screenY(b.y);
     ctx.save();
     ctx.shadowColor = 'rgba(140,255,255,.9)';
     ctx.shadowBlur = 10;
@@ -1080,9 +1080,9 @@
   function drawFloaters(ctx, S, modern) {
     for (const f of S.floaters) {
       const a = Math.min(1, f.life / 0.35);
-      const sy = RR.screenY(f.y) - (1 - f.life / f.max) * 18;
+      const sy = RUSLO.screenY(f.y) - (1 - f.life / f.max) * 18;
       if (modern) {
-        RR.sans(ctx, f.text, f.x, sy, {
+        RUSLO.sans(ctx, f.text, f.x, sy, {
           size: 12, weight: 600, color: f.color || '#ffe36b', align: 'center',
           alpha: a, glow: f.color || '#ffb347', glowBlur: 10, spacing: 1,
         });
@@ -1094,7 +1094,7 @@
 
   function drawParticles(ctx, S, modern) {
     for (const p of S.particles) {
-      const sy = RR.screenY(p.y);
+      const sy = RUSLO.screenY(p.y);
       const a = clamp(p.life / p.max, 0, 1);
       if (p.type === 'ring') {
         const r = p.size * (1 + (1 - a) * 2.6);
@@ -1153,18 +1153,18 @@
     ctx.fillRect(0, HUD_H - 1, W, 1);
 
     // очки
-    RR.sans(ctx, RR.t('hudScore').toUpperCase(), 14, 8, { size: 9, color: 'rgba(175,215,240,.55)', spacing: 2.4 });
-    RR.sans(ctx, RR.pad(S.score, 6), 14, 20, { size: 24, weight: 300, color: '#eaf6ff', spacing: 2, glow: 'rgba(76,201,255,.35)', glowBlur: 14 });
+    RUSLO.sans(ctx, RUSLO.t('hudScore').toUpperCase(), 14, 8, { size: 9, color: 'rgba(175,215,240,.55)', spacing: 2.4 });
+    RUSLO.sans(ctx, RUSLO.pad(S.score, 6), 14, 20, { size: 24, weight: 300, color: '#eaf6ff', spacing: 2, glow: 'rgba(76,201,255,.35)', glowBlur: 14 });
 
     // уровень
-    RR.sans(ctx, RR.t('hudLevel').toUpperCase(), W / 2, 9, { size: 9, color: 'rgba(175,215,240,.55)', spacing: 2.4, align: 'center' });
-    RR.sans(ctx, RR.pad(S.level, 2), W / 2, 22, { size: 17, weight: 500, color: '#8ff8e4', spacing: 2, align: 'center', glow: 'rgba(57,240,208,.4)' });
+    RUSLO.sans(ctx, RUSLO.t('hudLevel').toUpperCase(), W / 2, 9, { size: 9, color: 'rgba(175,215,240,.55)', spacing: 2.4, align: 'center' });
+    RUSLO.sans(ctx, RUSLO.pad(S.level, 2), W / 2, 22, { size: 17, weight: 500, color: '#8ff8e4', spacing: 2, align: 'center', glow: 'rgba(57,240,208,.4)' });
 
     // топливо
     const fw = 96, fx = W - 14 - fw, fy = 24;
-    RR.sans(ctx, RR.t('hudFuel').toUpperCase(), W - 14, 8, { size: 9, color: 'rgba(175,215,240,.55)', spacing: 2.4, align: 'right' });
+    RUSLO.sans(ctx, RUSLO.t('hudFuel').toUpperCase(), W - 14, 8, { size: 9, color: 'rgba(175,215,240,.55)', spacing: 2.4, align: 'right' });
     ctx.fillStyle = 'rgba(120,190,210,.14)';
-    RR.roundRect(ctx, fx, fy, fw, 6, 3);
+    RUSLO.roundRect(ctx, fx, fy, fw, 6, 3);
     ctx.fill();
     const pct = clamp(S.fuel / 100, 0, 1);
     const fuelCol = S.fuel < 22 ? '#ff3b5c' : S.fuel < 45 ? '#ffb347' : '#39f0d0';
@@ -1176,11 +1176,11 @@
     ctx.shadowBlur = 10;
     ctx.fillStyle = fillGrad;
     if (pct > 0.02) {
-      RR.roundRect(ctx, fx, fy, Math.max(4, fw * pct), 6, 3);
+      RUSLO.roundRect(ctx, fx, fy, Math.max(4, fw * pct), 6, 3);
       ctx.fill();
     }
     ctx.restore();
-    RR.sans(ctx, Math.round(S.fuel) + '%', fx + fw, fy + 8, { size: 9, color: S.fuel < 22 ? '#ff6b78' : 'rgba(175,215,240,.6)', spacing: 1, align: 'right' });
+    RUSLO.sans(ctx, Math.round(S.fuel) + '%', fx + fw, fy + 8, { size: 9, color: S.fuel < 22 ? '#ff6b78' : 'rgba(175,215,240,.6)', spacing: 1, align: 'right' });
 
     // нижняя панель
     const fg2 = ctx.createLinearGradient(0, H - FOOT_H, 0, H);
@@ -1202,7 +1202,7 @@
       ctx.fill();
       ctx.shadowBlur = 0;
     }
-    RR.sans(ctx, RR.t('hudRecord') + ' ' + RR.pad(S.hi, 6), W - 14, H - FOOT_H + 10, { size: 9, color: 'rgba(175,215,240,.55)', spacing: 1.6, align: 'right' });
+    RUSLO.sans(ctx, RUSLO.t('hudRecord') + ' ' + RUSLO.pad(S.hi, 6), W - 14, H - FOOT_H + 10, { size: 9, color: 'rgba(175,215,240,.55)', spacing: 1.6, align: 'right' });
 
     // индикатор тяги справа
     const tx = W - 9, ty = PLAY_TOP + 74;
@@ -1219,7 +1219,7 @@
         const blink = Math.floor(S.time * 4) % 2 === 0;
         ctx.save();
         ctx.globalAlpha = blink ? 1 : 0.45;
-        RR.sans(ctx, '▲ ' + RR.t('bridgeAhead') + ' · ' + dist, W / 2, PLAY_TOP + 12, {
+        RUSLO.sans(ctx, '▲ ' + RUSLO.t('bridgeAhead') + ' · ' + dist, W / 2, PLAY_TOP + 12, {
           size: 9, color: '#ff5a78', spacing: 2, align: 'center', glow: 'rgba(255,60,90,.7)',
         });
         ctx.restore();
@@ -1238,21 +1238,21 @@
     ctx.save();
     ctx.globalAlpha = a;
     if (modern) {
-      const w = Math.max(190, Math.max(RR.pxWidth(msg.title, 1.2), msg.sub ? 120 : 0) + 70);
+      const w = Math.max(190, Math.max(RUSLO.pxWidth(msg.title, 1.2), msg.sub ? 120 : 0) + 70);
       const h = msg.sub ? 52 : 36;
       ctx.fillStyle = 'rgba(4,14,20,.78)';
-      RR.roundRect(ctx, W / 2 - w / 2, y - h / 2, w, h, 10);
+      RUSLO.roundRect(ctx, W / 2 - w / 2, y - h / 2, w, h, 10);
       ctx.fill();
       ctx.strokeStyle = msg.tone === 'good' ? 'rgba(57,240,208,.7)' : 'rgba(255,180,90,.55)';
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.shadowColor = msg.tone === 'good' ? 'rgba(57,240,208,.45)' : 'rgba(255,120,80,.35)';
       ctx.shadowBlur = 18;
-      RR.sans(ctx, msg.title, W / 2, y - (msg.sub ? 16 : 7), {
+      RUSLO.sans(ctx, msg.title, W / 2, y - (msg.sub ? 16 : 7), {
         size: 15, weight: 600, color: msg.tone === 'good' ? '#8ff8e4' : '#ffd28a', align: 'center', spacing: 2.4,
       });
       ctx.shadowBlur = 0;
-      if (msg.sub) RR.sans(ctx, msg.sub, W / 2, y + 3, { size: 11, color: 'rgba(220,245,255,.7)', align: 'center', spacing: 1.6 });
+      if (msg.sub) RUSLO.sans(ctx, msg.sub, W / 2, y + 3, { size: 11, color: 'rgba(220,245,255,.7)', align: 'center', spacing: 1.6 });
     } else {
       const tw = Math.max(pxWidth(msg.title, 2), msg.sub ? pxWidth(msg.sub, 1) : 0) + 24;
       const w = Math.min(W - 20, Math.max(tw, 120));
@@ -1271,7 +1271,7 @@
   /* ========================================================================
    * вход
    * ===================================================================== */
-  RR.Render = {
+  RUSLO.Render = {
     draw(ctx, S) {
       if (!ctx) return;
       // фон за пределами поля (на случай нестандартного масштаба)
@@ -1312,4 +1312,4 @@
       if (S.mode !== 'menu') drawMessages(ctx, S, S.gfx !== 'retro');
     },
   };
-})(window.RR);
+})(window.RUSLO);

@@ -7,14 +7,14 @@
    · огранённые алмазы, золотые слитки, вишня, бархатные мешки с шитьём;
    · бур-под с фарой, трейлом и анимацией; биолюминесцентные монстры;
    · частицы, всплывающие очки, screen shake, виньетка;
-   · glassmorphism-HUD с подписями DG.t (RU/EN).
+   · glassmorphism-HUD с подписями KROT.t (RU/EN).
    Рендерер только читает S, кэширует градиенты и спрайты, без shadowBlur в цикле.
    ========================================================================== */
 (function (global) {
   'use strict';
 
-  var DG = global.DG = global.DG || {};
-  DG.render = DG.render || {};
+  var KROT = global.KROT = global.KROT || {};
+  KROT.render = KROT.render || {};
 
   /* ------------------------------- геометрия ------------------------------- */
   var W = 960, H = 600;
@@ -44,7 +44,7 @@
   function fnt(size, weight, mono) {
     return (weight || 500) + ' ' + size + 'px ' + (mono ? FONT_MONO : FONT_UI);
   }
-  function T(key, vars) { return (DG.t ? DG.t(key, vars) : key); }
+  function T(key, vars) { return (KROT.t ? KROT.t(key, vars) : key); }
 
   /* ------------------------------- утилиты --------------------------------- */
   function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
@@ -2497,5 +2497,5 @@
     ctx.restore();
   }
 
-  DG.render.modern = { id: 'modern', draw: draw };
+  KROT.render.modern = { id: 'modern', draw: draw };
 })(window);

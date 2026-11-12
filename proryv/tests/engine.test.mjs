@@ -49,9 +49,9 @@ async function open(path = '', init = null) {
   return { p, close: () => ctx.close() };
 }
 const st = (p) => p.evaluate(() => {
-  const h = window.__arcadeHost, EX = window.EX, S = EX.state;
+  const h = window.__arcadeHost, PR = window.PR, S = PR.state;
   return { scene: h.g._sceneName, theme: h.g.themeName, lang: h.g.i18n.lang, sound: h.g.audio.enabled, best: h.g.state.best,
-    mode: S.mode, gfx: EX.settings.gfx, glang: EX.settings.lang, music: EX.settings.music, sfx: EX.settings.sfx };
+    mode: S.mode, gfx: PR.settings.gfx, glang: PR.settings.lang, music: PR.settings.music, sfx: PR.settings.sfx };
 });
 const titleOf = async (path) => { const o = await open(path); await wait(1500); const t = await o.p.title(); await o.close(); return t; };
 
@@ -60,9 +60,9 @@ try {
   await test('самотесты игры #test: index.html — 35/35 (оболочка выключена)', async () => { const t = await titleOf('#test'); ok(/35\/35 PASS/.test(t), t); });
   await test('legacy.html — старая версия грузится и работает сама', async () => {
     const o = await open('legacy.html');
-    const r = await o.p.evaluate(() => ({ g: !!window.EX, host: !!window.__arcadeHost, mode: window.EX.state.mode }));
+    const r = await o.p.evaluate(() => ({ g: !!window.PR, host: !!window.__arcadeHost, mode: window.PR.state.mode }));
     await o.p.keyboard.press('Enter'); await wait(300);
-    const mode = await o.p.evaluate(() => window.EX.state.mode);
+    const mode = await o.p.evaluate(() => window.PR.state.mode);
     await o.close(); ok(r.g && !r.host && r.mode === 'title' && mode === 'briefing', JSON.stringify(r) + ' ' + mode);
   });
 
@@ -70,7 +70,7 @@ try {
     const o = await open('legacy.html', () => { try { if (sessionStorage.getItem('mig')) return; sessionStorage.setItem('mig', '1'); localStorage.clear();
       localStorage.setItem('exolon.record', '4242'); localStorage.setItem('exolon.settings', '{"lang":"en","music":false,"sfx":true,"crt":true}');
       localStorage.setItem('proryv.record', '5000'); } catch {} });
-    const r = await o.p.evaluate(() => ({ ls: Object.keys(localStorage).sort().map((k) => k + '=' + localStorage.getItem(k)), lang: window.EX.settings.lang, rec: window.EX.loadRecord() }));
+    const r = await o.p.evaluate(() => ({ ls: Object.keys(localStorage).sort().map((k) => k + '=' + localStorage.getItem(k)), lang: window.PR.settings.lang, rec: window.PR.loadRecord() }));
     await o.close();
     const ls = r.ls.join(' ');
     ok(!/exolon\./.test(ls), 'старые ключи не удалены: ' + ls);
@@ -86,7 +86,7 @@ try {
     ok(s.sound && s.music && s.sfx, 'звук ' + JSON.stringify(s));
   });
   await test('рамка движка совпадает с кадром игры (и после смены графики)', async () => {
-    const chk = () => p.evaluate(() => { const r = window.EX_MAIN.stage(), b = document.getElementById('hostbox').getBoundingClientRect();
+    const chk = () => p.evaluate(() => { const r = window.PR_MAIN.stage(), b = document.getElementById('hostbox').getBoundingClientRect();
       return Math.abs(r.x - b.left) < 1.5 && Math.abs(r.y - b.top) < 1.5 && Math.abs(r.w - b.width) < 1.5 && Math.abs(r.h - b.height) < 1.5; });
     ok(await chk(), 'modern');
     await p.keyboard.press('KeyT'); await wait(200); ok(await chk(), 'retro');
@@ -109,13 +109,13 @@ try {
     ok(s.theme === 'retro' && s.gfx === 'retro', 'T ' + JSON.stringify(s));
     await p.keyboard.press('KeyG'); await wait(150); s = await st(p);
     ok(s.theme === 'modern' && s.gfx === 'modern', 'G ' + JSON.stringify(s));
-    await p.evaluate(() => window.EX.toggleGfx()); await wait(150); s = await st(p);
+    await p.evaluate(() => window.PR.toggleGfx()); await wait(150); s = await st(p);
     ok(s.theme === 'retro', 'игра→движок ' + JSON.stringify(s));
   });
   await test('L → язык движка = язык игры; и обратно', async () => {
     await p.keyboard.press('KeyL'); await wait(150); let s = await st(p);
     ok(s.lang === 'en' && s.glang === 'en', JSON.stringify(s));
-    await p.evaluate(() => window.EX.setLang('ru')); await wait(150); s = await st(p);
+    await p.evaluate(() => window.PR.setLang('ru')); await wait(150); s = await st(p);
     ok(s.lang === 'ru', 'игра→движок ' + JSON.stringify(s));
   });
   await test('M → звук движка выкл = музыка и эффекты игры выкл, повтор — вкл', async () => {
@@ -131,7 +131,7 @@ try {
     await p.keyboard.press('KeyP'); await wait(200); s = await st(p); ok(s.scene === 'play' && s.mode === 'play', 'снять ' + JSON.stringify(s));
   });
   await test('гибель последней жизни → экран gameover движка, рекорд arcade.best.proryv', async () => {
-    await p.evaluate(() => { const S = window.EX.state; S.score = 4321; S.lives = 1; window.EX.die(); }); await wait(2200);
+    await p.evaluate(() => { const S = window.PR.state; S.score = 4321; S.lives = 1; window.PR.die(); }); await wait(2200);
     const s = await st(p);
     ok(s.scene === 'gameover' && s.mode === 'gameover' && s.best === 4321, JSON.stringify(s));
     ok((await p.evaluate(() => localStorage.getItem('arcade.best.proryv'))) === '4321', 'не сохранён');
@@ -152,7 +152,7 @@ try {
   });
   await test('победа игры → экран win движка, рекорд', async () => {
     await p.keyboard.press('Enter'); await wait(200); await p.keyboard.press('Enter'); await wait(200);
-    await p.evaluate(() => { const S = window.EX.state; S.score = 9000; S.mode = 'win'; }); await wait(300);
+    await p.evaluate(() => { const S = window.PR.state; S.score = 9000; S.mode = 'win'; }); await wait(300);
     const s = await st(p); ok(s.scene === 'win' && s.best === 9000, JSON.stringify(s));
     await p.keyboard.press('Enter'); await wait(200);
     const s2 = await st(p); ok(s2.scene === 'title' && s2.mode === 'title', JSON.stringify(s2));
@@ -170,7 +170,7 @@ try {
   });
   await test('#shot=play — отладочный режим без оболочки', async () => {
     const o = await open('#shot=play');
-    const r = await o.p.evaluate(() => ({ host: !!window.__arcadeHost, mode: window.EX.state.mode, attr: document.documentElement.getAttribute('data-arcade-scene') }));
+    const r = await o.p.evaluate(() => ({ host: !!window.__arcadeHost, mode: window.PR.state.mode, attr: document.documentElement.getAttribute('data-arcade-scene') }));
     await o.close(); ok(!r.host && r.mode === 'play' && r.attr === 'off', JSON.stringify(r));
   });
   await test('ошибок в браузере нет', async () => { ok(errors.length === 0, errors.join(' | ')); });

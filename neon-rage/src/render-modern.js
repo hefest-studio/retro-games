@@ -2,8 +2,8 @@
    НЕОН × ЯРОСТЬ: NEON RAGE
    src/render-modern.js — «неоновый ремастер»: Canvas 2D, 480×270
    ------------------------------------------------------------
-   window.DD_RENDER_MODERN = { draw(ctx, view) }
-   Читает DD.state / DD.settings / DD.t. Не мутирует состояние.
+   window.NR_RENDER_MODERN = { draw(ctx, view) }
+   Читает NR.state / NR.settings / NR.t. Не мутирует состояние.
    ES2019, IIFE, без импортов и внешних ассетов.
    ============================================================ */
 (function () {
@@ -46,11 +46,11 @@
     return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
   }
 
-  /* ---------- доступ к DD ---------- */
-  function DS() { return (typeof window !== 'undefined' && window.DD && window.DD.state) || {}; }
-  function DSet() { return (typeof window !== 'undefined' && window.DD && window.DD.settings) || {}; }
+  /* ---------- доступ к NR ---------- */
+  function DS() { return (typeof window !== 'undefined' && window.NR && window.NR.state) || {}; }
+  function DSet() { return (typeof window !== 'undefined' && window.NR && window.NR.settings) || {}; }
   function tt(key, vars) {
-    var D = (typeof window !== 'undefined' && window.DD) || null;
+    var D = (typeof window !== 'undefined' && window.NR) || null;
     if (D && typeof D.t === 'function') {
       try { var s = D.t(key, vars); if (s != null) return String(s); } catch (e) { /* ignore */ }
     }
@@ -2370,9 +2370,9 @@
     var hipB = [hip[0] - 3 * c, hip[1] - 3 * s];
 
     function chain(x, y, a1, a2, l1, l2) {
-      var ex = x + Math.sin(a1) * l1, ey = y + Math.cos(a1) * l1;
-      var hx2 = ex + Math.sin(a1 + a2) * l2, hy2 = ey + Math.cos(a1 + a2) * l2;
-      return { mid: [ex, ey], end: [hx2, hy2], a1: a1, a2: a2 };
+      var elbX = x + Math.sin(a1) * l1, elbY = y + Math.cos(a1) * l1;
+      var hx2 = elbX + Math.sin(a1 + a2) * l2, hy2 = elbY + Math.cos(a1 + a2) * l2;
+      return { mid: [elbX, elbY], end: [hx2, hy2], a1: a1, a2: a2 };
     }
     return {
       hip: hip, shoulder: shoulder, head: headC,
@@ -5235,7 +5235,7 @@
     drawSubHeader(ctx, tt('about.title'), tt('about.tech'), C.violet, 28);
 
     // логотип-марка
-    drawPosterLine(ctx, 'DD×BT', W / 2, 72, {
+    drawPosterLine(ctx, 'NR×BT', W / 2, 72, {
       size: 30, c1: '#ffffff', c2: '#ffb3db', c3: C.pink, glow: C.pink, glowAlpha: 0.55
     });
     drawText(ctx, tt('app.subtitle'), W / 2, 94, {
@@ -5551,6 +5551,6 @@
   }
 
   var API = { draw: draw, version: 1 };
-  if (typeof window !== 'undefined') window.DD_RENDER_MODERN = API;
+  if (typeof window !== 'undefined') window.NR_RENDER_MODERN = API;
   return API;
 })();

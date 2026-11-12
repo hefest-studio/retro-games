@@ -10,3 +10,15 @@ node_modules/
 
 # эксперименты (не в прод)
 _experiments/
+
+# секреты (см. docs/DEPLOY.md)
+.env*
+
+# выходные папки QA-скриптов и временные файлы
+reports/
+*/reports/
+.tmp/
+*/.tmp/
+tmp/qa/
+*/tmp/qa/
+saga/tmp/

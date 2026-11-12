@@ -12,7 +12,7 @@
 <style>
 /* Движок v2 поверх игры (js/host.js): прозрачный canvas движка (меню/пауза/финал) — над игровым полем
    и родными экранами, под тостами. Родные титул, пауза и финал скрыты — их заменяют экраны движка;
-   брифинг уровня, пролог, карта земель, «Земля пройдена», «Викинг пал», помощь, настройки — родные. */
+   брифинг уровня, пролог, карта земель, «Земля пройдена», «Северянин пал», помощь, настройки — родные. */
 canvas.arcade-host { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 15; }
 html:not([data-arcade-scene="off"]) .screen[data-screen="title"],
 html:not([data-arcade-scene="off"]) .screen[data-screen="pause"],
@@ -39,32 +39,32 @@ a.back:hover { color: #eef2f8; }
       <!-- ───────────── HUD ───────────── -->
       <header class="hud" id="hud" hidden>
         <div class="hud__team" id="hud-team">
-          <button class="viking-tab" type="button" data-char="snorri" aria-label="Снорри">
-            <span class="viking-tab__face"><canvas class="portrait" data-portrait="snorri"></canvas></span>
-            <span class="viking-tab__meta">
-              <span class="viking-tab__name" data-i18n="char.snorri">Снорри</span>
-              <span class="viking-tab__role" data-i18n="char.snorri.role">Таран</span>
+          <button class="northman-tab" type="button" data-char="snorri" aria-label="Снорри">
+            <span class="northman-tab__face"><canvas class="portrait" data-portrait="snorri"></canvas></span>
+            <span class="northman-tab__meta">
+              <span class="northman-tab__name" data-i18n="char.snorri">Снорри</span>
+              <span class="northman-tab__role" data-i18n="char.snorri.role">Таран</span>
             </span>
-            <span class="viking-tab__key">1</span>
-            <span class="viking-tab__state" data-i18n="hud.ready">готов</span>
+            <span class="northman-tab__key">1</span>
+            <span class="northman-tab__state" data-i18n="hud.ready">готов</span>
           </button>
-          <button class="viking-tab" type="button" data-char="gunnar" aria-label="Гуннар">
-            <span class="viking-tab__face"><canvas class="portrait" data-portrait="gunnar"></canvas></span>
-            <span class="viking-tab__meta">
-              <span class="viking-tab__name" data-i18n="char.gunnar">Гуннар</span>
-              <span class="viking-tab__role" data-i18n="char.gunnar.role">Стрелок</span>
+          <button class="northman-tab" type="button" data-char="gunnar" aria-label="Гуннар">
+            <span class="northman-tab__face"><canvas class="portrait" data-portrait="gunnar"></canvas></span>
+            <span class="northman-tab__meta">
+              <span class="northman-tab__name" data-i18n="char.gunnar">Гуннар</span>
+              <span class="northman-tab__role" data-i18n="char.gunnar.role">Стрелок</span>
             </span>
-            <span class="viking-tab__key">2</span>
-            <span class="viking-tab__state" data-i18n="hud.ready">готов</span>
+            <span class="northman-tab__key">2</span>
+            <span class="northman-tab__state" data-i18n="hud.ready">готов</span>
           </button>
-          <button class="viking-tab" type="button" data-char="bjorn" aria-label="Бьорн">
-            <span class="viking-tab__face"><canvas class="portrait" data-portrait="bjorn"></canvas></span>
-            <span class="viking-tab__meta">
-              <span class="viking-tab__name" data-i18n="char.bjorn">Бьорн</span>
-              <span class="viking-tab__role" data-i18n="char.bjorn.role">Опора</span>
+          <button class="northman-tab" type="button" data-char="bjorn" aria-label="Бьорн">
+            <span class="northman-tab__face"><canvas class="portrait" data-portrait="bjorn"></canvas></span>
+            <span class="northman-tab__meta">
+              <span class="northman-tab__name" data-i18n="char.bjorn">Бьорн</span>
+              <span class="northman-tab__role" data-i18n="char.bjorn.role">Опора</span>
             </span>
-            <span class="viking-tab__key">3</span>
-            <span class="viking-tab__state" data-i18n="hud.ready">готов</span>
+            <span class="northman-tab__key">3</span>
+            <span class="northman-tab__state" data-i18n="hud.ready">готов</span>
           </button>
         </div>
 
@@ -117,7 +117,7 @@ a.back:hover { color: #eef2f8; }
               <p class="brand__lead" data-i18n="brand.lead">Один герой за раз, три характера, десять земель. Переключайтесь, комбинируйте способности и выведите всех троих.</p>
               <div class="brand__badges">
                 <span class="badge"><b>10</b><i data-i18n="brand.badge.levels">земель</i></span>
-                <span class="badge"><b>3</b><i data-i18n="brand.badge.heroes">викинга</i></span>
+                <span class="badge"><b>3</b><i data-i18n="brand.badge.heroes">героя</i></span>
                 <span class="badge"><b>2</b><i data-i18n="brand.badge.styles">стиля графики</i></span>
                 <span class="badge"><b data-i18n="brand.badge.bit">8-бит</b><i data-i18n="brand.badge.music">музыка</i></span>
               </div>
@@ -146,19 +146,19 @@ a.back:hover { color: #eef2f8; }
             </nav>
           </div>
 
-          <div class="viking-lineup" aria-hidden="true">
-            <article class="viking-card viking-card--snorri">
-              <canvas class="viking-card__art" data-portrait-big="snorri"></canvas>
+          <div class="northman-lineup" aria-hidden="true">
+            <article class="northman-card northman-card--snorri">
+              <canvas class="northman-card__art" data-portrait-big="snorri"></canvas>
               <h3 data-i18n="char.snorri">Снорри</h3>
               <p data-i18n="char.snorri.tag">Таран · удар плечом</p>
             </article>
-            <article class="viking-card viking-card--gunnar">
-              <canvas class="viking-card__art" data-portrait-big="gunnar"></canvas>
+            <article class="northman-card northman-card--gunnar">
+              <canvas class="northman-card__art" data-portrait-big="gunnar"></canvas>
               <h3 data-i18n="char.gunnar">Гуннар</h3>
               <p data-i18n="char.gunnar.tag">Стрелок · арбалет</p>
             </article>
-            <article class="viking-card viking-card--bjorn">
-              <canvas class="viking-card__art" data-portrait-big="bjorn"></canvas>
+            <article class="northman-card northman-card--bjorn">
+              <canvas class="northman-card__art" data-portrait-big="bjorn"></canvas>
               <h3 data-i18n="char.bjorn">Бьорн</h3>
               <p data-i18n="char.bjorn.tag">Опора · щит</p>
             </article>
@@ -185,7 +185,7 @@ a.back:hover { color: #eef2f8; }
         <div class="panel panel--story">
           <p class="eyebrow" data-i18n="story.eyebrow">Пролог</p>
           <h2 class="panel__title" data-i18n="story.title">Похищение</h2>
-          <p class="story-text" data-i18n="story.text">Трое викингов возвращались домой, когда небо разверзлось и унесло их в чужие миры. Корабль разбит, ворота заперты, а впереди — десять земель, полных ловушек. Только вместе они смогут вернуться домой.</p>
+          <p class="story-text" data-i18n="story.text">Трое северян возвращались домой, когда небо разверзлось и унесло их в чужие миры. Корабль разбит, ворота заперты, а впереди — десять земель, полных ловушек. Только вместе они смогут вернуться домой.</p>
           <div class="story-roster">
             <article class="roster-card">
               <canvas class="portrait" data-portrait-big="snorri"></canvas>
@@ -230,11 +230,11 @@ a.back:hover { color: #eef2f8; }
         <div class="panel panel--wide">
           <p class="eyebrow" data-i18n="help.eyebrow">Свиток</p>
           <h2 class="panel__title" data-i18n="help.title">Как играть</h2>
-          <p class="help-lead" data-i18n="help.lead">Ведите всех трёх викингов к выходам. Активен один — переключайтесь и используйте способности каждого.</p>
+          <p class="help-lead" data-i18n="help.lead">Ведите всех трёх северян к выходам. Активен один — переключайтесь и используйте способности каждого.</p>
           <div class="help-grid">
             <div class="help-card">
               <h3 data-i18n="help.objective.title">Цель</h3>
-              <p data-i18n="help.objective.text">Доведите Снорриа, Гуннара и Бьорна до трёх дверей-выходов. Двери занимаются по одной на викинга. Все трое ушли — уровень пройден.</p>
+              <p data-i18n="help.objective.text">Доведите Снорриа, Гуннара и Бьорна до трёх дверей-выходов. Двери занимаются по одной на северянина. Все трое ушли — уровень пройден.</p>
             </div>
             <div class="help-card">
               <h3 data-i18n="help.snorri.title">Снорри · таран</h3>
@@ -250,7 +250,7 @@ a.back:hover { color: #eef2f8; }
             </div>
             <div class="help-card">
               <h3 data-i18n="help.gate.title">Плиты и ворота</h3>
-              <p data-i18n="help.gate.text">Плита открывает ворота, пока на ней кто-то стоит. Оставьте викинга на плите и переключитесь на другого.</p>
+              <p data-i18n="help.gate.text">Плита открывает ворота, пока на ней кто-то стоит. Оставьте северянина на плите и переключитесь на другого.</p>
             </div>
             <div class="help-card">
               <h3 data-i18n="help.death.title">Смерть</h3>
@@ -261,7 +261,7 @@ a.back:hover { color: #eef2f8; }
             <span><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd> <i data-i18n="help.key.move">идти</i></span>
             <span><kbd>Space</kbd> / <kbd>W</kbd> <i data-i18n="help.key.jump">прыжок</i></span>
             <span><kbd>J</kbd> / <kbd>K</kbd> / <kbd>Enter</kbd> <i data-i18n="help.key.action">действие</i></span>
-            <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> / <kbd>Tab</kbd> <i data-i18n="help.key.switch">сменить викинга</i></span>
+            <span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> / <kbd>Tab</kbd> <i data-i18n="help.key.switch">сменить северянина</i></span>
             <span><kbd>R</kbd> <i data-i18n="help.key.restart">рестарт</i></span>
             <span><kbd>P</kbd> / <kbd>Esc</kbd> <i data-i18n="help.key.pause">пауза</i></span>
             <span><kbd>G</kbd> <i data-i18n="help.key.gfx">графика</i></span>
@@ -367,7 +367,7 @@ a.back:hover { color: #eef2f8; }
       <section class="screen screen--dead" data-screen="dead">
         <div class="panel panel--compact dead-panel">
           <p class="eyebrow" data-i18n="dead.eyebrow">Вальгалла ждёт</p>
-          <h2 class="panel__title" data-i18n="dead.title">Викинг пал</h2>
+          <h2 class="panel__title" data-i18n="dead.title">Северянин пал</h2>
           <p class="dead-text" id="dead-text">Шипы не прощают ошибок.</p>
           <div class="dead-timer"><span id="dead-countdown">3</span><em data-i18n="dead.auto">Возрождение…</em></div>
           <div class="panel__actions">
@@ -381,7 +381,7 @@ a.back:hover { color: #eef2f8; }
         <div class="panel panel--compact finale-panel">
           <p class="eyebrow" data-i18n="finale.eyebrow">Сага окончена</p>
           <h2 class="panel__title" data-i18n="finale.title">Дом, милый дом</h2>
-          <p class="finale-text" data-i18n="finale.text">Корабль снова на воде, ворота открыты, а над фьордом встаёт солнце. Три викинга вернулись — и им есть что рассказать.</p>
+          <p class="finale-text" data-i18n="finale.text">Корабль снова на воде, ворота открыты, а над фьордом встаёт солнце. Три северянина вернулись — и им есть что рассказать.</p>
           <div class="result-stats">
             <div><span data-i18n="finale.totalTime">Всего времени</span><b id="finale-time">0:00</b></div>
             <div><span data-i18n="finale.totalTreasure">Сокровища</span><b id="finale-treasure">0/0</b></div>
@@ -425,10 +425,10 @@ document.addEventListener('DOMContentLoaded', function () { // после boot()
   var UI = window.SAGA_UI, G = window.SAGA_GAME;
   var STR = {
     ru: { play: 'Играть', language: 'Язык', theme: 'Тема', sound: 'Звук', on: 'вкл', off: 'выкл', score: 'Очки', level: 'Ур.', best: 'Рекорд',
-          win: 'САГА ОКОНЧЕНА!', gameover: 'ВИКИНГИ ПАЛИ', pause: 'ПАУЗА', resume: 'Продолжить', menu: 'В меню', tapstart: 'Enter / тап',
+          win: 'САГА ОКОНЧЕНА!', gameover: 'Северяне ПАЛИ', pause: 'ПАУЗА', resume: 'Продолжить', menu: 'В меню', tapstart: 'Enter / тап',
           title: 'СЕВЕРНАЯ САГА', subtitle: 'Платформер-головоломка с тремя героями', 'continue': 'Продолжить', levels: 'Уровни' },
     en: { play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off', score: 'Score', level: 'Lvl', best: 'Best',
-          win: 'THE SAGA IS OVER!', gameover: 'THE VIKINGS FELL', pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'Enter / tap',
+          win: 'THE SAGA IS OVER!', gameover: 'THE NORTHMEN FELL', pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'Enter / tap',
           title: 'NORTHERN SAGA', subtitle: 'A puzzle platformer with three heroes', 'continue': 'Continue', levels: 'Levels' }
   };
   // экраны игры → режимы оболочки; родные экраны между уровнями — 'sub' (движок прозрачен, P/Esc — в меню)

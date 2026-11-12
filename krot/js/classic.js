@@ -13,7 +13,7 @@
    ========================================================================== */
 (function (global) {
   'use strict';
-  var DG = global.DG = global.DG || {};
+  var KROT = global.KROT = global.KROT || {};
 
   /* ------------------------------- геометрия ------------------------------- */
   var COLS = 15, ROWS = 10, CELL = 16;      // клетка — 16×16 буферных пикселей
@@ -57,7 +57,7 @@
   /* -------------------------------- утилиты -------------------------------- */
   function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
   function round(v) { return Math.round(v); }
-  function tr(key, vars) { return DG.t ? DG.t(key, vars) : key; }
+  function tr(key, vars) { return KROT.t ? KROT.t(key, vars) : key; }
   function pad(n, len) {
     var s = String(Math.max(0, Math.floor(n || 0)));
     while (s.length < len) s = '0' + s;
@@ -488,7 +488,7 @@
       light: hexRgb(C.lorange),
       peach: hexRgb(C.peach)
     };
-    var rnd = DG.rng ? DG.rng(0x51D6E701) : (function () {
+    var rnd = KROT.rng ? KROT.rng(0x51D6E701) : (function () {
       var s = 7;
       return function () { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
     })();
@@ -748,8 +748,8 @@
         // звёздочки
         for (var s = 0; s < 6; s++) {
           var a = s * 1.05 + t * 5;
-          var rr = 5 + (1 - k) * 12;
-          lr(g, px + Math.cos(a) * rr - 1, py + Math.sin(a) * rr - 1, 2, 2,
+          var orb = 5 + (1 - k) * 12;
+          lr(g, px + Math.cos(a) * orb - 1, py + Math.sin(a) * orb - 1, 2, 2,
             (s & 1) ? C.white : C.ltGold);
         }
         continue;
@@ -850,9 +850,9 @@
     g.restore();
     for (var i = 0; i < 10; i++) {
       var a = i * 0.63 + t * 4.5;
-      var rr = 6 + k * 26;
+      var orb = 6 + k * 26;
       var sz = (i & 1) ? 2 : 1;
-      lr(g, px + Math.cos(a) * rr - 1, py + Math.sin(a) * rr - 1, sz, sz,
+      lr(g, px + Math.cos(a) * orb - 1, py + Math.sin(a) * orb - 1, sz, sz,
         i % 3 === 0 ? C.white : (i % 3 === 1 ? C.ltGold : C.red));
     }
     // вспышка-звезда в первые доли секунды
@@ -866,12 +866,12 @@
     }
     // расширяющееся кольцо обломков
     for (var ring = 0; ring < 2; ring++) {
-      var rr = 4 + k * (14 + ring * 14);
+      var orb = 4 + k * (14 + ring * 14);
       var n = 10 + ring * 6;
       for (var r = 0; r < n; r++) {
         var a = r * Math.PI * 2 / n + t * (2 + ring) + ring;
         var sz = ((r + ring) % 3 === 0) ? 2 : 1;
-        lr(g, px + Math.cos(a) * rr - 1, py + Math.sin(a) * rr - 1, sz, sz,
+        lr(g, px + Math.cos(a) * orb - 1, py + Math.sin(a) * orb - 1, sz, sz,
           r % 3 === 0 ? C.white : (r % 3 === 1 ? C.ltGold : C.red));
       }
     }
@@ -1161,13 +1161,13 @@
     } catch (e) {
       if (!errShown && global.console && console.error) {
         errShown = true;
-        console.error('DG.render.classic:', e);
+        console.error('KROT.render.classic:', e);
       }
     } finally {
       ctx.restore();
     }
   }
 
-  DG.render = DG.render || {};
-  DG.render.classic = { id: 'classic', draw: draw };
+  KROT.render = KROT.render || {};
+  KROT.render.classic = { id: 'classic', draw: draw };
 })(window);

@@ -191,13 +191,13 @@ window.SAGA2 = window.SAGA2 || {};
 
   /* ============================ данные ============================ */
 
-  var VIKINGS = [
+  var NORTHMEN = [
     { id: 'snorri', abilities: ['headbutt', 'glide'] },
     { id: 'gunnar', abilities: ['sword', 'bow', 'hook'] },
     { id: 'bjorn', abilities: ['shield'] }
   ];
-  var VIKING_MAP = {};
-  for (var vi = 0; vi < VIKINGS.length; vi++) VIKING_MAP[VIKINGS[vi].id] = VIKINGS[vi];
+  var NORTHMAN_MAP = {};
+  for (var vi = 0; vi < NORTHMEN.length; vi++) NORTHMAN_MAP[NORTHMEN[vi].id] = NORTHMEN[vi];
 
   // способности для сенсорных кнопок: action (J), special (K/Space), hook (L)
   var TOUCH_ABILITIES = {
@@ -522,18 +522,18 @@ window.SAGA2 = window.SAGA2 || {};
     var time = nz(s.time, s.elapsed, pd.time, 0);
     var deaths = nz(s.deaths, s.levelDeaths, s.deathCount, pd.deaths, 0);
 
-    var srcActors = Array.isArray(s.actors) ? s.actors : (Array.isArray(s.vikings) ? s.vikings : null);
+    var srcActors = Array.isArray(s.actors) ? s.actors : (Array.isArray(s.northmen) ? s.northmen : null);
     var activeId = typeof s.active === 'string' ? s.active : null;
     var actors = [];
-    for (var i = 0; i < VIKINGS.length; i++) {
-      var def = VIKINGS[i], found = null;
+    for (var i = 0; i < NORTHMEN.length; i++) {
+      var def = NORTHMEN[i], found = null;
       if (srcActors) {
         for (var j = 0; j < srcActors.length; j++) {
           if (srcActors[j] && (srcActors[j].id === def.id || srcActors[j].key === def.id)) { found = srcActors[j]; break; }
         }
         if (!found && srcActors[i] && typeof srcActors[i] === 'object') found = srcActors[i];
-      } else if (s.vikings && typeof s.vikings === 'object' && !Array.isArray(s.vikings)) {
-        found = s.vikings[def.id] || null;
+      } else if (s.northmen && typeof s.northmen === 'object' && !Array.isArray(s.northmen)) {
+        found = s.northmen[def.id] || null;
       }
       var maxHp = nz(found ? found.maxHp : null, 3);
       var hp = found ? nz(found.hp, maxHp) : maxHp;
@@ -565,11 +565,11 @@ window.SAGA2 = window.SAGA2 || {};
     };
   }
 
-  /* ============================ HUD: карточки викингов ============================ */
+  /* ============================ HUD: карточки северян ============================ */
 
-  function buildVikingCard(v, index) {
-    var name = T('viking.' + v.id);
-    var role = T('viking.' + v.id + '.role');
+  function buildNorthmanCard(v, index) {
+    var name = T('northman.' + v.id);
+    var role = T('northman.' + v.id + '.role');
     var canvas = h('canvas', { 'class': 'portrait__canvas', width: 96, height: 108, 'aria-hidden': 'true' });
     var portrait = h('div', { 'class': 'portrait' }, [portraitEl(v.id), canvas]);
     var hearts = [];
@@ -591,19 +591,19 @@ window.SAGA2 = window.SAGA2 || {};
         h('kbd', { 'class': 'ability__key', text: T('ability.' + ab + '.key') })
       ]));
     }
-    var meta = h('div', { 'class': 'viking__meta' }, [heartsWrap, pills]);
-    var stateEl = h('span', { 'class': 'viking__state', text: '' });
+    var meta = h('div', { 'class': 'northman__meta' }, [heartsWrap, pills]);
+    var stateEl = h('span', { 'class': 'northman__state', text: '' });
     var el = h('article', {
-      'class': 'viking viking--' + v.id,
+      'class': 'northman northman--' + v.id,
       'data-actor': v.id,
       'aria-label': name
     }, [
-      h('span', { 'class': 'viking__index', text: String(index + 1), 'aria-hidden': 'true' }),
+      h('span', { 'class': 'northman__index', text: String(index + 1), 'aria-hidden': 'true' }),
       portrait,
-      h('div', { 'class': 'viking__body' }, [
-        h('div', { 'class': 'viking__head' }, [
-          h('h3', { 'class': 'viking__name', text: name }),
-          h('span', { 'class': 'viking__role', text: role })
+      h('div', { 'class': 'northman__body' }, [
+        h('div', { 'class': 'northman__head' }, [
+          h('h3', { 'class': 'northman__name', text: name }),
+          h('span', { 'class': 'northman__role', text: role })
         ]),
         meta
       ]),
@@ -697,19 +697,19 @@ window.SAGA2 = window.SAGA2 || {};
     top.appendChild(h('div', { 'class': 'hud-group hud-group--right' }, [exitPanel, actions]));
 
     var cards = [];
-    var vikingsRow = h('div', { 'class': 'vikings', role: 'list', 'aria-label': T('a11y.vikings') });
-    for (var v = 0; v < VIKINGS.length; v++) {
-      var card = buildVikingCard(VIKINGS[v], v);
+    var northmenRow = h('div', { 'class': 'northmen', role: 'list', 'aria-label': T('a11y.northmen') });
+    for (var v = 0; v < NORTHMEN.length; v++) {
+      var card = buildNorthmanCard(NORTHMEN[v], v);
       card.el.setAttribute('role', 'listitem');
       cards.push(card);
-      vikingsRow.appendChild(card.el);
+      northmenRow.appendChild(card.el);
     }
     var hint = h('p', { 'class': 'hud-hint', title: T('hud.hint') }, [
       h('span', { 'class': 'hud-hint__keys', text: T('hud.hintShort') })
     ]);
 
     var bottom = h('div', { 'class': 'hud-bottom' }, [
-      vikingsRow,
+      northmenRow,
       hint
     ]);
 
@@ -755,14 +755,14 @@ window.SAGA2 = window.SAGA2 || {};
       toggleCls(card.el, 'is-low', a.hp <= 1 && !a.dead);
       var stateText = a.exited ? T('hud.exited') : a.dead ? T('hud.dead') : isActive ? T('hud.active') : T('hud.idle');
       setText(card.stateEl, stateText);
-      card.stateEl.className = 'viking__state ' + (a.exited ? 'is-exited' : a.dead ? 'is-dead' : isActive ? 'is-active' : '');
+      card.stateEl.className = 'northman__state ' + (a.exited ? 'is-exited' : a.dead ? 'is-dead' : isActive ? 'is-active' : '');
       for (var hh = 0; hh < card.hearts.length; hh++) toggleCls(card.hearts[hh], 'is-empty', hh >= a.hp);
       var stateAria = a.exited ? T('hud.stateExited') : a.dead ? T('hud.stateDead') : isActive ? T('hud.stateActive') : T('hud.stateIdle');
       var abilities = [];
-      for (var ab = 0; ab < VIKING_MAP[a.id].abilities.length; ab++) {
-        abilities.push(T('ability.' + VIKING_MAP[a.id].abilities[ab]));
+      for (var ab = 0; ab < NORTHMAN_MAP[a.id].abilities.length; ab++) {
+        abilities.push(T('ability.' + NORTHMAN_MAP[a.id].abilities[ab]));
       }
-      setAttr(card.el, 'aria-label', T('hud.vikingAria', {
+      setAttr(card.el, 'aria-label', T('hud.northmanAria', {
         name: card.name, role: card.role, state: stateAria,
         hp: a.hp, max: a.maxHp, abilities: abilities.join(', ')
       }));
@@ -828,11 +828,11 @@ window.SAGA2 = window.SAGA2 || {};
     setTouchButtonContent(refs.touch.special, map.special, 'touch.special');
     setTouchButtonContent(refs.touch.hook, map.hook, 'touch.hook');
     if (n && refs.touch.switchLabel) {
-      // подпись смены викинга: следующий по кругу
+      // подпись смены северянина: следующий по кругу
       var order = ['snorri', 'gunnar', 'bjorn'];
       var idx = order.indexOf(activeId);
       var next = order[(idx + 1) % order.length];
-      setText(refs.touch.switchLabel, T('viking.' + next));
+      setText(refs.touch.switchLabel, T('northman.' + next));
     }
   }
 
@@ -945,8 +945,8 @@ window.SAGA2 = window.SAGA2 || {};
 
     var logo = h('h1', { 'class': 'logo', 'aria-label': 'СЕВЕРНАЯ САГА II · СТУДИЯ ГЕФЕСТ' }, [
       h('span', { 'class': 'logo__line logo__line--north', text: T('brand.north'), 'aria-hidden': 'true' }),
-      h('span', { 'class': 'logo__line logo__line--vikings' }, [
-        h('span', { 'class': 'logo__word', text: T('brand.vikings') }),
+      h('span', { 'class': 'logo__line logo__line--northmen' }, [
+        h('span', { 'class': 'logo__word', text: T('brand.northmen') }),
         h('span', { 'class': 'logo__ii', text: T('brand.ii') })
       ]),
       h('span', { 'class': 'logo__glint', 'aria-hidden': 'true' })
@@ -1195,8 +1195,8 @@ window.SAGA2 = window.SAGA2 || {};
       h('span', { 'class': 'crew__portrait', 'aria-hidden': 'true' }, [portraitEl(v.id)]),
       h('div', { 'class': 'crew__body' }, [
         h('div', { 'class': 'crew__head' }, [
-          h('span', { 'class': 'crew__name', text: T('viking.' + v.id) }),
-          h('span', { 'class': 'crew__role', text: T('viking.' + v.id + '.role') })
+          h('span', { 'class': 'crew__name', text: T('northman.' + v.id) }),
+          h('span', { 'class': 'crew__role', text: T('northman.' + v.id + '.role') })
         ]),
         abilities
       ])
@@ -1285,7 +1285,7 @@ window.SAGA2 = window.SAGA2 || {};
         h('p', { 'class': 'panel__label', text: T('brief.crew') }),
         h('span', { 'class': 'brief-crew__sub', text: T('brief.crewSub') })
       ]),
-      h('div', { 'class': 'crew-list' }, VIKINGS.map(crewRow))
+      h('div', { 'class': 'crew-list' }, NORTHMEN.map(crewRow))
     ]);
 
     var info = h('div', { 'class': 'brief-info' }, [
@@ -1535,7 +1535,7 @@ window.SAGA2 = window.SAGA2 || {};
     ]);
   }
 
-  function abilityCard(abilityId, vikingId) {
+  function abilityCard(abilityId, northmanId) {
     return h('li', { 'class': 'ability-card' }, [
       h('span', { 'class': 'ability-card__icon' }, [svgEl(abilityId)]),
       h('span', { 'class': 'ability-card__body' }, [
@@ -1583,14 +1583,14 @@ window.SAGA2 = window.SAGA2 || {};
     }
 
     var abilityList = h('ul', { 'class': 'ability-cards' });
-    for (var v = 0; v < VIKINGS.length; v++) {
-      var vk = VIKINGS[v];
+    for (var v = 0; v < NORTHMEN.length; v++) {
+      var vk = NORTHMEN[v];
       var cards = [];
       for (var a = 0; a < vk.abilities.length; a++) cards.push(abilityCard(vk.abilities[a], vk.id));
       abilityList.appendChild(h('li', { 'class': 'ability-group ability-group--' + vk.id }, [
         h('p', { 'class': 'ability-group__title' }, [
-          h('span', { 'class': 'ability-group__name', text: T('viking.' + vk.id) }),
-          h('span', { 'class': 'ability-group__role', text: T('viking.' + vk.id + '.role') })
+          h('span', { 'class': 'ability-group__name', text: T('northman.' + vk.id) }),
+          h('span', { 'class': 'ability-group__role', text: T('northman.' + vk.id + '.role') })
         ]),
         h('ul', { 'class': 'ability-group__list' }, cards)
       ]));

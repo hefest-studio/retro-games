@@ -10,7 +10,7 @@
  *
  * Скрипт выполняется как `(async (args) => { <код скрипта> })(<args>)`;
  * результат возвращается через return/последнее выражение и печатается JSON-ом.
- * Окружение скрипта: `args` (объект из --args), `sleep(ms)`.
+ * Окружение скрипта: `args` (объект из --args; `args.env` — переменные окружения RUSLO_*), `sleep(ms)`.
  */
 import { spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from "node:fs";
@@ -19,6 +19,7 @@ import { dirname, join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
 const CHROME_CANDIDATES = [
+  process.env.CHROME, // свой путь к Chrome/Chromium (напр. браузер Playwright)
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
   "/Applications/Chromium.app/Contents/MacOS/Chromium",
   "/usr/bin/google-chrome",
@@ -49,14 +50,14 @@ function fileUrl(p) {
 }
 
 function findChrome() {
-  for (const c of CHROME_CANDIDATES) {
+  for (const c of CHROME_CANDIDATES.filter(Boolean)) {
     try { readFileSync(c); return c; } catch { /* продолжаем */ }
   }
   throw new Error("Chrome не найден");
 }
 
 /* ---------- соединение ---------- */
-const profile = mkdtempSync(join(tmpdir(), "rr-chrome-"));
+const profile = mkdtempSync(join(tmpdir(), "ruslo-chrome-"));
 let PORT = 0;
 const chrome = spawn(findChrome(), [
   "--headless=new",
@@ -211,7 +212,9 @@ try {
     }
   } else if (A.script) {
     const code = readFileSync(resolve(ROOT, A.script), "utf8");
-    const result = await evaluate(code, A.args ? JSON.parse(A.args) : {});
+    // Переменные окружения RUSLO_* доступны скрипту как args.env (напр. порог FPS в test-stress.js).
+    const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => k.startsWith("RUSLO_")));
+    const result = await evaluate(code, { env, ...(A.args ? JSON.parse(A.args) : {}) });
     console.log("— JS result —");
     console.log(typeof result === "string" ? result : JSON.stringify(result, null, 2));
   } else if (cmd === "eval" && A.code) {

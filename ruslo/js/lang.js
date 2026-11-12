@@ -3,8 +3,8 @@
  * Русский — по умолчанию. Переключение клавишей L, кнопкой или через меню.
  * ========================================================================== */
 'use strict';
-window.RR = window.RR || {};
-(function (RR) {
+window.RUSLO = window.RUSLO || {};
+(function (RUSLO) {
   const DICT = {
     ru: {
       /* оболочка */
@@ -183,11 +183,11 @@ window.RR = window.RR || {};
     },
   };
 
-  let lang = RR.store.get('lang', 'ru');
+  let lang = RUSLO.store.get('lang', 'ru');
   if (!DICT[lang]) lang = 'ru';
 
-  RR.getLang = () => lang;
-  RR.t = function (key, vars) {
+  RUSLO.getLang = () => lang;
+  RUSLO.t = function (key, vars) {
     const table = DICT[lang] || DICT.ru;
     let s = table[key];
     if (s == null) s = DICT.ru[key] != null ? DICT.ru[key] : key;
@@ -196,31 +196,31 @@ window.RR = window.RR || {};
     }
     return s;
   };
-  RR.dict = DICT;
+  RUSLO.dict = DICT;
 
   /** Применить перевод к DOM: data-i18n / data-i18n-aria / data-i18n-title */
-  RR.applyI18n = function (root = document) {
+  RUSLO.applyI18n = function (root = document) {
     root.querySelectorAll('[data-i18n]').forEach((el) => {
       const key = el.getAttribute('data-i18n');
-      const txt = RR.t(key);
+      const txt = RUSLO.t(key);
       if (el.hasAttribute('data-i18n-html')) el.innerHTML = txt;
       else el.textContent = txt;
     });
-    root.querySelectorAll('[data-i18n-aria]').forEach((el) => el.setAttribute('aria-label', RR.t(el.getAttribute('data-i18n-aria'))));
-    root.querySelectorAll('[data-i18n-title]').forEach((el) => el.setAttribute('title', RR.t(el.getAttribute('data-i18n-title'))));
+    root.querySelectorAll('[data-i18n-aria]').forEach((el) => el.setAttribute('aria-label', RUSLO.t(el.getAttribute('data-i18n-aria'))));
+    root.querySelectorAll('[data-i18n-title]').forEach((el) => el.setAttribute('title', RUSLO.t(el.getAttribute('data-i18n-title'))));
     document.documentElement.lang = lang === 'ru' ? 'ru' : 'en';
-    document.title = RR.t('pageTitle');
+    document.title = RUSLO.t('pageTitle');
     const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute('content', RR.t('metaDescription'));
+    if (meta) meta.setAttribute('content', RUSLO.t('metaDescription'));
   };
 
-  RR.setLang = function (next) {
+  RUSLO.setLang = function (next) {
     if (!DICT[next] || next === lang) return;
     lang = next;
-    RR.store.set('lang', lang);
-    RR.applyI18n();
+    RUSLO.store.set('lang', lang);
+    RUSLO.applyI18n();
     document.documentElement.setAttribute('data-lang', lang);
-    RR.on.lang.forEach((fn) => { try { fn(lang); } catch (e) { console.error(e); } });
+    RUSLO.on.lang.forEach((fn) => { try { fn(lang); } catch (e) { console.error(e); } });
   };
-  RR.toggleLang = () => RR.setLang(lang === 'ru' ? 'en' : 'ru');
-})(window.RR);
+  RUSLO.toggleLang = () => RUSLO.setLang(lang === 'ru' ? 'en' : 'ru');
+})(window.RUSLO);

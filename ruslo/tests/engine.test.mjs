@@ -1,6 +1,6 @@
 /* РУСЛО · tests/engine.test.mjs — автотесты логики (Node, без зависимостей) + трек музыки + оболочка v2.
    Запуск: node ruslo/tests/engine.test.mjs. Родные core.js/lang.js/game.js грузятся в node:vm с шимом
-   window/document: без canvas#game game.js не запускает свой цикл — им управляют через RR.test (как оболочка v2).
+   window/document: без canvas#game game.js не запускает свой цикл — им управляют через RUSLO.test (как оболочка v2).
    Интеграционные UI-тесты старой страницы — ruslo/tools/test-*.js (теперь против legacy.html). */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -28,8 +28,8 @@ vm.createContext(sandbox);
 for (const f of ['js/core.js', 'js/lang.js', 'js/game.js']) {
   vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 }
-const RR = sandbox.RR;
-const T = RR.test;
+const RUSLO = sandbox.RUSLO;
+const T = RUSLO.test;
 
 let passed = 0, failed = 0;
 function test(name, fn) { try { fn(); passed++; console.log('ok   ' + name); } catch (e) { failed++; console.log('FAIL ' + name + ' — ' + e.message); } }
@@ -38,12 +38,12 @@ function ok(c, m) { if (!c) throw new Error(m || 'ложь'); }
 function steps(sec) { const n = Math.round(sec * 60); for (let i = 0; i < n; i++) T.update(1 / 60); }
 function fresh() { ['left', 'right', 'up', 'down', 'fire'].forEach((k) => T.hold(k, false)); T.startGame(); T.clearEnemies(); T.seekClear(); }
 
-test('namespace: RR.S, RR.test, RR.Render-контракт, поле 360×540', () => {
-  ok(RR.S && T && typeof T.startGame === 'function' && typeof T.update === 'function' && typeof T.hold === 'function');
-  eq(RR.W, 360); eq(RR.H, 540);
+test('namespace: RUSLO.S, RUSLO.test, RUSLO.Render-контракт, поле 360×540', () => {
+  ok(RUSLO.S && T && typeof T.startGame === 'function' && typeof T.update === 'function' && typeof T.hold === 'function');
+  eq(RUSLO.W, 360); eq(RUSLO.H, 540);
 });
 test('без canvas#game родной цикл не стартует: режим menu, ошибок нет', () => {
-  eq(RR.S.mode, 'menu'); eq(RR.S.errors.length, 0);
+  eq(RUSLO.S.mode, 'menu'); eq(RUSLO.S.errors.length, 0);
 });
 test('startGame: полёт, 3 жизни, полный бак, мост впереди, счёт 0', () => {
   fresh(); const s = T.state();
@@ -65,19 +65,19 @@ test('огонь (пробел/action → hold fire) выпускает пули
   steps(0.05); eq(T.state().bullets, n1, 'откат не работает'); steps(2); ok(T.state().bullets <= 4, 'больше 4 пуль'); T.hold('fire', false);
 });
 test('топливо расходуется; пустой бак → потеря жизни и возрождение', () => {
-  fresh(); const f0 = RR.S.fuel; steps(1); ok(RR.S.fuel < f0, 'топливо не тратится');
-  T.setFuel(0.01); steps(0.1); eq(RR.S.mode, 'dying'); eq(RR.S.lives, 2);
-  steps(2); eq(RR.S.mode, 'play', 'не возродился'); ok(RR.S.fuel > 55, 'бак после возрождения ' + RR.S.fuel);
+  fresh(); const f0 = RUSLO.S.fuel; steps(1); ok(RUSLO.S.fuel < f0, 'топливо не тратится');
+  T.setFuel(0.01); steps(0.1); eq(RUSLO.S.mode, 'dying'); eq(RUSLO.S.lives, 2);
+  steps(2); eq(RUSLO.S.mode, 'play', 'не возродился'); ok(RUSLO.S.fuel > 55, 'бак после возрождения ' + RUSLO.S.fuel);
 });
 test('мост: несколько попаданий разрушают, через паузу — уровень 2', () => {
-  fresh(); T.nearBridge(600); T.bridgeHits(10); ok(!RR.S.bridge.alive, 'мост цел'); ok(RR.S.score >= 550, 'очки за мост');
-  T.setInvuln(30); T.refuel(); steps(2.2); eq(RR.S.level, 2);
+  fresh(); T.nearBridge(600); T.bridgeHits(10); ok(!RUSLO.S.bridge.alive, 'мост цел'); ok(RUSLO.S.score >= 550, 'очки за мост');
+  T.setInvuln(30); T.refuel(); steps(2.2); eq(RUSLO.S.level, 2);
 });
 test('конец игры: mode over, рекорд обновлён', () => {
-  fresh(); RR.S.score = 4321; T.forceGameOver(); eq(RR.S.mode, 'over'); ok(RR.S.hi >= 4321, 'hi ' + RR.S.hi);
+  fresh(); RUSLO.S.score = 4321; T.forceGameOver(); eq(RUSLO.S.mode, 'over'); ok(RUSLO.S.hi >= 4321, 'hi ' + RUSLO.S.hi);
 });
-test('язык: RR.setLang переключает подписи HUD', () => {
-  RR.setLang('en'); eq(RR.t('hudFuel'), 'FUEL'); RR.setLang('ru'); ok(RR.t('hudFuel') !== 'FUEL');
+test('язык: RUSLO.setLang переключает подписи HUD', () => {
+  RUSLO.setLang('en'); eq(RUSLO.t('hudFuel'), 'FUEL'); RUSLO.setLang('ru'); ok(RUSLO.t('hudFuel') !== 'FUEL');
 });
 test('трек js/music.js: валидная нотация, 8 тактов, голоса кратны', () => {
   const sb = { window: { Arcade: {} } }; vm.createContext(sb);
@@ -99,11 +99,11 @@ test('оболочка v2: engine.js → music.js первыми, нет canvas#
 test('миграция localStorage: riverraid.* → ruslo.*, старые удалены, новые не затираются', () => {
   const mk = (init) => { const m = new Map(Object.entries(init)); return { m, getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
   const a = mk({ 'riverraid.hi': '4242', 'riverraid.lang': '"en"', 'riverraid.gfx': '"modern"', 'riverraid.sound': 'false', 'riverraid.volume': '0.3' });
-  RR.store.migrate(a);
+  RUSLO.store.migrate(a);
   eq(a.m.get('ruslo.hi'), '4242', 'рекорд'); eq(a.m.get('ruslo.lang'), '"en"', 'язык'); eq(a.m.get('ruslo.volume'), '0.3', 'громкость');
   ok(![...a.m.keys()].some((k) => k.startsWith('riverraid.')), 'старые ключи не удалены: ' + [...a.m.keys()]);
   const b = mk({ 'riverraid.hi': '4242', 'ruslo.hi': '5000' });
-  RR.store.migrate(b);
+  RUSLO.store.migrate(b);
   eq(b.m.get('ruslo.hi'), '5000', 'новый рекорд затёрт старым'); ok(!b.m.has('riverraid.hi'), 'старый не удалён');
 });
 console.log(`\nOK ${passed}/${passed + failed}`);

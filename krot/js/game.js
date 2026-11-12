@@ -6,14 +6,14 @@
    ========================================================================== */
 (function (global) {
   'use strict';
-  var DG = global.DG = global.DG || {};
+  var KROT = global.KROT = global.KROT || {};
 
   /* Миграция localStorage: ключи прежнего рабочего имени → ключи КРОТа.
      Старый → новый (если нового ещё нет) → удалить старый. Вызывают main.js (legacy.html)
      и index.html до первого чтения настроек/рекорда. ls — объект Storage (для тестов — подделка). */
-  DG.STORE_KEYS = { settings: 'krot.settings.v1', hi: 'krot.hi.v1' };
+  KROT.STORE_KEYS = { settings: 'krot.settings.v1', hi: 'krot.hi.v1' };
   var LEGACY_STORE_KEYS = [['digger.settings.v1', 'krot.settings.v1'], ['digger.hi.v1', 'krot.hi.v1']];
-  DG.migrateStorage = function (ls) {
+  KROT.migrateStorage = function (ls) {
     try {
       if (!ls) return;
       LEGACY_STORE_KEYS.forEach(function (pair) {
@@ -53,10 +53,10 @@
     [[0, 0], [1, 0], [2, 0]]
   ];
 
-  DG.G = { COLS: COLS, ROWS: ROWS, DIRS: DIRS, W: 960, H: 600, MOVE_TIME: MOVE_TIME };
+  KROT.G = { COLS: COLS, ROWS: ROWS, DIRS: DIRS, W: 960, H: 600, MOVE_TIME: MOVE_TIME };
 
   /* Детерминированный PRNG (mulberry32). */
-  DG.rng = function (seed) {
+  KROT.rng = function (seed) {
     var a = (seed >>> 0);
     if (a === 0) a = 0x9E3779B9;
     return function () {
@@ -87,12 +87,12 @@
   }
 
   /* ------------------------------------------------------------------------- */
-  DG.Game = function (opts) {
+  KROT.Game = function (opts) {
     opts = opts || {};
     var onEventFn = typeof opts.onEvent === 'function' ? opts.onEvent : null;
     var seed = (opts.seed == null ? 1337 : opts.seed) >>> 0;
-    var vrng = DG.rng((seed ^ 0x5F356495) >>> 0); // только для визуальных эффектов
-    var levelRng = DG.rng(seed);
+    var vrng = KROT.rng((seed ^ 0x5F356495) >>> 0); // только для визуальных эффектов
+    var levelRng = KROT.rng(seed);
 
     var S = {
       seed: seed, level: 1, score: 0, hi: opts.hiscore || 0, hiAtStart: opts.hiscore || 0,
@@ -114,7 +114,7 @@
     function emit(type, data) {
       if (!onEventFn) return;
       try { onEventFn(type, data || {}); } catch (e) {
-        if (global.console && console.error) console.error('DG event error:', e);
+        if (global.console && console.error) console.error('KROT event error:', e);
       }
     }
 
@@ -266,7 +266,7 @@
     }
 
     function generateLevel(level) {
-      var R = DG.rng(((seed * 1000003) ^ (level * 7919) ^ 0x9E3779B9) >>> 0);
+      var R = KROT.rng(((seed * 1000003) ^ (level * 7919) ^ 0x9E3779B9) >>> 0);
       levelRng = R;
       S.level = level;
       var i;

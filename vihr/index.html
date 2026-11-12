@@ -78,10 +78,10 @@
 <script>
 'use strict';
 /* ВИХРЬ на движке v2 — «оболочка» (js/host.js): родные src/audio.js + src/game.js (логика, зоны,
-   баланс, рендеры 8-бит = retro и современный = modern, своя музыка SWAudio) работают без изменений,
-   движок даёт меню/паузу/финалы/тему/язык/звук/рекорд. Связь — через window.__SW. */
+   баланс, рендеры 8-бит = retro и современный = modern, своя музыка VIHRAudio) работают без изменений,
+   движок даёт меню/паузу/финалы/тему/язык/звук/рекорд. Связь — через window.__VIHR. */
 (function () {
-  var SW = window.__SW;
+  var VIHR = window.__VIHR;
   var STR = {
     ru: { play: 'Играть', language: 'Язык', theme: 'Тема', sound: 'Звук', on: 'вкл', off: 'выкл', score: 'Счёт', level: 'Зона', best: 'Рекорд',
           win: 'МИССИЯ ВЫПОЛНЕНА', gameover: 'ВЕРТОЛЁТ ПОТЕРЯН', pause: 'ПАУЗА', resume: 'Продолжить', menu: 'В меню', tapstart: 'пробел / тап',
@@ -94,19 +94,19 @@
   ArcadeHost.mount({
     gameId: 'vihr', mount: '#frame', width: 520, height: 364, strings: STR, extra: 'controls',
     adapter: {
-      mode: function () { return MODE[SW.G.state] || 'play'; },
-      start: function () { SW.Sound.unlock(); SW.newGame(); },
-      toTitle: function () { SW.toTitle(); },
-      pause: function () { SW.pauseGame(); },
-      resume: function () { SW.resumeGame(); },
-      openSub: function () { SW.G.state = 'controls'; },
-      score: function () { return SW.G.score; },
-      best: function () { return SW.G.hi; },
-      gfx: function () { return SW.GFX(); },
-      setGfx: function (v) { SW.setGfx(v, true); },
-      lang: function () { return SW.LANG(); },
-      setLang: function (v) { SW.CFG.lang = v; SW.setLang(v, true); },
-      setSound: function (on) { if (SW.CFG.sound !== on) SW.toggleSound(); }
+      mode: function () { return MODE[VIHR.G.state] || 'play'; },
+      start: function () { VIHR.Sound.unlock(); VIHR.newGame(); },
+      toTitle: function () { VIHR.toTitle(); },
+      pause: function () { VIHR.pauseGame(); },
+      resume: function () { VIHR.resumeGame(); },
+      openSub: function () { VIHR.G.state = 'controls'; },
+      score: function () { return VIHR.G.score; },
+      best: function () { return VIHR.G.hi; },
+      gfx: function () { return VIHR.GFX(); },
+      setGfx: function (v) { VIHR.setGfx(v, true); },
+      lang: function () { return VIHR.LANG(); },
+      setLang: function (v) { VIHR.CFG.lang = v; VIHR.setLang(v, true); },
+      setSound: function (on) { if (VIHR.CFG.sound !== on) VIHR.toggleSound(); }
     }
   });
 })();

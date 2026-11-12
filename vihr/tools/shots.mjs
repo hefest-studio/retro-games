@@ -36,7 +36,7 @@ const prefix = prefixArg ? prefixArg.split("=")[1] : "";
 const only = args.filter((a) => !a.startsWith("--"));
 
 mkdirSync(OUT, { recursive: true });
-const profile = mkdtempSync(join(tmpdir(), "sw-chrome-"));
+const profile = mkdtempSync(join(tmpdir(), "vihr-chrome-"));
 const chrome = spawn(CHROME, [
   "--headless=new",
   "--disable-gpu",
@@ -171,7 +171,7 @@ async function main() {
   await send("Emulation.setDeviceMetricsOverride", { width: vp[0], height: vp[1], deviceScaleFactor: 1, mobile: vp[0] < 600 });
   if (playtest) {
     await goto(PAGE);
-    const state = () => grab("JSON.stringify({ st: __SW.G.state, gfx: __SW.GFX(), lang: __SW.LANG(), score: __SW.G.score, bullets: __SW.G.bullets.length, enemies: __SW.G.enemies.length, lives: __SW.G.lives, phase: __SW.G.phase })");
+    const state = () => grab("JSON.stringify({ st: __VIHR.G.state, gfx: __VIHR.GFX(), lang: __VIHR.LANG(), score: __VIHR.G.score, bullets: __VIHR.G.bullets.length, enemies: __VIHR.G.enemies.length, lives: __VIHR.G.lives, phase: __VIHR.G.phase })");
     console.log("  start:", await state());
     await pressKey("Enter", "Enter", 13);
     console.log("  after Enter:", await state());
@@ -206,7 +206,7 @@ async function main() {
     await goto(`${PAGE}#sim=${simSeconds}`);
     await sleep(2500);
     const title = await grab("document.title");
-    const sim = await grab("JSON.stringify(window.__SW_SIM__ || null)");
+    const sim = await grab("JSON.stringify(window.__VIHR_SIM__ || null)");
     const err = await grab("document.getElementById('err')?.textContent || ''");
     console.log("TITLE:", title);
     if (sim) {
@@ -221,19 +221,19 @@ async function main() {
   if (audioSmoke) {
     await goto(PAGE);
     const res = await grab(`(async () => {
-      const out = { api: !!(window.SWAudio && window.SWAudio.playMusic), ready: false, errors: [] };
+      const out = { api: !!(window.VIHRAudio && window.VIHRAudio.playMusic), ready: false, errors: [] };
       try {
-        window.SWAudio.unlock();
+        window.VIHRAudio.unlock();
         await new Promise(r => setTimeout(r, 250));
-        out.ready = !!(window.SWAudio.isReady && window.SWAudio.isReady());
-        out.playStage = window.SWAudio.playMusic('stage');
+        out.ready = !!(window.VIHRAudio.isReady && window.VIHRAudio.isReady());
+        out.playStage = window.VIHRAudio.playMusic('stage');
         await new Promise(r => setTimeout(r, 400));
-        out.playBoss = window.SWAudio.playMusic('boss');
-        out.sfx = ['shoot','explosion','bomb','powerup'].map(n => window.SWAudio.sfx(n));
+        out.playBoss = window.VIHRAudio.playMusic('boss');
+        out.sfx = ['shoot','explosion','bomb','powerup'].map(n => window.VIHRAudio.sfx(n));
         await new Promise(r => setTimeout(r, 400));
-        out.mute = window.SWAudio.setMuted(true);
-        out.unmute = window.SWAudio.setMuted(false);
-        out.test = window.SWAudio.selftest().filter(x => !x.ok).length;
+        out.mute = window.VIHRAudio.setMuted(true);
+        out.unmute = window.VIHRAudio.setMuted(false);
+        out.test = window.VIHRAudio.selftest().filter(x => !x.ok).length;
       } catch (e) { out.errors.push(String(e && e.message || e)); }
       return JSON.stringify(out);
     })()`);
@@ -250,7 +250,7 @@ async function main() {
     await goto(`${PAGE}#test`);
     await sleep(900);
     const title = await grab("document.title");
-    const report = await grab("JSON.stringify(window.__SW_TESTS__ || null)");
+    const report = await grab("JSON.stringify(window.__VIHR_TESTS__ || null)");
     const err = await grab("document.getElementById('err')?.textContent || ''");
     console.log("TITLE:", title);
     if (report) {

@@ -15,13 +15,13 @@ node proryv/tools/build.mjs          # src/*.js + src/style.css -> proryv/index.
 
 Порядок подключения скриптов (важен, всё живёт в общем глобале):
 
-1. `font.js`   → `window.EX_FONT`
-2. `i18n.js`   → `window.EX_I18N`, `window.EX_T`
-3. `audio.js`  → `window.EX_AUDIO`
-4. `levels.js` → `window.EX_LEVELS`
-5. `game.js`   → `window.EX` (состояние, физика, логика, ввод)
-6. `render-retro.js`  → `window.EX_RENDER_RETRO`
-7. `render-modern.js` → `window.EX_RENDER_MODERN`
+1. `font.js`   → `window.PR_FONT`
+2. `i18n.js`   → `window.PR_I18N`, `window.PR_T`
+3. `audio.js`  → `window.PR_AUDIO`
+4. `levels.js` → `window.PR_LEVELS`
+5. `game.js`   → `window.PR` (состояние, физика, логика, ввод)
+6. `render-retro.js`  → `window.PR_RENDER_RETRO`
+7. `render-modern.js` → `window.PR_RENDER_MODERN`
 8. `main.js`   → загрузка, rAF-цикл, масштабирование, оболочка страницы
 
 Каждый файл оборачивается в IIFE и ничего не пишет в глобал, кроме своего неймспейса.
@@ -52,10 +52,10 @@ node proryv/tools/probe.mjs <url> out.png   # headless Chrome: скриншот 
 
 ---
 
-## 1. `window.EX_FONT` — битмап-шрифт 6×8
+## 1. `window.PR_FONT` — битмап-шрифт 6×8
 
 ```js
-window.EX_FONT = {
+window.PR_FONT = {
   W: 6, H: 8,            // ширина знакоместа и высота
   glyphs: { ... },       // { 'A': [b0..b7], ... }  — по одному байту на строку
   has(ch),               // boolean
@@ -75,10 +75,10 @@ window.EX_FONT = {
   (по 3 размера: 1×, 2×, 3×) и скриншот `proryv/reports/font-proof.png`.
   Обязательно прочитать скриншот глазами и исправить кривые глифы.
 
-## 2. `window.EX_AUDIO` — 8-битный звук
+## 2. `window.PR_AUDIO` — 8-битный звук
 
 ```js
-window.EX_AUDIO = {
+window.PR_AUDIO = {
   init(),                      // создать/поднять AudioContext (лениво, безопасно многократно)
   unlock(),                    // вызвать по первому жесту пользователя
   ready(),                     // boolean
@@ -107,19 +107,19 @@ jump, land, exo, menu, select, deny, alarm, missile, crusher, clear, gameover, w
 * Уважать mute: `setMusic(false)` → тишина, но состояние запоминается.
 * Не падать, если `AudioContext` недоступен/приостановлен (headless, file://).
 * Доказательство: `proryv/tmp/audio-proof.html` с кнопками всех треков/эффектов,
-  скриншот + отсутствие ошибок в консоли; `EX_AUDIO.ready() === true` после `unlock()`.
+  скриншот + отсутствие ошибок в консоли; `PR_AUDIO.ready() === true` после `unlock()`.
 
-## 3. `window.EX_LEVELS` — данные уровней
+## 3. `window.PR_LEVELS` — данные уровней
 
 См. `proryv/docs/LEVELS.md`. Формат: массив из 5 уровней, в каждом 5 экранов.
 
-## 4. `window.EX` — состояние игры (для справки, пишет Lead)
+## 4. `window.PR` — состояние игры (для справки, пишет Lead)
 
 ```js
-EX.settings   // {lang:'ru'|'en', gfx:'retro'|'modern', music:bool, sfx:bool, crt:bool}
+PR.settings   // {lang:'ru'|'en', gfx:'retro'|'modern', music:bool, sfx:bool, crt:bool}
               // gfx по умолчанию RETRO и не сохраняется между сессиями (см. README)
-EX.t(key, vars) // локализация: EX_T
-EX.state = {
+PR.t(key, vars) // локализация: PR_T
+PR.state = {
   mode,            // 'title'|'help'|'settings'|'briefing'|'play'|'paused'|
                    // 'dead'|'bonus'|'levelclear'|'gameover'|'win'|'about'
   level, screen,   // индексы 0..4
@@ -133,10 +133,10 @@ EX.state = {
   message: {key, vars, t},
   t                  // общее время игры, секунды
 }
-EX.input  // {left,right,up,down,fire,firePressed,fireReleased,pause,...}
+PR.input  // {left,right,up,down,fire,firePressed,fireReleased,pause,...}
 ```
 
-Рендереры читают `EX.state` и рисуют **в мировых координатах 256×208**
+Рендереры читают `PR.state` и рисуют **в мировых координатах 256×208**
 (поле + HUD), масштаб задаёт `main.js` через `ctx.setTransform`.
 
 ## 5. Оболочка и переключения (реализует Lead)

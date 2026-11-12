@@ -1,55 +1,55 @@
 [
   {
     "shot": "screenshots/title_modern.png",
-    "js": "RR.test.setGfx('modern'); await sleep(700); return RR.test.state().mode;"
+    "js": "RUSLO.test.setGfx('modern'); await sleep(700); return RUSLO.test.state().mode;"
   },
   {
     "shot": "screenshots/title_retro.png",
-    "js": "RR.test.setGfx('retro'); await sleep(600);"
+    "js": "RUSLO.test.setGfx('retro'); await sleep(600);"
   },
   {
     "shot": "screenshots/play_retro.png",
-    "js": "RR.test.setGfx('retro'); RR.test.startGame(); RR.test.setInvuln(99); RR.test.step(1.0); const pos = RR.test.seekClear(); RR.test.clearEnemies(); RR.test.spawnEnemyAt('boat', RR.S.camY + 230, Math.max(60, Math.min(300, pos.planeX - 70))); RR.test.spawnEnemyAt('boat', RR.S.camY + 330, Math.max(60, Math.min(300, pos.planeX + 55))); RR.test.spawnEnemyAt('heli', RR.S.camY + 400, Math.max(60, Math.min(300, pos.planeX - 30))); RR.test.setInvuln(0); RR.test.step(0.07);"
+    "js": "RUSLO.test.setGfx('retro'); RUSLO.test.startGame(); RUSLO.test.setInvuln(99); RUSLO.test.step(1.0); const pos = RUSLO.test.seekClear(); RUSLO.test.clearEnemies(); RUSLO.test.spawnEnemyAt('boat', RUSLO.S.camY + 230, Math.max(60, Math.min(300, pos.planeX - 70))); RUSLO.test.spawnEnemyAt('boat', RUSLO.S.camY + 330, Math.max(60, Math.min(300, pos.planeX + 55))); RUSLO.test.spawnEnemyAt('heli', RUSLO.S.camY + 400, Math.max(60, Math.min(300, pos.planeX - 30))); RUSLO.test.setInvuln(0); RUSLO.test.step(0.07);"
   },
   {
     "shot": "screenshots/bridge_retro.png",
-    "js": "RR.test.setGfx('retro'); RR.test.startGame(); RR.test.setInvuln(99); RR.test.nearBridge(300); RR.test.clearEnemies(); RR.test.setInvuln(0); RR.test.step(0.06);"
+    "js": "RUSLO.test.setGfx('retro'); RUSLO.test.startGame(); RUSLO.test.setInvuln(99); RUSLO.test.nearBridge(300); RUSLO.test.clearEnemies(); RUSLO.test.setInvuln(0); RUSLO.test.step(0.06);"
   },
   {
     "shot": "screenshots/pause_retro.png",
-    "js": "RR.test.setGfx('retro'); RR.test.startGame(); RR.test.setInvuln(99); RR.test.step(1.0); RR.test.nearBridge(430); RR.test.clearEnemies(); RR.test.step(0.12); RR.test.setPaused(true);"
+    "js": "RUSLO.test.setGfx('retro'); RUSLO.test.startGame(); RUSLO.test.setInvuln(99); RUSLO.test.step(1.0); RUSLO.test.nearBridge(430); RUSLO.test.clearEnemies(); RUSLO.test.step(0.12); RUSLO.test.setPaused(true);"
   },
   {
     "shot": "screenshots/over_retro.png",
-    "js": "RR.test.setGfx('retro'); RR.test.startGame(); RR.test.setInvuln(99); RR.test.step(1.6); RR.test.forceGameOver();"
+    "js": "RUSLO.test.setGfx('retro'); RUSLO.test.startGame(); RUSLO.test.setInvuln(99); RUSLO.test.step(1.6); RUSLO.test.forceGameOver();"
   },
   {
     "shot": "screenshots/play_modern.png",
-    "js": "RR.test.setGfx('modern'); RR.test.startGame(); RR.test.setInvuln(99); RR.test.step(1.0); const pos = RR.test.seekClear(); RR.test.clearEnemies(); RR.test.spawnEnemyAt('boat', RR.S.camY + 230, Math.max(60, Math.min(300, pos.planeX - 70))); RR.test.spawnEnemyAt('boat', RR.S.camY + 330, Math.max(60, Math.min(300, pos.planeX + 55))); RR.test.spawnEnemyAt('heli', RR.S.camY + 400, Math.max(60, Math.min(300, pos.planeX - 30))); RR.test.setInvuln(0); RR.test.step(0.07);"
+    "js": "RUSLO.test.setGfx('modern'); RUSLO.test.startGame(); RUSLO.test.setInvuln(99); RUSLO.test.step(1.0); const pos = RUSLO.test.seekClear(); RUSLO.test.clearEnemies(); RUSLO.test.spawnEnemyAt('boat', RUSLO.S.camY + 230, Math.max(60, Math.min(300, pos.planeX - 70))); RUSLO.test.spawnEnemyAt('boat', RUSLO.S.camY + 330, Math.max(60, Math.min(300, pos.planeX + 55))); RUSLO.test.spawnEnemyAt('heli', RUSLO.S.camY + 400, Math.max(60, Math.min(300, pos.planeX - 30))); RUSLO.test.setInvuln(0); RUSLO.test.step(0.07);"
   },
   {
     "shot": "screenshots/action_modern.png",
-    "js": "RR.test.setGfx('modern'); RR.test.startGame(); RR.test.setInvuln(99); RR.test.step(0.8); const pos = RR.test.seekClear(); RR.test.clearEnemies(); RR.test.spawnEnemyAt('boat', RR.S.camY + 190, Math.max(70, Math.min(290, pos.planeX - 40))); RR.test.setInvuln(0); RR.test.hold('fire', true); for (let i = 0; i < 90 && RR.S.score === 0; i++) RR.test.step(1 / 60); RR.test.hold('fire', false); RR.test.step(0.06);"
+    "js": "RUSLO.test.setGfx('modern'); RUSLO.test.startGame(); RUSLO.test.setInvuln(99); RUSLO.test.step(0.8); const pos = RUSLO.test.seekClear(); RUSLO.test.clearEnemies(); RUSLO.test.spawnEnemyAt('boat', RUSLO.S.camY + 190, Math.max(70, Math.min(290, pos.planeX - 40))); RUSLO.test.setInvuln(0); RUSLO.test.hold('fire', true); for (let i = 0; i < 90 && RUSLO.S.score === 0; i++) RUSLO.test.step(1 / 60); RUSLO.test.hold('fire', false); RUSLO.test.step(0.06);"
   },
   {
     "shot": "screenshots/bridge_modern.png",
-    "js": "RR.test.setGfx('modern'); RR.test.startGame(); RR.test.setInvuln(99); RR.test.nearBridge(300); RR.test.clearEnemies(); RR.test.setInvuln(0); RR.test.step(0.06);"
+    "js": "RUSLO.test.setGfx('modern'); RUSLO.test.startGame(); RUSLO.test.setInvuln(99); RUSLO.test.nearBridge(300); RUSLO.test.clearEnemies(); RUSLO.test.setInvuln(0); RUSLO.test.step(0.06);"
   },
   {
     "shot": "screenshots/pause_modern.png",
-    "js": "RR.test.setGfx('modern'); RR.test.startGame(); RR.test.setInvuln(99); RR.test.step(1.0); RR.test.nearBridge(430); RR.test.clearEnemies(); RR.test.step(0.12); RR.test.setPaused(true);"
+    "js": "RUSLO.test.setGfx('modern'); RUSLO.test.startGame(); RUSLO.test.setInvuln(99); RUSLO.test.step(1.0); RUSLO.test.nearBridge(430); RUSLO.test.clearEnemies(); RUSLO.test.step(0.12); RUSLO.test.setPaused(true);"
   },
   {
     "shot": "screenshots/over_modern.png",
-    "js": "RR.test.setGfx('modern'); RR.test.startGame(); RR.test.setInvuln(99); RR.test.step(1.6); RR.test.forceGameOver();"
+    "js": "RUSLO.test.setGfx('modern'); RUSLO.test.startGame(); RUSLO.test.setInvuln(99); RUSLO.test.step(1.6); RUSLO.test.forceGameOver();"
   },
   {
     "shot": "screenshots/help_modern.png",
-    "js": "RR.test.setGfx('modern'); RR.test.toMenu(); document.querySelector('[data-action=\"howto\"]').click(); await sleep(250);"
+    "js": "RUSLO.test.setGfx('modern'); RUSLO.test.toMenu(); document.querySelector('[data-action=\"howto\"]').click(); await sleep(250);"
   },
   {
     "shot": "screenshots/help_retro.png",
-    "js": "RR.test.setGfx('retro'); document.querySelector('[data-action=\"howto\"]').click(); await sleep(250);"
+    "js": "RUSLO.test.setGfx('retro'); document.querySelector('[data-action=\"howto\"]').click(); await sleep(250);"
   },
   {
     "shot": "screenshots/mobile_menu.png",
@@ -58,7 +58,7 @@
     "dpr": 2,
     "mobile": true,
     "reload": true,
-    "js": "RR.test.setGfx('modern'); await sleep(500);"
+    "js": "RUSLO.test.setGfx('modern'); await sleep(500);"
   },
   {
     "shot": "screenshots/mobile_play.png",
@@ -66,6 +66,6 @@
     "height": 860,
     "dpr": 2,
     "mobile": true,
-    "js": "RR.test.setGfx('modern'); RR.test.startGame(); RR.test.setInvuln(99); RR.test.step(1.0); const pos = RR.test.seekClear(); RR.test.clearEnemies(); RR.test.spawnEnemyAt('boat', RR.S.camY + 230, Math.max(60, Math.min(300, pos.planeX - 70))); RR.test.setInvuln(0); RR.test.step(0.07);"
+    "js": "RUSLO.test.setGfx('modern'); RUSLO.test.startGame(); RUSLO.test.setInvuln(99); RUSLO.test.step(1.0); const pos = RUSLO.test.seekClear(); RUSLO.test.clearEnemies(); RUSLO.test.spawnEnemyAt('boat', RUSLO.S.camY + 230, Math.max(60, Math.min(300, pos.planeX - 70))); RUSLO.test.setInvuln(0); RUSLO.test.step(0.07);"
   }
 ]

@@ -17,9 +17,9 @@
 |---|---|---|
 | `index.html` | Lead | каркас: `<canvas id="game">` + `<div id="ui">`, подключение скриптов |
 | `css/style.css` | ui-i18n | вся вёрстка страницы, оверлеи, кнопки, темы, CRT-эффект |
-| `js/i18n.js` | ui-i18n (база — Lead) | RU/EN строки, `DG.t`, `DG.i18n` |
-| `js/audio.js` | audio-smith | чиптюн-движок: музыка + SFX, `DG.audio` |
-| `js/game.js` | Lead | движок: сетка, копание, сумки, монстры, очки, уровни; `DG.Game` |
+| `js/i18n.js` | ui-i18n (база — Lead) | RU/EN строки, `KROT.t`, `KROT.i18n` |
+| `js/audio.js` | audio-smith | чиптюн-движок: музыка + SFX, `KROT.audio` |
+| `js/game.js` | Lead | движок: сетка, копание, сумки, монстры, очки, уровни; `KROT.Game` |
 | `js/classic.js` | pixel-viz | рендерер 8-бит (320×200 CGA/EGA, пиксель-арт) |
 | `js/modern.js` | modern-viz | современный рендерер (960×600, неон/стекло) |
 | `js/ui.js` | ui-i18n | DOM-оверлеи: титул, настройки, помощь, пауза, game over |
@@ -31,13 +31,13 @@
 Порядок подключения (классические `<script>`, не ES-модули!):
 `i18n.js` → `audio.js` → `game.js` → `classic.js` → `modern.js` → `ui.js` → `main.js`.
 
-Каждый файл — IIFE, начинается с `window.DG = window.DG || {};` и навешивает свой API:
+Каждый файл — IIFE, начинается с `window.KROT = window.KROT || {};` и навешивает свой API:
 
 ```js
 // js/game.js
 (function (global) {
   'use strict';
-  var DG = global.DG = global.DG || {};
+  var KROT = global.KROT = global.KROT || {};
   /* ... */
 })(window);
 ```
@@ -54,12 +54,12 @@
 - Клетка `(cx, cy)`: `cx 0..14` слева направо, `cy 0..9` сверху вниз.
 - «Мировые» координаты в рендерере: **центр спрайта в клетках** (`x=0.5` — центр клетки 0).
   Для рендера: `px = fieldX + x * CELL`, `py = fieldY + y * CELL`.
-- Направления: `0=вверх, 1=вправо, 2=вниз, 3=влево`; `DG.G.DIRS`.
+- Направления: `0=вверх, 1=вправо, 2=вниз, 3=влево`; `KROT.G.DIRS`.
 - Вся геометрия поля (отступы, размер клетки, HUD) — **на усмотрение рендерера**,
-  режимы графики могут иметь разную компоновку. Общее только: `DG.G.COLS/ROWS`.
+  режимы графики могут иметь разную компоновку. Общее только: `KROT.G.COLS/ROWS`.
 - `S.time` — монотонное время в секундах (для анимаций); `S.anim` — игровое время.
 
-У подписей HUD используй `DG.t('…')` и только ключи из §6.4 (если ключа нет — RU-фолбэк).
+У подписей HUD используй `KROT.t('…')` и только ключи из §6.4 (если ключа нет — RU-фолбэк).
 
 ---
 
@@ -121,12 +121,12 @@ S = {
 
 ---
 
-## 4. `DG.Game` — движок (`js/game.js`, Lead)
+## 4. `KROT.Game` — движок (`js/game.js`, Lead)
 
 ```js
-DG.G = { COLS:15, ROWS:10, DIRS:[[0,-1],[1,0],[0,1],[-1,0]], W:960, H:600 };
-DG.rng(seed) -> function() -> 0..1        // детерминированный PRNG (mulberry32)
-DG.Game(opts) -> engine
+KROT.G = { COLS:15, ROWS:10, DIRS:[[0,-1],[1,0],[0,1],[-1,0]], W:960, H:600 };
+KROT.rng(seed) -> function() -> 0..1        // детерминированный PRNG (mulberry32)
+KROT.Game(opts) -> engine
 ```
 
 `opts`: `{ seed=1337, onEvent=function(type, data){}, hiscore=0, startLevel=1 }`.
@@ -145,7 +145,7 @@ engine.forceMode(m)           // debug: 'title'|'play'|'bonus'|'dying'|'gameover
 engine.onEvent(type, data)    // можно переопределить колбэк
 ```
 
-События (звук/SFX в `main.js`, движок **не** вызывает `DG.audio`):
+События (звук/SFX в `main.js`, движок **не** вызывает `KROT.audio`):
 `dig`, `gem` (data: score, chain), `gold`, `shoot`, `monsterDie` (by:'bullet'|'bag'|'eat'), `bulletHit`,
 `squash`, `bagPush`, `bagWobble`, `bagFall`, `bagBreak`, `cherry`, `bonusStart`, `bonusEnd`,
 `eat` (score), `playerDie`, `extraLife`, `levelStart` (level), `levelClear` (level),
@@ -190,24 +190,24 @@ engine.onEvent(type, data)    // можно переопределить кол�
 ## 5. Рендереры (`js/classic.js`, `js/modern.js`)
 
 ```js
-DG.render = DG.render || {};
-DG.render.classic = { id:'classic', draw: function(ctx, S){ /* ... */ } };
-DG.render.modern  = { id:'modern',  draw: function(ctx, S){ /* ... */ } };
+KROT.render = KROT.render || {};
+KROT.render.classic = { id:'classic', draw: function(ctx, S){ /* ... */ } };
+KROT.render.modern  = { id:'modern',  draw: function(ctx, S){ /* ... */ } };
 ```
 
 - `ctx` — 2D-контекст канваса 960×600. Рендерер сам решает, рисовать в 960×600 или
   через внутренний offscreen (classic: 320×200, апскейл ×3, `imageSmoothingEnabled=false`).
 - Рендерер рисует мир + свой HUD + игровые баннеры (ready/levelclear/bonus/dying).
-  Экраны **title, pause, gameover рисует DOM-оверлей** (`DG.ui`): в этих состояниях
+  Экраны **title, pause, gameover рисует DOM-оверлей** (`KROT.ui`): в этих состояниях
   рендерер НЕ дублирует логотип, заголовки, подсказки и надписи — только живой фон
   (земля/алмазы/монстры/частицы), HUD и мягкое затемнение. Иначе текст просвечивает
   сквозь стеклянные панели и получается «призрак» (проверено на скриншотах).
-- Запрещено: менять `S`, обращаться к `document` за пределами канваса, к `DG.audio`,
-  к сети/localStorage. Разрешено: свои кэши/offscreen, `DG.t`, `DG.i18n.lang`.
+- Запрещено: менять `S`, обращаться к `document` за пределами канваса, к `KROT.audio`,
+  к сети/localStorage. Разрешено: свои кэши/offscreen, `KROT.t`, `KROT.i18n.lang`.
 - Рендерер обязан быть быстрым (60 fps на встроенной графике): никаких `shadowBlur`
   в цикле по тысяче частиц, кэшировать спрайты/градиенты.
 - В HUD показывать: счёт, рекорд, уровень, жизни, остаток алмазов, таймер бонуса,
-  индикатор перезарядки оружия. Язык подписей — `DG.t`.
+  индикатор перезарядки оружия. Язык подписей — `KROT.t`.
 - Обязательные визуальные состояния: сумка трясётся/падает/лопается, выстрел и вспышка,
   попадание, неуязвимость игрока (мигание), появление и смерть монстров, бонус-режим
   (монстры «испуганы»), частицы земли, всплывающие очки, shake, ready/levelclear-баннеры.
@@ -239,10 +239,10 @@ emerald #34d399, gold #fbbf24, magenta #f472b6. Стильно, дорого, б
 
 ## 6. Общие API
 
-### 6.1 Настройки `DG.settings` (создаёт `main.js`, читают все)
+### 6.1 Настройки `KROT.settings` (создаёт `main.js`, читают все)
 ```js
-DG.settings = { gfx:'classic'|'modern', lang:'ru'|'en', music:true, sfx:true, crt:true };
-DG.applySetting(key, value)   // main: применяет, сохраняет, обновляет UI/аудио/класс body
+KROT.settings = { gfx:'classic'|'modern', lang:'ru'|'en', music:true, sfx:true, crt:true };
+KROT.applySetting(key, value)   // main: применяет, сохраняет, обновляет UI/аудио/класс body
 ```
 Графика при каждом запуске принудительно `classic` (ретро, по требованию заказчика) и между
 сессиями не сохраняется; `lang/music/sfx/crt` сохраняются, рекорд — отдельно.
@@ -250,13 +250,13 @@ DG.applySetting(key, value)   // main: применяет, сохраняет, �
 
 ### 6.2 UI (`js/ui.js`, ui-i18n)
 ```js
-DG.ui.init(opts)   // opts: { getSettings(), setSetting(key,value), start(), resume(),
+KROT.ui.init(opts)   // opts: { getSettings(), setSetting(key,value), start(), resume(),
                    //        restart(), menu(), getHiscore(), resetHi(),
                    //        openPanel(name), closePanel() }
-DG.ui.show(name|null, data)  // 'title'|'settings'|'help'|'about'|'pause'|'gameover'
-DG.ui.refresh()              // перерисовать текущий экран (после смены языка/графики)
-DG.ui.current() -> string|null   // имя текущего экрана (нужно main.js)
-DG.ui.activate()             // Enter при открытой панели: активировать фокус/основное действие
+KROT.ui.show(name|null, data)  // 'title'|'settings'|'help'|'about'|'pause'|'gameover'
+KROT.ui.refresh()              // перерисовать текущий экран (после смены языка/графики)
+KROT.ui.current() -> string|null   // имя текущего экрана (нужно main.js)
+KROT.ui.activate()             // Enter при открытой панели: активировать фокус/основное действие
 ```
 - `gameover` data: `{ score, hi, record, stats }`, где stats = `{gems,kills,levels,bagKills,dug,shots}`.
 - Панели settings/help/about открываются строго через `openPanel(name)`/`closePanel()`
@@ -265,7 +265,7 @@ DG.ui.activate()             // Enter при открытой панели: ак
 - Структурный CSS (сцена 960×600, `#ui`, `#fx`, pointer-events) задан инлайном в `index.html`
   и не дублируется; `css/style.css` — дизайн-слой. Классы `body`: `gfx-classic|gfx-modern`,
   `crt-on`, `lang-ru|lang-en`, `shot` (отключение анимаций для скриншотов).
-- Только DOM, внутри `#ui`; канвас не трогать. Все тексты — через `DG.t`.
+- Только DOM, внутри `#ui`; канвас не трогать. Все тексты — через `KROT.t`.
 - Кнопки обязаны работать с клавиатуры (Tab/Enter) и мышью; на телефоне — тапаются.
 - Экран `title`: логотип КРОТ, подзаголовок, большие кнопки «Играть», «Настройки»,
   «Управление», «Об игре», переключатели языка/графики/музыки, рекорд, подсказка Enter.
@@ -281,17 +281,17 @@ DG.ui.activate()             // Enter при открытой панели: ак
 
 ### 6.3 Аудио (`js/audio.js`, audio-smith)
 ```js
-DG.audio.unlock();                    // по первому жесту; resume AudioContext
-DG.audio.isReady();                   // есть ли живой AudioContext
-DG.audio.startMusic(mode);            // 'title'|'game'|'bonus'|'death'|'clear'|'gameover'
-DG.audio.stopMusic(fadeMs = 250);     // плавно, без щелчков
-DG.audio.setGameTheme(i);             // 0|1 — вариация игрового трека (по уровню)
-DG.audio.sfx(name);                   // см. список ниже; безопасно до unlock
-DG.audio.setMuted(m);                 // глушит всё (глобально)
-DG.audio.toggleMuted() -> boolean; DG.audio.getMuted() -> boolean
-DG.audio.setVolume(v); DG.audio.getVolume();
-DG.audio.setMusicEnabled(b); DG.audio.getMusicEnabled();   // отдельный флаг музыки
-DG.audio.setSfxEnabled(b);   DG.audio.getSfxEnabled();     // отдельный флаг SFX
+KROT.audio.unlock();                    // по первому жесту; resume AudioContext
+KROT.audio.isReady();                   // есть ли живой AudioContext
+KROT.audio.startMusic(mode);            // 'title'|'game'|'bonus'|'death'|'clear'|'gameover'
+KROT.audio.stopMusic(fadeMs = 250);     // плавно, без щелчков
+KROT.audio.setGameTheme(i);             // 0|1 — вариация игрового трека (по уровню)
+KROT.audio.sfx(name);                   // см. список ниже; безопасно до unlock
+KROT.audio.setMuted(m);                 // глушит всё (глобально)
+KROT.audio.toggleMuted() -> boolean; KROT.audio.getMuted() -> boolean
+KROT.audio.setVolume(v); KROT.audio.getVolume();
+KROT.audio.setMusicEnabled(b); KROT.audio.getMusicEnabled();   // отдельный флаг музыки
+KROT.audio.setSfxEnabled(b);   KROT.audio.getSfxEnabled();     // отдельный флаг SFX
 ```
 Флаги музыки/SFX независимы от глобального mute: выключенная музыка не играет, SFX звучат,
 и наоборот. Вызовы до `unlock()` безопасны и запоминаются.
@@ -308,8 +308,8 @@ clear (фанфара), gameover (грустный аккорд).
 
 ### 6.4 Строки i18n (`js/i18n.js`, ui-i18n)
 ```js
-DG.t(key, vars) -> string   // {vars} подстановка: DG.t('levelIntro', {n:3})
-DG.i18n = { lang:'ru', setLang('ru'|'en'), toggle(), available:['ru','en'] };
+KROT.t(key, vars) -> string   // {vars} подстановка: KROT.t('levelIntro', {n:3})
+KROT.i18n = { lang:'ru', setLang('ru'|'en'), toggle(), available:['ru','en'] };
 ```
 Ключи RU/EN (полный набор задаёт Lead в первой версии, ui-i18n дополняет, **не переименовывая**):
 `appTitle, appTagline, play, start, resume, restart, menu, toMenu, settings, help, about,
@@ -324,19 +324,19 @@ keyboard, mouse, footerHint, version`
 HUD-подмножество: `score, hiscore, level, lives, gems, bonus, paused, ready, levelIntro, bonusMode`.
 
 ### 6.5 `main.js` (Lead)
-- Создаёт `DG.settings`, читает `localStorage` (`krot.settings`, `krot.hi`), масштабирует сцену.
-- rAF-цикл: `dt` clamp 0.05 → `engine.update(dt)` → `DG.render[gfx].draw(ctx, S)` → `DG.ui` синк.
+- Создаёт `KROT.settings`, читает `localStorage` (`krot.settings`, `krot.hi`), масштабирует сцену.
+- rAF-цикл: `dt` clamp 0.05 → `engine.update(dt)` → `KROT.render[gfx].draw(ctx, S)` → `KROT.ui` синк.
 - Ввод (по `e.code`, чтобы работала русская раскладка): `Arrow/WASD` — движение,
   `Space` — выстрел, `Enter` — старт/продолжить, `Esc`/`P` — пауза/назад,
   `M` — музыка, `K` — звуки, `L` — язык, `G` — графика, `H` — помощь, `R` — заново,
   `C` — CRT, `F` — фуллскрин (опционально). `preventDefault` для стрелок/пробела.
-- События движка → `DG.audio.sfx(...)` и `DG.audio.startMusic(...)`:
+- События движка → `KROT.audio.sfx(...)` и `KROT.audio.startMusic(...)`:
   title→'title', levelStart/play→'game' (+`setGameTheme(level%2)`), bonusStart→'bonus',
   bonusEnd→'game', playerDie→'death', levelClear→'clear', gameOver→'gameover', restart→'game'.
   Маппинг SFX: gem→'gem', gold→'gold', dig→'dig', shoot→'shoot', monsterDie→'monster_die',
   bagPush→'bag_push', bagWobble→'bag_wobble', bagFall→'bag_fall', bagBreak→'bag_break',
   squash→'squash', cherry→'cherry', extraLife→'extra_life', playerDie→'player_die'.
-- `DG.ui` → экраны; пауза: оверлей + `engine.pause(true)`; gameover: данные счёта.
+- `KROT.ui` → экраны; пауза: оверлей + `engine.pause(true)`; gameover: данные счёта.
 - Мобильный ввод: свайпы по канвасу (движение), тап — выстрел; подсказка `touchHint`.
 - **Debug (нужно QA и скриншотам)**: хеш после `index.html`:
   `#shot=title|play|bonus|gameover|help|settings|about|pause`, параметры `&level=N`,

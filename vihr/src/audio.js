@@ -1,6 +1,6 @@
 /*!
  * ВИХРЬ (Гефест) — HTML5 original · 8-bit audio engine.
- * Classic script, no modules, no assets, no network: defines window.SWAudio.
+ * Classic script, no modules, no assets, no network: defines window.VIHRAudio.
  * Everything is synthesised with WebAudio (pulse / triangle / noise).
  *
  * API (safe at any time; no-ops when WebAudio is unavailable, never throws):
@@ -35,7 +35,7 @@
   'use strict';
   var ROOT = (typeof window !== 'undefined' && window) ||
              (typeof globalThis !== 'undefined' && globalThis) || {};
-  if (ROOT.SWAudio && typeof ROOT.SWAudio.selftest === 'function') { return; }
+  if (ROOT.VIHRAudio && typeof ROOT.VIHRAudio.selftest === 'function') { return; }
 
   /* ============================ utilities ============================ */
   function clamp(v, lo, hi) {
@@ -1022,5 +1022,5 @@
     setMusicVolume: setMusicVolume, setSfxVolume: setSfxVolume, setMuted: setMuted,
     sfx: sfx, selftest: selftest, isReady: isReady
   };
-  ROOT.SWAudio = API;
+  ROOT.VIHRAudio = API;
 })();

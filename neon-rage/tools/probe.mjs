@@ -4,7 +4,7 @@
  * скриншот + ошибки консоли/исключения + необязательный JS-eval.
  *
  *   node neon-rage/tools/probe.mjs <file.html|http://url> out.png \
- *        [--w=1440] [--h=900] [--wait=1200] [--eval='DD.state.mode'] [--keys=Enter,Space]
+ *        [--w=1440] [--h=900] [--wait=1200] [--eval='NR.state.mode'] [--keys=Enter,Space]
  *        [--hold=KeyD:900,KeyJ:120] [--click=240,135] [--mobile=1]
  *
  * --eval печатает результат (JSON или строку). --keys отправляет нажатия

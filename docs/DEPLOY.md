@@ -6,28 +6,27 @@
 **Статус: задеплоено.**
 
 - Production: <https://arcade.hefest.ru>
-- Vercel-проект: `retro-games` (<https://vercel.com/sergio-zerg/retro-games>),
-  `projectId: prj_wQgRI2z86E6wl4pNtWx6SVinyRRo`
-- GitHub: `sergio-zerg/retro-games` (private)
+- Vercel-проект: `retro-games`, `projectId: prj_wQgRI2z86E6wl4pNtWx6SVinyRRo`
+- GitHub: [`hefest-studio/retro-games`](https://github.com/hefest-studio/retro-games) (публичный, организация студии)
 - Интеграция: GitHub → Vercel привязана (`Production Branch = main`), пуш в `main`
   запускает автодеплой; CLI-деплой (`npx vercel --prod`) тоже работает.
 - Проверка прода: `/` → 200, все игры каталога → 200, `/hrum/js/game.js` → 200,
   `/hrum` → 308 на `/hrum/`, служебные пути (`/tools/`, `/reports/`, `*/src/`) → 404.
 
-## 1. GitHub (приватный репозиторий)
+## 1. GitHub (репозиторий организации)
 
 ```bash
 git init -b main
 git add -A
 git commit -m "Зал ретро-игр: каталог и игры студии"
-git remote add origin git@github.com:sergio-zerg/retro-games.git
+git remote add origin https://github.com/hefest-studio/retro-games.git
 git push -u origin main
 ```
 
 Если репозитория ещё нет:
 
 ```bash
-gh repo create sergio-zerg/retro-games --private --source=. --remote=origin --push
+gh repo create hefest-studio/retro-games --public --source=. --remote=origin --push
 ```
 
 ## 2. Vercel

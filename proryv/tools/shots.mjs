@@ -227,12 +227,12 @@ async function runStorageTest() {
     await sleep(900);
 
     const write = await evaluate(`(function(){
-      var before = JSON.stringify(EX.settings);
-      EX.toggleLang(); EX.toggleGfx(); EX.toggleMusic(); EX.toggleSfx(); EX.toggleCrt();
-      EX.saveRecord(54321);
+      var before = JSON.stringify(PR.settings);
+      PR.toggleLang(); PR.toggleGfx(); PR.toggleMusic(); PR.toggleSfx(); PR.toggleCrt();
+      PR.saveRecord(54321);
       return JSON.stringify({
         before: JSON.parse(before),
-        after: EX.settings,
+        after: PR.settings,
         lsSettings: localStorage.getItem('proryv.settings'),
         lsRecord: localStorage.getItem('proryv.record')
       });
@@ -245,16 +245,16 @@ async function runStorageTest() {
     await sleep(1000);
 
     const read = await evaluate(`JSON.stringify({
-      settings: EX.settings,
-      record: EX.loadRecord(),
-      stateRecord: EX.state.record,
-      languageMenu: EX.t('menu.play'),
-      gfx: EX.settings.gfx, lang: EX.settings.lang,
-      music: EX.settings.music, sfx: EX.settings.sfx, crt: EX.settings.crt,
+      settings: PR.settings,
+      record: PR.loadRecord(),
+      stateRecord: PR.state.record,
+      languageMenu: PR.t('menu.play'),
+      gfx: PR.settings.gfx, lang: PR.settings.lang,
+      music: PR.settings.music, sfx: PR.settings.sfx, crt: PR.settings.crt,
       lsSettings: localStorage.getItem('proryv.settings'),
       lsRecord: localStorage.getItem('proryv.record'),
       canvas: (function(){var c=document.getElementById('stage');return [c.width,c.height];})(),
-      stage: EX_MAIN.stage(),
+      stage: PR_MAIN.stage(),
       title: document.title
     })`);
     console.log("шаг 2 (после reload):", read);

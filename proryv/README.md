@@ -25,8 +25,8 @@
 Игровой поток: «Играть» → родной брифинг сектора (Enter — в бой) → экраны → «Сектор очищен» и выбор
 очков → брифинг следующего сектора → … → экран победы движка.
 
-Связь с игрой — только через её публичные объекты `window.EX` (состояние и функции), `window.EX_MAIN`
-(кадр / resize) и `window.EX_AUDIO`; код игры не менялся. Отладочные адреса (`#shot=`, `#test`) отключают
+Связь с игрой — только через её публичные объекты `window.PR` (состояние и функции), `window.PR_MAIN`
+(кадр / resize) и `window.PR_AUDIO`; код игры не менялся. Отладочные адреса (`#shot=`, `#test`) отключают
 оболочку — игра работает как раньше; `#gfx=retro|modern` и `#lang=ru|en` задают тему/язык на запуск,
 `#nosound`, `#music=off`, `#crt=off` — как раньше. Старая страница со своим меню — `legacy.html`.
 
@@ -110,7 +110,7 @@
 | RETRO | NEON |
 |---|---|
 | ![Брифинг](screenshots/briefing_retro_ru.png) | ![Брифинг NEON](screenshots/briefing_modern_ru.png) |
-| ![Бонус](screenshots/bonus_retro_ru.png) | ![Экзоскелет](screenshots/exo_modern_ru.png) |
+| ![Бонус](screenshots/bonus_retro_ru.png) | ![Экзоскелет](screenshots/suit_modern_ru.png) |
 | ![Игра окончена](screenshots/gameover_retro_ru.png) | ![Игра окончена NEON](screenshots/gameover_modern_ru.png) |
 
 (Скриншоты — родные экраны игры, `legacy.html`; в `index.html` меню/пауза/финалы — экраны движка.)

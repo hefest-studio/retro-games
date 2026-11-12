@@ -39,12 +39,12 @@ a.back{position:fixed;left:10px;top:8px;color:#5a6273;font-size:12px;text-decora
 <script src="./js/modern.js"></script>
 <script>
 'use strict';
-// Ключи прежнего имени → krot.* (DG.migrateStorage), затем перенос старого рекорда (krot.hi.v1)
+// Ключи прежнего имени → krot.* (KROT.migrateStorage), затем перенос старого рекорда (krot.hi.v1)
 // в общий ключ движка — один раз.
-(function(){ try{ DG.migrateStorage(localStorage); }catch(e){} })();
+(function(){ try{ KROT.migrateStorage(localStorage); }catch(e){} })();
 (function(){ try{ var S=Arcade.Store, k='arcade.best.krot';
   if(S.get('arcade.migrated.krot',null)) return;
-  var old=parseInt(JSON.parse(S.get(DG.STORE_KEYS.hi,'0')),10)||0;
+  var old=parseInt(JSON.parse(S.get(KROT.STORE_KEYS.hi,'0')),10)||0;
   if(old>S.getNum(k,0)) S.set(k,String(old)); S.set('arcade.migrated.krot','1');
 }catch(e){} })();
 var STR={
@@ -59,7 +59,7 @@ g.fit(620); addEventListener('resize',function(){g.fit(620);});
 var game=null, lang=null;
 
 // Родной звук КРОТА (SFX) — только эффекты; музыку ведёт движок (js/music.js).
-var DA=window.DG&&DG.audio;
+var DA=window.KROT&&KROT.audio;
 if(DA){ try{ DA.setMusicEnabled(false); DA.setVolume(0.6); }catch(e){} }
 function unlockSfx(){ if(DA){ try{ DA.unlock(); DA.setMusicEnabled(false); }catch(e){} } }
 ['keydown','pointerdown','touchstart'].forEach(function(ev){ addEventListener(ev,unlockSfx,{passive:true}); });
@@ -68,10 +68,10 @@ function sfx(n){ if(!DA||!g.audio.enabled) return; try{ DA.sfx(n); }catch(e){} }
 var SFX={dig:'dig',gem:'gem',gold:'gold',bagPush:'bag_push',bagWobble:'bag_wobble',bagFall:'bag_fall',bagBreak:'bag_break',
   shoot:'shoot',monsterDie:'monster_die',squash:'squash',cherry:'cherry',bonusStart:'bonus',eat:'eat',playerDie:'player_die',
   extraLife:'extra_life',levelClear:'level_clear'};
-function syncLang(){ if(lang!==g.i18n.lang){ lang=g.i18n.lang; DG.i18n.setLang(lang); document.documentElement.lang=lang;
+function syncLang(){ if(lang!==g.i18n.lang){ lang=g.i18n.lang; KROT.i18n.setLang(lang); document.documentElement.lang=lang;
   document.getElementById('foot').innerHTML=g.t('foot',''); } }
 
-function mkGame(){ return DG.Game({ seed:(Date.now()^((Math.random()*0x7fffffff)|0))>>>0, hiscore:g.state.best,
+function mkGame(){ return KROT.Game({ seed:(Date.now()^((Math.random()*0x7fffffff)|0))>>>0, hiscore:g.state.best,
   onEvent:function(type){
     if(type==='dig'){ var now=performance.now(); if(now-lastDig<60) return; lastDig=now; }
     if(SFX[type]) sfx(SFX[type]);
@@ -79,7 +79,7 @@ function mkGame(){ return DG.Game({ seed:(Date.now()^((Math.random()*0x7fffffff)
   }}); }
 function render(ctx){ if(!game){ g.clear(); return; }
   ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
-  (g.themeName==='retro'?DG.render.classic:DG.render.modern).draw(ctx,game.state); }
+  (g.themeName==='retro'?KROT.render.classic:KROT.render.modern).draw(ctx,game.state); }
 
 // Направление: последняя нажатая клавиша (как в оригинале), тач-крестовина — через движок.
 var DIRK={ArrowUp:0,KeyW:0,ArrowRight:1,KeyD:1,ArrowDown:2,KeyS:2,ArrowLeft:3,KeyA:3};

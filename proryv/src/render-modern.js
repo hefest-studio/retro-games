@@ -8,8 +8,8 @@
 (function () {
   'use strict';
 
-  const EX = window.EX;
-  const N = EX.NEON;
+  const PR = window.PR;
+  const N = PR.NEON;
   const TILE = 8, COLS = 32, ROWS = 24, W = 256, H = 192, HUD = 16, VH = 208;
 
   const UI_FONT = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
@@ -18,7 +18,7 @@
   let g = null;
   let V = null;
   let t = 0;
-  const S = () => EX.state;
+  const S = () => PR.state;
 
   /* ---------- палитры тем ---------- */
   const THEMES = {
@@ -262,7 +262,7 @@
     g.fillStyle = T.slab2;
     g.fillRect(x, y + 5, TILE, 3);
     /* верхняя кромка светится, если сверху пусто */
-    if (EX.tileAt(tx, ty - 1) === EX.TILES.EMPTY || EX.tileAt(tx, ty - 1) === EX.TILES.FLORA) {
+    if (PR.tileAt(tx, ty - 1) === PR.TILES.EMPTY || PR.tileAt(tx, ty - 1) === PR.TILES.FLORA) {
       g.strokeStyle = T.a;
       g.globalAlpha = 0.85;
       g.lineWidth = 0.9;
@@ -341,11 +341,11 @@
       for (let tx = 0; tx < COLS; tx++) {
         const id = tiles[ty * COLS + tx];
         if (!id) continue;
-        if (id === EX.TILES.SOLID) tileSolid(tx, ty, T);
-        else if (id === EX.TILES.ROCK) tileRock(tx, ty, T);
-        else if (id === EX.TILES.THIN) tileThin(tx, ty, T);
-        else if (id === EX.TILES.SPIKE) tileSpike(tx, ty, T);
-        else if (id === EX.TILES.FLORA) tileFlora(tx, ty, T);
+        if (id === PR.TILES.SOLID) tileSolid(tx, ty, T);
+        else if (id === PR.TILES.ROCK) tileRock(tx, ty, T);
+        else if (id === PR.TILES.THIN) tileThin(tx, ty, T);
+        else if (id === PR.TILES.SPIKE) tileSpike(tx, ty, T);
+        else if (id === PR.TILES.FLORA) tileFlora(tx, ty, T);
       }
     }
   }
@@ -692,8 +692,8 @@
   function drawDeathOverlay() {
     const st = S();
     g.fillStyle = 'rgba(20,2,8,0.45)'; g.fillRect(0, 0, W, VH);
-    glowText(EX.t('msg.dead'), W / 2, 84, 10, '#ff4d6d', 'center', '800', 16, HEAD_FONT);
-    text(EX.t('hud.lives') + '  ' + st.lives, W / 2, 100, 4, 'rgba(235,235,255,0.85)', 'center', '600', 1);
+    glowText(PR.t('msg.dead'), W / 2, 84, 10, '#ff4d6d', 'center', '800', 16, HEAD_FONT);
+    text(PR.t('hud.lives') + '  ' + st.lives, W / 2, 100, 4, 'rgba(235,235,255,0.85)', 'center', '600', 1);
   }
 
   function drawShots(T) {
@@ -774,18 +774,18 @@
     lg.addColorStop(1, 'rgba(255,63,240,0)');
     g.fillStyle = lg; g.fillRect(0, y, W, 0.7);
 
-    text(EX.t('hud.score'), 6, y + 4.2, 3, N.dim, 'left', '600', 0.6);
+    text(PR.t('hud.score'), 6, y + 4.2, 3, N.dim, 'left', '600', 0.6);
     text(String(st.score).padStart(6, '0'), 6, y + 10.4, 6.2, N.white, 'left', '700');
-    text(EX.t('hud.lives'), 52, y + 4.2, 3, N.dim, 'left', '600', 0.6);
+    text(PR.t('hud.lives'), 52, y + 4.2, 3, N.dim, 'left', '600', 0.6);
     text('×' + st.lives, 52, y + 10.6, 6.2, N.red, 'left', '700');
 
-    text(EX.t('hud.sector'), 84, y + 4.2, 3, N.dim, 'left', '600', 0.6);
-    text((st.level + 1) + '/' + EX.levelCount(), 84, y + 10.6, 5.4, T.a, 'left', '700');
-    text(EX.t('hud.screen'), 108, y + 4.2, 3, N.dim, 'left', '600', 0.6);
-    text((st.screen + 1) + '/' + EX.screenCount(st.level), 108, y + 10.6, 5.4, T.a, 'left', '700');
+    text(PR.t('hud.sector'), 84, y + 4.2, 3, N.dim, 'left', '600', 0.6);
+    text((st.level + 1) + '/' + PR.levelCount(), 84, y + 10.6, 5.4, T.a, 'left', '700');
+    text(PR.t('hud.screen'), 108, y + 4.2, 3, N.dim, 'left', '600', 0.6);
+    text((st.screen + 1) + '/' + PR.screenCount(st.level), 108, y + 10.6, 5.4, T.a, 'left', '700');
 
     /* лазер */
-    text(EX.t('hud.laser'), 134, y + 4.2, 3, N.dim, 'left', '600', 0.6);
+    text(PR.t('hud.laser'), 134, y + 4.2, 3, N.dim, 'left', '600', 0.6);
     const bw = 34, bx = 134;
     g.fillStyle = 'rgba(57,246,255,0.12)';
     g.fillRect(bx, y + 9, bw, 3.4);
@@ -796,7 +796,7 @@
     for (let i = 1; i < 8; i++) { g.fillStyle = 'rgba(6,4,18,0.9)'; g.fillRect(bx + (bw / 8) * i, y + 9, 0.6, 3.4); }
 
     /* гранаты */
-    text(EX.t('hud.rockets'), 174, y + 4.2, 3, N.dim, 'left', '600', 0.6);
+    text(PR.t('hud.rockets'), 174, y + 4.2, 3, N.dim, 'left', '600', 0.6);
     const maxR = p.maxRockets || 6;
     const pipW = 4.4, gap = 1.6;
     for (let i = 0; i < maxR; i++) {
@@ -844,12 +844,12 @@
 
     /* подписи над сценой */
     const st = S();
-    const lv = EX.levelData(st.level);
+    const lv = PR.levelData(st.level);
     const inRun = ['play', 'paused', 'dead', 'bonus', 'levelclear', 'briefing', 'gameover', 'win'].indexOf(st.mode) >= 0;
     const label = inRun
-      ? 'ПРОРЫВ // ' + EX.t('hud.sector') + ' ' + String(st.level + 1).padStart(2, '0') +
-        (lv ? ' · ' + (lv.name[EX.settings.lang] || lv.name.ru) : '')
-      : 'ПРОРЫВ // ' + EX.t('tagline');
+      ? 'ПРОРЫВ // ' + PR.t('hud.sector') + ' ' + String(st.level + 1).padStart(2, '0') +
+        (lv ? ' · ' + (lv.name[PR.settings.lang] || lv.name.ru) : '')
+      : 'ПРОРЫВ // ' + PR.t('tagline');
     g.font = '600 ' + Math.max(10, s.h * 0.016) + 'px ' + UI_FONT;
     const above = s.y > 26;
     const ty = above ? s.y - 8 : s.y + 12;
@@ -858,7 +858,7 @@
     g.fillText(label, s.x, ty);
     g.textAlign = 'right';
     g.fillStyle = 'rgba(57,246,255,0.55)';
-    g.fillText(EX.settings.gfx === 'modern' ? 'NEON 2026' : 'RETRO', s.x + s.w, ty);
+    g.fillText(PR.settings.gfx === 'modern' ? 'NEON 2026' : 'RETRO', s.x + s.w, ty);
 
     /* боковые панели / вертикальные водяные знаки */
     const side = s.x;
@@ -867,19 +867,19 @@
       g.textAlign = 'left';
       g.fillStyle = 'rgba(220,225,255,0.85)';
       g.font = '700 ' + Math.round(s.h * 0.028) + 'px ' + HEAD_FONT;
-      g.fillText(EX.t('brand'), s.x - side + 20, s.y + s.h * 0.15);
+      g.fillText(PR.t('brand'), s.x - side + 20, s.y + s.h * 0.15);
       g.font = '600 ' + Math.round(s.h * 0.013) + 'px ' + UI_FONT;
       g.fillStyle = 'rgba(140,150,200,0.8)';
       const lines = [
-        EX.t('hud.score') + ' ' + String(st.score).padStart(6, '0'),
-        EX.t('hud.lives') + ' ' + st.lives,
-        EX.t('hud.sector') + ' ' + (st.level + 1) + '/' + EX.levelCount(),
-        EX.t('hud.screen') + ' ' + (st.screen + 1) + '/' + EX.screenCount(st.level)
+        PR.t('hud.score') + ' ' + String(st.score).padStart(6, '0'),
+        PR.t('hud.lives') + ' ' + st.lives,
+        PR.t('hud.sector') + ' ' + (st.level + 1) + '/' + PR.levelCount(),
+        PR.t('hud.screen') + ' ' + (st.screen + 1) + '/' + PR.screenCount(st.level)
       ];
       lines.forEach(function (l, i) { g.fillText(l, s.x - side + 20, s.y + s.h * 0.22 + i * s.h * 0.032); });
       const keysY = s.y + s.h * 0.58;
       const keys = ['← →', 'SPACE', 'G', 'L', 'M', 'ESC'];
-      const acts = [EX.t('key.left.act'), EX.t('key.fire.act'), EX.t('key.g.act'), EX.t('key.l.act'), EX.t('key.m.act'), EX.t('key.pause.act')];
+      const acts = [PR.t('key.left.act'), PR.t('key.fire.act'), PR.t('key.g.act'), PR.t('key.l.act'), PR.t('key.m.act'), PR.t('key.pause.act')];
       g.font = '600 ' + Math.round(s.h * 0.0125) + 'px ' + UI_FONT;
       keys.forEach(function (k, i) {
         g.fillStyle = 'rgba(57,246,255,0.85)';
@@ -908,7 +908,7 @@
       g.fillRect(rx, s.y + s.h * 0.16, 24, 1);
       g.font = '500 ' + Math.round(s.h * 0.0105) + 'px ' + UI_FONT;
       g.fillStyle = 'rgba(140,150,200,0.7)';
-      const tip = EX.t('hint.exo');
+      const tip = PR.t('hint.exo');
       const lines = wrap(tip, Math.round(s.h * 0.0105), right - 30, '500');
       lines.slice(0, 10).forEach(function (l, i) { g.fillText(l, rx, s.y + s.h * 0.2 + i * s.h * 0.024); });
       g.fillStyle = 'rgba(160,175,255,0.10)';
@@ -947,7 +947,7 @@
 
   function menuDraw(accent, title, hintKey) {
     const st = S();
-    const rects = EX.ui.layout();
+    const rects = PR.ui.layout();
     if (!rects.length) return;
     const first = rects[0], last = rects[rects.length - 1];
     const px0 = first.x - 22, py0 = first.y - 14;
@@ -974,7 +974,7 @@
       if (r.item.value) text(r.item.value, r.x + r.w + 6, r.cy, 4.2, sel ? accent : 'rgba(140,150,200,0.75)', 'right', '700', 0.4);
       if (sel) glowDot(r.x - 14, r.cy, 1, accent, 6);
     });
-    text(EX.t(hintKey || 'msg.paused.hint'), first.cx, py0 + ph - 4, 3, 'rgba(140,150,200,0.65)', 'center', '500', 0.4);
+    text(PR.t(hintKey || 'msg.paused.hint'), first.cx, py0 + ph - 4, 3, 'rgba(140,150,200,0.65)', 'center', '500', 0.4);
   }
 
   /* ---------- экраны ---------- */
@@ -1023,17 +1023,17 @@
     lg2.addColorStop(1, 'rgba(255,63,240,0)');
     g.fillStyle = lg2; g.fillRect(30, 63, W - 60, 0.8);
     text('ШТУРМОВИК', W / 2, 74, 9, 'rgba(240,238,255,0.92)', 'center', '700', 3.5, HEAD_FONT);
-    text(EX.t('tagline.full'), W / 2, 87, 4, T.a, 'center', '500', 0.8);
+    text(PR.t('tagline.full'), W / 2, 87, 4, T.a, 'center', '500', 0.8);
 
     menuDraw(T.a, null, 'menu.hint');
 
     /* рекорд */
-    text(EX.t('msg.record'), 6, 8, 3.2, 'rgba(140,150,200,0.7)', 'left', '600', 0.8);
+    text(PR.t('msg.record'), 6, 8, 3.2, 'rgba(140,150,200,0.7)', 'left', '600', 0.8);
     text(String(st.record).padStart(6, '0'), 6, 14, 5, '#ffcc55', 'left', '700');
-    text(EX.t('credits.original'), W - 6, 8, 3.2, 'rgba(140,150,200,0.55)', 'right', '500', 0.5);
+    text(PR.t('credits.original'), W - 6, 8, 3.2, 'rgba(140,150,200,0.55)', 'right', '500', 0.5);
     text('HTML5 · 2026', W - 6, 14, 3.2, 'rgba(57,246,255,0.7)', 'right', '600', 0.6);
-    text(EX.t('menu.hint.quick'), W / 2, VH - 6, 3.2, 'rgba(140,150,200,0.6)', 'center', '500', 0.5);
-    if (EX.BUILD) text(EX.t('settings.build', { v: EX.BUILD }), W - 6, VH - 16, 2.6, 'rgba(120,140,220,0.45)', 'right', '500', 0.5);
+    text(PR.t('menu.hint.quick'), W / 2, VH - 6, 3.2, 'rgba(140,150,200,0.6)', 'center', '500', 0.5);
+    if (PR.BUILD) text(PR.t('settings.build', { v: PR.BUILD }), W - 6, VH - 16, 2.6, 'rgba(120,140,220,0.45)', 'right', '500', 0.5);
   }
 
   function drawWorld() {
@@ -1054,7 +1054,7 @@
     }
     /* сообщение */
     if (st.message) {
-      const s = EX.t(st.message.key);
+      const s = PR.t(st.message.key);
       const w = textW(s, 4.2, '700', 1) + 16;
       glass(W / 2 - w / 2, 70, w, 13, '#39f6ff', 0.72);
       glowText(s, W / 2, 76.5, 4.2, '#39f6ff', 'center', '700', 10);
@@ -1075,8 +1075,8 @@
   function drawPause() {
     drawWorld();
     g.fillStyle = 'rgba(4,3,14,0.7)'; g.fillRect(0, 0, W, VH);
-    glowText(EX.t('msg.paused'), W / 2, 38, 13, '#ffffff', 'center', '800', 18, HEAD_FONT);
-    text(EX.t('pause.gfx', { v: EX.settings.gfx === 'modern' ? 'NEON · 2026' : 'RETRO · 8-BIT' }) + '   [G]', W / 2, 52, 3.2, 'rgba(140,150,200,0.8)', 'center', '500', 0.8);
+    glowText(PR.t('msg.paused'), W / 2, 38, 13, '#ffffff', 'center', '800', 18, HEAD_FONT);
+    text(PR.t('pause.gfx', { v: PR.settings.gfx === 'modern' ? 'NEON · 2026' : 'RETRO · 8-BIT' }) + '   [G]', W / 2, 52, 3.2, 'rgba(140,150,200,0.8)', 'center', '500', 0.8);
     menuDraw('#39f6ff', null);
   }
 
@@ -1084,7 +1084,7 @@
     const T = THEMES.space;
     stageBackdrop();
     glass(6, 6, W - 12, VH - 12, T.a, 0.82);
-    glowText(EX.t('help.title'), W / 2, 18, 10, T.a, 'center', '800', 14, HEAD_FONT);
+    glowText(PR.t('help.title'), W / 2, 18, 10, T.a, 'center', '800', 14, HEAD_FONT);
     g.fillStyle = 'rgba(57,246,255,0.3)';
     g.fillRect(24, 28, W - 48, 0.8);
     const rows = [
@@ -1095,21 +1095,21 @@
     ];
     let y = 37;
     rows.forEach(function (r) {
-      text(EX.t(r[0]), 14, y, 3.6, '#ffcc55', 'left', '700', 0.3);
-      text(EX.t(r[1]), 84, y, 3.4, 'rgba(235,235,255,0.9)', 'left', '400', 0.1);
+      text(PR.t(r[0]), 14, y, 3.6, '#ffcc55', 'left', '700', 0.3);
+      text(PR.t(r[1]), 84, y, 3.4, 'rgba(235,235,255,0.9)', 'left', '400', 0.1);
       y += 7.2;
     });
     y += 3;
     g.fillStyle = 'rgba(57,246,255,0.25)'; g.fillRect(24, y, W - 48, 0.6); y += 5;
-    text(EX.t('hint.title'), 14, y, 3.6, T.a, 'left', '700', 1); y += 7;
-    [EX.t('hint.goal'), EX.t('hint.grenade'), EX.t('hint.exo'), EX.t('hint.ammo')].forEach(function (s) {
+    text(PR.t('hint.title'), 14, y, 3.6, T.a, 'left', '700', 1); y += 7;
+    [PR.t('hint.goal'), PR.t('hint.grenade'), PR.t('hint.exo'), PR.t('hint.ammo')].forEach(function (s) {
       wrap(s, 3.2, W - 30, '400').forEach(function (line) {
         text(line, 14, y, 3.2, 'rgba(225,225,250,0.82)', 'left', '400', 0);
         y += 5.6;
       });
       y += 1.2;
     });
-    text(EX.t('help.back'), W / 2, VH - 8, 3.4, 'rgba(140,150,200,0.85)', 'center', '500', 0.6);
+    text(PR.t('help.back'), W / 2, VH - 8, 3.4, 'rgba(140,150,200,0.85)', 'center', '500', 0.6);
   }
 
   function drawAbout() {
@@ -1122,18 +1122,18 @@
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillStyle = lg;
     g.fillText('ПРОРЫВ', W / 2, 24);
-    text(EX.t('tagline'), W / 2, 38, 3.4, 'rgba(235,235,255,0.8)', 'center', '500', 1);
+    text(PR.t('tagline'), W / 2, 38, 3.4, 'rgba(235,235,255,0.8)', 'center', '500', 1);
     g.fillStyle = 'rgba(255,63,240,0.3)'; g.fillRect(30, 45, W - 60, 0.7);
     let y = 53;
-    wrapMulti(EX.t('about.text'), 3.7, W - 30, '400').forEach(function (l) {
+    wrapMulti(PR.t('about.text'), 3.7, W - 30, '400').forEach(function (l) {
       text(l, 15, y, 3.7, 'rgba(230,230,250,0.9)', 'left', '400', 0); y += 6.4;
     });
     y += 4;
-    [EX.t('credits.original'), EX.t('credits.port'), EX.t('credits.thanks'), EX.t('credits.fan')].forEach(function (s, i) {
+    [PR.t('credits.original'), PR.t('credits.port'), PR.t('credits.thanks'), PR.t('credits.fan')].forEach(function (s, i) {
       text(s, W / 2, y, 3.4, i < 2 ? (i ? '#39f6ff' : '#ffcc55') : 'rgba(150,150,200,0.85)', 'center', '500', 0.3);
       y += 6;
     });
-    text(EX.t('help.back'), W / 2, VH - 8, 3.2, 'rgba(140,150,200,0.8)', 'center', '500', 0.6);
+    text(PR.t('help.back'), W / 2, VH - 8, 3.2, 'rgba(140,150,200,0.8)', 'center', '500', 0.6);
   }
 
   function drawSettings() {
@@ -1142,9 +1142,9 @@
     drawWorld();
     g.fillStyle = 'rgba(4,3,14,0.78)'; g.fillRect(0, 0, W, VH);
     glass(20, 22, W - 40, 156, T.a, 0.82);
-    glowText(EX.t('settings.title'), W / 2, 36, 9, T.a, 'center', '800', 14, HEAD_FONT);
+    glowText(PR.t('settings.title'), W / 2, 36, 9, T.a, 'center', '800', 14, HEAD_FONT);
     g.fillStyle = 'rgba(57,246,255,0.25)'; g.fillRect(36, 44, W - 72, 0.7);
-    const rects = EX.ui.layout();
+    const rects = PR.ui.layout();
     rects.forEach(function (r, i) {
       const sel = i === st.menuIndex;
       if (sel) {
@@ -1160,14 +1160,14 @@
       text(r.item.label, r.x - 12, r.cy, 3.8, sel ? '#ffffff' : 'rgba(200,210,255,0.72)', 'left', '600', 0.4);
       if (r.item.value) text(r.item.value, r.x + r.w + 44, r.cy, 3.5, sel ? '#ffcc55' : 'rgba(140,150,200,0.75)', 'right', '600', 0.25);
     });
-    if (st.resetAsk > 0) glowText(EX.t('settings.resetConfirm'), W / 2, 168, 3.6, '#ff4d6d', 'center', '700', 8);
-    else text(EX.t('pause.gfx', { v: EX.settings.gfx === 'modern' ? 'NEON' : 'RETRO' }) + '   G', W / 2, 168, 3, 'rgba(140,150,200,0.7)', 'center', '500', 0.4);
-    if (EX.BUILD) text(EX.t('settings.build', { v: EX.BUILD }), W / 2, 190, 2.8, 'rgba(120,140,220,0.5)', 'center', '500', 0.6);
+    if (st.resetAsk > 0) glowText(PR.t('settings.resetConfirm'), W / 2, 168, 3.6, '#ff4d6d', 'center', '700', 8);
+    else text(PR.t('pause.gfx', { v: PR.settings.gfx === 'modern' ? 'NEON' : 'RETRO' }) + '   G', W / 2, 168, 3, 'rgba(140,150,200,0.7)', 'center', '500', 0.4);
+    if (PR.BUILD) text(PR.t('settings.build', { v: PR.BUILD }), W / 2, 190, 2.8, 'rgba(120,140,220,0.5)', 'center', '500', 0.6);
   }
 
   function drawBriefing() {
     const st = S();
-    const lv = EX.levelData(st.level) || { name: { ru: '' }, intro: { ru: '' }, theme: 'space' };
+    const lv = PR.levelData(st.level) || { name: { ru: '' }, intro: { ru: '' }, theme: 'space' };
     const T = THEMES[lv.theme] || THEMES.space;
     stageBackdrop();
     /* водяной знак сектора */
@@ -1179,11 +1179,11 @@
     g.fillText(String(st.level + 1), W - 52, 96);
     g.restore();
     glass(10, 10, W - 20, VH - 20, T.a, 0.5);
-    text(EX.t('hud.sector') + ' ' + (st.level + 1) + ' / ' + EX.levelCount(), 18, 24, 3.4, T.a, 'left', '700', 1.4);
-    glowText(lv.name[EX.settings.lang] || lv.name.ru, 18, 38, 9.5, '#ffffff', 'left', '800', 12, HEAD_FONT);
+    text(PR.t('hud.sector') + ' ' + (st.level + 1) + ' / ' + PR.levelCount(), 18, 24, 3.4, T.a, 'left', '700', 1.4);
+    glowText(lv.name[PR.settings.lang] || lv.name.ru, 18, 38, 9.5, '#ffffff', 'left', '800', 12, HEAD_FONT);
     g.fillStyle = T.a; g.globalAlpha = 0.5; g.fillRect(18, 47, 96, 0.8); g.globalAlpha = 1;
     let y = 56;
-    wrapMulti(lv.intro[EX.settings.lang] || lv.intro.ru, 3.4, W - 44, '400').forEach(function (l) {
+    wrapMulti(lv.intro[PR.settings.lang] || lv.intro.ru, 3.4, W - 44, '400').forEach(function (l) {
       text(l, 18, y, 3.4, 'rgba(230,230,250,0.9)', 'left', '400', 0); y += 6;
     });
     y += 4;
@@ -1194,7 +1194,7 @@
       { k: 'hint.ammo', c: '#ff3ff0' }
     ];
     cards.forEach(function (card) {
-      const lines = wrap(EX.t(card.k), 3, W - 58, '400');
+      const lines = wrap(PR.t(card.k), 3, W - 58, '400');
       const h = 5 + lines.length * 5.2;
       glass(18, y - 3, W - 36, h, card.c, 0.28);
       g.fillStyle = card.c; g.fillRect(18, y - 3, 1.2, h);
@@ -1228,9 +1228,9 @@
     const pulse = 0.55 + 0.45 * Math.sin(t * 3.4);
     g.globalAlpha = pulse;
     glass(60, VH - 30, W - 120, 14, '#39f6ff', 0.85);
-    glowText(EX.t('level.start'), W / 2, VH - 23, 4.6, '#39f6ff', 'center', '700', 12);
+    glowText(PR.t('level.start'), W / 2, VH - 23, 4.6, '#39f6ff', 'center', '700', 12);
     g.globalAlpha = 1;
-    text(EX.t('level.screens', { n: EX.screenCount(st.level) }), 18, VH - 6, 3, 'rgba(140,150,200,0.7)', 'left', '500', 0.4);
+    text(PR.t('level.screens', { n: PR.screenCount(st.level) }), 18, VH - 6, 3, 'rgba(140,150,200,0.7)', 'left', '500', 0.4);
   }
 
   function drawBonus() {
@@ -1240,7 +1240,7 @@
     drawWorld();
     g.fillStyle = 'rgba(4,3,14,0.8)'; g.fillRect(0, 0, W, VH);
     glass(14, 30, W - 28, 140, '#ffcc55', 0.85);
-    glowText(EX.t('msg.bonus'), W / 2, 45, 11, '#ffcc55', 'center', '800', 16, HEAD_FONT);
+    glowText(PR.t('msg.bonus'), W / 2, 45, 11, '#ffcc55', 'center', '800', 16, HEAD_FONT);
     const bx = [36, 78, 120, 162];
     if (b.phase === 'pick') {
       b.values.forEach(function (v, i) {
@@ -1256,24 +1256,24 @@
         }
         text(String(v), x + 17, 81, on ? 9 : 7.5, on ? '#ffffff' : 'rgba(200,210,255,0.7)', 'center', '800');
       });
-      text(EX.t('msg.bonus.pick'), W / 2, 108, 4, '#ffffff', 'center', '600', 0.8);
-      text(EX.t('msg.bonus.pick2'), W / 2, 118, 3.4, 'rgba(200,210,255,0.7)', 'center', '500', 0.4);
+      text(PR.t('msg.bonus.pick'), W / 2, 108, 4, '#ffffff', 'center', '600', 0.8);
+      text(PR.t('msg.bonus.pick2'), W / 2, 118, 3.4, 'rgba(200,210,255,0.7)', 'center', '500', 0.4);
     } else {
       glowText(String(b.chosen), W / 2, 74, 16, '#ffcc55', 'center', '800', 18, HEAD_FONT);
-      text(EX.t('msg.bonus.lives') + '  →  ' + b.livesBonus, W / 2, 94, 3.6, '#39f6ff', 'center', '600', 0.5);
-      text(b.noExoBonus ? EX.t('msg.bonus.noexo') : EX.t('msg.bonus.exo'), W / 2, 104, 3.6, b.noExoBonus ? '#b6ff3c' : '#ff4d6d', 'center', '600', 0.5);
-      if (b.extraLife) text(EX.t('msg.bonus.extra'), W / 2, 114, 3.6, '#ffcc55', 'center', '700', 0.5);
+      text(PR.t('msg.bonus.lives') + '  →  ' + b.livesBonus, W / 2, 94, 3.6, '#39f6ff', 'center', '600', 0.5);
+      text(b.noExoBonus ? PR.t('msg.bonus.noexo') : PR.t('msg.bonus.exo'), W / 2, 104, 3.6, b.noExoBonus ? '#b6ff3c' : '#ff4d6d', 'center', '600', 0.5);
+      if (b.extraLife) text(PR.t('msg.bonus.extra'), W / 2, 114, 3.6, '#ffcc55', 'center', '700', 0.5);
     }
-    text(EX.t('msg.score') + '  ' + st.score, W / 2, 132, 3.8, 'rgba(235,235,255,0.9)', 'center', '600', 0.6);
+    text(PR.t('msg.score') + '  ' + st.score, W / 2, 132, 3.8, 'rgba(235,235,255,0.9)', 'center', '600', 0.6);
   }
 
   function drawLevelClear() {
     const st = S();
     drawWorld();
     g.fillStyle = 'rgba(4,3,14,0.72)'; g.fillRect(0, 0, W, VH);
-    glowText(EX.t('msg.levelclear'), W / 2, 62, 14, '#b6ff3c', 'center', '800', 18, HEAD_FONT);
-    text(EX.t('hud.sector') + ' ' + (st.level + 1) + '/' + EX.levelCount(), W / 2, 86, 4, 'rgba(235,235,255,0.9)', 'center', '600', 1.5);
-    text(EX.t('msg.score') + ' ' + st.score, W / 2, 100, 4.4, '#ffcc55', 'center', '700', 0.6);
+    glowText(PR.t('msg.levelclear'), W / 2, 62, 14, '#b6ff3c', 'center', '800', 18, HEAD_FONT);
+    text(PR.t('hud.sector') + ' ' + (st.level + 1) + '/' + PR.levelCount(), W / 2, 86, 4, 'rgba(235,235,255,0.9)', 'center', '600', 1.5);
+    text(PR.t('msg.score') + ' ' + st.score, W / 2, 100, 4.4, '#ffcc55', 'center', '700', 0.6);
     for (let i = 0; i < 3; i++) {
       const a = 0.35 + 0.65 * Math.max(0, Math.sin(t * 4 - i * 0.6));
       g.globalAlpha = a;
@@ -1287,11 +1287,11 @@
     drawWorld();
     g.fillStyle = 'rgba(6,2,8,0.84)'; g.fillRect(0, 0, W, VH);
     glass(26, 28, W - 52, 152, '#ff4d6d', 0.82);
-    glowText(EX.t('msg.gameover'), W / 2, 46, 13, '#ff4d6d', 'center', '800', 18, HEAD_FONT);
-    text(EX.t('hud.score'), W / 2, 62, 3.2, 'rgba(140,150,200,0.8)', 'center', '600', 1);
+    glowText(PR.t('msg.gameover'), W / 2, 46, 13, '#ff4d6d', 'center', '800', 18, HEAD_FONT);
+    text(PR.t('hud.score'), W / 2, 62, 3.2, 'rgba(140,150,200,0.8)', 'center', '600', 1);
     text(String(st.score), W / 2, 74, 9, '#ffffff', 'center', '700');
-    text(EX.t('msg.record') + ' ' + st.record, W / 2, 88, 3.5, 'rgba(255,204,85,0.9)', 'center', '600', 0.4);
-    if (st.newRecord) glowText(EX.t('msg.newrecord'), W / 2, 99, 4.2, '#b6ff3c', 'center', '800', 10);
+    text(PR.t('msg.record') + ' ' + st.record, W / 2, 88, 3.5, 'rgba(255,204,85,0.9)', 'center', '600', 0.4);
+    if (st.newRecord) glowText(PR.t('msg.newrecord'), W / 2, 99, 4.2, '#b6ff3c', 'center', '800', 10);
     menuDraw('#ff4d6d', null);
   }
 
@@ -1309,15 +1309,15 @@
       dot(x, y, hash(i, 5) > 0.7 ? 1.4 : 0.8, i % 3 ? T.b : T.a);
     }
     g.globalAlpha = 1;
-    const winT = EX.t('msg.win');
+    const winT = PR.t('msg.win');
     glowText(winT, W / 2, 42, textW(winT, 15, '800') > 240 ? 11 : 15, '#ffcc55', 'center', '800', 22, HEAD_FONT);
-    text(EX.t('msg.win.sub'), W / 2, 68, 4, '#39f6ff', 'center', '600', 1.2);
-    text(EX.t('msg.score'), W / 2, 92, 3.4, 'rgba(140,150,200,0.8)', 'center', '600', 1);
+    text(PR.t('msg.win.sub'), W / 2, 68, 4, '#39f6ff', 'center', '600', 1.2);
+    text(PR.t('msg.score'), W / 2, 92, 3.4, 'rgba(140,150,200,0.8)', 'center', '600', 1);
     text(String(st.score), W / 2, 106, 12, '#ffffff', 'center', '700');
-    text(EX.t('msg.record') + ' ' + st.record, W / 2, 122, 3.6, '#ffcc55', 'center', '600', 0.4);
-    if (st.newRecord) glowText(EX.t('msg.newrecord'), W / 2, 133, 4.6, '#b6ff3c', 'center', '800', 12);
+    text(PR.t('msg.record') + ' ' + st.record, W / 2, 122, 3.6, '#ffcc55', 'center', '600', 0.4);
+    if (st.newRecord) glowText(PR.t('msg.newrecord'), W / 2, 133, 4.6, '#b6ff3c', 'center', '800', 12);
     menuDraw('#ffcc55', null, 'menu.hint');
-    text(EX.t('credits.original'), W / 2, VH - 6, 2.8, 'rgba(140,150,200,0.55)', 'center', '500', 0.5);
+    text(PR.t('credits.original'), W / 2, VH - 6, 2.8, 'rgba(140,150,200,0.55)', 'center', '500', 0.5);
   }
 
   /* ---------- внешний вход ---------- */
@@ -1369,7 +1369,7 @@
     g.fillStyle = vg;
     g.fillRect(V.stage.x, V.stage.y, V.stage.w, V.stage.h);
     /* сканлайны */
-    if (EX.settings.crt) {
+    if (PR.settings.crt) {
       g.globalAlpha = 0.05;
       g.fillStyle = '#000';
       for (let y = V.stage.y; y < V.stage.y + V.stage.h; y += 3) {
@@ -1382,5 +1382,5 @@
     chrome(th());
   }
 
-  window.EX_RENDER_MODERN = { draw: draw, W: W, H: VH };
+  window.PR_RENDER_MODERN = { draw: draw, W: W, H: VH };
 })();

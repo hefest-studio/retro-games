@@ -16,7 +16,7 @@
  * горизонт планирования 0.12 с. Планировщик лишь расставляет ноты WebAudio
  * заранее, поэтому ритм не «плывёт» от джиттера таймеров.
  *
- * Публичный API (DG.audio) — см. CONTRACT.md §6.3:
+ * Публичный API (KROT.audio) — см. CONTRACT.md §6.3:
  *   unlock(), isReady(), startMusic(mode), stopMusic(fadeMs), setGameTheme(i),
  *   sfx(name), setMuted(m), toggleMuted(), getMuted(), setVolume(v), getVolume(),
  *   setMusicEnabled(b), getMusicEnabled(), setSfxEnabled(b), getSfxEnabled().
@@ -24,7 +24,7 @@
 (function (global) {
   'use strict';
 
-  var DG = global.DG = global.DG || {};
+  var KROT = global.KROT = global.KROT || {};
 
   /* ====================================================================== */
   /* 1. Константы и модульное состояние                                     */
@@ -1280,7 +1280,7 @@
   /* 11. Публичный API                                                      */
   /* ====================================================================== */
 
-  DG.audio = {
+  KROT.audio = {
     unlock: unlock,
     isReady: isReady,
     startMusic: startMusic,
@@ -1303,7 +1303,7 @@
   /* ====================================================================== */
 
   if (global.__KROT_AUDIO_TEST__) {
-    DG.audio.__test = {
+    KROT.audio.__test = {
       songs: SONGS,
       warnings: SONG_WARNINGS,
       sfxNames: Object.keys(SFX_FNS),

@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/style.css">
 <style>
 /* Движок v2 поверх игры (js/host.js): рамка #hostbox повторяет прямоугольник кадра игры
-   (EX_MAIN.stage(), игра сама центрирует/масштабирует кадр), canvas движка — внутри неё. */
+   (PR_MAIN.stage(), игра сама центрирует/масштабирует кадр), canvas движка — внутри неё. */
 #hostbox{position:fixed;left:0;top:0;width:256px;height:208px;z-index:5;pointer-events:none}
 #hostbox canvas.arcade-host{position:absolute;inset:0;width:100%;height:100%;display:block}
 a.back{position:fixed;left:10px;top:8px;z-index:12;color:#7c74a8;font:12px/1.2 system-ui,-apple-system,"Segoe UI",Arial,sans-serif;text-decoration:none}
@@ -51,9 +51,9 @@ html[data-arcade-scene="play"] a.back{display:none}
 /* ПРОРЫВ на движке v2 — «оболочка» (js/host.js): родной js/game.js (логика, 25 экранов, баланс,
    рендеры 8-BIT = retro и NEON = modern, своя чиптюн-музыка, брифинги, бонус сектора) работает без
    изменений; движок даёт меню/паузу/финалы/тему/язык/звук/рекорд. Связь — через публичные
-   window.EX (состояние и функции игры), window.EX_MAIN (кадр/resize) и window.EX_AUDIO. */
+   window.PR (состояние и функции игры), window.PR_MAIN (кадр/resize) и window.PR_AUDIO. */
 (function () {
-  var EX = window.EX, M = window.EX_MAIN, S = EX.state, H = EX.HASH || {};
+  var PR = window.PR, M = window.PR_MAIN, S = PR.state, H = PR.HASH || {};
   // игра стартует на DOMContentLoaded (boot() в main.js: графика RETRO по умолчанию, #gfx/#shot) —
   // оболочку поднимаем после неё, чтобы тема движка (modern по умолчанию) не была перебита
   if (M.booted()) init(); else document.addEventListener('DOMContentLoaded', init);
@@ -81,25 +81,25 @@ html[data-arcade-scene="play"] a.back{display:none}
                paused: 'paused', gameover: 'gameover', win: 'win' };
   var adapter = {
     mode: function () { return MODE[S.mode] || 'play'; },
-    start: function () { EX.newGame(); },                       // новый забег → брифинг сектора 1 (Enter — в бой)
-    toTitle: function () { EX.setMode('title'); },
-    pause: function () { if (S.mode === 'play') EX.setMode('paused'); },
+    start: function () { PR.newGame(); },                       // новый забег → брифинг сектора 1 (Enter — в бой)
+    toTitle: function () { PR.setMode('title'); },
+    pause: function () { if (S.mode === 'play') PR.setMode('paused'); },
     resume: function () {                                         // как «Продолжить» в родной паузе игры
       if (S.mode !== 'paused') return;
-      EX.setMode('play');
-      var A = window.EX_AUDIO;
+      PR.setMode('play');
+      var A = window.PR_AUDIO;
       if (A && A.playMusic) A.playMusic(S.level >= 4 ? 'final' : (S.player && S.player.exo ? 'exo' : 'game'));
     },
-    openSub: function () { S.helpReturn = 'title'; EX.setMode('help'); },
+    openSub: function () { S.helpReturn = 'title'; PR.setMode('help'); },
     score: function () { return S.score; },
-    best: function () { return EX.loadRecord(); },
-    gfx: function () { return EX.settings.gfx; },
-    setGfx: function (v) { EX.setGfx(v); M.resize(); },
-    lang: function () { return EX.settings.lang; },
-    setLang: function (v) { EX.setLang(v); },
+    best: function () { return PR.loadRecord(); },
+    gfx: function () { return PR.settings.gfx; },
+    setGfx: function (v) { PR.setGfx(v); M.resize(); },
+    lang: function () { return PR.settings.lang; },
+    setLang: function (v) { PR.setLang(v); },
     setSound: function (on) {                                     // звук движка = музыка + эффекты игры
-      if (!!EX.settings.music !== on) EX.toggleMusic();
-      if (!!EX.settings.sfx !== on) EX.toggleSfx();
+      if (!!PR.settings.music !== on) PR.toggleMusic();
+      if (!!PR.settings.sfx !== on) PR.toggleSfx();
     }
   };
   var g = ArcadeHost.mount({ gameId: 'proryv', mount: '#hostbox', width: 512, height: 416, strings: STR, extra: 'help', adapter: adapter });

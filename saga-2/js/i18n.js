@@ -29,7 +29,7 @@ window.SAGA2 = window.SAGA2 || {};
 
       /* ---------- шапка / бренд ---------- */
       'brand.north': 'СЕВЕРНАЯ',
-      'brand.vikings': 'САГА II',
+      'brand.northmen': 'САГА II',
       'brand.ii': 'II',
       'brand.norse': 'СТУДИЯ ГЕФЕСТ',
       'meta.aurora': 'СЕВЕРНОЕ СИЯНИЕ',
@@ -52,7 +52,7 @@ window.SAGA2 = window.SAGA2 || {};
       /* ---------- экран title ---------- */
       'title.kicker': 'Оригинальная браузерная игра студии «Гефест»',
       'title.subtitle': 'СЕВЕРНОЕ СИЯНИЕ',
-      'title.tagline': 'Три викинга. Полярная ночь. Шесть саг.',
+      'title.tagline': 'Три северянина. Полярная ночь. Шесть саг.',
       'title.menu': 'Выберите путь',
       'title.start': 'Новая сага',
       'title.continue': 'Продолжить путь',
@@ -60,10 +60,10 @@ window.SAGA2 = window.SAGA2 || {};
       'title.help': 'Управление',
       'title.progress': 'Открыто саг: {n} из {total}',
       'title.fresh': 'Прогресса пока нет — начните первую сагу',
-      'title.keys': '1–3 — викинги · G — графика · Y — язык · M — звук',
+      'title.keys': '1–3 — северяне · G — графика · Y — язык · M — звук',
       'title.attribution': 'Оригинал студии «Гефест»',
       'title.build': 'без внешних ассетов · всё нарисовано кодом',
-      'title.stats': '6 саг · 3 викинга · 2 режима графики',
+      'title.stats': '6 саг · 3 северянина · 2 режима графики',
       'title.feature1': 'Полярная ночь',
       'title.feature2': 'Руны и порталы',
       'title.feature3': 'Чиптюн',
@@ -89,11 +89,11 @@ window.SAGA2 = window.SAGA2 || {};
       'brief.mechanics': 'Что важно помнить',
       'brief.goalTitle': 'Цель',
       'brief.goal1': 'Соберите три руны — они дают очки.',
-      'brief.goal2': 'Проведите всех трёх викингов к порталу.',
+      'brief.goal2': 'Проведите всех трёх северян к порталу.',
       'brief.controlsTitle': 'Управление',
       'brief.start': 'В путь',
       'brief.back': 'К списку саг',
-      'brief.switchHint': '1 2 3 или Tab — сменить викинга',
+      'brief.switchHint': '1 2 3 или Tab — сменить северянина',
       'brief.subline': 'Руны: {runes} · Чекпоинты: {checkpoints} · Враги: {enemies}',
       'brief.crew': 'Отряд',
       'brief.crewSub': 'Кто идёт в эту сагу',
@@ -125,7 +125,7 @@ window.SAGA2 = window.SAGA2 || {};
       'brief.mech.3': [
         'Вертикальные подъёмы: крюк и парение',
         'Щит Бьорна — платформа для остальных',
-        'Проверьте путь для каждого викинга'
+        'Проверьте путь для каждого северянина'
       ],
       'brief.mech.4': [
         'Комбинируйте крюк, щит и таран',
@@ -138,7 +138,7 @@ window.SAGA2 = window.SAGA2 || {};
         'Не оставляйте никого позади'
       ],
       'brief.mech.default': [
-        'Три викинга — три способности',
+        'Три северянина — три способности',
         'Руны дают очки, выход открыт всегда',
         'Смерть не заканчивает сагу'
       ],
@@ -154,28 +154,28 @@ window.SAGA2 = window.SAGA2 || {};
       'hud.exitAria': 'У портала {n} из {total}',
       'hud.pauseAria': 'Пауза',
       'hud.helpAria': 'Управление и подсказки',
-      'hud.hint': '1 2 3 — викинги · J — способность · K — спец · L — крюк · P — пауза',
+      'hud.hint': '1 2 3 — северяне · J — способность · K — спец · L — крюк · P — пауза',
       'hud.hintShort': '1 2 3 · J · K · L · P',
       'hud.active': 'Активный',
       'hud.dead': 'Павший',
       'hud.exited': 'У портала',
       'hud.idle': 'Ожидает',
       'hud.hpAria': 'Здоровье {hp} из {max}',
-      'hud.vikingAria': '{name}, {role}. {state}. Здоровье {hp} из {max}. Способности: {abilities}',
-      'hud.stateActive': 'активный викинг',
+      'hud.northmanAria': '{name}, {role}. {state}. Здоровье {hp} из {max}. Способности: {abilities}',
+      'hud.stateActive': 'активный северянин',
       'hud.stateDead': 'павший',
       'hud.stateExited': 'у портала',
       'hud.stateIdle': 'ожидает',
       'hud.abilitiesAria': 'Способности',
       'hud.exitPip': 'Слот выхода {n}',
 
-      /* ---------- викинги и способности ---------- */
-      'viking.snorri': 'Снорри',
-      'viking.snorri.role': 'Таран',
-      'viking.gunnar': 'Гуннар',
-      'viking.gunnar.role': 'Стрелок',
-      'viking.bjorn': 'Бьорн',
-      'viking.bjorn.role': 'Опора',
+      /* ---------- северяне и способности ---------- */
+      'northman.snorri': 'Снорри',
+      'northman.snorri.role': 'Таран',
+      'northman.gunnar': 'Гуннар',
+      'northman.gunnar.role': 'Стрелок',
+      'northman.bjorn': 'Бьорн',
+      'northman.bjorn.role': 'Опора',
       'ability.headbutt': 'Таран',
       'ability.headbutt.key': 'J',
       'ability.headbutt.hint': 'Ломает лёд и бьёт врагов',
@@ -220,7 +220,7 @@ window.SAGA2 = window.SAGA2 || {};
 
       /* ---------- финал ---------- */
       'ending.heading': 'Конец пути',
-      'ending.sub': 'Шесть саг, три викинга — и одно северное сияние.',
+      'ending.sub': 'Шесть саг, три северянина — и одно северное сияние.',
       'ending.time': 'Общее время',
       'ending.deaths': 'Всего потерь',
       'ending.runes': 'Собрано рун',
@@ -253,7 +253,7 @@ window.SAGA2 = window.SAGA2 || {};
       'help.specialKeys': 'K',
       'help.hook': 'Крюк',
       'help.hookKeys': 'L',
-      'help.switch': 'Смена викинга',
+      'help.switch': 'Смена северянина',
       'help.switchKeys': '1 / 2 / 3 / Tab',
       'help.pause': 'Пауза',
       'help.pauseKeys': 'P / Esc',
@@ -267,13 +267,13 @@ window.SAGA2 = window.SAGA2 || {};
       'help.langKeys': 'Y',
       'help.mute': 'Звук',
       'help.muteKeys': 'M',
-      'help.abilitiesTitle': 'Способности викингов',
+      'help.abilitiesTitle': 'Способности северян',
       'help.tipsTitle': 'Советы',
-      'help.tip1': 'Неактивные викинги замирают — стройте маршрут по очереди.',
+      'help.tip1': 'Неактивные северяне замирают — стройте маршрут по очереди.',
       'help.tip2': 'Щит Бьорна — платформа: поставьте его и поднимите остальных.',
       'help.tip3': 'Крюк цепляется за любой твёрдый потолок и за якоря.',
       'help.tip4': 'Руны не обязательны для выхода, но щедро платят очками.',
-      'help.tip5': 'Смерть не заканчивает сагу: викинг вернётся у чекпоинта.',
+      'help.tip5': 'Смерть не заканчивает сагу: северянин вернётся у чекпоинта.',
       'help.touchNote': 'На телефоне и планшете кнопки появляются автоматически.',
       'help.close': 'Закрыть справку',
 
@@ -286,7 +286,7 @@ window.SAGA2 = window.SAGA2 || {};
       'toast.muted.off': 'Звук включён',
       'toast.checkpoint': 'Чекпоинт достигнут',
       'toast.rune': 'Руна {n} из 3',
-      'toast.exit': 'Викинг у портала · {n} из 3',
+      'toast.exit': 'Северянин у портала · {n} из 3',
       'toast.saved': 'Прогресс сохранён',
       'toast.levelComplete': 'Сага пройдена',
       'toast.locked': 'Сага закрыта — пройдите предыдущую',
@@ -304,7 +304,7 @@ window.SAGA2 = window.SAGA2 || {};
       'touch.action': 'Способность',
       'touch.special': 'Спец',
       'touch.hook': 'Крюк',
-      'touch.switch': 'Сменить викинга',
+      'touch.switch': 'Сменить северянина',
 
       /* ---------- доступность ---------- */
       'a11y.settings': 'Настройки',
@@ -319,7 +319,7 @@ window.SAGA2 = window.SAGA2 || {};
       'a11y.mainMenu': 'Главное меню',
       'a11y.levelsGrid': 'Список саг',
       'a11y.primaryNav': 'Основные действия',
-      'a11y.vikings': 'Викинги'
+      'a11y.northmen': 'Северяне'
     },
 
     en: {
@@ -345,7 +345,7 @@ window.SAGA2 = window.SAGA2 || {};
 
       /* ---------- brand ---------- */
       'brand.north': 'СЕВЕРНАЯ',
-      'brand.vikings': 'САГА II',
+      'brand.northmen': 'САГА II',
       'brand.ii': 'II',
       'brand.norse': 'СТУДИЯ ГЕФЕСТ',
       'meta.aurora': 'NORDIC AURORA',
@@ -368,7 +368,7 @@ window.SAGA2 = window.SAGA2 || {};
       /* ---------- title ---------- */
       'title.kicker': 'An original browser game by Hefest studio',
       'title.subtitle': 'NORDIC AURORA',
-      'title.tagline': 'Three vikings. One polar night. Six sagas.',
+      'title.tagline': 'Three northmen. One polar night. Six sagas.',
       'title.menu': 'Choose your path',
       'title.start': 'New saga',
       'title.continue': 'Continue',
@@ -376,10 +376,10 @@ window.SAGA2 = window.SAGA2 || {};
       'title.help': 'Controls',
       'title.progress': 'Sagas unlocked: {n} of {total}',
       'title.fresh': 'No progress yet — begin the first saga',
-      'title.keys': '1–3 vikings · G graphics · Y language · M sound',
+      'title.keys': '1–3 northmen · G graphics · Y language · M sound',
       'title.attribution': 'An original by Hefest studio',
       'title.build': 'no external assets · everything drawn in code',
-      'title.stats': '6 sagas · 3 vikings · 2 graphics modes',
+      'title.stats': '6 sagas · 3 northmen · 2 graphics modes',
       'title.feature1': 'Polar night',
       'title.feature2': 'Runes and portals',
       'title.feature3': 'Chiptune',
@@ -405,11 +405,11 @@ window.SAGA2 = window.SAGA2 || {};
       'brief.mechanics': 'Worth remembering',
       'brief.goalTitle': 'Goal',
       'brief.goal1': 'Collect three runes — they are worth points.',
-      'brief.goal2': 'Bring all three vikings to the portal.',
+      'brief.goal2': 'Bring all three northmen to the portal.',
       'brief.controlsTitle': 'Controls',
       'brief.start': 'Set out',
       'brief.back': 'Back to sagas',
-      'brief.switchHint': '1 2 3 or Tab — switch viking',
+      'brief.switchHint': '1 2 3 or Tab — switch northman',
       'brief.subline': 'Runes: {runes} · Checkpoints: {checkpoints} · Enemies: {enemies}',
       'brief.crew': 'The crew',
       'brief.crewSub': 'Who joins this saga',
@@ -441,7 +441,7 @@ window.SAGA2 = window.SAGA2 || {};
       'brief.mech.3': [
         'Vertical climbs: hook and glide',
         "Bjorn's shield is a platform for the others",
-        'Check the route for every viking'
+        'Check the route for every northman'
       ],
       'brief.mech.4': [
         'Combine hook, shield and ram',
@@ -454,7 +454,7 @@ window.SAGA2 = window.SAGA2 || {};
         'Leave no one behind'
       ],
       'brief.mech.default': [
-        'Three vikings, three abilities',
+        'Three northmen, three abilities',
         'Runes are optional, the exit is not',
         'Death never ends the saga'
       ],
@@ -470,28 +470,28 @@ window.SAGA2 = window.SAGA2 || {};
       'hud.exitAria': '{n} of {total} at the portal',
       'hud.pauseAria': 'Pause',
       'hud.helpAria': 'Controls and hints',
-      'hud.hint': '1 2 3 — vikings · J — ability · K — special · L — hook · P — pause',
+      'hud.hint': '1 2 3 — northmen · J — ability · K — special · L — hook · P — pause',
       'hud.hintShort': '1 2 3 · J · K · L · P',
       'hud.active': 'Active',
       'hud.dead': 'Fallen',
       'hud.exited': 'At portal',
       'hud.idle': 'Waiting',
       'hud.hpAria': 'Health {hp} of {max}',
-      'hud.vikingAria': '{name}, {role}. {state}. Health {hp} of {max}. Abilities: {abilities}',
-      'hud.stateActive': 'active viking',
+      'hud.northmanAria': '{name}, {role}. {state}. Health {hp} of {max}. Abilities: {abilities}',
+      'hud.stateActive': 'active northman',
       'hud.stateDead': 'fallen',
       'hud.stateExited': 'at the portal',
       'hud.stateIdle': 'waiting',
       'hud.abilitiesAria': 'Abilities',
       'hud.exitPip': 'Exit slot {n}',
 
-      /* ---------- vikings ---------- */
-      'viking.snorri': 'Snorri',
-      'viking.snorri.role': 'Ram',
-      'viking.gunnar': 'Gunnar',
-      'viking.gunnar.role': 'Marksman',
-      'viking.bjorn': 'Bjorn',
-      'viking.bjorn.role': 'Bulwark',
+      /* ---------- northmen ---------- */
+      'northman.snorri': 'Snorri',
+      'northman.snorri.role': 'Ram',
+      'northman.gunnar': 'Gunnar',
+      'northman.gunnar.role': 'Marksman',
+      'northman.bjorn': 'Bjorn',
+      'northman.bjorn.role': 'Bulwark',
       'ability.headbutt': 'Ram',
       'ability.headbutt.key': 'J',
       'ability.headbutt.hint': 'Breaks ice and hits enemies',
@@ -536,7 +536,7 @@ window.SAGA2 = window.SAGA2 || {};
 
       /* ---------- ending ---------- */
       'ending.heading': "Journey's end",
-      'ending.sub': 'Six sagas, three vikings — and one northern light.',
+      'ending.sub': 'Six sagas, three northmen — and one northern light.',
       'ending.time': 'Total time',
       'ending.deaths': 'Total losses',
       'ending.runes': 'Runes found',
@@ -569,7 +569,7 @@ window.SAGA2 = window.SAGA2 || {};
       'help.specialKeys': 'K',
       'help.hook': 'Hook',
       'help.hookKeys': 'L',
-      'help.switch': 'Switch viking',
+      'help.switch': 'Switch northman',
       'help.switchKeys': '1 / 2 / 3 / Tab',
       'help.pause': 'Pause',
       'help.pauseKeys': 'P / Esc',
@@ -583,13 +583,13 @@ window.SAGA2 = window.SAGA2 || {};
       'help.langKeys': 'Y',
       'help.mute': 'Sound',
       'help.muteKeys': 'M',
-      'help.abilitiesTitle': 'Viking abilities',
+      'help.abilitiesTitle': 'Northman abilities',
       'help.tipsTitle': 'Tips',
-      'help.tip1': 'Inactive vikings freeze — plan the route one at a time.',
+      'help.tip1': 'Inactive northmen freeze — plan the route one at a time.',
       'help.tip2': "Bjorn's shield is a platform: park him and lift the others.",
       'help.tip3': 'The hook grabs any solid ceiling and every anchor.',
       'help.tip4': 'Runes are optional for the exit, but they pay well.',
-      'help.tip5': 'Death never ends the saga: the viking returns at a checkpoint.',
+      'help.tip5': 'Death never ends the saga: the northman returns at a checkpoint.',
       'help.touchNote': 'On phones and tablets the on-screen buttons appear automatically.',
       'help.close': 'Close controls',
 
@@ -602,7 +602,7 @@ window.SAGA2 = window.SAGA2 || {};
       'toast.muted.off': 'Sound on',
       'toast.checkpoint': 'Checkpoint reached',
       'toast.rune': 'Rune {n} of 3',
-      'toast.exit': 'Viking at the portal · {n} of 3',
+      'toast.exit': 'Northman at the portal · {n} of 3',
       'toast.saved': 'Progress saved',
       'toast.levelComplete': 'Saga complete',
       'toast.locked': 'Saga locked — finish the previous one',
@@ -620,7 +620,7 @@ window.SAGA2 = window.SAGA2 || {};
       'touch.action': 'Ability',
       'touch.special': 'Special',
       'touch.hook': 'Hook',
-      'touch.switch': 'Switch viking',
+      'touch.switch': 'Switch northman',
 
       /* ---------- a11y ---------- */
       'a11y.settings': 'Settings',
@@ -635,7 +635,7 @@ window.SAGA2 = window.SAGA2 || {};
       'a11y.mainMenu': 'Main menu',
       'a11y.levelsGrid': 'Saga list',
       'a11y.primaryNav': 'Primary actions',
-      'a11y.vikings': 'Vikings'
+      'a11y.northmen': 'Northmen'
     }
   };
 

@@ -7,7 +7,7 @@ function segmentsAhead(S) {
   const margin = 15;
   let lo = -1e9, hi = 1e9;
   for (const dy of [4, 60, 120, 180, 240]) {
-    const r = RR.riverAt(S.camY + dy);
+    const r = RUSLO.riverAt(S.camY + dy);
     lo = Math.max(lo, r.L + margin);
     hi = Math.min(hi, r.R - margin);
   }
@@ -29,7 +29,7 @@ function segmentsAhead(S) {
   }
   segs = segs.filter(([a, b]) => b - a > 24);
   if (!segs.length) {
-    const r = RR.riverAt(S.camY);
+    const r = RUSLO.riverAt(S.camY);
     return clamp(S.planeX, r.L + 18, r.R - 18);
   }
   segs.sort((p, q) => Math.abs((p[0] + p[1]) / 2 - S.planeX) - Math.abs((q[0] + q[1]) / 2 - S.planeX));
@@ -38,8 +38,8 @@ function segmentsAhead(S) {
 }
 
 function runOne(maxSeconds) {
-  RR.test.startGame();
-  const S = RR.S;
+  RUSLO.test.startGame();
+  const S = RUSLO.S;
   let t = 0, lastLevel = 1, prevTx = S.planeX;
   const events = [];
   while (t < maxSeconds) {
@@ -47,19 +47,19 @@ function runOne(maxSeconds) {
     if (S.mode === 'play' && !S.paused) {
       const tx = segmentsAhead(S);
       prevTx = prevTx * 0.45 + tx * 0.55;
-      RR.test.hold('left', S.planeX > prevTx + 5);
-      RR.test.hold('right', S.planeX < prevTx - 5);
-      RR.test.hold('fire', true);
-      RR.test.hold('up', S.fuel < 14);
+      RUSLO.test.hold('left', S.planeX > prevTx + 5);
+      RUSLO.test.hold('right', S.planeX < prevTx - 5);
+      RUSLO.test.hold('fire', true);
+      RUSLO.test.hold('up', S.fuel < 14);
     }
-    RR.test.update(1 / 60);
+    RUSLO.test.update(1 / 60);
     t += 1 / 60;
     if (S.level !== lastLevel) {
       events.push({ level: S.level, at: Math.round(t), fuel: Math.round(S.fuel), lives: S.lives });
       lastLevel = S.level;
     }
   }
-  RR.test.hold('fire', false); RR.test.hold('left', false); RR.test.hold('right', false); RR.test.hold('up', false);
+  RUSLO.test.hold('fire', false); RUSLO.test.hold('left', false); RUSLO.test.hold('right', false); RUSLO.test.hold('up', false);
   return {
     seconds: Math.round(t), mode: S.mode, level: S.level, score: S.score, lives: S.lives,
     fuel: Math.round(S.fuel), deaths: 3 - S.lives, reason: S.deathReason, events,

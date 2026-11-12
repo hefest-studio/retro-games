@@ -59,7 +59,7 @@ try {
   const code = readFileSync(SRC, "utf8");
   const sandbox = { window: {} };
   vm.runInNewContext(code, sandbox, { filename: "levels.js", timeout: 5000 });
-  levels = sandbox.window.EX_LEVELS;
+  levels = sandbox.window.PR_LEVELS;
 } catch (e) {
   console.error("✗ levels.js не загружается:", e.message);
   process.exit(1);
@@ -148,8 +148,8 @@ function reachable(tiles, start) {
 }
 
 /* ---------- проверки ---------- */
-if (!Array.isArray(levels)) err("EX_LEVELS", "должен быть массивом");
-else if (levels.length !== 5) err("EX_LEVELS", `уровней ${levels.length}, ожидается 5`);
+if (!Array.isArray(levels)) err("PR_LEVELS", "должен быть массивом");
+else if (levels.length !== 5) err("PR_LEVELS", `уровней ${levels.length}, ожидается 5`);
 
 const stats = [];
 

@@ -22,7 +22,7 @@ for (const file of ['js/i18n.js', 'js/game.js']) {
   const code = fs.readFileSync(path.join(ROOT, file), 'utf8');
   vm.runInContext(code, sandbox, { filename: file });
 }
-const DG = sandbox.DG;
+const KROT = sandbox.KROT;
 
 /* ------------------------------ мини-фреймворк ----------------------------- */
 const MODES = ['title', 'ready', 'play', 'bonus', 'dying', 'levelclear', 'gameover'];
@@ -67,7 +67,7 @@ function inBounds(cx, cy) {
 
 /* --------------------------------- утилиты --------------------------------- */
 function mk(seed, opts) {
-  return DG.Game(Object.assign({ seed: seed === undefined ? 1337 : seed }, opts || {}));
+  return KROT.Game(Object.assign({ seed: seed === undefined ? 1337 : seed }, opts || {}));
 }
 function eventCapture(engine) {
   const events = [];
@@ -94,7 +94,7 @@ function isFiniteCell(S, cx, cy) { return inBounds(cx, cy); }
    (spawnLeft большой, таймер огромный), алмазов "много" (99), чтобы не
    срабатывало условие levelClear. */
 function lab(seed) {
-  const engine = DG.Game({ seed: seed == null ? 7 : seed });
+  const engine = KROT.Game({ seed: seed == null ? 7 : seed });
   engine.start();
   const S = engine.state;
   S.mode = 'play';
@@ -223,27 +223,27 @@ function assertStateFinite(S, where) {
 /* ========================================================================== */
 /* 1. API                                                                     */
 /* ========================================================================== */
-test('API: DG.G / DG.rng / DG.Game / DG.t соответствуют §4', () => {
-  eq(DG.G.COLS, 15, 'COLS');
-  eq(DG.G.ROWS, 10, 'ROWS');
-  eq(DG.G.W, 960, 'W');
-  eq(DG.G.H, 600, 'H');
-  ok(Array.isArray(DG.G.DIRS) && DG.G.DIRS.length === 4, 'DIRS — 4 направления');
-  eq(JSON.stringify(DG.G.DIRS), JSON.stringify([[0, -1], [1, 0], [0, 1], [-1, 0]]), 'порядок DIRS');
-  eq(typeof DG.rng, 'function', 'DG.rng');
-  eq(typeof DG.Game, 'function', 'DG.Game');
-  eq(typeof DG.t, 'function', 'DG.t');
-  eq(DG.t('score'), 'СЧЁТ', 'DG.t("score") по умолчанию RU');
+test('API: KROT.G / KROT.rng / KROT.Game / KROT.t соответствуют §4', () => {
+  eq(KROT.G.COLS, 15, 'COLS');
+  eq(KROT.G.ROWS, 10, 'ROWS');
+  eq(KROT.G.W, 960, 'W');
+  eq(KROT.G.H, 600, 'H');
+  ok(Array.isArray(KROT.G.DIRS) && KROT.G.DIRS.length === 4, 'DIRS — 4 направления');
+  eq(JSON.stringify(KROT.G.DIRS), JSON.stringify([[0, -1], [1, 0], [0, 1], [-1, 0]]), 'порядок DIRS');
+  eq(typeof KROT.rng, 'function', 'KROT.rng');
+  eq(typeof KROT.Game, 'function', 'KROT.Game');
+  eq(typeof KROT.t, 'function', 'KROT.t');
+  eq(KROT.t('score'), 'СЧЁТ', 'KROT.t("score") по умолчанию RU');
 });
 
-test('DG.rng: детерминированный PRNG, диапазон 0..1', () => {
-  const a = DG.rng(123), b = DG.rng(123), c = DG.rng(124);
+test('KROT.rng: детерминированный PRNG, диапазон 0..1', () => {
+  const a = KROT.rng(123), b = KROT.rng(123), c = KROT.rng(124);
   const seqA = [], seqB = [], seqC = [];
   for (let i = 0; i < 16; i++) { seqA.push(a()); seqB.push(b()); seqC.push(c()); }
   eq(JSON.stringify(seqA), JSON.stringify(seqB), 'один seed — одна последовательность');
   ok(JSON.stringify(seqA) !== JSON.stringify(seqC), 'разные seed — разные последовательности');
   for (const v of seqA) { finite(v, 'rng()'); ok(v >= 0 && v < 1, 'rng() в [0,1): ' + v); }
-  const z = DG.rng(0);
+  const z = KROT.rng(0);
   for (let i = 0; i < 8; i++) { const v = z(); finite(v, 'rng(0)()'); ok(v >= 0 && v < 1, 'rng(0) в [0,1)'); }
 });
 
@@ -426,7 +426,7 @@ test('движение по готовому туннелю не копает', 
 test('копать можно в любую сторону', () => {
   for (const dir of [0, 1, 2, 3]) {
     const { engine, S } = lab();
-    const d = DG.G.DIRS[dir];
+    const d = KROT.G.DIRS[dir];
     const tx = S.player.cx + d[0], ty = S.player.cy + d[1];
     eq(S.grid[idx(tx, ty)], 0, 'целевая клетка — земля, dir=' + dir);
     engine.setDir(dir);
@@ -1122,7 +1122,7 @@ test('forceMode: переключает title/play/bonus/gameover/levelclear/dyi
 
 test('детерминизм: одинаковый seed + одинаковые команды → одинаковое состояние', () => {
   function scripted(engine) {
-    const r = DG.rng(555);
+    const r = KROT.rng(555);
     for (let i = 0; i < 500; i++) {
       if (i % 9 === 0) engine.setDir(Math.floor(r() * 5) - 1);
       if (i % 13 === 0) engine.shoot();
@@ -1153,7 +1153,7 @@ test('детерминизм: разные seed дают разные уровн
 test('60 с симуляции со случайными вводами: нет NaN, исключений, невалидного state', () => {
   const e = mk(2024);
   const S = e.state;
-  const rnd = DG.rng(9001);
+  const rnd = KROT.rng(9001);
   let error = null;
   let steps = 0;
   e.start();
@@ -1185,7 +1185,7 @@ test('60 с симуляции со случайными вводами: нет 
 test('5 минут (300 с) симуляции со случайными вводами: нет NaN/исключений', () => {
   const e = mk(31337);
   const S = e.state;
-  const rnd = DG.rng(4242);
+  const rnd = KROT.rng(4242);
   let error = null;
   let steps = 0;
   e.start();
@@ -1212,7 +1212,7 @@ test('события движка: только документированны
   const { engine, S } = lab();
   S.spawnLeft = 6; S.monstersMax = 3; S.gnawerChance = 0.3; S.spawnTimer = 0.1; S.gemsLeft = 99;
   const evs = eventCapture(engine);
-  const r = DG.rng(31);
+  const r = KROT.rng(31);
   for (let i = 0; i < 1200; i++) {
     if (i % 7 === 0) engine.setDir(Math.floor(r() * 5) - 1);
     if (i % 11 === 0) engine.shoot();
@@ -1232,7 +1232,7 @@ test('события движка: только документированны
 /* 10. i18n и старт/ресет                                                     */
 /* ========================================================================== */
 test('i18n: наборы ключей RU/EN совпадают, все ключи §6.4 на месте', () => {
-  const STR = DG.i18n.STR;
+  const STR = KROT.i18n.STR;
   const ru = Object.keys(STR.ru).sort();
   const en = Object.keys(STR.en).sort();
   eq(JSON.stringify(ru), JSON.stringify(en), 'наборы ключей RU и EN');
@@ -1248,15 +1248,15 @@ test('i18n: наборы ключей RU/EN совпадают, все ключ�
     ok(STR.en[key] != null, 'EN: нет ключа ' + key);
   }
   const HUD = ['score', 'hiscore', 'level', 'lives', 'gems', 'bonus', 'paused', 'ready', 'levelIntro', 'bonusMode'];
-  for (const key of HUD) ok(DG.t(key).length > 0, 'HUD-ключ ' + key);
-  const saved = DG.i18n.lang;
-  DG.i18n.setLang('en');
-  eq(DG.t('score'), 'SCORE', 'EN score');
-  eq(DG.t('levelIntro', { n: 3 }), 'LEVEL 3', 'EN подстановка');
-  DG.i18n.setLang('ru');
-  eq(DG.t('levelIntro', { n: 7 }), 'УРОВЕНЬ 7', 'RU подстановка');
-  eq(DG.t('__no_such_key__'), '__no_such_key__', 'фолбэк на имя ключа');
-  eq(DG.i18n.lang, 'ru', 'язык восстановлен');
+  for (const key of HUD) ok(KROT.t(key).length > 0, 'HUD-ключ ' + key);
+  const saved = KROT.i18n.lang;
+  KROT.i18n.setLang('en');
+  eq(KROT.t('score'), 'SCORE', 'EN score');
+  eq(KROT.t('levelIntro', { n: 3 }), 'LEVEL 3', 'EN подстановка');
+  KROT.i18n.setLang('ru');
+  eq(KROT.t('levelIntro', { n: 7 }), 'УРОВЕНЬ 7', 'RU подстановка');
+  eq(KROT.t('__no_such_key__'), '__no_such_key__', 'фолбэк на имя ключа');
+  eq(KROT.i18n.lang, 'ru', 'язык восстановлен');
 });
 
 test('start() после gameover сбрасывает прогресс, но сохраняет рекорд', () => {
@@ -1298,21 +1298,21 @@ test('v2: index.html — движок, music.js сразу после engine.js,
   const srcs = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
   eq(srcs[0], './engine.js'); eq(srcs[1], './js/music.js');
   ok(fs.existsSync(path.join(ROOT, 'engine.js')) && fs.existsSync(path.join(ROOT, 'legacy.html')), 'нет engine.js/legacy.html');
-  ok(/DG\.migrateStorage\(localStorage\)/.test(html) && /DG\.STORE_KEYS\.hi/.test(html) && /arcade\.best\.krot/.test(html), 'нет миграции рекорда');
+  ok(/KROT\.migrateStorage\(localStorage\)/.test(html) && /KROT\.STORE_KEYS\.hi/.test(html) && /arcade\.best\.krot/.test(html), 'нет миграции рекорда');
   ok(/gameId:'krot'/.test(html), 'gameId');
 });
 
 test('миграция localStorage: digger.* → krot.*, старые удалены, новые не затираются', () => {
   const mk = (init) => { const m = new Map(Object.entries(init)); return { m, getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
   const a = mk({ 'digger.settings.v1': '{"lang":"en"}', 'digger.hi.v1': '4242' });
-  DG.migrateStorage(a);
+  KROT.migrateStorage(a);
   eq(a.m.get('krot.settings.v1'), '{"lang":"en"}', 'настройки'); eq(a.m.get('krot.hi.v1'), '4242', 'рекорд');
   ok(!a.m.has('digger.settings.v1') && !a.m.has('digger.hi.v1'), 'старые ключи не удалены');
   const b = mk({ 'digger.hi.v1': '4242', 'krot.hi.v1': '5000' });
-  DG.migrateStorage(b);
+  KROT.migrateStorage(b);
   eq(b.m.get('krot.hi.v1'), '5000', 'новый рекорд затёрт старым'); ok(!b.m.has('digger.hi.v1'), 'старый не удалён');
-  const c = mk({}); DG.migrateStorage(c); eq(c.m.size, 0, 'пустое хранилище');
-  DG.migrateStorage(null);
+  const c = mk({}); KROT.migrateStorage(c); eq(c.m.size, 0, 'пустое хранилище');
+  KROT.migrateStorage(null);
 });
 
 /* --------------------------------- итог ----------------------------------- */

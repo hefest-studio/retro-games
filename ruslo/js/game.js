@@ -5,20 +5,20 @@
  * Два режима графики (ретро/модерн) — в js/render.js.
  * ========================================================================== */
 'use strict';
-(function (RR) {
-  if (!RR) return;
-  const { W, H, PLAY_TOP, PLAY_H, PLANE_SY, clamp, lerp, rnd, rndi } = RR;
+(function (RUSLO) {
+  if (!RUSLO) return;
+  const { W, H, PLAY_TOP, PLAY_H, PLANE_SY, clamp, lerp, rnd, rndi } = RUSLO;
   const $ = (id) => document.getElementById(id);
 
   /* ====================== состояние ====================== */
   const cfg = {
     // По умолчанию — ретро-режим.
     // Если пользователь уже переключался, уважаем сохранённый выбор.
-    gfx: RR.store.get('gfx', 'retro') === 'modern' ? 'modern' : 'retro',
-    lang: RR.getLang(),
-    sound: RR.store.get('sound', true) !== false,
-    volume: clamp(Number(RR.store.get('volume', 0.65)) || 0.65, 0, 1),
-    hi: Math.max(0, Number(RR.store.get('hi', 0)) || 0),
+    gfx: RUSLO.store.get('gfx', 'retro') === 'modern' ? 'modern' : 'retro',
+    lang: RUSLO.getLang(),
+    sound: RUSLO.store.get('sound', true) !== false,
+    volume: clamp(Number(RUSLO.store.get('volume', 0.65)) || 0.65, 0, 1),
+    hi: Math.max(0, Number(RUSLO.store.get('hi', 0)) || 0),
     audioReady: false,
     pendingTrack: null,
   };
@@ -66,8 +66,8 @@
     attract: 0,
     errors: [],
   };
-  RR.S = S;
-  RR.cfg = cfg;
+  RUSLO.S = S;
+  RUSLO.cfg = cfg;
 
   const keys = { left: false, right: false, up: false, down: false, fire: false };
   const view = { dpr: 1 };
@@ -129,7 +129,7 @@
 
   /* ====================== река ====================== */
   function makeRiver(seed) {
-    const r = RR.mulberry32(seed);
+    const r = RUSLO.mulberry32(seed);
     return {
       a1: 28 + r() * 20, f1: 0.0055 + r() * 0.0032, p1: r() * 6.283,
       a2: 10 + r() * 10, f2: 0.016 + r() * 0.012, p2: r() * 6.283,
@@ -143,7 +143,7 @@
   /** Границы реки в мировых координатах y (непрерывно, без дискретизации). */
   function riverAt(y) {
     const p = S.river;
-    const i = y / RR.ROW;
+    const i = y / RUSLO.ROW;
     const c = W / 2
       + p.a1 * Math.sin(i * p.f1 + p.p1)
       + p.a2 * Math.sin(i * p.f2 + p.p2)
@@ -153,7 +153,7 @@
       + p.w2 * Math.sin(i * p.f5 + p.p5), 40, 106);
     return { L: c - hw, R: c + hw, c, hw };
   }
-  RR.riverAt = riverAt;
+  RUSLO.riverAt = riverAt;
 
   function inIsland(x, y) {
     for (let i = 0; i < S.islands.length; i++) {
@@ -164,7 +164,7 @@
     }
     return false;
   }
-  RR.inIsland = inIsland;
+  RUSLO.inIsland = inIsland;
 
   function onLand(x, y) {
     const r = riverAt(y);
@@ -172,7 +172,7 @@
   }
 
   function screenY(y) { return PLAY_TOP + PLANE_SY - (y - S.camY); }
-  RR.screenY = screenY;
+  RUSLO.screenY = screenY;
 
   /* ====================== генерация мира ====================== */
   function addIsland(y) {
@@ -333,19 +333,19 @@
   function gameOver() {
     S.mode = 'over';
     S.paused = false;
-    if (S.score > S.hi) { S.hi = S.score; RR.store.set('hi', S.hi); }
+    if (S.score > S.hi) { S.hi = S.score; RUSLO.store.set('hi', S.hi); }
     updateRecordUI();
     const sr = $('scoreOver'), hr = $('hiOver'), rs = $('reasonOver');
-    if (sr) sr.textContent = RR.pad(S.score, 6);
-    if (hr) hr.textContent = RR.pad(S.hi, 6);
-    if (rs) rs.textContent = RR.t('reasonLine') + ': ' + RR.t(reasonKey(S.deathReason));
+    if (sr) sr.textContent = RUSLO.pad(S.score, 6);
+    if (hr) hr.textContent = RUSLO.pad(S.hi, 6);
+    if (rs) rs.textContent = RUSLO.t('reasonLine') + ': ' + RUSLO.t(reasonKey(S.deathReason));
     const acc = $('accuracyOver');
     if (acc) {
       const pct = S.shotsFired ? Math.round((S.shotsHit / S.shotsFired) * 100) : 0;
-      acc.textContent = RR.t('shots') + ' ' + S.shotsFired + ' · ' + RR.t('hits') + ' ' + S.shotsHit + ' · ' + RR.t('accuracy') + ' ' + pct + '%';
+      acc.textContent = RUSLO.t('shots') + ' ' + S.shotsFired + ' · ' + RUSLO.t('hits') + ' ' + S.shotsHit + ' · ' + RUSLO.t('accuracy') + ' ' + pct + '%';
     }
     const overTitle = $('overTitle');
-    if (overTitle) overTitle.textContent = RR.t('gameOver');
+    if (overTitle) overTitle.textContent = RUSLO.t('gameOver');
     setOverlay('over');
     music('over');
     sfx('gameOver');
@@ -409,7 +409,7 @@
       S.flash = 0.5;
       S.shake = 20;
       S.levelPending = 1.8;
-      banner(RR.t('levelDone'), '+' + (500 + S.level * 50), 1.8, 'good');
+      banner(RUSLO.t('levelDone'), '+' + (500 + S.level * 50), 1.8, 'good');
       sfx('bigExplosion');
     } else {
       sfx('explosion');
@@ -422,7 +422,7 @@
     spawnBridge();
     S.fuel = Math.min(S.maxFuel, S.fuel + 22);
     if (S.level % 3 === 0 && S.lives < 5) S.lives++;
-    banner(RR.t('levelNew') + ' ' + S.level, '', 1.5, 'good');
+    banner(RUSLO.t('levelNew') + ' ' + S.level, '', 1.5, 'good');
     sfx('levelUp');
   }
 
@@ -519,7 +519,7 @@
         S.fuel = S.maxFuel;
         S.score += 50;
         popup(d.x, d.y, '+50', '#8ff8e4');
-        banner(RR.t('fuelTaken'), '+' + 50, 1.1, 'good');
+        banner(RUSLO.t('fuelTaken'), '+' + 50, 1.1, 'good');
         boom(d.x, d.y, 0.8, 'cool');
         sfx('fuel');
       }
@@ -555,7 +555,7 @@
     const L = S.level;
     // тяга/скорость
     const targetThrottle = keys.up ? 1 : keys.down ? -1 : 0;
-    S.throttle = RR.approach(S.throttle, targetThrottle, dt * 3.2);
+    S.throttle = RUSLO.approach(S.throttle, targetThrottle, dt * 3.2);
     const base = Math.min(180, 94 + (L - 1) * 8);
     S.speed = base * (1 + (S.throttle > 0 ? 0.62 * S.throttle : 0.45 * S.throttle));
     S.camY += S.speed * dt;
@@ -563,7 +563,7 @@
 
     // самолёт
     const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
-    S.planeVX = RR.approach(S.planeVX, dir * 196, dt * (dir ? 1050 : 850));
+    S.planeVX = RUSLO.approach(S.planeVX, dir * 196, dt * (dir ? 1050 : 850));
     S.planeX = clamp(S.planeX + S.planeVX * dt, 8, W - 8);
     S.planeTilt = lerp(S.planeTilt, dir * 0.38, Math.min(1, dt * 9));
 
@@ -651,11 +651,11 @@
       const el = $('ov-' + key);
       if (el) el.classList.toggle('is-open', key === name);
     }
-    if (name) { RR.applyI18n(); applyStartHint(); }
+    if (name) { RUSLO.applyI18n(); applyStartHint(); }
   }
 
   function updateRecordUI() {
-    const v = RR.pad(S.hi, 6);
+    const v = RUSLO.pad(S.hi, 6);
     const a = $('menuRecord'), b = $('hiOver');
     if (a) a.textContent = v;
     if (b) b.textContent = v;
@@ -663,17 +663,17 @@
 
   function syncUI() {
     document.documentElement.dataset.gfx = S.gfx;
-    document.documentElement.dataset.lang = RR.getLang();
+    document.documentElement.dataset.lang = RUSLO.getLang();
     const gf = $('valGfx'), sf = $('valSound'), lf = $('valLang');
-    if (gf) gf.textContent = RR.t(S.gfx === 'retro' ? 'modeRetro' : 'modeModern');
-    if (sf) sf.textContent = RR.t(cfg.sound ? 'on' : 'off');
-    if (lf) lf.textContent = RR.getLang() === 'ru' ? 'РУС' : 'ENG';
+    if (gf) gf.textContent = RUSLO.t(S.gfx === 'retro' ? 'modeRetro' : 'modeModern');
+    if (sf) sf.textContent = RUSLO.t(cfg.sound ? 'on' : 'off');
+    if (lf) lf.textContent = RUSLO.getLang() === 'ru' ? 'РУС' : 'ENG';
     const qG = $('quickGfx'), qL = $('quickLang'), qS = $('quickSound');
     if (qG) qG.textContent = S.gfx === 'retro' ? '8-BIT' : 'NEON';
-    if (qL) qL.textContent = RR.getLang() === 'ru' ? 'RU' : 'EN';
+    if (qL) qL.textContent = RUSLO.getLang() === 'ru' ? 'RU' : 'EN';
     if (qS) { qS.textContent = cfg.sound ? '♪' : '×'; qS.classList.toggle('is-off', !cfg.sound); }
     const gfxTag = $('gfxTag');
-    if (gfxTag) gfxTag.textContent = RR.t(S.gfx === 'retro' ? 'tagRetro' : 'tagModern');
+    if (gfxTag) gfxTag.textContent = RUSLO.t(S.gfx === 'retro' ? 'tagRetro' : 'tagModern');
     applyStartHint();
     updateRecordUI();
   }
@@ -681,7 +681,7 @@
   function applyStartHint() {
     const el = document.querySelector('.start-hint');
     if (!el) return;
-    el.textContent = RR.t(isTouchDevice() ? 'startHintTouch' : 'startHint');
+    el.textContent = RUSLO.t(isTouchDevice() ? 'startHintTouch' : 'startHint');
   }
 
   function isTouchDevice() {
@@ -693,17 +693,17 @@
   function setGfx(next) {
     S.gfx = next === 'retro' ? 'retro' : 'modern';
     cfg.gfx = S.gfx;
-    RR.store.set('gfx', S.gfx);
+    RUSLO.store.set('gfx', S.gfx);
     fit();
     S.flash = 0.25;
     syncUI();
-    RR.on.gfx.forEach((fn) => { try { fn(S.gfx); } catch (e) { console.error(e); } });
+    RUSLO.on.gfx.forEach((fn) => { try { fn(S.gfx); } catch (e) { console.error(e); } });
   }
   function toggleGfx() { setGfx(S.gfx === 'retro' ? 'modern' : 'retro'); sfx('select'); }
 
   function setSound(on) {
     cfg.sound = !!on;
-    RR.store.set('sound', cfg.sound);
+    RUSLO.store.set('sound', cfg.sound);
     if (cfg.sound) unlockAudio();
     try { audio() && audio().setMuted && audio().setMuted(!cfg.sound); } catch (e) { /* noop */ }
     syncUI();
@@ -711,18 +711,18 @@
   function toggleSound() { setSound(!cfg.sound); if (cfg.sound) sfx('select'); }
 
   function toggleLang() {
-    RR.toggleLang();
+    RUSLO.toggleLang();
     syncUI();
     updateRecordUI();
     if (S.mode === 'over') {
       const rs = $('reasonOver');
-      if (rs) rs.textContent = RR.t('reasonLine') + ': ' + RR.t(reasonKey(S.deathReason));
+      if (rs) rs.textContent = RUSLO.t('reasonLine') + ': ' + RUSLO.t(reasonKey(S.deathReason));
       const overTitle = $('overTitle');
-      if (overTitle) overTitle.textContent = RR.t('gameOver');
+      if (overTitle) overTitle.textContent = RUSLO.t('gameOver');
       const acc = $('accuracyOver');
       if (acc) {
         const pct = S.shotsFired ? Math.round((S.shotsHit / S.shotsFired) * 100) : 0;
-        acc.textContent = RR.t('shots') + ' ' + S.shotsFired + ' · ' + RR.t('hits') + ' ' + S.shotsHit + ' · ' + RR.t('accuracy') + ' ' + pct + '%';
+        acc.textContent = RUSLO.t('shots') + ' ' + S.shotsFired + ' · ' + RUSLO.t('hits') + ' ' + S.shotsHit + ' · ' + RUSLO.t('accuracy') + ' ' + pct + '%';
       }
     }
     sfx('select');
@@ -933,11 +933,11 @@
   }
 
   function drawFrame() {
-    if (!ctx || !RR.Render) return;
+    if (!ctx || !RUSLO.Render) return;
     const dpr = view.dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.imageSmoothingEnabled = S.gfx !== 'retro';
-    RR.Render.draw(ctx, S, view);
+    RUSLO.Render.draw(ctx, S, view);
   }
 
   let last = 0;
@@ -962,12 +962,12 @@
 
     if (!ctx) return;
     document.documentElement.dataset.gfx = S.gfx;
-    document.documentElement.dataset.lang = RR.getLang();
+    document.documentElement.dataset.lang = RUSLO.getLang();
     fit();
     resetWorld();
     S.mode = 'menu';
     setOverlay('menu');
-    RR.applyI18n();
+    RUSLO.applyI18n();
     syncUI();
     highlightMenu(0);
     bindUi();
@@ -985,13 +985,13 @@
         audioPause(true);
       }
     });
-    RR.onLang((l) => { cfg.lang = l; applyStartHint(); });
+    RUSLO.onLang((l) => { cfg.lang = l; applyStartHint(); });
     if (isTouchDevice()) document.body.classList.add('is-touch');
     requestAnimationFrame(frame);
   }
 
   /* ====================== тестовые хуки ====================== */
-  RR.test = {
+  RUSLO.test = {
     startGame,
     toMenu,
     update,
@@ -1000,13 +1000,13 @@
       let left = Math.max(0, Number(seconds) || 0);
       while (left > 0) { update(Math.min(step, left)); left -= step; }
       drawFrame();
-      return RR.test.state();
+      return RUSLO.test.state();
     },
     state() {
       return {
         mode: S.mode, paused: S.paused, score: S.score, level: S.level, lives: S.lives,
         fuel: Math.round(S.fuel * 10) / 10, camY: Math.round(S.camY), planeX: Math.round(S.planeX),
-        speed: Math.round(S.speed), gfx: S.gfx, lang: RR.getLang(), sound: cfg.sound,
+        speed: Math.round(S.speed), gfx: S.gfx, lang: RUSLO.getLang(), sound: cfg.sound,
         bridge: S.bridge ? { y: Math.round(S.bridge.y), hp: S.bridge.hp, alive: S.bridge.alive, ahead: Math.round(S.bridge.y - S.camY) } : null,
         enemies: S.enemies.filter((e) => !e.dead).length,
         bullets: S.bullets.length,
@@ -1019,11 +1019,11 @@
     setFuel(v) { S.fuel = clamp(Number(v) || 0, 0, 100); return S.fuel; },
     setPlaneX(v) { S.planeX = clamp(Number(v) || 0, 8, W - 8); return S.planeX; },
     setCamY(v) { S.camY = Number(v) || S.camY; return S.camY; },
-    nearBridge(gap = 420) { if (S.bridge) S.camY = S.bridge.y - gap; return RR.test.state(); },
-    bridgeHits(n = 1) { for (let i = 0; i < n; i++) damageBridge(); return RR.test.state(); },
+    nearBridge(gap = 420) { if (S.bridge) S.camY = S.bridge.y - gap; return RUSLO.test.state(); },
+    bridgeHits(n = 1) { for (let i = 0; i < n; i++) damageBridge(); return RUSLO.test.state(); },
     setPaused(p) { S.paused = !!p; setOverlay(S.paused ? 'pause' : null); return S.paused; },
     setGfx, toggleGfx, toggleLang, toggleSound,
-    forceGameOver() { S.lives = 0; S.fuel = 0; S.mode = 'play'; die('fuel'); S.dyingT = 0; update(1 / 60); gameOver(); return RR.test.state(); },
+    forceGameOver() { S.lives = 0; S.fuel = 0; S.mode = 'play'; die('fuel'); S.dyingT = 0; update(1 / 60); gameOver(); return RUSLO.test.state(); },
     drawFrame,
     spawnEnemyAt(type, y, x) {
       if (type === 'jet') {
@@ -1052,9 +1052,9 @@
       S.invuln = Math.max(S.invuln, 20);
       return { camY: Math.round(S.camY), planeX: Math.round(S.planeX) };
     },
-    async withTime(seconds, fn) { return fn(RR.test.step(seconds)); },
+    async withTime(seconds, fn) { return fn(RUSLO.test.step(seconds)); },
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
-})(window.RR);
+})(window.RUSLO);

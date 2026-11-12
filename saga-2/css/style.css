@@ -565,7 +565,7 @@ body[data-screen="ending"] .sky__aurora { animation-play-state: paused; }
   color: rgba(234, 246, 255, .72);
   text-shadow: 0 0 20px rgba(124, 248, 255, .25);
 }
-.logo__line--vikings {
+.logo__line--northmen {
   display: flex;
   align-items: flex-start;
   gap: .14em;
@@ -1270,8 +1270,8 @@ body[data-screen="ending"] .sky__aurora { animation-play-state: paused; }
   width: 100%;
   flex: 0 0 auto;
 }
-.vikings { display: flex; align-items: stretch; gap: clamp(7px, 1vw, 12px); min-width: 0; }
-.viking {
+.northmen { display: flex; align-items: stretch; gap: clamp(7px, 1vw, 12px); min-width: 0; }
+.northman {
   --accent: var(--ice);
   --accent-soft: rgba(124, 248, 255, .16);
   position: relative;
@@ -1289,10 +1289,10 @@ body[data-screen="ending"] .sky__aurora { animation-play-state: paused; }
   transition: border-color .28s ease, box-shadow .28s ease, opacity .28s ease, transform .28s ease;
   min-width: 0;
 }
-.viking--snorri { --accent: var(--ice); --accent-soft: rgba(124, 248, 255, .18); }
-.viking--gunnar { --accent: var(--magenta); --accent-soft: rgba(255, 61, 139, .16); }
-.viking--bjorn { --accent: var(--gold); --accent-soft: rgba(255, 200, 87, .16); }
-.viking__index {
+.northman--snorri { --accent: var(--ice); --accent-soft: rgba(124, 248, 255, .18); }
+.northman--gunnar { --accent: var(--magenta); --accent-soft: rgba(255, 61, 139, .16); }
+.northman--bjorn { --accent: var(--gold); --accent-soft: rgba(255, 200, 87, .16); }
+.northman__index {
   position: absolute;
   top: 7px;
   right: 9px;
@@ -1319,9 +1319,9 @@ body[data-screen="ending"] .sky__aurora { animation-play-state: paused; }
 }
 .portrait__fallback { width: 100%; height: 100%; opacity: .92; }
 .portrait__canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-.viking__body { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 auto; }
-.viking__head { display: flex; align-items: baseline; gap: 7px; min-width: 0; padding-right: 12px; }
-.viking__name {
+.northman__body { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 auto; }
+.northman__head { display: flex; align-items: baseline; gap: 7px; min-width: 0; padding-right: 12px; }
+.northman__name {
   font-size: clamp(12px, 1.02vw, 14.5px);
   font-weight: 650;
   letter-spacing: .05em;
@@ -1330,7 +1330,7 @@ body[data-screen="ending"] .sky__aurora { animation-play-state: paused; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.viking__role {
+.northman__role {
   font-size: 7.5px;
   letter-spacing: .18em;
   text-transform: uppercase;
@@ -1367,7 +1367,7 @@ body[data-screen="ending"] .sky__aurora { animation-play-state: paused; }
   border: 1px solid rgba(234, 246, 255, .14);
   border-radius: 3px;
 }
-.viking__state {
+.northman__state {
   position: absolute;
   top: -7px;
   left: 10px;
@@ -1384,17 +1384,17 @@ body[data-screen="ending"] .sky__aurora { animation-play-state: paused; }
   transform: translateY(2px);
   transition: opacity .25s ease, transform .25s ease;
 }
-.viking__state.is-active {
+.northman__state.is-active {
   opacity: 1;
   transform: translateY(0);
   color: var(--accent);
   border-color: currentColor;
 }
-.viking__state.is-dead,
-.viking__state.is-exited { opacity: 1; transform: translateY(0); }
-.viking__state.is-dead { color: var(--magenta); border-color: rgba(255, 61, 139, .45); }
-.viking__state.is-exited { color: var(--aurora); border-color: rgba(69, 240, 181, .45); }
-.viking.is-active {
+.northman__state.is-dead,
+.northman__state.is-exited { opacity: 1; transform: translateY(0); }
+.northman__state.is-dead { color: var(--magenta); border-color: rgba(255, 61, 139, .45); }
+.northman__state.is-exited { color: var(--aurora); border-color: rgba(69, 240, 181, .45); }
+.northman.is-active {
   border-color: color-mix(in srgb, var(--accent) 52%, transparent);
   border-color: rgba(124, 248, 255, .5);
   box-shadow:
@@ -1404,12 +1404,12 @@ body[data-screen="ending"] .sky__aurora { animation-play-state: paused; }
     0 0 30px var(--accent-soft);
   transform: translateY(-3px);
 }
-.viking.is-active .portrait { border-color: var(--accent); box-shadow: inset 0 0 18px var(--accent-soft); }
-.viking.is-dead { opacity: .52; }
-.viking.is-dead .portrait { filter: grayscale(1); }
-.viking.is-exited { border-color: rgba(69, 240, 181, .3); opacity: .78; }
-.viking.is-exited .portrait { box-shadow: inset 0 0 20px rgba(69, 240, 181, .22); }
-.viking.is-low .heart { animation: heartLow 1.6s ease-in-out infinite; }
+.northman.is-active .portrait { border-color: var(--accent); box-shadow: inset 0 0 18px var(--accent-soft); }
+.northman.is-dead { opacity: .52; }
+.northman.is-dead .portrait { filter: grayscale(1); }
+.northman.is-exited { border-color: rgba(69, 240, 181, .3); opacity: .78; }
+.northman.is-exited .portrait { box-shadow: inset 0 0 20px rgba(69, 240, 181, .22); }
+.northman.is-low .heart { animation: heartLow 1.6s ease-in-out infinite; }
 @keyframes heartLow {
   0%, 100% { opacity: 1; }
   50% { opacity: .45; }
@@ -1432,7 +1432,7 @@ body[data-screen="ending"] .sky__aurora { animation-play-state: paused; }
 
 /* ---------- компактный HUD: меньше перекрытия поля ---------- */
 .screen--play { padding-bottom: clamp(8px, 1vw, 12px); }
-.viking {
+.northman {
   width: clamp(168px, 15vw, 206px);
   padding: 7px 10px 7px 8px;
   gap: 8px;
@@ -1440,11 +1440,11 @@ body[data-screen="ending"] .sky__aurora { animation-play-state: paused; }
   background: linear-gradient(168deg, rgba(9, 16, 30, .66), rgba(4, 7, 14, .58));
 }
 .portrait { width: 42px; height: 52px; border-radius: 9px; }
-.viking__body { gap: 4px; }
-.viking__head { padding-right: 8px; gap: 6px; }
-.viking__name { font-size: clamp(11px, .92vw, 13px); }
-.viking__role { font-size: 7px; }
-.viking__meta {
+.northman__body { gap: 4px; }
+.northman__head { padding-right: 8px; gap: 6px; }
+.northman__name { font-size: clamp(11px, .92vw, 13px); }
+.northman__role { font-size: 7px; }
+.northman__meta {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1458,8 +1458,8 @@ body[data-screen="ending"] .sky__aurora { animation-play-state: paused; }
 .ability__name { display: none; }
 .ability__icon { width: 10px; height: 10px; }
 .ability__key { font-size: 6.5px; }
-.viking__state { top: -6px; left: 9px; font-size: 6.5px; padding: 0 5px; }
-.viking.is-active { transform: translateY(-2px); }
+.northman__state { top: -6px; left: 9px; font-size: 6.5px; padding: 0 5px; }
+.northman.is-active { transform: translateY(-2px); }
 .hud-hint {
   padding: 0;
   border: 0;
@@ -1956,7 +1956,7 @@ body.mode-retro #stage::after {
 }
 body.mode-retro .panel--glass,
 body.mode-retro .hud-panel,
-body.mode-retro .viking,
+body.mode-retro .northman,
 body.mode-retro .help-modal,
 body.mode-retro .modal,
 body.mode-retro .toast,
@@ -2070,8 +2070,8 @@ body.mode-retro .hud-level__name { color: #6fc3df; }
 body.mode-retro .stat__value { color: #b8d96a; }
 body.mode-retro .hud-panel,
 body.mode-retro .hud-btn { box-shadow: 3px 3px 0 #05060b; }
-body.mode-retro .viking { box-shadow: 3px 3px 0 #05060b; }
-body.mode-retro .viking.is-active {
+body.mode-retro .northman { box-shadow: 3px 3px 0 #05060b; }
+body.mode-retro .northman.is-active {
   border-color: #e0b35a;
   box-shadow: 3px 3px 0 #05060b, 0 0 0 2px #a56b2b inset;
   transform: none;
@@ -2079,7 +2079,7 @@ body.mode-retro .viking.is-active {
 body.mode-retro .portrait { border-radius: 0; border: 1px solid #3b6ea5; }
 body.mode-retro .heart { color: #d94a6a; }
 body.mode-retro .ability { border-radius: 0; border-color: #2d4a6a; background: #0b1322; }
-body.mode-retro .viking__state { border-radius: 0; background: #05060b; }
+body.mode-retro .northman__state { border-radius: 0; background: #05060b; }
 body.mode-retro .modal-backdrop,
 body.mode-retro .help-backdrop {
   backdrop-filter: none;
@@ -2128,7 +2128,7 @@ body.mode-retro #stage::before {
 @media (max-width: 1180px) {
   .title-main { grid-template-columns: minmax(0, 1.1fr) minmax(280px, .9fr); gap: clamp(18px, 3vw, 40px); }
   .hud-hint { display: none; }
-  .viking { width: clamp(168px, 20vw, 220px); }
+  .northman { width: clamp(168px, 20vw, 220px); }
 }
 @media (max-width: 1024px) {
   .levels-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2137,14 +2137,14 @@ body.mode-retro #stage::before {
   .help-col:last-child { grid-column: 1 / -1; }
   .title-main { grid-template-columns: minmax(0, 1fr) minmax(280px, .82fr); }
   .title-features { display: none; }
-  .viking { width: clamp(160px, 19vw, 200px); }
-  .viking__role { display: none; }
+  .northman { width: clamp(160px, 19vw, 200px); }
+  .northman__role { display: none; }
 }
 @media (max-width: 860px) {
   .title-main { grid-template-columns: 1fr; gap: 18px; align-content: center; }
   .title-menu { justify-self: stretch; max-width: 520px; margin: 0 auto; padding: 18px 20px; }
   .title-hero { align-items: center; text-align: center; }
-  .logo__line--vikings { justify-content: center; }
+  .logo__line--northmen { justify-content: center; }
   .logo-meta { justify-content: center; }
   .title-subtitle { letter-spacing: .26em; }
   .title-features { justify-content: center; }
@@ -2166,7 +2166,7 @@ body.mode-retro #stage::before {
   .brand__sub { display: none; }
   .brand__mark { width: 34px; height: 34px; border-radius: 9px; }
   .logo__line--north { font-size: 12px; letter-spacing: .46em; }
-  .logo__line--vikings { font-size: clamp(44px, 14vw, 74px); }
+  .logo__line--northmen { font-size: clamp(44px, 14vw, 74px); }
   .logo-meta { margin-top: 10px; gap: 9px; }
   .logo-meta__norse { font-size: 8px; letter-spacing: .3em; }
   .title-subtitle { font-size: clamp(17px, 5vw, 24px); letter-spacing: .22em; margin-top: 8px; }
@@ -2240,8 +2240,8 @@ body.mode-retro #stage::before {
   .hud-btn { width: 32px; height: 32px; border-radius: 9px; }
   .hud-btn svg { width: 14px; height: 14px; }
   .hud-bottom { gap: 6px; }
-  .vikings { gap: 5px; width: 100%; }
-  .viking {
+  .northmen { gap: 5px; width: 100%; }
+  .northman {
     flex: 1 1 0;
     width: auto;
     flex-direction: column;
@@ -2251,17 +2251,17 @@ body.mode-retro #stage::before {
     align-items: center;
     text-align: center;
   }
-  .viking__index { top: 3px; right: 5px; font-size: 7px; }
+  .northman__index { top: 3px; right: 5px; font-size: 7px; }
   .portrait { width: 30px; height: 36px; border-radius: 6px; }
-  .viking__body { gap: 2px; align-items: center; width: 100%; }
-  .viking__head { padding-right: 0; justify-content: center; gap: 0; }
-  .viking__name { font-size: 9.5px; letter-spacing: .02em; }
-  .viking__role { display: none; }
+  .northman__body { gap: 2px; align-items: center; width: 100%; }
+  .northman__head { padding-right: 0; justify-content: center; gap: 0; }
+  .northman__name { font-size: 9.5px; letter-spacing: .02em; }
+  .northman__role { display: none; }
   .hearts { gap: 1px; justify-content: center; }
   .heart { width: 9px; height: 9px; }
   .abilities { display: none; }
-  .viking__state { position: static; font-size: 5.5px; padding: 0 4px; letter-spacing: .08em; transform: none; }
-  .viking.is-active { transform: none; }
+  .northman__state { position: static; font-size: 5.5px; padding: 0 4px; letter-spacing: .08em; transform: none; }
+  .northman.is-active { transform: none; }
   .hud-hint { display: none; }
   body.is-touch .screen--play { padding-bottom: 4px; }
 }
@@ -2271,9 +2271,9 @@ body.mode-retro #stage::before {
   .title-menu .btn { padding: 12px 14px; font-size: 10px; }
   .levels-foot { flex-direction: column; align-items: flex-start; gap: 6px; }
   .brief-goals { display: none; }
-  .viking { padding: 5px 3px 4px; }
+  .northman { padding: 5px 3px 4px; }
   .portrait { display: none; }
-  .viking__body { align-items: center; }
+  .northman__body { align-items: center; }
   .touch-cluster--move { grid-template-columns: repeat(3, clamp(44px, 13vw, 54px)); grid-template-rows: repeat(3, clamp(44px, 13vw, 54px)); gap: 5px; }
   .touch-btn { width: clamp(44px, 13vw, 54px); height: clamp(44px, 13vw, 54px); }
   .touch-btn--jump { width: clamp(50px, 15vw, 62px); height: clamp(50px, 15vw, 62px); }
@@ -2290,7 +2290,7 @@ body.is-touch .screen--play .hud-top { z-index: 2; }
 @media (max-height: 560px) and (orientation: landscape) {
   .title-main { grid-template-columns: minmax(0, 1fr) minmax(240px, .72fr); gap: 18px; }
   .title-hero { align-items: flex-start; text-align: left; }
-  .logo__line--vikings { justify-content: flex-start; font-size: clamp(38px, 6vw, 64px); }
+  .logo__line--northmen { justify-content: flex-start; font-size: clamp(38px, 6vw, 64px); }
   .logo-meta { justify-content: flex-start; margin-top: 8px; }
   .title-subtitle { font-size: 16px; letter-spacing: .22em; margin-top: 6px; }
   .title-tagline, .title-features { display: none; }
@@ -2299,7 +2299,7 @@ body.is-touch .screen--play .hud-top { z-index: 2; }
   .save-line { margin-top: 10px; padding-top: 10px; }
   .btn { padding: 10px 14px; }
   .hud-hint { display: none; }
-  .viking { padding: 6px 8px; }
+  .northman { padding: 6px 8px; }
   .portrait { width: 38px; height: 46px; }
   .abilities { display: none; }
   body.is-touch .hud-bottom { padding-bottom: calc(132px + var(--safe-bottom)); }
@@ -2379,7 +2379,7 @@ body.is-touch .screen--play .hud-top { z-index: 2; }
   .hud-btn { width: 27px; height: 27px; border-radius: 7px; }
   .hud-btn svg { width: 12px; height: 12px; }
 
-  /* Карточки викингов — сразу под кадром */
+  /* Карточки северян — сразу под кадром */
   .hud-bottom {
     position: absolute;
     left: 6px;
@@ -2390,8 +2390,8 @@ body.is-touch .screen--play .hud-top { z-index: 2; }
     margin: 0;
   }
   body.is-touch .hud-bottom { padding-bottom: 0; }
-  .vikings { width: 100%; gap: 5px; }
-  .viking {
+  .northmen { width: 100%; gap: 5px; }
+  .northman {
     flex: 1 1 0;
     width: auto;
     min-width: 0;
@@ -2402,17 +2402,17 @@ body.is-touch .screen--play .hud-top { z-index: 2; }
     border-radius: 8px;
     text-align: left;
   }
-  .viking__index { display: none; }
+  .northman__index { display: none; }
   .portrait { display: block; width: 26px; height: 32px; border-radius: 5px; flex: 0 0 auto; }
-  .viking__body { gap: 2px; align-items: flex-start; width: auto; }
-  .viking__head { justify-content: flex-start; gap: 4px; padding-right: 0; }
-  .viking__name { font-size: 9px; }
-  .viking__role { font-size: 6px; }
-  .viking__meta { gap: 4px; }
+  .northman__body { gap: 2px; align-items: flex-start; width: auto; }
+  .northman__head { justify-content: flex-start; gap: 4px; padding-right: 0; }
+  .northman__name { font-size: 9px; }
+  .northman__role { font-size: 6px; }
+  .northman__meta { gap: 4px; }
   .abilities { display: none; }
   .hearts { gap: 1px; }
   .heart { width: 8px; height: 8px; }
-  .viking__state {
+  .northman__state {
     position: absolute;
     top: -5px;
     left: 6px;
@@ -2420,7 +2420,7 @@ body.is-touch .screen--play .hud-top { z-index: 2; }
     padding: 0 3px;
     transform: none;
   }
-  .viking.is-active { transform: none; }
+  .northman.is-active { transform: none; }
   .hud-hint { display: none; }
 
   /* Тост — компактно и не поверх кадра */

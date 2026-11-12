@@ -364,7 +364,7 @@ for (const name of REQUIRED_API) {
   if (!re.test(SRC)) err(`API: не найден метод ${name}`);
 }
 if (!/get: function \(\) \{ return musicOn; \}/.test(SRC)) err("API: нет boolean-геттера music");
-if (!/window\.EX_AUDIO = api;/.test(SRC)) err("API: нет window.EX_AUDIO = api");
+if (!/window\.PR_AUDIO = api;/.test(SRC)) err("API: нет window.PR_AUDIO = api");
 
 if (/console\.(warn|error|log)\(/.test(SRC)) err("в audio.js есть console.* (probe считает warning/error провалом)");
 if (/^\s*(import|export)\s/m.test(SRC)) err("в audio.js есть import/export (запрещено)");

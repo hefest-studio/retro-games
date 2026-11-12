@@ -341,7 +341,7 @@ const STAGES = [
 const stageCfg = () => STAGES[G.stage] || STAGES[0];
 
 /* -------------------------------------------------------------------------
-   5. Звук: тонкая обёртка над SWAudio. Если движок не загрузился — тишина.
+   5. Звук: тонкая обёртка над VIHRAudio. Если движок не загрузился — тишина.
    ------------------------------------------------------------------------- */
 const Sound = {
   ready: false,
@@ -349,12 +349,12 @@ const Sound = {
   unlock() {
     if (this.ready) return;
     try {
-      if (window.SWAudio && typeof window.SWAudio.unlock === 'function') {
-        window.SWAudio.unlock();
+      if (window.VIHRAudio && typeof window.VIHRAudio.unlock === 'function') {
+        window.VIHRAudio.unlock();
         this.ready = true;
-        if (typeof window.SWAudio.setMusicVolume === 'function') window.SWAudio.setMusicVolume(0.55);
-        if (typeof window.SWAudio.setSfxVolume === 'function') window.SWAudio.setSfxVolume(0.7);
-        if (typeof window.SWAudio.setMuted === 'function') window.SWAudio.setMuted(!CFG.sound);
+        if (typeof window.VIHRAudio.setMusicVolume === 'function') window.VIHRAudio.setMusicVolume(0.55);
+        if (typeof window.VIHRAudio.setSfxVolume === 'function') window.VIHRAudio.setSfxVolume(0.7);
+        if (typeof window.VIHRAudio.setMuted === 'function') window.VIHRAudio.setMuted(!CFG.sound);
         if (CFG.sound && this.track) this.music(this.track, true);
       }
     } catch (e) { /* играем без звука */ }
@@ -365,25 +365,25 @@ const Sound = {
     if (!force && this.track === name) return;
     this.track = name;
     try {
-      if (window.SWAudio && typeof window.SWAudio.playMusic === 'function') {
-        window.SWAudio.playMusic(name);
+      if (window.VIHRAudio && typeof window.VIHRAudio.playMusic === 'function') {
+        window.VIHRAudio.playMusic(name);
       }
     } catch (e) { /* ignore */ }
   },
   stop() {
     try {
-      if (window.SWAudio && typeof window.SWAudio.stopMusic === 'function') window.SWAudio.stopMusic(200);
+      if (window.VIHRAudio && typeof window.VIHRAudio.stopMusic === 'function') window.VIHRAudio.stopMusic(200);
     } catch (e) { /* ignore */ }
   },
   sfx(name) {
     if (!CFG.sound || !this.ready) return;
     try {
-      if (window.SWAudio && typeof window.SWAudio.sfx === 'function') window.SWAudio.sfx(name);
+      if (window.VIHRAudio && typeof window.VIHRAudio.sfx === 'function') window.VIHRAudio.sfx(name);
     } catch (e) { /* ignore */ }
   },
   applyMute() {
     try {
-      if (window.SWAudio && typeof window.SWAudio.setMuted === 'function') window.SWAudio.setMuted(!CFG.sound);
+      if (window.VIHRAudio && typeof window.VIHRAudio.setMuted === 'function') window.VIHRAudio.setMuted(!CFG.sound);
     } catch (e) { /* ignore */ }
     if (!CFG.sound) this.stop();
     else if (this.track) this.music(this.track, true);
@@ -2005,7 +2005,7 @@ function updatePlay(dt) {
 /* -------------------------------------------------------------------------
    17. Отрисовка мира: общие помощники
    ------------------------------------------------------------------------- */
-function rr(x, y, w, h, r) {
+function rrect(x, y, w, h, r) {
   ctx.beginPath();
   const rad = Math.min(r, w / 2, h / 2);
   ctx.moveTo(x + rad, y);
@@ -2305,21 +2305,21 @@ function drawEnemyModern(e) {
 
   if (e.type === 'tank') {
     ctx.fillStyle = '#0c1015';
-    rr(-10, 2.4, 20, 5.6, 2.3); ctx.fill();
+    rrect(-10, 2.4, 20, 5.6, 2.3); ctx.fill();
     ctx.strokeStyle = 'rgba(120,140,160,.22)'; ctx.lineWidth = 0.6;
-    rr(-10, 2.4, 20, 5.6, 2.3); ctx.stroke();
+    rrect(-10, 2.4, 20, 5.6, 2.3); ctx.stroke();
     ctx.fillStyle = 'rgba(130,150,170,.22)';
     for (let i = -8; i <= 8; i += 4) ctx.fillRect(i, 3.4, 2.2, 3.4);
     const hg = ctx.createLinearGradient(0, -5, 0, 5);
     hg.addColorStop(0, '#93a68a'); hg.addColorStop(0.45, '#566a4c'); hg.addColorStop(1, '#232e1f');
     ctx.fillStyle = hg;
-    rr(-9.5, -4.8, 19, 8.2, 2.3); ctx.fill();
+    rrect(-9.5, -4.8, 19, 8.2, 2.3); ctx.fill();
     ctx.strokeStyle = outline; ctx.lineWidth = 0.85;
-    rr(-9.5, -4.8, 19, 8.2, 2.3); ctx.stroke();
+    rrect(-9.5, -4.8, 19, 8.2, 2.3); ctx.stroke();
     ctx.fillStyle = '#3f5137';
-    rr(-4.5, -8.6, 10, 5.8, 1.8); ctx.fill();
+    rrect(-4.5, -8.6, 10, 5.8, 1.8); ctx.fill();
     ctx.strokeStyle = outline;
-    rr(-4.5, -8.6, 10, 5.8, 1.8); ctx.stroke();
+    rrect(-4.5, -8.6, 10, 5.8, 1.8); ctx.stroke();
     ctx.fillStyle = '#18211a'; ctx.fillRect(-17, -7.4, 13, 2.1);
     ctx.fillStyle = 'rgba(200,220,240,.30)'; ctx.fillRect(-17, -7.4, 10, 0.6);
     ctx.save();
@@ -2336,9 +2336,9 @@ function drawEnemyModern(e) {
     const cg = ctx.createLinearGradient(0, -7, 0, 3);
     cg.addColorStop(0, '#d3a86c'); cg.addColorStop(1, '#6b4a24');
     ctx.fillStyle = cg;
-    rr(-8.5, -6.5, 17, 8.8, 1.6); ctx.fill();
+    rrect(-8.5, -6.5, 17, 8.8, 1.6); ctx.fill();
     ctx.strokeStyle = outline; ctx.lineWidth = 0.85;
-    rr(-8.5, -6.5, 17, 8.8, 1.6); ctx.stroke();
+    rrect(-8.5, -6.5, 17, 8.8, 1.6); ctx.stroke();
     ctx.fillStyle = 'rgba(255,209,102,.8)'; ctx.fillRect(-7, -3.4, 14, 1.2);
     ctx.fillStyle = 'rgba(20,24,26,.9)'; ctx.fillRect(-8.5, -2, 3.4, 5);
     ctx.save();
@@ -2348,13 +2348,13 @@ function drawEnemyModern(e) {
     ctx.restore();
   } else if (e.type === 'aa') {
     ctx.fillStyle = '#0d1116';
-    rr(-8, 1.5, 16, 6, 2); ctx.fill();
+    rrect(-8, 1.5, 16, 6, 2); ctx.fill();
     const hg = ctx.createLinearGradient(0, -9, 0, 3);
     hg.addColorStop(0, '#93a3b0'); hg.addColorStop(1, '#2a343d');
     ctx.fillStyle = hg;
-    rr(-6, -5.5, 12, 8.5, 2.4); ctx.fill();
+    rrect(-6, -5.5, 12, 8.5, 2.4); ctx.fill();
     ctx.strokeStyle = outline; ctx.lineWidth = 0.85;
-    rr(-6, -5.5, 12, 8.5, 2.4); ctx.stroke();
+    rrect(-6, -5.5, 12, 8.5, 2.4); ctx.stroke();
     ctx.strokeStyle = '#c3d0dc'; ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.moveTo(-2.5, -5.5); ctx.lineTo(-7, -12);
@@ -2445,9 +2445,9 @@ function drawEnemyModern(e) {
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = Math.min(0.8, e.flash * 5);
     ctx.fillStyle = '#fff';
-    if (e.type === 'tank' || e.type === 'aa') rr(-10, -9, 20, 17, 4);
-    else if (e.type === 'truck') rr(-9, -7, 18, 15, 3);
-    else rr(-16, -8, 32, 16, 5);
+    if (e.type === 'tank' || e.type === 'aa') rrect(-10, -9, 20, 17, 4);
+    else if (e.type === 'truck') rrect(-9, -7, 18, 15, 3);
+    else rrect(-16, -8, 32, 16, 5);
     ctx.fill();
     ctx.restore();
   }
@@ -2477,9 +2477,9 @@ function drawPickups() {
       ctx.beginPath(); ctx.arc(pu.x, pu.y + bob, 13, 0, TAU); ctx.fill();
       ctx.restore();
       ctx.fillStyle = 'rgba(10,16,22,.85)';
-      rr(pu.x - 5, pu.y + bob - 5, 10, 10, 2.6); ctx.fill();
+      rrect(pu.x - 5, pu.y + bob - 5, 10, 10, 2.6); ctx.fill();
       ctx.strokeStyle = col; ctx.lineWidth = 1.1;
-      rr(pu.x - 5, pu.y + bob - 5, 10, 10, 2.6); ctx.stroke();
+      rrect(pu.x - 5, pu.y + bob - 5, 10, 10, 2.6); ctx.stroke();
       label(pu.type === '1UP' ? '1' : pu.type, pu.x, pu.y + bob + 0.5, { size: 7, color: col, align: 'center', baseline: 'middle', weight: 700 });
     }
   }
@@ -2625,10 +2625,10 @@ function drawBossModern(b) {
   // боковые гондолы с турбинами
   for (const sx of [-25, 25]) {
     ctx.fillStyle = '#141a26';
-    rr(sx - 7.5, 3, 15, 11, 3.2); ctx.fill();
+    rrect(sx - 7.5, 3, 15, 11, 3.2); ctx.fill();
     ctx.strokeStyle = 'rgba(130,170,215,.4)';
     ctx.lineWidth = 0.8;
-    rr(sx - 7.5, 3, 15, 11, 3.2); ctx.stroke();
+    rrect(sx - 7.5, 3, 15, 11, 3.2); ctx.stroke();
     ctx.fillStyle = 'rgba(255,150,90,.8)';
     ctx.beginPath(); ctx.ellipse(sx, 14.2, 4.6, 1.4, 0, 0, TAU); ctx.fill();
     ctx.save();
@@ -2645,7 +2645,7 @@ function drawBossModern(b) {
   // подвесные пушки
   for (const gx of [-13, 13]) {
     ctx.fillStyle = '#2a3240';
-    rr(gx - 2.6, 14, 5.2, 5, 1.4); ctx.fill();
+    rrect(gx - 2.6, 14, 5.2, 5, 1.4); ctx.fill();
     ctx.fillStyle = '#0c1018';
     ctx.fillRect(gx - 1.2, 18, 2.4, 6);
     ctx.fillStyle = 'rgba(255,120,80,.9)';
@@ -2717,7 +2717,7 @@ function drawLifeIcon(x, y, col) {
   } else {
     ctx.save();
     ctx.fillStyle = col;
-    rr(x, y + 1, 7, 2.4, 1); ctx.fill();
+    rrect(x, y + 1, 7, 2.4, 1); ctx.fill();
     ctx.fillRect(x + 2, y + 3.2, 3, 1.4);
     ctx.fillRect(x - 1, y + 5, 9, 1);
     ctx.restore();
@@ -2782,7 +2782,7 @@ function drawHUD() {
     label(t('weapon'), 100, 15, { size: 5, color: dim, spacing: 1 });
     for (let i = 0; i < 4; i++) {
       ctx.fillStyle = i < lvl ? accent : 'rgba(255,255,255,.16)';
-      rr(100 + 28 + i * 5.5, 14.5, 4, 3, 1); ctx.fill();
+      rrect(100 + 28 + i * 5.5, 14.5, 4, 3, 1); ctx.fill();
     }
     label(t('bombs'), 190, 15, { size: 5, color: dim, spacing: 1 });
     for (let i = 0; i < Math.min(5, G.bombs); i++) drawBombIcon(190 + 26 + i * 6, 14, '#ffd166');
@@ -2820,12 +2820,12 @@ function drawHUD() {
     } else {
       ctx.save();
       ctx.fillStyle = 'rgba(4,6,12,.65)';
-      rr(8, by - 3, W - 16, 10, 3); ctx.fill();
+      rrect(8, by - 3, W - 16, 10, 3); ctx.fill();
       const g = ctx.createLinearGradient(0, 0, W, 0);
       g.addColorStop(0, '#ffd166'); g.addColorStop(0.5, '#ff5a2b'); g.addColorStop(1, '#ff2f9c');
       ctx.fillStyle = g;
       ctx.shadowColor = '#ff5a2b'; ctx.shadowBlur = 6;
-      rr(9, by - 2, (W - 18) * frac, 8, 2.6); ctx.fill();
+      rrect(9, by - 2, (W - 18) * frac, 8, 2.6); ctx.fill();
       ctx.restore();
       label(b.name, W / 2, by + 2, { size: 5.5, color: '#ffe0c4', align: 'center', baseline: 'middle', spacing: 2 });
     }
@@ -2851,14 +2851,14 @@ function panel(x, y, w, h, accent, alpha) {
   } else {
     ctx.save();
     ctx.fillStyle = 'rgba(6,9,17,' + (alpha === undefined ? 0.72 : alpha) + ')';
-    rr(x, y, w, h, 6); ctx.fill();
+    rrect(x, y, w, h, 6); ctx.fill();
     const g = ctx.createLinearGradient(x, y, x + w, y + h);
     g.addColorStop(0, accent || '#39e7ff');
     g.addColorStop(1, 'rgba(255,255,255,.06)');
     ctx.strokeStyle = g;
     ctx.globalAlpha = 0.55;
     ctx.lineWidth = 0.8;
-    rr(x + 0.4, y + 0.4, w - 0.8, h - 0.8, 6); ctx.stroke();
+    rrect(x + 0.4, y + 0.4, w - 0.8, h - 0.8, 6); ctx.stroke();
     ctx.restore();
   }
 }
@@ -3015,10 +3015,10 @@ function drawTitle() {
         g.addColorStop(0, 'rgba(57,231,255,.20)');
         g.addColorStop(1, 'rgba(255,47,156,.10)');
         ctx.fillStyle = g;
-        rr(36, y - 3, 248, 13, 5); ctx.fill();
+        rrect(36, y - 3, 248, 13, 5); ctx.fill();
         ctx.strokeStyle = 'rgba(57,231,255,.55)';
         ctx.lineWidth = 0.7;
-        rr(36, y - 3, 248, 13, 5); ctx.stroke();
+        rrect(36, y - 3, 248, 13, 5); ctx.stroke();
         ctx.restore();
         ctx.fillStyle = '#39e7ff';
         ctx.fillRect(37, y - 2.5, 2, 12);
@@ -3571,10 +3571,10 @@ function runTests() {
     return loadHi() === 4321;
   });
   check('холст: пропорции 320×224', () => cv.width / cv.height === W / H);
-  check('аудиодвижок подключён', () => !!(window.SWAudio && typeof window.SWAudio.playMusic === 'function'));
-  if (window.SWAudio && typeof window.SWAudio.selftest === 'function') {
+  check('аудиодвижок подключён', () => !!(window.VIHRAudio && typeof window.VIHRAudio.playMusic === 'function'));
+  if (window.VIHRAudio && typeof window.VIHRAudio.selftest === 'function') {
     try {
-      const arr = window.SWAudio.selftest();
+      const arr = window.VIHRAudio.selftest();
       for (const r of arr) check('аудио: ' + r.name, () => r.ok === true);
     } catch (e) {
       check('аудио: selftest', () => false);
@@ -3582,7 +3582,7 @@ function runTests() {
   }
 
   const pass = results.filter(r => r.ok).length;
-  document.title = 'SW TESTS ' + pass + '/' + results.length + (pass === results.length ? ' PASS' : ' FAIL');
+  document.title = 'VIHR TESTS ' + pass + '/' + results.length + (pass === results.length ? ' PASS' : ' FAIL');
   const out = document.getElementById('testout');
   if (out) {
     out.style.display = 'block';
@@ -3590,7 +3590,7 @@ function runTests() {
       results.map(r => (r.ok ? '  ✓ ' : '  ✗ ') + r.name + (r.msg ? ' — ' + r.msg : '')).join('\n') +
       '\n\n' + (pass === results.length ? 'ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ' : 'ЕСТЬ ОШИБКИ');
   }
-  window.__SW_TESTS__ = { results, pass, total: results.length };
+  window.__VIHR_TESTS__ = { results, pass, total: results.length };
   // вернуть игру в исходное состояние
   G.freeze = false;
   toTitle();
@@ -3660,13 +3660,13 @@ function parseHash() {
   if (shot) setupShot(shot, params);
   if (params.has('sim')) {
     const r = simulate(parseFloat(params.get('sim') || '300'));
-    document.title = 'SW SIM ' + r.state.toUpperCase() + ' stage=' + r.stage + ' score=' + r.score + ' t=' + r.time + 's';
+    document.title = 'VIHR SIM ' + r.state.toUpperCase() + ' stage=' + r.stage + ' score=' + r.score + ' t=' + r.time + 's';
     const out = document.getElementById('testout');
     if (out) {
       out.style.display = 'block';
       out.textContent = 'ВИХРЬ SIM\n' + JSON.stringify(r, null, 2);
     }
-    window.__SW_SIM__ = r;
+    window.__VIHR_SIM__ = r;
   }
   if (params.has('test')) runTests();
 }
@@ -3714,11 +3714,11 @@ function boot() {
   Sound.music('title');
   Sound.applyMute();
   parseHash();
-  if (window.SWAudio && typeof window.SWAudio.isReady === 'function') {
-    try { Sound.ready = !!window.SWAudio.isReady(); } catch (e) { /* ignore */ }
+  if (window.VIHRAudio && typeof window.VIHRAudio.isReady === 'function') {
+    try { Sound.ready = !!window.VIHRAudio.isReady(); } catch (e) { /* ignore */ }
   }
   // отладочный доступ из консоли и автотестов
-  window.__SW = {
+  window.__VIHR = {
     G, STAGES, GFX: () => GFX, LANG: () => LANG,
     setGfx, setLang, newGame, startStage, spawnBoss, spawnShowcase,
     updatePlay, render, runTests, makeWaves, I18N, Sound, simulate,

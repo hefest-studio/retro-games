@@ -1,6 +1,6 @@
 /* ============================================================
    ПРОРЫВ HTML5 — локализация RU / EN
-   EX_I18N.ручные строки; EX_T(key, vars) — доступ с подстановкой {var}.
+   PR_I18N.ручные строки; PR_T(key, vars) — доступ с подстановкой {var}.
    ============================================================ */
 (function () {
   'use strict';
@@ -277,18 +277,18 @@
     'test.fail': 'FAIL'
   };
 
-  window.EX_I18N = { ru: RU, en: EN };
+  window.PR_I18N = { ru: RU, en: EN };
 
   /**
    * Перевод по ключу. Порядок: текущий язык → ru → en → сам ключ.
    * Подставляет {name} из vars.
    */
-  window.EX_T = function (key, vars) {
-    const ex = window.EX;
-    const lang = (ex && ex.settings && ex.settings.lang) === 'en' ? 'en' : 'ru';
-    let s = (window.EX_I18N[lang] && window.EX_I18N[lang][key]);
-    if (s == null) s = window.EX_I18N.ru[key];
-    if (s == null) s = window.EX_I18N.en[key];
+  window.PR_T = function (key, vars) {
+    const pr = window.PR;
+    const lang = (pr && pr.settings && pr.settings.lang) === 'en' ? 'en' : 'ru';
+    let s = (window.PR_I18N[lang] && window.PR_I18N[lang][key]);
+    if (s == null) s = window.PR_I18N.ru[key];
+    if (s == null) s = window.PR_I18N.en[key];
     if (s == null) return String(key);
     if (vars) {
       s = s.replace(/\{(\w+)\}/g, function (m, k) {

@@ -46,22 +46,46 @@ async function open(hash = '', init = null) {
   await p.goto(BASE + hash, { waitUntil: 'load' }); await wait(600);
   return { p, close: () => ctx.close() };
 }
-const st = (p) => p.evaluate(() => { const h = window.__arcadeHost, S = window.__SW; return { scene: h.g._sceneName, theme: h.g.themeName, lang: h.g.i18n.lang, sound: h.g.audio.enabled, best: h.g.state.best, mode: S.G.state, gfx: S.GFX(), glang: S.LANG(), muted: !S.CFG.sound }; });
+const st = (p) => p.evaluate(() => { const h = window.__arcadeHost, S = window.__VIHR; return { scene: h.g._sceneName, theme: h.g.themeName, lang: h.g.i18n.lang, sound: h.g.audio.enabled, best: h.g.state.best, mode: S.G.state, gfx: S.GFX(), glang: S.LANG(), muted: !S.CFG.sound }; });
+// Ожидание по состоянию: опрашиваем st(), пока не выполнится условие (или таймаут) — вместо фиксированных пауз,
+// синхронизация движок↔игра идёт по rAF, а под нагрузкой кадры редкие.
+async function stWhen(p, pred, timeout = 5000) {
+  const t0 = Date.now(); let s = await st(p);
+  while (!pred(s) && Date.now() - t0 < timeout) { await wait(40); s = await st(p); }
+  return s;
+}
 
 try {
   await test('родные самотесты игры (#test) — все PASS', async () => {
     const { p, close } = await open('#test'); await wait(2500);
-    const r = await p.evaluate(() => window.__SW_TESTS__ && { pass: window.__SW_TESTS__.pass, total: window.__SW_TESTS__.total });
+    const r = await p.evaluate(() => window.__VIHR_TESTS__ && { pass: window.__VIHR_TESTS__.pass, total: window.__VIHR_TESTS__.total });
     await close(); ok(r && r.total >= 30 && r.pass === r.total, JSON.stringify(r));
   });
   await test('legacy.html — старая версия грузится и работает сама', async () => {
     const ctx = await browser.newContext(); const p = await ctx.newPage();
     p.on('pageerror', (e) => errors.push('legacy: ' + e.message));
-    await p.goto(BASE + 'legacy.html', { waitUntil: 'load' }); await wait(500);
-    const r = await p.evaluate(() => ({ lm: !!window.__SW, host: !!window.__arcadeHost }));
-    await p.keyboard.press('Enter'); await wait(300);
-    const mode = await p.evaluate(() => window.__SW.G.state);
-    await ctx.close(); ok(r.lm && !r.host && mode === 'play', JSON.stringify(r) + ' ' + mode);
+    await p.goto(BASE + 'legacy.html', { waitUntil: 'load' });
+    // Ожидание по состоянию, а не по таймеру (под нагрузкой кадры идут редко):
+    // игра загружена, в title и цикл уже крутится (updateTitle двигает scrollX) — значит Input готов.
+    const ready = await p.waitForFunction(() => {
+      const V = window.__VIHR;
+      if (!V || V.G.state !== 'title') return false;
+      const w = window.__vihrLegacyProbe || (window.__vihrLegacyProbe = { x: V.G.scrollX });
+      return V.G.scrollX !== w.x;
+    }, null, { timeout: 15000, polling: 50 }).then(() => true, () => false);
+    const r = await p.evaluate(() => ({ lm: !!window.__VIHR, host: !!window.__arcadeHost, ready: false }));
+    r.ready = ready;
+    // Старая страница копит нажатие в Input.hit, но сбрасывает его в конце каждого rAF-кадра,
+    // даже если в кадре не было ни одного шага логики (кадр короче 1/60 с) — под нагрузкой
+    // одиночное нажатие изредка теряется. Игру не меняем: жмём Enter, ждём смены состояния,
+    // и если игра всё ещё в title — жмём снова (в play Enter ничего не делает, повтор безопасен).
+    let mode = 'title';
+    for (let i = 0; i < 10 && mode === 'title'; i++) {
+      await p.keyboard.press('Enter');
+      mode = await p.waitForFunction(() => window.__VIHR.G.state !== 'title', null, { timeout: 1500, polling: 50 })
+        .then(() => p.evaluate(() => window.__VIHR.G.state), () => 'title');
+    }
+    await ctx.close(); ok(r.lm && !r.host && r.ready && mode === 'play', JSON.stringify(r) + ' ' + mode);
   });
 
   await test('миграция localStorage: silkworm.* → vihr.*, старые удалены, новые не затираются', async () => {
@@ -92,27 +116,27 @@ try {
     ok(s.scene === 'play' && s.mode === 'play', 'продолжить ' + JSON.stringify(s));
   });
   await test('T / G → тема движка = графика игры; и обратно из игры', async () => {
-    await p.keyboard.press('KeyT'); await wait(150); let s = await st(p);
+    await p.keyboard.press('KeyT'); let s = await stWhen(p, (s) => s.theme === 'retro' && s.gfx === 'retro');
     ok(s.theme === 'retro' && s.gfx === 'retro', 'T ' + JSON.stringify(s));
-    await p.keyboard.press('KeyG'); await wait(150); s = await st(p);
+    await p.keyboard.press('KeyG'); s = await stWhen(p, (s) => s.theme === 'modern' && s.gfx === 'modern');
     ok(s.theme === 'modern' && s.gfx === 'modern', 'G ' + JSON.stringify(s));
-    await p.evaluate(() => window.__SW.setGfx('retro', true)); await wait(150); s = await st(p);
+    await p.evaluate(() => window.__VIHR.setGfx('retro', true)); s = await stWhen(p, (s) => s.theme === 'retro');
     ok(s.theme === 'retro', 'игра→движок ' + JSON.stringify(s));
   });
   await test('L → язык движка = язык игры; и обратно', async () => {
-    await p.keyboard.press('KeyL'); await wait(150); let s = await st(p);
+    await p.keyboard.press('KeyL'); let s = await stWhen(p, (s) => s.lang === 'en' && s.glang === 'en');
     ok(s.lang === 'en' && s.glang === 'en', JSON.stringify(s));
-    await p.evaluate(() => window.__SW.setLang('ru', true)); await wait(150); s = await st(p);
+    await p.evaluate(() => window.__VIHR.setLang('ru', true)); s = await stWhen(p, (s) => s.lang === 'ru');
     ok(s.lang === 'ru', 'игра→движок ' + JSON.stringify(s));
   });
   await test('M → звук движка выкл = звук игры выкл, повтор — вкл', async () => {
-    await p.keyboard.press('KeyM'); await wait(150); let s = await st(p);
+    await p.keyboard.press('KeyM'); let s = await stWhen(p, (s) => !s.sound && s.muted);
     ok(!s.sound && s.muted, JSON.stringify(s));
-    await p.keyboard.press('KeyM'); await wait(150); s = await st(p);
+    await p.keyboard.press('KeyM'); s = await stWhen(p, (s) => s.sound && !s.muted);
     ok(s.sound && !s.muted, JSON.stringify(s));
   });
   await test('финал игры → экран gameover движка, рекорд arcade.best.vihr', async () => {
-    await p.evaluate(() => { window.__SW.G.score = 4321; window.__SW.G.state = 'gameover'; }); await wait(200);
+    await p.evaluate(() => { window.__VIHR.G.score = 4321; window.__VIHR.G.state = 'gameover'; }); await wait(200);
     const s = await st(p);
     ok(s.scene === 'gameover' && s.best === 4321, JSON.stringify(s));
     ok((await p.evaluate(() => localStorage.getItem('arcade.best.vihr'))) === '4321', 'не сохранён');
@@ -144,7 +168,7 @@ try {
   });
   await test('#shot=play — отладочный режим без оболочки', async () => {
     const o = await open('#shot=play&stage=1');
-    const r = await o.p.evaluate(() => ({ host: !!window.__arcadeHost, mode: window.__SW.G.state, attr: document.documentElement.getAttribute('data-arcade-scene') }));
+    const r = await o.p.evaluate(() => ({ host: !!window.__arcadeHost, mode: window.__VIHR.G.state, attr: document.documentElement.getAttribute('data-arcade-scene') }));
     await o.close(); ok(!r.host && r.mode === 'play' && r.attr === 'off', JSON.stringify(r));
   });
   await test('ошибок в браузере нет', async () => { ok(errors.length === 0, errors.join(' | ')); });

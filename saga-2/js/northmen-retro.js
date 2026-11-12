@@ -1,9 +1,9 @@
-/* СЕВЕРНАЯ САГА II — js/vikings-retro.js
+/* СЕВЕРНАЯ САГА II — js/northmen-retro.js
    Пиксель-арт трёх героев (Таран — snorri, Стрелок — gunnar, Опора — bjorn), общий с сагой 1:
    блок HERO-SPRITES ниже дословно совпадает с блоком в saga/js/game.js (render-retro), поэтому
    герои выглядят одинаково в обеих играх (тест — tests/engine.test.mjs).
    Рисует персонажа вокруг origin (ноги в 0,0, корпус вверх по −y) в НАТИВНОМ масштабе
-   (1 арт-пиксель). Вызывающий (render.js drawVikingR) ставит translate на ноги актора,
+   (1 арт-пиксель). Вызывающий (render.js drawNorthmanR) ставит translate на ноги актора,
    флип по направлению и scale(2,2) — 1 арт-пиксель = 2 мировых px (retro-сетка).
    Без внешних ассетов, offline. */
 (function () {
@@ -44,7 +44,7 @@
        bjorn  — Опора: широкие плечи, стёганый жилет, кольчужные рукава, кузнечные очки на лбу,
                 короткая борода-косица, большой круглый щит-кузнечный круг с заклёпками.
      Блок между маркерами HERO-SPRITES:BEGIN/END ДОСЛОВНО одинаков в saga/js/game.js и
-     saga-2/js/vikings-retro.js (проверяют tests/engine.test.mjs обеих саг) — правьте оба места сразу.
+     saga-2/js/northmen-retro.js (проверяют tests/engine.test.mjs обеих саг) — правьте оба места сразу.
      Позы (pickPose), кадры (heroFrame) и их тайминги — прежние; меняется только облик.
      Нужны из окружения: rr(g,x,y,w,h,col), shade(hex,k), fillCircle(g,cx,cy,r,col).
      Начало координат — ноги (0,0), корпус вверх по −y, лицом в +x, 1 арт-пиксель. */
@@ -451,7 +451,7 @@
     else drawBjornShield(g, pal);
   }
 
-  function drawDeadViking(g, pal, id) {
+  function drawDeadNorthman(g, pal, id) {
     /* лежит на земле, головой в +x */
     if (id === "snorri") {
       rr(g, -7, -6, 12, 5, pal.sleeveS);
@@ -529,7 +529,7 @@
 
   function drawHeroDead(g, id, active) {
     id = heroId(id);
-    drawDeadViking(g, active ? CHARS[id] : dimPal(id), id);
+    drawDeadNorthman(g, active ? CHARS[id] : dimPal(id), id);
   }
   /* ==== HERO-SPRITES:END ==== */
 
@@ -544,5 +544,5 @@
     return "idle";
   }
 
-  window.SAGA2VIK = { drawChar: drawHero, drawDead: drawHeroDead, mapState: mapState, CHARS: CHARS };
+  window.SAGA2NORTH = { drawChar: drawHero, drawDead: drawHeroDead, mapState: mapState, CHARS: CHARS };
 })();

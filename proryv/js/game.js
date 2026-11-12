@@ -10,10 +10,10 @@
    В байте строки: бит 5 = левый пиксель, бит 0 = правый (6 колонок).
 
    API (docs/CONTRACT.md §1):
-     EX_FONT.W, EX_FONT.H      — размер знакоместа (6, 8)
-     EX_FONT.glyphs            — { 'A': [b0..b7], ... }
-     EX_FONT.has(ch)           — есть ли глиф
-     EX_FONT.glyph(ch)         — массив 8 байт (для неизвестного — глиф '?')
+     PR_FONT.W, PR_FONT.H      — размер знакоместа (6, 8)
+     PR_FONT.glyphs            — { 'A': [b0..b7], ... }
+     PR_FONT.has(ch)           — есть ли глиф
+     PR_FONT.glyph(ch)         — массив 8 байт (для неизвестного — глиф '?')
 
    Сгенерировано из пиксельной раскладки (инструмент — proryv/tools/gen-font.mjs).
    Правки вносить в генератор, а не в этот файл.
@@ -234,7 +234,7 @@
 
   const has = (ch) => Object.prototype.hasOwnProperty.call(G, ch);
 
-  window.EX_FONT = {
+  window.PR_FONT = {
     W: 6,
     H: 8,
     glyphs: G,
@@ -247,7 +247,7 @@
 /* ==== src/i18n.js ==== */
 /* ============================================================
    ПРОРЫВ HTML5 — локализация RU / EN
-   EX_I18N.ручные строки; EX_T(key, vars) — доступ с подстановкой {var}.
+   PR_I18N.ручные строки; PR_T(key, vars) — доступ с подстановкой {var}.
    ============================================================ */
 (function () {
   'use strict';
@@ -524,18 +524,18 @@
     'test.fail': 'FAIL'
   };
 
-  window.EX_I18N = { ru: RU, en: EN };
+  window.PR_I18N = { ru: RU, en: EN };
 
   /**
    * Перевод по ключу. Порядок: текущий язык → ru → en → сам ключ.
    * Подставляет {name} из vars.
    */
-  window.EX_T = function (key, vars) {
-    const ex = window.EX;
-    const lang = (ex && ex.settings && ex.settings.lang) === 'en' ? 'en' : 'ru';
-    let s = (window.EX_I18N[lang] && window.EX_I18N[lang][key]);
-    if (s == null) s = window.EX_I18N.ru[key];
-    if (s == null) s = window.EX_I18N.en[key];
+  window.PR_T = function (key, vars) {
+    const pr = window.PR;
+    const lang = (pr && pr.settings && pr.settings.lang) === 'en' ? 'en' : 'ru';
+    let s = (window.PR_I18N[lang] && window.PR_I18N[lang][key]);
+    if (s == null) s = window.PR_I18N.ru[key];
+    if (s == null) s = window.PR_I18N.en[key];
     if (s == null) return String(key);
     if (vars) {
       s = s.replace(/\{(\w+)\}/g, function (m, k) {
@@ -590,7 +590,7 @@
      ============================================================ */
 
   const AC = (typeof window !== 'undefined') ? (window.AudioContext || window.webkitAudioContext) : null;
-  const DEBUG = (typeof window !== 'undefined') && window.__EX_AUDIO_DEBUG__ === true;
+  const DEBUG = (typeof window !== 'undefined') && window.__PR_AUDIO_DEBUG__ === true;
 
   const LOOKAHEAD_MS = 25;        // период планировщика
   const SCHEDULE_AHEAD = 0.12;    // на сколько секунд вперёд планируем
@@ -1988,7 +1988,7 @@
     api._tracks = TRACKS;
   }
 
-  window.EX_AUDIO = api;
+  window.PR_AUDIO = api;
 
   /* ---------- автопробуждение по первому жесту и пауза во вкладке ---------- */
 
@@ -3146,7 +3146,7 @@
     ]
   };
 
-  window.EX_LEVELS = [
+  window.PR_LEVELS = [
   /* ======================= СЕКТОР 1: ВНЕШНИЙ ПЕРИМЕТР / OUTER PERIMETER ======================= */
   {
     id: 0,
@@ -3308,36 +3308,36 @@
     return s;
   }
 
-  const EX = (window.EX = window.EX || {});
-  EX.HASH = HASH;
-  EX.TILE = TILE; EX.COLS = COLS; EX.ROWS = ROWS; EX.W = W; EX.H = H;
-  EX.HUD = HUD; EX.VH = VH; EX.PAL = PAL; EX.NEON = NEON;
-  EX.TILES = { EMPTY: T_EMPTY, SOLID: T_SOLID, THIN: T_THIN, ROCK: T_ROCK, SPIKE: T_SPIKE, FLORA: T_FLORA };
-  EX.clamp = clamp;
-  EX.settings = loadSettings();
+  const PR = (window.PR = window.PR || {});
+  PR.HASH = HASH;
+  PR.TILE = TILE; PR.COLS = COLS; PR.ROWS = ROWS; PR.W = W; PR.H = H;
+  PR.HUD = HUD; PR.VH = VH; PR.PAL = PAL; PR.NEON = NEON;
+  PR.TILES = { EMPTY: T_EMPTY, SOLID: T_SOLID, THIN: T_THIN, ROCK: T_ROCK, SPIKE: T_SPIKE, FLORA: T_FLORA };
+  PR.clamp = clamp;
+  PR.settings = loadSettings();
 
-  EX.t = function (key, vars) { return window.EX_T(key, vars); };
-  EX.saveSettings = function () {
+  PR.t = function (key, vars) { return window.PR_T(key, vars); };
+  PR.saveSettings = function () {
     try {
       /* gfx не сохраняем: при каждом запуске — RETRO, переключение только на сессию */
       const toSave = {
-        lang: EX.settings.lang,
-        music: EX.settings.music,
-        sfx: EX.settings.sfx,
-        crt: EX.settings.crt
+        lang: PR.settings.lang,
+        music: PR.settings.music,
+        sfx: PR.settings.sfx,
+        crt: PR.settings.crt
       };
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(toSave));
     } catch (e) { /* ok */ }
   };
-  EX.loadRecord = function () {
+  PR.loadRecord = function () {
     try { return parseInt(localStorage.getItem(RECORD_KEY) || '0', 10) || 0; } catch (e) { return 0; }
   };
-  EX.saveRecord = function (v) {
+  PR.saveRecord = function (v) {
     try { localStorage.setItem(RECORD_KEY, String(v | 0)); } catch (e) { /* ok */ }
   };
 
   /* ---------- аудио-хелперы (модуль может быть заглушкой) ---------- */
-  const A = () => window.EX_AUDIO;
+  const A = () => window.PR_AUDIO;
   function snd(id) { try { const a = A(); if (a && a.sfx) a.sfx(id); } catch (e) { /* ok */ } }
   function music(id) { try { const a = A(); if (a && a.playMusic) a.playMusic(id); } catch (e) { /* ok */ } }
   function duck(on) { try { const a = A(); if (a && a.duck) a.duck(on); } catch (e) { /* ok */ } }
@@ -3347,18 +3347,18 @@
      ВВОД
      main.js пишет сюда состояния; ядро читает и потребляет actions.
      ============================================================ */
-  const input = EX.input = {
+  const input = PR.input = {
     left: false, right: false, up: false, down: false, fire: false,
     actions: [],              // строки: 'enter','escape','pause','lang','gfx','music','sfx','restart','fullscreen','action'
     pointer: { x: -1, y: -1, down: false, clicked: false },
     prevFire: false
   };
-  EX.pushAction = function (a) { input.actions.push(a); };
+  PR.pushAction = function (a) { input.actions.push(a); };
 
   /* ============================================================
      СОСТОЯНИЕ
      ============================================================ */
-  const state = EX.state = {
+  const state = PR.state = {
     mode: 'boot',
     t: 0,                  // глобальное время, c
     screenT: 0,            // время на текущем экране
@@ -3395,15 +3395,15 @@
      УРОВНИ / ЭКРАНЫ
      ============================================================ */
   function levelData(i) {
-    const L = window.EX_LEVELS || [];
+    const L = window.PR_LEVELS || [];
     return L[clamp(i, 0, Math.max(0, L.length - 1))] || null;
   }
-  EX.levelData = levelData;
-  EX.levelCount = function () { return (window.EX_LEVELS || []).length; };
-  EX.screenCount = function (li) { const l = levelData(li); return l ? l.screens.length : 0; };
+  PR.levelData = levelData;
+  PR.levelCount = function () { return (window.PR_LEVELS || []).length; };
+  PR.screenCount = function (li) { const l = levelData(li); return l ? l.screens.length : 0; };
 
   const TIDX = (x, y) => y * COLS + x;
-  const world = (window.EX_WORLD = window.EX_WORLD || {});
+  const world = (window.PR_WORLD = window.PR_WORLD || {});
 
   function tileIdAt(tx, ty) {
     const w = state.world;
@@ -3413,13 +3413,13 @@
     if (ty < 0) return T_EMPTY;
     return w.tiles[TIDX(tx, ty)];
   }
-  EX.tileAt = tileIdAt;
+  PR.tileAt = tileIdAt;
 
   function isBlocking(tx, ty) {
     const t = tileIdAt(tx, ty);
     return t === T_SOLID || t === T_ROCK;
   }
-  EX.isBlocking = isBlocking;
+  PR.isBlocking = isBlocking;
 
   function findSpawn(tiles) {
     for (let y = ROWS - 2; y >= 0; y--) {
@@ -3495,7 +3495,7 @@
     if (opts.freshAmmo) { p.laser = 60; p.rockets = 2; }
     if (opts.keepExo) { p.exo = true; p.armor = 3; } else if (!opts.keepExo) { p.exo = false; p.armor = 0; }
   }
-  EX.loadScreen = loadScreen;
+  PR.loadScreen = loadScreen;
 
   function makePlayer() {
     return {
@@ -3507,7 +3507,7 @@
       anim: 0, step: 0, air: 0, hitT: 0
     };
   }
-  EX.makePlayer = makePlayer;
+  PR.makePlayer = makePlayer;
 
   /* ============================================================
      СУЩНОСТИ
@@ -3529,7 +3529,7 @@
     exo: { w: 16, h: 20, hp: 1, score: 0, blast: false, grenade: false },
     teleporter: { w: 12, h: 16, hp: 1, score: 0, blast: false, grenade: false }
   };
-  EX.ENEMY = ENEMY;
+  PR.ENEMY = ENEMY;
 
   function addEntity(d) {
     const spec = ENEMY[d.t];
@@ -3554,7 +3554,7 @@
     state.ents.push(e);
     return e;
   }
-  EX.addEntity = addEntity;
+  PR.addEntity = addEntity;
 
   /* ============================================================
      ФИЗИКА
@@ -3620,7 +3620,7 @@
     gravity: 900, jump: -252, jumpCut: 0.42, maxFall: 420,
     duckSpeed: 32
   };
-  EX.PHYS = PHYS;
+  PR.PHYS = PHYS;
 
   function updatePlayer(dt) {
     const p = state.player;
@@ -3894,8 +3894,8 @@
       if (e.dead || e.t === 'teleporter') continue;
       const spec = ENEMY[e.t];
       if (!spec || !spec.grenade) continue;
-      const ex = e.x + e.w / 2, ey = e.y + e.h / 2;
-      if (Math.hypot(ex - x, ey - y) < radius + Math.max(e.w, e.h) / 2) damageEntity(e, 1, 'grenade');
+      const ecx = e.x + e.w / 2, ecy = e.y + e.h / 2;
+      if (Math.hypot(ecx - x, ecy - y) < radius + Math.max(e.w, e.h) / 2) damageEntity(e, 1, 'grenade');
     }
     /* мины детонируют цепочкой */
     for (let j = 0; j < state.ents.length; j++) {
@@ -3908,13 +3908,13 @@
       }
     }
   }
-  EX.explode = explode;
+  PR.explode = explode;
 
   function addScore(n, x, y) {
     state.score += n;
     if (x != null) state.pops.push({ x, y, text: (n > 0 ? '+' : '') + n, life: 0.9, max: 0.9, color: PAL.byellow });
   }
-  EX.addScore = addScore;
+  PR.addScore = addScore;
 
   function damageEntity(e, dmg, src) {
     const spec = ENEMY[e.t];
@@ -4154,7 +4154,7 @@
     }
     die(cause);
   }
-  EX.hurtPlayer = hurtPlayer;
+  PR.hurtPlayer = hurtPlayer;
 
   function die(cause) {
     const p = state.player;
@@ -4173,7 +4173,7 @@
     snd('death');
     duck(true);
   }
-  EX.die = die;
+  PR.die = die;
 
   /* ============================================================
      ПЕРЕХОД ЭКРАНОВ
@@ -4226,7 +4226,7 @@
     b.chosen = chosen;
     b.index = b.values.indexOf(chosen);
     let gained = chosen;
-    b.lines = [EX.t('msg.bonus.pick2')];
+    b.lines = [PR.t('msg.bonus.pick2')];
     const livesBonus = state.lives * 1000;
     gained += livesBonus;
     b.livesBonus = livesBonus;
@@ -4243,7 +4243,7 @@
 
   function nextLevel() {
     const lv = levelData(state.level);
-    const last = !lv || state.level + 1 >= EX.levelCount();
+    const last = !lv || state.level + 1 >= PR.levelCount();
     if (last) {
       state.mode = 'win';
       state.winTimer = 0;
@@ -4251,7 +4251,7 @@
       snd('win');
       if (state.score > state.record) {
         state.record = state.score;
-        EX.saveRecord(state.record);
+        PR.saveRecord(state.record);
         state.newRecord = true;
       }
       duck(true);
@@ -4285,7 +4285,7 @@
     music('game');
     intensity(0);
   }
-  EX.newGame = newGame;
+  PR.newGame = newGame;
 
   function respawn() {
     state.mode = 'play';
@@ -4296,7 +4296,7 @@
     music(state.level >= 4 ? 'final' : 'game');
     intensity(state.exo === true ? 0.7 : 0);
   }
-  EX.respawn = respawn;
+  PR.respawn = respawn;
 
   /* ============================================================
      РЕЖИМЫ / МЕНЮ
@@ -4314,57 +4314,57 @@
       duck(true);
       if (state.score > state.record) {
         state.record = state.score;
-        EX.saveRecord(state.record);
+        PR.saveRecord(state.record);
         state.newRecord = true;
       }
       music('gameover');
     }
   }
-  EX.setMode = setMode;
+  PR.setMode = setMode;
 
   function titleItems() {
     return [
-      { key: 'play', label: EX.t('menu.play') },
-      { key: 'help', label: EX.t('menu.help') },
-      { key: 'settings', label: EX.t('menu.settings') },
-      { key: 'about', label: EX.t('menu.about') }
+      { key: 'play', label: PR.t('menu.play') },
+      { key: 'help', label: PR.t('menu.help') },
+      { key: 'settings', label: PR.t('menu.settings') },
+      { key: 'about', label: PR.t('menu.about') }
     ];
   }
   function pauseItems() {
     return [
-      { key: 'resume', label: EX.t('pause.resume') },
-      { key: 'restart', label: EX.t('pause.restart') },
-      { key: 'settings', label: EX.t('pause.settings') },
-      { key: 'menu', label: EX.t('pause.menu') }
+      { key: 'resume', label: PR.t('pause.resume') },
+      { key: 'restart', label: PR.t('pause.restart') },
+      { key: 'settings', label: PR.t('pause.settings') },
+      { key: 'menu', label: PR.t('pause.menu') }
     ];
   }
   function settingsItems() {
-    const s = EX.settings;
+    const s = PR.settings;
     return [
-      { key: 'lang', label: EX.t('settings.lang'), value: s.lang === 'ru' ? 'РУССКИЙ' : 'ENGLISH' },
-      { key: 'gfx', label: EX.t('settings.gfx'), value: s.gfx === 'retro' ? EX.t('gfx.retro') : EX.t('gfx.modern') },
-      { key: 'music', label: EX.t('settings.music'), value: s.music ? EX.t('settings.on') : EX.t('settings.off') },
-      { key: 'sfx', label: EX.t('settings.sfx'), value: s.sfx ? EX.t('settings.on') : EX.t('settings.off') },
-      { key: 'crt', label: EX.t('settings.crt'), value: s.crt ? EX.t('settings.on') : EX.t('settings.off') },
-      { key: 'reset', label: EX.t('settings.reset'), value: '' },
-      { key: 'back', label: 'ESC', value: EX.t('settings.back') }
+      { key: 'lang', label: PR.t('settings.lang'), value: s.lang === 'ru' ? 'РУССКИЙ' : 'ENGLISH' },
+      { key: 'gfx', label: PR.t('settings.gfx'), value: s.gfx === 'retro' ? PR.t('gfx.retro') : PR.t('gfx.modern') },
+      { key: 'music', label: PR.t('settings.music'), value: s.music ? PR.t('settings.on') : PR.t('settings.off') },
+      { key: 'sfx', label: PR.t('settings.sfx'), value: s.sfx ? PR.t('settings.on') : PR.t('settings.off') },
+      { key: 'crt', label: PR.t('settings.crt'), value: s.crt ? PR.t('settings.on') : PR.t('settings.off') },
+      { key: 'reset', label: PR.t('settings.reset'), value: '' },
+      { key: 'back', label: 'ESC', value: PR.t('settings.back') }
     ];
   }
   function gameoverItems() {
     return [
-      { key: 'retry', label: EX.t('msg.continue') },
-      { key: 'menu', label: EX.t('pause.menu') }
+      { key: 'retry', label: PR.t('msg.continue') },
+      { key: 'menu', label: PR.t('pause.menu') }
     ];
   }
 
-  const UI = EX.ui = {
+  const UI = PR.ui = {
     items: function () {
       const m = state.mode;
       if (m === 'title') return titleItems();
       if (m === 'paused') return pauseItems();
       if (m === 'settings') return settingsItems();
       if (m === 'gameover') return gameoverItems();
-      if (m === 'win') return [{ key: 'menu', label: EX.t('pause.menu') }];
+      if (m === 'win') return [{ key: 'menu', label: PR.t('pause.menu') }];
       return [];
     },
     /* раскладка — общая для обоих рендереров; координаты логические 256×208 */
@@ -4418,12 +4418,12 @@
         else if (it.key === 'menu') { setMode('title'); }
         break;
       case 'settings':
-        if (it.key === 'lang') { EX.toggleLang(); }
-        else if (it.key === 'gfx') { EX.toggleGfx(); }
-        else if (it.key === 'music') { EX.toggleMusic(); }
-        else if (it.key === 'sfx') { EX.toggleSfx(); }
-        else if (it.key === 'crt') { EX.toggleCrt(); }
-        else if (it.key === 'reset') { EX.resetRecord(); state.resetAsk = 1.2; }
+        if (it.key === 'lang') { PR.toggleLang(); }
+        else if (it.key === 'gfx') { PR.toggleGfx(); }
+        else if (it.key === 'music') { PR.toggleMusic(); }
+        else if (it.key === 'sfx') { PR.toggleSfx(); }
+        else if (it.key === 'crt') { PR.toggleCrt(); }
+        else if (it.key === 'reset') { PR.resetRecord(); state.resetAsk = 1.2; }
         else if (it.key === 'back') { leaveSettings(); }
         break;
       case 'gameover':
@@ -4443,48 +4443,48 @@
   }
 
   /* переключатели настроек */
-  EX.toggleLang = function () {
-    EX.settings.lang = EX.settings.lang === 'ru' ? 'en' : 'ru';
-    EX.saveSettings();
+  PR.toggleLang = function () {
+    PR.settings.lang = PR.settings.lang === 'ru' ? 'en' : 'ru';
+    PR.saveSettings();
     snd('select');
     if (state.mode === 'briefing' || state.mode === 'levelclear') { /* тексты берутся заново */ }
   };
-  EX.toggleGfx = function () {
-    EX.settings.gfx = EX.settings.gfx === 'retro' ? 'modern' : 'retro';
-    EX.saveSettings();
+  PR.toggleGfx = function () {
+    PR.settings.gfx = PR.settings.gfx === 'retro' ? 'modern' : 'retro';
+    PR.saveSettings();
     snd('select');
     state.fx.flash = 0.18;
-    state.fx.flashColor = EX.settings.gfx === 'modern' ? NEON.cyan : PAL.bwhite;
+    state.fx.flashColor = PR.settings.gfx === 'modern' ? NEON.cyan : PAL.bwhite;
   };
-  EX.toggleMusic = function () {
-    EX.settings.music = !EX.settings.music;
-    EX.saveSettings();
+  PR.toggleMusic = function () {
+    PR.settings.music = !PR.settings.music;
+    PR.saveSettings();
     const a = A();
-    if (a && a.setMusic) a.setMusic(EX.settings.music);
-    if (EX.settings.music) {
+    if (a && a.setMusic) a.setMusic(PR.settings.music);
+    if (PR.settings.music) {
       music(state.mode === 'title' ? 'title' : state.mode === 'gameover' ? 'gameover' : state.level >= 4 ? 'final' : (state.player && state.player.exo ? 'exo' : 'game'));
     } else if (a && a.stopMusic) a.stopMusic();
     snd('select');
   };
-  EX.toggleSfx = function () {
-    EX.settings.sfx = !EX.settings.sfx;
-    EX.saveSettings();
+  PR.toggleSfx = function () {
+    PR.settings.sfx = !PR.settings.sfx;
+    PR.saveSettings();
     const a = A();
-    if (a && a.setSfx) a.setSfx(EX.settings.sfx);
+    if (a && a.setSfx) a.setSfx(PR.settings.sfx);
     snd('select');
   };
-  EX.toggleCrt = function () {
-    EX.settings.crt = !EX.settings.crt;
-    EX.saveSettings();
+  PR.toggleCrt = function () {
+    PR.settings.crt = !PR.settings.crt;
+    PR.saveSettings();
     snd('select');
   };
-  EX.resetRecord = function () {
+  PR.resetRecord = function () {
     state.record = 0;
-    EX.saveRecord(0);
+    PR.saveRecord(0);
     snd('deny');
   };
-  EX.setLang = function (lang) { EX.settings.lang = lang === 'en' ? 'en' : 'ru'; EX.saveSettings(); };
-  EX.setGfx = function (gfx) { EX.settings.gfx = gfx === 'modern' ? 'modern' : 'retro'; EX.saveSettings(); };
+  PR.setLang = function (lang) { PR.settings.lang = lang === 'en' ? 'en' : 'ru'; PR.saveSettings(); };
+  PR.setGfx = function (gfx) { PR.settings.gfx = gfx === 'modern' ? 'modern' : 'retro'; PR.saveSettings(); };
 
   /* ============================================================
      ОБРАБОТКА ДЕЙСТВИЙ И ХОТКЕЕВ
@@ -4496,16 +4496,16 @@
     for (let i = 0; i < acts.length; i++) {
       const a = acts[i];
       /* глобальные переключатели */
-      if (a === 'lang') { EX.toggleLang(); continue; }
-      if (a === 'gfx') { EX.toggleGfx(); continue; }
-      if (a === 'music') { EX.toggleMusic(); continue; }
-      if (a === 'sfx') { EX.toggleSfx(); continue; }
-      if (a === 'mute') { EX.toggleMusic(); continue; }
+      if (a === 'lang') { PR.toggleLang(); continue; }
+      if (a === 'gfx') { PR.toggleGfx(); continue; }
+      if (a === 'music') { PR.toggleMusic(); continue; }
+      if (a === 'sfx') { PR.toggleSfx(); continue; }
+      if (a === 'mute') { PR.toggleMusic(); continue; }
       const m = state.mode;
       if (a === 'enter' || a === 'action') {
         if (m === 'title' || m === 'paused' || m === 'settings' || m === 'gameover' || m === 'win') {
           if (m === 'settings' && state.resetAsk > 0 && UI.items()[state.menuIndex] && UI.items()[state.menuIndex].key === 'reset') {
-            EX.resetRecord(); state.resetAsk = 0; continue;
+            PR.resetRecord(); state.resetAsk = 0; continue;
           }
           activate(state.menuIndex);
         } else if (m === 'help' || m === 'about') {
@@ -4558,15 +4558,15 @@
     const items = UI.items();
     const it = items[index];
     if (!it) return;
-    if (it.key === 'lang') { EX.toggleLang(); return; }
-    if (it.key === 'gfx') { EX.toggleGfx(); return; }
-    if (it.key === 'music') { EX.toggleMusic(); return; }
-    if (it.key === 'sfx') { EX.toggleSfx(); return; }
-    if (it.key === 'crt') { EX.toggleCrt(); return; }
+    if (it.key === 'lang') { PR.toggleLang(); return; }
+    if (it.key === 'gfx') { PR.toggleGfx(); return; }
+    if (it.key === 'music') { PR.toggleMusic(); return; }
+    if (it.key === 'sfx') { PR.toggleSfx(); return; }
+    if (it.key === 'crt') { PR.toggleCrt(); return; }
   }
 
   /* клик мышью/тапом по меню */
-  EX.click = function (x, y) {
+  PR.click = function (x, y) {
     const m = state.mode;
     if (m === 'title' || m === 'paused' || m === 'settings' || m === 'gameover' || m === 'win') {
       const idx = UI.hit(x, y);
@@ -4575,7 +4575,7 @@
     }
     return false;
   };
-  EX.hover = function (x, y) {
+  PR.hover = function (x, y) {
     const m = state.mode;
     if (m === 'title' || m === 'paused' || m === 'settings' || m === 'gameover' || m === 'win') {
       const idx = UI.hit(x, y);
@@ -4650,7 +4650,7 @@
     } else {
       b.resultTimer += dt;
       if (b.resultTimer > 3.2 || b.resultTimer > 99) {
-        if (state.level + 1 >= EX.levelCount()) {
+        if (state.level + 1 >= PR.levelCount()) {
           nextLevel();
         } else {
           nextLevel();
@@ -4659,13 +4659,13 @@
     }
   }
 
-  EX.update = function (dt) {
+  PR.update = function (dt) {
     dt = Math.min(dt, 0.05);
     state.t += dt;
     handleActions();
     if (input.pointer.clicked) {
       input.pointer.clicked = false;
-      EX.click(input.pointer.x, input.pointer.y);
+      PR.click(input.pointer.x, input.pointer.y);
     }
     const m = state.mode;
     if (m === 'play') updatePlay(dt);
@@ -4692,13 +4692,13 @@
   };
 
   /* окно детерминированного шага для тестов */
-  EX.stepFixed = function (dt) { EX.update(dt); return state; };
+  PR.stepFixed = function (dt) { PR.update(dt); return state; };
 
   /* ============================================================
      НАЧАЛЬНОЕ СОСТОЯНИЕ / ДЕМО-РЕЖИМ
      ============================================================ */
-  EX.prepareTitle = function () {
-    state.record = EX.loadRecord();
+  PR.prepareTitle = function () {
+    state.record = PR.loadRecord();
     state.mode = 'title';
     state.menuIndex = 0;
     /* фоновая сцена для титульного экрана: первый экран первого уровня */
@@ -4712,11 +4712,11 @@
   };
 
   /* debug-сценарии для скриншотов (#shot=...) */
-  EX.prepareShot = function (shot, opts) {
+  PR.prepareShot = function (shot, opts) {
     opts = opts || {};
     const lv = opts.level != null ? opts.level : 0;
     const sc = opts.screen != null ? opts.screen : 0;
-    state.record = EX.loadRecord();
+    state.record = PR.loadRecord();
     state.lives = 4;
     state.score = 12750;
     state.level = lv;
@@ -4785,7 +4785,7 @@
         break;
       case 'title':
       default:
-        EX.prepareTitle();
+        PR.prepareTitle();
         break;
     }
     state.menuIndex = state.menuIndex || 0;
@@ -4795,10 +4795,10 @@
   /* ============================================================
      ТЕСТЫ (#test)
      ============================================================ */
-  EX.runTests = function () {
+  PR.runTests = function () {
     const res = [];
     const ok = function (name, cond) { res.push({ name, ok: !!cond }); };
-    const levels = window.EX_LEVELS || [];
+    const levels = window.PR_LEVELS || [];
 
     ok('уровней 5', levels.length === 5);
     ok('экранов по 5', levels.every((l) => l && l.screens && l.screens.length === 5));
@@ -4813,7 +4813,7 @@
     /* шрифт покрывает все строки локализации */
     const chars = new Set();
     ['ru', 'en'].forEach((lang) => {
-      Object.values(window.EX_I18N[lang]).forEach((s) => { for (const ch of String(s)) chars.add(ch); });
+      Object.values(window.PR_I18N[lang]).forEach((s) => { for (const ch of String(s)) chars.add(ch); });
     });
     levels.forEach((l) => {
       ['ru', 'en'].forEach((lang) => {
@@ -4821,20 +4821,20 @@
       });
     });
     const missing = [];
-    chars.forEach((ch) => { if (!/\s/.test(ch) && !window.EX_FONT.has(ch)) missing.push(ch); });
+    chars.forEach((ch) => { if (!/\s/.test(ch) && !window.PR_FONT.has(ch)) missing.push(ch); });
     ok('шрифт: все символы (' + (chars.size) + ')', missing.length === 0);
     if (missing.length) state.debug.missingGlyphs = missing.join('');
 
     ok('локализация: паритет ключей', (function () {
-      const a = Object.keys(window.EX_I18N.ru).sort().join('|');
-      const b = Object.keys(window.EX_I18N.en).sort().join('|');
+      const a = Object.keys(window.PR_I18N.ru).sort().join('|');
+      const b = Object.keys(window.PR_I18N.en).sort().join('|');
       return a === b;
     })());
 
     /* физика: игрок падает на землю */
-    EX.prepareShot('play', { level: 0, screen: 0 });
+    PR.prepareShot('play', { level: 0, screen: 0 });
     state.player.y = 40;
-    for (let i = 0; i < 90; i++) EX.stepFixed(1 / 60);
+    for (let i = 0; i < 90; i++) PR.stepFixed(1 / 60);
     ok('игрок стоит на земле', state.player.onGround === true);
 
     /* бластер убивает ходячего */
@@ -4845,7 +4845,7 @@
     state.player.x = w.x - 40; state.player.y = w.y; state.player.facing = 1; state.player.dir = 1;
     state.player.cool = 0; state.player.laser = 100;
     fireBlaster();
-    for (let i = 0; i < 40; i++) EX.stepFixed(1 / 60);
+    for (let i = 0; i < 40; i++) PR.stepFixed(1 / 60);
     ok('бластер убивает врага (+150)', w.dead && state.score - before >= 150);
 
     /* пушка не боится бластера */
@@ -4856,14 +4856,14 @@
     state.player.x = tur.x - 40;
     state.player.cool = 0;
     fireBlaster();
-    for (let i = 0; i < 40; i++) EX.stepFixed(1 / 60);
+    for (let i = 0; i < 40; i++) PR.stepFixed(1 / 60);
     ok('пушка неуязвима для бластера', !tur.dead);
 
     /* граната взрывает пушку */
     state.player.facing = 1;
     state.player.rockets = 3;
     throwGrenade();
-    for (let i = 0; i < 120 && !tur.dead; i++) EX.stepFixed(1 / 60);
+    for (let i = 0; i < 120 && !tur.dead; i++) PR.stepFixed(1 / 60);
     ok('граната убивает пушку', tur.dead);
 
     /* разрушаемый камень */
@@ -4880,32 +4880,32 @@
     ok('доп. жизнь за уровень', state.lives === 4);
 
     /* рекорд */
-    EX.saveRecord(12345);
-    ok('рекорд в localStorage', EX.loadRecord() === 12345);
-    EX.saveRecord(0);
+    PR.saveRecord(12345);
+    ok('рекорд в localStorage', PR.loadRecord() === 12345);
+    PR.saveRecord(0);
 
     /* переключения */
-    const g0 = EX.settings.gfx; EX.toggleGfx(); const g1 = EX.settings.gfx;
-    EX.toggleGfx();
-    ok('переключение графики', g0 !== g1 && EX.settings.gfx === g0);
-    const l0 = EX.settings.lang; EX.toggleLang();
-    ok('переключение языка', EX.settings.lang !== l0);
-    EX.toggleLang();
+    const g0 = PR.settings.gfx; PR.toggleGfx(); const g1 = PR.settings.gfx;
+    PR.toggleGfx();
+    ok('переключение графики', g0 !== g1 && PR.settings.gfx === g0);
+    const l0 = PR.settings.lang; PR.toggleLang();
+    ok('переключение языка', PR.settings.lang !== l0);
+    PR.toggleLang();
 
     /* меню */
-    EX.prepareTitle();
+    PR.prepareTitle();
     state.menuIndex = 1;
-    EX.pushAction('down');
-    EX.stepFixed(1 / 60);
+    PR.pushAction('down');
+    PR.stepFixed(1 / 60);
     ok('навигация меню', state.menuIndex === 2);
 
     /* пауза */
-    EX.prepareShot('play');
-    EX.pushAction('pause');
-    EX.stepFixed(1 / 60);
+    PR.prepareShot('play');
+    PR.pushAction('pause');
+    PR.stepFixed(1 / 60);
     ok('пауза', state.mode === 'paused');
-    EX.pushAction('pause');
-    EX.stepFixed(1 / 60);
+    PR.pushAction('pause');
+    PR.stepFixed(1 / 60);
     ok('снятие паузы', state.mode === 'play');
 
     /* переход на следующий экран */
@@ -4913,40 +4913,40 @@
     state.screen = 0;
     loadScreen(0, 0, { fresh: true, freshAmmo: true, invuln: 999 });
     state.player.x = W - 2;
-    EX.stepFixed(1 / 60);
+    PR.stepFixed(1 / 60);
     ok('выход за правый край = новый экран', state.screen === 1);
 
     /* последний экран уровня → уровень пройден */
     loadScreen(0, 4, { fresh: true, freshAmmo: true, invuln: 999 });
     state.player.x = W - 2;
-    EX.stepFixed(1 / 60);
+    PR.stepFixed(1 / 60);
     ok('конец уровня → зачёт бонуса', state.mode === 'levelclear');
 
     /* телепорт */
-    EX.prepareShot('play');
+    PR.prepareShot('play');
     state.ents = [];
     addEntity({ t: 'teleporter', x: 2, y: 20, group: 1 });
     addEntity({ t: 'teleporter', x: 26, y: 8, group: 1 });
     const p = state.player;
     p.x = 2 * 8 + 1; p.y = 21 * 8 - p.h; p.onGround = true;
     input.down = true;
-    EX.stepFixed(1 / 60);
+    PR.stepFixed(1 / 60);
     input.down = false;
     ok('телепорт переносит', p.x > 100);
 
     /* --- интеграционные проверки механик --- */
     /* смерть и респавн */
-    EX.newGame();
+    PR.newGame();
     state.mode = 'play';
     state.player.invuln = 0;
     const lives0 = state.lives;
     hurtPlayer(1, 'test');
     ok('смерть: -1 жизнь, режим dead', state.mode === 'dead' && state.lives === lives0 - 1);
-    for (let i = 0; i < 120; i++) EX.stepFixed(1 / 60);
+    for (let i = 0; i < 120; i++) PR.stepFixed(1 / 60);
     ok('респавн после смерти', state.mode === 'play' && state.player.alive === true);
 
     /* экзоскелет: 3 удара */
-    EX.newGame();
+    PR.newGame();
     state.mode = 'play';
     state.player.exo = true;
     state.player.armor = 3;
@@ -4955,22 +4955,22 @@
     ok('экзоскелет: 3 удара, потом потеря', arm.join(',') === '2,1,0' && !state.player.exo && state.player.alive);
 
     /* формула бонуса без экзо и с экзо */
-    EX.prepareShot('bonus');
+    PR.prepareShot('bonus');
     state.lives = 2; state.woreExo = false;
     state.bonus.phase = 'pick';
-    EX.pushAction('action'); EX.stepFixed(1 / 60);
+    PR.pushAction('action'); PR.stepFixed(1 / 60);
     const chosenV = state.bonus.chosen;
     const wantNoExo = chosenV + 2 * 1000 + 10000;
     const gotNoExo = state.bonus.gained;
-    EX.prepareShot('bonus');
+    PR.prepareShot('bonus');
     state.lives = 2; state.woreExo = true;
     state.bonus.phase = 'pick';
-    EX.pushAction('action'); EX.stepFixed(1 / 60);
+    PR.pushAction('action'); PR.stepFixed(1 / 60);
     const wantExo = state.bonus.chosen + 2 * 1000;
     ok('бонус: +10000 без экзо / 0 с экзо', gotNoExo === wantNoExo && state.bonus.gained === wantExo);
 
     /* полный проход первого уровня */
-    EX.newGame();
+    PR.newGame();
     state.mode = 'play';
     state.player.invuln = 1e6;
     input.left = input.right = input.up = input.down = input.fire = false;
@@ -4980,7 +4980,7 @@
       while (state.mode === 'play' && state.screen === scr && guard++ < 1200) {
         input.right = true; input.up = (guard % 26) < 4;
         state.player.invuln = 1e6;   /* проверяем геометрию, а не бой */
-        EX.stepFixed(1 / 60);
+        PR.stepFixed(1 / 60);
       }
       input.right = false; input.up = false;
       lastMode = state.mode;
@@ -4988,7 +4988,7 @@
     ok('экран за экраном → бонус сектора', lastMode === 'levelclear' || lastMode === 'bonus');
 
     /* телепорт */
-    EX.prepareShot('play');
+    PR.prepareShot('play');
     state.ents = [];
     addEntity({ t: 'teleporter', x: 2, y: 20, group: 1 });
     addEntity({ t: 'teleporter', x: 26, y: 9, group: 1 });
@@ -4996,27 +4996,27 @@
     state.player.y = 152;
     state.player.onGround = true;
     input.down = true;
-    EX.stepFixed(1 / 60);
+    PR.stepFixed(1 / 60);
     input.down = false;
     ok('телепорт переносит к паре', state.player.x > 150);
 
     /* режимы стрельбы: клик vs удержание */
-    EX.prepareShot('play');
+    PR.prepareShot('play');
     state.player.laser = 100;
     state.player.rockets = 3;
     input.fire = false;
-    EX.stepFixed(1 / 60);
+    PR.stepFixed(1 / 60);
     input.fire = true;
-    EX.stepFixed(1 / 60);
+    PR.stepFixed(1 / 60);
     const firedLaser = state.shots.length >= 1 && state.player.laser < 100;
-    for (let i = 0; i < 22; i++) EX.stepFixed(1 / 60);
+    for (let i = 0; i < 22; i++) PR.stepFixed(1 / 60);
     const firedGrenade = state.shots.some((sh) => sh.grenade) && state.player.rockets === 2;
     input.fire = false;
-    EX.stepFixed(1 / 60);
+    PR.stepFixed(1 / 60);
     ok('клик — бластер, удержание — граната', firedLaser && firedGrenade);
 
     /* пушка: бластер не берёт, граната берёт */
-    EX.prepareShot('play');
+    PR.prepareShot('play');
     state.ents = [];
     const tur2 = addEntity({ t: 'turret', x: 12, y: 20 });
     state.player.x = tur2.x - 44;
@@ -5025,28 +5025,28 @@
     state.player.laser = 100;
     state.shots = [];
     fireBlaster();
-    for (let i = 0; i < 30; i++) EX.stepFixed(1 / 60);
+    for (let i = 0; i < 30; i++) PR.stepFixed(1 / 60);
     const turAlive = !tur2.dead;
     state.player.rockets = 3;
     state.player.cool = 0;
     throwGrenade();
-    for (let i = 0; i < 150 && !tur2.dead; i++) EX.stepFixed(1 / 60);
+    for (let i = 0; i < 150 && !tur2.dead; i++) PR.stepFixed(1 / 60);
     ok('пушка: бластер мимо, граната в цель', turAlive && tur2.dead);
 
     /* аудио-модуль */
-    const A = window.EX_AUDIO || {};
+    const A = window.PR_AUDIO || {};
     ok('аудио-API на месте', ['init', 'unlock', 'setMusic', 'setSfx', 'playMusic', 'stopMusic', 'sfx', 'duck'].every((k) => typeof A[k] === 'function'));
 
     /* меню настроек открывается без исключений */
     let settingsOk = true;
     try {
-      EX.prepareShot('settings');
-      if (window.EX_RENDER_RETRO) window.EX_RENDER_RETRO.draw(document.createElement('canvas').getContext('2d'), { t: 0 });
+      PR.prepareShot('settings');
+      if (window.PR_RENDER_RETRO) window.PR_RENDER_RETRO.draw(document.createElement('canvas').getContext('2d'), { t: 0 });
     } catch (e) { settingsOk = false; }
     ok('экран настроек рисуется', settingsOk);
 
     /* режимы не падают */
-    ok('режим title', (EX.prepareTitle(), state.mode === 'title'));
+    ok('режим title', (PR.prepareTitle(), state.mode === 'title'));
 
     return res;
   };
@@ -5062,8 +5062,8 @@
 (function () {
   'use strict';
 
-  const EX = window.EX;
-  const P = EX.PAL;
+  const PR = window.PR;
+  const P = PR.PAL;
   const TILE = 8, COLS = 32, ROWS = 24, W = 256, H = 192, HUD = 16, VH = 208;
 
   let g = null;              // текущий ctx
@@ -5072,7 +5072,7 @@
   const px = function (c, x, y, w, h) { g.fillStyle = c; g.fillRect(x | 0, y | 0, w, h); };
 
   /* ---------- шрифт ---------- */
-  const FONT = () => window.EX_FONT;
+  const FONT = () => window.PR_FONT;
   function textW(str, scale) {
     const f = FONT();
     return str.length * (f ? f.W : 6) * (scale || 1);
@@ -5207,7 +5207,7 @@
   function drawTile(id, tx, ty, theme, seed) {
     const x = tx * TILE, y = ty * TILE;
     switch (id) {
-      case EX.TILES.SOLID: {
+      case PR.TILES.SOLID: {
         px(theme.sky[0], x, y, TILE, TILE);
         /* кирпичная «атрибутная» кладка 8×8: 2 цвета на клетку */
         g.fillStyle = theme.block;
@@ -5218,7 +5218,7 @@
         g.fillRect(x + 3, y + 1, 1, 1); g.fillRect(x + 6, y + 5, 1, 1);
         break;
       }
-      case EX.TILES.ROCK: {
+      case PR.TILES.ROCK: {
         px(theme.sky[0], x, y, TILE, TILE);
         const r = rng(tx * 73 + ty * 149 + 11);
         for (let i = 0; i < 12; i++) {
@@ -5229,7 +5229,7 @@
         dither(x + 1, y + 1, 6, 6, theme.rock, theme.sky[0], tx * 3 + ty);
         break;
       }
-      case EX.TILES.THIN: {
+      case PR.TILES.THIN: {
         g.fillStyle = theme.thin;
         g.fillRect(x, y, 8, 1);
         g.fillStyle = theme.block2;
@@ -5238,7 +5238,7 @@
         for (let i = 1; i < 8; i += 2) g.fillRect(x + i, y + 1, 1, 1);
         break;
       }
-      case EX.TILES.SPIKE: {
+      case PR.TILES.SPIKE: {
         g.fillStyle = theme.spike;
         for (let i = 0; i < 8; i += 2) {
           g.beginPath();
@@ -5250,7 +5250,7 @@
         px(theme.block2, x, y + 7, 8, 1);
         break;
       }
-      case EX.TILES.FLORA: {
+      case PR.TILES.FLORA: {
         const r = rng(tx * 41 + ty * 17 + 3);
         const h = 4 + Math.floor(r() * 5);
         g.fillStyle = theme.accent;
@@ -5275,9 +5275,9 @@
     px(P.bgreen, x + 1, y + 3, 1, 4);
     px(P.bgreen, x + 12, y + 3, 1, 4);
     /* глаза */
-    const ex = flip ? x + 8 : x + 3;
-    px(P.byellow, ex, y + 3, 2, 2);
-    px(P.black, ex + (flip ? 1 : 0), y + 4, 1, 1);
+    const eyeX = flip ? x + 8 : x + 3;
+    px(P.byellow, eyeX, y + 3, 2, 2);
+    px(P.black, eyeX + (flip ? 1 : 0), y + 4, 1, 1);
     /* рот/зубы */
     px(P.bmagenta, x + 5, y + 6, 4, 1);
     /* ноги */
@@ -5511,7 +5511,7 @@
 
   /* ---------- выстрелы / эффекты ---------- */
   function drawShots() {
-    const st = EX.state;
+    const st = PR.state;
     st.shots.forEach(function (s) {
       if (s.grenade) {
         px(P.bwhite, s.x - 2, s.y - 2, 5, 5);
@@ -5536,7 +5536,7 @@
   }
 
   function drawParticles() {
-    const st = EX.state;
+    const st = PR.state;
     st.particles.forEach(function (p) {
       const a = p.life / (p.max || 1);
       g.globalAlpha = a > 0.5 ? 1 : 0.7;
@@ -5564,7 +5564,7 @@
 
   /* ---------- HUD ---------- */
   function drawHUD() {
-    const st = EX.state;
+    const st = PR.state;
     const p = st.player || { laser: 0, maxLaser: 100, rockets: 0, armor: 0, exo: false };
     const y0 = H;
     px(P.black, 0, y0, W, HUD);
@@ -5573,14 +5573,14 @@
     for (let i = 0; i < W; i += 2) g.fillRect(i, y0, 1, 1);
 
     /* строка 1 */
-    text(EX.t('hud.score'), 4, y0, P.bcyan, 1);
-    const scoreX = 4 + textW(EX.t('hud.score'), 1) + 4;
+    text(PR.t('hud.score'), 4, y0, P.bcyan, 1);
+    const scoreX = 4 + textW(PR.t('hud.score'), 1) + 4;
     text(String(st.score).padStart(6, '0'), scoreX, y0, P.bwhite, 1);
     const lifeX = scoreX + 42;
     text('♥', lifeX, y0, P.bred, 1);
     text(String(st.lives), lifeX + 7, y0, P.bred, 1);
-    text(EX.t('hud.screen') + ' ' + (st.screen + 1) + '/' + EX.screenCount(st.level), 188, y0, P.byellow, 1, 'right');
-    text(EX.t('hud.sector') + ' ' + (st.level + 1) + '/' + EX.levelCount(), 252, y0, P.byellow, 1, 'right');
+    text(PR.t('hud.screen') + ' ' + (st.screen + 1) + '/' + PR.screenCount(st.level), 188, y0, P.byellow, 1, 'right');
+    text(PR.t('hud.sector') + ' ' + (st.level + 1) + '/' + PR.levelCount(), 252, y0, P.byellow, 1, 'right');
 
     /* строка 2 */
     const y1 = y0 + 8;
@@ -5594,8 +5594,8 @@
     }
     /* броня экзоскелета */
     if (p.exo) {
-      text(EX.t('hud.armor'), 72, y1, P.byellow, 1);
-      for (let i = 0; i < 3; i++) px(i < p.armor ? P.byellow : '#332a00', 72 + EX.t('hud.armor').length * 6 + 2 + i * 5, y1 + 2, 3, 4);
+      text(PR.t('hud.armor'), 72, y1, P.byellow, 1);
+      for (let i = 0; i < 3; i++) px(i < p.armor ? P.byellow : '#332a00', 72 + PR.t('hud.armor').length * 6 + 2 + i * 5, y1 + 2, 3, 4);
     }
   }
 
@@ -5603,9 +5603,9 @@
   function dim(alpha) { g.fillStyle = 'rgba(0,0,0,' + alpha + ')'; g.fillRect(0, 0, W, VH); }
 
   function drawMessage() {
-    const st = EX.state;
+    const st = PR.state;
     if (!st.message) return;
-    const s = EX.t(st.message.key);
+    const s = PR.t(st.message.key);
     const y = 78;
     const w = textW(s, 1) + 16;
     panel((W - w) / 2, y, w, 13, P.byellow, '#000');
@@ -5613,8 +5613,8 @@
   }
 
   function drawMenus() {
-    const st = EX.state;
-    const rects = EX.ui.layout();
+    const st = PR.state;
+    const rects = PR.ui.layout();
     rects.forEach(function (r, i) {
       const sel = i === st.menuIndex;
       const label = r.item.label + (r.item.value ? '  ' + r.item.value : '');
@@ -5645,7 +5645,7 @@
 
   /* ---------- экраны ---------- */
   function drawTitle() {
-    const st = EX.state;
+    const st = PR.state;
     background(themeOf({ theme: 'space' }));
     const logo = 'ПРОРЫВ';
     const colors = [P.byellow, P.bcyan, P.bmagenta, P.bgreen, P.bcyan, P.bwhite];
@@ -5666,8 +5666,8 @@
       }
     }
 
-    text(EX.t('brand.ru'), W / 2, 98, P.bwhite, 1, 'center', '#000');
-    text(EX.t('tagline.full'), W / 2, 108, P.bcyan, 1, 'center', '#000');
+    text(PR.t('brand.ru'), W / 2, 98, P.bwhite, 1, 'center', '#000');
+    text(PR.t('tagline.full'), W / 2, 108, P.bcyan, 1, 'center', '#000');
 
     drawMenus();
 
@@ -5678,14 +5678,14 @@
       drawWalker({ x: x, y: baseY - 12, dir: 1, anim: now * 2 + i, hitT: 0 });
     }
     /* рекорд */
-    text(EX.t('msg.record') + ' ' + String(st.record).padStart(6, '0'), W - 4, 2, P.byellow, 1, 'right');
+    text(PR.t('msg.record') + ' ' + String(st.record).padStart(6, '0'), W - 4, 2, P.byellow, 1, 'right');
     text('ГЕФЕСТ', 4, 2, P.blue, 1);
-    text(EX.t('menu.hint.quick'), W / 2, VH - 9, P.blue, 1, 'center');
-    if (EX.BUILD) text(EX.t('settings.build.short', { v: EX.BUILD }), W / 2, 76, P.bblue, 1, 'center');
+    text(PR.t('menu.hint.quick'), W / 2, VH - 9, P.blue, 1, 'center');
+    if (PR.BUILD) text(PR.t('settings.build.short', { v: PR.BUILD }), W / 2, 76, P.bblue, 1, 'center');
   }
 
   function background(theme) {
-    const st = EX.state;
+    const st = PR.state;
     const world = st.world;
     px('#000000', 0, 0, W, VH);
     if (world) starfield(world.seed || 1, now, theme);
@@ -5696,16 +5696,16 @@
   }
 
   function drawDeathOverlay() {
-    const st = EX.state;
+    const st = PR.state;
     dim(0.25);
-    const s = EX.t('msg.dead');
+    const s = PR.t('msg.dead');
     panel(W / 2 - 64, 78, 128, 22, P.bred, '#000');
     text(s, W / 2, 83, P.bred, 2, 'center', '#000');
-    text(EX.t('hud.lives') + ': ' + st.lives, W / 2, 92, P.bwhite, 1, 'center');
+    text(PR.t('hud.lives') + ': ' + st.lives, W / 2, 92, P.bwhite, 1, 'center');
   }
 
   function drawWorld() {
-    const st = EX.state;
+    const st = PR.state;
     const world = st.world;
     if (!world) return;
     const theme = themeOf(world);
@@ -5747,18 +5747,18 @@
     drawWorld();
     dim(0.55);
     panel(42, 34, 172, 132, P.bcyan, '#000');
-    text(EX.t('msg.paused'), W / 2, 44, P.byellow, 2, 'center', '#000');
+    text(PR.t('msg.paused'), W / 2, 44, P.byellow, 2, 'center', '#000');
     drawMenus();
-    text(EX.t('hint.nav'), W / 2, 150, P.bcyan, 1, 'center');
+    text(PR.t('hint.nav'), W / 2, 150, P.bcyan, 1, 'center');
   }
 
   function drawHelp() {
-    const st = EX.state;
+    const st = PR.state;
     const world = st.world;
     px('#000000', 0, 0, W, VH);
     starfield((world && world.seed) || 3, now * 0.3, THEMES.space);
     panel(3, 3, W - 6, VH - 6, P.bcyan, 'rgba(0,0,0,0.90)');
-    text(EX.t('help.title'), W / 2, 7, P.byellow, 2, 'center', '#000');
+    text(PR.t('help.title'), W / 2, 7, P.byellow, 2, 'center', '#000');
     g.fillStyle = P.bblue; g.fillRect(16, 26, W - 32, 1);
 
     const rows = [
@@ -5771,47 +5771,47 @@
     let y = 31;
     rows.forEach(function (r) {
       text(r[0], 8, y, P.byellow, 1);
-      text(EX.t(r[1]), 80, y, P.bwhite, 1);
+      text(PR.t(r[1]), 80, y, P.bwhite, 1);
       y += 9;
     });
 
     g.fillStyle = P.bblue; g.fillRect(16, y - 4, W - 32, 1);
-    text(EX.t('hint.title'), 8, y + 1, P.bcyan, 1);
+    text(PR.t('hint.title'), 8, y + 1, P.bcyan, 1);
     y += 10;
-    wrapMulti(EX.t('help.goal'), 40).forEach(function (l) { text(l, 8, y, P.white, 1); y += 8; });
+    wrapMulti(PR.t('help.goal'), 40).forEach(function (l) { text(l, 8, y, P.white, 1); y += 8; });
     y += 3;
     text('*', 6, y, P.byellow, 1);
-    wrapMulti(EX.t('hint.ammo'), 39).forEach(function (l) { text(l, 14, y, P.white, 1); y += 8; });
+    wrapMulti(PR.t('hint.ammo'), 39).forEach(function (l) { text(l, 14, y, P.white, 1); y += 8; });
     y += 3;
     text('*', 6, y, P.byellow, 1);
-    wrapMulti(EX.t('hint.teleport'), 39).forEach(function (l) { text(l, 14, y, P.white, 1); y += 8; });
-    text(EX.t('help.back'), W / 2, VH - 11, P.byellow, 1, 'center');
+    wrapMulti(PR.t('hint.teleport'), 39).forEach(function (l) { text(l, 14, y, P.white, 1); y += 8; });
+    text(PR.t('help.back'), W / 2, VH - 11, P.byellow, 1, 'center');
   }
 
   function drawAbout() {
     px('#000000', 0, 0, W, VH);
     starfield(9, now * 0.2, THEMES.space);
     panel(4, 4, W - 8, VH - 8, P.bmagenta, 'rgba(0,0,0,0.90)');
-    text(EX.t('brand'), W / 2, 10, P.byellow, 3, 'center', '#000');
-    text(EX.t('tagline'), W / 2, 38, P.bcyan, 1, 'center');
+    text(PR.t('brand'), W / 2, 10, P.byellow, 3, 'center', '#000');
+    text(PR.t('tagline'), W / 2, 38, P.bcyan, 1, 'center');
     g.fillStyle = P.bblue; g.fillRect(20, 48, W - 40, 1);
     let y = 53;
-    wrapMulti(EX.t('about.text'), 40).forEach(function (l) { text(l, 7, y, P.white, 1); y += 9; });
+    wrapMulti(PR.t('about.text'), 40).forEach(function (l) { text(l, 7, y, P.white, 1); y += 9; });
     y += 5;
-    text(EX.t('credits.original'), W / 2, y, P.byellow, 1, 'center'); y += 8;
-    text(EX.t('credits.port'), W / 2, y, P.bcyan, 1, 'center'); y += 8;
-    wrapMulti(EX.t('credits.thanks'), 40).forEach(function (l) { text(l, W / 2, y, P.bblue, 1, 'center'); y += 8; });
-    wrapMulti(EX.t('credits.fan'), 39).forEach(function (l) { text(l, W / 2, y, P.bblue, 1, 'center'); y += 8; });
-    text(EX.t('help.back'), W / 2, VH - 10, P.byellow, 1, 'center');
+    text(PR.t('credits.original'), W / 2, y, P.byellow, 1, 'center'); y += 8;
+    text(PR.t('credits.port'), W / 2, y, P.bcyan, 1, 'center'); y += 8;
+    wrapMulti(PR.t('credits.thanks'), 40).forEach(function (l) { text(l, W / 2, y, P.bblue, 1, 'center'); y += 8; });
+    wrapMulti(PR.t('credits.fan'), 39).forEach(function (l) { text(l, W / 2, y, P.bblue, 1, 'center'); y += 8; });
+    text(PR.t('help.back'), W / 2, VH - 10, P.byellow, 1, 'center');
   }
 
   function drawSettings() {
-    const st = EX.state;
+    const st = PR.state;
     drawWorld();
     dim(0.72);
     panel(20, 34, W - 40, 146, P.bcyan, '#000');
-    text(EX.t('settings.title'), W / 2, 38, P.byellow, 2, 'center', '#000');
-    const rects = EX.ui.layout();
+    text(PR.t('settings.title'), W / 2, 38, P.byellow, 2, 'center', '#000');
+    const rects = PR.ui.layout();
     rects.forEach(function (r, i) {
       const sel = i === st.menuIndex;
       const x = r.x - 16, w = r.w + 32;
@@ -5834,31 +5834,31 @@
         px(P.byellow, ax + 1, ay + 3, 2, 1);
       }
     });
-    if (st.resetAsk > 0) text(EX.t('settings.resetConfirm'), W / 2, 172, P.bred, 1, 'center');
-    else text(EX.t('msg.paused.hint'), W / 2, 172, P.blue, 1, 'center');
+    if (st.resetAsk > 0) text(PR.t('settings.resetConfirm'), W / 2, 172, P.bred, 1, 'center');
+    else text(PR.t('msg.paused.hint'), W / 2, 172, P.blue, 1, 'center');
   }
 
   function drawBriefing() {
-    const st = EX.state;
-    const lv = EX.levelData(st.level) || { name: { ru: '', en: '' }, intro: { ru: '', en: '' }, theme: 'space' };
+    const st = PR.state;
+    const lv = PR.levelData(st.level) || { name: { ru: '', en: '' }, intro: { ru: '', en: '' }, theme: 'space' };
     const theme = THEMES[lv.theme] || THEMES.space;
     px('#000000', 0, 0, W, VH);
     starfield((st.world && st.world.seed) || 1, now * 0.25, THEMES.space);
     panel(4, 4, W - 8, VH - 8, P.bcyan, 'rgba(0,0,0,0.84)');
 
-    text(EX.t('hud.sector') + '  ' + (st.level + 1) + ' / ' + EX.levelCount(), W / 2, 10, theme.accent, 1, 'center');
-    const name = (lv.name[EX.settings.lang] || lv.name.ru || '').toUpperCase();
+    text(PR.t('hud.sector') + '  ' + (st.level + 1) + ' / ' + PR.levelCount(), W / 2, 10, theme.accent, 1, 'center');
+    const name = (lv.name[PR.settings.lang] || lv.name.ru || '').toUpperCase();
     const nsc = name.length > 16 ? 1 : 2;
     text(name, W / 2, 20, P.byellow, nsc, 'center', '#000');
-    text(EX.t('level.screens', { n: EX.screenCount(st.level) }), W / 2, 40, P.bblue, 1, 'center');
+    text(PR.t('level.screens', { n: PR.screenCount(st.level) }), W / 2, 40, P.bblue, 1, 'center');
     g.fillStyle = P.bblue; g.fillRect(18, 49, W - 36, 1);
 
     let y = 55;
-    wrapMulti(lv.intro[EX.settings.lang] || lv.intro.ru, 40).forEach(function (l) { text(l, 10, y, P.white, 1); y += 8; });
+    wrapMulti(lv.intro[PR.settings.lang] || lv.intro.ru, 40).forEach(function (l) { text(l, 10, y, P.white, 1); y += 8; });
     y += 4;
     ['hint.grenade', 'hint.exo'].forEach(function (k) {
       text('*', 6, y, P.byellow, 1);
-      wrapMulti(EX.t(k), 39).forEach(function (l) { text(l, 13, y, P.bcyan, 1); y += 8; });
+      wrapMulti(PR.t(k), 39).forEach(function (l) { text(l, 13, y, P.bcyan, 1); y += 8; });
       y += 2;
     });
 
@@ -5871,19 +5871,19 @@
     drawPod({ x: base + 86, y: 158, anim: now + 0.9, hitT: 0 });
 
     if (Math.floor(now * 2) % 2 === 0) {
-      text(EX.t('level.start'), W / 2, 178, P.byellow, 1, 'center');
+      text(PR.t('level.start'), W / 2, 178, P.byellow, 1, 'center');
     }
     drawHUD();
   }
 
   function drawBonus() {
-    const st = EX.state;
+    const st = PR.state;
     drawWorld();
     dim(0.7);
     const b = st.bonus;
     if (!b) return;
     panel(16, 34, W - 32, 134, P.byellow, '#000');
-    text(EX.t('msg.bonus'), W / 2, 40, P.byellow, 2, 'center', '#000');
+    text(PR.t('msg.bonus'), W / 2, 40, P.byellow, 2, 'center', '#000');
     const bx = [42, 84, 126, 168];
     if (b.phase === 'pick') {
       for (let i = 0; i < b.values.length; i++) {
@@ -5893,15 +5893,15 @@
         text(String(b.values[i]), x + 15, 74, on ? P.bwhite : P.bcyan, 1, 'center');
         if (on) text('▼', x + 15, 58, P.byellow, 1, 'center');
       }
-      text(EX.t('msg.bonus.pick'), W / 2, 104, P.byellow, 1, 'center');
-      text(EX.t('msg.bonus.pick2'), W / 2, 116, P.bwhite, 1, 'center');
+      text(PR.t('msg.bonus.pick'), W / 2, 104, P.byellow, 1, 'center');
+      text(PR.t('msg.bonus.pick2'), W / 2, 116, P.bwhite, 1, 'center');
     } else {
       text(String(b.chosen), W / 2, 68, P.bwhite, 3, 'center', '#111');
-      text(EX.t('msg.bonus.lives') + ' → ' + b.livesBonus, W / 2, 100, P.bcyan, 1, 'center');
-      text(b.noExoBonus ? EX.t('msg.bonus.noexo') : EX.t('msg.bonus.exo'), W / 2, 112, b.noExoBonus ? P.bgreen : P.bred, 1, 'center');
-      if (b.extraLife) text(EX.t('msg.bonus.extra'), W / 2, 124, P.byellow, 1, 'center');
+      text(PR.t('msg.bonus.lives') + ' → ' + b.livesBonus, W / 2, 100, P.bcyan, 1, 'center');
+      text(b.noExoBonus ? PR.t('msg.bonus.noexo') : PR.t('msg.bonus.exo'), W / 2, 112, b.noExoBonus ? P.bgreen : P.bred, 1, 'center');
+      if (b.extraLife) text(PR.t('msg.bonus.extra'), W / 2, 124, P.byellow, 1, 'center');
     }
-    text(EX.t('msg.score') + ' ' + st.score, W / 2, 140, P.byellow, 1, 'center');
+    text(PR.t('msg.score') + ' ' + st.score, W / 2, 140, P.byellow, 1, 'center');
   }
 
   function bigCentered(str, y, color, scale) {
@@ -5909,29 +5909,29 @@
   }
 
   function drawLevelClear() {
-    const st = EX.state;
+    const st = PR.state;
     drawWorld();
     dim(0.6);
-    bigCentered(EX.t('msg.levelclear'), 62, P.byellow, 2);
-    text(EX.t('hud.sector') + ' ' + (st.level + 1), W / 2, 90, P.bcyan, 1, 'center');
-    text(EX.t('msg.score') + ' ' + st.score, W / 2, 104, P.bwhite, 1, 'center');
+    bigCentered(PR.t('msg.levelclear'), 62, P.byellow, 2);
+    text(PR.t('hud.sector') + ' ' + (st.level + 1), W / 2, 90, P.bcyan, 1, 'center');
+    text(PR.t('msg.score') + ' ' + st.score, W / 2, 104, P.bwhite, 1, 'center');
     if (Math.floor(now * 6) % 2 === 0) text('...', W / 2, 120, P.byellow, 2, 'center');
   }
 
   function drawGameOver() {
-    const st = EX.state;
+    const st = PR.state;
     drawWorld();
     dim(0.78);
     panel(20, 38, 216, 142, P.bred, '#000');
-    bigCentered(EX.t('msg.gameover'), 46, P.bred, 2);
-    text(EX.t('msg.score') + ' ' + st.score, W / 2, 74, P.bwhite, 1, 'center');
-    text(EX.t('msg.record') + ' ' + st.record, W / 2, 86, P.byellow, 1, 'center');
-    if (st.newRecord) text(EX.t('msg.newrecord'), W / 2, 98, P.bgreen, 1, 'center');
+    bigCentered(PR.t('msg.gameover'), 46, P.bred, 2);
+    text(PR.t('msg.score') + ' ' + st.score, W / 2, 74, P.bwhite, 1, 'center');
+    text(PR.t('msg.record') + ' ' + st.record, W / 2, 86, P.byellow, 1, 'center');
+    if (st.newRecord) text(PR.t('msg.newrecord'), W / 2, 98, P.bgreen, 1, 'center');
     drawMenus();
   }
 
   function drawWin() {
-    const st = EX.state;
+    const st = PR.state;
     px('#000000', 0, 0, W, VH);
     starfield(11, now * 0.5, THEMES.space);
     /* фейерверк */
@@ -5946,21 +5946,21 @@
       g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke();
       g.globalAlpha = 1;
     }
-    const winT = EX.t('msg.win');
+    const winT = PR.t('msg.win');
     bigCentered(winT, 40, P.byellow, textW(winT, 3) > 244 ? 2 : 3);
-    text(EX.t('msg.win.sub'), W / 2, 76, P.bcyan, 1, 'center');
-    text(EX.t('msg.score') + ' ' + st.score, W / 2, 96, P.bwhite, 2, 'center');
-    text(EX.t('msg.record') + ' ' + st.record, W / 2, 118, P.byellow, 1, 'center');
-    if (st.newRecord) text(EX.t('msg.newrecord'), W / 2, 130, P.bgreen, 1, 'center');
+    text(PR.t('msg.win.sub'), W / 2, 76, P.bcyan, 1, 'center');
+    text(PR.t('msg.score') + ' ' + st.score, W / 2, 96, P.bwhite, 2, 'center');
+    text(PR.t('msg.record') + ' ' + st.record, W / 2, 118, P.byellow, 1, 'center');
+    if (st.newRecord) text(PR.t('msg.newrecord'), W / 2, 130, P.bgreen, 1, 'center');
     drawMenus();
-    text(EX.t('credits.original'), W / 2, VH - 12, P.blue, 1, 'center');
+    text(PR.t('credits.original'), W / 2, VH - 12, P.blue, 1, 'center');
   }
 
   /* ---------- главный вход ---------- */
   function draw(ctx, view) {
     g = ctx;
-    now = (view && view.t) || EX.state.t;
-    const st = EX.state;
+    now = (view && view.t) || PR.state.t;
+    const st = PR.state;
     g.save();
     g.imageSmoothingEnabled = false;
     const shake = st.fx.shake;
@@ -5996,7 +5996,7 @@
     g.fillRect(0, 0, W, VH);
   }
 
-  window.EX_RENDER_RETRO = { draw: draw, W: W, H: VH };
+  window.PR_RENDER_RETRO = { draw: draw, W: W, H: VH };
 })();
 
 /* ==== src/render-modern.js ==== */
@@ -6010,8 +6010,8 @@
 (function () {
   'use strict';
 
-  const EX = window.EX;
-  const N = EX.NEON;
+  const PR = window.PR;
+  const N = PR.NEON;
   const TILE = 8, COLS = 32, ROWS = 24, W = 256, H = 192, HUD = 16, VH = 208;
 
   const UI_FONT = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace';
@@ -6020,7 +6020,7 @@
   let g = null;
   let V = null;
   let t = 0;
-  const S = () => EX.state;
+  const S = () => PR.state;
 
   /* ---------- палитры тем ---------- */
   const THEMES = {
@@ -6264,7 +6264,7 @@
     g.fillStyle = T.slab2;
     g.fillRect(x, y + 5, TILE, 3);
     /* верхняя кромка светится, если сверху пусто */
-    if (EX.tileAt(tx, ty - 1) === EX.TILES.EMPTY || EX.tileAt(tx, ty - 1) === EX.TILES.FLORA) {
+    if (PR.tileAt(tx, ty - 1) === PR.TILES.EMPTY || PR.tileAt(tx, ty - 1) === PR.TILES.FLORA) {
       g.strokeStyle = T.a;
       g.globalAlpha = 0.85;
       g.lineWidth = 0.9;
@@ -6343,11 +6343,11 @@
       for (let tx = 0; tx < COLS; tx++) {
         const id = tiles[ty * COLS + tx];
         if (!id) continue;
-        if (id === EX.TILES.SOLID) tileSolid(tx, ty, T);
-        else if (id === EX.TILES.ROCK) tileRock(tx, ty, T);
-        else if (id === EX.TILES.THIN) tileThin(tx, ty, T);
-        else if (id === EX.TILES.SPIKE) tileSpike(tx, ty, T);
-        else if (id === EX.TILES.FLORA) tileFlora(tx, ty, T);
+        if (id === PR.TILES.SOLID) tileSolid(tx, ty, T);
+        else if (id === PR.TILES.ROCK) tileRock(tx, ty, T);
+        else if (id === PR.TILES.THIN) tileThin(tx, ty, T);
+        else if (id === PR.TILES.SPIKE) tileSpike(tx, ty, T);
+        else if (id === PR.TILES.FLORA) tileFlora(tx, ty, T);
       }
     }
   }
@@ -6694,8 +6694,8 @@
   function drawDeathOverlay() {
     const st = S();
     g.fillStyle = 'rgba(20,2,8,0.45)'; g.fillRect(0, 0, W, VH);
-    glowText(EX.t('msg.dead'), W / 2, 84, 10, '#ff4d6d', 'center', '800', 16, HEAD_FONT);
-    text(EX.t('hud.lives') + '  ' + st.lives, W / 2, 100, 4, 'rgba(235,235,255,0.85)', 'center', '600', 1);
+    glowText(PR.t('msg.dead'), W / 2, 84, 10, '#ff4d6d', 'center', '800', 16, HEAD_FONT);
+    text(PR.t('hud.lives') + '  ' + st.lives, W / 2, 100, 4, 'rgba(235,235,255,0.85)', 'center', '600', 1);
   }
 
   function drawShots(T) {
@@ -6776,18 +6776,18 @@
     lg.addColorStop(1, 'rgba(255,63,240,0)');
     g.fillStyle = lg; g.fillRect(0, y, W, 0.7);
 
-    text(EX.t('hud.score'), 6, y + 4.2, 3, N.dim, 'left', '600', 0.6);
+    text(PR.t('hud.score'), 6, y + 4.2, 3, N.dim, 'left', '600', 0.6);
     text(String(st.score).padStart(6, '0'), 6, y + 10.4, 6.2, N.white, 'left', '700');
-    text(EX.t('hud.lives'), 52, y + 4.2, 3, N.dim, 'left', '600', 0.6);
+    text(PR.t('hud.lives'), 52, y + 4.2, 3, N.dim, 'left', '600', 0.6);
     text('×' + st.lives, 52, y + 10.6, 6.2, N.red, 'left', '700');
 
-    text(EX.t('hud.sector'), 84, y + 4.2, 3, N.dim, 'left', '600', 0.6);
-    text((st.level + 1) + '/' + EX.levelCount(), 84, y + 10.6, 5.4, T.a, 'left', '700');
-    text(EX.t('hud.screen'), 108, y + 4.2, 3, N.dim, 'left', '600', 0.6);
-    text((st.screen + 1) + '/' + EX.screenCount(st.level), 108, y + 10.6, 5.4, T.a, 'left', '700');
+    text(PR.t('hud.sector'), 84, y + 4.2, 3, N.dim, 'left', '600', 0.6);
+    text((st.level + 1) + '/' + PR.levelCount(), 84, y + 10.6, 5.4, T.a, 'left', '700');
+    text(PR.t('hud.screen'), 108, y + 4.2, 3, N.dim, 'left', '600', 0.6);
+    text((st.screen + 1) + '/' + PR.screenCount(st.level), 108, y + 10.6, 5.4, T.a, 'left', '700');
 
     /* лазер */
-    text(EX.t('hud.laser'), 134, y + 4.2, 3, N.dim, 'left', '600', 0.6);
+    text(PR.t('hud.laser'), 134, y + 4.2, 3, N.dim, 'left', '600', 0.6);
     const bw = 34, bx = 134;
     g.fillStyle = 'rgba(57,246,255,0.12)';
     g.fillRect(bx, y + 9, bw, 3.4);
@@ -6798,7 +6798,7 @@
     for (let i = 1; i < 8; i++) { g.fillStyle = 'rgba(6,4,18,0.9)'; g.fillRect(bx + (bw / 8) * i, y + 9, 0.6, 3.4); }
 
     /* гранаты */
-    text(EX.t('hud.rockets'), 174, y + 4.2, 3, N.dim, 'left', '600', 0.6);
+    text(PR.t('hud.rockets'), 174, y + 4.2, 3, N.dim, 'left', '600', 0.6);
     const maxR = p.maxRockets || 6;
     const pipW = 4.4, gap = 1.6;
     for (let i = 0; i < maxR; i++) {
@@ -6846,12 +6846,12 @@
 
     /* подписи над сценой */
     const st = S();
-    const lv = EX.levelData(st.level);
+    const lv = PR.levelData(st.level);
     const inRun = ['play', 'paused', 'dead', 'bonus', 'levelclear', 'briefing', 'gameover', 'win'].indexOf(st.mode) >= 0;
     const label = inRun
-      ? 'ПРОРЫВ // ' + EX.t('hud.sector') + ' ' + String(st.level + 1).padStart(2, '0') +
-        (lv ? ' · ' + (lv.name[EX.settings.lang] || lv.name.ru) : '')
-      : 'ПРОРЫВ // ' + EX.t('tagline');
+      ? 'ПРОРЫВ // ' + PR.t('hud.sector') + ' ' + String(st.level + 1).padStart(2, '0') +
+        (lv ? ' · ' + (lv.name[PR.settings.lang] || lv.name.ru) : '')
+      : 'ПРОРЫВ // ' + PR.t('tagline');
     g.font = '600 ' + Math.max(10, s.h * 0.016) + 'px ' + UI_FONT;
     const above = s.y > 26;
     const ty = above ? s.y - 8 : s.y + 12;
@@ -6860,7 +6860,7 @@
     g.fillText(label, s.x, ty);
     g.textAlign = 'right';
     g.fillStyle = 'rgba(57,246,255,0.55)';
-    g.fillText(EX.settings.gfx === 'modern' ? 'NEON 2026' : 'RETRO', s.x + s.w, ty);
+    g.fillText(PR.settings.gfx === 'modern' ? 'NEON 2026' : 'RETRO', s.x + s.w, ty);
 
     /* боковые панели / вертикальные водяные знаки */
     const side = s.x;
@@ -6869,19 +6869,19 @@
       g.textAlign = 'left';
       g.fillStyle = 'rgba(220,225,255,0.85)';
       g.font = '700 ' + Math.round(s.h * 0.028) + 'px ' + HEAD_FONT;
-      g.fillText(EX.t('brand'), s.x - side + 20, s.y + s.h * 0.15);
+      g.fillText(PR.t('brand'), s.x - side + 20, s.y + s.h * 0.15);
       g.font = '600 ' + Math.round(s.h * 0.013) + 'px ' + UI_FONT;
       g.fillStyle = 'rgba(140,150,200,0.8)';
       const lines = [
-        EX.t('hud.score') + ' ' + String(st.score).padStart(6, '0'),
-        EX.t('hud.lives') + ' ' + st.lives,
-        EX.t('hud.sector') + ' ' + (st.level + 1) + '/' + EX.levelCount(),
-        EX.t('hud.screen') + ' ' + (st.screen + 1) + '/' + EX.screenCount(st.level)
+        PR.t('hud.score') + ' ' + String(st.score).padStart(6, '0'),
+        PR.t('hud.lives') + ' ' + st.lives,
+        PR.t('hud.sector') + ' ' + (st.level + 1) + '/' + PR.levelCount(),
+        PR.t('hud.screen') + ' ' + (st.screen + 1) + '/' + PR.screenCount(st.level)
       ];
       lines.forEach(function (l, i) { g.fillText(l, s.x - side + 20, s.y + s.h * 0.22 + i * s.h * 0.032); });
       const keysY = s.y + s.h * 0.58;
       const keys = ['← →', 'SPACE', 'G', 'L', 'M', 'ESC'];
-      const acts = [EX.t('key.left.act'), EX.t('key.fire.act'), EX.t('key.g.act'), EX.t('key.l.act'), EX.t('key.m.act'), EX.t('key.pause.act')];
+      const acts = [PR.t('key.left.act'), PR.t('key.fire.act'), PR.t('key.g.act'), PR.t('key.l.act'), PR.t('key.m.act'), PR.t('key.pause.act')];
       g.font = '600 ' + Math.round(s.h * 0.0125) + 'px ' + UI_FONT;
       keys.forEach(function (k, i) {
         g.fillStyle = 'rgba(57,246,255,0.85)';
@@ -6910,7 +6910,7 @@
       g.fillRect(rx, s.y + s.h * 0.16, 24, 1);
       g.font = '500 ' + Math.round(s.h * 0.0105) + 'px ' + UI_FONT;
       g.fillStyle = 'rgba(140,150,200,0.7)';
-      const tip = EX.t('hint.exo');
+      const tip = PR.t('hint.exo');
       const lines = wrap(tip, Math.round(s.h * 0.0105), right - 30, '500');
       lines.slice(0, 10).forEach(function (l, i) { g.fillText(l, rx, s.y + s.h * 0.2 + i * s.h * 0.024); });
       g.fillStyle = 'rgba(160,175,255,0.10)';
@@ -6949,7 +6949,7 @@
 
   function menuDraw(accent, title, hintKey) {
     const st = S();
-    const rects = EX.ui.layout();
+    const rects = PR.ui.layout();
     if (!rects.length) return;
     const first = rects[0], last = rects[rects.length - 1];
     const px0 = first.x - 22, py0 = first.y - 14;
@@ -6976,7 +6976,7 @@
       if (r.item.value) text(r.item.value, r.x + r.w + 6, r.cy, 4.2, sel ? accent : 'rgba(140,150,200,0.75)', 'right', '700', 0.4);
       if (sel) glowDot(r.x - 14, r.cy, 1, accent, 6);
     });
-    text(EX.t(hintKey || 'msg.paused.hint'), first.cx, py0 + ph - 4, 3, 'rgba(140,150,200,0.65)', 'center', '500', 0.4);
+    text(PR.t(hintKey || 'msg.paused.hint'), first.cx, py0 + ph - 4, 3, 'rgba(140,150,200,0.65)', 'center', '500', 0.4);
   }
 
   /* ---------- экраны ---------- */
@@ -7025,17 +7025,17 @@
     lg2.addColorStop(1, 'rgba(255,63,240,0)');
     g.fillStyle = lg2; g.fillRect(30, 63, W - 60, 0.8);
     text('ШТУРМОВИК', W / 2, 74, 9, 'rgba(240,238,255,0.92)', 'center', '700', 3.5, HEAD_FONT);
-    text(EX.t('tagline.full'), W / 2, 87, 4, T.a, 'center', '500', 0.8);
+    text(PR.t('tagline.full'), W / 2, 87, 4, T.a, 'center', '500', 0.8);
 
     menuDraw(T.a, null, 'menu.hint');
 
     /* рекорд */
-    text(EX.t('msg.record'), 6, 8, 3.2, 'rgba(140,150,200,0.7)', 'left', '600', 0.8);
+    text(PR.t('msg.record'), 6, 8, 3.2, 'rgba(140,150,200,0.7)', 'left', '600', 0.8);
     text(String(st.record).padStart(6, '0'), 6, 14, 5, '#ffcc55', 'left', '700');
-    text(EX.t('credits.original'), W - 6, 8, 3.2, 'rgba(140,150,200,0.55)', 'right', '500', 0.5);
+    text(PR.t('credits.original'), W - 6, 8, 3.2, 'rgba(140,150,200,0.55)', 'right', '500', 0.5);
     text('HTML5 · 2026', W - 6, 14, 3.2, 'rgba(57,246,255,0.7)', 'right', '600', 0.6);
-    text(EX.t('menu.hint.quick'), W / 2, VH - 6, 3.2, 'rgba(140,150,200,0.6)', 'center', '500', 0.5);
-    if (EX.BUILD) text(EX.t('settings.build', { v: EX.BUILD }), W - 6, VH - 16, 2.6, 'rgba(120,140,220,0.45)', 'right', '500', 0.5);
+    text(PR.t('menu.hint.quick'), W / 2, VH - 6, 3.2, 'rgba(140,150,200,0.6)', 'center', '500', 0.5);
+    if (PR.BUILD) text(PR.t('settings.build', { v: PR.BUILD }), W - 6, VH - 16, 2.6, 'rgba(120,140,220,0.45)', 'right', '500', 0.5);
   }
 
   function drawWorld() {
@@ -7056,7 +7056,7 @@
     }
     /* сообщение */
     if (st.message) {
-      const s = EX.t(st.message.key);
+      const s = PR.t(st.message.key);
       const w = textW(s, 4.2, '700', 1) + 16;
       glass(W / 2 - w / 2, 70, w, 13, '#39f6ff', 0.72);
       glowText(s, W / 2, 76.5, 4.2, '#39f6ff', 'center', '700', 10);
@@ -7077,8 +7077,8 @@
   function drawPause() {
     drawWorld();
     g.fillStyle = 'rgba(4,3,14,0.7)'; g.fillRect(0, 0, W, VH);
-    glowText(EX.t('msg.paused'), W / 2, 38, 13, '#ffffff', 'center', '800', 18, HEAD_FONT);
-    text(EX.t('pause.gfx', { v: EX.settings.gfx === 'modern' ? 'NEON · 2026' : 'RETRO · 8-BIT' }) + '   [G]', W / 2, 52, 3.2, 'rgba(140,150,200,0.8)', 'center', '500', 0.8);
+    glowText(PR.t('msg.paused'), W / 2, 38, 13, '#ffffff', 'center', '800', 18, HEAD_FONT);
+    text(PR.t('pause.gfx', { v: PR.settings.gfx === 'modern' ? 'NEON · 2026' : 'RETRO · 8-BIT' }) + '   [G]', W / 2, 52, 3.2, 'rgba(140,150,200,0.8)', 'center', '500', 0.8);
     menuDraw('#39f6ff', null);
   }
 
@@ -7086,7 +7086,7 @@
     const T = THEMES.space;
     stageBackdrop();
     glass(6, 6, W - 12, VH - 12, T.a, 0.82);
-    glowText(EX.t('help.title'), W / 2, 18, 10, T.a, 'center', '800', 14, HEAD_FONT);
+    glowText(PR.t('help.title'), W / 2, 18, 10, T.a, 'center', '800', 14, HEAD_FONT);
     g.fillStyle = 'rgba(57,246,255,0.3)';
     g.fillRect(24, 28, W - 48, 0.8);
     const rows = [
@@ -7097,21 +7097,21 @@
     ];
     let y = 37;
     rows.forEach(function (r) {
-      text(EX.t(r[0]), 14, y, 3.6, '#ffcc55', 'left', '700', 0.3);
-      text(EX.t(r[1]), 84, y, 3.4, 'rgba(235,235,255,0.9)', 'left', '400', 0.1);
+      text(PR.t(r[0]), 14, y, 3.6, '#ffcc55', 'left', '700', 0.3);
+      text(PR.t(r[1]), 84, y, 3.4, 'rgba(235,235,255,0.9)', 'left', '400', 0.1);
       y += 7.2;
     });
     y += 3;
     g.fillStyle = 'rgba(57,246,255,0.25)'; g.fillRect(24, y, W - 48, 0.6); y += 5;
-    text(EX.t('hint.title'), 14, y, 3.6, T.a, 'left', '700', 1); y += 7;
-    [EX.t('hint.goal'), EX.t('hint.grenade'), EX.t('hint.exo'), EX.t('hint.ammo')].forEach(function (s) {
+    text(PR.t('hint.title'), 14, y, 3.6, T.a, 'left', '700', 1); y += 7;
+    [PR.t('hint.goal'), PR.t('hint.grenade'), PR.t('hint.exo'), PR.t('hint.ammo')].forEach(function (s) {
       wrap(s, 3.2, W - 30, '400').forEach(function (line) {
         text(line, 14, y, 3.2, 'rgba(225,225,250,0.82)', 'left', '400', 0);
         y += 5.6;
       });
       y += 1.2;
     });
-    text(EX.t('help.back'), W / 2, VH - 8, 3.4, 'rgba(140,150,200,0.85)', 'center', '500', 0.6);
+    text(PR.t('help.back'), W / 2, VH - 8, 3.4, 'rgba(140,150,200,0.85)', 'center', '500', 0.6);
   }
 
   function drawAbout() {
@@ -7124,18 +7124,18 @@
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillStyle = lg;
     g.fillText('ПРОРЫВ', W / 2, 24);
-    text(EX.t('tagline'), W / 2, 38, 3.4, 'rgba(235,235,255,0.8)', 'center', '500', 1);
+    text(PR.t('tagline'), W / 2, 38, 3.4, 'rgba(235,235,255,0.8)', 'center', '500', 1);
     g.fillStyle = 'rgba(255,63,240,0.3)'; g.fillRect(30, 45, W - 60, 0.7);
     let y = 53;
-    wrapMulti(EX.t('about.text'), 3.7, W - 30, '400').forEach(function (l) {
+    wrapMulti(PR.t('about.text'), 3.7, W - 30, '400').forEach(function (l) {
       text(l, 15, y, 3.7, 'rgba(230,230,250,0.9)', 'left', '400', 0); y += 6.4;
     });
     y += 4;
-    [EX.t('credits.original'), EX.t('credits.port'), EX.t('credits.thanks'), EX.t('credits.fan')].forEach(function (s, i) {
+    [PR.t('credits.original'), PR.t('credits.port'), PR.t('credits.thanks'), PR.t('credits.fan')].forEach(function (s, i) {
       text(s, W / 2, y, 3.4, i < 2 ? (i ? '#39f6ff' : '#ffcc55') : 'rgba(150,150,200,0.85)', 'center', '500', 0.3);
       y += 6;
     });
-    text(EX.t('help.back'), W / 2, VH - 8, 3.2, 'rgba(140,150,200,0.8)', 'center', '500', 0.6);
+    text(PR.t('help.back'), W / 2, VH - 8, 3.2, 'rgba(140,150,200,0.8)', 'center', '500', 0.6);
   }
 
   function drawSettings() {
@@ -7144,9 +7144,9 @@
     drawWorld();
     g.fillStyle = 'rgba(4,3,14,0.78)'; g.fillRect(0, 0, W, VH);
     glass(20, 22, W - 40, 156, T.a, 0.82);
-    glowText(EX.t('settings.title'), W / 2, 36, 9, T.a, 'center', '800', 14, HEAD_FONT);
+    glowText(PR.t('settings.title'), W / 2, 36, 9, T.a, 'center', '800', 14, HEAD_FONT);
     g.fillStyle = 'rgba(57,246,255,0.25)'; g.fillRect(36, 44, W - 72, 0.7);
-    const rects = EX.ui.layout();
+    const rects = PR.ui.layout();
     rects.forEach(function (r, i) {
       const sel = i === st.menuIndex;
       if (sel) {
@@ -7162,14 +7162,14 @@
       text(r.item.label, r.x - 12, r.cy, 3.8, sel ? '#ffffff' : 'rgba(200,210,255,0.72)', 'left', '600', 0.4);
       if (r.item.value) text(r.item.value, r.x + r.w + 44, r.cy, 3.5, sel ? '#ffcc55' : 'rgba(140,150,200,0.75)', 'right', '600', 0.25);
     });
-    if (st.resetAsk > 0) glowText(EX.t('settings.resetConfirm'), W / 2, 168, 3.6, '#ff4d6d', 'center', '700', 8);
-    else text(EX.t('pause.gfx', { v: EX.settings.gfx === 'modern' ? 'NEON' : 'RETRO' }) + '   G', W / 2, 168, 3, 'rgba(140,150,200,0.7)', 'center', '500', 0.4);
-    if (EX.BUILD) text(EX.t('settings.build', { v: EX.BUILD }), W / 2, 190, 2.8, 'rgba(120,140,220,0.5)', 'center', '500', 0.6);
+    if (st.resetAsk > 0) glowText(PR.t('settings.resetConfirm'), W / 2, 168, 3.6, '#ff4d6d', 'center', '700', 8);
+    else text(PR.t('pause.gfx', { v: PR.settings.gfx === 'modern' ? 'NEON' : 'RETRO' }) + '   G', W / 2, 168, 3, 'rgba(140,150,200,0.7)', 'center', '500', 0.4);
+    if (PR.BUILD) text(PR.t('settings.build', { v: PR.BUILD }), W / 2, 190, 2.8, 'rgba(120,140,220,0.5)', 'center', '500', 0.6);
   }
 
   function drawBriefing() {
     const st = S();
-    const lv = EX.levelData(st.level) || { name: { ru: '' }, intro: { ru: '' }, theme: 'space' };
+    const lv = PR.levelData(st.level) || { name: { ru: '' }, intro: { ru: '' }, theme: 'space' };
     const T = THEMES[lv.theme] || THEMES.space;
     stageBackdrop();
     /* водяной знак сектора */
@@ -7181,11 +7181,11 @@
     g.fillText(String(st.level + 1), W - 52, 96);
     g.restore();
     glass(10, 10, W - 20, VH - 20, T.a, 0.5);
-    text(EX.t('hud.sector') + ' ' + (st.level + 1) + ' / ' + EX.levelCount(), 18, 24, 3.4, T.a, 'left', '700', 1.4);
-    glowText(lv.name[EX.settings.lang] || lv.name.ru, 18, 38, 9.5, '#ffffff', 'left', '800', 12, HEAD_FONT);
+    text(PR.t('hud.sector') + ' ' + (st.level + 1) + ' / ' + PR.levelCount(), 18, 24, 3.4, T.a, 'left', '700', 1.4);
+    glowText(lv.name[PR.settings.lang] || lv.name.ru, 18, 38, 9.5, '#ffffff', 'left', '800', 12, HEAD_FONT);
     g.fillStyle = T.a; g.globalAlpha = 0.5; g.fillRect(18, 47, 96, 0.8); g.globalAlpha = 1;
     let y = 56;
-    wrapMulti(lv.intro[EX.settings.lang] || lv.intro.ru, 3.4, W - 44, '400').forEach(function (l) {
+    wrapMulti(lv.intro[PR.settings.lang] || lv.intro.ru, 3.4, W - 44, '400').forEach(function (l) {
       text(l, 18, y, 3.4, 'rgba(230,230,250,0.9)', 'left', '400', 0); y += 6;
     });
     y += 4;
@@ -7196,7 +7196,7 @@
       { k: 'hint.ammo', c: '#ff3ff0' }
     ];
     cards.forEach(function (card) {
-      const lines = wrap(EX.t(card.k), 3, W - 58, '400');
+      const lines = wrap(PR.t(card.k), 3, W - 58, '400');
       const h = 5 + lines.length * 5.2;
       glass(18, y - 3, W - 36, h, card.c, 0.28);
       g.fillStyle = card.c; g.fillRect(18, y - 3, 1.2, h);
@@ -7230,9 +7230,9 @@
     const pulse = 0.55 + 0.45 * Math.sin(t * 3.4);
     g.globalAlpha = pulse;
     glass(60, VH - 30, W - 120, 14, '#39f6ff', 0.85);
-    glowText(EX.t('level.start'), W / 2, VH - 23, 4.6, '#39f6ff', 'center', '700', 12);
+    glowText(PR.t('level.start'), W / 2, VH - 23, 4.6, '#39f6ff', 'center', '700', 12);
     g.globalAlpha = 1;
-    text(EX.t('level.screens', { n: EX.screenCount(st.level) }), 18, VH - 6, 3, 'rgba(140,150,200,0.7)', 'left', '500', 0.4);
+    text(PR.t('level.screens', { n: PR.screenCount(st.level) }), 18, VH - 6, 3, 'rgba(140,150,200,0.7)', 'left', '500', 0.4);
   }
 
   function drawBonus() {
@@ -7242,7 +7242,7 @@
     drawWorld();
     g.fillStyle = 'rgba(4,3,14,0.8)'; g.fillRect(0, 0, W, VH);
     glass(14, 30, W - 28, 140, '#ffcc55', 0.85);
-    glowText(EX.t('msg.bonus'), W / 2, 45, 11, '#ffcc55', 'center', '800', 16, HEAD_FONT);
+    glowText(PR.t('msg.bonus'), W / 2, 45, 11, '#ffcc55', 'center', '800', 16, HEAD_FONT);
     const bx = [36, 78, 120, 162];
     if (b.phase === 'pick') {
       b.values.forEach(function (v, i) {
@@ -7258,24 +7258,24 @@
         }
         text(String(v), x + 17, 81, on ? 9 : 7.5, on ? '#ffffff' : 'rgba(200,210,255,0.7)', 'center', '800');
       });
-      text(EX.t('msg.bonus.pick'), W / 2, 108, 4, '#ffffff', 'center', '600', 0.8);
-      text(EX.t('msg.bonus.pick2'), W / 2, 118, 3.4, 'rgba(200,210,255,0.7)', 'center', '500', 0.4);
+      text(PR.t('msg.bonus.pick'), W / 2, 108, 4, '#ffffff', 'center', '600', 0.8);
+      text(PR.t('msg.bonus.pick2'), W / 2, 118, 3.4, 'rgba(200,210,255,0.7)', 'center', '500', 0.4);
     } else {
       glowText(String(b.chosen), W / 2, 74, 16, '#ffcc55', 'center', '800', 18, HEAD_FONT);
-      text(EX.t('msg.bonus.lives') + '  →  ' + b.livesBonus, W / 2, 94, 3.6, '#39f6ff', 'center', '600', 0.5);
-      text(b.noExoBonus ? EX.t('msg.bonus.noexo') : EX.t('msg.bonus.exo'), W / 2, 104, 3.6, b.noExoBonus ? '#b6ff3c' : '#ff4d6d', 'center', '600', 0.5);
-      if (b.extraLife) text(EX.t('msg.bonus.extra'), W / 2, 114, 3.6, '#ffcc55', 'center', '700', 0.5);
+      text(PR.t('msg.bonus.lives') + '  →  ' + b.livesBonus, W / 2, 94, 3.6, '#39f6ff', 'center', '600', 0.5);
+      text(b.noExoBonus ? PR.t('msg.bonus.noexo') : PR.t('msg.bonus.exo'), W / 2, 104, 3.6, b.noExoBonus ? '#b6ff3c' : '#ff4d6d', 'center', '600', 0.5);
+      if (b.extraLife) text(PR.t('msg.bonus.extra'), W / 2, 114, 3.6, '#ffcc55', 'center', '700', 0.5);
     }
-    text(EX.t('msg.score') + '  ' + st.score, W / 2, 132, 3.8, 'rgba(235,235,255,0.9)', 'center', '600', 0.6);
+    text(PR.t('msg.score') + '  ' + st.score, W / 2, 132, 3.8, 'rgba(235,235,255,0.9)', 'center', '600', 0.6);
   }
 
   function drawLevelClear() {
     const st = S();
     drawWorld();
     g.fillStyle = 'rgba(4,3,14,0.72)'; g.fillRect(0, 0, W, VH);
-    glowText(EX.t('msg.levelclear'), W / 2, 62, 14, '#b6ff3c', 'center', '800', 18, HEAD_FONT);
-    text(EX.t('hud.sector') + ' ' + (st.level + 1) + '/' + EX.levelCount(), W / 2, 86, 4, 'rgba(235,235,255,0.9)', 'center', '600', 1.5);
-    text(EX.t('msg.score') + ' ' + st.score, W / 2, 100, 4.4, '#ffcc55', 'center', '700', 0.6);
+    glowText(PR.t('msg.levelclear'), W / 2, 62, 14, '#b6ff3c', 'center', '800', 18, HEAD_FONT);
+    text(PR.t('hud.sector') + ' ' + (st.level + 1) + '/' + PR.levelCount(), W / 2, 86, 4, 'rgba(235,235,255,0.9)', 'center', '600', 1.5);
+    text(PR.t('msg.score') + ' ' + st.score, W / 2, 100, 4.4, '#ffcc55', 'center', '700', 0.6);
     for (let i = 0; i < 3; i++) {
       const a = 0.35 + 0.65 * Math.max(0, Math.sin(t * 4 - i * 0.6));
       g.globalAlpha = a;
@@ -7289,11 +7289,11 @@
     drawWorld();
     g.fillStyle = 'rgba(6,2,8,0.84)'; g.fillRect(0, 0, W, VH);
     glass(26, 28, W - 52, 152, '#ff4d6d', 0.82);
-    glowText(EX.t('msg.gameover'), W / 2, 46, 13, '#ff4d6d', 'center', '800', 18, HEAD_FONT);
-    text(EX.t('hud.score'), W / 2, 62, 3.2, 'rgba(140,150,200,0.8)', 'center', '600', 1);
+    glowText(PR.t('msg.gameover'), W / 2, 46, 13, '#ff4d6d', 'center', '800', 18, HEAD_FONT);
+    text(PR.t('hud.score'), W / 2, 62, 3.2, 'rgba(140,150,200,0.8)', 'center', '600', 1);
     text(String(st.score), W / 2, 74, 9, '#ffffff', 'center', '700');
-    text(EX.t('msg.record') + ' ' + st.record, W / 2, 88, 3.5, 'rgba(255,204,85,0.9)', 'center', '600', 0.4);
-    if (st.newRecord) glowText(EX.t('msg.newrecord'), W / 2, 99, 4.2, '#b6ff3c', 'center', '800', 10);
+    text(PR.t('msg.record') + ' ' + st.record, W / 2, 88, 3.5, 'rgba(255,204,85,0.9)', 'center', '600', 0.4);
+    if (st.newRecord) glowText(PR.t('msg.newrecord'), W / 2, 99, 4.2, '#b6ff3c', 'center', '800', 10);
     menuDraw('#ff4d6d', null);
   }
 
@@ -7311,15 +7311,15 @@
       dot(x, y, hash(i, 5) > 0.7 ? 1.4 : 0.8, i % 3 ? T.b : T.a);
     }
     g.globalAlpha = 1;
-    const winT = EX.t('msg.win');
+    const winT = PR.t('msg.win');
     glowText(winT, W / 2, 42, textW(winT, 15, '800') > 240 ? 11 : 15, '#ffcc55', 'center', '800', 22, HEAD_FONT);
-    text(EX.t('msg.win.sub'), W / 2, 68, 4, '#39f6ff', 'center', '600', 1.2);
-    text(EX.t('msg.score'), W / 2, 92, 3.4, 'rgba(140,150,200,0.8)', 'center', '600', 1);
+    text(PR.t('msg.win.sub'), W / 2, 68, 4, '#39f6ff', 'center', '600', 1.2);
+    text(PR.t('msg.score'), W / 2, 92, 3.4, 'rgba(140,150,200,0.8)', 'center', '600', 1);
     text(String(st.score), W / 2, 106, 12, '#ffffff', 'center', '700');
-    text(EX.t('msg.record') + ' ' + st.record, W / 2, 122, 3.6, '#ffcc55', 'center', '600', 0.4);
-    if (st.newRecord) glowText(EX.t('msg.newrecord'), W / 2, 133, 4.6, '#b6ff3c', 'center', '800', 12);
+    text(PR.t('msg.record') + ' ' + st.record, W / 2, 122, 3.6, '#ffcc55', 'center', '600', 0.4);
+    if (st.newRecord) glowText(PR.t('msg.newrecord'), W / 2, 133, 4.6, '#b6ff3c', 'center', '800', 12);
     menuDraw('#ffcc55', null, 'menu.hint');
-    text(EX.t('credits.original'), W / 2, VH - 6, 2.8, 'rgba(140,150,200,0.55)', 'center', '500', 0.5);
+    text(PR.t('credits.original'), W / 2, VH - 6, 2.8, 'rgba(140,150,200,0.55)', 'center', '500', 0.5);
   }
 
   /* ---------- внешний вход ---------- */
@@ -7371,7 +7371,7 @@
     g.fillStyle = vg;
     g.fillRect(V.stage.x, V.stage.y, V.stage.w, V.stage.h);
     /* сканлайны */
-    if (EX.settings.crt) {
+    if (PR.settings.crt) {
       g.globalAlpha = 0.05;
       g.fillStyle = '#000';
       for (let y = V.stage.y; y < V.stage.y + V.stage.h; y += 3) {
@@ -7384,7 +7384,7 @@
     chrome(th());
   }
 
-  window.EX_RENDER_MODERN = { draw: draw, W: W, H: VH };
+  window.PR_RENDER_MODERN = { draw: draw, W: W, H: VH };
 })();
 
 /* ==== src/main.js ==== */
@@ -7395,16 +7395,16 @@
 (function () {
   'use strict';
 
-  const EX = window.EX;
+  const PR = window.PR;
   const canvas = document.getElementById('stage');
   const ctx = canvas.getContext('2d', { alpha: false });
   const errBox = document.getElementById('err');
   const testBox = document.getElementById('testout');
 
   const W = 256, VH = 208;
-  const RETRO = window.EX_RENDER_RETRO;
-  const MODERN = window.EX_RENDER_MODERN;
-  const HASH = EX.HASH || {};
+  const RETRO = window.PR_RENDER_RETRO;
+  const MODERN = window.PR_RENDER_MODERN;
+  const HASH = PR.HASH || {};
 
   /* offscreen для RETRO: ровно 256×208, потом масштабируем целым числом */
   const off = document.createElement('canvas');
@@ -7435,7 +7435,7 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
 
-    if (EX.settings.gfx === 'retro') {
+    if (PR.settings.gfx === 'retro') {
       const s = Math.max(1, Math.floor(Math.min(cw / W, (ch - 8) / VH)));
       stage = { x: Math.round((cw - W * s) / 2), y: Math.round((ch - VH * s) / 2), w: W * s, h: VH * s, scale: s };
     } else {
@@ -7454,15 +7454,15 @@
   function bootAudio() {
     if (audioBooted) return;
     audioBooted = true;
-    const A = window.EX_AUDIO;
+    const A = window.PR_AUDIO;
     if (!A) return;
     try {
       A.init();
       A.unlock();
-      A.setMusic(EX.settings.music);
-      A.setSfx(EX.settings.sfx);
+      A.setMusic(PR.settings.music);
+      A.setSfx(PR.settings.sfx);
       A.setVolume(0.8);
-      if (EX.state.mode === 'title') A.playMusic('title');
+      if (PR.state.mode === 'title') A.playMusic('title');
     } catch (e) { reportError('audio: ' + e.message); }
   }
 
@@ -7470,7 +7470,7 @@
   const heldKey = {};
   function setHeld(code, down) {
     heldKey[code] = down;
-    const i = EX.input;
+    const i = PR.input;
     i.left = !!(heldKey.ArrowLeft || heldKey.KeyA);
     i.right = !!(heldKey.ArrowRight || heldKey.KeyD);
     i.up = !!(heldKey.ArrowUp || heldKey.KeyW);
@@ -7487,23 +7487,23 @@
     bootAudio();
     if (e.repeat) { setHeld(code, true); return; }
     switch (code) {
-      case 'ArrowLeft': case 'KeyA': setHeld(code, true); EX.pushAction('left'); break;
-      case 'ArrowRight': case 'KeyD': setHeld(code, true); EX.pushAction('right'); break;
-      case 'ArrowUp': case 'KeyW': setHeld(code, true); EX.pushAction('up'); break;
-      case 'ArrowDown': case 'KeyS': setHeld(code, true); EX.pushAction('down'); break;
+      case 'ArrowLeft': case 'KeyA': setHeld(code, true); PR.pushAction('left'); break;
+      case 'ArrowRight': case 'KeyD': setHeld(code, true); PR.pushAction('right'); break;
+      case 'ArrowUp': case 'KeyW': setHeld(code, true); PR.pushAction('up'); break;
+      case 'ArrowDown': case 'KeyS': setHeld(code, true); PR.pushAction('down'); break;
       case 'Space': case 'KeyZ':
         setHeld(code, true);
-        if (GAME_MODES[EX.state.mode]) { /* огонь */ }
-        else EX.pushAction('action');
+        if (GAME_MODES[PR.state.mode]) { /* огонь */ }
+        else PR.pushAction('action');
         break;
-      case 'Enter': case 'NumpadEnter': EX.pushAction('enter'); break;
-      case 'Escape': case 'KeyP': EX.pushAction('pause'); break;
-      case 'KeyL': EX.pushAction('lang'); break;
-      case 'KeyG': EX.pushAction('gfx'); resize(); break;
-      case 'KeyM': EX.pushAction('music'); break;
-      case 'KeyN': EX.pushAction('sfx'); break;
+      case 'Enter': case 'NumpadEnter': PR.pushAction('enter'); break;
+      case 'Escape': case 'KeyP': PR.pushAction('pause'); break;
+      case 'KeyL': PR.pushAction('lang'); break;
+      case 'KeyG': PR.pushAction('gfx'); resize(); break;
+      case 'KeyM': PR.pushAction('music'); break;
+      case 'KeyN': PR.pushAction('sfx'); break;
       case 'KeyF': toggleFullscreen(); break;
-      case 'KeyR': EX.pushAction('restart'); break;
+      case 'KeyR': PR.pushAction('restart'); break;
       default: break;
     }
   });
@@ -7513,7 +7513,7 @@
     setHeld('x', false);
   });
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden && EX.state.mode === 'play') EX.setMode('paused');
+    if (document.hidden && PR.state.mode === 'play') PR.setMode('paused');
   });
 
   function toggleFullscreen() {
@@ -7530,22 +7530,22 @@
   canvas.addEventListener('pointerdown', function (e) {
     bootAudio();
     const p = logical(e.clientX, e.clientY);
-    EX.input.pointer.x = p.x;
-    EX.input.pointer.y = p.y;
-    EX.input.pointer.clicked = true;
+    PR.input.pointer.x = p.x;
+    PR.input.pointer.y = p.y;
+    PR.input.pointer.clicked = true;
     canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
   });
   canvas.addEventListener('pointermove', function (e) {
     const p = logical(e.clientX, e.clientY);
-    EX.input.pointer.x = p.x;
-    EX.input.pointer.y = p.y;
-    if (EX.hover) EX.hover(p.x, p.y);
+    PR.input.pointer.x = p.x;
+    PR.input.pointer.y = p.y;
+    if (PR.hover) PR.hover(p.x, p.y);
   });
   canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
   /* ---------- отрисовка ---------- */
   function render() {
-    const usingRetro = EX.settings.gfx === 'retro';
+    const usingRetro = PR.settings.gfx === 'retro';
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
 
@@ -7568,7 +7568,7 @@
 
       ctx.drawImage(off, 0, 0, W, VH, stage.x * d, stage.y * d, stage.w * d, stage.h * d);
 
-      if (EX.settings.crt) {
+      if (PR.settings.crt) {
         /* фосфорное послесвечение */
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
@@ -7614,7 +7614,7 @@
     const STEP = 1 / 60;
     let guard = 0;
     while (acc >= STEP && guard < 4) {
-      EX.update(STEP);
+      PR.update(STEP);
       acc -= STEP;
       guard++;
     }
@@ -7625,7 +7625,7 @@
 
   /* ---------- отладка ---------- */
   function runTests() {
-    const res = EX.runTests();
+    const res = PR.runTests();
     const fails = res.filter(function (r) { return !r.ok; });
     const lines = res.map(function (r) { return (r.ok ? '  ok  ' : ' FAIL ') + r.name; });
     document.title = 'ПРОРЫВ TESTS ' + (res.length - fails.length) + '/' + res.length + (fails.length ? ' FAIL' : ' PASS');
@@ -7633,43 +7633,43 @@
       testBox.style.display = 'block';
       testBox.textContent = 'ПРОРЫВ TESTS\n' + lines.join('\n') + '\n\n' +
         (fails.length ? 'ПРОВАЛЕНО: ' + fails.length : 'ВСЁ ПРОШЛО: ' + res.length + '/' + res.length) +
-        (EX.state.debug.missingGlyphs ? '\nнет глифов: ' + EX.state.debug.missingGlyphs : '');
+        (PR.state.debug.missingGlyphs ? '\nнет глифов: ' + PR.state.debug.missingGlyphs : '');
     }
     return res;
   }
-  EX.renderTests = runTests;
+  PR.renderTests = runTests;
 
   /* ---------- загрузка ---------- */
   function boot() {
     /* RETRO — режим по умолчанию при КАЖДОМ запуске.
        NEON включается только клавишей G в текущей сессии (и #gfx=modern для отладки). */
-    EX.settings.gfx = (EX.HASH && EX.HASH.gfx === 'modern') ? 'modern' : 'retro';
-    try { EX.saveSettings(); } catch (e) { /* ok */ }
-    EX.BUILD = '28.10.2026';
+    PR.settings.gfx = (PR.HASH && PR.HASH.gfx === 'modern') ? 'modern' : 'retro';
+    try { PR.saveSettings(); } catch (e) { /* ok */ }
+    PR.BUILD = '28.10.2026';
     resize();
-    EX.prepareTitle();
-    if (EX.settings.gfx === 'modern') resize();
+    PR.prepareTitle();
+    if (PR.settings.gfx === 'modern') resize();
 
     const shot = HASH.shot;
     if (shot) {
       const level = HASH.level != null ? parseInt(HASH.level, 10) - 1 : 0;
       const screen = HASH.screen != null ? parseInt(HASH.screen, 10) - 1 : 0;
-      EX.prepareShot(String(shot), { level: Math.max(0, level), screen: Math.max(0, screen) });
-      if (HASH.mode) EX.setMode(String(HASH.mode));
+      PR.prepareShot(String(shot), { level: Math.max(0, level), screen: Math.max(0, screen) });
+      if (HASH.mode) PR.setMode(String(HASH.mode));
     }
     if (HASH.test) {
       /* кадр для инициализации, затем тесты */
       requestAnimationFrame(function () {
         runTests();
-        EX.prepareShot('title');
-        if (EX.settings.gfx === 'modern') resize();
+        PR.prepareShot('title');
+        if (PR.settings.gfx === 'modern') resize();
       });
     }
     if (HASH.music === 'off') {
-      EX.settings.music = false;
-      if (window.EX_AUDIO && window.EX_AUDIO.setMusic) window.EX_AUDIO.setMusic(false);
+      PR.settings.music = false;
+      if (window.PR_AUDIO && window.PR_AUDIO.setMusic) window.PR_AUDIO.setMusic(false);
     }
-    if (HASH.crt === 'off') EX.settings.crt = false;
+    if (HASH.crt === 'off') PR.settings.crt = false;
 
     booted = true;
     requestAnimationFrame(frame);
@@ -7679,7 +7679,7 @@
   else boot();
 
   /* экспорт для QA-скриптов */
-  window.EX_MAIN = {
+  window.PR_MAIN = {
     resize: resize,
     render: render,
     tests: runTests,
