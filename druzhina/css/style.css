@@ -1,0 +1,25 @@
+/* ДРУЖИНА · стили страницы (сама игра рисуется в canvas). Тема страницы — body[data-theme]. */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#101216;--panel:#171a20;--line:#2c313a;--ink:#f3eee4;--mut:#8f949e;--accent:#f0a03c}
+body[data-theme="retro"]{--bg:#000000;--panel:#1a1c2c;--line:#566c86;--ink:#f4f4e8;--mut:#94b0c2;--accent:#ffcd75}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow-x:hidden}
+body[data-theme="retro"]{font-family:"Courier New",ui-monospace,monospace}
+.wrap{position:relative;width:100%;max-width:960px;margin-top:30px;display:flex;justify-content:center;padding:0 8px}
+canvas{display:block;border:1px solid var(--line);border-radius:10px;background:var(--bg);touch-action:none}
+body[data-theme="retro"] canvas{border-radius:2px;image-rendering:pixelated}
+a.back{position:fixed;left:10px;top:7px;color:var(--mut);font-size:12px;text-decoration:none;font-weight:700;z-index:2}
+a.back:hover{color:var(--accent)}
+.pad{width:min(96vw,580px);margin:10px 0 4px;display:grid;grid-template-columns:repeat(3,1fr) 1fr 1.15fr 1.15fr;grid-template-rows:54px 54px;gap:8px}
+.pad button{background:var(--panel);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-size:20px;font-weight:800;touch-action:none}
+.pad [data-d="U"]{grid-column:2;grid-row:1}.pad [data-d="L"]{grid-column:1;grid-row:2}.pad [data-d="D"]{grid-column:2;grid-row:2}.pad [data-d="R"]{grid-column:3;grid-row:2}
+.pad [data-pause]{grid-column:3;grid-row:1;font-size:14px}
+.pad [data-magic]{grid-column:4;grid-row:1;color:#6cc8ff;border-color:#3a7aa8}
+.pad [data-back]{grid-column:4;grid-row:2;color:#ffc070;border-color:#a8742a;font-size:18px}
+.pad [data-d="A"]{grid-column:5;grid-row:1 / span 2;border-color:var(--accent);color:var(--accent);font-size:26px}
+.pad [data-jump]{grid-column:6;grid-row:1 / span 2;color:#9be36b;border-color:#4a8a3a;font-size:22px}
+.pad button:active{filter:brightness(1.4)}
+.foot{color:var(--mut);font-size:11px;margin:6px 12px 12px;text-align:center;max-width:900px}
+.foot b{color:var(--ink)}
+@media(min-width:900px) and (hover:hover){.pad{display:none}}
