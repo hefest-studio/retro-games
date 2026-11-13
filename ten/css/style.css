@@ -1,0 +1,39 @@
+/* ТЕНЬ · стили страницы (сама игра рисуется в canvas). Тема страницы — body[data-theme]. */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0b1018;--panel:#141b24;--line:#24302a;--ink:#eef3ee;--mut:#8a9a90;--accent:#6fd38c}
+body[data-theme="retro"]{--bg:#000000;--panel:#000000;--line:#00a844;--ink:#fcfcfc;--mut:#bcbcbc;--accent:#58d854}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
+body[data-theme="retro"]{font-family:"Courier New",ui-monospace,monospace}
+.wrap{position:relative;width:min(96vw,1120px);margin-top:32px;display:flex;justify-content:center}
+canvas{display:block;border:1px solid var(--line);border-radius:10px;background:var(--bg);touch-action:none}
+body[data-theme="retro"] canvas{border-radius:2px;image-rendering:pixelated}
+a.back{position:fixed;left:10px;top:7px;color:var(--mut);font-size:12px;text-decoration:none;font-weight:700;z-index:2}
+a.back:hover{color:var(--accent)}
+#bPause{position:fixed;right:10px;top:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  color:var(--ink);font-size:12px;font-weight:800;padding:4px 10px;z-index:2;cursor:pointer}
+.pad{width:min(96vw,600px);margin:10px 0 4px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.pad button{background:var(--panel);border:1px solid var(--line);border-radius:14px;color:var(--ink);font-size:20px;font-weight:800;touch-action:none}
+.pad button:active{filter:brightness(1.4)}
+.dpad{display:grid;grid-template-columns:52px 52px 52px;grid-template-rows:46px 46px 46px;gap:4px}
+.dpad .u{grid-column:2;grid-row:1}.dpad .l{grid-column:1;grid-row:2}.dpad .r{grid-column:3;grid-row:2}.dpad .d{grid-column:2;grid-row:3}
+.acts{display:grid;grid-template-columns:58px 70px;grid-template-rows:58px 70px;gap:8px;align-items:center;justify-items:center}
+.acts button{border-radius:50%}
+.acts .sp{width:52px;height:52px;font-size:20px;color:#9be7b0}
+.acts .hook{width:58px;height:58px;font-size:22px;color:#e2c27a}
+.acts .atk{width:58px;height:58px;font-size:22px;color:#dfe5ec}
+.acts .jump{width:70px;height:70px;background:#16301f;border-color:var(--accent);color:var(--accent);font-size:28px}
+.foot{color:var(--mut);font-size:11px;margin:6px 12px 12px;text-align:center;max-width:780px}
+.foot b{color:var(--ink)}
+@media(min-width:900px) and (hover:hover){.pad{display:none}}
+/* телефон «лёжа»: кнопки по бокам поверх полей, канва — на всю высоту */
+@media (max-height:520px) and (orientation:landscape){
+  .wrap{margin-top:26px}
+  .foot{display:none}
+  .pad{position:fixed;left:0;right:0;bottom:8px;width:100%;max-width:none;margin:0;padding:0 8px;pointer-events:none}
+  .pad>div{pointer-events:auto}
+  .dpad{grid-template-columns:44px 44px 44px;grid-template-rows:42px 42px 42px}
+  .acts{grid-template-columns:50px 58px;grid-template-rows:50px 58px;gap:6px}
+  .acts .sp{width:44px;height:44px}.acts .hook,.acts .atk{width:50px;height:50px}.acts .jump{width:58px;height:58px}
+}

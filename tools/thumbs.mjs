@@ -16,7 +16,7 @@
  *
  * Способ выбора темы определяется автоматически:
  *   • игра на движке v2 (подключает ./engine.js) — localStorage 'arcade.theme';
- *   • игры с параметром #gfx= в адресе (vihr, rubikon, neon-rage) — через hash;
+ *   • игры с параметром #gfx= в адресе (vihr, rubikon, neon-yarost) — через hash;
  *   • остальные — снимок, затем клавиша G (переключение графики) и второй снимок.
  * Особые старты (кнопки, интро) — в таблице START ниже.
  */
@@ -32,7 +32,7 @@ const OUT = join(ROOT, 'assets/catalog/thumbs');
 const W = 720, H = 405;
 
 /* Игры, где тема задаётся параметром в адресе. */
-const HASH_GFX = { vihr: '', rubikon: '', 'neon-rage': '&demo=1' };
+const HASH_GFX = { vihr: '', rubikon: '', 'neon-yarost': '&demo=1' };
 /* Игры на G-переключателе, у которых после G получается retro (по умолчанию — modern). */
 const TOGGLE_DEFAULT_MODERN = new Set(['saga']);
 /* Особые способы начать игру. */
@@ -53,7 +53,7 @@ const START = {
     await p.getByText(/вперёд/i).first().click({ timeout: 3000 }).catch(() => {});
   },
   ruslo: async (p) => { await p.keyboard.press('Enter'); },
-  'neon-rage': async () => {},
+  'neon-yarost': async () => {},
 };
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.webp': 'image/webp', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg' };
@@ -143,7 +143,7 @@ async function main() {
           const p = await ctx.newPage();
           const url = `${base}/${slug}/` + (slug in HASH_GFX ? `#gfx=${theme}${HASH_GFX[slug]}` : '');
           await p.goto(url, { waitUntil: 'load' }); await p.waitForTimeout(1200);
-          if (slug === 'neon-rage') await p.waitForTimeout(2500); else await play(p, slug, v2);
+          if (slug === 'neon-yarost') await p.waitForTimeout(2500); else await play(p, slug, v2);
           await capture(p, helper, join(OUT, `${slug}-${theme}.webp`));
           await ctx.close();
         }

@@ -1,0 +1,36 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ТЕНЬ · Акробатический экшен-платформер — HTML5</title>
+<meta name="description" content="ТЕНЬ — оригинальная игра студии «Гефест»: быстрый акробатический экшен-платформер. Разведчица мастерской в тёмно-зелёном плаще с серпом на тросе и крюком проникает в цитадель Ржавого Синдиката за похищенными чертежами: прыжки от стены к стене, раскачка на крюке, подкаты, приёмы за заряд, стражи с прожекторами, 6 актов, боссы и кат-сцены-комиксы. Темы retro/modern, RU/EN, офлайн.">
+<meta name="theme-color" content="#0b1018">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="./css/style.css">
+</head><body data-theme="modern">
+<a class="back" id="backLink" href="../" data-catalog-back="1">&larr; Каталог</a>
+<button id="bPause" type="button" aria-label="Пауза">II</button>
+<div class="wrap"><canvas id="c" width="640" height="360" aria-label="ТЕНЬ"></canvas></div>
+<div class="pad">
+  <div class="dpad">
+    <button data-d="U" class="u" aria-label="Вверх">▲</button>
+    <button data-d="L" class="l" aria-label="Влево">◀</button>
+    <button data-d="R" class="r" aria-label="Вправо">▶</button>
+    <button data-d="D" class="d" aria-label="Вниз / подкат">▼</button>
+  </div>
+  <div class="acts">
+    <button id="bSp" type="button" class="sp" aria-label="Приём">✦</button>
+    <button id="bHook" type="button" class="hook" aria-label="Крюк">⚓</button>
+    <button id="bAtk" type="button" class="atk" aria-label="Серп">⚔</button>
+    <button data-d="A" class="jump" aria-label="Прыжок">●</button>
+  </div>
+</div>
+<div class="foot" id="foot"><b>ТЕНЬ</b> · ← → / A D — бег · Пробел / Z — прыжок · X / J — серп · C / K — крюк-трос · V / Shift — приём · ↓ — присед, подкат · P / Esc — пауза · L язык, T тема, M звук.</div>
+<script src="./engine.js"></script>
+<script src="./js/music.js"></script>
+<script src="./js/i18n.js"></script>
+<script src="./js/story.js"></script>
+<script src="./js/levels.js"></script>
+<script src="./js/game.js"></script>
+<script src="./js/audio.js"></script>
+<script src="./js/render.js"></script>
+<script src="./js/main.js"></script>
+</body></html>
