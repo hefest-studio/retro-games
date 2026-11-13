@@ -1,0 +1,18 @@
+/* РИКОШЕТ · стили страницы (сама игра рисуется в canvas). Тема страницы — body[data-theme]. */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#120e0c;--panel:#1c1512;--line:#3a2c24;--ink:#f6efe6;--mut:#8f8378;--accent:#ff5e1a}
+body[data-theme="retro"]{--bg:#000000;--panel:#101010;--line:#5555ff;--ink:#ffffff;--mut:#aaaaaa;--accent:#ffff55}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
+body[data-theme="retro"]{font-family:"Courier New",ui-monospace,monospace}
+.wrap{position:relative;width:min(96vw,1000px);margin-top:30px;display:flex;justify-content:center}
+canvas{display:block;border:1px solid var(--line);border-radius:10px;background:var(--bg);touch-action:none}
+body[data-theme="retro"] canvas{border-radius:2px;image-rendering:pixelated}
+a.back{position:fixed;left:10px;top:7px;color:var(--mut);font-size:12px;text-decoration:none;font-weight:700;z-index:2}
+a.back:hover{color:var(--accent)}
+#bPause{position:fixed;right:10px;top:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  color:var(--ink);font-size:12px;font-weight:800;padding:4px 10px;z-index:2;cursor:pointer}
+.foot{color:var(--mut);font-size:11px;margin:8px 12px 12px;text-align:center;max-width:760px}
+.foot b{color:var(--ink)}
+@media (max-height:520px) and (orientation:landscape){ .wrap{margin-top:26px} .foot{display:none} }
