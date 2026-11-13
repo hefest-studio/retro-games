@@ -7,7 +7,7 @@
   var C = global.CHERTOG, L = C.logic, R = C.R, K = L.K;
   var TH = Arcade.themes || {};
   var themes = {
-    modern: Object.assign({}, TH.modern, { bg: '#0c0a10', panel: '#16131c', ink: '#f3ede4', muted: '#a69cae', accent: '#ffb347', grid: '#2a2431' }),
+    modern: Object.assign({}, TH.modern, { bg: '#0d0907', panel: '#1a120d', ink: '#f6ece2', muted: '#b39a86', accent: '#ffb347', grid: '#33241a' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#ffff55', muted: '#aaaaaa', ink: '#ffffff' })
   };
   var W = 640, H = 400;
@@ -116,10 +116,10 @@
     var isRetro = g.themeName === 'retro', Pc = P(), Wc = this.W, Hc = this.H, th = this.th(), lay = R.roomLayer(demoLV, 2, 0, isRetro, demoM);
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, Wc, Hc);
     ctx.imageSmoothingEnabled = !isRetro; ctx.drawImage(lay.cv, 0, 0, 640, 360);
-    ctx.fillStyle = isRetro ? 'rgba(0,0,0,.72)' : 'rgba(8,6,12,.62)'; ctx.fillRect(0, 0, Wc, Hc);
+    ctx.fillStyle = isRetro ? 'rgba(0,0,0,.72)' : 'rgba(10,6,4,.62)'; ctx.fillRect(0, 0, Wc, Hc);
     var pw = 440, ph = 344, x0 = (Wc - pw) / 2, y0 = 26;
-    if (isRetro) { ctx.fillStyle = '#000'; ctx.fillRect(x0, y0, pw, ph); ctx.fillStyle = '#5555ff'; ctx.fillRect(x0, y0, pw, 3); ctx.fillRect(x0, y0 + ph - 3, pw, 3); ctx.fillRect(x0, y0, 3, ph); ctx.fillRect(x0 + pw - 3, y0, 3, ph); }
-    else { ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 26; ctx.fillStyle = 'rgba(22,18,28,.94)'; R.rr(ctx, x0, y0, pw, ph, 16); ctx.fill(); ctx.restore(); ctx.strokeStyle = '#4a3d55'; ctx.lineWidth = 1.5; R.rr(ctx, x0 + 0.75, y0 + 0.75, pw - 1.5, ph - 1.5, 16); ctx.stroke(); }
+    if (isRetro) { ctx.fillStyle = '#000'; ctx.fillRect(x0, y0, pw, ph); ctx.fillStyle = '#aa5500'; ctx.fillRect(x0, y0, pw, 3); ctx.fillRect(x0, y0 + ph - 3, pw, 3); ctx.fillRect(x0, y0, 3, ph); ctx.fillRect(x0 + pw - 3, y0, 3, ph); }
+    else { ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 26; ctx.fillStyle = 'rgba(26,18,13,.94)'; R.rr(ctx, x0, y0, pw, ph, 16); ctx.fill(); ctx.restore(); ctx.strokeStyle = '#5a3d2a'; ctx.lineWidth = 1.5; R.rr(ctx, x0 + 0.75, y0 + 0.75, pw - 1.5, ph - 1.5, 16); ctx.stroke(); }
     this.text(this.t('title'), Wc / 2, y0 + 58, { size: isRetro ? 46 : 52, align: 'center', color: Pc.accent, weight: 900 });
     this.text(this.t('subtitle'), Wc / 2, y0 + 86, { size: isRetro ? 11 : 13, align: 'center', color: th.ink, weight: 700 });
     this.text(this.t('sub2'), Wc / 2, y0 + 105, { size: isRetro ? 10 : 11, align: 'center', color: th.muted, weight: 600 });

@@ -25,7 +25,7 @@ function near(a, b, d, m){ if (Math.abs(a - b) > d) throw new Error((m || '') + 
 
 // тестовая игра на своей карте; ev — журнал событий
 function mk(map, o = {}){
-  const ev = [], def = { name: 't', face: 1, map, gateT: o.gateT, mirror: o.mirror, test: true };
+  const ev = [], def = { name: 't', face: 1, map, gateT: o.gateT, cast: o.cast, test: true };
   const game = C.Game(Object.assign({ def, rng: o.rng || mulberry32(1), onEvent: (t, d) => ev.push({ t, d }) }, o.opts || {})).start();
   return { game, S: game.state(), ev, has: t => ev.some(e => e.t === t), count: t => ev.filter(e => e.t === t).length };
 }
@@ -34,13 +34,13 @@ const ROW = (...rooms) => rooms;
 const AIR = '          ', WALL = '##########';
 
 // ---------- уровни ----------
-test('9 уровней (8 + финал), экраны 10×3; у каждого старт и выход; в финале Наместник, зеркало, решётка и клетка мастера', () => {
+test('9 уровней (8 + финал), экраны 10×3; у каждого старт и выход; в финале Наместник, литейная форма, решётка и клетка мастера', () => {
   eq(C.LEVELS.length, 9);
   C.LEVELS.forEach((d, i) => {
     const LV = L.level(i + 1); ok(LV.W % 10 === 0 && LV.H % 3 === 0, 'размер ' + (i + 1)); ok(LV.start, 'старт ' + (i + 1)); ok(LV.door || LV.teacher, 'выход ' + (i + 1));
     ok(LV.rx * LV.ry >= 3, 'экранов ' + (i + 1));
   });
-  const F = L.level(9); ok(F.teacher && F.mirror && F.guards.some(g => g.k === 'N') && F.gates.some(g => g.boss));
+  const F = L.level(9); ok(F.teacher && F.cast && F.guards.some(g => g.k === 'N') && F.gates.some(g => g.boss));
 });
 test('прогрессия: стражник → дуэлянт/щитник → автоматон → Наместник; все ловушки и зелья встречаются', () => {
   const first = k => C.LEVELS.findIndex((d, i) => L.level(i + 1).guards.some(g => g.k === k)) + 1;
@@ -159,9 +159,9 @@ test('стражи держатся своего безопасного пола
 });
 
 // ---------- финал ----------
-test('финал: двойник зеркалит героя; бегом мимо своих ножниц — двойник на шипы; решётка открывается, мастер свободен', () => {
-  const ev = [], G = C.Game({ level: 9, onEvent: t => ev.push(t) }).start(), S = G.state(), MI = S.LV.mirror;
-  S.guards[0].alive = false; S.bossDown = true; G._place(13.2, 3, -1); run(G, 1.6); ok(S.twin.on, 'проснулся'); near(S.twin.x, 2 * MI.cx - 13.2, 1e-9, 'зеркально');
+test('финал: двойник повторяет героя отражённо; бегом мимо своих ножниц — двойник на шипы; решётка открывается, мастер свободен', () => {
+  const ev = [], G = C.Game({ level: 9, onEvent: t => ev.push(t) }).start(), S = G.state(), MI = S.LV.cast;
+  S.guards[0].alive = false; S.bossDown = true; G._place(13.2, 3, -1); run(G, 1.6); ok(S.twin.on, 'проснулся'); near(S.twin.x, 2 * MI.cx - 13.2, 1e-9, 'отражённо');
   const q = S.LV.chops[0]; S.clock = K.CHOP_P * 10 + K.CHOP_P - q.off + 0.6;
   G._place(11.55, 3, -1); S.hero.st = 'run'; S.hero.v = 3; G.setInput({ x: -1 }); G.update(DT);
   ok(S.twin.done, 'разбит'); eq(S.twin.why, 'spike'); ok(ev.includes('twinDown'));
@@ -175,8 +175,8 @@ test('финал: пока двойник цел, мастера не освоб
 });
 
 // ---------- таймер, гибель, сохранение ----------
-test('60 минут на всю игру; время вышло — конец игры', () => {
-  eq(K.TIME, 3600); const ev = [], G = C.Game({ time: 2, onEvent: t => ev.push(t) }).start(); run(G, 2.2); eq(G.state().phase, 'over'); ok(ev.includes('timeout') && ev.includes('gameover'));
+test('45 минут на всю игру; время вышло — конец игры', () => {
+  eq(K.TIME, 2700); const ev = [], G = C.Game({ time: 2, onEvent: t => ev.push(t) }).start(); run(G, 2.2); eq(G.state().phase, 'over'); ok(ev.includes('timeout') && ev.includes('gameover'));
 });
 test('гибель — уровень заново через 2,2 с; прибавка к максимуму здоровья с этого уровня не сохраняется', () => {
   const ev = [], G = C.Game({ level: 2, onEvent: t => ev.push(t) }).start(), S = G.state(); S.maxHp = 5; S.hp = 5; G._place(20.5, 2, 1);
@@ -265,7 +265,7 @@ test('баланс: «человеческий» бот проходит 1-й у
   console.log('     1-й уровень: ' + n + '/' + N + '; гибелей всего: ' + dm + '; время, с: ' + Math.min(...B1.map(r => r.time)).toFixed(0) + '–' + Math.max(...B1.map(r => r.time)).toFixed(0));
   ok(n >= 0.9 * N, 'слишком сложно: ' + n + '/' + N); ok(!B1.some(r => r.stuck), 'застрял');
 });
-test('вся игра: бот укладывается в 60 минут, гибнет и получает раны, без «зависаний»', () => {
+test('вся игра: бот укладывается в 45 минут, гибнет и получает раны, без «зависаний»', () => {
   const R = []; for (let s = 1; s <= 12; s++) R.push(playChertog(C, s, { maxT: K.TIME }));
   const n = R.filter(r => r.won).length, why = {}; R.forEach(r => { for (const k in r.why) why[k] = (why[k] || 0) + r.why[k]; });
   console.log('     победы: ' + n + '/12; раны: ' + R.reduce((a, r) => a + r.hurt, 0) + '; гибели: ' + JSON.stringify(why) + '; время побед, мин: ' + R.filter(r => r.won).map(r => (r.time / 60).toFixed(1)).join(' '));

@@ -1,6 +1,6 @@
 /* ЧЕРТОГ · логика без DOM: уровни-сетки из экранов 10×3, «весомая» физика героя как цепочка состояний-анимаций,
    ловушки (шипы, рубящие ножницы, обваливающиеся плиты, нажимные плиты и решётки по таймеру), фехтование один на один
-   со стражами разных стилей, зеркальный двойник-автоматон в финале, граф проходимости по настоящей физике.
+   со стражами разных стилей, медный двойник-автоматон из литейной формы в финале, граф проходимости по настоящей физике.
    Координаты — в клетках: x — колонка (центр героя), y — ряд (подошвы; пол клетки ряда r — на высоте y = r + 1). */
 (function (global) {
   'use strict';
@@ -19,7 +19,7 @@
     CHOP_P: 1.6, CHOP_C: 0.22, CHOP_W: 0.3, SPIKE_R: 1.6, SPIKE_HOLD: 1.0,
     REACH: 1.25, MIND: 0.75, ENGAGE: 2.6, DISENGAGE: 3.2,
     LUNGE_W: 0.2, LUNGE_R: 0.32, PARRY_T: 0.42, PARRY_A: 0.36, ADV: 0.35, ADV_T: 0.3, HIT_T: 0.38, RECOIL_T: 0.5, PUSH: 0.25,
-    TIME: 3600, HP0: 3, HPMAX: 8, DEAD_T: 2.2, CLEAR_T: 1.0
+    TIME: 2700, HP0: 3, HPMAX: 8, DEAD_T: 2.2, CLEAR_T: 1.0
   };
   // стили стражей: hp, замах, реакция, вероятности защиты/атаки, пауза «на подумать», ответный выпад после защиты
   var STYLE = {
@@ -46,7 +46,7 @@
     if (H % RH || W % RW) throw new Error('уровень ' + idx + ': размер ' + W + '×' + H + ' не кратен экрану');
     rows.forEach(function (s, i) { if (s.length !== W) throw new Error('уровень ' + idx + ': строка ' + i + ' длиной ' + s.length); });
     var LV = { idx: idx, def: def, W: W, H: H, rx: W / RW, ry: H / RH, t: [], start: null, face: def.face || 1, guards: [], potions: {},
-      gates: [], plates: {}, spikes: [], chops: [], loose: [], door: null, exitPlate: null, teacher: null, gateT: def.gateT || K.GATE_T, mirror: null };
+      gates: [], plates: {}, spikes: [], chops: [], loose: [], door: null, exitPlate: null, teacher: null, gateT: def.gateT || K.GATE_T, cast: null };
     for (var r = 0; r < H; r++) for (var c = 0; c < W; c++) {
       var ch = rows[r][c], b = ch, key = r * W + c;
       if (ch === 'P') { LV.start = { c: c, r: r }; b = '-'; }
@@ -67,7 +67,7 @@
     }
     if (!LV.start) throw new Error('уровень ' + idx + ': нет старта');
     if (!LV.door && !LV.teacher && !def.test) throw new Error('уровень ' + idx + ': нет выхода');
-    if (def.mirror) LV.mirror = { cx: def.mirror.room * RW + RW / 2, row: def.mirror.row, room: def.mirror.room };
+    if (def.cast) LV.cast = { cx: def.cast.room * RW + RW / 2, row: def.cast.row, room: def.cast.room };
     return LV;
   }
   function level(idx) { if (!CACHE[idx]) CACHE[idx] = build(C.LEVELS[idx - 1], idx); return CACHE[idx]; }
@@ -161,7 +161,7 @@
         return { id: i, k: g.k, x: g.c + 0.5, y: r + 1, face: -1, hp: st.hp, maxHp: st.hp, st: 'stand', t: 0, alive: true, min: lo + 0.3, max: hi + 0.7,
           room: roomOf(g.c + 0.5, r + 1), think: 0.5, react: -1, willParry: false, seen: -1, parried: false, x0: 0, x1: 0, combo: 0, hitDone: false };
       });
-      if (LV.mirror && !sim) S.twin = { x: LV.mirror.cx + 4, y: LV.mirror.row + 1, face: -1, st: 'stand', t: 0, on: false, wake: 0, done: false, near: 0, strike: -1 };
+      if (LV.cast && !sim) S.twin = { x: LV.cast.cx + 4, y: LV.cast.row + 1, face: -1, st: 'stand', t: 0, on: false, wake: 0, done: false, near: 0, strike: -1 };
       S.room = roomOf(S.hero.x, S.hero.y);
       emit('level', { level: n });
     }
@@ -459,9 +459,9 @@
       fenceStep(g, H, cmd, dt, { wind: st.wind }, false);
       if (was === 'lunge' && g.st !== 'lunge' && st.combo && rng() < st.combo) g.combo = 1;
     }
-    // ---------- зеркальный двойник ----------
+    // ---------- медный двойник из литейной формы ----------
     function twinStep(dt) {
-      var T = S.twin, H = S.hero, MI = S.LV.mirror; if (!T || T.done) return;
+      var T = S.twin, H = S.hero, MI = S.LV.cast; if (!T || T.done) return;
       var rm = roomOf(H.x, H.y);
       if (!T.on) {
         if (S.bossDown && rm.x === MI.room) { T.wake += dt; if (T.wake > 1.4) { T.on = true; emit('twin', {}); } }

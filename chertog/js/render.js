@@ -7,33 +7,33 @@
   var C = global.CHERTOG = global.CHERTOG || {}, L = C.logic, K = L.K, RW = L.RW, RH = L.RH;
   var TW = 64, TH = 120, VH = 360, HUD = 40, FY = 10, PI = Math.PI;
   var PM = { // modern
-    bg0: '#16131c', bg1: '#0c0a10', brick: '#2a2431', brick2: '#231e29', mortar: '#120f16', stone: '#4a4252', stone2: '#3a3341', stoneHi: '#6b6175', stoneLo: '#221d27',
-    floorTop: '#9b8f9c', floorFace: '#5d5463', floorLo: '#2f2934', lip: '#c9bcc4', torch: '#ffb347', glow: 'rgba(255,170,80,', copper: '#d98a4e', copperHi: '#ffd2a0', copperLo: '#7a4320',
-    iron: '#4d5560', ironHi: '#8a95a3', spike: '#d6dbe3', blade: '#e7ecf3', ink: '#f3ede4', muted: '#a69cae', accent: '#ffb347', good: '#7bd389', bad: '#ff5d5d', hudBg: '#0e0b12', hudLine: '#3a3042',
+    bg0: '#1c120c', bg1: '#0c0806', brick: '#2a1c14', brick2: '#231710', mortar: '#100a07', stone: '#5a3f2e', stone2: '#46301f', stoneHi: '#8a6448', stoneLo: '#24170f',
+    floorTop: '#b08a6a', floorFace: '#6e5140', floorLo: '#33241a', lip: '#e0c0a0', torch: '#ffb347', glow: 'rgba(255,170,80,', copper: '#d98a4e', copperHi: '#ffd2a0', copperLo: '#7a4320',
+    iron: '#4d5560', ironHi: '#8a95a3', spike: '#d6dbe3', blade: '#e7ecf3', ink: '#f3ede4', muted: '#a69cae', accent: '#ffb347', good: '#7bd389', bad: '#ff5d5d', hudBg: '#0d0907', hudLine: '#4a3326',
     pixel: false
   };
-  var PR = { // retro (EGA-подобная палитра)
-    bg0: '#000044', bg1: '#000022', brick: '#0000aa', brick2: '#000088', mortar: '#000000', stone: '#555555', stone2: '#444444', stoneHi: '#aaaaaa', stoneLo: '#222222',
-    floorTop: '#aaaaaa', floorFace: '#555555', floorLo: '#222222', lip: '#ffffff', torch: '#ffff55', glow: null, copper: '#aa5500', copperHi: '#ffff55', copperLo: '#552200',
-    iron: '#555555', ironHi: '#aaaaaa', spike: '#ffffff', blade: '#ffffff', ink: '#ffffff', muted: '#aaaaaa', accent: '#ffff55', good: '#55ff55', bad: '#ff5555', hudBg: '#000000', hudLine: '#5555ff',
+  var PR = { // retro (ограниченная палитра: медно-бурый камень на угольно-чёрном, рыжие факелы)
+    bg0: '#1c0e00', bg1: '#000000', brick: '#552200', brick2: '#2a1400', mortar: '#000000', stone: '#aa5500', stone2: '#7a3c00', stoneHi: '#ffaa55', stoneLo: '#552200',
+    floorTop: '#ffaa55', floorFace: '#aa5500', floorLo: '#552200', lip: '#ffcc88', torch: '#ff8800', glow: null, copper: '#aa5500', copperHi: '#ffff55', copperLo: '#552200',
+    iron: '#555555', ironHi: '#aaaaaa', spike: '#ffffff', blade: '#ffffff', ink: '#ffffff', muted: '#aaaaaa', accent: '#ffff55', good: '#55ff55', bad: '#ff5555', hudBg: '#000000', hudLine: '#aa5500',
     pixel: true
   };
   // облик персонажей: кожа, рубаха, штаны, обувь, пояс, головной убор, клинок
   var LOOK = {
-    hero: { m: { skin: '#e8b48a', shirt: '#e07a2f', shirt2: '#b45a1c', pants: '#3b3346', boot: '#2a1f1a', belt: '#7a5232', hair: '#3a2418', band: '#d9482b', blade: '#dfe4ec' },
-            r: { skin: '#ffaa55', shirt: '#ffffff', shirt2: '#aaaaaa', pants: '#5555ff', boot: '#aa5500', belt: '#aa5500', hair: '#aa5500', band: '#ff5555', blade: '#ffffff' } },
-    g: { m: { skin: '#d9a47c', shirt: '#2f6f7a', shirt2: '#1f4c55', pants: '#262a35', boot: '#1d1a1a', belt: '#b8863b', helm: '#b8863b', blade: '#cfd5de' },
-         r: { skin: '#ffaa55', shirt: '#00aaaa', shirt2: '#005555', pants: '#0000aa', boot: '#000000', belt: '#aa5500', helm: '#aa5500', blade: '#aaaaaa' } },
+    hero: { m: { skin: '#e8b48a', shirt: '#b8582a', shirt2: '#83391b', pants: '#4a382a', boot: '#2a1f1a', belt: '#5a3a22', hair: '#3a2418', band: '#e8c24a', apron: '#7a5434', blade: '#dfe4ec' },
+            r: { skin: '#ffaa55', shirt: '#ff5555', shirt2: '#aa0000', pants: '#552200', boot: '#000000', belt: '#552200', hair: '#552200', band: '#ffff55', apron: '#aa5500', blade: '#ffffff' } },
+    g: { m: { skin: '#d9a47c', shirt: '#2f6f7a', shirt2: '#1f4c55', pants: '#262a35', boot: '#1d1a1a', belt: '#b8863b', helm: '#d08a48', blade: '#cfd5de' },
+         r: { skin: '#ffaa55', shirt: '#00aaaa', shirt2: '#005555', pants: '#555555', boot: '#000000', belt: '#aa5500', helm: '#ffaa55', blade: '#aaaaaa' } },
     f: { m: { skin: '#e0ab83', shirt: '#b23a48', shirt2: '#7d2231', pants: '#2b2433', boot: '#1d1a1a', belt: '#e7c46a', cap: '#3a1c2a', plume: '#f2e3c6', blade: '#e9edf3' },
          r: { skin: '#ffaa55', shirt: '#aa0000', shirt2: '#550000', pants: '#555555', boot: '#000000', belt: '#ffff55', cap: '#aa00aa', plume: '#ffffff', blade: '#ffffff' } },
-    w: { m: { skin: '#c99772', shirt: '#3f6b3a', shirt2: '#2a4a27', pants: '#2c2a24', boot: '#1d1a1a', belt: '#8b6a3a', helm: '#8f9aa6', shield: '#b07a3a', blade: '#cfd5de' },
-         r: { skin: '#ffaa55', shirt: '#00aa00', shirt2: '#005500', pants: '#555555', boot: '#000000', belt: '#aa5500', helm: '#aaaaaa', shield: '#aa5500', blade: '#aaaaaa' } },
+    w: { m: { skin: '#c99772', shirt: '#3f6b3a', shirt2: '#2a4a27', pants: '#2c2a24', boot: '#1d1a1a', belt: '#8b6a3a', helm: '#c47c3e', shield: '#b07a3a', blade: '#cfd5de' },
+         r: { skin: '#ffaa55', shirt: '#00aa00', shirt2: '#005500', pants: '#555555', boot: '#000000', belt: '#aa5500', helm: '#ffaa55', shield: '#aa5500', blade: '#aaaaaa' } },
     m: { m: { skin: '#c07a3a', shirt: '#b8702f', shirt2: '#7a4320', pants: '#8a5226', boot: '#4a2a14', belt: '#ffd28a', eye: '#6ff2ff', blade: '#e9edf3', metal: true },
          r: { skin: '#aa5500', shirt: '#aa5500', shirt2: '#552200', pants: '#aa5500', boot: '#552200', belt: '#ffff55', eye: '#55ffff', blade: '#ffffff', metal: true } },
-    N: { m: { skin: '#d4a47e', shirt: '#4a2140', shirt2: '#2c1226', pants: '#2c1226', boot: '#140a12', belt: '#e0a24a', crown: '#e0a24a', cape: '#6b1f3a', blade: '#f0d9a8' },
-         r: { skin: '#ffaa55', shirt: '#aa00aa', shirt2: '#550055', pants: '#550055', boot: '#000000', belt: '#ffff55', crown: '#ffff55', cape: '#aa0000', blade: '#ffff55' } },
-    Z: { m: { skin: '#e09a5c', shirt: '#d58a4e', shirt2: '#9a5a2c', pants: '#8a5226', boot: '#5a3216', belt: '#ffd28a', hair: '#9a5a2c', band: '#ffd28a', eye: '#bff7ff', blade: '#ffe2b8', metal: true },
-         r: { skin: '#ffff55', shirt: '#aa5500', shirt2: '#552200', pants: '#aa5500', boot: '#552200', belt: '#ffff55', hair: '#552200', band: '#ffff55', eye: '#55ffff', blade: '#ffff55', metal: true } },
+    N: { m: { skin: '#d4a47e', shirt: '#3a2a22', shirt2: '#241a15', pants: '#2a1e18', boot: '#140c08', belt: '#e0a24a', mask: '#d98a4e', plate: '#8a5228', blade: '#f0d9a8' },
+         r: { skin: '#ffaa55', shirt: '#555555', shirt2: '#333333', pants: '#555555', boot: '#000000', belt: '#ffff55', mask: '#ffaa55', plate: '#aa5500', blade: '#ffff55' } },
+    Z: { m: { skin: '#e09a5c', shirt: '#d58a4e', shirt2: '#9a5a2c', pants: '#8a5226', boot: '#5a3216', belt: '#ffd28a', hair: '#9a5a2c', band: '#ffd28a', apron: '#b06a34', eye: '#bff7ff', blade: '#ffe2b8', metal: true },
+         r: { skin: '#ffff55', shirt: '#aa5500', shirt2: '#552200', pants: '#aa5500', boot: '#552200', belt: '#ffff55', hair: '#552200', band: '#ffff55', apron: '#552200', eye: '#55ffff', blade: '#ffff55', metal: true } },
     master: { m: { skin: '#e2b896', shirt: '#3e5a8a', shirt2: '#2a3e63', pants: '#2a3e63', boot: '#2a1f1a', belt: '#c9a25a', hair: '#e8e4dc', beard: '#f1ede6', blade: '#ccc' },
               r: { skin: '#ffaa55', shirt: '#5555ff', shirt2: '#0000aa', pants: '#0000aa', boot: '#aa5500', belt: '#ffff55', hair: '#ffffff', beard: '#ffffff', blade: '#aaa' } }
   };
@@ -190,6 +190,13 @@
     ctx.strokeStyle = look.shirt; lw(kind === 'N' ? 13 : 11); ctx.beginPath(); ctx.moveTo(hip.x, hip.y); ctx.lineTo(neck.x, neck.y + 2); ctx.stroke();
     if (kind === 'N') { ctx.fillStyle = look.shirt; ctx.beginPath(); ctx.moveTo(hip.x - 8, hip.y - 2); ctx.lineTo(hip.x + 8, hip.y - 2); ctx.lineTo(hip.x + 11 * ff + 2, -6); ctx.lineTo(hip.x - 9 * ff - 2, -6); ctx.closePath(); ctx.fill(); }
     ctx.strokeStyle = look.belt; lw(3); var bx = hip.x + Math.sin(p.tor) * 3 * ff, by = hip.y - Math.cos(p.tor) * 3; ctx.beginPath(); ctx.moveTo(bx - 5, by + 0.5); ctx.lineTo(bx + 5, by - 0.5); ctx.stroke();
+    if (look.apron || look.plate) { // кожаный фартук подмастерья / литейный фартук-латы Наместника
+      var ap = lerp(hip.y, neck.y, look.plate ? 0.85 : 0.6), apx = lerp(hip.x, neck.x, look.plate ? 0.85 : 0.6), lg = (p.a[0] + p.b[0]) / 2, wd = look.plate ? 9 : 6.5, ln = look.plate ? 22 : 15;
+      var bx3 = hip.x + Math.sin(lg) * ln * ff, by3 = hip.y + Math.cos(lg) * ln;
+      ctx.fillStyle = look.plate || look.apron; ctx.beginPath(); ctx.moveTo(apx - wd * 0.7, ap); ctx.lineTo(apx + wd * 0.7, ap); ctx.lineTo(bx3 + wd, by3); ctx.lineTo(bx3 - wd, by3); ctx.closePath(); ctx.fill();
+      if (look.plate) { ctx.fillStyle = retro ? '#ffff55' : '#ffd28a'; [[0.25, -4], [0.25, 4], [0.65, -5], [0.65, 5]].forEach(function (q) { ctx.fillRect(lerp(apx, bx3, q[0]) + q[1] - 1, lerp(ap, by3, q[0]) - 1, 2, 2); }); ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(lerp(apx, bx3, 0.45) - wd, lerp(ap, by3, 0.45), wd * 2, 1.5); }
+      else { ctx.strokeStyle = retro ? '#552200' : '#4a321e'; lw(1); ctx.beginPath(); ctx.moveTo(apx - 3, ap); ctx.lineTo(neck.x - 1, neck.y + 3); ctx.stroke(); }
+    }
     if (look.metal && !retro) { ctx.fillStyle = look.belt; [0.35, 0.7].forEach(function (k) { ctx.beginPath(); ctx.arc(lerp(hip.x, neck.x, k) + 3 * ff, lerp(hip.y, neck.y, k), 1.3, 0, PI * 2); ctx.fill(); }); }
     // передняя нога
     limb(hip, LA.knee, LA.foot, look.pants, 7, 6);
@@ -199,9 +206,17 @@
     if (look.beard) { ctx.fillStyle = look.beard; ctx.beginPath(); ctx.moveTo(head.x + 1 * ff, head.y + 2); ctx.lineTo(head.x + 6 * ff, head.y + 3); ctx.lineTo(head.x + 1 * ff, head.y + 13); ctx.closePath(); ctx.fill(); }
     if (look.hair) { ctx.fillStyle = look.hair; ctx.beginPath(); ctx.arc(head.x - 1 * ff, head.y - 1.5, LEN.head + 0.6, PI * 1.05, PI * 1.95); ctx.fill(); ctx.fillRect(head.x - (ff > 0 ? 7 : -3), head.y - 3, 4, 6); }
     if (look.band) { ctx.strokeStyle = look.band; lw(2); ctx.beginPath(); ctx.moveTo(head.x - 6, head.y - 3); ctx.lineTo(head.x + 6, head.y - 3); ctx.stroke(); ctx.beginPath(); ctx.moveTo(head.x - 6 * ff, head.y - 3); ctx.lineTo(head.x - 11 * ff, head.y + 1 + Math.sin((extra.time || 0) * 9) * 1.5); ctx.stroke(); }
-    if (look.helm) { ctx.fillStyle = look.helm; ctx.beginPath(); ctx.arc(head.x, head.y - 1, LEN.head + 1.2, PI, PI * 2); ctx.fill(); ctx.fillRect(head.x - 8, head.y - 1.5, 16, 2.5); if (kind === 'g') { ctx.fillRect(head.x - 1, head.y - 13, 2, 6); } }
+    if (look.helm) { // медный шлем-котелок: купол и поля
+      ctx.fillStyle = look.helm; ctx.beginPath(); ctx.ellipse(head.x, head.y - 3, LEN.head + 0.6, LEN.head + 1.5, 0, PI, PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(head.x, head.y - 3, LEN.head + 4, 2, 0, 0, PI * 2); ctx.fill();
+      if (!retro) { ctx.fillStyle = 'rgba(255,230,190,0.45)'; ctx.fillRect(head.x - 3, head.y - 9, 2.5, 3); }
+    }
     if (look.cap) { ctx.fillStyle = look.cap; ctx.beginPath(); ctx.ellipse(head.x, head.y - 4, 9, 3.5, 0, 0, PI * 2); ctx.fill(); ctx.fillRect(head.x - 5, head.y - 9, 10, 5); ctx.strokeStyle = look.plume; lw(2); ctx.beginPath(); ctx.moveTo(head.x - 2 * ff, head.y - 8); ctx.quadraticCurveTo(head.x - 10 * ff, head.y - 16, head.x - 15 * ff, head.y - 9); ctx.stroke(); }
-    if (look.crown) { ctx.fillStyle = look.crown; ctx.beginPath(); ctx.moveTo(head.x - 7, head.y - 4); ctx.lineTo(head.x - 6, head.y - 17); ctx.lineTo(head.x - 2, head.y - 11); ctx.lineTo(head.x, head.y - 20); ctx.lineTo(head.x + 2, head.y - 11); ctx.lineTo(head.x + 6, head.y - 17); ctx.lineTo(head.x + 7, head.y - 4); ctx.closePath(); ctx.fill(); }
+    if (look.mask) { // медная маска-личина с прорезями
+      ctx.fillStyle = look.mask; ctx.beginPath(); ctx.ellipse(head.x + 0.5 * ff, head.y, LEN.head + 1, LEN.head + 2.5, 0, 0, PI * 2); ctx.fill();
+      ctx.fillStyle = retro ? '#000' : '#1a0c06'; ctx.fillRect(head.x + 1 * ff - 1.5, head.y - 2.5, 5 * (ff > 0 ? 1 : 1), 1.6); ctx.fillRect(head.x + 1.5 * ff - 1, head.y + 3, 3, 1.2);
+      if (!retro) { ctx.fillStyle = 'rgba(255,220,170,0.4)'; ctx.fillRect(head.x - 2 * ff - 1, head.y - 6, 2, 8); }
+    }
     if (look.eye) { ctx.fillStyle = look.eye; ctx.fillRect(head.x + 2 * ff - 1.2, head.y - 1.8, 2.6, 2.4); if (!retro) { ctx.globalAlpha *= 0.35; ctx.beginPath(); ctx.arc(head.x + 2.5 * ff, head.y - 0.6, 4.5, 0, PI * 2); ctx.fill(); ctx.globalAlpha /= 0.35; } }
     else { ctx.fillStyle = retro ? '#000' : '#2a1a14'; ctx.fillRect(head.x + 2.6 * ff - 0.8, head.y - 1.6, 1.8, 1.8); }
     // клинок (в руке с мечом — передняя)
@@ -242,7 +257,7 @@
       for (var xx = -((row % 2) * bw / 2); xx < W; xx += bw) {
         var hv = hash(Math.floor((xx + c0 * tw) / bw) + 7, row + r0 * 9);
         if (retro) { ctx.fillStyle = hv < 0.5 ? Pp.brick2 : Pp.bg0; ctx.fillRect(xx + 1, yy + 1, bw - 1, bh - 1); }
-        else { ctx.fillStyle = hv < 0.33 ? '#1e1a24' : hv < 0.66 ? '#1b1720' : '#201b26'; ctx.fillRect(xx + 1, yy + 1, bw - 2, bh - 2); ctx.fillStyle = 'rgba(255,255,255,0.03)'; ctx.fillRect(xx + 1, yy + 1, bw - 2, 1); }
+        else { ctx.fillStyle = hv < 0.33 ? '#261912' : hv < 0.66 ? '#22160f' : '#2a1c14'; ctx.fillRect(xx + 1, yy + 1, bw - 2, bh - 2); ctx.fillStyle = 'rgba(255,255,255,0.03)'; ctx.fillRect(xx + 1, yy + 1, bw - 2, 1); }
       }
     }
     var torches = [], pillars = [];
@@ -258,7 +273,7 @@
             var bx2 = x + jj * tw / 2 - ((kk % 2) ? tw / 4 : 0), by2 = y + kk * th / 4, ww = tw / 2;
             if (bx2 < x) { ww -= x - bx2; bx2 = x; } if (bx2 + ww > x + tw) ww = x + tw - bx2;
             var hv2 = hash(gc * 4 + jj + 99, grr * 8 + kk);
-            var g2 = ctx.createLinearGradient(bx2, by2, bx2, by2 + th / 4); g2.addColorStop(0, hv2 < 0.5 ? '#6e6268' : '#665a63'); g2.addColorStop(1, '#4d434e');
+            var g2 = ctx.createLinearGradient(bx2, by2, bx2, by2 + th / 4); g2.addColorStop(0, hv2 < 0.5 ? '#7a5640' : '#70503b'); g2.addColorStop(1, '#4e3626');
             ctx.fillStyle = g2; ctx.fillRect(bx2 + 1, by2 + 1, ww - 2, th / 4 - 2);
             ctx.fillStyle = 'rgba(255,240,220,0.14)'; ctx.fillRect(bx2 + 1, by2 + 1, ww - 2, 2);
             ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fillRect(bx2 + 1, by2 + th / 4 - 4, ww - 2, 3);
@@ -284,9 +299,9 @@
       var pw = 14 * s, top = pl.y + (L.tile(M, c0 + Math.floor(pl.x / tw), r0 + pl.r - 1) === '#' ? 0 : 2 * s), bot = pl.y + th - fy;
       if (retro) { ctx.fillStyle = Pp.stone2; ctx.fillRect(pl.x - pw / 2, top, pw, bot - top); ctx.fillStyle = Pp.stoneHi; ctx.fillRect(pl.x - pw / 2, top, 2, bot - top); ctx.fillStyle = Pp.stone; ctx.fillRect(pl.x - pw / 2 - 3, top, pw + 6, 4); ctx.fillRect(pl.x - pw / 2 - 3, bot - 5, pw + 6, 5); }
       else {
-        var g3 = ctx.createLinearGradient(pl.x - pw / 2, 0, pl.x + pw / 2, 0); g3.addColorStop(0, '#2e2834'); g3.addColorStop(0.35, '#4c4455'); g3.addColorStop(1, '#221d27');
+        var g3 = ctx.createLinearGradient(pl.x - pw / 2, 0, pl.x + pw / 2, 0); g3.addColorStop(0, '#2e2018'); g3.addColorStop(0.35, '#54392a'); g3.addColorStop(1, '#221d27');
         ctx.fillStyle = g3; ctx.fillRect(pl.x - pw / 2, top, pw, bot - top);
-        ctx.fillStyle = '#3e3746'; ctx.fillRect(pl.x - pw / 2 - 4, top, pw + 8, 6); ctx.fillRect(pl.x - pw / 2 - 4, bot - 7, pw + 8, 7);
+        ctx.fillStyle = '#4a3324'; ctx.fillRect(pl.x - pw / 2 - 4, top, pw + 8, 6); ctx.fillRect(pl.x - pw / 2 - 4, bot - 7, pw + 8, 7);
       }
     });
     torches.forEach(function (tc) {
@@ -308,15 +323,20 @@
       }
       if (t === 'E') doorFrame(ctx, x, y, tw, th, fy, Pp, retro, s);
     }
-    // зеркало в зале финала
-    if (LV.mirror && rx === LV.mirror.room) {
-      var mx = (LV.mirror.cx - c0 + 3.4) * tw, my = (LV.mirror.row - r0) * th + th * 0.12, mw = 40 * s, mh = th * 0.72;
-      ctx.fillStyle = retro ? Pp.copper : '#8a5a2c'; ctx.beginPath(); ctx.ellipse(mx, my + mh / 2, mw / 2 + 5 * s, mh / 2 + 5 * s, 0, 0, PI * 2); ctx.fill();
-      ctx.fillStyle = retro ? '#55ffff' : '#3d5866'; ctx.beginPath(); ctx.ellipse(mx, my + mh / 2, mw / 2, mh / 2, 0, 0, PI * 2); ctx.fill();
-      if (!retro) { var gm = ctx.createLinearGradient(mx - mw / 2, my, mx + mw / 2, my + mh); gm.addColorStop(0, 'rgba(255,255,255,0.25)'); gm.addColorStop(0.5, 'rgba(255,255,255,0)'); ctx.fillStyle = gm; ctx.beginPath(); ctx.ellipse(mx, my + mh / 2, mw / 2, mh / 2, 0, 0, PI * 2); ctx.fill(); }
+    // литейная форма в финале: Наместник отлил в ней медного двойника по слепку героя
+    if (LV.cast && rx === LV.cast.room) {
+      var mx = (LV.cast.cx - c0 + 3.4) * tw, rt = (LV.cast.row - r0) * th, my = rt + th * 0.1, mb = rt + th - fy, mw = 52 * s;
+      ctx.fillStyle = retro ? '#555555' : '#3a3632'; ctx.fillRect(mx - 4 * s, rt, 8 * s, my - rt + 4 * s);          // литник сверху
+      ctx.fillStyle = retro ? '#555555' : '#2c2724'; ctx.fillRect(mx - mw / 2, my, mw, mb - my);                     // створки формы
+      ctx.fillStyle = retro ? '#aaaaaa' : '#55504a'; ctx.fillRect(mx - mw / 2, my, mw, 3 * s); ctx.fillRect(mx - 1 * s, my, 2 * s, mb - my);
+      ctx.fillStyle = retro ? '#ffff55' : '#8a6a3a'; [0.2, 0.5, 0.8].forEach(function (k) { ctx.fillRect(mx - mw / 2 + 3 * s, my + (mb - my) * k, 3 * s, 3 * s); ctx.fillRect(mx + mw / 2 - 6 * s, my + (mb - my) * k, 3 * s, 3 * s); });
+      ctx.fillStyle = retro ? '#000' : '#140c08'; mold(ctx, mx, my, mb, s);                                          // полость по слепку
     }
     layerCache[key] = { cv: cv, torches: torches };
     return layerCache[key];
+  }
+  function mold(ctx, mx, my, mb, s) { // силуэт полости: голова и тело
+    ctx.beginPath(); ctx.arc(mx, my + 16 * s, 8 * s, 0, PI * 2); ctx.fill(); rr(ctx, mx - 10 * s, my + 26 * s, 20 * s, mb - my - 32 * s, 6 * s); ctx.fill();
   }
   function floorSlab(ctx, x, y, w, h, Pp, retro, s, gc, grr) {
     if (retro) {
@@ -326,8 +346,8 @@
       ctx.fillStyle = Pp.floorLo; ctx.fillRect(x + w - 1, y - 3, 1, h + 3);
     } else {
       ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(x, y + h, w, 8);   // тень под плитой
-      var g = ctx.createLinearGradient(0, y - 6, 0, y); g.addColorStop(0, '#7d7180'); g.addColorStop(1, '#a89ba6'); ctx.fillStyle = g; ctx.fillRect(x, y - 6, w, 6);
-      var g2 = ctx.createLinearGradient(0, y, 0, y + h); g2.addColorStop(0, '#6a5f6e'); g2.addColorStop(1, '#3b3440'); ctx.fillStyle = g2; ctx.fillRect(x, y, w, h);
+      var g = ctx.createLinearGradient(0, y - 6, 0, y); g.addColorStop(0, '#8a6a52'); g.addColorStop(1, '#b8926f'); ctx.fillStyle = g; ctx.fillRect(x, y - 6, w, 6);
+      var g2 = ctx.createLinearGradient(0, y, 0, y + h); g2.addColorStop(0, '#6e5140'); g2.addColorStop(1, '#3a281d'); ctx.fillStyle = g2; ctx.fillRect(x, y, w, h);
       ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.fillRect(x, y, w, 1);
       ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(x + w - 1, y - 6, 1, h + 6);
       if (hash(gc, grr + 5) < 0.4) { ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(x + hash(gc + 3, grr) * w * 0.7, y + 2, 10, 1); }
@@ -364,7 +384,7 @@
         var rg = tgt.createRadialGradient(tc.x, tc.y - 6, 2, tc.x, tc.y - 6, 110 + fl * 6); rg.addColorStop(0, 'rgba(255,160,70,0.22)'); rg.addColorStop(1, 'rgba(255,120,40,0)');
         tgt.fillStyle = rg; tgt.fillRect(tc.x - 130, tc.y - 130, 260, 260); tgt.restore();
       }
-      tgt.fillStyle = retro ? '#ff5555' : '#ff7a2a'; tgt.beginPath(); tgt.ellipse(tc.x, tc.y - 7 * s, 4.5 * s, (9 + fl * 1.5) * s, 0, 0, PI * 2); tgt.fill();
+      tgt.fillStyle = retro ? '#ff8800' : '#ff7a2a'; tgt.beginPath(); tgt.ellipse(tc.x, tc.y - 7 * s, 4.5 * s, (9 + fl * 1.5) * s, 0, 0, PI * 2); tgt.fill();
       tgt.fillStyle = retro ? '#ffff55' : '#ffd36a'; tgt.beginPath(); tgt.ellipse(tc.x, tc.y - 5 * s, 2.2 * s, (5 + fl) * s, 0, 0, PI * 2); tgt.fill();
     });
     var c0 = X0, c1 = X0 + RW - 1, r0 = Y0, r1 = Y0 + RH - 1, cc, r, k;
@@ -378,7 +398,7 @@
         tgt.fillStyle = col; tgt.fillRect(x + tw * 0.2, yb - 8 * s + down, tw * 0.6, 5 * s);
         if (!retro) { tgt.fillStyle = 'rgba(255,255,255,0.25)'; tgt.fillRect(x + tw * 0.2, yb - 8 * s + down, tw * 0.6, 1); }
       }
-      if (M.debris[k]) { tgt.fillStyle = retro ? Pp.floorFace : '#6a5f6e'; for (var d = 0; d < 5; d++) { var hx = hash(cc * 5 + d, r); tgt.fillRect(x + (8 + hx * 44) * s, yb - (3 + hash(d, cc) * 5) * s, (5 + hx * 6) * s, (3 + hash(cc, d) * 4) * s); } }
+      if (M.debris[k]) { tgt.fillStyle = retro ? Pp.floorFace : '#6e5140'; for (var d = 0; d < 5; d++) { var hx = hash(cc * 5 + d, r); tgt.fillRect(x + (8 + hx * 44) * s, yb - (3 + hash(d, cc) * 5) * s, (5 + hx * 6) * s, (3 + hash(cc, d) * 4) * s); } }
     }
     // шипы
     LV.spikes.forEach(function (sp) {
@@ -439,16 +459,22 @@
       shadow(tgt, px(gd.x), py(gd.y), s, retro);
       figure(tgt, px(gd.x), py(gd.y) + 1, gd.face, ps, lk, s, gd.k, { retro: retro, time: time, flash: gd.st === 'lunge' && gd.t > L.STYLE[gd.k].wind && gd.t < L.STYLE[gd.k].wind + 0.08 });
     });
-    // двойник
+    // раскалённый металл в форме — пока двойник не встал
     var T = S.twin;
-    if (T && (rm.x === LV.mirror.room)) {
+    if (LV.cast && rm.x === LV.cast.room && T && !T.on) {
+      var gx = px(LV.cast.cx + 3.4), gtop = (LV.cast.row - Y0) * th + th * 0.1, gb = py(LV.cast.row + 1), heat = 0.6 + 0.4 * Math.sin(time * 3) - Math.min(1, T.wake / 1.4) * 0.6;
+      tgt.save(); tgt.globalAlpha = Math.max(0, heat); tgt.fillStyle = retro ? '#ff8800' : '#ff8a2a'; mold(tgt, gx, gtop, gb, s);
+      if (!retro) { tgt.globalCompositeOperation = 'lighter'; var hg = tgt.createRadialGradient(gx, gtop + 50, 4, gx, gtop + 50, 90); hg.addColorStop(0, 'rgba(255,140,50,0.35)'); hg.addColorStop(1, 'rgba(255,90,20,0)'); tgt.fillStyle = hg; tgt.fillRect(gx - 90, gtop - 40, 180, 180); }
+      tgt.restore();
+    }
+    if (T && (rm.x === LV.cast.room)) {
       var lkT = LOOK.Z[retro ? 'r' : 'm'];
       if (!T.on) {
         var aw = Math.min(1, T.wake / 1.4);
-        if (aw > 0) { tgt.save(); tgt.globalAlpha = aw; figure(tgt, px(LV.mirror.cx + 3.4), py(LV.mirror.row + 1) - 4 * s, -1, { p: POSE.stand }, lkT, s * 0.95, 'Z', { retro: retro, noSword: true }); tgt.restore(); }
+        if (aw > 0) { tgt.save(); tgt.globalAlpha = aw; figure(tgt, px(LV.cast.cx + 3.4), py(LV.cast.row + 1) - 4 * s, -1, { p: POSE.stand }, lkT, s * 0.95, 'Z', { retro: retro, noSword: true }); tgt.restore(); }
       } else if (!T.done || T.dieT < 1.2) {
         if (T.done) T.dieT = (T.dieT || 0) + 1 / 60;
-        var tp = heroPose({ x: T.x, y: T.y, face: T.face, st: T.st, t: T.t, v: S.hero.v, vx: -S.hero.vx, vy: S.hero.vy, hang: null, x0: 2 * LV.mirror.cx - (S.hero.x0 || 0), dur: S.hero.dur }, S);
+        var tp = heroPose({ x: T.x, y: T.y, face: T.face, st: T.st, t: T.t, v: S.hero.v, vx: -S.hero.vx, vy: S.hero.vy, hang: null, x0: 2 * LV.cast.cx - (S.hero.x0 || 0), dur: S.hero.dur }, S);
         if (T.st === 'climb' || T.st === 'cdown' || T.st === 'jumpup') tp = { p: POSE.stand };
         if (T.strike >= 0) tp = { p: T.strike < 0.24 ? mix(POSE.en, POSE.wind, T.strike / 0.24) : mix(POSE.wind, POSE.thrust, (T.strike - 0.24) / 0.08) };
         else if (FENCE_ST[T.st]) tp = { p: POSE.en };

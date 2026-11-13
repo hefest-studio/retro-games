@@ -133,7 +133,7 @@ export function playChertog(C, seed, opts = {}){
     const r = Math.round(H.y) - 1, c = Math.floor(H.x), pk = r * S.M.W + c, pot = S.M.potions[pk];
     if (pot && pot !== 'p' && (pot === 'H' || S.hp < S.maxHp)) { wait = 1.1; return Object.assign(BLANK(), { down: true }); }
     // финал: увести двойника на шипы — встать слева от центра зала и пробежать мимо своих ножниц
-    const T = S.twin, MI = S.LV.mirror;
+    const T = S.twin, MI = S.LV.cast;
     let goalCell = null;
     if (T && S.bossDown && !T.done){
       if (!T.on){ wait = 0.2; return BLANK(); }

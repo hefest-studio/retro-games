@@ -1,7 +1,7 @@
 /* ЧЕРТОГ · стили страницы (сама игра рисуется в canvas). Тема страницы — body[data-theme]. */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{--bg:#0c0a10;--panel:#16131c;--line:#2e2736;--ink:#f3ede4;--mut:#857b8f;--accent:#ffb347}
-body[data-theme="retro"]{--bg:#000000;--panel:#101010;--line:#5555ff;--ink:#ffffff;--mut:#aaaaaa;--accent:#ffff55}
+:root{--bg:#0d0907;--panel:#1a120d;--line:#3d2a1e;--ink:#f3ede4;--mut:#9a826e;--accent:#ffb347}
+body[data-theme="retro"]{--bg:#000000;--panel:#101010;--line:#aa5500;--ink:#ffffff;--mut:#aaaaaa;--accent:#ffff55}
 html,body{background:var(--bg)}
 body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
