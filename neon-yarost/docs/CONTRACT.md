@@ -12,9 +12,9 @@
 ## Сборка и проверка
 
 ```bash
-node neon-rage/tools/build.mjs          # src/* -> js/game.js, src/style.css -> css/style.css
-node --check neon-rage/src/<file>.js    # синтаксис
-node neon-rage/tools/probe.mjs neon-rage/index.html reports/x.png \
+node neon-yarost/tools/build.mjs          # src/* -> js/game.js, src/style.css -> css/style.css
+node --check neon-yarost/src/<file>.js    # синтаксис
+node neon-yarost/tools/probe.mjs neon-yarost/index.html reports/x.png \
      --w=1440 --h=900 --wait=1200 --eval='NR.state.mode'
 ```
 
@@ -49,7 +49,7 @@ node neon-rage/tools/probe.mjs neon-rage/index.html reports/x.png \
 
 # 1. Игра: режимы, персонажи, сюжет
 
-Настройки (сохраняются в `localStorage` ключ `neon-rage.settings`; ключ прежней версии переносится при старте и удаляется):
+Настройки (сохраняются в `localStorage` ключ `neon-yarost.settings`; ключ прежней версии переносится при старте и удаляется):
 
 ```js
 NR.settings = {

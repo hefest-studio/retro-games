@@ -3,7 +3,7 @@
  * Headless-проверка страницы через Chrome DevTools Protocol:
  * скриншот + ошибки консоли/исключения + необязательный JS-eval.
  *
- *   node neon-rage/tools/probe.mjs <file.html|http://url> out.png \
+ *   node neon-yarost/tools/probe.mjs <file.html|http://url> out.png \
  *        [--w=1440] [--h=900] [--wait=1200] [--eval='NR.state.mode'] [--keys=Enter,Space]
  *        [--hold=KeyD:900,KeyJ:120] [--click=240,135] [--mobile=1]
  *
@@ -25,7 +25,7 @@ const opt = (name, def) => {
   return hit ? hit.slice(name.length + 3) : def;
 };
 const url = positional[0];
-const outPath = resolve(positional[1] || "neon-rage/reports/probe.png");
+const outPath = resolve(positional[1] || "neon-yarost/reports/probe.png");
 if (!url) {
   console.error("usage: node probe.mjs <url|file> <out.png> [--w=1280] [--h=800] [--wait=900] [--eval='js'] [--keys=Enter,Space]");
   process.exit(2);

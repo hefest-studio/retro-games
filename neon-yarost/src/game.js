@@ -23,7 +23,7 @@
   function saveTry(fn) { try { fn(); } catch (e) { /* localStorage/file:// может быть недоступен */ } }
 
   /* ---------- данные ---------- */
-  var STORE_KEY = 'neon-rage.settings';
+  var STORE_KEY = 'neon-yarost.settings';
   /* Устаревший ключ (прежнее имя) — только для однократной миграции:
      старый → новый (если нового ещё нет) → удалить старый. */
   var LEGACY_STORE_KEY = 'dd-neon-settings-v1';

@@ -1,9 +1,9 @@
 /* НЕОН × ЯРОСТЬ · tests/engine.test.mjs — автотесты порта на движок v2 («хост поверх игры», js/host.js).
-   Запуск: node neon-rage/tests/engine.test.mjs   (нужен Playwright: глобально или npm i -D playwright)
+   Запуск: node neon-yarost/tests/engine.test.mjs   (нужен Playwright: глобально или npm i -D playwright)
    Поднимает свой статический сервер по корню репо и проверяет в Chromium:
    • legacy.html — прежний монолит грузится и работает сам (без оболочки);
-   • перенос старого рекорда (OLD_KEY.best → arcade.best.neon-rage), тема modern по умолчанию;
-   • миграция ключа настроек OLD_KEY → neon-rage.settings (index.html и legacy.html);
+   • перенос старого рекорда (OLD_KEY.best → arcade.best.neon-yarost), тема modern по умолчанию;
+   • миграция ключа настроек OLD_KEY → neon-yarost.settings (index.html и legacy.html);
    • меню движка → Enter → выбор героя игры → Enter → сюжет → Esc «пропустить» → бой, волна 1 стартует;
    • P/Esc — пауза движка = заморозка боя (без родного меню паузы), снятие; тач-кнопка II — через движок;
    • T/G — тема движка = графика игры, L — язык (в обе стороны); L в бою не тратит ярость, ярость — V;
@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const SLUG = 'neon-rage';
+const SLUG = 'neon-yarost';
 const OLD_KEY = 'dd-neon-settings-v1'; // ключ настроек прежней версии (только для теста миграции)
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' };
 let chromium;
@@ -76,7 +76,7 @@ try {
     const s = await st(p);
     ok(s.scene === 'title' && s.mode === 'title', JSON.stringify(s));
     ok(s.theme === 'modern' && s.gfx === 'modern', 'тема ' + s.theme + '/' + s.gfx);
-    ok(s.best === 777 && (await p.evaluate(() => localStorage.getItem('arcade.best.neon-rage'))) === '777', 'рекорд ' + s.best);
+    ok(s.best === 777 && (await p.evaluate(() => localStorage.getItem('arcade.best.neon-yarost'))) === '777', 'рекорд ' + s.best);
   });
   await test('Enter → выбор героя игры (движок прозрачен) → Enter → сюжет', async () => {
     await key(p, 'Enter'); let s = await st(p);
@@ -161,12 +161,12 @@ try {
     let s = await st(p); ok(s.mode === 'select', JSON.stringify(s));
     await key(p, 'Escape'); s = await st(p); ok(s.scene === 'title' && s.mode === 'title', JSON.stringify(s));
   });
-  await test('финал игры → экран gameover движка, рекорд arcade.best.neon-rage; Enter → меню', async () => {
+  await test('финал игры → экран gameover движка, рекорд arcade.best.neon-yarost; Enter → меню', async () => {
     await key(p, 'Enter'); await key(p, 'Enter'); await key(p, 'Enter');
     let s = await st(p); ok(s.mode === 'play', 'не в бою ' + JSON.stringify(s));
     await p.evaluate(() => { NR.state.run.score = 4321; NR.finishRun(false); }); await wait(300);
     s = await st(p); ok(s.scene === 'gameover' && s.best === 4321, JSON.stringify(s));
-    ok((await p.evaluate(() => localStorage.getItem('arcade.best.neon-rage'))) === '4321', 'не сохранён');
+    ok((await p.evaluate(() => localStorage.getItem('arcade.best.neon-yarost'))) === '4321', 'не сохранён');
     await key(p, 'Enter'); s = await st(p); ok(s.scene === 'title' && s.mode === 'title', JSON.stringify(s));
   });
   await test('победа → экран win движка', async () => {
@@ -191,18 +191,33 @@ try {
     ok(s.scene === 'play' && s.mode === 'intro' && s.lang === 'en' && s.glang === 'en', JSON.stringify(s));
   });
   for (const page of ['', 'legacy.html']) {
-    await test(`миграция localStorage (${page || 'index.html'}): OLD_KEY → neon-rage.settings, старый удалён, новый не затирается`, async () => {
+    await test(`миграция localStorage (${page || 'index.html'}): OLD_KEY → neon-yarost.settings, старый удалён, новый не затирается`, async () => {
       const o = await open('', (OLD_KEY) => { try { if (sessionStorage.getItem('mig')) return; sessionStorage.setItem('mig', '1'); localStorage.clear();
         localStorage.setItem(OLD_KEY, JSON.stringify({ lang: 'en', gfx: 'retro', best: 4242 })); } catch {} }, page);
-      const ls1 = await o.p.evaluate((OLD_KEY) => ({ old: localStorage.getItem(OLD_KEY), now: localStorage.getItem('neon-rage.settings'), best: window.NR.settings.best }), OLD_KEY);
+      const ls1 = await o.p.evaluate((OLD_KEY) => ({ old: localStorage.getItem(OLD_KEY), now: localStorage.getItem('neon-yarost.settings'), best: window.NR.settings.best }), OLD_KEY);
       await o.close();
       ok(ls1.old === null, 'старый ключ не удалён');
       ok(ls1.now && JSON.parse(ls1.now).best === 4242 && ls1.best === 4242, 'не перенесено: ' + JSON.stringify(ls1));
       const o2 = await open('', (OLD_KEY) => { try { if (sessionStorage.getItem('mig')) return; sessionStorage.setItem('mig', '1'); localStorage.clear();
-        localStorage.setItem(OLD_KEY, JSON.stringify({ best: 1 })); localStorage.setItem('neon-rage.settings', JSON.stringify({ best: 5000 })); } catch {} }, page);
+        localStorage.setItem(OLD_KEY, JSON.stringify({ best: 1 })); localStorage.setItem('neon-yarost.settings', JSON.stringify({ best: 5000 })); } catch {} }, page);
       const ls2 = await o2.p.evaluate((OLD_KEY) => ({ old: localStorage.getItem(OLD_KEY), best: window.NR.settings.best }), OLD_KEY);
       await o2.close();
       ok(ls2.old === null && ls2.best === 5000, 'новый ключ затёрт старым: ' + JSON.stringify(ls2));
+    });
+  }
+
+  for (const page of ['', 'legacy.html']) {
+    await test(`миграция после смены адреса (${page || 'index.html'}): рекорд, настройки и игроки старого slug переносятся, старые ключи удаляются`, async () => {
+      const OLD = Buffer.from('bmVvbi1yYWdl', 'base64').toString('utf8');
+      const o = await open('', () => { const OLD = atob('bmVvbi1yYWdl'); try { if (sessionStorage.getItem('mig2')) return; sessionStorage.setItem('mig2', '1'); localStorage.clear();
+        localStorage.setItem('arcade.best.' + OLD, '9876'); localStorage.setItem(OLD + '.settings', JSON.stringify({ lang: 'en', best: 9876 }));
+        localStorage.setItem('arcade.players.' + OLD, '2'); } catch {} }, page);
+      const ls = await o.p.evaluate((OLD) => ({ oldBest: localStorage.getItem('arcade.best.' + OLD), oldSet: localStorage.getItem(OLD + '.settings'),
+        oldPl: localStorage.getItem('arcade.players.' + OLD), best: localStorage.getItem('arcade.best.neon-yarost'),
+        set: localStorage.getItem('neon-yarost.settings'), pl: localStorage.getItem('arcade.players.neon-yarost') }), OLD);
+      await o.close();
+      ok(ls.oldBest === null && ls.oldSet === null && ls.oldPl === null, 'старые ключи не удалены: ' + JSON.stringify(ls));
+      ok(Number(ls.best) >= 9876 && ls.set && JSON.parse(ls.set).best === 9876 && ls.pl === '2', 'не перенесено: ' + JSON.stringify(ls));
     });
   }
 

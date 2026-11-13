@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const HOST = fs.readFileSync(path.join(ROOT, '_shared/host.js'), 'utf8');
-const EXPECT = ['obval', 'rubikon', 'vihr', 'rubezh', 'proryv', 'saga', 'saga-2', 'neon-rage'];
+const EXPECT = ['obval', 'rubikon', 'vihr', 'rubezh', 'proryv', 'saga', 'saga-2', 'neon-yarost'];
 let passed = 0, failed = 0;
 function test(name, fn) { try { fn(); passed++; console.log('ok   ' + name); } catch (e) { failed++; console.log('FAIL ' + name + ' — ' + e.message); } }
 function ok(c, m) { if (!c) throw new Error(m || 'ложь'); }
@@ -27,10 +27,10 @@ test('host.js: все опции адаптаций на месте', () => {
   ['o.urlQuery', 'o.urlTheme', 'o.gameKeys', 'o.subKeys', 'o.rawGameKeys', 'o.soundFromEngine', 'o.bootKeep', 'o.bootAdopt', 'A.extraHint']
     .forEach(k => ok(HOST.includes(k), 'нет ' + k));
 });
-test('saga/saga-2/neon-rage включают свои адаптации', () => {
+test('saga/saga-2/neon-yarost включают свои адаптации', () => {
   const html = (g) => fs.readFileSync(path.join(ROOT, g, 'index.html'), 'utf8');
   ['saga', 'saga-2'].forEach(g => ['urlQuery: true', 'rawGameKeys: true', 'soundFromEngine: true', 'bootKeep: true'].forEach(o => ok(html(g).includes(o), g + ' без ' + o)));
-  ok(html('neon-rage').includes('bootAdopt: true'), 'neon-rage без bootAdopt');
+  ok(html('neon-yarost').includes('bootAdopt: true'), 'neon-yarost без bootAdopt');
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');

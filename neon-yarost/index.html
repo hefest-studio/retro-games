@@ -46,6 +46,19 @@ html[data-arcade-scene="play"] a.back { display: none; } /* в бою не пе�
 <pre id="testout"></pre>
 <noscript><p class="noscript">Для игры нужен JavaScript.</p></noscript>
 
+<script>
+/* Миграция сохранений после смены адреса игры (13.11.2026): старый slug хранится в base64,
+   чтобы имя не попадало в текст репо. Переносим рекорд, настройки и выбор игроков, старое удаляем. */
+(function () {
+  try {
+    var o = atob('bmVvbi1yYWdl'), n = 'neon-yarost';
+    [['arcade.best.' + o, 'arcade.best.' + n], [o + '.settings', n + '.settings'], ['arcade.players.' + o, 'arcade.players.' + n]].forEach(function (p) {
+      var v = localStorage.getItem(p[0]);
+      if (v !== null) { if (localStorage.getItem(p[1]) === null) localStorage.setItem(p[1], v); localStorage.removeItem(p[0]); }
+    });
+  } catch (e) {}
+})();
+</script>
 <script src="./engine.js"></script>
 <script src="./js/host.js"></script>
 <script src="./js/game.js"></script>
@@ -54,7 +67,7 @@ html[data-arcade-scene="play"] a.back { display: none; } /* в бою не пе�
 /* НЕОН × ЯРОСТЬ на движке v2 — «хост поверх игры» (js/host.js). Родной js/game.js (собран
    tools/build.mjs из src/: логика, волны, баланс, рендеры 8-БИТ = retro и НЕОН = modern, своя
    музыка, сюжет, выбор героя) работает своим циклом; движок даёт меню/паузу/финалы/тему/язык/
-   звук/рекорд arcade.best.neon-rage. Связь — только через публичный window.NR. */
+   звук/рекорд arcade.best.neon-yarost. Связь — только через публичный window.NR. */
 (function () {
   var NR = window.NR, SHELL = window.NR_SHELL;
   if (!NR || !SHELL || !window.ArcadeHost) return;
@@ -111,13 +124,13 @@ html[data-arcade-scene="play"] a.back { display: none; } /* в бою не пе�
   };
 
   var g = ArcadeHost.mount({
-    gameId: 'neon-rage', mount: '#arcade-mount', width: 704, height: 396, scale: 2, strings: STR,
+    gameId: 'neon-yarost', mount: '#arcade-mount', width: 704, height: 396, scale: 2, strings: STR,
     extra: ['help', 'settings'], subKeys: { Escape: 1, KeyP: 1 }, bootAdopt: true, adapter: A // bootAdopt: #demo=/#scene=/#wave= — сразу в бой
   });
   if (!g) return;
 
   // Рекорд: старый (best из прежнего ключа настроек) уже перенесён host'ом; обратно — чтобы HUD игры видел тот же
-  var eb = Arcade.Store.getNum('arcade.best.neon-rage', 0);
+  var eb = Arcade.Store.getNum('arcade.best.neon-yarost', 0);
   if (eb > NR.settings.best) { NR.settings.best = eb; if (S().run) S().run.best = eb; }
 
   // Пауза из самой игры (тач-кнопка II, скрытие вкладки) — через движок

@@ -27,7 +27,7 @@
 | 09 | [РУБИКОН — Робот ТАРАН-7](rubikon/) | Аркада | retro / modern |
 | 10 | [ВИХРЬ — Над полем боя](vihr/) | Shoot'em-up | retro / modern |
 | 11 | [СЕВЕРНАЯ САГА — Сага о трёх](saga/) | Платформер | retro / modern |
-| 12 | [НЕОН × ЯРОСТЬ — Neon Yarost](neon-rage/) | Beat'em-up | retro / modern |
+| 12 | [НЕОН × ЯРОСТЬ — Neon Yarost](neon-yarost/) | Beat'em-up | retro / modern |
 | 13 | [СЕВЕРНАЯ САГА 2 — Северное сияние](saga-2/) | Платформер | retro / modern |
 | 14 | [БОЛТ — Побег со Шлак-9](bolt/) | Run-and-gun | retro / modern |
 | 15 | [КОЛОБОК — Приключение](kolobok/) | Головоломка | retro / modern |

@@ -97,21 +97,21 @@ P1.onPress(name => …); // нажатие действия этого игро�
 `true` на устройстве с грубым указателем без hover (`(hover: none) and (pointer: coarse)`), пока не было ни одного настоящего `keydown` (синтетические события экранных кнопок не в счёт); снимается первым же нажатием физической клавиши. `usePlayers` на «только тач» оставляет 1 игрока и показывает одну строку подсказки.
 
 ### Общая «оболочка» — `_shared/host.js` → `<игра>/js/host.js`
-Для крупных игр со своим циклом/canvas (obval, rubikon, vihr, rubezh, proryv, saga, saga-2, neon-rage): движок поверх игры даёт меню/паузу/финалы/тему/язык/звук/рекорд через адаптер `ArcadeHost.mount({ gameId, mount, width, height, scale, strings, extra, adapter, …опции })`. Источник один — `_shared/host.js`, `build.sh` копирует его в `js/host.js` каждой игры, которая подключает `./js/host.js` (копии руками не править; тест `_shared/tests/host.test.mjs` ловит рассинхрон). Адаптации игр — опциями (по умолчанию выкл.):
+Для крупных игр со своим циклом/canvas (obval, rubikon, vihr, rubezh, proryv, saga, saga-2, neon-yarost): движок поверх игры даёт меню/паузу/финалы/тему/язык/звук/рекорд через адаптер `ArcadeHost.mount({ gameId, mount, width, height, scale, strings, extra, adapter, …опции })`. Источник один — `_shared/host.js`, `build.sh` копирует его в `js/host.js` каждой игры, которая подключает `./js/host.js` (копии руками не править; тест `_shared/tests/host.test.mjs` ловит рассинхрон). Адаптации игр — опциями (по умолчанию выкл.):
 | опция | что делает | кто |
 |---|---|---|
-| `extra: 'key' \| ['k1','k2']` | доп. пункты меню после «Играть»; `adapter.openSub(key)`, необяз. `adapter.extraHint(key)` — приписка к подписи | все / saga, saga-2, neon-rage — массив |
+| `extra: 'key' \| ['k1','k2']` | доп. пункты меню после «Играть»; `adapter.openSub(key)`, необяз. `adapter.extraHint(key)` — приписка к подписи | все / saga, saga-2, neon-yarost — массив |
 | `urlQuery: true` | параметры адреса из `?query` и `#hash` (hash важнее) | saga, saga-2 |
 | `urlTheme(P)` | своя трактовка темы из адреса | saga-2 (`?mode=retro\|aurora`) |
 | `gameKeys: {code:1}` | в play эти клавиши — только игре, даже «свои» для движка | saga-2 (`KeyL` — крюк) |
-| `subKeys: {code:1}` | в режиме игры `sub` эти клавиши — родным экранам игры | neon-rage (`Escape`, `KeyP`) |
+| `subKeys: {code:1}` | в режиме игры `sub` эти клавиши — родным экранам игры | neon-yarost (`Escape`, `KeyP`) |
 | `rawGameKeys: true` | в play игровые клавиши не проходят через ввод движка; keyup клавиши, нажатой в меню движка, в игру не уходит | saga, saga-2 |
 | `soundFromEngine: true` | при старте игра следует звуку движка (кроме `?mute=`) | saga, saga-2 |
 | `bootKeep: true` | первый вход в title не сбрасывает игру (её мог запустить `?level=`) | saga, saga-2 |
-| `bootAdopt: true` | игра при загрузке уже в `play`/`sub` (`#demo=`/`#scene=`/`#wave=`) — движок сразу следует за ней | neon-rage |
+| `bootAdopt: true` | игра при загрузке уже в `play`/`sub` (`#demo=`/`#scene=`/`#wave=`) — движок сразу следует за ней | neon-yarost |
 
 Тесты v2.2: `node _shared/tests/input.test.mjs` (меню, игроки, конфликты, touchOnly, usePlayers), `node _shared/tests/host.test.mjs`.
 
 ## План игр (ремейки на фреймворке с паритетом фич — retro+modern, i18n, звук; неон→modern)
 Старые версии архивировать как `<game>/legacy.html` ПЕРЕД заменой; каждую новую — отдельным протестированным коммитом; аркада всегда рабочая. Эталон первым: **kaskad** или **hrum** (самые компактные: 628 / 759 строк).
-Волна A: kaskad, hrum, zvero-otryad(×2), plashch, redut, bolt, kolobok. Волна B: ruslo, krot. Волна C (крупные, осторожно): rubikon, saga-2, obval, vihr, rubezh, proryv, saga, neon-rage.
+Волна A: kaskad, hrum, zvero-otryad(×2), plashch, redut, bolt, kolobok. Волна B: ruslo, krot. Волна C (крупные, осторожно): rubikon, saga-2, obval, vihr, rubezh, proryv, saga, neon-yarost.

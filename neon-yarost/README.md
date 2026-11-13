@@ -20,7 +20,7 @@ canvas движка (`engine.js` + `js/host.js`) лежит ровно над к
 * язык движка ⇄ язык игры (`NR.settings.lang`); звук движка ⇄ музыка + эффекты игры;
 * пауза движка замораживает бой (родное меню паузы игры под ней не рисуется);
   тач-кнопка `II` и скрытие вкладки ставят паузу через движок;
-* рекорд — `arcade.best.neon-rage`; старый рекорд (поле `best` из прежнего ключа настроек) переносится при первом запуске;
+* рекорд — `arcade.best.neon-yarost`; старый рекорд (поле `best` из прежнего ключа настроек) переносится при первом запуске;
 * своя музыка игры (чиптюн / синтвейв) оставлена, `js/music.js` движка не используется.
 
 Старая автономная версия (один файл) — `legacy.html`.
@@ -69,15 +69,15 @@ canvas движка (`engine.js` + `js/host.js`) лежит ровно над к
 
 * Логическая сцена — **480×270** (16:9); canvas движка — 704×396 той же пропорции.
 * Исходники — `src/` (font, i18n, audio, game, render-retro, render-modern, main, style).
-  Сборка: `node neon-rage/tools/build.mjs` → `js/game.js` + `css/style.css`.
+  Сборка: `node neon-yarost/tools/build.mjs` → `js/game.js` + `css/style.css`.
   `index.html` (разметка, подключение движка и адаптер `window.NR` → host) правится вручную.
 * Контракт модулей и ключи локализации — `docs/CONTRACT.md`.
-* Тесты оболочки: `node neon-rage/tests/engine.test.mjs` (Playwright).
+* Тесты оболочки: `node neon-yarost/tests/engine.test.mjs` (Playwright).
 
 ## Структура
 
 ```
-neon-rage/
+neon-yarost/
 ├── index.html          страница на движке v2 (engine.js + js/host.js + адаптер)
 ├── legacy.html         прежняя автономная версия (один файл)
 ├── engine.js           копия _shared/engine.js

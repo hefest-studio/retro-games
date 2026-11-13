@@ -2,7 +2,7 @@
 /**
  * Сборка игры из исходников (движок v2, «хост поверх игры»).
  *
- *   node neon-rage/tools/build.mjs
+ *   node neon-yarost/tools/build.mjs
  *
  *   src/*.js в фиксированном порядке -> js/game.js (один скрипт, IIFE-модули)
  *   src/style.css                    -> css/style.css
