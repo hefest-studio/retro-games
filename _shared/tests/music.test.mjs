@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
-const GAMES = ['kaskad', 'hrum', 'bolt', 'kolobok', 'plashch', 'roy', 'razrez', 'redut', 'zvero-otryad', 'zvero-otryad-2', 'krot', 'ruslo', 'staratel', 'podkop', 'kladka', 'zaslon', 'fitil', 'katakomby', 'yuz', 'puzyr', 'pereprava', 'zastava', 'sputnik', 'eskadrilya', 'nalyot', 'glub', 'taynik', 'zheoda', 'udalets', 'ugolyok', 'grom', 'druzhina', 'chertog', 'dozor', 'rikoshet', 'liven', 'oruzheynik'];
+const GAMES = ['kaskad', 'hrum', 'bolt', 'kolobok', 'plashch', 'roy', 'razrez', 'redut', 'zvero-otryad', 'zvero-otryad-2', 'krot', 'ruslo', 'staratel', 'podkop', 'kladka', 'zaslon', 'fitil', 'katakomby', 'yuz', 'puzyr', 'pereprava', 'zastava', 'sputnik', 'eskadrilya', 'nalyot', 'glub', 'taynik', 'zheoda', 'udalets', 'ugolyok', 'grom', 'druzhina', 'chertog', 'dozor', 'rikoshet', 'liven', 'oruzheynik', 'shustrik'];
 
 function param(v) { return { value: v, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime(x) { if (!(x > 0)) throw new Error('exp ramp ≤0'); }, setTargetAtTime() {} }; }
 function node(log, kind) { return { kind, connect() {}, disconnect() {}, start(t) { log.push({ kind, t, type: this.type }); }, stop() {}, frequency: param(440), detune: param(0), gain: param(1), Q: param(1), type: '' }; }
