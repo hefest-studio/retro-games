@@ -1,0 +1,28 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ДРУЖИНА · Beat 'em up на двоих — HTML5</title>
+<meta name="description" content="ДРУЖИНА — оригинальный фэнтезийный beat 'em up студии «Гефест» на 1–2 игроков за одной клавиатурой: дружина мастерской отбивает Кузнечный тракт у железной орды Чёрного Литейщика. Три героя, комбо, захваты и броски, магия кувшинов, ездовые ящеры, 6 этапов и привалы с бесами-кладовиками. Темы retro/modern, RU/EN, офлайн.">
+<meta name="theme-color" content="#101216">
+<link rel="canonical" href="https://arcade.hefest.ru/druzhina/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="./css/style.css">
+</head><body data-theme="modern">
+<a class="back" id="backLink" href="../" data-catalog-back="1">&larr; Каталог</a>
+<div class="wrap"><canvas id="c" width="960" height="540" aria-label="ДРУЖИНА"></canvas></div>
+<div class="pad">
+  <button data-d="U" aria-label="Вверх">▲</button><button data-d="L" aria-label="Влево">◀</button><button data-d="D" aria-label="Вниз">▼</button><button data-d="R" aria-label="Вправо">▶</button>
+  <button data-pause="1" aria-label="Пауза">II</button><button data-magic="1" aria-label="Магия">✦</button><button data-back="1" aria-label="Удар по обе стороны">⟷</button>
+  <button data-d="A" aria-label="Удар">●</button><button data-jump="1" aria-label="Прыжок">⤒</button>
+</div>
+<div class="foot" id="foot"><b>ДРУЖИНА</b> · И1: стрелки, / — удар, пробел — прыжок, «.» — магия, «,» — «спина» · И2: WASD, X — удар, Z — прыжок, C — магия, V — «спина» · 1/2 на заставке — игроки · P/Esc пауза · L язык, T тема, M звук. Тач — только И1.</div>
+<script src="./engine.js"></script>
+<script src="./js/music.js"></script>
+<script src="./js/i18n.js"></script>
+<script src="./js/game.js"></script>
+<script src="./js/audio.js"></script>
+<script src="./js/modern.js"></script>
+<script src="./js/classic.js"></script>
+<script src="./js/render.js"></script>
+<script src="./js/ui.js"></script>
+<script src="./js/main.js"></script>
+</body></html>
