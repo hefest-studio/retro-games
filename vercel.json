@@ -47,8 +47,13 @@
       "permanent": true
     },
     {
-      "source": "/neon-rage/:path*",
-      "destination": "/neon-yarost/:path*",
+      "source": "/neon-rage/",
+      "destination": "/neon-yarost/",
+      "permanent": true
+    },
+    {
+      "source": "/neon-rage/:path+",
+      "destination": "/neon-yarost/:path+",
       "permanent": true
     }
   ]
