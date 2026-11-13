@@ -1,0 +1,35 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ЧАЙНИК · Юмористический экшен-платформер — HTML5</title>
+<meta name="description" content="ЧАЙНИК — оригинальная игра студии «Гефест»: юмористический экшен-платформер в духе 16-бит. Заводной латунный чайник из мастерской «Гефест» ожил и отправился вернуть украденную Крышку: струя пара с перегревом, мощный выстрел кипятком, ручка-хват для раскачки на вилках-лианах, смешные сценки и смерти, 6 уровней-гэгов — кухонные джунгли, гонка по скатерти, погружение в чашку чая, головоломка со спящим сахарком, полёт на чайном пакетике и битва с Сервизом. Темы retro/modern, RU/EN, офлайн.">
+<meta name="theme-color" content="#17110f">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="./css/style.css">
+</head><body data-theme="modern">
+<a class="back" id="backLink" href="../" data-catalog-back="1">&larr; Каталог</a>
+<button id="bPause" type="button" aria-label="Пауза">II</button>
+<div class="wrap"><canvas id="c" width="640" height="360" aria-label="ЧАЙНИК"></canvas></div>
+<div class="pad">
+  <div class="dpad">
+    <button data-d="U" class="u" aria-label="Вверх / хват">▲</button>
+    <button data-d="L" class="l" aria-label="Влево">◀</button>
+    <button data-d="R" class="r" aria-label="Вправо">▶</button>
+    <button data-d="D" class="d" aria-label="Вниз">▼</button>
+  </div>
+  <div class="acts">
+    <button id="bReset" type="button" class="reset" aria-label="Заново головоломку">↺</button>
+    <button id="bBoil" type="button" class="boil" aria-label="Кипяток">✹</button>
+    <button id="bFire" type="button" class="fire" aria-label="Пар">≋</button>
+    <button data-d="A" class="jump" aria-label="Прыжок">●</button>
+  </div>
+</div>
+<div class="foot" id="foot"><b>ЧАЙНИК</b> · ← → / A D — ход · Пробел / Z — прыжок · X / J / F — пар (держать; с ↑ / ↓ — вверх / вниз, перегрев!) · C / K — кипяток (по заряду) · ↑ рядом с крюком — хват, Пробел — отпустить · R — заново головоломку · P / Esc — пауза · L язык, T тема, M звук.</div>
+<script src="./engine.js"></script>
+<script src="./js/music.js"></script>
+<script src="./js/i18n.js"></script>
+<script src="./js/levels.js"></script>
+<script src="./js/game.js"></script>
+<script src="./js/audio.js"></script>
+<script src="./js/render.js"></script>
+<script src="./js/main.js"></script>
+</body></html>
