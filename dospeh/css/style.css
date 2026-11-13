@@ -1,0 +1,35 @@
+/* ДОСПЕХ · стили страницы (сама игра рисуется в canvas). Тема страницы — body[data-theme]. */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#120c0e;--panel:#1f1517;--line:#3d2a26;--ink:#f6ece2;--mut:#9a826e;--accent:#e8913a}
+body[data-theme="retro"]{--bg:#000000;--panel:#101010;--line:#884400;--ink:#ffffff;--mut:#aaaaaa;--accent:#ffaa00}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
+body[data-theme="retro"]{font-family:"Courier New",ui-monospace,monospace}
+.wrap{position:relative;width:min(96vw,1100px);margin-top:32px;display:flex;justify-content:center}
+canvas{display:block;border:1px solid var(--line);border-radius:10px;background:var(--bg);touch-action:none}
+body[data-theme="retro"] canvas{border-radius:2px;image-rendering:pixelated}
+a.back{position:fixed;left:10px;top:7px;color:var(--mut);font-size:12px;text-decoration:none;font-weight:700;z-index:2}
+a.back:hover{color:var(--accent)}
+#bPause{position:fixed;right:10px;top:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  color:var(--ink);font-size:12px;font-weight:800;padding:4px 10px;z-index:2;cursor:pointer}
+.pad{width:min(96vw,600px);margin:10px 0 4px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.pad button{background:var(--panel);border:1px solid var(--line);border-radius:14px;color:var(--ink);font-size:20px;font-weight:800;touch-action:none}
+.pad button:active,.pad button.on{filter:brightness(1.4)}
+.dpad{display:grid;grid-template-columns:52px 52px 52px;grid-template-rows:46px 46px 46px;gap:4px}
+.dpad .u{grid-column:2;grid-row:1}.dpad .l{grid-column:1;grid-row:2}.dpad .r{grid-column:3;grid-row:2}.dpad .d{grid-column:2;grid-row:3}
+.acts{display:flex;gap:10px;align-items:center}
+.acts .fire{width:70px;height:70px;border-radius:50%;background:#3a2410;border-color:var(--accent);color:var(--accent);font-size:26px}
+.acts .jump{width:70px;height:70px;border-radius:50%;color:#d8f0e0;font-size:26px}
+.foot{color:var(--mut);font-size:11px;margin:6px 12px 12px;text-align:center;max-width:780px}
+.foot b{color:var(--ink)}
+@media(min-width:900px) and (hover:hover){.pad{display:none}}
+/* телефон «лёжа»: кнопки по бокам поверх полей, канва — на всю высоту */
+@media (max-height:520px) and (orientation:landscape){
+  .wrap{margin-top:26px}
+  .foot{display:none}
+  .pad{position:fixed;left:0;right:0;bottom:8px;width:100%;max-width:none;margin:0;padding:0 8px;pointer-events:none}
+  .pad>div{pointer-events:auto}
+  .dpad{grid-template-columns:44px 44px 44px;grid-template-rows:42px 42px 42px}
+  .acts .fire,.acts .jump{width:60px;height:60px}
+}
