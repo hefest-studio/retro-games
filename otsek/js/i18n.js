@@ -1,0 +1,72 @@
+/* ОТСЕК · i18n (RU/EN). OTSEK.STR — таблицы для Arcade.createGame({strings}).
+   Ключи play/language/theme/... нужны стандартным экранам движка, players/touch1p — g.usePlayers; остальные — игре. */
+(function (global) {
+  'use strict';
+  var G = global.OTSEK = global.OTSEK || {};
+  G.STR = {
+    ru: {
+      play: 'Играть', players: 'Игроки', touch1p: 'тач — 1 игрок', language: 'Язык', theme: 'Тема', sound: 'Звук', on: 'вкл', off: 'выкл',
+      score: 'Счёт', level: 'Палуба', best: 'Рекорд', win: 'СТАНЦИЯ ОЧИЩЕНА! БРИГАДА ДОМА', gameover: 'БРИГАДА НЕ ВЕРНУЛАСЬ',
+      pause: 'ПАУЗА', resume: 'Продолжить', menu: 'В меню', tapstart: 'пробел / тап',
+      title: 'ОТСЕК', subtitle: 'Ремонтная бригада «Гефеста» на станции-кузне «Наковальня-7» · 1–2 игрока',
+      back: 'Каталог', p1: 'И1', p2: 'И2', hero_0: 'Клёпка', hero_1: 'Шуруп',
+      deck: 'ПАЛУБА', deckShort: 'Палуба',
+      d_1: 'Причальный ярус', d_2: 'Склады окалины', d_3: 'Генераторная', d_4: 'Прокатный ряд', d_5: 'Охладители', d_6: 'Сердечник',
+      goal_console: 'Найди пульт сброса реактора · береги ключ-карты', goal_boss: 'Глуши источник роя · потом — к шлюзу',
+      b_matka: 'МАТКА-ГЕНЕРАТОР', b_heart: 'СЕРДЦЕ РОЯ', bossSub_matka: 'Сначала разбей катушки — потом ядро', bossSub_heart: 'Бей, когда сердце раскрыто',
+      alarm: 'ЭВАКУАЦИЯ', alarmSub: 'Самоуничтожение! Бегом к шлюзу', airlock: 'ШЛЮЗ', blast: 'ВЗРЫВ ОТСЕКА',
+      clear: 'ПАЛУБА ОТСТЫКОВАНА', clearBlast: 'ВЫТАЩИЛИ ИЗ ОГНЯ', bonus: 'Бонус', left: 'Осталось',
+      cards: 'Карты', tokens: 'Жетоны', ammo: 'Патр.', lives: 'Жизни', out: 'выбыл',
+      u_term: 'терминал', u_door: 'дверь: −1 карта', u_locked: 'нужна ключ-карта', u_console: 'сброс реактора', u_key: '[действие]',
+      w_rivet: 'Клепальный пистолет', w_fan: 'Раструб-веер', w_cutter: 'Плазменный резак', w_flame: 'Горн-огнемёт', w_nail: 'Гвоздомёт', w_wrench: 'Разводной ключ',
+      s_ammo: 'Патроны +60', s_med: 'Аптечка +50', s_card: 'Ключ-карта', s_map: 'Карта палубы',
+      s_fan: 'Раструб-веер', s_cutter: 'Плазменный резак', s_flame: 'Горн-огнемёт', s_nail: 'Гвоздомёт',
+      s_lamp: 'Аккумулятор фонаря', s_armor: 'Броня комбинезона', s_life: 'Страховка (+1 жизнь)',
+      sd_ammo: 'расходник на любое оружие', sd_med: 'восстанавливает здоровье', sd_card: 'открывает одну гермодверь', sd_map: 'вся палуба: карты, двери, пульт',
+      sd_fan: '5 заклёпок веером, вплотную — лучшее', sd_cutter: 'прошивает рой, режет перегородки', sd_flame: 'пламя сквозь рой, коротко', sd_nail: 'очередь гвоздей',
+      sd_lamp: 'шире и дальше луч', sd_armor: 'урон −30%', sd_life: 'ещё одна попытка',
+      t_shop: 'СКЛАД', t_map: 'КАРТА', t_brief: 'СВОДКА', termTitle: 'ТЕРМИНАЛ СТАНЦИИ', termHint: '↑↓ выбор · огонь — взять · ←→ вкладка · действие — выход',
+      st_owned: 'есть', st_money: 'мало жетонов', st_full: 'полно',
+      br_goal: 'Цель', br_console: 'пульт сброса реактора', br_boss: 'источник роя', br_doors: 'Гермодверей на пути', br_cards: 'Карт найдено', br_inv: 'Карт в кармане',
+      br_tip: 'Каждая дверь съедает карту. Синие двери ведут в кладовые — вскрывай, только если есть лишняя.',
+      br_alarm: 'После сброса — отсчёт. Шлюз у входа на палубу.', noMap: 'карта не куплена: видно только пройденное',
+      card: '+КАРТА', tok: '+жетоны', med: '+здоровье', ammoUp: '+патроны', cache: 'ТАЙНИК', denied: 'НЕТ КАРТЫ', empty: 'ПАТРОНЫ КОНЧИЛИСЬ',
+      breach: 'перегородка прорезана', bought: 'куплено', console: 'РЕАКТОР СБРОШЕН',
+      hint1: 'И1: стрелки — ход, / или пробел — огонь, . — действие, , — оружие',
+      hint2: 'И2: WASD — ход, F — огонь, E — действие, Q — оружие · 1/2 — игроки',
+      foot: '<b>ОТСЕК</b> · И1: стрелки — ход, / или пробел — огонь (держишь — луч фонаря не поворачивается), . (точка) — действие: двери, терминалы, пульт, , (запятая) — смена оружия · И2: WASD — ход, F — огонь, E — действие, Q — оружие (в одиночку работают обе раскладки) · 1/2 на заставке — игроки · P/Esc пауза · L язык, T тема, M звук. Тач — крестовина, ● огонь, ◆ действие, ⇄ оружие, 1 игрок.'
+    },
+    en: {
+      play: 'Play', players: 'Players', touch1p: 'touch — 1 player', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
+      score: 'Score', level: 'Deck', best: 'Best', win: 'STATION CLEAN! THE CREW IS HOME', gameover: 'THE CREW NEVER CAME BACK',
+      pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
+      title: 'OTSEK', subtitle: 'A Hefest repair crew aboard the forge station Anvil-7 · 1–2 players',
+      back: 'Catalog', p1: 'P1', p2: 'P2', hero_0: 'Rivet', hero_1: 'Screw',
+      deck: 'DECK', deckShort: 'Deck',
+      d_1: 'Docking Tier', d_2: 'Scale Stores', d_3: 'Generator Hall', d_4: 'Rolling Row', d_5: 'Coolant Vats', d_6: 'The Core',
+      goal_console: 'Find the reactor purge console · save your keycards', goal_boss: 'Kill the swarm source · then run for the airlock',
+      b_matka: 'GENERATOR QUEEN', b_heart: 'SWARM HEART', bossSub_matka: 'Break the coils first — then the core', bossSub_heart: 'Strike when the heart opens',
+      alarm: 'EVACUATE', alarmSub: 'Self-destruct! Run for the airlock', airlock: 'AIRLOCK', blast: 'SECTION BLOWN',
+      clear: 'DECK UNDOCKED', clearBlast: 'PULLED OUT OF THE FIRE', bonus: 'Bonus', left: 'Left',
+      cards: 'Cards', tokens: 'Tokens', ammo: 'Ammo', lives: 'Lives', out: 'is out',
+      u_term: 'terminal', u_door: 'door: −1 card', u_locked: 'keycard needed', u_console: 'reactor purge', u_key: '[use]',
+      w_rivet: 'Rivet pistol', w_fan: 'Flare spreader', w_cutter: 'Plasma cutter', w_flame: 'Forge flamer', w_nail: 'Nailgun', w_wrench: 'Wrench',
+      s_ammo: 'Ammo +60', s_med: 'Medkit +50', s_card: 'Keycard', s_map: 'Deck map',
+      s_fan: 'Flare spreader', s_cutter: 'Plasma cutter', s_flame: 'Forge flamer', s_nail: 'Nailgun',
+      s_lamp: 'Lamp battery', s_armor: 'Overall plating', s_life: 'Insurance (+1 life)',
+      sd_ammo: 'fits every weapon', sd_med: 'restores health', sd_card: 'opens one blast door', sd_map: 'whole deck: cards, doors, console',
+      sd_fan: '5 rivets in a fan, best up close', sd_cutter: 'pierces the swarm, cuts partitions', sd_flame: 'fire through the swarm, short', sd_nail: 'rapid nails',
+      sd_lamp: 'wider, longer beam', sd_armor: 'damage −30%', sd_life: 'one more try',
+      t_shop: 'STORES', t_map: 'MAP', t_brief: 'BRIEF', termTitle: 'STATION TERMINAL', termHint: '↑↓ select · fire — take · ←→ tab · use — exit',
+      st_owned: 'owned', st_money: 'not enough', st_full: 'full',
+      br_goal: 'Goal', br_console: 'reactor purge console', br_boss: 'swarm source', br_doors: 'Blast doors on the way', br_cards: 'Cards found', br_inv: 'Cards in pocket',
+      br_tip: 'Every door eats a card. Blue doors lead to storerooms — open them only with a spare card.',
+      br_alarm: 'After the purge — countdown. The airlock is at the deck entrance.', noMap: 'no map bought: only explored areas',
+      card: '+CARD', tok: '+tokens', med: '+health', ammoUp: '+ammo', cache: 'CACHE', denied: 'NO CARD', empty: 'OUT OF AMMO',
+      breach: 'partition cut', bought: 'bought', console: 'REACTOR PURGED',
+      hint1: 'P1: arrows — move, / or space — fire, . — use, , — weapon',
+      hint2: 'P2: WASD — move, F — fire, E — use, Q — weapon · 1/2 — players',
+      foot: '<b>OTSEK</b> · P1: arrows — move, / or space — fire (hold it and the lamp keeps its heading), . (period) — use: doors, terminals, console, , (comma) — switch weapon · P2: WASD — move, F — fire, E — use, Q — weapon (solo: both layouts work) · 1/2 on the title — players · P/Esc pause · L language, T theme, M sound. Touch — d-pad, ● fire, ◆ use, ⇄ weapon, 1 player.'
+    }
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
