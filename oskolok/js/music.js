@@ -7,7 +7,7 @@
   'use strict';
   A.tracks = A.tracks || {};
   A.tracks.oskolok = {
-    bpm: 76, div: 2, vol: 0.6, lead: { retro: 'square', modern: 'triangle' },
+    bpm: 92, div: 2, vol: 0.6, lead: { retro: 'square', modern: 'triangle' },
     melody: [
       'D5 - - - A4 - - . | F5 - E5 - - - . . | G#4 - A4 - - - - . | . . D5 E5 F5 - - .',
       'A5 - - - G#5 - E5 . | F5 - - - D5 - - . | E5 - C5 - - - A4 . | B4 - - - . . . .',
@@ -15,6 +15,6 @@
       'F5 - E5 - D5 - - . | C5 - - - Bb4 - A4 . | G#4 - B4 - E5 - - . | D5 - - - - - . .'
     ],
     bass: 'D2 - - - A2 - - - | D2 - - - A2 - - - | Bb1 - - - F2 - - - | C2 - - - G2 - A2 -',
-    drums: 'k . . . h . . . | . . h . . . h .'
+    drums: 'k . h . h . h . | . h . h k . h .'
   };
 })(window.Arcade = window.Arcade || {});
