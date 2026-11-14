@@ -1,0 +1,40 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>СБОРКА · Стратегия-аркада: роботы из модулей — HTML5</title>
+<meta name="description" content="СБОРКА — оригинальная стратегия-аркада студии «Гефест» в реальном времени с видом сверху: с командного дирижабля «Наковальня» вы собираете роботов из модулей (шасси, оружие, электроника) на своих заводах, отдаёте приказы, вселяетесь в робота и отбиваете Долину Заводов у Ржавой Артели. 5 карт кампании и свободная схватка, рекорды времени, сохранение. Темы retro/modern, RU/EN, офлайн.">
+<meta name="theme-color" content="#0f1216">
+<link rel="canonical" href="https://arcade.hefest.ru/sborka/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="./css/style.css">
+</head><body data-theme="modern">
+<a class="back" id="backLink" href="../" data-catalog-back="1">&larr; Каталог</a>
+<div class="wrap"><canvas id="c" width="640" height="512" aria-label="СБОРКА"></canvas></div>
+<div class="pad">
+  <div class="dpad">
+    <button data-d="U" aria-label="Вверх">▲</button>
+    <button data-d="L" aria-label="Влево">◀</button>
+    <button data-d="R" aria-label="Вправо">▶</button>
+    <button data-d="D" aria-label="Вниз">▼</button>
+  </div>
+  <div class="acts">
+    <button data-act="fire" data-label="pd_fire" aria-label="Огонь">огонь</button>
+    <button data-act="core" data-label="pd_core" aria-label="Ядро">ядро</button>
+    <button data-act="next" data-label="bb_next" aria-label="Следующий робот">следующий</button>
+    <button data-act="poss" data-label="bb_poss" aria-label="Вселиться">вселиться</button>
+    <button data-act="build" data-label="bb_build" aria-label="Конструктор">сборка</button>
+    <button data-pause="1" aria-label="Пауза">II</button>
+  </div>
+</div>
+<div class="foot" id="foot"><b>СБОРКА</b> · WASD — лететь · клик — выбрать робота · 1–5 — приказы · B — конструктор · F — вселиться · P/Esc пауза · L язык, T тема, M звук.</div>
+<script src="./engine.js"></script>
+<script src="./js/music.js"></script>
+<script src="./js/i18n.js"></script>
+<script src="./js/maps.js"></script>
+<script src="./js/game.js"></script>
+<script src="./js/audio.js"></script>
+<script src="./js/modern.js"></script>
+<script src="./js/classic.js"></script>
+<script src="./js/render.js"></script>
+<script src="./js/ui.js"></script>
+<script src="./js/main.js"></script>
+</body></html>
