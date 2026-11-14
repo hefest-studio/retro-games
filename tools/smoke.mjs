@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const games = fs.readdirSync(ROOT, { withFileTypes: true })
-  .filter(d => d.isDirectory() && fs.existsSync(path.join(ROOT, d.name, 'index.html')))
+  .filter(d => d.isDirectory() && !d.name.startsWith('_') && fs.existsSync(path.join(ROOT, d.name, 'index.html'))) // _proto, _shared — служебные
   .map(d => d.name).sort();
 
 let failed = 0, checkedJs = 0;
