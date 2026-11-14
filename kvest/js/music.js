@@ -6,12 +6,12 @@
   'use strict';
   A.tracks = A.tracks || {};
   A.tracks.kvest = {
-    bpm: 72, div: 2, vol: 0.45, lead: { retro: 'triangle', modern: 'triangle' },
+    bpm: 92, div: 2, vol: 0.45, lead: { retro: 'triangle', modern: 'triangle' },
     melody: [
       'G4 - - - Bb4 - - . | Eb5 - - - D5 - Bb4 . | C5 - - - - - G4 . | Ab4 - - - G4 - - .',
       'Eb4 - G4 - Bb4 - - . | C5 - - - Bb4 - Ab4 . | G4 - - - F4 - Eb4 . | F4 - - - - - - .'
     ],
     bass: 'Eb2 - - - Bb2 - - - | C2 - - - G2 - - - | Ab1 - - - Eb2 - - - | Bb1 - - - F2 - - -',
-    drums: '. . . . h . . . | . . . . . . h .'
+    drums: 'h . h . h . h . | . h . h h . h .'
   };
 })(window.Arcade = window.Arcade || {});
