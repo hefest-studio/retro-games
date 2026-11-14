@@ -78,7 +78,7 @@
     ctx.fillStyle = '#0a0f07'; ctx.fillRect(X, 0, W, K.VIEW_H);
     ctx.fillStyle = '#1c2a12'; ctx.fillRect(X, 0, 2, K.VIEW_H);
     var cx = X + 20;
-    hud(ctx, 'РЕДУТ', cx, 44, '#fff', 26);
+    hud(ctx, t('title'), cx, 44, '#fff', 26);
     hud(ctx, t('sub'), cx, 64, PAL.green || PAL.p1, 12);
     hud(ctx, t('level') + ' ' + (st.stage + 1) + '/3', cx, 104, PAL.accent, 18);
     hud(ctx, t('score'), cx, 140, PAL.muted, 12); hud(ctx, '' + st.score, cx, 160, PAL.gold, 20);

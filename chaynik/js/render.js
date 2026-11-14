@@ -691,7 +691,7 @@
       ctx.save(); ctx.translate(hx, hy - 74 + Math.sin(time * 2) * 2);
       ctx.fillStyle = lg(ctx, -22, -24, 22, 24, [[0, '#f6ead0'], [1, '#d6c39a']]); rr(ctx, -22, -26, 44, 50, 10); ctx.fill(); ctx.strokeStyle = col('#b8a172', E.n); ctx.lineWidth = 1; ctx.stroke();
       ctx.fillStyle = col('rgba(120,70,30,.25)', E.n); for (var dd = 0; dd < 9; dd++) circ(ctx, -14 + hash(dd, 1) * 28, -16 + hash(dd, 2) * 34, 1.6, col('rgba(120,70,30,.4)', E.n));
-      line(ctx, 0, -26, 0, -40, col('#e9e2cf', E.w), 1); ctx.fillStyle = col('#e2413a', E.R); ctx.fillRect(-7, -48, 14, 9); ctx.fillStyle = '#fff'; ctx.font = 'bold 7px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('Г', 0, -41);
+      line(ctx, 0, -26, 0, -40, col('#e9e2cf', E.w), 1); ctx.fillStyle = col('#e2413a', E.R); ctx.fillRect(-7, -48, 14, 9); ctx.fillStyle = '#fff'; ctx.font = 'bold 7px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(g.i18n.lang === 'ru' ? 'Г' : 'H', 0, -41);
       ctx.restore();
     } else { FX.add(hx, hy - 74, { n: 0 }); }
     kettle(ctx, hx, hy + 6, { face: 1, t: time, pose: dead ? 'jump' : 'fly', aim: 'f', firing: F.firing, heat: S.heat, over: S.over, inv: F.inv, death: dead ? { kind: 'pop', t: dt2 } : null });

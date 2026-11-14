@@ -2664,7 +2664,7 @@ function applyStaticI18n() {
     UI.btnLang.setAttribute('aria-label', UI.btnLang.title);
   }
   document.documentElement.lang = lang === 'ru' ? 'ru' : 'en';
-  document.title = lang === 'ru' ? 'ОБВАЛ · Шахта самоцветов' : 'ОБВАЛ · Gem Shaft';
+  document.title = lang === 'ru' ? 'ОБВАЛ · Шахта самоцветов' : 'OBVAL · Gem Shaft';
 }
 
 function updateGraphicsUI() {
@@ -2763,7 +2763,7 @@ function renderOverlay(screen) {
       <div class="menu-screen">
         <div class="menu-copy">
           <div class="kicker"><i class="live-dot"></i> ${t('menu.kicker')}</div>
-          <h1 class="game-title">ОБ<br><em>ВАЛ</em></h1>
+          <h1 class="game-title">${lang === 'en' ? 'OB<br><em>VAL</em>' : 'ОБ<br><em>ВАЛ</em>'}</h1>
           <div class="game-subtitle">${t('brand.sub')}</div>
           <p class="lede">${t('menu.lede')}</p>
           <div class="menu-actions">
@@ -3161,6 +3161,7 @@ function init() {
     toggleLanguage: () => setLanguage(lang === 'ru' ? 'en' : 'ru'),
     setGraphics,
     setLanguage,
+    getLanguage: () => lang,
     validateLevels,
     debug: {
       S, Particles, Sound, GFX, loadLevel, completeLevel, killPlayer, startRun,

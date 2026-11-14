@@ -209,6 +209,8 @@ const I18N = {
 };
 let LANG = 'ru';
 const t = key => (I18N[LANG] && I18N[LANG][key]) || (I18N.ru[key] || key);
+const BRAND = () => (LANG === 'en' ? 'VIHR' : 'ВИХРЬ');            // имя игры на канве — по языку
+const STUDIO = () => (LANG === 'en' ? 'HEFEST ARCADE' : 'ГЕФЕСТ ARCADE');
 
 /* -------------------------------------------------------------------------
    3. Настройки, рекорд и локальное хранилище
@@ -462,14 +464,14 @@ function setGfx(mode, silent) {
   document.body.classList.toggle('modern', GFX === 'modern');
   document.body.classList.toggle('retro', GFX === 'retro');
   const chip = document.getElementById('chip-mode');
-  if (chip) chip.innerHTML = '<span class="dot"></span><b>' + (GFX === 'modern' ? (LANG === 'ru' ? 'СОВР.' : 'MODERN') : '8-БИТ') + '</b> ' + (LANG === 'ru' ? 'ГРАФИКА' : 'GFX');
+  if (chip) chip.innerHTML = '<span class="dot"></span><b>' + (GFX === 'modern' ? (LANG === 'ru' ? 'СОВР.' : 'MODERN') : (LANG === 'ru' ? '8-БИТ' : '8-BIT')) + '</b> ' + (LANG === 'ru' ? 'ГРАФИКА' : 'GFX');
   if (!silent) toast((LANG === 'ru' ? 'Графика: ' : 'Graphics: ') + (GFX === 'modern' ? (LANG === 'ru' ? 'современная' : 'modern') : '8-bit'));
   resize();
 }
 function setLang(lang, silent) {
   LANG = lang === 'en' ? 'en' : 'ru';
   document.documentElement.lang = LANG;
-  document.title = LANG === 'ru' ? 'ВИХРЬ · Над полем боя — HTML5' : 'ВИХРЬ · HTML5';
+  document.title = LANG === 'ru' ? 'ВИХРЬ · Над полем боя — HTML5' : 'VIHR · HTML5';
   const chip = document.querySelector('.chips .chip:nth-child(2) b');
   if (chip) chip.textContent = LANG.toUpperCase();
   document.querySelectorAll('[data-ru]').forEach(el => {
@@ -477,7 +479,7 @@ function setLang(lang, silent) {
     if (ru !== null && en !== null) el.textContent = LANG === 'ru' ? ru : en;
   });
   const cvEl = document.getElementById('game');
-  if (cvEl) cvEl.setAttribute('aria-label', LANG === 'ru' ? 'ВИХРЬ — игра' : 'ВИХРЬ — game');
+  if (cvEl) cvEl.setAttribute('aria-label', LANG === 'ru' ? 'ВИХРЬ — игра' : 'VIHR — game');
   setGfx(GFX, true);
   if (!silent) toast(LANG === 'ru' ? 'Язык: русский' : 'Language: English');
   resize();
@@ -2944,7 +2946,7 @@ function drawTitle() {
     ctx.fillRect(0, 0, W, TOP);
     ctx.fillStyle = '#ffd166';
     ctx.fillRect(0, TOP - 1, W, 1);
-    label('ВИХРЬ', 5, 5, { size: 8, color: '#ffd166' });
+    label(BRAND(), 5, 5, { size: 8, color: '#ffd166' });
     label(t('hi') + ' ' + fmtScore(G.hi), W - 5, 5, { size: 8, color: '#ffd166', align: 'right' });
   } else {
     const g = ctx.createLinearGradient(0, 0, 0, TOP);
@@ -2956,20 +2958,20 @@ function drawTitle() {
     ctx.strokeStyle = '#39e7ff'; ctx.globalAlpha = 0.35; ctx.shadowColor = '#39e7ff'; ctx.shadowBlur = 8;
     ctx.beginPath(); ctx.moveTo(0, TOP - 0.5); ctx.lineTo(W, TOP - 0.5); ctx.stroke();
     ctx.restore();
-    label('ВИХРЬ // ARCADE ARCHIVE', 6, 5, { size: 5, color: 'rgba(170,200,235,.8)', spacing: 1.6 });
+    label(BRAND() + ' // ARCADE ARCHIVE', 6, 5, { size: 5, color: 'rgba(170,200,235,.8)', spacing: 1.6 });
     label(t('hi') + ' ' + fmtScore(G.hi), W - 6, 5, { size: 5.5, color: '#ffd166', align: 'right', spacing: 1.2 });
   }
   // логотип
   if (GFX === 'retro') {
-    label('ВИХРЬ', W / 2 + 2, 30, { size: 30, color: '#5b1320', align: 'center' });
-    label('ВИХРЬ', W / 2 + 1, 29, { size: 30, color: '#ff7a3d', align: 'center' });
-    label('ВИХРЬ', W / 2, 28, { size: 30, color: '#ffd166', align: 'center' });
+    label(BRAND(), W / 2 + 2, 30, { size: 30, color: '#5b1320', align: 'center' });
+    label(BRAND(), W / 2 + 1, 29, { size: 30, color: '#ff7a3d', align: 'center' });
+    label(BRAND(), W / 2, 28, { size: 30, color: '#ffd166', align: 'center' });
     ctx.fillStyle = '#ffd166';
     ctx.fillRect(W / 2 - 62, 58, 124, 1);
     ctx.fillStyle = 'rgba(255,209,102,.35)';
     ctx.fillRect(W / 2 - 42, 60, 84, 1);
-    label('ВИХРЬ', W / 2, 63, { size: 12, color: '#9fe8ff', align: 'center' });
-    label('ГЕФЕСТ ARCADE', W / 2, 80, { size: 8, color: '#a9b6c8', align: 'center' });
+    label(BRAND(), W / 2, 63, { size: 12, color: '#9fe8ff', align: 'center' });
+    label(STUDIO(), W / 2, 80, { size: 8, color: '#a9b6c8', align: 'center' });
   } else {
     ctx.save();
     ctx.textAlign = 'center';
@@ -2978,9 +2980,9 @@ function drawTitle() {
     if ('letterSpacing' in ctx) { try { ctx.letterSpacing = '1.5px'; } catch (e) { /* ignore */ } }
     ctx.globalAlpha = 0.5;
     ctx.fillStyle = '#39e7ff';
-    ctx.fillText('ВИХРЬ', W / 2 - 1.8, 44);
+    ctx.fillText(BRAND(), W / 2 - 1.8, 44);
     ctx.fillStyle = '#ff2f9c';
-    ctx.fillText('ВИХРЬ', W / 2 + 1.8, 44);
+    ctx.fillText(BRAND(), W / 2 + 1.8, 44);
     ctx.globalAlpha = 1;
     const lg = ctx.createLinearGradient(0, 28, 0, 58);
     lg.addColorStop(0, '#e9fdff');
@@ -2990,10 +2992,10 @@ function drawTitle() {
     ctx.shadowColor = 'rgba(57,231,255,.65)';
     ctx.shadowBlur = 18;
     ctx.fillStyle = lg;
-    ctx.fillText('ВИХРЬ', W / 2, 44);
+    ctx.fillText(BRAND(), W / 2, 44);
     ctx.restore();
-    label('ВИХРЬ', W / 2, 63, { size: 9, color: '#cfe9ff', align: 'center', spacing: 4, alpha: 0.95 });
-    label('ГЕФЕСТ ARCADE', W / 2, 75, { size: 5.5, color: 'rgba(160,185,220,.8)', align: 'center', spacing: 2.6 });
+    label(BRAND(), W / 2, 63, { size: 9, color: '#cfe9ff', align: 'center', spacing: 4, alpha: 0.95 });
+    label(STUDIO(), W / 2, 75, { size: 5.5, color: 'rgba(160,185,220,.8)', align: 'center', spacing: 2.6 });
   }
   // меню
   const items = menuItems();

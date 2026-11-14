@@ -209,7 +209,7 @@
 
   var en = {
     /* ---------- app ---------- */
-    'app.title': 'НЕОН × ЯРОСТЬ',
+    'app.title': 'NEON × YAROST',
     'app.subtitle': 'NEON YAROST',
     'app.tribute': 'an original by Hefest studio',
     'app.footer': 'Canvas 2D · WebAudio · one HTML file',

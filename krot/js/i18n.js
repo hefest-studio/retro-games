@@ -142,7 +142,7 @@
       rotateHint: 'Поверните устройство — так удобнее'
     },
     en: {
-      appTitle: 'КРОТ',
+      appTitle: 'KROT',
       appTagline: 'Dig. Loot. Survive.',
       play: 'Play',
       start: 'Start game',

@@ -18,16 +18,16 @@ canvas{width:100%;display:block;border:1px solid #243824;border-radius:10px;back
 .pad button{height:54px;background:#1a2a1c;border:1px solid #2c422c;border-radius:12px;color:#eef2f8;font-size:20px;font-weight:800}
 .pad button:active{background:#243824}
 .foot{color:#5a7a5a;font-size:11px;margin:2px 12px 16px;text-align:center;max-width:620px}
-a.back{position:fixed;left:10px;top:8px;color:#5a7a5a;font-size:12px;text-decoration:none}
+a.back{position:fixed;z-index:60;left:10px;top:8px;color:#5a7a5a;font-size:12px;text-decoration:none}
 @media(min-width:760px){.pad{display:none}}
 </style></head><body>
-<a class="back" href="../">← Каталог</a>
+<a data-catalog-back="1" class="back" href="../" data-en="← Catalog">← Каталог</a>
 <div class="wrap"><canvas id="c" width="960" height="600" aria-label="КОЛОБОК"></canvas></div>
 <div class="pad">
   <button data-d="L">◀</button><button data-d="R">▶</button>
   <button data-d="U">⤒</button><button id="bUse">✦</button>
 </div>
-<div class="foot"><b>КОЛОБОК</b> · ◀▶ катись, ↑/W/пробел — прыжок, E/↓/✦ — применить, P — пауза · L язык, T тема, M звук.</div>
+<div class="foot" data-en="&lt;b&gt;KOLOBOK&lt;/b&gt; · ◀▶ roll, ↑/W/space — jump, E/↓/✦ — use, P — pause · L language, T theme, M sound."><b>КОЛОБОК</b> · ◀▶ катись, ↑/W/пробел — прыжок, E/↓/✦ — применить, P — пауза · L язык, T тема, M звук.</div>
 <script src="./engine.js"></script>
 <script src="./js/music.js"></script>
 <script src="./js/i18n.js"></script>

@@ -20,16 +20,16 @@ canvas{width:100%;display:block;border:1px solid #1d2742;border-radius:10px;back
 .pad .u{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
 .pad .dl{grid-column:4;grid-row:2;font-size:15px}.pad .dr{grid-column:5;grid-row:2;font-size:15px}.pad .ps{grid-column:5;grid-row:1}
 .foot{color:#5f6c8c;font-size:11px;margin:2px 12px 16px;text-align:center;max-width:900px}
-a.back{position:fixed;left:10px;top:8px;color:#5f6c8c;font-size:12px;text-decoration:none}
+a.back{position:fixed;z-index:60;left:10px;top:8px;color:#5f6c8c;font-size:12px;text-decoration:none}
 @media(min-width:760px){.pad{display:none}}
 </style></head><body>
-<a class="back" href="../">← Каталог</a>
+<a data-catalog-back="1" class="back" href="../" data-en="← Catalog">← Каталог</a>
 <div class="wrap"><canvas id="c" width="896" height="560" aria-label="ПОДКОП"></canvas></div>
 <div class="pad">
   <button class="u" data-d="U">▲</button><button class="l" data-d="L">◀</button><button class="d" data-d="D">▼</button><button class="r" data-d="R">▶</button>
   <button class="dl" id="bDigL">⛏◀</button><button class="dr" id="bDigR">▶⛏</button><button class="ps" id="bPause">II</button>
 </div>
-<div class="foot"><b>ПОДКОП</b> · ← → ↑ ↓ / WASD — бег и лестницы · Z/Q — копать влево, X/E — копать вправо, пробел — копать по взгляду · P/Esc пауза · L язык, T тема, M звук.</div>
+<div class="foot" data-en="&lt;b&gt;PODKOP&lt;/b&gt; · ← → ↑ ↓ / WASD — run and ladders · Z/Q — dig left, X/E — dig right, space — dig where you face · P/Esc pause · L language, T theme, M sound."><b>ПОДКОП</b> · ← → ↑ ↓ / WASD — бег и лестницы · Z/Q — копать влево, X/E — копать вправо, пробел — копать по взгляду · P/Esc пауза · L язык, T тема, M звук.</div>
 <script src="./engine.js"></script>
 <script src="./js/music.js"></script>
 <script src="./js/store-migrate.js"></script>

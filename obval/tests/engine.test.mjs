@@ -52,7 +52,7 @@ async function open(hash = '', init = null) {
   await wait(300);
   return { p, close: () => ctx.close() };
 }
-const st = (p) => p.evaluate(() => { const h = window.__arcadeHost, B = window.OBVAL, S = B.debug.S; return { scene: h.g._sceneName, theme: h.g.themeName, lang: h.g.i18n.lang, sound: h.g.audio.enabled, best: h.g.state.best, mode: S.screen, gfx: B.debug.GFX.mode, glang: document.documentElement.lang, muted: !B.debug.Sound.musicOn && !B.debug.Sound.sfxOn, overlay: getComputedStyle(document.getElementById('overlay')).display }; });
+const st = (p) => p.evaluate(() => { const h = window.__arcadeHost, B = window.OBVAL, S = B.debug.S; return { scene: h.g._sceneName, theme: h.g.themeName, lang: h.g.i18n.lang, sound: h.g.audio.enabled, best: h.g.state.best, mode: S.screen, gfx: B.debug.GFX.mode, glang: B.getLanguage ? B.getLanguage() : document.documentElement.lang, muted: !B.debug.Sound.musicOn && !B.debug.Sound.sfxOn, overlay: getComputedStyle(document.getElementById('overlay')).display }; });
 // ждать, пока состояние (st) не удовлетворит условию; по таймауту — ошибка с последним состоянием
 async function until(p, pred, what = 'таймаут', ms = 10000) {
   const t0 = Date.now(); let s;

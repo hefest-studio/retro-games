@@ -4,7 +4,7 @@
  * настройки: язык/тема/звук), сцены, сетка, частицы, HUD, счёт+рекорд (localStorage по игре).
  * Встроены критерии: проходимость (win/lose+финал, difficulty), играбельность (отклик, фидбек),
  * непресность (нарастание). Игры самодостаточны: build.sh копирует файл в игру. API — README.
- * (c) Студия «Гефест». v2.2.0 (API пунктов меню g.menu, ввод по игрокам g.input.player(i) + g.usePlayers, g.input.touchOnly)
+ * (c) Студия «Гефест». v2.3.0 (единое правило языка ?lang= → arcade.lang → ru, перевод DOM по data-en; v2.2: g.menu, g.input.player(i), g.usePlayers, touchOnly)
  */
 (function (global) {
   'use strict';
@@ -18,16 +18,43 @@
   };
 
   // ---------- i18n ----------
+  // Единое правило языка всех игр (v2.3): 1) параметр адреса ?lang=en|ru — приоритет, сохраняется в arcade.lang
+  // (EN-страницы каталога ссылаются на игры с ?lang=en); 2) сохранённый выбор arcade.lang; 3) язык игры по умолчанию
+  // (opts.lang), иначе 'ru'. Смена языка (L / меню) переводит и DOM: элементы с data-en (+ data-ru — исходный текст;
+  // если data-ru нет, им становится исходная разметка элемента), <html lang>.
+  var LANGS = { ru: 1, en: 1 };
+  function urlLang() {
+    try { var m = /[?&]lang=([a-z]{2})(?:[&#]|$)/i.exec((global.location && global.location.search) || ''); var v = m && m[1].toLowerCase(); return LANGS[v] ? v : null; } catch (e) { return null; }
+  }
+  function resolveLang(def) {
+    var u = urlLang(); if (u) { Store.set('arcade.lang', u); return u; }
+    var s = Store.get('arcade.lang', null); if (LANGS[s]) return s;
+    return LANGS[def] ? def : 'ru';
+  }
   function I18n(tables, lang) {
     this.tables = tables || { ru: {}, en: {} };
-    this.lang = lang || Store.get('arcade.lang', 'ru');
+    this.lang = resolveLang(lang);
+    this.applyDom();
   }
   I18n.prototype.t = function (key, fallback) {
     var tb = this.tables[this.lang] || {};
     return tb[key] != null ? tb[key] : (fallback != null ? fallback : key);
   };
-  I18n.prototype.set = function (lang) { this.lang = lang; Store.set('arcade.lang', lang); };
+  I18n.prototype.has = function (key, lang) { var tb = this.tables[lang || this.lang]; return !!tb && tb[key] != null; };
+  I18n.prototype.set = function (lang) { this.lang = lang; Store.set('arcade.lang', lang); this.applyDom(); };
   I18n.prototype.toggle = function () { this.set(this.lang === 'ru' ? 'en' : 'ru'); return this.lang; };
+  I18n.prototype.applyDom = function () {
+    if (!doc || !doc.querySelectorAll) return; var lang = this.lang;
+    try {
+      if (doc.documentElement) doc.documentElement.lang = lang;
+      var els = doc.querySelectorAll('[data-en]');
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i]; if (el.getAttribute('data-ru') == null) el.setAttribute('data-ru', el.innerHTML);
+        var v = el.getAttribute(lang === 'en' ? 'data-en' : 'data-ru'); if (v != null && el.innerHTML !== v) el.innerHTML = v;
+      }
+    } catch (e) {}
+  };
+  I18n.resolve = resolveLang; I18n.urlLang = urlLang;
 
   // ---------- Темы (retro / modern). modern — основная (вместо неона). ----------
   var THEMES = {
@@ -523,6 +550,9 @@
   // Меню: title/pause/settings + помощники проходимости
   Engine.prototype.useStandardScreens = function (cfg) {
     cfg = cfg || {}; var self = this; this._allowNeon = !!cfg.neon;
+    // заголовок/подзаголовок заставки: cfg.title/subtitle (как раньше), но в не-RU языке строка таблицы
+    // (strings.en.title / .subtitle) важнее литерала из cfg — игры передают сюда русский текст.
+    var loc = function (k) { return (self.i18n.lang !== 'ru' && self.i18n.has(k)) ? self.t(k) : cfg[k]; };
     var startPlay = function () { self.state.score = 0; self.state.lives = cfg.lives || 3; self.state.level = 1; self.goto('play'); };
     var titleMenu = new Menu([
       { key: 'play', label: function () { return self.t('play', 'Играть'); }, onSelect: startPlay },
@@ -531,7 +561,7 @@
       { key: 'sound', label: function () { return (self.t('sound', 'Звук') + ': ' + (self.audio.enabled ? self.t('on', 'вкл') : self.t('off', 'выкл'))); }, onSelect: function () { self.audio.toggle(); } },
     ]);
     this.scene('title', { realtime: true, _menu: titleMenu, enter: function () { this.audio.beep(520, 0.08); },
-      draw: function () { this.clear(); this.text(cfg.title || this.t('title', 'ИГРА'), this.W / 2, this.H / 2 - 70, { size: Math.min(40, this.W / 9), align: 'center', color: this.th().accent }); if (cfg.subtitle) this.text(cfg.subtitle, this.W / 2, this.H / 2 - 42, { size: 13, align: 'center', color: this.th().muted, weight: 600 }); titleMenu.draw(this, this.W / 2, this.H / 2, 30); if (this.state.best) this.text((this.t('best', 'Рекорд')) + ': ' + this.state.best, this.W / 2, this.H - 20, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); this.menu._drawHint('title'); } });
+      draw: function () { this.clear(); var tl = loc('title'), st = loc('subtitle'); this.text(tl || this.t('title', 'ИГРА'), this.W / 2, this.H / 2 - 70, { size: Math.min(40, this.W / 9), align: 'center', color: this.th().accent }); if (st) this.text(st, this.W / 2, this.H / 2 - 42, { size: 13, align: 'center', color: this.th().muted, weight: 600 }); titleMenu.draw(this, this.W / 2, this.H / 2, 30); if (this.state.best) this.text((this.t('best', 'Рекорд')) + ': ' + this.state.best, this.W / 2, this.H - 20, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); this.menu._drawHint('title'); } });
     this.menu._register('title', titleMenu);
     var pauseMenu = new Menu([
       { key: 'resume', label: function () { return self.t('resume', 'Продолжить'); }, onSelect: function () { self.goto('play', { resume: true }); } },
@@ -592,7 +622,7 @@
 
   // Arcade.tracks[gameId] = track — так js/music.js игры регистрирует свою мелодию до createGame.
   var Arcade = (global.Arcade && global.Arcade.tracks) ? global.Arcade : {};
-  Object.assign(Arcade, { createGame: function (o) { return new Engine(o); }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, version: '2.2.0' });
+  Object.assign(Arcade, { createGame: function (o) { return new Engine(o); }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, version: '2.3.0' });
   Arcade.tracks = Arcade.tracks || {};
   if (typeof module !== 'undefined' && module.exports) module.exports = Arcade;
   global.Arcade = Arcade;

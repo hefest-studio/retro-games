@@ -1015,7 +1015,7 @@
     txt(ctx, up(tr('hiscore')), 936, 9, 15, C.ltGray, 'right', alpha);
     txt(ctx, hi, 936, 27, 27, C.ltGreen, 'right', alpha);
     // «бренд» по центру
-    txt(ctx, 'КРОТ', 480, 15, 21, C.mag, 'center', alpha);
+    txt(ctx, tr('appTitle'), 480, 15, 21, C.mag, 'center', alpha);
     txt(ctx, '\u25C6', 480 - 73, 17, 15, C.cyan, 'center', alpha);
     txt(ctx, '\u25C6', 480 + 73, 17, 15, C.cyan, 'center', alpha);
 

@@ -1,4 +1,4 @@
-# Гефест Arcade — фреймворк (v2.2) · engine.js + host.js
+# Гефест Arcade — фреймворк (v2.3) · engine.js + host.js
 
 `engine.js` — vanilla JS, **0 зависимостей**. Расширен из микро-движка (v1) в фреймворк с общими
 системами, которые игры дублировали. Критерии проходимость/играбельность/непресность — встроены.
@@ -6,7 +6,15 @@
 ## Системы
 - **Цикл:** фикс-шаг (детерминированно) + realtime; `g.scene(name,{realtime,enter,update(dt),draw(ctx),press(a)})`.
 - **Ввод (унифиц.):** клавиатура WASD/стрелки + тач-дпад `g.input.bindDpad(root)`; `g.input.dir`, `pressed`, `onPress`. Space=action, Enter=start, P/Esc=pause, M=mute, L=lang, T=theme. Ввод по игрокам (кооп) и `g.input.touchOnly` — раздел «v2.2» ниже.
-- **i18n RU/EN:** `Arcade.createGame({strings:{ru,en}})`, `g.t(key,fallback)`, `g.i18n.toggle()`; язык сохраняется (localStorage `arcade.lang`).
+- **i18n RU/EN:** `Arcade.createGame({strings:{ru,en}})`, `g.t(key,fallback)`, `g.i18n.toggle()`, `g.i18n.has(key)`; язык сохраняется (localStorage `arcade.lang`).
+  **Единое правило выбора языка (v2.3, во всех играх):** 1) параметр адреса `?lang=en|ru` — приоритет, сразу сохраняется в `arcade.lang`
+  (EN-страницы каталога ссылаются на игры как `/<slug>/?lang=en`); 2) иначе сохранённый `arcade.lang`; 3) иначе `opts.lang` игры, иначе **ru**.
+  Неизвестное значение `?lang=` игнорируется. В «оболочках» (`host.js`) движок передаёт язык родной игре через `adapter.setLang` (первый кадр);
+  `#lang=` в адресе оболочки по-прежнему действует только на этот запуск.
+  **Перевод страницы:** элементы с `data-en="…"` движок переключает сам (исходная разметка запоминается в `data-ru`), `<html lang>` следует языку —
+  так переводятся «← Каталог» (`data-en="← Catalog"`) и подсказки `.foot`. Заголовок/подзаголовок заставки в EN берутся из `strings.en.title/subtitle`,
+  даже если в `useStandardScreens({title})` передан русский литерал. Тест: `node _shared/tests/i18n.test.mjs`.
+- **Ссылка «← Каталог» (в каждой игре):** `<a class="back" href="../" data-catalog-back="1" data-en="← Catalog">← Каталог</a>`, стиль `position:fixed` + `z-index` выше canvas и тач-кнопок; видна и в игре (в оболочках в `play` — приглушена `opacity:.6`, но не скрыта). Проверка: `node tools/qa/ux-audit.mjs` (десктоп 1280×720 и iPhone 13 ландшафт).
 - **Темы retro/modern/neon:** `modern` — основная (чистый современный дизайн, вместо неона); `retro` — 8-бит/CGA; `neon` — опциональная (вкл. через `useStandardScreens({neon:true})`). Тема меняет палитру/шрифт/эффекты, НЕ логику: `g.th()` → {bg,panel,ink,muted,accent,good,bad,warn,grid,font,pixel,glow}. `g.setTheme()/toggleTheme()`, сохраняется (`arcade.theme`). Рисование (`clear/text/hud/overlay`) учитывает тему.
 - **Звук:** 8-бит SFX `g.audio.beep(f,d,type,vol)`, `toggle()` (сохраняется). Музыка — см. раздел «Звук/музыка» ниже.
 - **Меню:** `useStandardScreens({title,subtitle,lives,neon})` даёт сцены `title` (меню: Играть/Язык/Тема/Звук + показ рекорда), `pause` (Продолжить/Звук/В меню), `win`, `gameover`. Навигация ↑↓+action и клик/тап. Свои пункты — `g.menu.addItem(…)` (раздел «v2.2»). `Arcade.Menu` — переиспользуемый.
@@ -110,7 +118,7 @@ P1.onPress(name => …); // нажатие действия этого игро�
 | `bootKeep: true` | первый вход в title не сбрасывает игру (её мог запустить `?level=`) | saga, saga-2 |
 | `bootAdopt: true` | игра при загрузке уже в `play`/`sub` (`#demo=`/`#scene=`/`#wave=`) — движок сразу следует за ней | neon-yarost |
 
-Тесты v2.2: `node _shared/tests/input.test.mjs` (меню, игроки, конфликты, touchOnly, usePlayers), `node _shared/tests/host.test.mjs`.
+Тесты v2.2–2.3: `node _shared/tests/i18n.test.mjs` (правило языка), `node _shared/tests/input.test.mjs` (меню, игроки, конфликты, touchOnly, usePlayers), `node _shared/tests/host.test.mjs`.
 
 ## План игр (ремейки на фреймворке с паритетом фич — retro+modern, i18n, звук; неон→modern)
 Старые версии архивировать как `<game>/legacy.html` ПЕРЕД заменой; каждую новую — отдельным протестированным коммитом; аркада всегда рабочая. Эталон первым: **kaskad** или **hrum** (самые компактные: 628 / 759 строк).

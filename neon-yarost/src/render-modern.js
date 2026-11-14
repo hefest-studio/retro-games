@@ -1630,21 +1630,21 @@
      ============================================================ */
   var SIGNS = {
     0: [
-      { sx: 74, y: 30, w: 26, h: 88, text: 'КОМЕТА', style: 'vert', col: C.cyan, hot: '#ffffff', factor: 0.30 },
-      { sx: 262, y: 56, w: 120, h: 28, text: 'АРКАДА', style: 'horiz', col: C.pink, hot: '#ffe0ef', factor: 0.30 },
+      { sx: 74, y: 30, w: 26, h: 88, text: 'КОМЕТА', en: 'COMET', style: 'vert', col: C.cyan, hot: '#ffffff', factor: 0.30 },
+      { sx: 262, y: 56, w: 120, h: 28, text: 'АРКАДА', en: 'ARCADE', style: 'horiz', col: C.pink, hot: '#ffe0ef', factor: 0.30 },
       { sx: 398, y: 100, w: 70, h: 24, text: '24/7', style: 'store', col: C.lime, hot: C.lime2, factor: 0.52 },
       { sx: 414, y: 52, w: 54, h: 18, text: 'NEON', style: 'small', col: C.amber, hot: C.amber2, factor: 0.30 }
     ],
     1: [
-      { sx: 176, y: 26, w: 124, h: 28, text: 'АРКАДА', style: 'horiz', col: C.pink, hot: '#ffe0ef', factor: 0.24 },
+      { sx: 176, y: 26, w: 124, h: 28, text: 'АРКАДА', en: 'ARCADE', style: 'horiz', col: C.pink, hot: '#ffe0ef', factor: 0.24 },
       { sx: 352, y: 52, w: 70, h: 24, text: '24/7', style: 'store', col: C.cyan, hot: C.cyan2, factor: 0.42 },
-      { sx: 52, y: 56, w: 24, h: 62, text: 'ИГРЫ', style: 'vert', col: C.lime, hot: C.lime2, factor: 0.24 },
+      { sx: 52, y: 56, w: 24, h: 62, text: 'ИГРЫ', en: 'GAMES', style: 'vert', col: C.lime, hot: C.lime2, factor: 0.24 },
       { sx: 408, y: 104, w: 60, h: 17, text: 'TOXIC', style: 'small', col: C.violet2, hot: '#ffffff', factor: 0.55 }
     ],
     2: [
-      { sx: 128, y: 70, w: 224, h: 46, text: 'ТОКСИК', style: 'toxic', col: C.pink, hot: '#ffffff', factor: 0.14 },
+      { sx: 128, y: 70, w: 224, h: 46, text: 'ТОКСИК', en: 'TOXIC', style: 'toxic', col: C.pink, hot: '#ffffff', factor: 0.14 },
       { sx: 396, y: 122, w: 70, h: 23, text: '24/7', style: 'store', col: C.violet2, hot: '#ffffff', factor: 0.34 },
-      { sx: 30, y: 44, w: 22, h: 62, text: 'НЕОН', style: 'vert', col: C.cyan, hot: '#ffffff', factor: 0.34 }
+      { sx: 30, y: 44, w: 22, h: 62, text: 'НЕОН', en: 'NEON', style: 'vert', col: C.cyan, hot: '#ffffff', factor: 0.34 }
     ]
   };
 
@@ -1671,6 +1671,8 @@
   }
 
   function drawSign(ctx, s, sx, sy, t, alpha) {
+    // вывеска по языку: в EN — латинский вариант (s.en), если есть
+    if (s.en && window.NR && NR.settings && NR.settings.lang === 'en') s = Object.assign({}, s, { text: s.en });
     var flick = 1;
     var f = hash(s.sx * 1.7 + Math.floor(t * 9) * 0.37);
     if (f > 0.94) flick = 0.4;
@@ -4433,8 +4435,9 @@
     });
 
     // логотип
-    var l1 = 'НЕОН';
-    var l2 = '× ЯРОСТЬ';
+    var en = !!(window.NR && NR.settings && NR.settings.lang === 'en');
+    var l1 = en ? 'NEON' : 'НЕОН';
+    var l2 = en ? '× YAROST' : '× ЯРОСТЬ';
     var s1 = fitSize(ctx, l1, 404, 44, 900, F_DISPLAY, 24);
     var s2 = fitSize(ctx, l2, 404, 40, 900, F_DISPLAY, 22);
     drawPosterLine(ctx, l1, W / 2, 48, {

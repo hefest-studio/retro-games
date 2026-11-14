@@ -20,11 +20,11 @@
   html:not([data-arcade-scene="off"]) .screen-root > section[data-screen="ending"] { display: none !important; }
   a.back { position: fixed; left: 10px; top: 8px; z-index: 70; color: #8a93a8; font: 12px Inter, system-ui, sans-serif; text-decoration: none; }
   a.back:hover { color: #eaf6ff; }
-  body[data-screen="play"] a.back { display: none; } /* в игре не перекрывает HUD; в меню/паузе — видна */
+  body[data-screen="play"] a.back{opacity:.6} /* в игре — приглушена (не спорит с HUD), в меню/паузе — яркая */
   </style>
 </head>
 <body data-screen="boot" class="mode-retro" data-lang="ru">
-  <a class="back" href="../">← Каталог</a>
+  <a data-catalog-back="1" class="back" href="../" data-en="← Catalog">← Каталог</a>
 
   <div id="stage">
     <canvas id="game" width="1024" height="576" role="img"
