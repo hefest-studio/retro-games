@@ -1,0 +1,15 @@
+/* МАЯЧНИЦА · стили страницы (игра рисуется в canvas темой KvestTheme). */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#2b2a29;--panel:#3a3836;--line:#55514c;--ink:#f1ede6;--mut:#b9b3a9;--accent:#f0bf5a}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;-webkit-user-select:none;overflow:hidden}
+.wrap{position:relative;width:min(96vw,1200px);margin-top:30px;display:flex;justify-content:center}
+canvas{display:block;border:1px solid var(--line);border-radius:10px;background:var(--bg);touch-action:none;-webkit-touch-callout:none}
+a.back{position:fixed;left:10px;top:7px;color:var(--mut);font-size:12px;text-decoration:none;font-weight:700;z-index:2}
+a.back:hover{color:var(--accent)}
+#bPause{position:fixed;right:10px;top:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  color:var(--ink);font-size:12px;font-weight:800;padding:4px 10px;z-index:2;cursor:pointer}
+.foot{color:var(--mut);font-size:11px;margin:8px 12px 12px;text-align:center;max-width:860px}
+.foot b{color:var(--ink)}
+@media (max-height:520px) and (orientation:landscape){ .wrap{margin-top:24px} .foot{display:none} }
