@@ -1,0 +1,26 @@
+/* ДЕСАНТ · стили страницы (сама игра рисуется в canvas). Тема страницы — body[data-theme]. */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#11171a;--panel:#182024;--line:#34424a;--ink:#f2f4f2;--mut:#93a0a4;--accent:#ea6a12}
+body[data-theme="retro"]{--bg:#000000;--panel:#000000;--line:#5b6e85;--ink:#f4f4f4;--mut:#c8d4dc;--accent:#ea6a12}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow-x:hidden}
+body[data-theme="retro"]{font-family:"Courier New",ui-monospace,monospace}
+.wrap{position:relative;width:100%;margin-top:30px;display:flex;justify-content:center;padding:0 8px}
+canvas{display:block;width:auto;height:auto;max-width:100%;max-height:calc(100dvh - 92px);border:1px solid var(--line);border-radius:10px;background:var(--bg);touch-action:none}
+body[data-theme="retro"] canvas{border-radius:2px;image-rendering:pixelated}
+a.back{position:fixed;left:10px;top:7px;color:var(--mut);font-size:13px;text-decoration:none;font-weight:700;z-index:5;padding:2px 6px;border-radius:6px;background:color-mix(in srgb,var(--bg) 70%,transparent)}
+a.back:hover{color:var(--accent)}
+.pad{width:min(96vw,520px);margin:10px 0 4px;display:flex;justify-content:space-between;align-items:center;gap:10px;position:relative;z-index:3}
+.pad button{width:64px;height:64px;background:var(--panel);border:1px solid var(--line);border-radius:14px;color:var(--ink);font-size:22px;font-weight:800;touch-action:none;padding:0}
+.pad button:active{filter:brightness(1.5)}
+.stick{width:132px;height:132px;border-radius:50%;background:var(--panel);border:1px solid var(--line);position:relative;touch-action:none;flex:none}
+.stick .knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:var(--line);border:2px solid var(--accent);pointer-events:none}
+.acts{display:flex;gap:10px;align-items:center}
+.acts .fire{width:84px;height:84px;border-radius:50%;border-color:var(--accent);color:var(--accent);font-size:28px}
+.pad .mini{width:44px;height:44px;font-size:14px}
+body[data-theme="retro"] .pad button,body[data-theme="retro"] .stick,body[data-theme="retro"] .stick .knob{border-radius:2px}
+.foot{color:var(--mut);font-size:11px;margin:12px 12px 12px;text-align:center;max-width:820px}
+.foot b{color:var(--ink)}
+@media(hover:none) and (pointer:coarse){canvas{max-height:calc(100dvh - 260px)}.wrap{margin-top:30px}}
+@media(min-width:900px) and (hover:hover){.pad{display:none}}
