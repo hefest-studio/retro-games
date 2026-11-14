@@ -5,10 +5,11 @@ import { makeSolver, solveWidget } from './solver.mjs';
 
 export function playChapter(K, opts = {}) {
   const log = [], events = [];
-  const G = K.createGame({ onEvent: (t, d) => events.push({ t, d }) });
+  // opts.game — уже запущенная игра (например, в браузере — та, что на экране, со всей оболочкой)
+  const G = opts.game || K.createGame({ onEvent: (t, d) => events.push({ t, d }) });
   const LAY = K.ThemeAPI.LAYOUT, SC = {}; K.SCENES.forEach(s => { SC[s.id] = s; });
   let clicks = 0, drags = 0, steps = 0;
-  G.start();
+  if (!opts.game) G.start();
   const plan = opts.plan || makeSolver(K).explore().plan;
   if (!plan) return { won: false, why: 'нет плана' };
 

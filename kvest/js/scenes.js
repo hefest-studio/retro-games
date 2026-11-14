@@ -119,7 +119,7 @@
         { id: 'door', kind: 'door', x: 26, y: 272, w: 70, h: 180, state: { open: true } },
         { id: 'tank', kind: 'machine', x: 120, y: 180, w: 150, h: 272, state: { variant: 'tank' } },
         { id: 'gauge', kind: 'machine', x: 296, y: 246, w: 110, h: 92, state: { variant: 'gauge' } }
-      ].concat(row(3, function (i) { return { id: 'v' + (i + 1), kind: 'lever', x: 302 + i * 40, y: 370, w: 20, h: 48, state: { pips: [1, 2, 4][i] } }; }))
+      ].concat(row(3, function (i) { return { id: 'v' + (i + 1), kind: 'lever', x: 314 + i * 46, y: 370, w: 20, h: 48, state: { pips: [1, 2, 4][i] } }; }))
         .concat([
           { id: 'panel', kind: 'box', x: 446, y: 196, w: 180, h: 150, state: { variant: 'panel' }, bind: { ok: 'w:pipes' } },
           { id: 'spout', kind: 'machine', x: 650, y: 230, w: 52, h: 130, state: { variant: 'spout' }, bind: { drip: 'w:pipes' } },
@@ -131,7 +131,7 @@
         { id: 'toPier', rect: [26, 272, 70, 180], cursor: 'go', at: 60, to: 'pier', toX: 222 },
         { id: 'tank', rect: [120, 180, 150, 272], cursor: 'look', at: 200, look: ['oilcan_full'] },
         { id: 'gauge', rect: [296, 246, 110, 92], cursor: 'look', at: 350, look: ['gauge', 'check'] }
-      ].concat(row(3, function (i) { return { id: 'v' + (i + 1), rect: [296 + i * 40, 362, 32, 62], cursor: 'use', at: 350, look: ['gauge'] }; }))
+      ].concat(row(3, function (i) { return { id: 'v' + (i + 1), rect: [304 + i * 46, 344, 40, 84], cursor: 'use', at: 288, look: ['gauge'] }; }))
         .concat([
           { id: 'panel', rect: [446, 196, 180, 150], cursor: 'use', at: 536 },
           { id: 'spout', rect: [650, 230, 52, 130], cursor: 'use', at: 676 },

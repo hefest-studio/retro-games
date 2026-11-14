@@ -16,7 +16,9 @@
   var HAS_DOM = typeof document !== 'undefined' && !!document.createElement;
   var W = 960, H = 540, TAU = Math.PI * 2;
   var INK = '#1e1915', IVORY = '#f1e8cf', IVORY_D = '#e2d5b3', VERM = '#c63d26';
-  var SS = 2; // суперсэмплинг глифов
+  // подкраска акварелью: цвет-метка из сцены (рычаги крана ↔ части крана) — ключ state.tint или #rgb
+  var WASH = { pin: '#c0442e', boom: '#dca543', hook: '#4f7472' };
+  var SS = 2; // суперсэмплинг глифов: 2 (до RES 2), 3 — на экранах плотнее (HiDPI, см. paper.setResolution)
 
   // ---------- настройка «Анимация штриха» (сохраняется) ----------
   var KEY = 'arcade.kvest.inkAnim', ANIM = null;
@@ -69,6 +71,19 @@
     var p = ell(cx, cy, rx, ry, 30, -2.2, -2.2 + TAU * 1.08); pen(g, p, w, seed, col || VERM);
   }
   function blot(g, x, y, r) { g.beginPath(); g.arc(x, y, r, 0, TAU); g.fillStyle = INK; g.fill(); }
+  // акварельная капля цвета-метки (неровный край, светлая середина) — связывает эскиз с цветом предмета в сцене
+  function wash(g, x, y, c, seed) {
+    var col = WASH[c] || c, R = rng(seed), p = [];
+    for (var i = 0; i < 14; i++) { var a = i / 14 * TAU, r = 11 * (0.85 + R() * 0.3); p.push([x + Math.cos(a) * r, y + Math.sin(a) * r * 0.8]); }
+    g.save(); g.globalAlpha = 0.75; poly(g, p); g.fillStyle = col; g.fill(); g.globalAlpha = 0.9; g.lineWidth = 1.2; g.strokeStyle = col; g.stroke(); g.restore();
+  }
+  // стрелка-флажок над глифом: 'up' — киноварью вверх (поднять/включить), 'down' — тушью вниз (опустить/выключить)
+  function flag(g, x, y, kind, seed) {
+    var save = REV.left; REV.left = Infinity;
+    if (kind === 'up') arrow(g, x, y - 2, x, y - 24, 2.6, seed, VERM);
+    else arrow(g, x, y - 24, x, y - 2, 2.2, seed, INK);
+    REV.left = save;
+  }
   function nib(g, p) { // перо у края проявления
     if (!p) return; g.save(); g.translate(p[0], p[1]); g.rotate(-0.8);
     g.beginPath(); g.moveTo(0, 0); g.lineTo(5, -14); g.lineTo(0, -22); g.lineTo(-5, -14); g.closePath(); g.fillStyle = '#3a3029'; g.fill();
@@ -148,11 +163,14 @@
     var m = 4; src.rect = [r[0] + (x0 - m) / k, r[1] + (y0 - m) / k, (x1 - x0 + 2 * m) / k, (y1 - y0 + 2 * m) / k];
   }
   // ---------- перевод в тушь (попиксельно, кэш по спецификации, высоте и варианту кипения) ----------
-  var GCACHE = new Map();
+  var GCACHE = new Map(), GAREA = 0, GMAX = 4e6;   // бюджет глифов — физические пиксели (≈16 МБ), вытеснение по LRU
+  function syncRes() { var L = lib(), r = L && L.res ? L.res() : 1, ss = r > 2.05 ? 3 : 2; if (ss !== SS) { SS = ss; GCACHE.clear(); GAREA = 0; } }
+  function gArea(e) { var a = 0; e.v.forEach(function (V) { a += V.lines.width * V.lines.height * 2; }); return a; }
   function specKey(spec) { return JSON.stringify(spec); }
   function glyph(spec, hgt) {
+    if (HAS_DOM) syncRes();
     var key = specKey(spec) + '@' + Math.round(hgt), e = GCACHE.get(key);
-    if (e) return e;
+    if (e) { GCACHE.delete(key); GCACHE.set(key, e); return e; }
     var src = sourceOf(spec);
     if (HAS_DOM && src.parts && !src.cropped) cropToInk(src);
     var r = src.rect, sc = hgt / r[3], gw = Math.max(8, r[2] * sc);
@@ -165,7 +183,8 @@
     for (var i = 0; i < n; i++) { var a = d[i * 4 + 3] / 255; Al[i] = a; Lm[i] = a > 0.02 ? (0.3 * d[i * 4] + 0.59 * d[i * 4 + 1] + 0.11 * d[i * 4 + 2]) / 255 : 1; }
     // тени-подложки paper (полупрозрачный тёмный край) не должны становиться штрихом
     for (var v = 0; v < 3; v++) e.v.push(inkify(cw, ch, Lm, Al, v));
-    GCACHE.set(key, e); if (GCACHE.size > 260) GCACHE.delete(GCACHE.keys().next().value);
+    e.area = gArea(e); GCACHE.set(key, e); GAREA += e.area;
+    while ((GAREA > GMAX || GCACHE.size > 260) && GCACHE.size > 1) { var k0 = GCACHE.keys().next().value; GAREA -= GCACHE.get(k0).area || 0; GCACHE.delete(k0); }
     return e;
   }
   function inkify(cw, ch, Lm, Al, v) {
@@ -222,7 +241,9 @@
         if (it.op) drawOp(g, it.op, cx, y, it.w, h, p, seed + i * 17);
         else {
           var gy = y + (h - it.gl.h) / 2; drawGlyph(g, it.gl, cx, gy, p, t);
-          if (it.spec.n && p > 0.6) for (var s = 0; s < it.spec.n; s++) pen(g, [[cx + it.w / 2 - (it.spec.n - 1) * 5 + s * 10, y - 16], [cx + it.w / 2 - (it.spec.n - 1) * 5 + s * 10 + 1, y - 4]], 2.4, seed + 40 + s, VERM);
+          if (it.spec.c && p > 0.3) wash(g, cx + it.w / 2, y - 10, it.spec.c, seed + 30);   // цвет-метка: акварельное пятно над глифом
+          if (it.spec.n && p > 0.6) for (var s = 0; s < it.spec.n; s++) pen(g, [[cx + it.w / 2 - (it.spec.n - 1) * 5 + s * 10, y - 16], [cx + it.w / 2 - (it.spec.n - 1) * 5 + s * 10 + 1, y - 4]], 2.4, seed + 40 + s, it.spec.c ? INK : VERM);
+          if (it.spec.flag && p > 0.6) flag(g, cx + it.w / 2, y, it.spec.flag, seed + 60);   // ↑ поднять / ↓ опустить
           if (it.spec.mark && p >= 0.999) { var save = REV.left; REV.left = Infinity; loop(g, cx + it.w / 2, y + h / 2, it.w / 2 + h * 0.14, it.gl.h / 2 + h * 0.14, 2.6, seed + 77); REV.left = save; }
         }
       }
@@ -367,7 +388,9 @@
   }
 
   // ---------- подключение к теме paper ----------
-  var api = { anim: anim, setAnim: setAnim, drawHint: drawHint, drawWalkbook: drawWalkbook, drawInkThought: drawInkThought, glyph: glyph, hintSeq: hintSeq, sourceOf: sourceOf, KEY: KEY };
+  var api = { anim: anim, setAnim: setAnim, drawHint: drawHint, drawWalkbook: drawWalkbook, drawInkThought: drawInkThought, glyph: glyph, hintSeq: hintSeq, sourceOf: sourceOf, KEY: KEY,
+    cacheStats: function () { return { glyphs: GCACHE.size, px: GAREA, mb: +(GAREA * 4 / 1048576).toFixed(1), ss: SS }; },
+    setCacheBudget: function (px) { GMAX = Math.max(1e6, +px || GMAX); return GMAX; } };
   K.InkSketch = api;
   function attach(th) {
     if (!th || th._inkAttached) return; th._inkAttached = true;

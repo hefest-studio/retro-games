@@ -1,15 +1,30 @@
-/* МАЯЧНИЦА · стили страницы (игра рисуется в canvas темой KvestTheme). */
+/* МАЯЧНИЦА · стили страницы (игра рисуется в canvas темой KvestTheme). Раскладку (размер и место канвы, кнопок, подписи)
+   считает main.js → fit(): кнопки в полях слева/справа или над канвой, с учётом вырезов экрана (safe-area). */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{--bg:#2b2a29;--panel:#3a3836;--line:#55514c;--ink:#f1ede6;--mut:#b9b3a9;--accent:#f0bf5a}
-html,body{background:var(--bg)}
-body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;-webkit-user-select:none;overflow:hidden}
-.wrap{position:relative;width:min(96vw,1200px);margin-top:30px;display:flex;justify-content:center}
-canvas{display:block;border:1px solid var(--line);border-radius:10px;background:var(--bg);touch-action:none;-webkit-touch-callout:none}
-a.back{position:fixed;left:10px;top:7px;color:var(--mut);font-size:12px;text-decoration:none;font-weight:700;z-index:2}
-a.back:hover{color:var(--accent)}
-#bPause{position:fixed;right:10px;top:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;
-  color:var(--ink);font-size:12px;font-weight:800;padding:4px 10px;z-index:2;cursor:pointer}
-.foot{color:var(--mut);font-size:11px;margin:8px 12px 12px;text-align:center;max-width:860px}
+:root{--bg:#2b2a29;--panel:#3a3836;--line:#55514c;--ink:#f1ede6;--mut:#b9b3a9;--accent:#f0bf5a;
+  --sat:env(safe-area-inset-top,0px);--sar:env(safe-area-inset-right,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px)}
+html,body{background:var(--bg);margin:0;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{position:fixed;inset:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+canvas#c{position:absolute;left:0;top:0;display:block;border:1px solid var(--line);border-radius:10px;background:var(--bg);touch-action:none;-webkit-touch-callout:none}
+.btn{position:absolute;z-index:2;display:flex;align-items:center;justify-content:center;gap:4px;min-width:36px;height:36px;padding:0 10px;
+  background:rgba(58,56,54,.88);border:1px solid var(--line);border-radius:10px;color:var(--ink);font:800 13px/1 Inter,system-ui,sans-serif;
+  text-decoration:none;cursor:pointer;touch-action:manipulation}
+.btn:hover,.btn:focus-visible{color:var(--accent);border-color:var(--accent);outline:none}
+a.back{color:var(--mut);font-size:12px}
+body.rails a.back{padding:0}
+body.rails a.back .lbl{display:none}
+#bPause{font-size:12px;padding:0}
+#bFs{padding:0}
+#bFs .fs-out{display:none}#bFs.on .fs-in{display:none}#bFs.on .fs-out{display:inline}
+.btn[hidden]{display:none}
+.foot{position:absolute;color:var(--mut);font-size:11px;line-height:1.35;text-align:center;padding:0 12px}
 .foot b{color:var(--ink)}
-@media (max-height:520px) and (orientation:landscape){ .wrap{margin-top:24px} .foot{display:none} }
+.foot[hidden]{display:none}
+#rotate{position:fixed;inset:0;z-index:5;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  padding:calc(16px + var(--sat)) calc(16px + var(--sar)) calc(16px + var(--sab)) calc(16px + var(--sal));text-align:center}
+#rotate[hidden]{display:none}
+#rotate p{margin:0;max-width:320px}
+#rotate .r1{font-weight:900;font-size:20px;color:var(--accent);margin-top:14px}
+#rotate .r2{font-weight:600;font-size:14px;color:var(--mut)}
+body.portrait .btn,body.portrait .foot{visibility:hidden}

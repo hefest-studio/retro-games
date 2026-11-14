@@ -13,7 +13,7 @@ const store = {};
 const sandbox = { console, Math, JSON, setTimeout: () => 0, localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } } };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-const FILES = ['js/music.js', 'js/i18n.js', 'js/theme-api.js', 'js/scenes.js', 'js/widgets.js', 'js/puzzles.js', 'js/game.js', 'js/audio.js', 'js/themes/grey.js', 'js/themes/paper.js', 'js/themes/ink-sketch.js'];
+const FILES = ['js/music.js', 'js/i18n.js', 'js/edition.js', 'js/stats.js', 'js/theme-api.js', 'js/scenes.js', 'js/widgets.js', 'js/puzzles.js', 'js/game.js', 'js/audio.js', 'js/themes/grey.js', 'js/themes/paper.js', 'js/themes/ink-sketch.js'];
 for (const f of FILES) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const K = sandbox.KVEST, A = K.ThemeAPI, P = K.PUZZLES, LG = K.logic, WT = K.Widgets.types;
 
@@ -322,6 +322,113 @@ if (!process.env.QUICK) {
     ok(r.events.some(e => e.t === 'win'));
   });
 }
+
+
+// ---------- спринт 0: издание (демо/полная), i18n, статистика, тач, HiDPI, подсказки ----------
+const ED = K.Edition;
+test('издание: флаг сборки KVEST_EDITION + параметры ?demo / ?edition=full|demo', () => {
+  ok(ED && (ED.BUILD === 'demo' || ED.BUILD === 'full'), 'нет константы сборки'); ok(typeof ED.MORE_URL === 'string' && ED.MORE_URL.length, 'нет ссылки «Узнать больше»');
+  eq(ED.resolve('', 'demo'), 'demo'); eq(ED.resolve('', 'full'), 'full'); eq(ED.resolve('?demo', 'full'), 'demo'); eq(ED.resolve('?x=1&demo', 'full'), 'demo');
+  eq(ED.resolve('?edition=full', 'demo'), 'full'); eq(ED.resolve('?edition=demo', 'full'), 'demo'); eq(ED.resolve('?demolition', 'full'), 'full', 'ложное срабатывание');
+  eq(K.EDITION, ED.BUILD, 'без параметров — издание сборки');
+});
+test('издание: после финала — демо «Продолжение — в полной версии» (меню + «Узнать больше»), полная — «Глава 2 — скоро» (только меню)', () => {
+  const d = ED.finale('demo'), f = ED.finale('full');
+  eq(d.kind, 'demo'); eq(d.items.join(), 'toMenu,more'); eq(f.kind, 'soon'); eq(f.items.join(), 'toMenu');
+  for (const x of [d, f]) for (const k of [x.title, x.sub].concat(x.items)) for (const L of ['ru', 'en']) ok(K.STR[L][k], L + ': нет строки ' + k);
+  ok(/полной верси/i.test(K.STR.ru.demoTitle) && /full version/i.test(K.STR.en.demoTitle), 'текст демо-экрана'); ok(/Глава 2/.test(K.STR.ru.soonTitle) && /Chapter 2/.test(K.STR.en.soonTitle));
+});
+if (!process.env.QUICK) test('бот проходит главу в обоих изданиях; экран после финала соответствует изданию', () => {
+  for (const ed of ['demo', 'full']) {
+    sandbox.KVEST.EDITION = ed; const r = playChapter(K, { plan: EXP.plan });
+    ok(r.won && r.solved === r.total, ed + ': не прошёл'); ok(r.events.some(e => e.t === 'win'), ed + ': нет события win');
+    eq(ED.finale(K.EDITION).kind, ed === 'demo' ? 'demo' : 'soon', ed);
+  }
+  sandbox.KVEST.EDITION = ED.BUILD;
+});
+test('i18n: полнота RU/EN — каждый ключ, который зовёт оболочка (main.js, edition.js), есть в обоих языках; EN без кириллицы', () => {
+  const ru = K.STR.ru, en = K.STR.en; eq(Object.keys(ru).sort().join(), Object.keys(en).sort().join(), 'разные ключи');
+  for (const k in ru) { ok(String(ru[k]).trim() && String(en[k]).trim(), 'пустая строка ' + k); ok(!/[а-яё]/i.test(en[k]), 'кириллица в EN: ' + k); }
+  const src = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8') + fs.readFileSync(path.join(ROOT, 'js/edition.js'), 'utf8');
+  const used = new Set([...src.matchAll(/\.t\(\s*'([a-zA-Z0-9]+)'/g)].map(m => m[1]).concat([...src.matchAll(/t\((?:[^()]*\?\s*)'([a-zA-Z0-9]+)'\s*:\s*'([a-zA-Z0-9]+)'/g)].flatMap(m => [m[1], m[2]])));
+  ['title', 'subtitle', 'sub2', 'hint', 'hintTouch', 'foot', 'docTitle', 'rotate', 'rotateSub', 'fullscreen', 'fsExit', 'pauseBtn', 'stats', 'win', 'winSub', 'toMenu', 'more', 'demoTitle', 'soonTitle'].forEach(k => used.add(k));
+  ok(used.size >= 25, 'ключей найдено ' + used.size);
+  for (const k of used) ok(ru[k] && en[k], 'нет строки ' + k);
+  // меню движка: встроенные ключи
+  ['play', 'language', 'sound', 'on', 'off', 'pause', 'resume', 'menu', 'tapstart', 'win'].forEach(k => ok(ru[k] && en[k], 'движок: ' + k));
+  eq(K.TITLE.en, en.title, 'EN-название — одна константа'); ok(en.foot.includes(K.TITLE.en) && en.docTitle.includes(K.TITLE.en));
+});
+test('i18n: язык по системе (navigator.language) — ru/be/uk/kk → RU, иначе EN; сохранённый выбор важнее', () => {
+  eq(K.pickLang(null, ['ru-RU']), 'ru'); eq(K.pickLang(null, ['uk']), 'ru'); eq(K.pickLang(null, ['en-US', 'ru']), 'en'); eq(K.pickLang(null, ['de-DE']), 'en');
+  eq(K.pickLang('ru', ['en-US']), 'ru'); eq(K.pickLang('en', ['ru-RU']), 'en'); eq(K.pickLang('xx', ['fr']), 'en'); eq(K.pickLang(null, []), 'ru');
+});
+test('i18n: длинные EN-строки помещаются в панели меню (оценка ширины шрифта 17px ≤ 440 логических пикселей)', () => {
+  const w = s => [...String(s)].reduce((a, ch) => a + (/[A-ZА-ЯЁMWmw]/.test(ch) ? 11.5 : /[ .,:·'il|!]/.test(ch) ? 4.5 : 9.2), 0);
+  for (const L of ['ru', 'en']) {
+    const S = K.STR[L];
+    [S.play, S.cont + ' · 26 / 26', S.language + ': EN', S.sound + ': ' + S.off, S.inkAnim + ': ' + S.off, S.walk, S.restart, S.menu, S.resume, S.stats, S.toMenu, S.more].forEach(s => ok(w(s) + 20 <= 440, L + ': длинный пункт «' + s + '» ' + Math.round(w(s))));
+  }
+});
+test('статистика: время по сценам, подсказки, ошибки, головоломки; сохраняется локально и продолжается; экспорт — JSON', () => {
+  const mem = {}, st = { getItem: k => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } };
+  const S = K.Stats.create({ store: st }); S.begin(false, { edition: 'demo' });
+  const tk = (sec, on) => { for (let i = 0; i < Math.round(sec * 10); i++) S.tick(0.1, on); };
+  S.event('scene', { id: 'workshop' }); tk(2, true); tk(5, false); S.event('hint', { how: 'free' }); S.event('error', { kind: 'item' });
+  S.event('scene', { id: 'square' }); tk(1.5, true); S.event('hint', { how: 'game' }); S.event('error', { kind: 'combo' }); S.event('look', {}); S.event('puzzle', { id: 'p_well' });
+  const m = S.summary(); eq(m.time, 4); eq(m.hints.total, 2); eq(m.hints.free, 1); eq(m.hints.game, 1); eq(m.errors.total, 2); eq(m.solved, 1); eq(m.looks, 1);
+  const ws = m.rows.find(r => r.id === 'workshop'); eq(ws.time, 2); eq(ws.hints, 1); eq(ws.errors, 1);
+  S.flush(); ok(mem[K.Stats.KEY], 'не сохранилось');
+  const S2 = K.Stats.create({ store: st }); S2.begin(true, {}); eq(S2.data().sessions, 2, 'продолжение'); eq(Math.round(S2.data().time), 4);
+  S2.event('win', {}); ok(S2.data().finished); const j = JSON.parse(S2.exportJSON({ x: 1 })); ok(j.summary && j.scenes.square && j.extra.x === 1 && j.exported);
+  const S3 = K.Stats.create({ store: st }); S3.begin(false, {}); eq(S3.data().time, 0, 'новая игра — новая статистика');
+  eq(K.Stats.fmt(75), '1:15');
+});
+test('статистика: никакой отправки наружу — в оболочке и модулях нет сетевых API', () => {
+  for (const f of ['js/stats.js', 'js/main.js', 'js/edition.js', 'js/game.js', 'js/i18n.js']) {
+    const src = fs.readFileSync(path.join(ROOT, f), 'utf8'); ok(!/\bfetch\s*\(|XMLHttpRequest|sendBeacon|WebSocket|EventSource|navigator\.share|new\s+Image\s*\(/.test(src), f + ': сетевой API');
+  }
+});
+test('игра шлёт события для статистики: ошибка предмета/комбинации/механизма, осмотр, подсказка с типом', () => {
+  const { G, ev } = fresh(); const st = G.state(); st.inv.push('rope', 'bread'); st.flags.got_rope = true;
+  G.combine('rope', 'bread'); ok(ev.some(e => e.t === 'error' && e.d.kind === 'combo'), 'combo');
+  const sl = A.slotRect(0); G.down(sl[0] + 10, sl[1] + 10); G.up(sl[0] + 10, sl[1] + 10); tapHs(G, 'stool'); run(G, 3); ok(ev.some(e => e.t === 'error' && e.d.kind === 'item'), 'item');
+  G.look(395, 150); ok(ev.some(e => e.t === 'look'), 'look');
+  G.hint(); ok(ev.some(e => e.t === 'hint' && e.d.how === 'free'), 'hint how');
+  const { G: G3, ev: ev3 } = fresh(); const s3 = G3.state(); s3.flags.towerOpen = true; s3.scene = 'stairs'; G3.load(G3.serialize()); tapHs(G3, 'chimes'); run(G3, 4);
+  const wm = P.widgets.find(x => x.id === 'melody'), wrong = [0, 1, 2, 3, 4].find(i => i !== wm.target[0]), c = WT.melody.center(wm, wrong); G3.down(c.x, c.y); G3.up(c.x, c.y);
+  ok(ev3.some(e => e.t === 'error' && e.d.kind === 'mech'), 'mech');
+});
+test('тач: на маленьком экране промах рядом с зоной попадает в ближайшую зону (pad), мышью — нет; захват предмета — по всей высоте полосы', () => {
+  const { G } = fresh(); const h = G.hotspot('stool'), x = h.rect[0] - 10, y = h.rect[1] + h.rect[3] / 2;
+  ok(!G.hotspotAt(x, y) || G.hotspotAt(x, y).id !== 'stool', 'точка не должна быть внутри');
+  G.down(x, y); G.up(x, y); eq(G.runtime().target && G.runtime().target.hs, null, 'мышь: промах — просто идти');
+  G.setTouchPad(16); G.down(x, y); G.up(x, y); eq(G.runtime().target && G.runtime().target.hs, 'stool', 'тач: ближайшая зона');
+  G.state().inv.push('rope'); const r0 = A.slotRect(0), I = A.LAYOUT.inv;
+  eq(G.slotAt(r0[0] + r0[2] + I.gap / 2 - 1, A.LAYOUT.H - 2), 0, 'тач: промежуток и низ полосы — та же ячейка');
+  G.setTouchPad(0); eq(G.slotAt(r0[0] + r0[2] + I.gap / 2 - 1, A.LAYOUT.H - 2), -1, 'мышь: только сама ячейка');
+});
+test('HiDPI: тема paper принимает масштаб кэшей и бюджет, отдаёт статистику кэша; рисует в любом масштабе', () => {
+  const th = THEMES.paper; ok(th.setResolution && th.cacheStats && th.setCacheBudget && th.setQuality, 'нет API масштаба');
+  th.setResolution(2); eq(th.resolution(), 2); th.setQuality('low'); const ctx = A.mockCtx(); sandbox.KVEST_STRICT = true;
+  try { for (const s of K.SCENES) { const G = K.createGame({}); G.state().scene = s.id; const m = G.model(); th.drawScene(ctx, m.scene, 1, {}); th.drawHero(ctx, m.hero, 'idle', 1); th.drawUI(ctx, m.ui, 1); } }
+  finally { sandbox.KVEST_STRICT = false; th.setResolution(1); th.setQuality('high'); }
+  const cs = th.cacheStats(); ok(typeof cs.mb === 'number' && typeof cs.px === 'number' && cs.res === 1);
+  ok(K.InkSketch.cacheStats && K.InkSketch.setCacheBudget, 'ink: нет статистики кэша');
+});
+test('подсказки крана и щита: цвет-метки и номера на эскизе совпадают со сценой и решением', () => {
+  const pc = P.puzzles.find(p => p.id === 'p_crane'), cr = P.widgets.find(w => w.id === 'crane');
+  const lev = pc.ink.filter(q => q.o && /pier\/cl/.test(q.o));
+  eq(lev.map(q => q.o.split('/')[1]).join(), 'cl1,cl2,cl3', 'рычаги в порядке сцены');
+  lev.forEach(q => { const id = q.o.split('/')[1], o = SC.pier.objects.find(x => x.id === id); eq(q.c, o.state.tint, id + ': цвет'); eq(q.n, cr.order.indexOf(cr.objs.indexOf(id)) + 1, id + ': номер хода'); });
+  const pv = P.puzzles.find(p => p.id === 'p_valves'), wv = P.widgets.find(w => w.id === 'valves');
+  const flags = wv.objs.map(id => (pv.ink.find(q => q.o === 'boathouse/' + id) || {}).flag);
+  eq(flags.reduce((a, f, i) => a + (f === 'up' ? wv.weights[i] : 0), 0), wv.target, 'стрелки ↑ дают цель манометра');
+  ok(flags.every(f => f === 'up' || f === 'down'), 'у каждого вентиля стрелка');
+  const pp = P.puzzles.find(p => p.id === 'p_pipes'); ok(pp.ink.some(q => q.o === 'boathouse/panel' && q.st && q.st.ok) && pp.ink.some(q => q.o === 'boathouse/spout'), 'щит: «до → после → масло»');
+  // вентили не перекрываются в сцене (рукоять до ~30 px влево) и героиня не загораживает их
+  const vx = wv.objs.map(id => SC.boathouse.objects.find(o => o.id === id).x); ok(vx[1] - vx[0] >= 44 && vx[2] - vx[1] >= 44, 'вентили тесно');
+  wv.hs.forEach(id => ok(SC.boathouse.hotspots.find(h => h.id === id).at < vx[0] - 10, 'героиня встаёт на вентиль ' + id));
+});
 
 // ---------- музыка, i18n, правило имён ----------
 // ---------- эскизы тушью (подсказки, блокнот, мысли мастера) ----------

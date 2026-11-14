@@ -84,7 +84,8 @@
     }
     function freshRt() {
       return { mode: 'scene', hero: { x: 0, y: 0, dir: 1 }, target: null, reach: null, thoughts: {}, cut: null, cutQ: [], pose: 'idle', poseT: 0, npcPose: {},
-        ring: {}, mini: null, miniDone: 0, walk: null, sel: null, drag: null, ptr: null, hover: { x: -1, y: -1 }, time: 0, debug: !!opts.debug, hintAfterMini: false };
+        ring: {}, mini: null, miniDone: 0, walk: null, sel: null, drag: null, ptr: null, hover: { x: -1, y: -1 }, time: 0, debug: !!opts.debug, hintAfterMini: false,
+        pad: rt ? rt.pad : (+opts.pad || 0) };
     }
     st = fresh(); rt = freshRt();
 
@@ -125,6 +126,16 @@
     // ---------- взаимодействие ----------
     function visibleHs() { var s = sc(); return s.hotspots.filter(function (h) { return ok(st, h.need); }); }
     function hsAt(x, y) { var list = visibleHs(); for (var i = list.length - 1; i >= 0; i--) if (inRect(list[i].rect, x, y)) return list[i]; return null; }
+    // тач на маленьком экране: если точного попадания нет — ближайшая зона в пределах rt.pad (логических пикселей)
+    function hsAtTouch(x, y) {
+      var h = hsAt(x, y); if (h || !(rt.pad > 0) || y >= LAY.inv.y) return h;
+      var list = visibleHs(), best = null, bd = rt.pad + 1e-6;
+      for (var i = list.length - 1; i >= 0; i--) {
+        var r = list[i].rect, dx = Math.max(r[0] - x, 0, x - r[0] - r[2]), dy = Math.max(r[1] - y, 0, y - r[1] - r[3]), d = Math.hypot(dx, dy);
+        if (d < bd) { bd = d; best = list[i]; }
+      }
+      return best;
+    }
     function hsById(id) { var list = visibleHs(); for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return null; }
     function standX(h) { return h.at != null ? h.at : h.rect[0] + h.rect[2] / 2; }
     function approach(h, item) {
@@ -141,10 +152,12 @@
       if (!item && h.to && ok(st, h.toNeed)) { emit('sfx', { name: 'step' }); go(h.to, h.toX); return; }
       think('hero', item ? [item, 'cross'] : (h.look || ['question']), 2);
       emit('sfx', { name: item ? 'nope' : 'look' });
+      if (item) emit('error', { kind: 'item', scene: s, hs: hsId, item: item });
     }
     function widgetAct(w, i) {
       var L = local(w), res = WT[w.type].act(w, L, i) || {};
       emit('sfx', { name: res.fail ? 'clank' : (w.type === 'melody' ? 'chime' : 'click'), note: res.note, widget: w.id });
+      if (res.fail && !w.hintGame) emit('error', { kind: 'mech', widget: w.id });
       if (w.type === 'melody' && res.note != null) rt.ring['c' + res.note] = rt.time;
       if (WT[w.type].solved(w, L)) {
         if (w.hintGame) { rt.miniDone = Math.max(rt.time, 1e-6); return; }
@@ -157,7 +170,7 @@
       if (a === b) return;
       var c = resolveCombo(P, st, a, b);
       if (c) { runRule(P, st, c, fx); runAutos(); changed(); return; }
-      think('hero', [a, b, 'cross'], 1.8); emit('sfx', { name: 'nope' });
+      think('hero', [a, b, 'cross'], 1.8); emit('sfx', { name: 'nope' }); emit('error', { kind: 'combo', a: a, b: b });
     }
     function lookAt(x, y) {
       if (rt.mode !== 'scene' || busy()) return;
@@ -166,7 +179,7 @@
       if (!h) { think('hero', ['eye'], 1.2); return; }
       var o = sc().objects.filter(function (ob) { return ob.id === h.id; })[0];
       var icons = h.look || (o && o.item ? [o.item] : (h.to ? [SC[h.to].icon] : ['eye']));
-      think('hero', icons, 2.2); emit('sfx', { name: 'look' });
+      think('hero', icons, 2.2); emit('sfx', { name: 'look' }); emit('look', { hs: h.id });
     }
 
     // ---------- мини-игры ----------
@@ -179,7 +192,7 @@
     function closeMini() {
       if (!rt.mini) return; var w = rt.mini.w, wasHint = w.hintGame, won = wasHint && WT[w.type].solved(w, local(w));
       rt.mode = 'scene'; rt.mini = null; rt.miniDone = 0; emit('mini', { id: w.id, open: false }); changed();
-      if (wasHint && won) { st.hintCD = HINT_CD; showHint(); }
+      if (wasHint && won) { st.hintCD = HINT_CD; showHint('game'); }
     }
     function miniTap(x, y) {
       var w = rt.mini.w, T = WT[w.type], L = local(w);
@@ -201,16 +214,16 @@
       if (p.scene && p.scene !== st.scene) return ['door', SC[p.scene].icon].concat(p.hint.slice(0, 1));
       return p.hint.slice();
     }
-    function showHint() {   // мысль-подсказка: тема может нарисовать её эскизом (drawHint) по данным цели (puzzle.ink)
+    function showHint(how) {   // мысль-подсказка: тема может нарисовать её эскизом (drawHint) по данным цели (puzzle.ink)
       var ic = hintIcons(), p = hintTarget();
       think('hero', ic, 4.2, { hint: true, target: p ? p.id : null, scene: p ? p.scene : null, here: !p || !p.scene || p.scene === st.scene });
-      emit('hint', { icons: ic, target: (p || {}).id });
+      emit('hint', { icons: ic, target: (p || {}).id, how: how || 'free' });
     }
     function hintReady() { return !st.hintFree[st.scene] || st.hintCD <= 0; }
     function hint() {
       if (rt.mode !== 'scene' || rt.cut) return 'busy';
-      if (!st.hintFree[st.scene]) { st.hintFree[st.scene] = true; st.hintCD = Math.max(st.hintCD, HINT_CD); showHint(); changed(); return 'free'; }
-      if (st.hintCD <= 0) { st.hintCD = HINT_CD; showHint(); changed(); return 'timer'; }
+      if (!st.hintFree[st.scene]) { st.hintFree[st.scene] = true; st.hintCD = Math.max(st.hintCD, HINT_CD); showHint('free'); changed(); return 'free'; }
+      if (st.hintCD <= 0) { st.hintCD = HINT_CD; showHint('timer'); changed(); return 'timer'; }
       openMini('fireflies'); return 'game';
     }
     // шаги наброска: все головоломки; open — пройденные и текущая цель (остальные в блокноте не показываются)
@@ -280,9 +293,13 @@
     // ---------- ввод ----------
     function slotAt(x, y) {
       for (var i = 0; i < LAY.inv.slots; i++) if (inRect(K.ThemeAPI.slotRect(i), x, y)) return i;
+      if (rt.pad > 0 && y >= LAY.inv.y - rt.pad * 0.5) {   // тач: крупная зона захвата — вся высота полосы и промежутки между ячейками
+        var I = LAY.inv, k = Math.floor((x - I.slot0 + I.gap / 2) / (I.slotW + I.gap));
+        if (k >= 0 && k < I.slots) return k;
+      }
       return -1;
     }
-    function near(b, x, y) { return Math.hypot(x - b.x, y - b.y) <= b.r + 4; }
+    function near(b, x, y) { return Math.hypot(x - b.x, y - b.y) <= b.r + 4 + (rt.pad > 0 ? Math.min(12, rt.pad * 0.5) : 0); }
     function tap(x, y) {
       if (rt.cut || rt.cutQ.length) { skipCut(); return; }
       if (rt.mode === 'walk') {
@@ -304,7 +321,7 @@
         } else rt.sel = null;
         return;
       }
-      var h = hsAt(x, y);
+      var h = hsAtTouch(x, y);
       if (h) { var it = rt.sel; rt.sel = null; approach(h, it); return; }
       rt.sel = null;
       var w = walkOf(sc(), st); rt.target = { x: clampX(w, x), hs: null }; rt.reach = null;
@@ -332,7 +349,7 @@
     function drop(item, x, y) {
       if (rt.mode !== 'scene' || rt.cut) return;
       if (y >= LAY.inv.y) { var si = slotAt(x, y), other = st.inv[si]; if (other && other !== item) combine(item, other); return; }
-      var h = hsAt(x, y); if (h) approach(h, item);
+      var h = hsAtTouch(x, y); if (h) approach(h, item);
     }
 
     // ---------- цикл ----------
@@ -430,6 +447,8 @@
       start: start, update: update, model: model, down: down, move: move, up: up, tap: tap, look: lookAt, hint: hint, combine: combine,
       openWalk: openWalk, closeWalk: closeWalk, closeMini: closeMini, skipCut: skipCut, busy: busy, serialize: serialize, load: load,
       setDebug: function (v) { rt.debug = v == null ? !rt.debug : !!v; return rt.debug; },
+      setTouchPad: function (px) { rt.pad = Math.max(0, +px || 0); return rt.pad; },   // тач: увеличенные зоны (логические пиксели), 0 — мышь
+      longT: LONG_T,
       ringBirds: function () { rt.ring.birds = rt.time; },
       state: function () { return st; }, runtime: function () { return rt; }, scene: function () { return sc(); },
       hotspot: hsById, hotspotAt: hsAt, slotAt: slotAt, solvedCount: solvedCount, hintTarget: hintTarget, hintIcons: hintIcons, walkSteps: walkSteps, openSteps: openSteps, walkFlip: walkFlip,

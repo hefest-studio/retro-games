@@ -86,10 +86,22 @@
 
   // ---------- холсты и фактура бумаги (один раз, offscreen) ----------
   function mkCanvas(w, h) { if (!HAS_DOM) return null; var c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; }
+  // ---------- HiDPI: масштаб кэшей ----------
+  // RES — во сколько раз физическое разрешение спрайтов больше логического (960×540). Все кэши (спрайты, ореолы, актёры,
+  // фактура, пиктограммы) создаются в масштабе RES и рисуются в логических координатах, поэтому на ретине/4K они чёткие.
+  // Оболочка (main.js) зовёт theme.setResolution(res) при смене размера канвы; смена RES сбрасывает кэши.
+  var RES = 1, TEXK = 1, LOWQ = false;   // LOWQ — облегчённые эффекты для слабых устройств (без виньетки, туман — две полосы)
+  function setResolution(r) {
+    r = Math.max(0.5, Math.min(4, +r || 1)); r = Math.round(r * 8) / 8;
+    if (r === RES) return false;
+    RES = r; clearCaches(); return true;
+  }
   var TEX = null, TEX_TRIED = false;
   function tex() {
     if (TEX || TEX_TRIED) return TEX; TEX_TRIED = true;
-    var n = 256, c = mkCanvas(n, n); if (!c) return null;
+    // фактура — 256 логических пикселей; при RES ≥ 1,5 — вдвое плотнее (паттерн масштабируется обратно, волокна чёткие)
+    TEXK = RES >= 1.5 && typeof DOMMatrix !== 'undefined' ? 2 : 1;
+    var n = 256 * TEXK, c = mkCanvas(n, n); if (!c) return null;
     var g = c.getContext('2d'), id = g.createImageData(n, n), R = rng(99);
     function grid(sz) {
       var a = []; for (var i = 0; i < sz * sz; i++) a.push(R());
@@ -110,8 +122,8 @@
     g.putImageData(id, 0, 0);
     g.lineCap = 'round';
     for (var f = 0; f < 340; f++) { // волокна
-      var x0 = R() * n, y0 = R() * n, len = 4 + R() * 14, a = R() * TAU, bend = (R() - 0.5) * 8;
-      g.strokeStyle = f % 3 ? 'rgba(255,255,255,0.32)' : 'rgba(40,25,10,0.22)'; g.lineWidth = 0.4 + R() * 0.6;
+      var x0 = R() * n, y0 = R() * n, len = (4 + R() * 14) * TEXK, a = R() * TAU, bend = (R() - 0.5) * 8 * TEXK;
+      g.strokeStyle = f % 3 ? 'rgba(255,255,255,0.32)' : 'rgba(40,25,10,0.22)'; g.lineWidth = (0.4 + R() * 0.6) * TEXK;
       for (var ox = -1; ox <= 1; ox++) for (var oy = -1; oy <= 1; oy++) {
         var sx = x0 + ox * n, sy = y0 + oy * n;
         g.beginPath(); g.moveTo(sx, sy);
@@ -124,7 +136,7 @@
   var PATS = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
   function patFor(g) {
     var t = tex(); if (!t || !PATS) return null;
-    var p = PATS.get(g); if (!p) { p = g.createPattern(t, 'repeat'); PATS.set(g, p); } return p;
+    var p = PATS.get(g); if (!p) { p = g.createPattern(t, 'repeat'); if (TEXK !== 1 && p && p.setTransform) p.setTransform(new DOMMatrix([1 / TEXK, 0, 0, 1 / TEXK, 0, 0])); PATS.set(g, p); } return p;
   }
   function applyTex(g, pts, alpha, seed) {
     var p = patFor(g); if (!p) return;
@@ -194,19 +206,40 @@
   function addGlow(g, x, y, r, rgb, a) { g.save(); g.globalCompositeOperation = 'lighter'; glowAt(g, x, y, r, rgb, a); g.restore(); }
 
   // ---------- кэш спрайтов ----------
-  // LRU по площади: держим до ~20 млн пикселей спрайтов (≈80 МБ), давно не нужные вытесняются
-  var cache = new Map(), haloCache = new Map(), AREA = 0, MAX_AREA = 20e6, MAXC = 1500;
-  function sprite(key, bx, by, bw, bh, draw) {
+  // LRU по площади (в физических пикселях): бюджет задаёт оболочка — setCacheBudget(px), по умолчанию 12 млн (≈48 МБ),
+  // давно не нужные спрайты вытесняются вместе со своими ореолами. Ореолы и кадры персонажей входят в тот же бюджет.
+  var LAST_SC = null, cache = new Map(), haloCache = new Map(), AREA = 0, MAX_AREA = 12e6, MAXC = 1500, HALO_AREA = 0, PEAK = 0, BUILT = 0, WARMING = false;
+  function evict() {
+    while ((AREA + HALO_AREA + ACT_AREA > MAX_AREA || cache.size > MAXC) && cache.size > 1) {
+      var k0 = cache.keys().next().value, s0 = cache.get(k0); if (s0.use >= FRAME - 1) break;
+      cache.delete(k0); AREA -= s0.area;
+      if (s0.halos) for (var i = 0; i < s0.halos.length; i++) { var hk = s0.halos[i], hh = haloCache.get(hk); if (hh) { HALO_AREA -= hh.area; haloCache.delete(hk); } }
+    }
+  }
+  // rc — потолок масштаба для этого спрайта (мягкие крупные слои — виньетка, туман — не требуют полного разрешения)
+  function sprite(key, bx, by, bw, bh, draw, rc) {
     if (!HAS_DOM) return { fn: draw, x: bx, y: by, w: bw, h: bh };
     var s = cache.get(key);
     if (s) { if (s.use !== FRAME) { s.use = FRAME; cache.delete(key); cache.set(key, s); } return s; }
-    var c = mkCanvas(bw, bh), g = c.getContext('2d');
-    g.translate(-bx, -by); g.lineJoin = 'round';
+    var r = rc ? Math.min(RES, rc) : RES, c = mkCanvas(bw * r, bh * r), g = c.getContext('2d');
+    g.scale(c.width / bw, c.height / bh); g.translate(-bx, -by); g.lineJoin = 'round';
     draw(g);
-    s = { c: c, x: bx, y: by, w: bw, h: bh, key: key, use: FRAME, area: c.width * c.height };
-    cache.set(key, s); AREA += s.area;
-    while ((AREA > MAX_AREA || cache.size > MAXC) && cache.size > 1) { var k0 = cache.keys().next().value, s0 = cache.get(k0); if (s0.use === FRAME) break; cache.delete(k0); AREA -= s0.area; haloCache.forEach(function (v, hk) { if (hk.indexOf(k0 + '|halo') === 0) haloCache.delete(hk); }); }
+    s = { c: c, x: bx, y: by, w: bw, h: bh, key: key, use: WARMING ? FRAME - 5 : FRAME, area: c.width * c.height, halos: null };
+    cache.set(key, s); AREA += s.area; BUILT++;
+    evict(); PEAK = Math.max(PEAK, AREA + HALO_AREA + ACT_AREA);
     return s;
+  }
+  function clearCaches() {
+    cache.clear(); haloCache.clear(); AREA = 0; HALO_AREA = 0; ACTORS.clear(); ACT_AREA = 0; ACT = null; DARK = null;
+    TEX = null; TEX_TRIED = false; PATS = typeof WeakMap !== 'undefined' ? new WeakMap() : null; WARM = null; warmStart.sched = 0;
+  }
+  // статистика кэша: число спрайтов, физические пиксели и оценка памяти (4 байта на пиксель)
+  function cacheStats() {
+    var px = AREA + HALO_AREA + ACT_AREA, live = 0;   // live — пиксели спрайтов, нужных последним кадрам (рабочий набор сцены)
+    cache.forEach(function (v) { if (v.use >= FRAME - 2) live += v.area; });
+    ACTORS.forEach(function (v) { if (v.use >= FRAME - 2) live += v.area; });
+    return { sprites: cache.size, halos: haloCache.size, actors: ACTORS.size, px: px, mb: +(px * 4 / 1048576).toFixed(1), peakMb: +(PEAK * 4 / 1048576).toFixed(1),
+      budgetMb: +(MAX_AREA * 4 / 1048576).toFixed(1), res: RES, built: BUILT, liveMb: +(live * 4 / 1048576).toFixed(1) };
   }
   var FRAME = 0;
   function blit(ctx, s) { if (s.c) ctx.drawImage(s.c, s.x, s.y, s.w, s.h); else if (s.fn) { ctx.save(); s.fn(ctx); ctx.restore(); } }
@@ -214,23 +247,56 @@
   function halo(s, r, color) {
     if (!s.c) return null;
     var key = s.key + '|halo' + r + color, h = haloCache.get(key); if (h) return h;
-    var c = mkCanvas(s.w + r * 2, s.h + r * 2), g = c.getContext('2d'), n = 12;
-    for (var i = 0; i < n; i++) { var a = i / n * TAU; g.drawImage(s.c, r + Math.cos(a) * r, r + Math.sin(a) * r); }
-    g.globalCompositeOperation = 'source-in'; g.fillStyle = color; g.fillRect(0, 0, c.width, c.height);
-    h = { c: c, x: s.x - r, y: s.y - r, w: s.w + r * 2, h: s.h + r * 2 }; haloCache.set(key, h); return h;
+    var c = mkCanvas((s.w + r * 2) * RES, (s.h + r * 2) * RES), g = c.getContext('2d'), n = 12;
+    g.scale(c.width / (s.w + r * 2), c.height / (s.h + r * 2));
+    for (var i = 0; i < n; i++) { var a = i / n * TAU; g.drawImage(s.c, r + Math.cos(a) * r, r + Math.sin(a) * r, s.w, s.h); }
+    g.globalCompositeOperation = 'source-in'; g.fillStyle = color; g.fillRect(0, 0, s.w + r * 2, s.h + r * 2);
+    h = { c: c, x: s.x - r, y: s.y - r, w: s.w + r * 2, h: s.h + r * 2, area: c.width * c.height }; haloCache.set(key, h); HALO_AREA += h.area;
+    if (s.key) { var own = cache.get(s.key); if (own) (own.halos || (own.halos = [])).push(key); }
+    return h;
   }
-  // актёр (персонаж) — рисуется плоско на рабочем холсте, затем одной операцией фактура и тень
-  var ACT = null;
-  function actor(ctx, x, y, w, h, draw) {
-    if (!HAS_DOM) { ctx.save(); draw(ctx); ctx.restore(); return; }
-    w = Math.ceil(w); h = Math.ceil(h);
-    if (!ACT || ACT.width < w || ACT.height < h) ACT = mkCanvas(Math.max(w, ACT ? ACT.width : 0), Math.max(h, ACT ? ACT.height : 0));
-    var g = ACT.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w + 2, h + 2);
+  // актёр (персонаж) — рисуется плоско на рабочем холсте, затем одной операцией фактура и тень.
+  // Кадр персонажа кэшируется по ключу: перерисовка — только когда меняется кадр «стоп-моушн» (12 к/с), поза или состояние
+  // (подпись sig); между ними — один drawImage готового кадра с уже запечённой тенью (сдвиг по x/y — переносом).
+  var ACT = null, ACTORS = new Map(), ACT_AREA = 0, APAD = 6;
+  function actorFlat(x, y, w, h, draw) {
+    var pw = Math.ceil(w * RES), ph = Math.ceil(h * RES);
+    if (!ACT || ACT.width < pw || ACT.height < ph) ACT = mkCanvas(Math.max(pw, ACT ? ACT.width : 0), Math.max(ph, ACT ? ACT.height : 0));
+    var g = ACT.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, pw + 2, ph + 2);
+    g.setTransform(RES, 0, 0, RES, 0, 0);
     g.save(); g.translate(-x, -y); g.lineJoin = 'round'; draw(g); g.restore();
     texOver(g, 0, 0, w, h, 0.9);
-    ctx.save(); ctx.shadowColor = 'rgba(40,20,8,0.38)'; ctx.shadowBlur = 3; ctx.shadowOffsetX = 1.5; ctx.shadowOffsetY = 2.5;
-    ctx.drawImage(ACT, 0, 0, w, h, x, y, w, h); ctx.restore();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    return { pw: pw, ph: ph };
   }
+  function actor(ctx, x, y, w, h, draw, key, sig) {
+    if (!HAS_DOM) { ctx.save(); draw(ctx); ctx.restore(); return; }
+    w = Math.ceil(w); h = Math.ceil(h);
+    if (key) {
+      var e = ACTORS.get(key);
+      if (!e || e.w !== w || e.h !== h) {
+        if (e) ACT_AREA -= e.area;
+        var c = mkCanvas((w + APAD * 2) * RES, (h + APAD * 2) * RES); e = { c: c, w: w, h: h, sig: null, x: 0, y: 0, area: c.width * c.height, use: FRAME };
+        ACTORS.set(key, e); ACT_AREA += e.area;
+        var stale = []; ACTORS.forEach(function (v, k) { if (v.use < FRAME - 90) stale.push(k); });   // персонажи прошлых сцен
+        stale.forEach(function (k) { ACT_AREA -= ACTORS.get(k).area; ACTORS.delete(k); });
+      }
+      e.use = FRAME;
+      if (e.sig !== sig) {
+        var f = actorFlat(x, y, w, h, draw), g2 = e.c.getContext('2d');
+        g2.setTransform(1, 0, 0, 1, 0, 0); g2.clearRect(0, 0, e.c.width, e.c.height);
+        g2.shadowColor = 'rgba(40,20,8,0.38)'; g2.shadowBlur = 3 * RES; g2.shadowOffsetX = 1.5 * RES; g2.shadowOffsetY = 2.5 * RES;
+        g2.drawImage(ACT, 0, 0, f.pw, f.ph, APAD * RES, APAD * RES, f.pw, f.ph); g2.shadowColor = 'rgba(0,0,0,0)';
+        e.sig = sig; e.x = x; e.y = y;
+      }
+      ctx.drawImage(e.c, x - APAD, y - APAD, w + APAD * 2, h + APAD * 2);
+      return;
+    }
+    var fl = actorFlat(x, y, w, h, draw), k = ctxScale(ctx);
+    ctx.save(); ctx.shadowColor = 'rgba(40,20,8,0.38)'; ctx.shadowBlur = 3 * k; ctx.shadowOffsetX = 1.5 * k; ctx.shadowOffsetY = 2.5 * k;
+    ctx.drawImage(ACT, 0, 0, fl.pw, fl.ph, x, y, w, h); ctx.restore();
+  }
+  function ctxScale(ctx) { try { var m = ctx.getTransform && ctx.getTransform(); return m ? Math.hypot(m.a, m.b) || 1 : 1; } catch (e) { return 1; } }
 
   // ---------- цвета бумаги (одна коробка на всю главу) ----------
   var C = {
@@ -754,7 +820,8 @@
 
   K.lever = function (g, it, sc, P) {
     var x = it.x, y = it.y, w = it.w, h = it.h, st = it.state || {}, on = !!st.on, px = x + w / 2, py = y + h - 10;
-    var a = on ? 0.55 : -0.55, L = h - 12, knob = st.tint && TINT[st.tint] ? TINT[st.tint] : (on ? C.mustardL : C.rust);
+    // вентиль (state.pips): открыт — рукоять вертикально вверх, закрыт — лежит влево (положения не спутать и рукояти не перекрещиваются)
+    var a = st.pips ? (on ? 0 : -1.2) : (on ? 0.55 : -0.55), L = h - 12, knob = st.tint && TINT[st.tint] ? TINT[st.tint] : (on ? C.mustardL : C.rust);
     cut(g, [[x - 6, y + h + 2], [x - 2, y + h - 14], [x + w + 2, y + h - 14], [x + w + 6, y + h + 2]], C.dbrown, { seed: 2300, lift: 3 });
     var rod = rotP([[px - 3, py], [px + 3, py], [px + 2.5, py - L], [px - 2.5, py - L]], px, py, a);
     cut(g, rod, '#cfc4aa', { seed: 2301, lift: 3 });
@@ -863,16 +930,28 @@
         [[x + 4, y + 2], [x + w - 4, y + 2]].forEach(function (q, m) { cut(g, ell(q[0], q[1] + 6, 6, 6, 12), C.red, { seed: 2690 + m, lift: 2 }); });
         if (!st.empty) drawIconRaw(g, 'fish', x + w / 2, y + h * 0.6, 38);
         return; }
-      case 'panel': {
+      case 'panel': { // щит с трубами: поле 5×3 плиток (как в мини-игре), вход слева — от бака, выход справа — к носику
         cut(g, rectP(x, y, w, h), '#8a7d6a', { seed: 2700, lift: 4 }); cut(g, rectP(x + 6, y + 6, w - 12, h - 12), '#a39580', { seed: 2701, lift: 1 });
         [[x + 8, y + 8], [x + w - 8, y + 8], [x + 8, y + h - 8], [x + w - 8, y + h - 8]].forEach(function (q) { brad(g, q[0], q[1], 2.5); });
-        var pc = st.ok ? C.oilL : '#7a6a58';
-        cut(g, band([[x + 12, y + 40], [x + 60, y + 40], [x + 60, y + 100], [x + 110, y + 100]], 12), pc, { seed: 2702, lift: 2, raw: true });
-        cut(g, band([[x + 110, y + 100], [x + 110, y + 55], [x + w - 12, y + 55]], 12), pc, { seed: 2703, lift: 2, raw: true });
-        if (!st.ok) { // разрывы — трубы не собраны
-          cut(g, ell(x + 85, y + 100, 9, 9, 12), '#a39580', { seed: 2704, lift: 0 }); cut(g, ell(x + 110, y + 76, 9, 9, 12), '#a39580', { seed: 2705, lift: 0 });
-          drawIconRaw(g, 'question', x + w - 28, y + 28, 30);
-        } else drawIconRaw(g, 'check', x + w - 28, y + 28, 30);
+        var pc = st.ok ? C.oil : '#5e4f40', T2 = 26, gx = x + (w - 5 * T2) / 2, gy = y + 36, my = gy + 1.5 * T2;
+        for (var pr = 0; pr < 3; pr++) for (var pq = 0; pq < 5; pq++) cut(g, rectP(gx + pq * T2 + 1.5, gy + pr * T2 + 1.5, T2 - 3, T2 - 3), (pr + pq) % 2 ? '#e3d7bd' : '#d8cbb0', { seed: 2710 + pr * 5 + pq, lift: 0.8, amp: 0.4 });
+        cut(g, band([[x - 2, y + 21], [gx - 7, y + 21], [gx - 7, my], [gx + 4, my]], 9), pc, { seed: 2702, lift: 2, raw: true });          // вход (от бака)
+        cut(g, band([[gx + 5 * T2 - 4, my], [x + w - 9, my], [x + w - 9, y + 41], [x + w + 2, y + 41]], 9), pc, { seed: 2703, lift: 2, raw: true }); // выход (к носику)
+        // плитки среднего ряда: собрано — прямая труба с маслом; не собрано — плитки повёрнуты, путь разорван
+        var rot = st.ok ? [0, 0, 0, 0, 0] : [1, 0, 3, 1, 2], shp = st.ok ? ['I', 'I', 'I', 'I', 'I'] : ['I', 'L', 'I', 'L', 'I'];
+        for (var pk2 = 0; pk2 < 5; pk2++) {
+          var tcx = gx + pk2 * T2 + T2 / 2, tcy = my, hh2 = T2 / 2 - 2, seg;
+          if (shp[pk2] === 'I') seg = rot[pk2] % 2 ? [[tcx, tcy - hh2], [tcx, tcy + hh2]] : [[tcx - hh2, tcy], [tcx + hh2, tcy]];
+          else seg = rotP([[tcx - hh2, tcy], [tcx, tcy], [tcx, tcy - hh2]], tcx, tcy, rot[pk2] * Math.PI / 2);
+          cut(g, band(seg, 8), pc, { seed: 2720 + pk2, lift: 1.5, raw: true });
+        }
+        // декоративные плитки верхнего и нижнего ряда
+        [[0, 0, 'L', 1], [2, 0, 'I', 0], [4, 0, 'L', 2], [1, 2, 'I', 1], [3, 2, 'L', 3]].forEach(function (q, m) {
+          var tcx = gx + q[0] * T2 + T2 / 2, tcy = gy + q[1] * T2 + T2 / 2, hh2 = T2 / 2 - 2;
+          var seg = q[2] === 'I' ? (q[3] % 2 ? [[tcx, tcy - hh2], [tcx, tcy + hh2]] : [[tcx - hh2, tcy], [tcx + hh2, tcy]]) : rotP([[tcx - hh2, tcy], [tcx, tcy], [tcx, tcy - hh2]], tcx, tcy, q[3] * Math.PI / 2);
+          cut(g, band(seg, 7), '#a8987f', { seed: 2730 + m, lift: 1, raw: true });
+        });
+        drawIconRaw(g, st.ok ? 'check' : 'question', x + w - 24, y + 22, 24);
         return; }
     }
     // обычный ящик (на нём кошка)
@@ -1192,11 +1271,11 @@
     var pad = Math.ceil(size * 0.22) + 3, key = 'icon|' + id + '|' + size;
     return sprite(key, -size / 2 - pad, -size / 2 - pad, size + pad * 2, size + pad * 2, function (g) {
       if (!HAS_DOM) { drawIconRaw(g, id, 0, 0, size); return; }
-      var c2 = mkCanvas(size + pad * 2, size + pad * 2), g2 = c2.getContext('2d');
-      g2.translate(size / 2 + pad, size / 2 + pad); drawIconRaw(g2, id, 0, 0, size);
+      var c2 = mkCanvas((size + pad * 2) * RES, (size + pad * 2) * RES), g2 = c2.getContext('2d');
+      g2.scale(RES, RES); g2.translate(size / 2 + pad, size / 2 + pad); drawIconRaw(g2, id, 0, 0, size);
       texOver(g2, -size, -size, size * 2 + pad * 2, size * 2 + pad * 2, 0.7);
-      g.save(); g.shadowColor = 'rgba(40,20,8,0.42)'; g.shadowBlur = Math.max(1.5, size * 0.05); g.shadowOffsetX = size * 0.03; g.shadowOffsetY = size * 0.06;
-      g.drawImage(c2, -size / 2 - pad, -size / 2 - pad); g.restore();
+      g.save(); g.shadowColor = 'rgba(40,20,8,0.42)'; g.shadowBlur = Math.max(1.5, size * 0.05) * RES; g.shadowOffsetX = size * 0.03 * RES; g.shadowOffsetY = size * 0.06 * RES;
+      g.drawImage(c2, -size / 2 - pad, -size / 2 - pad, size + pad * 2, size + pad * 2); g.restore();
     });
   }
   function drawIcon(ctx, id, x, y, size) {
@@ -1285,7 +1364,7 @@
   function drawHero(ctx, hero, pose, t) {
     var dir = hero.dir < 0 ? -1 : 1, x = hero.x, y = hero.y;
     ctx.fillStyle = 'rgba(40,22,10,0.28)'; ctx.beginPath(); ctx.ellipse(x, y + 1, 20, 4.5, 0, 0, TAU); ctx.fill();
-    actor(ctx, x - 60, y - 160, 120, 172, function (g) { heroRig(pose || 'idle', t || 0, x, y, dir).draw(g); });
+    actor(ctx, x - 60, y - 160, 120, 172, function (g) { heroRig(pose || 'idle', t || 0, x, y, dir).draw(g); }, 'hero', Math.floor((t || 0) * 12) + '|' + pose + '|' + dir + '|' + (((t || 0) % 3.7) < 0.12 ? 1 : 0));
   }
 
   // ---------- персонажи сцены ----------
@@ -1411,12 +1490,13 @@
     if (st.type === 'cat') return [o.x - 14, o.y - 30, o.w + 30, o.h + 34];
     return [o.x - 16, o.y - 24, o.w + 32, o.h + 34];
   }
-  function drawNpc(ctx, o, pose, t) {
+  function drawNpc(ctx, o, pose, t, cached) {
     var st = o.state || {}, f = NPC[st.type], b = npcBox(o);
     pose = st.pose || pose || 'idle';
     if (!f) { cut(ctx, rrP(o.x || 0, (o.y || 0) + (o.h || 40) * 0.3, o.w || 30, (o.h || 40) * 0.7, 8), '#cfc2a4', { live: true, seed: 6000 }); cut(ctx, ell((o.x || 0) + (o.w || 30) / 2, (o.y || 0) + (o.h || 40) * 0.2, 10, 10, 14), C.skin, { live: true, seed: 6001 }); return; }
     if (st.type !== 'bird' && st.type !== 'gull') { ctx.fillStyle = 'rgba(40,22,10,0.25)'; ctx.beginPath(); ctx.ellipse(o.x + o.w / 2, o.y + o.h, o.w * 0.45, 4.5, 0, 0, TAU); ctx.fill(); }
-    actor(ctx, b[0], b[1], b[2], b[3], function (g) { f(g, o, pose, t || 0); });
+    var key = cached ? 'npc|' + (o.id || '') + '|' + st.type : null;
+    actor(ctx, b[0], b[1], b[2], b[3], function (g) { f(g, o, pose, t || 0); }, key, key && (Math.floor((t || 0) * 12) + '|' + pose + '|' + stKey(st) + '|' + Math.round((st.sing || 0) * 8) + '|' + Math.round(b[0] * 4) + ',' + Math.round(b[1] * 4)));
   }
 
   // ================= живые детали (каждый кадр) =================
@@ -1636,7 +1716,7 @@
   function drawObject(ctx, o, sc, P, pk, t, hot, hov) {
     if (o.kind === 'npc') {
       if (hov) addGlow(ctx, o.x + o.w / 2, o.y + o.h * 0.55, Math.max(o.w, o.h) * 0.75, '255,236,170', 0.3 + 0.1 * Math.sin(t * 5));
-      drawNpc(ctx, o, (o.state && o.state.pose) || 'idle', t); return;
+      drawNpc(ctx, o, (o.state && o.state.pose) || 'idle', t, true); return;
     }
     if (o.kind === 'item') { itemDraw(ctx, o, t, hov); return; }
     var st = o.state || {}, s = itemSprite(o, sc, P, pk);
@@ -1683,15 +1763,15 @@
     var wy = 1e9, objs = sc.layers || [];
     objs.forEach(function (L) { (L.items || []).forEach(function (it) { if (it.kind === 'water' && it.w > 400) wy = Math.min(wy, it.y); }); });
     if (wy > H) return;
-    var lit = sceneLit(sc);
-    for (var i = 0; i < 4; i++) {
+    var lit = sceneLit(sc), nb = LOWQ ? 2 : 4;
+    for (var i = 0; i < nb; i++) {
       var s = sprite('fog|' + i, -200, -40, 1360, 90, function (g) {
         var top = [], R = rng(60 + i); for (var x = -200; x <= 1160; x += 40) top.push([x, -10 + Math.sin(x * 0.01 + i) * 10 + R() * 8]);
         var bot = []; for (var x2 = 1160; x2 >= -200; x2 -= 40) bot.push([x2, 30 + Math.sin(x2 * 0.013 + i * 2) * 10 + R() * 8]);
         cut(g, top.concat(bot), '#eef0ec', { seed: 6300 + i, torn: true, rim: '#ffffff', lift: 0, texA: 0.4, tornAmp: 3 });
-      });
+      }, 1.25);
       var spread = lit ? 1 : 0, dx = Math.sin(t * 0.05 + i * 1.7) * 120 + (i % 2 ? 1 : -1) * spread * 260;
-      ctx.save(); ctx.globalAlpha = Math.min(0.85, amt * (0.8 - i * 0.1)); ctx.translate(dx, wy - 34 + i * 30); blit(ctx, s); ctx.restore();
+      ctx.save(); ctx.globalAlpha = Math.min(0.85, amt * (0.8 - i * 0.1) * (LOWQ ? 1.15 : 1)); ctx.translate(dx, wy - 34 + i * (LOWQ ? 46 : 30)); blit(ctx, s); ctx.restore();
     }
   }
   // темнота грота: тёмный лист с круглым вырезом света вокруг героини
@@ -1728,16 +1808,27 @@
       objs.forEach(function (o) { if (o.kind !== 'npc' && o.kind !== 'item') WARM.push(function () { itemSprite(o, sc, P, pk); }); });
     });
     var ric = global.requestIdleCallback || function (f) { return setTimeout(function () { f({ timeRemaining: function () { return 12; } }); }, 60); };
-    (function step(dl) { var n = 0; while (WARM.length && (n++ === 0 || dl.timeRemaining() > 10)) { try { WARM.shift()(); } catch (e) {} } if (WARM.length) ric(step, { timeout: 400 }); })({ timeRemaining: function () { return 0; } });
+    // прогрев — только пока есть запас бюджета (≤ 75 %); прогретые спрайты помечены «старыми» и уступают место текущей сцене
+    (function step(dl) {
+      var n = 0;
+      while (WARM.length && (n++ === 0 || dl.timeRemaining() > 10)) {
+        if (AREA + HALO_AREA + ACT_AREA > MAX_AREA * 0.75) { WARM.length = 0; break; }
+        WARMING = true; try { WARM.shift()(); } catch (e) {} WARMING = false;
+      }
+      if (WARM.length) ric(step, { timeout: 400 });
+    })({ timeRemaining: function () { return 0; } });
   }
 
   function drawScene(ctx, sc, t, opts) {
     opts = opts || {}; t = t || 0; sc = sc || {};
     FRAME++; if (!WARM && HAS_DOM && !warmStart.sched) { warmStart.sched = 1; setTimeout(warmStart, 300); }
+    if (HAS_DOM && sc && sc.id !== LAST_SC) { LAST_SC = sc.id; cache.forEach(function (v) { if (v.use > FRAME - 3) v.use = FRAME - 3; }); }   // смена сцены: спрайты прошлой — первые на вытеснение
+    if (HAS_DOM && AREA + HALO_AREA + ACT_AREA > MAX_AREA && (FRAME & 15) === 0) evict();
     var P = pal(sc), pk = palKey(sc), pass = opts.pass || 'all', plan = layerPlan(sc, pk), hv = hoverHs(sc, opts.hover);
     ctx.save();
     if (pass !== 'front') {
-      ctx.fillStyle = P.bands ? P.bands[0] : '#4a3426'; ctx.fillRect(0, 0, W, H);
+      var first = plan.back[0];   // небо во весь кадр закрывает фон — заливка не нужна (минус один полноэкранный проход)
+      if (!(first && first.run && first.run.items[0] && first.run.items[0].kind === 'sky')) { ctx.fillStyle = P.bands ? P.bands[0] : '#4a3426'; ctx.fillRect(0, 0, W, H); }
       plan.back.forEach(function (e, i) {
         if (i === plan.fogAfter) fogLayer(ctx, sc, P, t);
         if (e.run) blit(ctx, runSprite(e.run, sc, P, pk));
@@ -1754,8 +1845,9 @@
     }
     if (pass !== 'back') {
       plan.front.forEach(function (it) { drawLayerItem(ctx, it, sc, P, pk, t); });
-      if (P.tint) { ctx.fillStyle = P.tint; ctx.fillRect(0, 0, W, H); }
-      if (!INDOOR[pk] && pk !== 'cave') blit(ctx, sprite('vign|' + pk, 0, 0, W, H, function (g) { var gr = g.createRadialGradient(W / 2, H * 0.5, H * 0.45, W / 2, H / 2, W * 0.68); gr.addColorStop(0, 'rgba(30,15,8,0)'); gr.addColorStop(1, pk === 'night' || pk === 'lit' ? 'rgba(5,8,20,0.45)' : 'rgba(30,15,8,0.28)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }));
+      // общий тон сцены и виньетка — одним проходом (тон запечён в спрайт виньетки; мягкий слой — в четверть разрешения)
+      if (!INDOOR[pk] && pk !== 'cave' && !LOWQ) blit(ctx, sprite('vign|' + pk + '|' + (P.tint || ''), 0, 0, W, H, function (g) { if (P.tint) { g.fillStyle = P.tint; g.fillRect(0, 0, W, H); } var gr = g.createRadialGradient(W / 2, H * 0.5, H * 0.45, W / 2, H / 2, W * 0.68); gr.addColorStop(0, 'rgba(30,15,8,0)'); gr.addColorStop(1, pk === 'night' || pk === 'lit' ? 'rgba(5,8,20,0.45)' : 'rgba(30,15,8,0.28)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }, 0.25));
+      else if (P.tint) { ctx.fillStyle = P.tint; ctx.fillRect(0, 0, W, H); }
       darkness(ctx, sc, P, opts, t);
     }
     if (opts.debug) debugOverlay(ctx, sc);
@@ -1842,7 +1934,7 @@
     if (ui.close) { uiButton(ctx, L.close, 'close', true, 0, t, 'close'); if (ui.solvedMini) { addGlow(ctx, 480, 270, 260, '255,230,150', 0.4); drawIcon(ctx, 'check', 480, 270, 130); } }
     if (ui.drag) { ctx.save(); ctx.globalAlpha = 0.95; drawIcon(ctx, ui.drag.item, ui.drag.x, ui.drag.y - 4, 50); ctx.restore(); }
     if (ui.mode === 'cut') { // кат-сцена: бумажные шторки
-      blit(ctx, sprite('cutbars', -10, -10, W + 20, H + 20, function (g) {
+      blit(ctx, sprite('cutbars', -10, -10, W + 20, 54, function (g) {
         var a = []; for (var x = -10; x <= W + 10; x += 14) a.push([x, 26 + Math.sin(x * 0.05) * 2]);
         cut(g, [[-10, -10], [W + 10, -10]].concat(a.slice().reverse()), '#1e1612', { seed: 8100, torn: true, rim: '#5a4535', lift: 4, sh: 0.5 });
       }));
@@ -1891,8 +1983,13 @@
     drawCursor: drawCursor,
     drawUI: drawUI,
     cacheSize: function () { return cache.size; },
+    cacheStats: cacheStats,
+    setResolution: setResolution,                       // HiDPI: масштаб кэшей (main.js)
+    setQuality: function (q) { LOWQ = q === 'low'; return LOWQ ? 'low' : 'high'; },
+    resolution: function () { return RES; },
+    setCacheBudget: function (px) { MAX_AREA = Math.max(2e6, +px || MAX_AREA); evict(); return MAX_AREA; },
     // внутренности для модуля ink-sketch.js (эскизы тушью рисуются из тех же спрайтов, что и сцена)
-    _lib: { drawIconRaw: drawIconRaw, palKey: palKey, pal: pal, itemSprite: itemSprite, blit: blit, HAS_DOM: HAS_DOM }
+    _lib: { res: function () { return RES; }, drawIconRaw: drawIconRaw, palKey: palKey, pal: pal, itemSprite: itemSprite, blit: blit, HAS_DOM: HAS_DOM }
   };
   var KV = global.KVEST = global.KVEST || {};
   (KV.themes = KV.themes || {}).paper = theme;

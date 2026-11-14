@@ -167,7 +167,8 @@
       { id: 'p_switches', scene: 'workshop', type: 'mech', hint: ['lamp', 'lamp', 'lamp', 'lamp'], sketch: ['lever', 'lever', 'lever', 'lever'] ,
         ink: [{ g: ['workshop/sw1', 'workshop/sw2', 'workshop/sw3', 'workshop/sw4'] }, '>', { g: ['workshop/lt1', 'workshop/lt2', 'workshop/lt3', 'workshop/lt4'], st: { lit: true }, mark: true }, '>', { o: 'workshop/bench', st: { open: true } }] },
       { id: 'p_crane', scene: 'pier', type: 'mech', hint: ['gear', 'bucket'], sketch: ['dot2', 'dot1', 'dot3', 'bucket'] ,
-        ink: [{ o: 'pier/cl2', n: 1, mark: true }, { o: 'pier/cl1', n: 2 }, { o: 'pier/cl3', n: 3 }, '>', { o: 'pier/crane', st: { prog: 3, load: true } }] },
+        // рычаги — в том же порядке, что в сцене (слева направо), над каждым цвет его ручки и номер хода: красный (стопор) — 1, жёлтый (стрела) — 2, бирюзовый (крюк) — 3
+        ink: [{ o: 'pier/cl1', n: 2, c: 'boom' }, { o: 'pier/cl2', n: 1, c: 'pin' }, { o: 'pier/cl3', n: 3, c: 'hook' }, '>', { i: 'bucket', mark: true }] },
       { id: 'p_well', scene: 'square', type: 'item', avail: ['craneDown'], hint: ['bucket', 'well'] ,
         ink: [{ i: 'bucket' }, '>', { o: 'square/well', mark: true }, '=', { i: 'bucket_water' }] },
       { id: 'p_baker', scene: 'square', type: 'item', avail: ['inv:bucket_water'], hint: ['bucket_water', 'bread'] ,
@@ -187,9 +188,11 @@
       { id: 'p_boatdoor', scene: 'pier', type: 'item', avail: ['inv:key'], hint: ['key', 'door'] ,
         ink: [{ i: 'key' }, '>', { o: 'pier/bdoor', st: { lock: true }, mark: true }] },
       { id: 'p_valves', scene: 'boathouse', type: 'mech', avail: ['boatDoorOpen'], hint: ['gauge', 'check'], sketch: ['lever_on', 'lever_off', 'lever_on'] ,
-        ink: [{ g: ['boathouse/v1', 'boathouse/v2', 'boathouse/v3'], st: [{ on: true }, { on: false }, { on: true }] }, '>', { o: 'boathouse/gauge', st: { gauge: 0.714, mark: 0.714, ok: true }, mark: true }] },
+        // каждый вентиль отдельно (с точками-весами): ↑ открыть 1 и 4, ↓ закрыть 2 → стрелка манометра на зелёной метке
+        ink: [{ o: 'boathouse/v1', st: { on: true }, flag: 'up' }, { o: 'boathouse/v2', st: { on: false }, flag: 'down' }, { o: 'boathouse/v3', st: { on: true }, flag: 'up' }, '>', { o: 'boathouse/gauge', st: { gauge: 0.714, mark: 0.714, ok: true }, mark: true }] },
       { id: 'p_pipes', scene: 'boathouse', type: 'mini', avail: ['w:valves'], hint: ['pipe', 'oilcan_full'] ,
-        ink: [{ o: 'boathouse/panel', mark: true }, '=', { i: 'pipe' }, '>', { i: 'oilcan_full' }] },
+        // щит: разорванный путь → собранный путь → из носика капает масло
+        ink: [{ o: 'boathouse/panel', mark: true }, '>', { o: 'boathouse/panel', st: { ok: true } }, '>', { o: 'boathouse/spout', st: { drip: true } }] },
       { id: 'p_oil', scene: 'boathouse', type: 'item', avail: ['w:pipes'], hint: ['oilcan', 'oilcan_full'] ,
         ink: [{ i: 'oilcan' }, '>', { o: 'boathouse/spout', mark: true }, '=', { i: 'oilcan_full' }] },
       { id: 'p_dark', scene: 'cave', type: 'item', avail: ['inv:lantern_lit'], hint: ['lantern_lit', 'cave'] ,
