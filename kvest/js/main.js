@@ -6,6 +6,8 @@
 (function (global) {
   'use strict';
   var K = global.KVEST, A = K.ThemeAPI, W = 960, H = 540;
+  // тема: по умолчанию последняя подключённая (paper); ?theme=grey — серый макет для отладки
+  (function () { var q = /[?&]theme=([a-z]+)/.exec(location.search || ''); if (q && K.themes && K.themes[q[1]]) global.KvestTheme = K.themes[q[1]]; })();
   function T() { return global.KvestTheme; }
   var PAL = { bg: '#2b2a29', panel: '#3a3836', ink: '#f1ede6', muted: '#b9b3a9', accent: '#f0bf5a', good: '#b7d3a6', bad: '#d99a8c', warn: '#f0bf5a',
     grid: '#45423f', font: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', pixel: false, glow: false, radius: 10 };
@@ -76,7 +78,7 @@
   // ---------- игровая сцена ----------
   function drawGame(ctx, still) {
     var m = game.model(), th = T(), t = m.time;
-    th.drawScene(ctx, m.scene, t, { debug: m.ui.debug, light: m.light });
+    th.drawScene(ctx, m.scene, t, { debug: m.ui.debug, light: m.light, hover: mouseSeen && !still ? m.cursor : null });
     if (m.showHero) th.drawHero(ctx, m.hero, m.pose, t);
     m.thoughts.forEach(function (q) { th.drawThought(ctx, q.x, q.y, q.icons, t); });
     if (still) return;

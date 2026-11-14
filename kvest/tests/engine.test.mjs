@@ -13,7 +13,7 @@ const store = {};
 const sandbox = { console, Math, JSON, setTimeout: () => 0, localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } } };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-const FILES = ['js/music.js', 'js/i18n.js', 'js/theme-api.js', 'js/scenes.js', 'js/widgets.js', 'js/puzzles.js', 'js/game.js', 'js/audio.js', 'js/themes/grey.js'];
+const FILES = ['js/music.js', 'js/i18n.js', 'js/theme-api.js', 'js/scenes.js', 'js/widgets.js', 'js/puzzles.js', 'js/game.js', 'js/audio.js', 'js/themes/grey.js', 'js/themes/paper.js'];
 for (const f of FILES) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const K = sandbox.KVEST, A = K.ThemeAPI, P = K.PUZZLES, LG = K.logic, WT = K.Widgets.types;
 
@@ -270,22 +270,36 @@ test('сохранение на полпути главы (ботом) и про
 });
 
 // ---------- тема ----------
-test('тема grey проходит проверку API (все методы, неизвестный kind/пиктограмма/курсор не падают)', () => {
-  const r = A.validateTheme(sandbox.KvestTheme); ok(r.ok, r.errors.join('; ')); eq(sandbox.KvestTheme.id, 'grey');
+const THEMES = K.themes;
+test('реестр тем: grey (отладочная) и paper (по умолчанию — подключена последней)', () => {
+  ok(THEMES && THEMES.grey && THEMES.paper, 'нет реестра KVEST.themes'); eq(sandbox.KvestTheme.id, 'paper'); eq(THEMES.grey.id, 'grey');
+});
+for (const id of ['grey', 'paper']) test('тема ' + id + ' проходит проверку API (все методы, неизвестный kind/пиктограмма/курсор не падают)', () => {
+  sandbox.KVEST_STRICT = true;
+  try { const r = A.validateTheme(THEMES[id]); ok(r.ok, r.errors.join('; ')); eq(THEMES[id].id, id); } finally { sandbox.KVEST_STRICT = false; }
 });
 test('проверка API ловит сломанную тему: нет метода; падение на неизвестном kind', () => {
-  const t = Object.assign({}, sandbox.KvestTheme); delete t.drawUI; ok(!A.validateTheme(t).ok);
-  const t2 = Object.assign({}, sandbox.KvestTheme, { drawScene: (c, s) => { s.objects.forEach(o => { if (!A.isKind(o.kind)) throw new Error('kind'); }); } });
-  const r = A.validateTheme(t2); ok(!r.ok && r.errors.some(e => /drawScene/.test(e)));
+  const t = Object.assign({}, THEMES.grey); delete t.drawUI; ok(!A.validateTheme(t).ok);
+  const t2 = Object.assign({}, THEMES.grey, { drawScene: (c, s) => { s.objects.forEach(o => { if (!A.isKind(o.kind)) throw new Error('kind'); }); } });
+  const r = A.validateTheme(t2); ok(r.ok === false && r.errors.some(e => /drawScene/.test(e)));
 });
-test('тема рисует каждую сцену в любом состоянии и каждую мини-игру без исключений', () => {
-  const ctx = A.mockCtx(), th = sandbox.KvestTheme;
-  for (const n of [EXP.list[0], EXP.list[Math.floor(EXP.list.length / 2)], EXP.list[EXP.goals[0]]]) {
-    const G = K.createGame({}); G.load({ v: 1, scene: 'workshop', flags: n.st.flags, inv: n.st.inv });
-    for (const s of K.SCENES) { G.state().scene = s.id; const m = G.model(); th.drawScene(ctx, m.scene, 1, { debug: true, light: m.light }); th.drawHero(ctx, m.hero, 'walk', 1); th.drawUI(ctx, m.ui, 1); }
-  }
-  for (const w of P.widgets.filter(x => x.mini)) th.drawScene(ctx, WT[w.type].scene(w, WT[w.type].init(w), 2, { ring: { c1: 1.5 } }), 2, {});
+for (const id of ['grey', 'paper']) test('тема ' + id + ' рисует каждую сцену в любом состоянии и каждую мини-игру без исключений', () => {
+  const ctx = A.mockCtx(), th = THEMES[id]; sandbox.KVEST_STRICT = true;   // paper не глотает ошибки отрисовки
+  try {
+    for (const n of [EXP.list[0], EXP.list[Math.floor(EXP.list.length / 2)], EXP.list[EXP.goals[0]]]) {
+      const G = K.createGame({}); G.load({ v: 1, scene: 'workshop', flags: n.st.flags, inv: n.st.inv });
+      for (const s of K.SCENES) { G.state().scene = s.id; const m = G.model(); th.drawScene(ctx, m.scene, 1, { debug: true, light: m.light, hover: { x: 480, y: 300, kind: 'use' } }); th.drawHero(ctx, m.hero, 'walk', 1); th.drawUI(ctx, m.ui, 1); m.thoughts.forEach(q => th.drawThought(ctx, q.x, q.y, q.icons, 1)); }
+    }
+    for (const w of P.widgets.filter(x => x.mini)) th.drawScene(ctx, WT[w.type].scene(w, WT[w.type].init(w), 2, { ring: { c1: 1.5 } }), 2, {});
+  } finally { sandbox.KVEST_STRICT = false; }
   ok(ctx.calls > 1000, 'вызовов ' + ctx.calls);
+});
+test('paper: цвет-метки головоломок в данных — птицы с нотами 0..4 = колокольчики, рычаги крана помечены частями крана', () => {
+  const birds = SC.square.objects.filter(o => o.state && o.state.type === 'bird').map(o => o.state.note);
+  eq(JSON.stringify(birds), JSON.stringify(P.widgets.find(w => w.id === 'melody').target), 'птицы слева направо = мелодия');
+  const cr = P.widgets.find(w => w.id === 'crane'), tints = cr.objs.map(id => SC.pier.objects.find(o => o.id === id).state.tint);
+  eq(tints[cr.order[0]], 'pin', 'первым — стопор'); eq(SC.cliff.objects.find(o => o.id === 'pawl').state.tint, 'pin');
+  const vs = P.widgets.find(w => w.id === 'valves'); eq(JSON.stringify(vs.objs.map(id => SC.boathouse.objects.find(o => o.id === id).state.pips)), JSON.stringify(vs.weights));
 });
 
 // ---------- бот ----------

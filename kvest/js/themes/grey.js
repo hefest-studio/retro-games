@@ -507,7 +507,7 @@
     c.restore();
   }
 
-  global.KvestTheme = {
+  var theme = {
     id: 'grey', name: { ru: 'Серый макет', en: 'Greybox' },
     drawScene: drawScene,
     drawHero: drawHero,
@@ -517,4 +517,8 @@
     drawCursor: drawCursor,
     drawUI: drawUI
   };
+  // реестр тем: index.html грузит grey (отладочная, ?theme=grey) и paper (по умолчанию); выбор — в main.js
+  var KV = global.KVEST = global.KVEST || {};
+  (KV.themes = KV.themes || {}).grey = theme;
+  global.KvestTheme = theme;
 })(typeof window !== 'undefined' ? window : globalThis);

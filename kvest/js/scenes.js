@@ -92,7 +92,7 @@
         { id: 'cat', kind: 'npc', x: 330, y: 362, w: 58, h: 58, state: { type: 'cat' }, bind: { fed: 'catFed' } },
         { id: 'rope', kind: 'item', item: 'rope', x: 424, y: 420, w: 42, h: 30, show: ['!got_rope'] },
         { id: 'crane', kind: 'machine', x: 540, y: 160, w: 210, h: 292, state: { variant: 'crane' }, bind: { load: '!got_bucket' } }
-      ].concat(row(3, function (i) { return { id: 'cl' + (i + 1), kind: 'lever', x: 560 + i * 34, y: 398, w: 18, h: 46, state: {} }; }))
+      ].concat(row(3, function (i) { return { id: 'cl' + (i + 1), kind: 'lever', x: 560 + i * 34, y: 398, w: 18, h: 46, state: { tint: ['boom', 'pin', 'hook'][i] } }; }))
         .concat([{ id: 'net', kind: 'box', x: 790, y: 380, w: 92, h: 80, state: { variant: 'net' }, bind: { empty: 'got_fish' } }]),
       hotspots: [
         { id: 'toSquare', rect: [0, 270, 40, 182], cursor: 'go', at: 22, to: 'square', toX: 890 },
@@ -119,7 +119,7 @@
         { id: 'door', kind: 'door', x: 26, y: 272, w: 70, h: 180, state: { open: true } },
         { id: 'tank', kind: 'machine', x: 120, y: 180, w: 150, h: 272, state: { variant: 'tank' } },
         { id: 'gauge', kind: 'machine', x: 296, y: 246, w: 110, h: 92, state: { variant: 'gauge' } }
-      ].concat(row(3, function (i) { return { id: 'v' + (i + 1), kind: 'lever', x: 302 + i * 40, y: 370, w: 20, h: 48, state: {} }; }))
+      ].concat(row(3, function (i) { return { id: 'v' + (i + 1), kind: 'lever', x: 302 + i * 40, y: 370, w: 20, h: 48, state: { pips: [1, 2, 4][i] } }; }))
         .concat([
           { id: 'panel', kind: 'box', x: 446, y: 196, w: 180, h: 150, state: { variant: 'panel' }, bind: { ok: 'w:pipes' } },
           { id: 'spout', kind: 'machine', x: 650, y: 230, w: 52, h: 130, state: { variant: 'spout' }, bind: { drip: 'w:pipes' } },
@@ -178,7 +178,7 @@
         { depth: 3, items: [{ kind: 'plant', x: 0, y: 420, w: 60, h: 60, seed: 3 }] }
       ],
       objects: [
-        { id: 'pawl', kind: 'lever', x: 334, y: 398, w: 18, h: 54, state: {} },
+        { id: 'pawl', kind: 'lever', x: 334, y: 398, w: 18, h: 54, state: { tint: 'pin' } },
         { id: 'winch', kind: 'machine', x: 380, y: 332, w: 92, h: 120, state: { variant: 'winch' }, bind: { crank: 'crankOn' } },
         { id: 'bridge', kind: 'bridge', x: 494, y: 448, w: 326, h: 18, state: {}, bind: { down: 'bridgeDown' } }
       ],

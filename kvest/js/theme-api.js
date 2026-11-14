@@ -25,11 +25,11 @@
     floor: 'пол интерьера', window: 'окно; state.lit', cloud: 'облако (плывёт от t)', moon: 'луна',
     door: 'дверь; state.open, state.lock — висит замок, state.hatch — люк в полу',
     gate: 'решётка; state.open — поднята',
-    lever: 'рычаг/переключатель; state.on — положение',
+    lever: 'рычаг/переключатель; state.on — положение; state.tint — цвет-метка части механизма (pin — стопор, boom — стрела, hook — крюк), state.pips — вес вентиля (точки)',
     box: 'ящик/предмет мебели; state.variant: stool | bench (state.open — ящик выдвинут, state.empty) | logs (поленница, state.empty) | net (сеть, state.empty — без рыбы) | panel (щит с трубами, state.ok); state.icon — диск/плашка с пиктограммой; state.pic + state.part + state.n — фрагмент картинки сдвижной головоломки (part −1 — целая картинка-образец)',
     machine: 'механизм; state.variant: stove (state.wood, state.fire) | well | crane (state.prog 0..3: стопор, стрела, крюк; state.load — висит ведро) | tank | gauge (state.gauge 0..1, state.mark 0..1, state.ok) | spout (state.drip) | winch (state.crank, state.prog 0..4) | carriage (state.ok)',
     item: 'предмет в сцене: рисуется пиктограммой drawIcon(item)',
-    npc: 'персонаж: state.type master | baker | goat | cat | gull | bird; state.pose; state.warm (master); state.post (bird — сидит на столбике)'
+    npc: 'персонаж: state.type master | baker | goat | cat | gull | bird; state.pose; state.warm (master); state.post (bird — сидит на столбике), state.note 0..4 (bird — нота: высота столбика; тема «бумага» красит птицу и колокольчик одной нотой в один цвет), state.sing 0..1, state.fed (cat), state.traded (gull)'
   };
   // ---------- kind: расширения пилота (тема без них рисует нейтральный прямоугольник) ----------
   var EXT_KINDS = {
