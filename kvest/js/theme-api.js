@@ -41,6 +41,13 @@
   var POSES = ['idle', 'walk', 'reach', 'think', 'happy'];
   var CURSORS = ['use', 'take', 'go', 'look'];          // + необязательный 'walk' (пустое место), неизвестный — не падать
   var METHODS = ['drawScene', 'drawHero', 'drawNpc', 'drawThought', 'drawIcon', 'drawCursor', 'drawUI'];
+  // Необязательные хуки (расширение 14.11, «подсказки и набросок тушью»). Движок/оболочка зовут их, только если они есть:
+  //  drawHint(ctx, x, y, hint, t, opts) — мысль-подсказка; hint = { target: id головоломки, scene, here, icons, ink: эскиз из puzzles.js },
+  //    opts.age — секунды с появления (для эффекта пера). Без хука подсказка рисуется обычной drawThought(icons).
+  //  drawWalkbook(ctx, walk, layout, t) — прохождение-набросок; walk = { page, pages, per, steps: только открытые (пройденные + текущий),
+  //    total, flip: {d, t} | null, open, time }; шаг = { id, scene, icons, done, current, open, ink }. Без хука drawUI рисует walk сам.
+  //  drawThought(ctx, x, y, icons, t, opts) — opts.style: 'paper' | 'ink' (мысль тушью: мастер в кат-сценах), opts.age.
+  var HOOKS = ['drawHint', 'drawWalkbook'];
 
   // ---------- пиктограммы (мысли, инвентарь, интерфейс) ----------
   var ICONS = {
@@ -65,8 +72,10 @@
     hint: { x: 44, y: 509, r: 24 },
     book: { x: 106, y: 509, r: 20 },
     close: { x: 916, y: 44, r: 24 },
-    walk: { prev: { x: 56, y: 280, r: 28 }, next: { x: 904, y: 280, r: 28 }, close: { x: 916, y: 44, r: 24 },
-      x0: 110, y0: 92, cw: 236, ch: 176, gap: 16, cols: 3, rows: 2 }
+    // блокнот: разворот из двух страниц (per шагов на разворот); x0..ch — карточки для тем без своего блокнота
+    walk: { prev: { x: 46, y: 280, r: 28 }, next: { x: 914, y: 280, r: 28 }, close: { x: 916, y: 44, r: 24 },
+      x0: 96, y0: 80, cw: 372, ch: 392, gap: 0, cols: 2, rows: 1, per: 2,
+      pages: [{ x: 96, y: 70, w: 384, h: 412 }, { x: 480, y: 70, w: 384, h: 412 }] }
   };
   function slotRect(i) { var L = LAYOUT.inv; return [L.slot0 + i * (L.slotW + L.gap), L.slotY, L.slotW, L.slotH]; }
 
@@ -143,10 +152,16 @@
     Object.keys(ICONS).concat(['zzz_icon']).forEach(function (id) { tryit('drawIcon ' + id, function () { theme.drawIcon(ctx, id, 100, 100, 40); }); });
     CURSORS.concat(['walk', 'zzz']).forEach(function (c) { tryit('drawCursor ' + c, function () { theme.drawCursor(ctx, c, 100, 100); }); });
     ['scene', 'mini', 'walk', 'cut'].forEach(function (m) { tryit('drawUI ' + m, function () { theme.drawUI(ctx, sampleUI(m), 3); }); });
+    tryit('drawThought ink', function () { theme.drawThought(ctx, 300, 300, ['tower', 'lamp_off'], 1, { style: 'ink', age: 0.6 }); });
+    if (typeof theme.drawHint === 'function') {
+      tryit('drawHint', function () { theme.drawHint(ctx, 300, 320, { target: 'nope', here: true, icons: ['key'], ink: [{ i: 'key' }, '>', { i: 'door', mark: true, n: 2 }, '+', { o: 'zzz/none' }, 'up', '='] }, 1, { age: 0.5 }); });
+      tryit('drawHint пусто', function () { theme.drawHint(ctx, 300, 320, null, 1, {}); });
+    }
+    if (typeof theme.drawWalkbook === 'function') tryit('drawWalkbook', function () { theme.drawWalkbook(ctx, { page: 0, pages: 2, per: 2, total: 3, flip: { d: 1, t: 0.9 }, open: 0, time: 1, steps: [{ id: 'a', scene: null, icons: ['gear', 'key'], done: true, current: false, open: true, ink: null }, { id: 'b', scene: 'zzz', icons: ['gear'], done: false, current: true, open: true, ink: [{ i: 'lamp', mark: true }] }] }, LAYOUT, 1); });
     return { ok: errors.length === 0, errors: errors };
   }
 
   K.ThemeAPI = { version: '1.0', KINDS: KINDS, EXT_KINDS: EXT_KINDS, MOODS: MOODS, POSES: POSES, CURSORS: CURSORS, METHODS: METHODS,
-    ICONS: ICONS, LAYOUT: LAYOUT, slotRect: slotRect, allKinds: allKinds, isKind: isKind,
+    ICONS: ICONS, LAYOUT: LAYOUT, HOOKS: HOOKS, slotRect: slotRect, allKinds: allKinds, isKind: isKind,
     sampleScene: sampleScene, sampleUI: sampleUI, mockCtx: mockCtx, validateTheme: validateTheme };
 })(typeof window !== 'undefined' ? window : globalThis);

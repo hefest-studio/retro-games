@@ -49,6 +49,13 @@
     onSelect: function () { g.goto('play', { resume: true }); if (game) game.openWalk(); } });
   g.menu.addItem({ key: 'restart', scene: 'pause', before: 'menu', label: function () { return g.t('restart'); },
     onSelect: function () { clearSave(); g.goto('play'); } });
+  // «Анимация штриха» (кипение и перо в эскизах тушью): вкл — спокойное дрожание 2,5 раза в секунду, выкл — статично
+  function inkItem(scene) {
+    g.menu.addItem({ key: 'inkAnim', scene: scene, before: scene === 'pause' ? 'menu' : undefined, after: scene ? undefined : 'sound',
+      label: function () { return g.t('inkAnim') + ': ' + (K.InkSketch && K.InkSketch.anim() ? g.t('on') : g.t('off')); },
+      onSelect: function () { if (K.InkSketch) K.InkSketch.setAnim(!K.InkSketch.anim()); } });
+  }
+  inkItem(); inkItem('pause');
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
 
   // фон меню — сцена главы, нарисованная текущей темой
@@ -80,7 +87,10 @@
     var m = game.model(), th = T(), t = m.time;
     th.drawScene(ctx, m.scene, t, { debug: m.ui.debug, light: m.light, hover: mouseSeen && !still ? m.cursor : null });
     if (m.showHero) th.drawHero(ctx, m.hero, m.pose, t);
-    m.thoughts.forEach(function (q) { th.drawThought(ctx, q.x, q.y, q.icons, t); });
+    m.thoughts.forEach(function (q) {   // подсказка и мысли мастера — тушью, если тема умеет (хуки drawHint / drawThought opts.style)
+      if (q.style === 'ink' && q.hint && th.drawHint) th.drawHint(ctx, q.x, q.y, q.hint, t, { age: q.age });
+      else th.drawThought(ctx, q.x, q.y, q.icons, t, { style: q.style || 'paper', age: q.age });
+    });
     if (still) return;
     th.drawUI(ctx, m.ui, t);
     if (mouseSeen && m.cursor.kind && m.cursor.x >= 0) {

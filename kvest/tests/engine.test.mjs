@@ -13,7 +13,7 @@ const store = {};
 const sandbox = { console, Math, JSON, setTimeout: () => 0, localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } } };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-const FILES = ['js/music.js', 'js/i18n.js', 'js/theme-api.js', 'js/scenes.js', 'js/widgets.js', 'js/puzzles.js', 'js/game.js', 'js/audio.js', 'js/themes/grey.js', 'js/themes/paper.js'];
+const FILES = ['js/music.js', 'js/i18n.js', 'js/theme-api.js', 'js/scenes.js', 'js/widgets.js', 'js/puzzles.js', 'js/game.js', 'js/audio.js', 'js/themes/grey.js', 'js/themes/paper.js', 'js/themes/ink-sketch.js'];
 for (const f of FILES) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const K = sandbox.KVEST, A = K.ThemeAPI, P = K.PUZZLES, LG = K.logic, WT = K.Widgets.types;
 
@@ -231,10 +231,21 @@ test('подсказка: один раз на сцену бесплатно; д
   // в другой сцене — снова бесплатно
   const s = G.state(); s.scene = 'square'; ok(G.model().ui.hint.ready); eq(G.hint(), 'free');
 });
-test('прохождение-набросок: шаги = головоломки, страницы листаются, открывается/закрывается отдельно', () => {
-  const { G } = fresh(); G.openWalk(); const m = G.model(); eq(m.ui.mode, 'walk'); eq(m.ui.walk.steps.length, P.puzzles.length);
-  const L = A.LAYOUT.walk; G.down(L.next.x, L.next.y); G.up(L.next.x, L.next.y); eq(G.model().ui.walk.page, 1);
-  G.down(L.close.x, L.close.y); G.up(L.close.x, L.close.y); eq(G.model().ui.mode, 'scene');
+test('прохождение-набросок: открыты только пройденные шаги и текущая цель; развороты листаются кнопками и свайпом', () => {
+  const { G } = fresh(); G.openWalk(); let m = G.model(); eq(m.ui.mode, 'walk'); eq(G.walkSteps().length, P.puzzles.length);
+  eq(m.ui.walk.steps.length, 1, 'в начале открыт только текущий шаг'); ok(m.ui.walk.steps[0].current && m.ui.walk.steps[0].id === 'p_shelf');
+  G.closeWalk();
+  // середина главы: открытые = решённые + текущая, по 2 на разворот, открывается на развороте с текущей целью
+  const half = EXP.plan.slice(0, Math.floor(EXP.plan.length / 2)), r1 = playChapter(K, { plan: half }), G2 = r1.game;
+  G2.openWalk(); m = G2.model(); const open = m.ui.walk.steps;
+  eq(open.length, G2.solvedCount() + 1); ok(open.every(s => s.done || s.current)); eq(open.filter(s => s.current).length, 1);
+  eq(m.ui.walk.pages, Math.ceil(open.length / A.LAYOUT.walk.per)); const pg0 = Math.floor(open.findIndex(s => s.current) / A.LAYOUT.walk.per); eq(m.ui.walk.page, pg0, 'открыт разворот текущей цели');
+  ok(m.ui.walk.pages >= 2, 'разворотов ' + m.ui.walk.pages);
+  const L = A.LAYOUT.walk; while (G2.model().ui.walk.page > 0) { G2.down(L.prev.x, L.prev.y); G2.up(L.prev.x, L.prev.y); }
+  eq(G2.model().ui.walk.page, 0);
+  G2.down(700, 300); G2.move(500, 310); G2.move(400, 310); G2.up(400, 310); eq(G2.model().ui.walk.page, 1, 'свайп влево — вперёд');
+  G2.down(300, 300); G2.move(500, 300); G2.up(520, 300); eq(G2.model().ui.walk.page, 0, 'свайп вправо — назад');
+  G2.down(L.close.x, L.close.y); G2.up(L.close.x, L.close.y); eq(G2.model().ui.mode, 'scene');
   ok(G.walkSteps().every(s => s.icons.every(ic => A.ICONS[ic])), 'пиктограммы шагов');
 });
 test('кат-сцена вступления идёт движком (мысли мастера), тап — пропуск; повторно не показывается', () => {
@@ -313,6 +324,60 @@ if (!process.env.QUICK) {
 }
 
 // ---------- музыка, i18n, правило имён ----------
+// ---------- эскизы тушью (подсказки, блокнот, мысли мастера) ----------
+const INK = K.InkSketch;
+function inkGlyphs(seq) { return (seq || []).filter(q => typeof q !== 'string'); }
+test('тушь: у каждой цели главы есть эскиз подсказки — глифы ссылаются на настоящие объекты сцен, цель отмечена', () => {
+  const ops = new Set(['>', '+', '=', 'up', '|']);
+  for (const p of P.puzzles) {
+    ok(Array.isArray(p.ink) && p.ink.length, p.id + ': нет ink');
+    const gl = inkGlyphs(p.ink); ok(gl.length >= 1 && gl.some(q => q.mark), p.id + ': нет отмеченной цели (mark)');
+    p.ink.filter(q => typeof q === 'string').forEach(q => ok(ops.has(q), p.id + ': знак ' + q));
+    for (const q of gl) {
+      if (q.i) ok(A.ICONS[q.i], p.id + ': пиктограмма ' + q.i);
+      const refs = (q.o ? [q.o] : []).concat(q.g || []);
+      refs.forEach(ref => { const [sid, oid] = ref.split('/'); ok(SC[sid] && SC[sid].objects.some(o => o.id === oid), p.id + ': нет объекта ' + ref); });
+      if (q.l) { const [sid, kind] = q.l.split('/'); ok(SC[sid].layers.some(L => L.items.some(it => it.kind === kind)), p.id + ': нет элемента слоя ' + q.l); }
+      const src = INK.sourceOf(q); ok(src.icon || (src.parts && src.parts.length === refs.length + (q.l ? 1 : 0)), p.id + ': источник глифа');
+    }
+    // эскиз цели в своей сцене указывает на объект этой сцены (или предмет)
+    if (p.scene && p.type !== 'observe') ok(gl.some(q => q.i || (q.o || '').startsWith(p.scene + '/') || (q.g || []).some(r => r.startsWith(p.scene + '/'))), p.id + ': эскиз не про сцену ' + p.scene);
+  }
+});
+test('тушь: подсказка в игре несёт цель и эскиз; рисуется хуком drawHint по всем целям (Node-строгий режим)', () => {
+  const ctx = A.mockCtx(), th = THEMES.paper; sandbox.KVEST_STRICT = true;
+  try {
+    ok(typeof th.drawHint === 'function' && typeof th.drawWalkbook === 'function', 'хуки не подключены');
+    const { G } = fresh(); G.hint(); const q = G.model().thoughts[0];
+    eq(q.style, 'ink'); eq(q.hint.target, 'p_shelf'); ok(Array.isArray(q.hint.ink));
+    for (const p of P.puzzles) for (const here of [true, false]) { th.drawHint(ctx, 300, 320, { target: p.id, scene: p.scene, here, icons: p.hint, ink: p.ink }, 1, { age: 0.7 }); th.drawHint(ctx, 300, 320, { target: p.id, scene: p.scene, here, icons: p.hint, ink: p.ink }, 1, { age: 9 }); }
+  } finally { sandbox.KVEST_STRICT = false; }
+});
+test('тушь: блокнот рисует все шаги главы (каждый разворот, пройденные и текущий) без исключений', () => {
+  const ctx = A.mockCtx(), th = THEMES.paper; sandbox.KVEST_STRICT = true;
+  try {
+    const all = P.puzzles.map((p, i) => ({ id: p.id, scene: p.scene, icons: ['gear'].concat(p.hint), done: i < 25, current: i === 25, open: true, ink: p.ink }));
+    const per = A.LAYOUT.walk.per;
+    for (let page = 0; page < Math.ceil(all.length / per); page++) for (const flip of [null, { d: 1, t: 0.9 }]) th.drawWalkbook(ctx, { page, pages: 13, per, steps: all, total: all.length, flip, open: 0.5, time: 1 }, A.LAYOUT, 1);
+    // и через drawUI в режиме walk по настоящей модели
+    const { G } = fresh(); G.openWalk(); th.drawUI(ctx, G.model().ui, 1);
+  } finally { sandbox.KVEST_STRICT = false; }
+  ok(ctx.calls > 1000);
+});
+test('тушь: мысли мастера в кат-сцене — style ink (перо), обычные мысли героини — бумага', () => {
+  const G = K.createGame({}); G.start(); for (let i = 0; i < 40; i++) G.update(1 / 30);
+  const q = G.model().thoughts.find(x => x.who === 'master'); ok(q, 'нет мысли мастера'); eq(q.style, 'ink'); ok(q.age >= 0);
+  const ctx = A.mockCtx(); sandbox.KVEST_STRICT = true; try { THEMES.paper.drawThought(ctx, q.x, q.y, q.icons, 1, { style: 'ink', age: q.age }); } finally { sandbox.KVEST_STRICT = false; }
+  G.skipCut(); G.look(396, 150); const h = G.model().thoughts.find(x => x.who === 'hero'); ok(h && h.style !== 'ink', 'осмотр — не тушь');
+});
+test('тушь: переключатель «Анимация штриха» сохраняется (localStorage), по умолчанию — вкл (спокойный режим)', () => {
+  delete store[INK.KEY];
+  const fresh2 = () => { const sb = { console, Math, JSON, localStorage: sandbox.localStorage }; sb.window = sb; vm.createContext(sb); vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/themes/ink-sketch.js'), 'utf8'), sb); return sb.KVEST.InkSketch; };
+  eq(fresh2().anim(), true, 'по умолчанию');
+  INK.setAnim(false); eq(store[INK.KEY], '0'); eq(fresh2().anim(), false, 'после перезапуска');
+  INK.setAnim(true); eq(store[INK.KEY], '1'); eq(fresh2().anim(), true);
+  ok(K.STR.ru.inkAnim && K.STR.en.inkAnim, 'строки меню');
+});
 test('музыка: оригинальный трек kvest подключается по gameId (длины голосов кратны, 8–16 тактов)', () => {
   const T = sandbox.Arcade.tracks.kvest; ok(T && T.bpm > 0 && T.melody && T.bass && T.drums);
   const n = s => (Array.isArray(s) ? s.join(' ') : s).replace(/\|/g, ' ').trim().split(/\s+/).length;

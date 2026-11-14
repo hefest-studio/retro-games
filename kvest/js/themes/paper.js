@@ -1816,7 +1816,7 @@
   }
   function drawUI(ctx, ui, t) {
     ui = ui || {}; var L = ui.layout || (API && API.LAYOUT); if (!L) return;
-    if (ui.mode === 'walk' && ui.walk) { drawWalk(ctx, ui, L, t); return; }
+    if (ui.mode === 'walk' && ui.walk) { if (theme.drawWalkbook) theme.drawWalkbook(ctx, ui.walk, L, t); else drawWalk(ctx, ui, L, t); return; }
     var I = L.inv;
     if (ui.mode !== 'mini') {
       blit(ctx, sprite('invbar|' + I.slots, 0, I.y - 12, W, H - I.y + 12, function (g) {
@@ -1890,7 +1890,9 @@
     drawIcon: function (ctx, id, x, y, size) { drawIcon(ctx, id, x, y, size); },
     drawCursor: drawCursor,
     drawUI: drawUI,
-    cacheSize: function () { return cache.size; }
+    cacheSize: function () { return cache.size; },
+    // внутренности для модуля ink-sketch.js (эскизы тушью рисуются из тех же спрайтов, что и сцена)
+    _lib: { drawIconRaw: drawIconRaw, palKey: palKey, pal: pal, itemSprite: itemSprite, blit: blit, HAS_DOM: HAS_DOM }
   };
   var KV = global.KVEST = global.KVEST || {};
   (KV.themes = KV.themes || {}).paper = theme;

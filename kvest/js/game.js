@@ -90,7 +90,7 @@
 
     function sc() { return SC[st.scene]; }
     function local(w) { return st.local[w.id] || (st.local[w.id] = WT[w.type].init(w)); }
-    function think(who, icons, dur) { rt.thoughts[who || 'hero'] = { icons: icons.slice(), t: dur || 2.4 }; if (!who || who === 'hero') { rt.pose = 'think'; rt.poseT = Math.min(dur || 2.4, 1.2); } emit('think', { who: who || 'hero', icons: icons }); }
+    function think(who, icons, dur, meta) { if (who && who !== 'hero') dur = Math.max(dur || 2.4, 3.6); /* мысль мастера тушью: перо рисует ~1.4 с, готовый эскиз должен постоять */ rt.thoughts[who || 'hero'] = { icons: icons.slice(), t: dur || 2.4, dur: dur || 2.4, meta: meta || null }; if (!who || who === 'hero') { rt.pose = 'think'; rt.poseT = Math.min(dur || 2.4, 1.2); } emit('think', { who: who || 'hero', icons: icons }); }
     function pose(p, d) { rt.pose = p; rt.poseT = d || 0.8; }
     var fx = {
       think: function (icons, d) { think('hero', icons, d); },
@@ -201,7 +201,11 @@
       if (p.scene && p.scene !== st.scene) return ['door', SC[p.scene].icon].concat(p.hint.slice(0, 1));
       return p.hint.slice();
     }
-    function showHint() { var ic = hintIcons(); think('hero', ic, 3.6); emit('hint', { icons: ic, target: (hintTarget() || {}).id }); }
+    function showHint() {   // мысль-подсказка: тема может нарисовать её эскизом (drawHint) по данным цели (puzzle.ink)
+      var ic = hintIcons(), p = hintTarget();
+      think('hero', ic, 4.2, { hint: true, target: p ? p.id : null, scene: p ? p.scene : null, here: !p || !p.scene || p.scene === st.scene });
+      emit('hint', { icons: ic, target: (p || {}).id });
+    }
     function hintReady() { return !st.hintFree[st.scene] || st.hintCD <= 0; }
     function hint() {
       if (rt.mode !== 'scene' || rt.cut) return 'busy';
@@ -209,12 +213,23 @@
       if (st.hintCD <= 0) { st.hintCD = HINT_CD; showHint(); changed(); return 'timer'; }
       openMini('fireflies'); return 'game';
     }
+    // шаги наброска: все головоломки; open — пройденные и текущая цель (остальные в блокноте не показываются)
     function walkSteps() {
-      return P.puzzles.map(function (p) { return { id: p.id, icons: [p.scene ? SC[p.scene].icon : 'gear'].concat(p.sketch || p.hint), done: !!st.flags[p.id] }; });
+      var cur = hintTarget(), cid = cur ? cur.id : null;
+      return P.puzzles.map(function (p) {
+        var done = !!st.flags[p.id];
+        return { id: p.id, scene: p.scene, icons: [p.scene ? SC[p.scene].icon : 'gear'].concat(p.sketch || p.hint), done: done, current: p.id === cid, open: done || p.id === cid, ink: p.ink || null };
+      });
     }
-    function openWalk() { if (rt.cut) return; rt.mode = 'walk'; rt.walk = { page: 0 }; rt.target = null; emit('walkthrough', { open: true }); }
+    function openSteps() { return walkSteps().filter(function (s) { return s.open; }); }
+    function openWalk() {   // открывается на развороте с текущей целью
+      if (rt.cut) return; var os = openSteps(), ci = 0; os.forEach(function (s, i) { if (s.current) ci = i; });
+      rt.mode = 'walk'; rt.walk = { page: Math.floor(ci / walkPer()), open: rt.time }; rt.target = null; emit('walkthrough', { open: true });
+    }
     function closeWalk() { rt.mode = 'scene'; rt.walk = null; emit('walkthrough', { open: false }); }
-    function walkPages() { var per = LAY.walk.cols * LAY.walk.rows; return Math.ceil(P.puzzles.length / per); }
+    function walkPer() { return LAY.walk.per || LAY.walk.cols * LAY.walk.rows; }
+    function walkPages() { return Math.max(1, Math.ceil(openSteps().length / walkPer())); }
+    function walkFlip(d) { if (!rt.walk) return; var p = Math.max(0, Math.min(walkPages() - 1, rt.walk.page + d)); if (p !== rt.walk.page) { rt.walk.page = p; rt.walk.flip = { d: d, t: rt.time }; } }
 
     // ---------- кат-сцены ----------
     function cutStep(dt) {
@@ -273,8 +288,8 @@
       if (rt.mode === 'walk') {
         var Lw = LAY.walk;
         if (near(Lw.close, x, y)) closeWalk();
-        else if (near(Lw.prev, x, y)) rt.walk.page = Math.max(0, rt.walk.page - 1);
-        else if (near(Lw.next, x, y)) rt.walk.page = Math.min(walkPages() - 1, rt.walk.page + 1);
+        else if (near(Lw.prev, x, y)) walkFlip(-1);
+        else if (near(Lw.next, x, y)) walkFlip(1);
         emit('sfx', { name: 'page' }); return;
       }
       if (rt.mode === 'mini') { if (near(LAY.close, x, y)) { closeMini(); emit('sfx', { name: 'page' }); return; } miniTap(x, y); return; }
@@ -311,6 +326,7 @@
       if (!p) return;
       if (rt.drag) { var item = rt.drag.item; rt.drag = null; drop(item, x, y); return; }
       if (p.long) return;
+      if (rt.mode === 'walk' && Math.abs(x - p.x0) > 60 && Math.abs(x - p.x0) > Math.abs(y - p.y0) * 1.5) { walkFlip(x < p.x0 ? 1 : -1); emit('sfx', { name: 'page' }); return; }   // свайп — листать
       tap(x, y);
     }
     function drop(item, x, y) {
@@ -370,7 +386,10 @@
         var th = rt.thoughts[who], x, y;
         if (who === 'hero') { x = rt.hero.x; y = rt.hero.y - 132; }
         else { var o = s.objects.filter(function (ob) { return ob.id === who; })[0]; if (!o) continue; x = o.x + o.w / 2; y = o.y - 8; }
-        out.push({ who: who, x: x, y: y, icons: th.icons });
+        var q = { who: who, x: x, y: y, icons: th.icons, age: (th.dur || th.t) - th.t };
+        if (th.meta && th.meta.hint) { q.style = 'ink'; q.hint = { target: th.meta.target, scene: th.meta.scene, here: th.meta.here, icons: th.icons, ink: (P.puzzles.filter(function (p) { return p.id === th.meta.target; })[0] || {}).ink || null }; }
+        else if (who === 'master' && (rt.cut || rt.cutQ.length)) q.style = 'ink';   // мастер «рисует» мысль тушью
+        out.push(q);
       }
       return out;
     }
@@ -389,7 +408,7 @@
         hover: slotAt(rt.hover.x, rt.hover.y),
         hint: { ready: hintReady(), free: !st.hintFree[st.scene], cd: st.hintCD > 0 ? st.hintCD / HINT_CD : 0 },
         close: !!mini, solvedMini: !!(mini && rt.miniDone), debug: rt.debug, progress: { solved: solvedCount(), total: P.puzzles.length },
-        walk: rt.mode === 'walk' ? { page: rt.walk.page, pages: walkPages(), steps: walkSteps() } : null };
+        walk: rt.mode === 'walk' ? { page: rt.walk.page, pages: walkPages(), per: walkPer(), steps: openSteps(), total: P.puzzles.length, flip: rt.walk.flip || null, open: rt.walk.open, time: rt.time } : null };
       return { mode: ui.mode, scene: scene, showHero: !mini, hero: { x: rt.hero.x, y: rt.hero.y, dir: rt.hero.dir }, pose: rt.pose,
         thoughts: mini ? [] : thoughtsView(), ui: ui, cursor: { kind: cursorKind(), x: rt.hover.x, y: rt.hover.y, item: rt.sel },
         light: { x: rt.hero.x, y: rt.hero.y - 60, r: st.inv.indexOf('lantern_lit') >= 0 ? 260 : 70 }, time: rt.time };
@@ -413,7 +432,7 @@
       setDebug: function (v) { rt.debug = v == null ? !rt.debug : !!v; return rt.debug; },
       ringBirds: function () { rt.ring.birds = rt.time; },
       state: function () { return st; }, runtime: function () { return rt; }, scene: function () { return sc(); },
-      hotspot: hsById, hotspotAt: hsAt, slotAt: slotAt, solvedCount: solvedCount, hintTarget: hintTarget, hintIcons: hintIcons, walkSteps: walkSteps,
+      hotspot: hsById, hotspotAt: hsAt, slotAt: slotAt, solvedCount: solvedCount, hintTarget: hintTarget, hintIcons: hintIcons, walkSteps: walkSteps, openSteps: openSteps, walkFlip: walkFlip,
       won: function () { return !!st.flags.won; }, data: { scenes: SCN, puzzles: P }
     };
     return api;
