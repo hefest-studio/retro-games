@@ -183,7 +183,7 @@ test('стража на каждом уровне просыпается и дв
     eq(srcs[0], 'engine.js'); eq(srcs[1], 'js/music.js'); eq(srcs[2], 'js/store-migrate.js', 'миграция до createGame');
     ['js/levels.js', 'js/game.js', 'js/render.js'].forEach((s) => { ok(srcs.includes(s), 'нет ' + s); ok(fs.existsSync(path.join(ROOT, s)), 'нет файла ' + s); });
     ok(html.includes("gameId:'podkop'"), 'gameId'); ok(html.includes('rel="icon"') && html.includes('%23EA6A12'), 'фавикон студии');
-    ok(html.includes('href="../">← Каталог'), 'нет «← Каталог»'); ok(html.includes('id="bDigL"') && html.includes('id="bDigR"'), 'нет тач-копания');
+    ok(/href="\.\.\/"[^>]*>← Каталог/.test(html), 'нет «← Каталог»'); ok(html.includes('id="bDigL"') && html.includes('id="bDigR"'), 'нет тач-копания');
     ok(/theme:'modern'/.test(html), 'modern по умолчанию');
   });
   test('v2: строки RU/EN оболочки — одинаковые ключи', () => {

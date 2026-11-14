@@ -368,6 +368,7 @@
 
     /* ---- настройки / прочее ---- */
     'credits.original': 'ОРИГИНАЛ · ГЕФЕСТ',
+    'studio': 'ГЕФЕСТ',
     'credits.port': 'HTML5 CANVAS · WEB AUDIO · 2026',
     'credits.fan': 'Оригинальная игра студии «Гефест» по мотивам жанра.',
     'credits.thanks': 'Графика и музыка — из кода. Внешних файлов нет.',
@@ -394,8 +395,8 @@
   };
 
   const EN = {
-    'brand': 'ПРОРЫВ',
-    'brand.ru': 'ПРОРЫВ',
+    'brand': 'PRORYV',
+    'brand.ru': 'ASSAULT TROOPER',
     'tagline': 'FROM 8-BIT TO NEON',
     'tagline.full': 'original by Hefest studio',
     'loading': 'LOADING...',
@@ -441,7 +442,7 @@
     'key.fire.act': 'blaster / grenade',
     'key.pause': 'ESC  or  P',
     'key.pause.act': 'pause',
-    'key.l': 'L', 'key.l.act': 'язык RU / EN',
+    'key.l': 'L', 'key.l.act': 'language RU / EN',
     'key.g': 'G', 'key.g.act': 'graphics RETRO / NEON',
     'key.m': 'M', 'key.m.act': 'music on / off',
     'key.n': 'N', 'key.n.act': 'sound fx on / off',
@@ -500,7 +501,8 @@
     'msg.togo': 'TO EXIT',
     'msg.shield': 'ARMOUR {n}',
 
-    'credits.original': 'ОРИГИНАЛ · ГЕФЕСТ',
+    'credits.original': 'ORIGINAL · HEFEST',
+    'studio': 'HEFEST',
     'credits.port': 'HTML5 CANVAS · WEB AUDIO · 2026',
     'credits.fan': 'An original game by Hefest studio.',
     'credits.thanks': 'Graphics & music from code only.',
@@ -519,7 +521,7 @@
     'pause.sfx': 'SFX: {v}',
     'pause.lang': 'LANGUAGE: {v}',
 
-    'test.title': 'ПРОРЫВ TESTS',
+    'test.title': 'PRORYV TESTS',
     'test.ok': 'OK',
     'test.fail': 'FAIL'
   };
@@ -5647,7 +5649,7 @@
   function drawTitle() {
     const st = PR.state;
     background(themeOf({ theme: 'space' }));
-    const logo = 'ПРОРЫВ';
+    const logo = PR.t('brand');
     const colors = [P.byellow, P.bcyan, P.bmagenta, P.bgreen, P.bcyan, P.bwhite];
     const sc = 4;
     const tw = textW(logo, sc);
@@ -5679,7 +5681,7 @@
     }
     /* рекорд */
     text(PR.t('msg.record') + ' ' + String(st.record).padStart(6, '0'), W - 4, 2, P.byellow, 1, 'right');
-    text('ГЕФЕСТ', 4, 2, P.blue, 1);
+    text(PR.t('studio'), 4, 2, P.blue, 1);
     text(PR.t('menu.hint.quick'), W / 2, VH - 9, P.blue, 1, 'center');
     if (PR.BUILD) text(PR.t('settings.build.short', { v: PR.BUILD }), W / 2, 76, P.bblue, 1, 'center');
   }
@@ -5983,7 +5985,7 @@
       case 'win': drawWin(); break;
       default:
         px('#000000', 0, 0, W, VH);
-        text('ПРОРЫВ', W / 2, 90, P.bwhite, 3, 'center');
+        text(PR.t('brand'), W / 2, 90, P.bwhite, 3, 'center');
         break;
     }
     g.restore();
@@ -6849,9 +6851,9 @@
     const lv = PR.levelData(st.level);
     const inRun = ['play', 'paused', 'dead', 'bonus', 'levelclear', 'briefing', 'gameover', 'win'].indexOf(st.mode) >= 0;
     const label = inRun
-      ? 'ПРОРЫВ // ' + PR.t('hud.sector') + ' ' + String(st.level + 1).padStart(2, '0') +
+      ? PR.t('brand') + ' // ' + PR.t('hud.sector') + ' ' + String(st.level + 1).padStart(2, '0') +
         (lv ? ' · ' + (lv.name[PR.settings.lang] || lv.name.ru) : '')
-      : 'ПРОРЫВ // ' + PR.t('tagline');
+      : PR.t('brand') + ' // ' + PR.t('tagline');
     g.font = '600 ' + Math.max(10, s.h * 0.016) + 'px ' + UI_FONT;
     const above = s.y > 26;
     const ty = above ? s.y - 8 : s.y + 12;
@@ -6899,7 +6901,7 @@
       g.font = '800 ' + Math.round(side * 0.36) + 'px ' + HEAD_FONT;
       g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillStyle = 'rgba(160,175,255,0.10)';
-      g.fillText('ПРОРЫВ', 0, 0);
+      g.fillText(PR.t('brand'), 0, 0);
       g.restore();
     }
 
@@ -7003,18 +7005,18 @@
     lg.addColorStop(1, '#ff3ff0');
     /* хроматическая аберрация */
     try { g.letterSpacing = '4px'; } catch (e) { /* ok */ }
-    g.globalAlpha = 0.5; g.fillStyle = 'rgba(255,63,240,0.55)'; g.fillText('ПРОРЫВ', W / 2 - 1.4, 41);
-    g.fillStyle = 'rgba(57,246,255,0.55)'; g.fillText('ПРОРЫВ', W / 2 + 1.4, 42);
+    g.globalAlpha = 0.5; g.fillStyle = 'rgba(255,63,240,0.55)'; g.fillText(PR.t('brand'), W / 2 - 1.4, 41);
+    g.fillStyle = 'rgba(57,246,255,0.55)'; g.fillText(PR.t('brand'), W / 2 + 1.4, 42);
     g.globalAlpha = 1;
     g.save();
     g.shadowColor = 'rgba(57,246,255,0.65)';
     g.shadowBlur = 22;
     g.fillStyle = lg;
-    g.fillText('ПРОРЫВ', W / 2, 41.5);
+    g.fillText(PR.t('brand'), W / 2, 41.5);
     g.restore();
     g.fillStyle = 'rgba(255,255,255,0.85)';
     g.globalAlpha = 0.9;
-    g.fillText('ПРОРЫВ', W / 2, 41.5 - 0.35);
+    g.fillText(PR.t('brand'), W / 2, 41.5 - 0.35);
     g.globalAlpha = 1;
     try { g.letterSpacing = '0px'; } catch (e) { /* ok */ }
 
@@ -7024,7 +7026,7 @@
     lg2.addColorStop(0.5, 'rgba(57,246,255,0.9)');
     lg2.addColorStop(1, 'rgba(255,63,240,0)');
     g.fillStyle = lg2; g.fillRect(30, 63, W - 60, 0.8);
-    text('ШТУРМОВИК', W / 2, 74, 9, 'rgba(240,238,255,0.92)', 'center', '700', 3.5, HEAD_FONT);
+    text(PR.t('brand.ru'), W / 2, 74, 9, 'rgba(240,238,255,0.92)', 'center', '700', 3.5, HEAD_FONT);
     text(PR.t('tagline.full'), W / 2, 87, 4, T.a, 'center', '500', 0.8);
 
     menuDraw(T.a, null, 'menu.hint');
@@ -7123,7 +7125,7 @@
     g.font = '800 16px ' + HEAD_FONT;
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillStyle = lg;
-    g.fillText('ПРОРЫВ', W / 2, 24);
+    g.fillText(PR.t('brand'), W / 2, 24);
     text(PR.t('tagline'), W / 2, 38, 3.4, 'rgba(235,235,255,0.8)', 'center', '500', 1);
     g.fillStyle = 'rgba(255,63,240,0.3)'; g.fillRect(30, 45, W - 60, 0.7);
     let y = 53;

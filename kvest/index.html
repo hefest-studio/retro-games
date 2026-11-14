@@ -1,0 +1,34 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>МАЯЧНИЦА · Приключение без слов — HTML5 (пилот)</title>
+<meta name="description" content="МАЯЧНИЦА — пилот рисованного приключения без слов студии «Гефест»: девочка-подмастерье фонарщика зажигает погасший маяк, чтобы лодки нашли дорогу домой сквозь туман. Point-and-click, мысли-пиктограммы, 9 сцен, 26 головоломок, 3 мини-игры. Оформление «бумага» — аппликация из вырезанной бумаги.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#2b2a29">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="./css/style.css">
+</head><body>
+<a class="back btn" id="backLink" href="../" data-catalog-back="1" aria-label="Каталог">&larr; <span class="lbl">Каталог</span></a>
+<button class="btn" id="bPause" type="button" aria-label="Пауза">II</button>
+<button class="btn" id="bFs" type="button" aria-label="Во весь экран"><svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path class="fs-in" d="M2 7V2h5M13 2h5v5M18 13v5h-5M7 18H2v-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path class="fs-out" d="M7 2v5H2M18 7h-5V2M13 18v-5h5M2 13h5v5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<canvas id="c" width="960" height="540" aria-label="МАЯЧНИЦА"></canvas>
+<div class="foot" id="foot"><b>МАЯЧНИЦА</b> · клик / тап — идти и взаимодействовать · долгий тап / правая кнопка — осмотреть · H подсказка · B набросок · P пауза.</div>
+<div id="rotate" hidden><canvas width="320" height="240" aria-hidden="true"></canvas><p class="r1">Поверните устройство</p><p class="r2">Игра — в горизонтальном положении</p></div>
+<script src="./engine.js"></script>
+<script src="./js/music.js"></script>
+<script src="./js/i18n.js"></script>
+<script src="./js/edition.js"></script>
+<script src="./js/stats.js"></script>
+<script src="./js/theme-api.js"></script>
+<script src="./js/scenes.js"></script>
+<script src="./js/widgets.js"></script>
+<script src="./js/puzzles.js"></script>
+<script src="./js/game.js"></script>
+<script src="./js/audio.js"></script>
+<script src="./js/themes/grey.js"></script>
+<script src="./js/themes/paper.js"></script>
+<script src="./js/themes/ink-sketch.js"></script>
+<script src="./js/main.js"></script>
+</body></html>

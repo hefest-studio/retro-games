@@ -121,6 +121,7 @@
 
     /* ---- настройки / прочее ---- */
     'credits.original': 'ОРИГИНАЛ · ГЕФЕСТ',
+    'studio': 'ГЕФЕСТ',
     'credits.port': 'HTML5 CANVAS · WEB AUDIO · 2026',
     'credits.fan': 'Оригинальная игра студии «Гефест» по мотивам жанра.',
     'credits.thanks': 'Графика и музыка — из кода. Внешних файлов нет.',
@@ -147,8 +148,8 @@
   };
 
   const EN = {
-    'brand': 'ПРОРЫВ',
-    'brand.ru': 'ПРОРЫВ',
+    'brand': 'PRORYV',
+    'brand.ru': 'ASSAULT TROOPER',
     'tagline': 'FROM 8-BIT TO NEON',
     'tagline.full': 'original by Hefest studio',
     'loading': 'LOADING...',
@@ -194,7 +195,7 @@
     'key.fire.act': 'blaster / grenade',
     'key.pause': 'ESC  or  P',
     'key.pause.act': 'pause',
-    'key.l': 'L', 'key.l.act': 'язык RU / EN',
+    'key.l': 'L', 'key.l.act': 'language RU / EN',
     'key.g': 'G', 'key.g.act': 'graphics RETRO / NEON',
     'key.m': 'M', 'key.m.act': 'music on / off',
     'key.n': 'N', 'key.n.act': 'sound fx on / off',
@@ -253,7 +254,8 @@
     'msg.togo': 'TO EXIT',
     'msg.shield': 'ARMOUR {n}',
 
-    'credits.original': 'ОРИГИНАЛ · ГЕФЕСТ',
+    'credits.original': 'ORIGINAL · HEFEST',
+    'studio': 'HEFEST',
     'credits.port': 'HTML5 CANVAS · WEB AUDIO · 2026',
     'credits.fan': 'An original game by Hefest studio.',
     'credits.thanks': 'Graphics & music from code only.',
@@ -272,7 +274,7 @@
     'pause.sfx': 'SFX: {v}',
     'pause.lang': 'LANGUAGE: {v}',
 
-    'test.title': 'ПРОРЫВ TESTS',
+    'test.title': 'PRORYV TESTS',
     'test.ok': 'OK',
     'test.fail': 'FAIL'
   };

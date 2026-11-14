@@ -2087,7 +2087,7 @@
     wordGrad.addColorStop(1, '#3bc9e8');
     ctx.font = fnt(19, 800);
     ctx.fillStyle = wordGrad;
-    tracked(ctx, 'КРОТ', TOP.x + 46, TOP.y + 32, 2.2, 'left');
+    tracked(ctx, T('appTitle'), TOP.x + 46, TOP.y + 32, 2.2, 'left');
     label(ctx, T('appTagline'), TOP.x + 46, TOP.y + 45, 7.6, 500, 'rgba(150,190,230,0.62)', 1.4);
 
     // разделители

@@ -21,16 +21,16 @@ canvas{width:100%;display:block;border:1px solid #2a3520;border-radius:10px;back
 .pad button{height:54px;background:#1a2014;border:1px solid #2a3520;border-radius:12px;color:#eef2f8;font-size:19px;font-weight:800}
 .pad button:active{background:#263020}
 .foot{color:#6f7d5c;font-size:11px;margin:2px 12px 16px;text-align:center;max-width:620px}
-a.back{position:fixed;left:10px;top:8px;color:#6f7d5c;font-size:12px;text-decoration:none}
+a.back{position:fixed;z-index:60;left:10px;top:8px;color:#6f7d5c;font-size:12px;text-decoration:none}
 @media(min-width:760px){.pad{display:none}}
 </style></head><body>
-<a class="back" href="../">← Каталог</a>
+<a data-catalog-back="1" class="back" href="../" data-en="← Catalog">← Каталог</a>
 <div class="wrap"><canvas id="c" width="960" height="600" aria-label="РЕДУТ"></canvas></div>
 <div class="pad">
   <button data-d="L">◀</button><button data-d="U">▲</button><button data-d="D">▼</button><button data-d="R">▶</button>
   <button data-d="A">●</button><button data-pause="1">II</button>
 </div>
-<div class="foot"><b>РЕДУТ</b> · И1: стрелки + / (или пробел) — огонь · И2: WASD + F — огонь · 1/2 на заставке — игроки · P/Esc пауза · L язык, T тема, M звук. Тач — только И1.</div>
+<div class="foot" data-en="&lt;b&gt;REDUT&lt;/b&gt; · P1: arrows + / (or space) — fire · P2: WASD + F — fire · 1/2 on the title screen — players · P/Esc pause · L language, T theme, M sound. Touch — P1 only."><b>РЕДУТ</b> · И1: стрелки + / (или пробел) — огонь · И2: WASD + F — огонь · 1/2 на заставке — игроки · P/Esc пауза · L язык, T тема, M звук. Тач — только И1.</div>
 <script src="./engine.js"></script>
 <script src="./js/music.js"></script>
 <script src="./js/i18n.js"></script>

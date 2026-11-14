@@ -251,7 +251,7 @@
       else { rect(ctx, -5, -8, 10, 8, C('#2b3a8a', E.b)); srect(ctx, -5, -8, 10, 8, ink, 0.8); rect(ctx, -2.5, -11, 5, 3, C('#a0703a', E.n)); if (!retro) rect(ctx, -3.5, -7, 2, 5, 'rgba(255,255,255,.4)'); }
     } else if (k === 'letter') {
       rect(ctx, -5, -11, 10, 11, C('#f6e7b8', E.y)); srect(ctx, -5, -11, 10, 11, C('#d0281c', E.r), 1);
-      txt(ctx, 'Б', 0, -2.5, 8, C('#d0281c', E.r), 'center', 900);
+      txt(ctx, 'A', 0, -2.5, 8, C('#d0281c', E.r), 'center', 900);
     } else if (k === 'sheet') {
       poly(ctx, [-5, -12, 3, -12, 6, -9, 6, 0, -5, 0], C('#ffffff', E.w), ink, 0.8); line(ctx, -3, -8, 3, -8, C('#8fa8c8', E.B), 0.6); line(ctx, -3, -5, 4, -5, C('#8fa8c8', E.B), 0.6);
     } else if (k === 'scis') {

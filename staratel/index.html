@@ -31,10 +31,10 @@ body.th-retro canvas{image-rendering:pixelated}
 .pad .u{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
 .pad .p{grid-column:3;grid-row:1;font-size:15px;color:var(--muted)}
 .foot{color:var(--muted);font-size:11px;margin-bottom:16px;text-align:center;padding:0 12px;max-width:560px}
-a.back{position:fixed;left:10px;top:8px;color:var(--muted);font-size:12px;text-decoration:none}
+a.back{position:fixed;z-index:60;left:10px;top:8px;color:var(--muted);font-size:12px;text-decoration:none}
 @media(min-width:760px){.pad{display:none}}
 </style></head><body class="th-modern">
-<a class="back" href="../">← Каталог</a>
+<a data-catalog-back="1" class="back" href="../" data-en="← Catalog">← Каталог</a>
 <div class="hud" id="hud">
   <span class="cell"><img id="hudCoin" alt=""><i class="coin"></i><span data-t="hudScore">Счёт</span> <b id="score">0</b></span>
   <span class="cell"><img id="hudCoin2" alt=""><i class="coin"></i><span data-t="hudGold">Золото</span> <b id="goal">0/0</b></span>

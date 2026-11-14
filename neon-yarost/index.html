@@ -16,11 +16,11 @@
 canvas.arcade-host { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 a.back { position: fixed; left: 10px; top: 8px; z-index: 40; color: #8a86a8; font: 600 12px/1.2 ui-monospace, Menlo, Consolas, monospace; text-decoration: none; }
 a.back:hover, a.back:focus-visible { color: #ffffff; }
-html[data-arcade-scene="play"] a.back { display: none; } /* в бою не перекрывает HUD */
+html[data-arcade-scene="play"] a.back{opacity:.6} /* в бою — видна, но приглушена (не спорит с HUD) */
 </style>
 </head>
 <body>
-<a class="back" href="../">← Каталог</a>
+<a data-catalog-back="1" class="back" href="../" data-en="← Catalog">← Каталог</a>
 <canvas id="stage" width="1280" height="720" aria-label="НЕОН × ЯРОСТЬ: NEON YAROST — игра"></canvas>
 <div id="arcade-mount"></div>
 
@@ -120,7 +120,7 @@ html[data-arcade-scene="play"] a.back { display: none; } /* в бою не пе�
           title: 'НЕОН × ЯРОСТЬ', subtitle: 'Neon Yarost · beat \'em up · 3 квартала, 5 волн', help: 'Управление', settings: 'Настройки' },
     en: { play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off', score: 'Score', level: 'Lvl', best: 'Best',
           win: 'THE CITY IS FREE!', gameover: 'KNOCKOUT', pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
-          title: 'НЕОН × ЯРОСТЬ', subtitle: 'Neon Yarost · beat \'em up · 3 blocks, 5 waves', help: 'Controls', settings: 'Settings' }
+          title: 'NEON × YAROST', subtitle: 'Neon Yarost · beat \'em up · 3 blocks, 5 waves', help: 'Controls', settings: 'Settings' }
   };
 
   var g = ArcadeHost.mount({

@@ -120,7 +120,7 @@
     var bg = ctx.createLinearGradient(X, 0, X, K.VIEW_H); bg.addColorStop(0, '#0a140a'); bg.addColorStop(1, '#070d06');
     ctx.fillStyle = bg; ctx.fillRect(X, 0, W, K.VIEW_H);
     ctx.save(); ctx.shadowColor = C.p1g; ctx.shadowBlur = 10; ctx.fillStyle = C.p1g; ctx.fillRect(X, 0, 2, K.VIEW_H); ctx.restore();
-    text(ctx, 'РЕДУТ', cx, 44, '#fff', 26, 'left', C.p1g);
+    text(ctx, R.t('title'), cx, 44, '#fff', 26, 'left', C.p1g);
     text(ctx, t('sub'), cx, 64, C.p1, 12);
     text(ctx, t('level') + ' ' + (st.stage + 1) + '/3', cx, 104, C.accent, 18, 'left', C.accent);
     text(ctx, t('score'), cx, 140, C.muted, 12); text(ctx, '' + st.score, cx, 161, C.gold, 20, 'left', C.gold);

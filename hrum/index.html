@@ -13,11 +13,13 @@ canvas{width:100%;display:block;border:1px solid #222838;border-radius:10px;back
 .pad .u{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
 .foot{color:#5a6273;font-size:11px;margin:2px 12px 16px;text-align:center}
 @media(min-width:760px){.pad{display:none}}
+a.back{position:fixed;left:10px;top:8px;z-index:60;color:#5a6273;font-size:12px;text-decoration:none}
 </style></head><body>
+<a class="back" href="../" data-catalog-back="1" data-en="&larr; Catalog">&larr; Каталог</a>
 <div class="wrap"><canvas id="c" width="420" height="500"></canvas></div>
 <div class="pad"><button class="u" data-d="U">▲</button><button class="l" data-d="L">◀</button>
 <button class="d" data-d="D">▼</button><button class="r" data-d="R">▶</button></div>
-<div class="foot"><b>ХРУМ</b> на фреймворке Гефест Arcade · стрелки/дпад — движение, P — пауза · L язык, T тема, M звук. Собери все точки, 8 уровней — победа.</div>
+<div class="foot" data-en="&lt;b&gt;HRUM&lt;/b&gt; on the Hefest Arcade framework · arrows/d-pad — move, P — pause · L language, T theme, M sound. Eat all the dots, 8 levels to win."><b>ХРУМ</b> на фреймворке Гефест Arcade · стрелки/дпад — движение, P — пауза · L язык, T тема, M звук. Собери все точки, 8 уровней — победа.</div>
 <script src="./engine.js"></script>
 <script src="./js/music.js"></script>
 <script src="./js/game.js"></script>

@@ -592,7 +592,7 @@
   function drawTitle() {
     const st = PR.state;
     background(themeOf({ theme: 'space' }));
-    const logo = 'ПРОРЫВ';
+    const logo = PR.t('brand');
     const colors = [P.byellow, P.bcyan, P.bmagenta, P.bgreen, P.bcyan, P.bwhite];
     const sc = 4;
     const tw = textW(logo, sc);
@@ -624,7 +624,7 @@
     }
     /* рекорд */
     text(PR.t('msg.record') + ' ' + String(st.record).padStart(6, '0'), W - 4, 2, P.byellow, 1, 'right');
-    text('ГЕФЕСТ', 4, 2, P.blue, 1);
+    text(PR.t('studio'), 4, 2, P.blue, 1);
     text(PR.t('menu.hint.quick'), W / 2, VH - 9, P.blue, 1, 'center');
     if (PR.BUILD) text(PR.t('settings.build.short', { v: PR.BUILD }), W / 2, 76, P.bblue, 1, 'center');
   }
@@ -928,7 +928,7 @@
       case 'win': drawWin(); break;
       default:
         px('#000000', 0, 0, W, VH);
-        text('ПРОРЫВ', W / 2, 90, P.bwhite, 3, 'center');
+        text(PR.t('brand'), W / 2, 90, P.bwhite, 3, 'center');
         break;
     }
     g.restore();

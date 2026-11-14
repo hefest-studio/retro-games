@@ -319,7 +319,7 @@
       showHint(NR.t('quick.gfx') + ' · ' + valueLabel('gfx'));
     }
     if (lastLang !== null && NR.settings.lang !== lastLang) {
-      showHint('ЯЗЫК · ' + String(NR.settings.lang).toUpperCase());
+      showHint(NR.t('settings.lang') + ' · ' + String(NR.settings.lang).toUpperCase());
     }
     if (lastMusic !== null && NR.settings.music !== lastMusic) {
       showHint(NR.t('quick.music') + ' · ' + valueLabel('music'));

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>КВЕСТ — выбор оформления</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+  :root { --bg: #1d1814; --card: #28211b; --line: #3d3229; --text: #efe5cb; --muted: #b9a888; --paper: #dca543; --ink: #c63d26; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { max-width: 1500px; margin: 0 auto; padding: 22px 16px 8px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; justify-content: space-between; }
+  h1 { margin: 0; font-size: 24px; font-weight: 650; letter-spacing: 0.2px; }
+  header p { margin: 4px 0 0; color: var(--muted); max-width: 760px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 6px; }
+  .controls button { font: inherit; font-size: 14px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; }
+  .controls button.on { border-color: var(--muted); background: #3a3027; }
+  main { max-width: 1500px; margin: 0 auto; padding: 12px 16px 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  main.single { grid-template-columns: 1fr; }
+  main.single .card.hidden { display: none; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+  .frame { position: relative; aspect-ratio: 16 / 9; background: #000; }
+  .frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+  .body { padding: 14px 16px 16px; }
+  .body h2 { margin: 0 0 6px; font-size: 19px; display: flex; align-items: center; gap: 10px; }
+  .chip { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .body p { margin: 0 0 10px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; font-size: 14px; color: var(--muted); }
+  .cols h3 { margin: 0 0 2px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text); font-weight: 600; }
+  .cols ul { margin: 0; padding-left: 18px; }
+  .body a { color: var(--text); }
+  .note { max-width: 1500px; margin: 0 auto; padding: 0 16px 36px; color: var(--muted); font-size: 14px; }
+  .note b { color: var(--text); font-weight: 600; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } .cols { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>КВЕСТ — выбор оформления</h1>
+    <p>Два прототипа одной и той же сцены: композиция, герой и логика общие, отличается только тема. Внутри кадра можно щёлкать: героиня ходит по земле, ворота, машина и рычаг переключаются, предмет уходит в инвентарь, кнопка-лампочка показывает подсказку-мысль.</p>
+  </div>
+  <div class="controls">
+    <button data-scene="1" class="on">Сцена 1 · двор</button>
+    <button data-scene="2">Сцена 2 · мастерская</button>
+    <button data-view="both" class="on">Рядом</button>
+    <button data-view="paper">Только «Бумага»</button>
+    <button data-view="ink">Только «Тушь»</button>
+  </div>
+</header>
+
+<main id="grid">
+  <section class="card" data-style="paper">
+    <div class="frame"><iframe src="style-paper/index.html?scene=1" title="Прототип «Бумага»" loading="eager"></iframe></div>
+    <div class="body">
+      <h2><span class="chip" style="background: var(--paper)"></span>«Бумага» — аппликация</h2>
+      <p>Мир собран из вырезанной цветной бумаги и картона: слои с неровным краем чуть приподняты и отбрасывают мягкую тень, видны волокна, рваная белая кромка, скотч и нитяные швы. Тёплая ограниченная палитра, слои мягко покачиваются, героиня — марионетка из вырезок на латунных шпильках с «покадровой» походкой.</p>
+      <div class="cols">
+        <div><h3>Сильные стороны</h3><ul><li>Тёплый, «дорогой» вид, сразу читается как ручная работа</li><li>Глубина за счёт теней — объекты и предметы легко отличить от фона</li><li>Цвет помогает головоломкам (цветовые подсказки, состояния)</li></ul></div>
+        <div><h3>Слабые стороны</h3><ul><li>Больше работы на каждый элемент (несколько вырезок + тень)</li><li>Тяжелее по отрисовке: тени и фактура требуют кэша</li><li>Рядом с другими «бумажными» играми нужен свой почерк</li></ul></div>
+      </div>
+      <p style="margin-top:10px"><a href="style-paper/index.html" target="_blank" rel="noopener">Открыть отдельно ↗</a></p>
+    </div>
+  </section>
+
+  <section class="card" data-style="ink">
+    <div class="frame"><iframe src="style-ink/index.html?scene=1" title="Прототип «Тушь»" loading="eager"></iframe></div>
+    <div class="body">
+      <h2><span class="chip" style="background: var(--ink)"></span>«Тушь» — гравюра и лубок</h2>
+      <p>Оттиск тушью на бумаге цвета слоновой кости: контур кистью разной толщины, параллельная штриховка для полутонов и перекрёстная для теней, сплошная тушь с «крапом». Два акцента — киноварь и охра — положены с лёгким несовмещением, как в лубке; всё обрамлено рамкой-клише. Штрих «кипит» (три варианта дрожания линии), героиня — штриховой силуэт с киноварной рубахой.</p>
+      <div class="cols">
+        <div><h3>Сильные стороны</h3><ul><li>Самобытно, с опорой на русскую графическую традицию</li><li>Быстрее делать новые сцены: линия + штриховка, мало цвета</li><li>Акцентный цвет = «интерактивное»: легко выделять активные предметы</li></ul></div>
+        <div><h3>Слабые стороны</h3><ul><li>Мелкие предметы теряются в штриховке — нужна дисциплина контраста</li><li>Монохром утомляет на длинной игре, нужны «цветные» сцены-паузы</li><li>Кипение штриха может мешать чувствительным к мельканию (нужен переключатель)</li></ul></div>
+      </div>
+      <p style="margin-top:10px"><a href="style-ink/index.html" target="_blank" rel="noopener">Открыть отдельно ↗</a></p>
+    </div>
+  </section>
+</main>
+
+<div class="note">
+  <p><b>Героиня — Искра</b>, девочка-подмастерье кузнечной мастерской: короткая коса-хвостик с жёлтой лентой, кожаный фартук с молотком в кармане, рубаха кирпичного цвета, сумка за спиной и маленький фонарик на поясе. Позы: стоит, идёт, тянется к предмету, думает, радуется. <b>Персонажи:</b> старик-смотритель с метлой (двор) и рыжая кошка (мастерская). Сюжет без слов: мысли показываются пиктограммами — в «Бумаге» это записка на скотче, в «Туши» — свиток-бандероль.</p>
+  <p>Клавиши внутри кадра: 1 / 2 — сцены. Это прототипы оформления, а не игра: логика минимальная.</p>
+</div>
+
+<script>
+  (function () {
+    var frames = document.querySelectorAll('iframe');
+    var scene = 1;
+    document.querySelectorAll('[data-scene]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        scene = +b.dataset.scene;
+        document.querySelectorAll('[data-scene]').forEach(function (x) { x.classList.toggle('on', x === b); });
+        frames.forEach(function (f) { f.src = f.src.split('?')[0] + '?scene=' + scene; });
+      });
+    });
+    var grid = document.getElementById('grid');
+    document.querySelectorAll('[data-view]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var v = b.dataset.view;
+        document.querySelectorAll('[data-view]').forEach(function (x) { x.classList.toggle('on', x === b); });
+        grid.classList.toggle('single', v !== 'both');
+        grid.querySelectorAll('.card').forEach(function (c) { c.classList.toggle('hidden', v !== 'both' && c.dataset.style !== v); });
+      });
+    });
+  })();
+</script>
+</body>
+</html>
