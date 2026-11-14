@@ -1,0 +1,34 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ОСКОЛОК · Кинематографичный экшен-платформер — HTML5</title>
+<meta name="description" content="ОСКОЛОК — оригинальная игра студии «Гефест»: кинематографичный sci-fi экшен-платформер с плоской полигональной графикой. Инженер мастерской Вера при испытании Звёздного Горна проваливается в осколок чужого мира — застывший стеклянный город Стеклодувов-стражей и Теней-ловцов. Резонатор: импульс, стеклянный щит, пробой стекла; дрон-светляк подсвечивает тьму, отвлекает стражей и нажимает дальние кнопки; кристаллы, зеркала и лучи, рычаги, погони. 5 глав, кат-сцены без слов, финал с выбором. Темы retro/modern, RU/EN, офлайн.">
+<meta name="theme-color" content="#070a14">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="./css/style.css">
+</head><body data-theme="modern">
+<a class="back" id="backLink" href="../" data-catalog-back="1">&larr; Каталог</a>
+<button id="bPause" type="button" aria-label="Пауза">II</button>
+<div class="wrap"><canvas id="c" width="640" height="360" aria-label="ОСКОЛОК"></canvas></div>
+<div class="pad">
+  <div class="dpad">
+    <button data-d="U" class="u" aria-label="Прыжок">▲</button>
+    <button data-d="L" class="l" aria-label="Влево">◀</button>
+    <button data-d="R" class="r" aria-label="Вправо">▶</button>
+    <button data-d="D" class="d" aria-label="Рычаг">▼</button>
+  </div>
+  <div class="acts">
+    <button id="bDrone" type="button" class="dr" aria-label="Дрон">✧</button>
+    <button id="bCharge" type="button" class="ch" aria-label="Заряд и пробой">✦</button>
+    <button data-d="A" class="res" aria-label="Резонатор: импульс и щит">◉</button>
+  </div>
+</div>
+<div class="foot" id="foot"><b>ОСКОЛОК</b> · ← → / A D — бег · ↑ / W / Z — прыжок · Пробел / X / J — резонатор: нажать — импульс, удерживать — стеклянный щит · C / K / Shift — удерживать заряд, отпустить — пробой · F / E — дрон-светляк, клик / тап по экрану — дрон в точку · ↓ / S — рычаг · P / Esc — пауза · L язык, T тема, M звук.</div>
+<script src="./engine.js"></script>
+<script src="./js/music.js"></script>
+<script src="./js/i18n.js"></script>
+<script src="./js/levels.js"></script>
+<script src="./js/game.js"></script>
+<script src="./js/audio.js"></script>
+<script src="./js/render.js"></script>
+<script src="./js/main.js"></script>
+</body></html>
