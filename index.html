@@ -141,10 +141,21 @@
 
       <div class="toolbar">
         <div class="filters" id="genre-filters" role="group" aria-label="Фильтр по жанрам"></div>
-        <p class="results" id="results" role="status" aria-live="polite">Показано 13 из 13</p>
+        <div class="toolbar-side">
+          <label class="per-page"><span>На странице</span>
+            <select id="per-page" aria-label="Игр на странице">
+              <option value="15" selected>15</option>
+              <option value="30">30</option>
+              <option value="0">все</option>
+            </select>
+          </label>
+          <p class="results" id="results" role="status" aria-live="polite">Показано 1–15 из 69</p>
+        </div>
       </div>
 
       <ol class="grid" id="game-grid" aria-busy="true"></ol>
+
+      <nav class="pager" id="pager" aria-label="Страницы каталога" hidden></nav>
 
       <div class="empty" id="empty-state" hidden>
         <p class="empty-face" aria-hidden="true">:(</p>

@@ -114,6 +114,8 @@
     results: $('#results'),
     empty: $('#empty-state'),
     reset: $('#reset-filters'),
+    pager: $('#pager'),
+    perPage: $('#per-page'),
     toggle: $('#theme-toggle'),
     toggleMode: $('#theme-mode'),
     random: $('#random-game'),
@@ -127,6 +129,8 @@
     theme: 'retro',
     genre: 'all',
     query: '',
+    page: 1,
+    perPage: 15,
     games: [],
     cards: [],
   };
@@ -415,14 +419,72 @@
     return haystack.includes(query);
   }
 
+  /* Пейджинг: по умолчанию 15 игр на странице (3 в ряд × 5). Выбор «на странице» и номер
+     страницы — в адресе (?page=, ?per=), чтобы ссылкой можно было поделиться. */
+  const PER_PAGE_OPTIONS = [15, 30, 0]; // 0 — все
+
+  function readPagingFromUrl() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const perRaw = params.get('per');
+      const per = perRaw === null || perRaw === '' ? NaN : Number(perRaw);
+      if (PER_PAGE_OPTIONS.includes(per)) state.perPage = per;
+      const page = parseInt(params.get('page'), 10);
+      if (page > 0) state.page = page;
+    } catch (_) { /* старые браузеры — без параметров */ }
+  }
+
+  function writePagingToUrl() {
+    try {
+      const url = new URL(window.location.href);
+      if (state.page > 1) url.searchParams.set('page', String(state.page)); else url.searchParams.delete('page');
+      if (state.perPage !== 15) url.searchParams.set('per', String(state.perPage)); else url.searchParams.delete('per');
+      window.history.replaceState(null, '', url.toString());
+    } catch (_) { /* file:// и т.п. */ }
+  }
+
+  function renderPager(totalPages) {
+    if (!els.pager) return;
+    const fragment = document.createDocumentFragment();
+    const button = (label, page, opts = {}) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'pager-btn' + (opts.current ? ' is-current' : '');
+      b.textContent = label;
+      if (opts.aria) b.setAttribute('aria-label', opts.aria);
+      if (opts.current) b.setAttribute('aria-current', 'page');
+      if (opts.disabled) b.disabled = true; else b.dataset.page = String(page);
+      return b;
+    };
+    if (totalPages > 1) {
+      fragment.append(button('‹', state.page - 1, { aria: 'Предыдущая страница', disabled: state.page <= 1 }));
+      for (let i = 1; i <= totalPages; i += 1) {
+        fragment.append(button(String(i), i, { current: i === state.page, aria: `Страница ${i}` }));
+      }
+      fragment.append(button('›', state.page + 1, { aria: 'Следующая страница', disabled: state.page >= totalPages }));
+    }
+    els.pager.replaceChildren(fragment);
+    els.pager.hidden = totalPages <= 1;
+  }
+
   function applyFilters() {
     const query = normalize(state.query);
-    let visible = 0;
+    const matched = [];
 
-    state.cards.forEach(({ game, item }) => {
-      const matches = matchesGenre(game, state.genre) && matchesQuery(game, query);
-      item.hidden = !matches;
-      if (matches) visible += 1;
+    state.cards.forEach((card) => {
+      if (matchesGenre(card.game, state.genre) && matchesQuery(card.game, query)) matched.push(card);
+      else card.item.hidden = true;
+    });
+
+    const per = state.perPage > 0 ? state.perPage : Math.max(matched.length, 1);
+    const totalPages = Math.max(1, Math.ceil(matched.length / per));
+    if (state.page > totalPages) state.page = totalPages;
+    if (state.page < 1) state.page = 1;
+    const start = (state.page - 1) * per;
+    const end = Math.min(start + per, matched.length);
+
+    matched.forEach((card, i) => {
+      card.item.hidden = i < start || i >= end;
     });
 
     $$('.chip', els.filters).forEach((chip) => {
@@ -431,13 +493,32 @@
       chip.setAttribute('aria-pressed', String(active));
     });
 
-    if (els.results) els.results.textContent = `Показано ${visible} из ${state.games.length}`;
-    if (els.empty) els.empty.hidden = visible > 0;
+    if (els.results) {
+      els.results.textContent = matched.length > (end - start)
+        ? `Показано ${start + 1}–${end} из ${matched.length}`
+        : `Показано ${matched.length} из ${state.games.length}`;
+    }
+    if (els.empty) els.empty.hidden = matched.length > 0;
+    if (els.perPage) els.perPage.value = String(state.perPage);
+    renderPager(totalPages);
+    writePagingToUrl();
+  }
+
+  function goToPage(page) {
+    state.page = page;
+    applyFilters();
+    if (els.grid && els.grid.scrollIntoView) {
+      const top = els.grid.getBoundingClientRect().top;
+      if (top < 0 || top > window.innerHeight * 0.6) {
+        els.grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
   }
 
   function resetFilters() {
     state.genre = 'all';
     state.query = '';
+    state.page = 1;
     if (els.search) els.search.value = '';
     applyFilters();
     if (els.search) els.search.focus();
@@ -486,6 +567,7 @@
         const chip = event.target.closest('.chip');
         if (!chip || !els.filters.contains(chip)) return;
         state.genre = chip.dataset.genre || 'all';
+        state.page = 1;
         applyFilters();
       });
     }
@@ -493,6 +575,24 @@
     if (els.search) {
       els.search.addEventListener('input', () => {
         state.query = els.search.value;
+        state.page = 1;
+        applyFilters();
+      });
+    }
+
+    if (els.pager) {
+      els.pager.addEventListener('click', (event) => {
+        const b = event.target.closest('.pager-btn');
+        if (!b || b.disabled || !b.dataset.page) return;
+        goToPage(Number(b.dataset.page));
+      });
+    }
+
+    if (els.perPage) {
+      els.perPage.addEventListener('change', () => {
+        const per = Number(els.perPage.value);
+        state.perPage = PER_PAGE_OPTIONS.includes(per) ? per : 15;
+        state.page = 1;
         applyFilters();
       });
     }
@@ -520,6 +620,7 @@
       if (brand) brand.setAttribute('href', 'index.html');
     }
 
+    readPagingFromUrl();
     bindEvents();
 
     const games = await loadGames();

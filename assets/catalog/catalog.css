@@ -959,7 +959,7 @@ kbd {
 /* ---------- сетка карточек ---------- */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr)); /* 3 в ряд (решение владельца 15.11) */
   gap: 26px 24px;
   margin: 24px 0 0;
   padding: 0;
@@ -2053,3 +2053,24 @@ html[data-theme="modern"] .skip-link {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------- пейджинг каталога (15.11) ---------- */
+.toolbar-side { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.per-page { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); }
+.per-page select {
+  font: inherit; color: inherit; background: transparent;
+  border: 1px solid currentColor; border-radius: 6px; padding: 4px 8px; cursor: pointer;
+}
+.pager { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 32px 0 8px; }
+.pager[hidden] { display: none; }
+.pager-btn {
+  min-width: 40px; height: 40px; padding: 0 12px;
+  font: inherit; font-size: 15px; color: inherit; background: transparent;
+  border: 1px solid currentColor; border-radius: 8px; cursor: pointer; opacity: .75;
+  transition: opacity .15s, background-color .15s;
+}
+.pager-btn:hover:not(:disabled), .pager-btn:focus-visible { opacity: 1; }
+.pager-btn.is-current { opacity: 1; background: var(--accent, #ea6a12); border-color: var(--accent, #ea6a12); color: #16181d; font-weight: 700; }
+.pager-btn:disabled { opacity: .3; cursor: default; }
+@media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
