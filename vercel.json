@@ -55,6 +55,36 @@
       "source": "/neon-rage/:path+",
       "destination": "/neon-yarost/:path+",
       "permanent": true
+    },
+    {
+      "source": "/_proto/rts-a",
+      "destination": "/priisk/",
+      "permanent": true
+    },
+    {
+      "source": "/_proto/rts-a/",
+      "destination": "/priisk/",
+      "permanent": true
+    },
+    {
+      "source": "/_proto/rts-a/:path+",
+      "destination": "/priisk/:path+",
+      "permanent": true
+    },
+    {
+      "source": "/_proto/rts-b",
+      "destination": "/porubezhye/",
+      "permanent": true
+    },
+    {
+      "source": "/_proto/rts-b/",
+      "destination": "/porubezhye/",
+      "permanent": true
+    },
+    {
+      "source": "/_proto/rts-b/:path+",
+      "destination": "/porubezhye/:path+",
+      "permanent": true
     }
   ]
 }
