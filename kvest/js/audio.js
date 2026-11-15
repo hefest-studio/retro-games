@@ -41,6 +41,11 @@
       case 'birds': [2, 4, 1, 3, 0].forEach(function (n, i) { setTimeout(function () { g.audio.beep(NOTES[n] * 2, 0.16, 'sine', 0.05); setTimeout(function () { g.audio.beep(NOTES[n] * 2, 0.1, 'sine', 0.04); }, 90); }, i * 320); }); break;
       case 'melody': [2, 4, 1, 3, 0].forEach(function (n, i) { setTimeout(function () { g.audio.beep(NOTES[n], 0.5, 'sine', 0.06); }, i * 300); }); break;
       case 'puzzle': seq(g, [659, 784, 988], 90, 0.1, 'triangle', 0.05); break;
+      // движок глав: прилив/отлив, ветер, мелкие звери побережья
+      case 'tide': seq(g, [196, 220, 247, 220, 196, 175], 140, 0.22, 'sine', 0.03); break;
+      case 'wind': seq(g, [880, 830, 784, 740], 110, 0.18, 'sine', 0.02); break;
+      case 'crab': if (rare('crab', 300)) seq(g, [1400, 1250, 1400], 45, 0.03, 'square', 0.02); break;
+      case 'bark': seq(g, [330, 262, 0, 349, 277], 90, 0.08, 'sawtooth', 0.035); break;
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

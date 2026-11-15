@@ -19,16 +19,16 @@
     },
     en: {
       play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
-      score: 'Score', level: 'Wave', best: 'Best', win: 'SWARM DEFEATED!', gameover: 'GAME OVER',
+      score: 'Score', level: 'Wave', best: 'Best', win: 'BROOD DEFEATED!', gameover: 'GAME OVER',
       pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
-      title: 'SWARM', subtitle: 'Hold off the swarm · 5 waves',
+      title: 'BROODLINE', subtitle: 'Hold the line against the brood · 5 waves',
       wave: 'WAVE', ready: 'GET READY!', cleared: 'WAVE CLEARED', final: 'FINAL WAVE CLEARED!',
       captured: 'SHIP CAPTURED!', twin: 'TWIN SHIP!', lives: 'Ships',
       spore: 'Spore', wedge: 'Wedge', medusa: 'Medusa', inDive: 'diving',
       hintMedusa: 'Medusa beams your ship up — shoot her in flight to get it back',
       controls: '← → move · Space fire · P pause',
       back: 'Catalog',
-      foot: '<b>SWARM</b> · ← → / A D — move, Space / ● — fire, P — pause · L language, T theme, M sound.'
+      foot: '<b>BROODLINE</b> · ← → / A D — move, Space / ● — fire, P — pause · L language, T theme, M sound.'
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

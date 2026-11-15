@@ -7,9 +7,10 @@
   'use strict';
   var P = root.PRIISK = root.PRIISK || {};
 
-  // Клетки: земля, скала, вода (замёрзшее озеро — непроходимо), лёд (проходим, может треснуть), полынья (открытая вода).
-  var GROUND = 0, ROCK = 1, WATER = 2, ICE = 3, OPEN = 4;
-  function walkable(t) { return t === GROUND || t === ICE; }
+  // Клетки: земля, скала, вода (замёрзшее озеро — непроходимо), лёд (проходим, может треснуть), полынья (открытая вода),
+  // мост (проходим, может быть взорван — кампания).
+  var GROUND = 0, ROCK = 1, WATER = 2, ICE = 3, OPEN = 4, BRIDGE = 5;
+  function walkable(t) { return t === GROUND || t === ICE || t === BRIDGE; }
   var UNITS = {
     rifleman:  { hp: 60,  speed: 1.7, range: 3.6, dmg: 9,  cd: 0.8, weapon: 'gun',   cost: 100, time: 5,  sight: 5,   r: 0.3,  cls: 'inf', from: 'bunk' },
     crawler:   { hp: 240, speed: 2.7, range: 4.6, dmg: 24, cd: 1.1, weapon: 'shell', cost: 400, time: 9,  sight: 6,   r: 0.42, cls: 'veh', from: 'works' },
@@ -17,20 +18,34 @@
     hauler:    { hp: 480, speed: 1.9, range: 0,   dmg: 0,  cd: 0,   weapon: null,    cost: 700, time: 12, sight: 4,   r: 0.5,  cls: 'veh', from: 'works', cap: 200 },
     // герои кампании (не строятся): Варвара Клин — аура боевого духа, Луня — дальний взгляд и метка
     varvara:   { hp: 260, speed: 1.8, range: 3.8, dmg: 12, cd: 0.8, weapon: 'gun',   cost: 0,   time: 0,  sight: 6,   r: 0.34, cls: 'inf', hero: true },
-    lunya:     { hp: 150, speed: 2.0, range: 4.2, dmg: 8,  cd: 0.9, weapon: 'gun',   cost: 0,   time: 0,  sight: 9,   r: 0.3,  cls: 'inf', hero: true }
+    lunya:     { hp: 150, speed: 2.0, range: 4.2, dmg: 8,  cd: 0.9, weapon: 'gun',   cost: 0,   time: 0,  sight: 9,   r: 0.3,  cls: 'inf', hero: true },
+    // Сава Шестерня — механик: чинит технику и здания рядом (на месте), «Аврал» — быстрый ремонт всего вокруг
+    sava:      { hp: 210, speed: 1.8, range: 3.4, dmg: 7,  cd: 0.9, weapon: 'gun',   cost: 0,   time: 0,  sight: 5.5, r: 0.32, cls: 'inf', hero: true },
+    // сценарная техника кампании (не строится): паровой тягач и прицепные вагоны (u.tow — за кем едет вагон)
+    tractor:   { hp: 900, speed: 1.1, range: 0,   dmg: 0,  cd: 0,   weapon: null,    cost: 0,   time: 0,  sight: 5,   r: 0.5,  cls: 'veh' },
+    wagon:     { hp: 420, speed: 1.6, range: 0,   dmg: 0,  cd: 0,   weapon: null,    cost: 0,   time: 0,  sight: 3,   r: 0.45, cls: 'veh' }
   };
   // Способности героев: cry — «Клич» (аура ×2 на время), flare — «Метка» (открыть туман в точке на время).
   var HEROES = {
     varvara: { ability: 'cry', cd: 30, dur: 8, aura: 4.5, dmg: 1.25, spd: 1.15, cryDmg: 1.5, crySpd: 1.3 },
-    lunya:   { ability: 'flare', cd: 25, dur: 12, r: 6, reach: 18 }
+    lunya:   { ability: 'flare', cd: 25, dur: 12, r: 6, reach: 18 },
+    sava:    { ability: 'fix', cd: 35, dur: 6, r: 4.5, rate: 45, field: 2.6, fieldRate: 5 }
   };
   var BLDS = {
     hq:      { w: 3, h: 3, hp: 1600, cost: 0,   time: 0,  power: 10,  req: [],          sight: 7 },
     boiler:  { w: 2, h: 2, hp: 500,  cost: 300, time: 10, power: 20,  req: [],          sight: 4 },
     bunk:    { w: 2, h: 2, hp: 600,  cost: 300, time: 12, power: -5,  req: ['boiler'],  sight: 4 },
     smelter: { w: 3, h: 2, hp: 900,  cost: 600, time: 18, power: -10, req: ['boiler'],  sight: 4 },
-    works:   { w: 3, h: 3, hp: 1000, cost: 800, time: 20, power: -15, req: ['smelter'], sight: 4 }
+    works:   { w: 3, h: 3, hp: 1000, cost: 800, time: 20, power: -15, req: ['smelter'], sight: 4 },
+    // укрепления (кампания; в скирмише не открыты): частокол — дешёвая стенка 1×1, вышка — стрелковая точка 2×2.
+    // fort — укрепление; gap — на сколько клеток от своих зданий можно ставить; minor — потеря не считается потерей здания
+    palisade: { w: 1, h: 1, hp: 380, cost: 60, time: 2.5, power: 0, req: [], sight: 2, fort: true, gap: 7, minor: true },
+    tower:   { w: 2, h: 2, hp: 650,  cost: 260, time: 9,  power: 0,   req: ['bunk'],    sight: 7, fort: true, gap: 7, weapon: 'gun', range: 5.6, dmg: 11, cd: 0.75 }
   };
+  var FORT_LIST = ['palisade', 'tower'];
+  // Ремонт зданий: REPAIR — доля прочности в секунду; цена — медь за единицу прочности (от стоимости здания)
+  var REPAIR = 0.03;
+  function repairPrice(type) { var d = BLDS[type]; return Math.max(0.15, d.cost / d.hp * 0.5); }
   var BUILD_LIST = ['boiler', 'bunk', 'smelter', 'works'];
   var UNIT_LIST = ['rifleman', 'crawler', 'ironwagon', 'hauler'];
   var MULT = { gun: { inf: 1, veh: 0.3, bld: 0.4 }, shell: { inf: 0.5, veh: 1, bld: 0.9 } };
@@ -281,7 +296,7 @@
     var near = false;
     for (n = 0; n < W.blds.length; n++) { var b = W.blds[n]; if (b.owner !== o) continue;
       var gx = Math.max(b.tx - (tx + d.w), tx - (b.tx + b.w), 0), gy = Math.max(b.ty - (ty + d.h), ty - (b.ty + b.h), 0);
-      if (Math.max(gx, gy) <= BUILD_GAP) { near = true; break; } }
+      if (Math.max(gx, gy) <= (d.gap || BUILD_GAP)) { near = true; break; } }
     return near;
   }
   function placeBuild(W, o, tx, ty) {
@@ -400,6 +415,7 @@
     if (W.ai) aiStep(W, dt);
     heroStep(W, dt);
     for (var n = 0; n < W.units.length; n++) unitStep(W, W.units[n], dt);
+    for (n = 0; n < W.blds.length; n++) bldStep(W, W.blds[n], dt);
     separate(W, dt);
     // смерти
     var dead = false;
@@ -415,7 +431,7 @@
     delete W.byId[e.id];
     if (e.kind === 'bld') for (var j = 0; j < e.h; j++) for (var i = 0; i < e.w; i++) { var k = (e.ty + j) * W.w + e.tx + i; if (W.occ[k] === e.id) W.occ[k] = 0; }
     var c = center(e), val = e.kind === 'bld' ? Math.max(200, BLDS[e.type].cost) : UNITS[e.type].cost;
-    W.players[e.owner].lost++; if (e.kind === 'bld') W.players[e.owner].lostB++;
+    if (!(e.kind === 'bld' && BLDS[e.type].minor)) { W.players[e.owner].lost++; if (e.kind === 'bld') W.players[e.owner].lostB++; }
     var killer = e.hitBy && W.players[1 - e.owner]; if (killer) { killer.kills++; killer.score += Math.round(val / (e.kind === 'bld' ? 4 : 10)); }
     var ku = e.hitBy && W.byId[e.hitBy]; // ветеранство: 3 победы — звание (+20% урона, подлечился)
     if (ku && ku.kind === 'unit' && ku.owner !== e.owner) { ku.kills = (ku.kills || 0) + 1; if (ku.kills >= 3 && !ku.vet) { ku.vet = 1; ku.hp = Math.min(ku.maxHp, ku.hp + ku.maxHp * 0.2); W.events.push({ t: 'vet', owner: ku.owner, id: ku.id }); } }
@@ -423,12 +439,13 @@
     W.events.push({ t: 'die', owner: e.owner, kind: e.kind, type: e.type, x: c.x, y: c.y, tag: e.tag || null, id: e.id });
   }
   function damage(W, attacker, tg) {
-    var d = UNITS[attacker.type], cls = tg.kind === 'bld' ? 'bld' : UNITS[tg.type].cls;
+    var d = UNITS[attacker.type] || BLDS[attacker.type], cls = tg.kind === 'bld' ? 'bld' : UNITS[tg.type].cls;
     tg.hp -= d.dmg * MULT[d.weapon][cls] * (0.9 + W.rng() * 0.2) * (attacker.bD || 1) * (attacker.vet ? 1.2 : 1);
     tg.hitT = W.time; tg.hitBy = attacker.id;
     var c = center(tg), ox = tg.kind === 'bld' ? (W.rng() - 0.5) * tg.w * 0.6 : 0, oy = tg.kind === 'bld' ? (W.rng() - 0.5) * tg.h * 0.6 : 0;
-    W.fx.push({ t: d.weapon === 'gun' ? 'tracer' : 'shell', x0: attacker.x, y0: attacker.y, x: c.x + ox, y: c.y + oy, life: d.weapon === 'gun' ? 0.09 : 0.22, max: d.weapon === 'gun' ? 0.09 : 0.22 });
-    W.events.push({ t: 'shot', owner: attacker.owner, weapon: d.weapon, x: attacker.x, y: attacker.y });
+    var ac = center(attacker);
+    W.fx.push({ t: d.weapon === 'gun' ? 'tracer' : 'shell', x0: ac.x, y0: ac.y, x: c.x + ox, y: c.y + oy, life: d.weapon === 'gun' ? 0.09 : 0.22, max: d.weapon === 'gun' ? 0.09 : 0.22 });
+    W.events.push({ t: 'shot', owner: attacker.owner, weapon: d.weapon, x: ac.x, y: ac.y });
   }
   function turn(a, b, max) { var d = Math.atan2(Math.sin(b - a), Math.cos(b - a)); return a + Math.max(-max, Math.min(max, d)); }
   function follow(W, u, dt) {
@@ -460,6 +477,9 @@
   function unitStep(W, u, dt) {
     var d = UNITS[u.type], o = u.order;
     u.cd -= dt;
+    if (u.trail) trailStep(u);
+    if (u.tow) { towStep(W, u, dt); return; }
+    if (!d.weapon && u.type !== 'hauler') { if (o.t === 'move' && !follow(W, u, dt)) u.order = { t: 'idle' }; return; }
     if (u.type === 'hauler') { haulStep(W, u, dt); return; }
     if (o.t === 'attack') {
       var tg = W.byId[o.target];
@@ -473,7 +493,7 @@
         if (u.cd <= 0 && Math.abs(Math.atan2(Math.sin(want - u.aim), Math.cos(want - u.aim))) < 0.25) { u.cd = d.cd; u.fireT = W.time; damage(W, u, tg); }
       } else {
         u.repath = (u.repath || 0) - dt;
-        if (!u.path.length || u.repath <= 0) { u.repath = 1; u.path = findPath(W, u.x, u.y, c.x, c.y, 2500); }
+        if (!u.path.length || u.repath <= 0) { u.repath = 1; u.path = findPath(W, u.x, u.y, c.x, c.y, Math.max(2500, W.w * W.h)); }
         follow(W, u, dt); u.aim = turn(u.aim, u.heading, dt * 4);
       }
       return;
@@ -490,6 +510,60 @@
       if (!follow(W, u, dt)) { if (o.t === 'amove' && Math.hypot(o.x - u.x, o.y - u.y) > 2) u.path = findPath(W, u.x, u.y, o.x, o.y); else u.order = { t: 'idle' }; }
       if (d.cls !== 'inf') u.aim = turn(u.aim, u.heading, dt * 4);
     }
+  }
+  // ---------- Здания в бою: вышки стреляют, ремонт за медь ----------
+  function bldStep(W, b, dt) {
+    var d = BLDS[b.type];
+    if (d.weapon) {
+      b.cd = (b.cd || 0) - dt;
+      if (b.cd <= 0) {
+        var c = center(b), best = null, bd = 1e9;
+        for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (e.owner === b.owner || e.hp <= 0) continue; var dd = Math.hypot(e.x - c.x, e.y - c.y) - b.w / 2; if (dd <= d.range && dd < bd) { bd = dd; best = e; } }
+        if (best) { b.cd = d.cd; b.fireT = W.time; b.aim = Math.atan2(best.y - c.y, best.x - c.x); damage(W, b, best); } else b.cd = 0.25;
+      }
+    }
+    if (b.repair) {
+      var pl = W.players[b.owner], heal = b.maxHp * REPAIR * dt, price = heal * repairPrice(b.type);
+      if (b.hp >= b.maxHp) { b.repair = false; W.events.push({ t: 'repaired', owner: b.owner, id: b.id }); }
+      else if (pl.copper < price) { b.repair = false; W.events.push({ t: 'repairStop', owner: b.owner, id: b.id }); }
+      else { pl.copper -= price; b.hp = Math.min(b.maxHp, b.hp + heal); }
+    }
+  }
+  // Ремонт здания: on — включить/выключить; false, если нельзя (чужое, целое, нет меди)
+  function setRepair(W, b, on) {
+    if (!b || b.kind !== 'bld' || !alive(b)) return false;
+    if (!on) { b.repair = false; return true; }
+    if (b.hp >= b.maxHp || W.players[b.owner].copper < 1) return false;
+    b.repair = true; return true;
+  }
+  // ---------- Сцепка: тягач оставляет след, вагоны едут по нему (на месте, где уже прошёл тягач — значит, проходимо) ----------
+  var TOW_GAP = 1.15;
+  function trailStep(u) { var t = u.trail, last = t[0]; if (!last || Math.hypot(u.x - last.x, u.y - last.y) >= 0.2) { t.unshift({ x: u.x, y: u.y }); if (t.length > 80) t.length = 80; } }
+  function trailPoint(lead, dist) {
+    var t = lead.trail || [], px = lead.x, py = lead.y, left = dist;
+    for (var n = 0; n < t.length; n++) { var s = Math.hypot(t[n].x - px, t[n].y - py); if (s >= left) { var k = left / s; return { x: px + (t[n].x - px) * k, y: py + (t[n].y - py) * k }; } left -= s; px = t[n].x; py = t[n].y; }
+    return null;
+  }
+  function towStep(W, u, dt) {
+    var lead = W.byId[u.tow]; u.path = [];
+    if (!alive(lead)) { u.tow = 0; u.order = { t: 'idle' }; return; }
+    var head = lead; while (head.tow && W.byId[head.tow]) head = W.byId[head.tow]; // тягач — голова поезда
+    var k = 1, x = lead; while (x !== head) { k++; x = W.byId[x.tow]; }
+    var tp = trailPoint(head, k * TOW_GAP); if (!tp) return;
+    var dx = tp.x - u.x, dy = tp.y - u.y, dl = Math.hypot(dx, dy); if (dl < 0.02) return;
+    var sp = Math.min(dl, UNITS[u.type].speed * (u.sm || 1) * dt * (dl > 0.6 ? 1.5 : 1));
+    u.x += dx / dl * sp; u.y += dy / dl * sp; u.heading = u.aim = turn(u.heading, Math.atan2(dy, dx), dt * 8);
+  }
+  // Путь стал непроходим (изменилась карта) — перестроить до той же конечной точки. Возвращает число перестроенных.
+  function repathBlocked(W) {
+    var n = 0;
+    W.units.forEach(function (u) {
+      if (!u.path || !u.path.length) return;
+      var prev = { x: u.x, y: u.y }, bad = false;
+      for (var k = 0; k < u.path.length && !bad; k++) { var q = u.path[k], L2 = Math.hypot(q.x - prev.x, q.y - prev.y), m = Math.ceil(L2 * 3); for (var s = 0; s <= m; s++) { var x = prev.x + (q.x - prev.x) * s / Math.max(1, m), y = prev.y + (q.y - prev.y) * s / Math.max(1, m); if (!walkable(W.t[Math.floor(y) * W.w + Math.floor(x)])) { bad = true; break; } } prev = q; }
+      if (bad) { var end = u.path[u.path.length - 1]; u.path = findPath(W, u.x, u.y, end.x, end.y); u.repath = 1; n++; }
+    });
+    return n;
   }
   function oreAt(W, i, j) { return inb(W, i, j) ? W.ore[j * W.w + i] : 0; }
   function reserved(W, u, i, j) { for (var n = 0; n < W.units.length; n++) { var h = W.units[n]; if (h !== u && h.type === 'hauler' && h.order.t === 'harvest' && (h.order.s === 'go' || h.order.s === 'dig') && h.order.tx === i && h.order.ty === j) return true; } return false; }
@@ -627,13 +701,25 @@
           if (Math.hypot(a.x - h.x, a.y - h.y) <= R) { a.bD = Math.max(a.bD, bd); a.bS = Math.max(a.bS, bs); } }
         if (on) { h.bD = Math.max(h.bD, hd.dmg); }
       }
+      if (hd.ability === 'fix') fixStep(W, h, hd, dt);
     }
     var fl = W.flares; if (fl) for (n = fl.length - 1; n >= 0; n--) { fl[n].t -= dt; if (fl[n].t <= 0) fl.splice(n, 1); }
+  }
+  // Сава: на месте (без пути) чинит самую побитую свою технику/здание в радиусе field; «Аврал» — всё вокруг быстро.
+  function fixable(W, h, e, r) { if (e.owner !== h.owner || e.hp <= 0 || e.hp >= e.maxHp) return false; if (e.kind === 'unit' && UNITS[e.type].cls !== 'veh') return false; var c = center(e), dd = e.kind === 'bld' ? distTo(h, e) : Math.hypot(c.x - h.x, c.y - h.y); return dd <= r; }
+  function fixStep(W, h, hd, dt) {
+    var list = W.units.concat(W.blds), n;
+    if (h.abOn > 0) { for (n = 0; n < list.length; n++) if (fixable(W, h, list[n], hd.r)) { list[n].hp = Math.min(list[n].maxHp, list[n].hp + hd.rate * dt); list[n].fixT = W.time; } return; }
+    if (h.path.length || h.order.t === 'attack') return;
+    var best = null, bf = 2;
+    for (n = 0; n < list.length; n++) { var e = list[n]; if (!fixable(W, h, e, hd.field)) continue; var f = e.hp / e.maxHp; if (f < bf) { bf = f; best = e; } }
+    if (best) { best.hp = Math.min(best.maxHp, best.hp + hd.fieldRate * dt); best.fixT = W.time; h.fixing = best.id; } else h.fixing = 0;
   }
   // Активная способность героя: 'ok' | 'cd' (перезарядка) | 'far' (метка слишком далеко) | null (не герой/мёртв).
   function ability(W, u, x, y) {
     var hd = u && HEROES[u.type]; if (!hd || !alive(u)) return null;
     if (u.abT > 0) return 'cd';
+    if (hd.ability === 'fix') { u.abOn = hd.dur; u.abT = hd.cd; W.events.push({ t: 'ability', owner: u.owner, id: u.id, kind: 'fix', x: u.x, y: u.y }); return 'ok'; }
     if (hd.ability === 'cry') { u.abOn = hd.dur; u.abT = hd.cd; W.events.push({ t: 'ability', owner: u.owner, id: u.id, kind: 'cry', x: u.x, y: u.y }); return 'ok'; }
     if (hd.ability === 'flare') {
       if (x == null || Math.hypot(x - u.x, y - u.y) > hd.reach) return 'far';
@@ -702,7 +788,7 @@
   }
 
   P.logic = {
-    UNITS: UNITS, BLDS: BLDS, HEROES: HEROES, BUILD_LIST: BUILD_LIST, UNIT_LIST: UNIT_LIST, GROUND: GROUND, ROCK: ROCK, WATER: WATER, ICE: ICE, OPEN: OPEN, MAP_W: MAP_W, MAP_H: MAP_H,
+    UNITS: UNITS, BLDS: BLDS, HEROES: HEROES, BUILD_LIST: BUILD_LIST, FORT_LIST: FORT_LIST, REPAIR: REPAIR, repairPrice: repairPrice, setRepair: setRepair, repathBlocked: repathBlocked, trailPoint: trailPoint, UNIT_LIST: UNIT_LIST, GROUND: GROUND, ROCK: ROCK, WATER: WATER, ICE: ICE, OPEN: OPEN, BRIDGE: BRIDGE, MAP_W: MAP_W, MAP_H: MAP_H,
     walkable: walkable, ability: ability, aiSpot: aiSpot, alive: alive, inb: inb,
     mulberry32: mulberry32, newWorld: newWorld, worldFromMap: worldFromMap, emptyWorld: emptyWorld,
     passable: passable, findPath: findPath, nearestPassable: nearestPassable,

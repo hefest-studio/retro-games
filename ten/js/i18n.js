@@ -28,9 +28,9 @@
     en: {
       play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
       score: 'Score', level: 'Act', best: 'Best', lives: 'Lives',
-      win: 'BLUEPRINTS RECOVERED!', gameover: 'SHADE IS CAUGHT',
+      win: 'BLUEPRINTS RECOVERED!', gameover: 'DUSKHOOK IS CAUGHT',
       pause: 'PAUSED', resume: 'Resume', menu: 'Main menu', restart: 'Restart scene (−1 life)', tapstart: 'space / tap',
-      title: 'SHADE', subtitle: 'A Hephaestus workshop scout against the Rust Syndicate',
+      title: 'DUSKHOOK', subtitle: 'A Hephaestus workshop scout against the Rust Syndicate',
       sub2: 'Walls, grapple line and sickle · 6 acts · recover the stolen blueprints',
       hint: '←→ run · Space jump (wall-jump) · X sickle · C grapple · ↑+X or V — art · ↓ slide',
       back: 'Catalog',
@@ -44,7 +44,7 @@
       cont: 'Continue from scene start', contHint: 'Enter / space — continue (score resets) · Esc — menu',
       skip: 'Enter / space — next · Esc — skip', theEnd: 'THE END',
       t_hook: 'C — grapple a ring, Space — fling', t_wall: 'Jump at a wall — wall-jump; ↑ — pull up', t_duct: '↓ while running — slide into the duct',
-      foot: '<b>SHADE</b> · ← → / A D — run · Space / Z — jump (clings to walls in the air; jump — wall-jump; ↑ — pull up onto a ledge) · X / J — sickle · C / K — grapple line (Space — fling, ↑↓ — reel in/out) · ↑+X or V / Shift — charge art · ↓ — crouch, while running — slide · P / Esc — pause · L language, T theme, M sound.'
+      foot: '<b>DUSKHOOK</b> · ← → / A D — run · Space / Z — jump (clings to walls in the air; jump — wall-jump; ↑ — pull up onto a ledge) · X / J — sickle · C / K — grapple line (Space — fling, ↑↓ — reel in/out) · ↑+X or V / Shift — charge art · ↓ — crouch, while running — slide · P / Esc — pause · L language, T theme, M sound.'
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

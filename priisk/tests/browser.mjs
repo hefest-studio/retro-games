@@ -42,6 +42,10 @@ try {
   const st = () => page.evaluate(() => { const S = PRIISK.S; return { scene: PRIISK.g._sceneName, sel: [...S.sel], cam: { ...S.cam }, cursor: PRIISK.g.canvas.style.cursor, placing: !!S.placing, theme: PRIISK.g.themeName, lang: PRIISK.g.i18n.lang }; });
   const units0 = () => page.evaluate(() => PRIISK.S.W.units.filter(u => u.owner === 0).map(u => ({ id: u.id, type: u.type, x: u.x, y: u.y, o: u.order.t })));
 
+  await test('музыка в меню — трек menu (до жеста — тишина: контекст звука не создан)', async () => {
+    const m = await page.evaluate(() => ({ s: PRIISK.music.state(), ac: !!PRIISK.g.audio.ac }));
+    ok(m.s.track === 'menu' && m.s.want === 'play' && !m.s.playing && !m.ac, JSON.stringify(m));
+  });
   await test('меню → старт по Enter', async () => { await page.keyboard.press('Enter'); await wait(300); ok((await st()).scene === 'play'); });
   await page.evaluate(() => { PRIISK.S.W.ai = null; }); // ИИ не мешает проверкам ввода
 
@@ -69,6 +73,49 @@ try {
     const sel = (await st()).sel; await page.keyboard.press('Control+Digit1');
     const e = await cv(480, 60); await page.mouse.click(e.x, e.y); ok((await st()).sel.length === 0, 'не сбросилось');
     await page.keyboard.press('Digit1'); const s = await st(); ok(JSON.stringify(s.sel.sort()) === JSON.stringify(sel.sort()), 'группа не вернулась');
+  });
+  await test('группы: Ctrl+цифра — основное (preventDefault, вкладку не переключит), Alt+цифра — запасное, Cmd+цифра не перехватываем', async () => {
+    // слушатель страницы после игры фиксирует, отменено ли действие браузера по умолчанию
+    await page.evaluate(() => { window.__kd = []; addEventListener('keydown', e => { if (/Digit/.test(e.code)) window.__kd.push({ code: e.code, ctrl: e.ctrlKey, alt: e.altKey, meta: e.metaKey, prevented: e.defaultPrevented }); }); });
+    const all = await page.evaluate(() => PRIISK.S.W.units.filter(u => u.owner === 0).map(u => u.id));
+    await page.evaluate(ids => { PRIISK.S.sel = new Set(ids.slice(0, 2)); }, all);
+    await page.keyboard.press('Control+Digit2'); ok(await page.evaluate(() => (PRIISK.groups[2] || []).length === 2), 'Ctrl+2 не назначил');
+    await page.evaluate(ids => { PRIISK.S.sel = new Set(ids.slice(2, 3)); }, all);
+    await page.keyboard.press('Alt+Digit3'); ok(await page.evaluate(() => (PRIISK.groups[3] || []).length === 1), 'Alt+3 не назначил');
+    await page.keyboard.press('Meta+Digit4'); ok(await page.evaluate(() => !(PRIISK.groups[4] || []).length), 'Cmd+4 назначил группу');
+    const kd = await page.evaluate(() => window.__kd);
+    ok(kd.find(k => k.ctrl && k.code === 'Digit2').prevented, 'Ctrl+2 не отменён (браузер переключит вкладку)');
+    ok(kd.find(k => k.alt && k.code === 'Digit3').prevented, 'Alt+3 не отменён');
+    ok(!kd.find(k => k.meta && k.code === 'Digit4').prevented, 'Cmd+4 отменён — мешаем вкладкам macOS');
+    await page.keyboard.press('Digit2'); ok(await page.evaluate(() => PRIISK.S.sel.size === 2), '2 не вызвал группу');
+  });
+  await test('кнопки групп (слева вверху): клик — выбрать, Ctrl+клик и ПКМ — назначить; подсказки в UI про Ctrl/Alt', async () => {
+    const all = await page.evaluate(() => PRIISK.S.W.units.filter(u => u.owner === 0).map(u => u.id));
+    const r = n => page.evaluate(n => PRIISK.render.groupRect(n), n);
+    const b5 = await r(5), p5 = await cv(b5.x + 10, b5.y + 10);
+    await page.evaluate(ids => { PRIISK.S.sel = new Set(ids.slice(0, 3)); }, all);
+    await page.keyboard.down('Control'); await page.mouse.click(p5.x, p5.y); await page.keyboard.up('Control'); await wait(80);
+    ok(await page.evaluate(() => (PRIISK.groups[5] || []).length === 3), 'Ctrl+клик не назначил');
+    const b6 = await r(6), p6 = await cv(b6.x + 10, b6.y + 10);
+    await page.evaluate(ids => { PRIISK.S.sel = new Set(ids.slice(3, 4)); }, all);
+    await page.mouse.click(p6.x, p6.y, { button: 'right' }); await wait(80);
+    ok(await page.evaluate(() => (PRIISK.groups[6] || []).length === 1), 'ПКМ не назначил');
+    await page.evaluate(() => { PRIISK.S.sel = new Set(); }); await page.mouse.click(p5.x, p5.y); await wait(80);
+    ok(await page.evaluate(() => PRIISK.S.sel.size === 3), 'клик по кнопке не выбрал группу');
+    ok(await page.evaluate(() => /Ctrl\+1…9/.test(PRIISK.STR.ru.tipCmd) && /Alt/.test(PRIISK.STR.ru.tipCmd) && /Alt/.test(PRIISK.STR.en.tipCmd)), 'подсказка tipCmd');
+    ok(await page.evaluate(() => /Ctrl\+1…9 — назначить группу/.test(document.getElementById('foot').textContent) && /Alt\+1…9/.test(document.getElementById('foot').textContent)), 'подсказка в подвале');
+  });
+  await test('музыка: меню — трек menu, игра — field, перестрелка рядом — battle, тишина — снова field; пауза держит трек', async () => {
+    const ms = () => page.evaluate(() => PRIISK.music.state());
+    ok((await ms()).track === 'field' && (await ms()).want === 'play', 'в игре не field: ' + JSON.stringify(await ms()));
+    await page.evaluate(() => { const S = PRIISK.S, L = PRIISK.logic, f = S.W.units.find(u => u.owner === 0); const e = L.addUnit(S.W, 1, 'rifleman', f.x + 2, f.y); e.hp = 9999; e.maxHp = 9999; });
+    for (let i = 0; i < 30 && (await ms()).track !== 'battle'; i++) await wait(100);
+    ok((await ms()).track === 'battle', 'бой не включил battle: ' + JSON.stringify(await ms()));
+    await page.keyboard.press('KeyP'); await wait(120); ok((await ms()).want === 'pause' && (await ms()).track === 'battle', 'пауза: ' + JSON.stringify(await ms()));
+    await page.keyboard.press('Enter'); await wait(120); ok((await ms()).want === 'play', 'после паузы не играет');
+    await page.evaluate(() => { const S = PRIISK.S; S.W.units = S.W.units.filter(u => u.owner === 0 || u.hp < 9000); for (const k in S.W.byId) if (S.W.byId[k].hp >= 9000) delete S.W.byId[k]; S.W.time += 15; });
+    for (let i = 0; i < 20 && (await ms()).track !== 'field'; i++) await wait(100);
+    ok((await ms()).track === 'field', 'после боя не вернулся field: ' + JSON.stringify(await ms()));
   });
   await test('курсор: «нельзя» над скалой, «атака» над врагом', async () => {
     const rock = await page.evaluate(() => { const W = PRIISK.S.W, S = PRIISK.S; for (let j = Math.ceil(S.cam.y / 24); j < (S.cam.y + 400) / 24; j++) for (let i = Math.ceil(S.cam.x / 24); i < (S.cam.x + 940) / 24; i++) if (W.t[j * W.w + i] === 1 && W.vis[j * W.w + i]) return { x: i + 0.5, y: j + 0.5 }; return null; });
@@ -139,6 +186,12 @@ try {
     const c1 = await p.evaluate(() => ({ ...PRIISK.S.cam }));
     ok(c1.x > c0.x + 40 || c1.y > c0.y + 40, 'два пальца не двигают камеру: ' + JSON.stringify([c0, c1]));
     ok(await p.evaluate(() => PRIISK.S.sel.size === 4), 'два пальца сбили выделение');
+    // кнопка группы: долгий тап — назначить, короткий — выбрать
+    const gb = await p.evaluate(() => { const r = PRIISK.render.groupRect(7), c = PRIISK.g.canvas.getBoundingClientRect(), k = c.width / 960; return { x: c.left + (r.x + 12) * k, y: c.top + (r.y + 10) * k }; });
+    await touch('touchStart', [gb]); await wait(600); await touch('touchEnd', []); await wait(80);
+    ok(await p.evaluate(() => (PRIISK.groups[7] || []).length === 4), 'долгий тап по кнопке группы не назначил');
+    await p.evaluate(() => { PRIISK.S.sel = new Set(); }); await touch('touchStart', [gb]); await wait(60); await touch('touchEnd', []); await wait(80);
+    ok(await p.evaluate(() => PRIISK.S.sel.size === 4), 'тап по кнопке группы не выбрал');
     await ctx.close();
   });
 

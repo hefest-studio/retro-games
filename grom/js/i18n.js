@@ -31,7 +31,7 @@
       score: 'Score', level: 'Level', best: 'Best', time: 'Time',
       win: 'THE STORM HORN IS SILENT!', gameover: 'THE ARMOUR WENT DARK',
       pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
-      title: 'GROM', subtitle: 'A Hefest workshop trooper in thunder armour',
+      title: 'STORMCLAD', subtitle: 'A Hefest workshop trooper in thunder armour',
       sub2: 'Four mazes · lash beam · wheel form · lightning',
       back: 'Catalog', lives: 'Lives',
       z_foundry: 'Foundry Yard', z_steam: 'Steam Adits', z_copper: 'Copper Gardens', z_storm: 'Storm Tower',
@@ -46,7 +46,7 @@
       hint: '←→ run · Space/Z jump · X fire (↑↓ aim) · C lash beam · V wheel · B lightning · P pause',
       hint1: '←→ run · Space/Z jump · X fire (↑↓ — aim) · C — lash beam (hold)',
       hint2: 'V/Shift — wheel (X — mine) · B/Q — lightning · P — pause · L lang · T theme · M sound',
-      foot: '<b>GROM</b> · ← → / A D — run · Space / Z / K — jump · X / J — fire (↑ ↓ — aim in 8 directions) · C / U — lash beam (hold, arrows steer it) · V / Shift — wheel (in wheel form X — mine) · B / Q — lightning · P / Esc — pause · L language, T theme, M sound.'
+      foot: '<b>STORMCLAD</b> · ← → / A D — run · Space / Z / K — jump · X / J — fire (↑ ↓ — aim in 8 directions) · C / U — lash beam (hold, arrows steer it) · V / Shift — wheel (in wheel form X — mine) · B / Q — lightning · P / Esc — pause · L language, T theme, M sound.'
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

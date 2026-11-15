@@ -13,7 +13,7 @@ const store = {};
 const sandbox = { console, Math, JSON, setTimeout: () => 0, localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } } };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-const FILES = ['js/music.js', 'js/i18n.js', 'js/edition.js', 'js/stats.js', 'js/theme-api.js', 'js/scenes.js', 'js/widgets.js', 'js/puzzles.js', 'js/game.js', 'js/audio.js', 'js/themes/grey.js', 'js/themes/paper.js', 'js/themes/ink-sketch.js'];
+const FILES = ['js/music.js', 'js/i18n.js', 'js/edition.js', 'js/stats.js', 'js/theme-api.js', 'js/scenes.js', 'js/widgets.js', 'js/puzzles.js', 'js/coast.js', 'js/chapters/index.js', 'js/game.js', 'js/audio.js', 'js/themes/icons-ext.js', 'js/themes/grey.js', 'js/themes/paper.js', 'js/themes/ink-sketch.js'];
 for (const f of FILES) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const K = sandbox.KVEST, A = K.ThemeAPI, P = K.PUZZLES, LG = K.logic, WT = K.Widgets.types;
 
@@ -332,11 +332,13 @@ test('издание: флаг сборки KVEST_EDITION + параметры ?
   eq(ED.resolve('?edition=full', 'demo'), 'full'); eq(ED.resolve('?edition=demo', 'full'), 'demo'); eq(ED.resolve('?demolition', 'full'), 'full', 'ложное срабатывание');
   eq(K.EDITION, ED.BUILD, 'без параметров — издание сборки');
 });
-test('издание: после финала — демо «Продолжение — в полной версии» (меню + «Узнать больше»), полная — «Глава 2 — скоро» (только меню)', () => {
-  const d = ED.finale('demo'), f = ED.finale('full');
-  eq(d.kind, 'demo'); eq(d.items.join(), 'toMenu,more'); eq(f.kind, 'soon'); eq(f.items.join(), 'toMenu');
-  for (const x of [d, f]) for (const k of [x.title, x.sub].concat(x.items)) for (const L of ['ru', 'en']) ok(K.STR[L][k], L + ': нет строки ' + k);
-  ok(/полной верси/i.test(K.STR.ru.demoTitle) && /full version/i.test(K.STR.en.demoTitle), 'текст демо-экрана'); ok(/Глава 2/.test(K.STR.ru.soonTitle) && /Chapter 2/.test(K.STR.en.soonTitle));
+test('издание: после финала — демо «Продолжение — в полной версии» (меню + «Узнать больше»), полная — «Глава N» или «Глава N — скоро»', () => {
+  const d = ED.finale('demo'), f = ED.finale('full', null, 1), nx = ED.finale('full', { id: 'ch2', n: 2 }, 1);
+  eq(d.kind, 'demo'); eq(d.items.join(), 'toMenu,more'); eq(f.kind, 'soon'); eq(f.items.join(), 'toMenu'); eq(f.n, 2);
+  eq(nx.kind, 'next'); eq(nx.items.join(), 'next,toMenu'); eq(nx.n, 2); eq(ED.finale('demo', { id: 'ch2', n: 2 }, 1).kind, 'demo', 'демо никогда не ведёт дальше');
+  for (const x of [d, f, nx]) for (const k of [x.title, x.sub].concat(x.items)) for (const L of ['ru', 'en']) ok(K.STR[L][k], L + ': нет строки ' + k);
+  ok(/полной верси/i.test(K.STR.ru.demoTitle) && /full version/i.test(K.STR.en.demoTitle), 'текст демо-экрана');
+  eq(K.STR.ru.soonTitle.replace('{n}', 2), 'Глава 2 — скоро'); ok(/Chapter 2/.test(K.STR.en.soonTitle.replace('{n}', 2)));
 });
 if (!process.env.QUICK) test('бот проходит главу в обоих изданиях; экран после финала соответствует изданию', () => {
   for (const ed of ['demo', 'full']) {
@@ -504,6 +506,146 @@ test('правило имён: в папке игры нет чужих назв
   for (const f of files) { const m = fs.readFileSync(f, 'utf8').match(BAD); ok(!m, path.relative(ROOT, f) + ': «' + (m && m[0]) + '»'); }
   for (const f of walk(ROOT)) ok(!BAD.test(path.relative(ROOT, f)), 'имя файла: ' + f);
   ok(!BAD.test('Маячница') && !BAD.test('kvest') && !BAD.test('KvestTheme') && !BAD.test('Гефест') && !BAD.test('chime') && !BAD.test('манометр'), 'стоп-лист без ложных срабатываний на наши слова');
+});
+
+// ---------- спринт 1: реестр глав, сохранения по главам, карта побережья, сцена с двумя состояниями, «Узнать больше» ----------
+const CHS = K.Chapters;
+test('«Узнать больше»: одно действие — переход в той же вкладке (без window.open, который с noopener всегда даёт null)', () => {
+  const loc = { href: 'x' }; let opened = 0; sandbox.open = () => { opened++; return null; };
+  eq(ED.goMore(loc), ED.MORE_URL); eq(loc.href, ED.MORE_URL); eq(opened, 0, 'открыта новая вкладка');
+  const src = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
+  ok(!/\.open\s*\(/.test(src.replace(/\/\/.*$/gm, '')), 'в main.js остался вызов window.open'); ok(/goMore\(global\.location\)/.test(src), 'кнопка не через goMore');
+  delete sandbox.open;
+});
+// на собранной полной копии (метка .arcade-full-build у <out>) файлы глав 2+ лежат рядом — это ожидаемо; в публичном дереве их быть не должно
+const FULL_BUILD = fs.existsSync(path.join(ROOT, '..', '.arcade-full-build'));
+test('реестр глав: демо = только глава 1; файлы полной версии — только id в списке full, самих файлов в публичном дереве нет', () => {
+  eq(CHS.files('demo').join(), 'ch1'); ok(CHS.files('full').includes('ch2'), 'ch2 нет в списке full');
+  eq(CHS.available('demo').map(c => c.id).join(), 'ch1'); ok(CHS.get('ch1') && CHS.get('ch1').scenes === K.SCENES && CHS.get('ch1').puzzles === P);
+  eq(CHS.get('ch2'), null, 'глава 2 в публичной сборке'); eq(CHS.available('full').map(c => c.id).join(), 'ch1', 'без файла главы её нет и в полной');
+  for (const id of CHS.files('full')) if (id !== 'ch1') ok(fs.existsSync(path.join(ROOT, 'js/chapters', id + '.js')) === FULL_BUILD, (FULL_BUILD ? 'нет файла главы в полной сборке: ' : 'файл полной версии в публичном дереве: ') + id);
+  eq(ED.BUILD, FULL_BUILD ? 'full' : 'demo', 'флаг издания');
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'); ok(!/chapters\/ch\d/.test(html), 'index.html грузит файл главы напрямую');
+  ok(/\['ch1'\]/.test(fs.readFileSync(path.join(ROOT, 'js/chapters/index.js'), 'utf8')), 'демо-список');
+  eq(CHS.next('ch1', 'demo'), null); eq(CHS.fromQuery('?chapter=2'), 'ch2'); eq(CHS.fromQuery('?x=1&chapter=ch3'), 'ch3'); eq(CHS.fromQuery('?chapterx'), null);
+  const cw = sandbox.console; sandbox.console = { warn() {}, log() {} }; try { eq(CHS.register({ id: 'bad' }), null, 'кривая глава зарегистрировалась'); } finally { sandbox.console = cw; }
+});
+test('сохранение пилота переносится в главу 1 (прогресс игроков демо не теряется), старый ключ удаляется; новая запись не затирается', () => {
+  const mem = {}, st = { getItem: k => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } };
+  const { G } = fresh(); tapHs(G, 'stool'); run(G, 3); const old = G.serialize(); mem['arcade.save.kvest'] = old;
+  ok(CHS.migrate(st)); eq(mem['arcade.save.kvest.ch1'], old, 'не перенесено'); ok(!('arcade.save.kvest' in mem), 'старый ключ остался');
+  ok(!CHS.migrate(st), 'повторная миграция'); const G2 = K.createGame({ chapter: CHS.get('ch1') }); ok(G2.load(mem['arcade.save.kvest.ch1']), 'перенесённое не грузится'); ok(G2.state().flags.stoolMoved);
+  mem['arcade.save.kvest'] = '{"v":1,"flags":{"x":1},"scene":"workshop","inv":[]}'; CHS.migrate(st); eq(mem['arcade.save.kvest.ch1'], old, 'затёрто более новое сохранение главы 1');
+  mem['arcade.save.kvest'] = '{битое'; CHS.migrate(st); ok(!('arcade.save.kvest' in mem) && mem['arcade.save.kvest.ch1'] === old);
+  const pr = CHS.progress(st); eq(pr.sel, 'ch1'); eq(pr.done.length, 0); pr.done.push('ch1'); CHS.setProgress(st, pr); eq(CHS.progress(st).done.join(), 'ch1');
+  eq(CHS.saveKey('ch2'), 'arcade.save.kvest.ch2');
+});
+test('сохранение по главам: запись помнит главу; сохранение другой главы не загружается', () => {
+  const G = K.createGame({ chapter: CHS.get('ch1') }); G.start(); const o = JSON.parse(G.serialize()); eq(o.ch, 'ch1');
+  ok(!K.createGame({ chapter: CHS.get('ch1') }).load(Object.assign({}, o, { ch: 'ch2' })), 'чужая глава загрузилась');
+  ok(K.createGame({ chapter: CHS.get('ch1') }).load(Object.assign({}, o, { ch: undefined })), 'сохранение пилота без поля ch');
+});
+
+// тестовая глава (данные только для проверки движка): карта из трёх мест, берег с приливом/отливом и таймером, шестерни
+const TCH = {
+  id: 'ch9', n: 9, title: { ru: 'Проверка', en: 'Check' },
+  map: { id: 'tmap', start: 'na', coast: [[0, 0], [960, 0], [960, 300], [0, 360]],
+    nodes: [{ id: 'na', scene: 'ta', x: 200, y: 300, icon: 'tide', toX: 60 }, { id: 'nb', scene: 'tb', x: 480, y: 200, icon: 'hut', toX: 60 },
+      { id: 'nc', scene: 'tc', x: 760, y: 300, icon: 'rocktower', toX: 60, need: ['p_t1'], lit: 'p_t3' }],
+    trails: [{ a: 'na', b: 'nb', pts: [[340, 230]] }, { a: 'nb', b: 'nc', pts: [[620, 230]] }] },
+  scenes: [
+    { id: 'ta', w: 960, h: 540, mood: 'day', pal: 'morning', icon: 'tide', phase: { flag: 'low', a: 'high', b: 'low' },
+      layers: [{ depth: 0, items: [{ kind: 'sky' }, { kind: 'tide', x: 0, y: 300, w: 960, h: 240, state: { low: 400 } }] },
+        { depth: 1, items: [{ kind: 'rock', x: 600, y: 420, w: 60, h: 30, seed: 2, phase: 'low' }] }, { depth: 2, items: [{ kind: 'ground', x: 0, y: 452, w: 960, h: 88 }] }],
+      objects: [{ id: 'shell', kind: 'item', item: 'shell', x: 500, y: 420, w: 30, h: 30, phase: 'low', show: ['!got_shell'] }, { id: 'post', kind: 'tidepost', x: 100, y: 300, w: 30, h: 150, state: {}, bind: { low: 'low' } }],
+      hotspots: [{ id: 'shell', rect: [490, 400, 50, 52], cursor: 'take', at: 515, phase: 'low', need: ['!got_shell'] }, { id: 'post', rect: [96, 300, 40, 150], cursor: 'use', at: 140 },
+        { id: 'toMap', rect: [0, 300, 40, 152], cursor: 'go', at: 20, to: 'tmap' }, { id: 'toB', rect: [900, 300, 60, 152], cursor: 'go', at: 930, to: 'tb', toX: 60, phase: 'low' }],
+      walk: [[20, 452], [700, 452]], walkPhase: { low: [[20, 452], [940, 452]] }, hero: { x: 100, y: 452 } },
+    { id: 'tb', w: 960, h: 540, mood: 'day', icon: 'hut', layers: [{ depth: 0, items: [{ kind: 'sky' }] }, { depth: 2, items: [{ kind: 'ground', x: 0, y: 452, w: 960, h: 88 }] }],
+      objects: [{ id: 'g1', kind: 'machine', x: 300, y: 200, w: 80, h: 80, state: { variant: 'gear' } }, { id: 'g2', kind: 'machine', x: 390, y: 200, w: 80, h: 80, state: { variant: 'gear' } },
+        { id: 'key', kind: 'item', item: 'key', x: 600, y: 420, w: 30, h: 30, show: ['gearsOk', '!got_key'] }],
+      hotspots: [{ id: 'g1', rect: [300, 200, 80, 80], cursor: 'use', at: 340 }, { id: 'g2', rect: [390, 200, 80, 80], cursor: 'use', at: 430 },
+        { id: 'key', rect: [590, 410, 50, 42], cursor: 'take', at: 615, need: ['gearsOk', '!got_key'] },
+        { id: 'toA', rect: [0, 300, 40, 152], cursor: 'go', at: 20, to: 'ta', toX: 680 }, { id: 'toMap', rect: [920, 300, 40, 152], cursor: 'go', at: 940, to: 'tmap' }],
+      walk: [[20, 452], [940, 452]], hero: { x: 80, y: 452 } },
+    { id: 'tc', w: 960, h: 540, mood: 'dusk', icon: 'rocktower', layers: [{ depth: 0, items: [{ kind: 'sky' }] }],
+      objects: [{ id: 'fire', kind: 'beacon', x: 500, y: 300, w: 80, h: 150, state: { variant: 'brazier' }, bind: { lit: 'won', fuel: 'won' } }],
+      hotspots: [{ id: 'fire', rect: [500, 300, 80, 150], cursor: 'use', at: 540 }, { id: 'toMap', rect: [0, 300, 40, 152], cursor: 'go', at: 20, to: 'tmap' }],
+      walk: [[20, 452], [940, 452]], hero: { x: 80, y: 452 } }
+  ],
+  puzzles: { start: { scene: 'ta', flags: {}, inv: [] }, goal: 'won', items: ['shell', 'key'],
+    timers: [{ flag: 'low', every: 12, where: ['ta'] }],
+    rules: [{ scene: 'ta', hs: 'shell', do: [['give', 'shell'], ['set', 'got_shell']], puzzle: 'p_t1' }, { scene: 'ta', hs: 'post', do: [['toggle', 'low']] },
+      { scene: 'tb', hs: 'key', do: [['give', 'key'], ['set', 'got_key']] }, { scene: 'tc', hs: 'fire', item: 'key', do: [['take', 'key'], ['win']], puzzle: 'p_t3' }],
+    combos: [], enter: [], autos: [], cuts: {},
+    widgets: [{ id: 'gears', type: 'gears', scene: 'tb', hs: ['g1', 'g2'], objs: ['g1', 'g2'], m: 4, links: [[1], [0]], start: [0, 0], target: [2, 2], onSolve: [['set', 'gearsOk']], puzzle: 'p_t2' }],
+    puzzles: [{ id: 'p_t1', scene: 'ta', type: 'item', hint: ['low', 'shell'] }, { id: 'p_t2', scene: 'tb', type: 'mech', hint: ['gearwheel'] }, { id: 'p_t3', scene: 'tc', type: 'item', hint: ['key'] }] }
+};
+const TC = CHS.register(TCH);
+test('тестовая глава регистрируется; карта — сцена главы; демо её не видит (только id из списков изданий)', () => {
+  ok(TC && TC.scenes.some(s => s.map && s.id === 'tmap'), 'карты нет среди сцен'); eq(CHS.available('demo').map(c => c.id).join(), 'ch1');
+});
+test('сцена с двумя состояниями: зоны, объекты, элементы слоёв и полоса ходьбы по фазе; смена — рычагом и таймером; уровень воды анимируется', () => {
+  const ev = [], G = K.createGame({ chapter: TC, onEvent: (t, d) => ev.push({ t, d }) }); G.start();
+  let m = G.model(); eq(m.scene.phase, 'high'); eq(m.scene.phaseMix, 0); ok(!G.hotspot('shell') && !G.hotspot('toB'), 'зоны отлива в прилив');
+  ok(!m.scene.objects.some(o => o.id === 'shell'), 'объект отлива в прилив'); ok(!m.scene.layers[1].items.length, 'камень отлива в слое');
+  eq(JSON.stringify(m.scene.walk), JSON.stringify(TC.scenes[0].walk)); eq(m.scene.objects.find(o => o.id === 'post').state.low, false);
+  const L1 = m.scene.layers;
+  tapHs(G, 'post'); run(G, 3); ok(G.state().flags.low, 'вешка не сменила фазу'); ok(ev.some(e => e.t === 'phase' && e.d.phase === 'low'));
+  m = G.model(); eq(m.scene.phase, 'low'); ok(m.scene.phaseMix > 0, 'уровень не движется'); ok(G.hotspot('shell') && G.hotspot('toB')); eq(m.scene.walk[1][0], 940);
+  ok(m.scene.layers[1].items.length === 1 && m.scene.layers !== L1, 'слой отлива'); ok(K.Coast.layersOf(TC.scenes[0], 'low') === m.scene.layers, 'массив слоёв фазы неустойчив (кэш темы)');
+  run(G, 2); eq(G.model().scene.phaseMix, 1);
+  // героиня у дальнего края в отлив; прилив — полоса короче, она отходит к берегу
+  G.down(880, 300); G.up(880, 300); run(G, 6); eq(G.state().scene, 'ta'); ok(G.runtime().hero.x > 870, 'x ' + G.runtime().hero.x);
+  G.state().tt.low = 11.95; run(G, 0.2); ok(!G.state().flags.low, 'таймер не вернул прилив'); ok(ev.some(e => e.t === 'timer'));
+  run(G, 6); ok(G.runtime().hero.x <= 700.5, 'не отошла от воды: ' + G.runtime().hero.x);
+  // таймер идёт только в своих сценах
+  const G2 = K.createGame({ chapter: TC }); G2.start(); G2.state().scene = 'tb'; run(G2, 20); ok(!G2.state().flags.low, 'таймер в чужой сцене');
+  const G3 = K.createGame({ chapter: TC, timers: false }); G3.start(); run(G3, 30); ok(!G3.state().flags.low, 'timers:false'); ok(G3.waitTimer('low')); run(G3, 0.1); ok(G3.state().flags.low, 'waitTimer');
+});
+test('карта побережья: открыты места, связанные открытыми тропами; фишка идёт по тропе и входит в сцену; закрытое место — «?»', () => {
+  const M = TCH.map, st0 = { flags: {}, inv: [] };
+  eq(Object.keys(K.Coast.reach(M, st0)).sort().join(), 'na,nb'); eq(K.Coast.hotspots(M, st0).map(h => h.to).join(), 'ta,tb');
+  const st1 = { flags: { p_t1: true }, inv: [] }; eq(Object.keys(K.Coast.reach(M, st1)).sort().join(), 'na,nb,nc');
+  const pth = K.Coast.path(M, st1, 'na', 'nc'); eq(JSON.stringify(pth), JSON.stringify([[200, 300], [340, 230], [480, 200], [620, 230], [760, 300]]));
+  eq(JSON.stringify(K.Coast.path(M, st1, 'nc', 'na')), JSON.stringify(pth.slice().reverse()));
+  const G = K.createGame({ chapter: TC }); G.start(); tapHs(G, 'toMap'); run(G, 3); eq(G.state().scene, 'tmap'); eq(G.state().mapAt, 'na');
+  let m = G.model(); ok(!m.showHero, 'героиня на карте'); const nc = m.scene.objects.find(o => o.id === 'n_nc'); eq(nc.state.open, false); eq(nc.state.icon, 'question');
+  ok(m.scene.objects.some(o => o.kind === 'maptoken') && m.scene.objects.filter(o => o.kind === 'trail').length === 2);
+  ok(m.scene.objects.find(o => o.id === 'n_na').state.here); ok(!G.hotspot('n_nc'), 'закрытое место кликабельно');
+  tapHs(G, 'n_nb'); ok(G.busy(), 'фишка не пошла'); run(G, 0.3); eq(G.state().scene, 'tmap'); const tk = G.runtime().token; ok(tk.x > 200 && tk.y < 300, 'фишка не на тропе');
+  run(G, 4); eq(G.state().scene, 'tb'); eq(G.state().mapAt, 'nb'); eq(G.runtime().hero.x, 60);
+  tapHs(G, 'toMap'); run(G, 7); eq(G.state().scene, 'tmap'); eq(G.state().mapAt, 'nb', 'фишка не у места, откуда пришли');
+  const json = G.serialize(); const G2 = K.createGame({ chapter: TC }); ok(G2.load(json)); eq(G2.state().mapAt, 'nb'); eq(G2.runtime().token.x, 480);
+});
+test('шестерни (новый механизм): клик крутит шестерню вперёд, сцепленную — назад; решаемы из любого состояния', () => {
+  const w = TCH.puzzles.widgets[0], T = WT.gears, L = T.init(w); T.act(w, L, 0); eq(L.s.join(), '1,3'); ok(!T.solved(w, L));
+  const sol = solveWidget(K, w, T.init(w)); ok(sol && sol.length, 'нет решения'); const all = widgetReach(K, w, T.init(w)); ok(all.every(s => T.solved(w, s) || solveWidget(K, w, s)), 'тупик шестерён');
+  const v = T.view(w, L); ok(v.g1.rot === 0.25 && v.g1.mark === 0.5 && v.g1.ok === false && v.g2.solved === false);
+});
+test('поиск по тестовой главе: финал достижим, тупиков нет (в т.ч. по положению: из любой сцены можно вернуться), таймер — переход «подождать»', () => {
+  const S = makeSolver(K, TC), E = S.explore(); ok(E.goals.length, 'финал'); eq(E.dead.length, 0, 'тупики');
+  ok(E.plan.some(a => (a.kind === 'timer') || (a.kind === 'hs' && a.hs === 'post')), 'в плане нет смены прилива');
+  for (const n of E.list) eq(S.positionSafe(n.st).join(), '', 'застрять можно в');
+  ok(S.successors(S.start()).some(x => x.act.kind === 'timer'), 'нет перехода «подождать»');
+});
+test('бот проходит тестовую главу: прилив/отлив, шестерни, карта (фишка по тропе), финал', () => {
+  const r = playChapter(K, { chapter: TC }); ok(r.won, 'не прошёл'); eq(r.solved, r.total, 'не решены: ' + r.missing.join(','));
+});
+for (const id of ['grey', 'paper']) test('тема ' + id + ': новые kind движка глав рисуются в обеих фазах и на карте (строгий режим)', () => {
+  const ctx = A.mockCtx(), th = THEMES[id]; sandbox.KVEST_STRICT = true;
+  try {
+    const G = K.createGame({ chapter: TC }); G.start();
+    for (const flags of [{}, { low: true }, { low: true, p_t1: true, won: true }]) for (const s of TC.scenes) {
+      G.load({ v: 1, scene: s.id, flags: Object.assign({}, flags), inv: [], mapAt: 'nb' }); for (const tt of [0, 0.7, 3]) { run(G, tt); const m = G.model(); th.drawScene(ctx, m.scene, 1 + tt, { hover: { x: 480, y: 200, kind: 'go' }, light: m.light }); if (m.showHero) th.drawHero(ctx, m.hero, 'idle', 1); th.drawUI(ctx, m.ui, 1); }
+    }
+    ['map', 'tide', 'low', 'high', 'dog', 'crab', 'gearwheel', 'salt', 'embers'].forEach(ic => { th.drawIcon(ctx, ic, 100, 100, 40); ok(A.ICONS[ic], 'нет в словаре: ' + ic); });
+  } finally { sandbox.KVEST_STRICT = false; }
+  ok(ctx.calls > 500);
+});
+test('контракт: новые kind описаны в theme-api (tide, mapsheet, trail, mapnode, maptoken, beacon, saltpan, sluice, boat, tidepost)', () => {
+  ['tide', 'mapsheet', 'trail', 'mapnode', 'maptoken', 'beacon', 'saltpan', 'sluice', 'boat', 'tidepost'].forEach(k => ok(A.isKind(k), k));
+  ok(/fisher \| dog \| crab/.test(A.KINDS.npc) && /clockwork/.test(A.KINDS.machine) && /rack/.test(A.KINDS.fence));
 });
 
 console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed));

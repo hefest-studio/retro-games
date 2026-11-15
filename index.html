@@ -8,9 +8,13 @@
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#06070b">
   <link rel="canonical" href="https://arcade.hefest.ru/">
+  <link rel="alternate" hreflang="ru" href="https://arcade.hefest.ru/">
+  <link rel="alternate" hreflang="en" href="https://arcade.hefest.ru/en/">
+  <link rel="alternate" hreflang="x-default" href="https://arcade.hefest.ru/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Гефест">
   <meta property="og:locale" content="ru_RU">
+  <meta property="og:locale:alternate" content="en_US">
   <meta property="og:title" content="Зал ретро-игр — студия «Гефест»">
   <meta property="og:description" content="71 оригинальных браузерных аркад и платформеров в духе классики. 8-бит и неон, офлайн, без сборки.">
   <meta property="og:url" content="https://arcade.hefest.ru/">
@@ -22,7 +26,7 @@
   <meta name="twitter:description" content="71 оригинальных браузерных аркад. 8-бит и неон, офлайн.">
   <meta name="twitter:image" content="https://arcade.hefest.ru/og.png">
   <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"CollectionPage","name":"Зал ретро-игр — студия «Гефест»","url":"https://arcade.hefest.ru/","description":"71 оригинальных браузерных аркад и платформеров студии «Гефест» в духе классики жанра; два стиля графики (8-бит и неон), офлайн.","isPartOf":{"@type":"WebSite","name":"Гефест","url":"https://hefest.ru/"},"publisher":{"@type":"Organization","name":"Гефест","url":"https://hefest.ru/"}}
+  {"@context":"https://schema.org","@type":"CollectionPage","name":"Зал ретро-игр — студия «Гефест»","url":"https://arcade.hefest.ru/","description":"71 оригинальных браузерных аркад и платформеров студии «Гефест» в духе классики жанра; два стиля графики (8-бит и неон), офлайн.","isPartOf":{"@type":"WebSite","name":"Гефест","url":"https://hefest.ru/"},"publisher":{"@type":"Organization","name":"Гефест","url":"https://hefest.ru/"},"inLanguage":"ru"}
   </script>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
   <link rel="stylesheet" href="assets/catalog/catalog.css">
@@ -49,6 +53,10 @@
         </span>
       </a>
       <div class="topbar-side">
+        <nav class="lang-switch" aria-label="Язык · Language">
+          <span aria-current="page" lang="ru" title="Русский">RU</span>
+          <a href="en/" data-lang-target="en/" hreflang="en" lang="en" title="English version">EN</a>
+        </nav>
         <span class="key-hint"><kbd>G</kbd><span class="key-hint-text">сменить графику</span></span>
         <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false" aria-label="Сейчас включён 8-битный ретро-стиль. Переключить на неоновый стиль (клавиша G)">
           <span class="tt-icon" aria-hidden="true"></span>
@@ -69,7 +77,7 @@
         <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>Аркадный каталог · оригиналы студии</p>
         <h1 class="hero-title" id="hero-title">Зал<br>ретро-игр</h1>
         <p class="lede">
-          Семьдесят оригинальных браузерных игр студии «Гефест» — аркады и платформеры в духе классики.
+          Семьдесят одна оригинальная браузерная игра студии «Гефест» — аркады и платформеры в духе классики.
           Выберите игру, вставьте монетку — и переключайте графику между
           8-битным ретро и неоновым ремастером в любой момент.
         </p>

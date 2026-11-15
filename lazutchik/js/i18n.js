@@ -40,11 +40,11 @@
       score: 'Score', level: 'Difficulty', best: 'Best', lives: 'Tries',
       win: 'THE DIE IS HOME!', gameover: 'THE OWL IS CAUGHT',
       pause: 'PAUSED', resume: 'Resume', menu: 'Main menu', tapstart: 'space / tap',
-      title: 'INFILTRATOR', subtitle: 'The Hephaestus workshop night watchman nicknamed the Owl',
+      title: 'OWLSTEP', subtitle: 'The Hephaestus workshop night watchman nicknamed the Owl',
       sub2: 'Sneak into the Rusty Arsenal · recover the Master’s seal die · wind up the alarm clock in the engine hall',
       hint: '←→ step · Shift run · ↓ crouch (hidden in shadow) · ↑ ladder/lever · Space punch · C kick · Z item · F torch',
       back: 'Catalog', diff: 'Difficulty', bestTime: 'Best time',
-      d1: 'Watchman', d2: 'Patroller', d3: 'Infiltrator', d4: 'Unseen', d5: 'Phantom',
+      d1: 'Watchman', d2: 'Patroller', d3: 'Intruder', d4: 'Unseen', d5: 'Phantom',
       d1s: 'few guards, long clock spring', d2s: 'guards are more alert', d3s: 'changed patrol routes', d4s: 'more guards, short clock spring', d5s: 'guards see farther and hit harder',
       z_roof: 'Roof', z_loft: 'Warehouse loft', z_office: 'Front office', z_store: 'Lower store', z_shop: 'Workshop', z_mine: 'Mine shaft', z_assembly: 'Assembly hall', z_boiler: 'Boiler room', z_foundry: 'Foundry', z_engine: 'Engine hall', z_sewer: 'Sewer',
       hp: 'HEALTH', en: 'ENERGY', time: 'TIME', bomb: 'ALARM CLOCK', alarm: 'ALARM!', hand: 'in hand',
@@ -63,7 +63,7 @@
       w1: 'The die is recovered and the Arsenal conveyor has stopped.', lose_caught: 'The guards have pinned the Owl down.', lose_ring: 'The clock rang while the Owl was still inside.',
       t_time: 'Time', t_kos: 'Guards knocked out', t_alarms: 'Alarms', t_new: 'NEW BEST TIME!',
       b_punch: 'PUNCH', b_kick: 'KICK', b_item: 'ITEM', b_run: 'RUN', b_flash: 'TORCH',
-      foot: '<b>INFILTRATOR</b> · ← → / A D — step · Shift — run (noisy) · ↓ / S — crouch, sneak; on a hatch — open · ↑ / W — ladder, lift, handcar, lever, plant the clock · Space / X — punch (↑ + punch — throw) · C / K — kick (↓ + kick — sweep) · Z — pick up / throw an item · F — torch · P / Esc — pause · L language, T theme, M sound.'
+      foot: '<b>OWLSTEP</b> · ← → / A D — step · Shift — run (noisy) · ↓ / S — crouch, sneak; on a hatch — open · ↑ / W — ladder, lift, handcar, lever, plant the clock · Space / X — punch (↑ + punch — throw) · C / K — kick (↓ + kick — sweep) · Z — pick up / throw an item · F — torch · P / Esc — pause · L language, T theme, M sound.'
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

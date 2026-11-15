@@ -1,7 +1,9 @@
 /* МАЯЧНИЦА · сборка: оболочка — фреймворк Гефест Arcade v2.2 (меню, пауза, язык, звук, музыка), игра — KVEST.createGame
    (game.js по данным scenes.js/puzzles.js/widgets.js), отрисовка — только через window.KvestTheme (контракт «КВЕСТ»).
-   Сцены движка: title (+ «Продолжить» — сохранение), pause (+ «Прохождение-набросок», «Начать главу заново»), win — финал главы
-   с экраном издания (демо: «Продолжение — в полной версии»; полная: «Глава 2 — скоро», см. edition.js); своя — play.
+   Сцены движка: title (+ «Глава» — выбор главы, если их в сборке больше одной; «Продолжить» — сохранение выбранной главы),
+   pause (+ «Прохождение-набросок», «Начать главу заново»), win — финал главы с экраном издания (демо: «Продолжение — в полной
+   версии»; полная: «Глава N+1» или «Глава N+1 — скоро», см. edition.js); своя — play. Главы — реестр chapters/index.js,
+   сохранения — по главам (arcade.save.kvest.<id>; старое сохранение пилота переносится в главу 1). ?chapter=N — выбрать главу.
    Ввод: мышь/тач по канве (тап = действие, долгий тап / ПКМ = осмотр, перетаскивание предметов пальцем — предмет приподнят над
    пальцем, крупная зона захвата; на маленьких экранах зоны увеличены), H — подсказка, B — набросок, D — отладка и статистика,
    E — выгрузить статистику (в отладке), F — во весь экран, P/Esc — пауза (в мини-игре и наброске Esc закрывает их).
@@ -20,7 +22,21 @@
   var LANG = K.pickLang(storedLang, (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]));
   var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'kvest', strings: K.STR, lang: LANG, theme: 'modern', themes: { modern: PAL, retro: PAL } });
   K.g = g;
-  var Store = Arcade.Store, SAVE = 'arcade.save.kvest';
+  var Store = Arcade.Store, CHS = K.Chapters;
+  // хранилище для реестра глав (localStorage может быть недоступен — тогда всё молча в памяти)
+  var LS = (function () { var mem = {}; try { localStorage.setItem('arcade.kvest.t', '1'); localStorage.removeItem('arcade.kvest.t'); return localStorage; } catch (e) {
+    return { getItem: function (k) { return k in mem ? mem[k] : null; }, setItem: function (k, v) { mem[k] = String(v); }, removeItem: function (k) { delete mem[k]; } }; } })();
+  CHS.migrate(LS);   // сохранение пилота (arcade.save.kvest) → глава 1
+  var prog = CHS.progress(LS);
+  (function () { var q = CHS.fromQuery(location.search); if (q && CHS.get(q) && CHS.available(K.EDITION).indexOf(CHS.get(q)) >= 0) { prog.sel = q; prog.open = [q]; } })();
+  function chapters() { return CHS.available(K.EDITION).filter(function (c) { return CHS.unlocked(c.id, prog, K.EDITION); }); }
+  function chapter() { var c = CHS.get(prog.sel); return c && chapters().indexOf(c) >= 0 ? c : CHS.get('ch1'); }
+  function chapterLabel(c) { c = c || chapter(); return c.title ? g.t('chapter') + ' ' + c.n + ' · ' + (c.title[g.i18n.lang] || c.title.ru) : g.t('sub2'); }
+  function SAVE() { return CHS.saveKey(chapter().id); }
+  function useChapter(c) {
+    CHS.use(c.id); var tr = typeof c.music === 'string' ? Arcade.tracks[c.music] : c.music;
+    if (tr && g.setMusic) g.setMusic(tr);
+  }
   var game = null, wantContinue = false, lastWin = null, saveDirty = false, saveT = 0, mouseSeen = false;
   var TOUCH = false;
   try { TOUCH = !!(matchMedia('(pointer: coarse)').matches || ('ontouchstart' in global && navigator.maxTouchPoints > 0)); } catch (e) {}
@@ -88,10 +104,10 @@
   }
 
   // ================= сохранение =================
-  function loadSave() { try { var s = Store.get(SAVE, null); if (!s) return null; var o = JSON.parse(s); return o && o.v === 1 && o.flags ? o : null; } catch (e) { return null; } }
-  function writeSave() { if (game && !game.won()) Store.set(SAVE, game.serialize()); saveDirty = false; stats.flush(); }
-  function clearSave() { try { localStorage.removeItem(SAVE); } catch (e) {} }
-  function solvedIn(o) { return K.PUZZLES.puzzles.filter(function (p) { return o && o.flags && o.flags[p.id]; }).length; }
+  function loadSave(c) { try { var s = LS.getItem(CHS.saveKey((c || chapter()).id)); if (!s) return null; var o = JSON.parse(s); return o && o.v === 1 && o.flags ? o : null; } catch (e) { return null; } }
+  function writeSave() { if (game && !game.won() && game.chapter) LS.setItem(CHS.saveKey(game.chapter.id), game.serialize()); saveDirty = false; stats.flush(); }
+  function clearSave(c) { try { LS.removeItem(CHS.saveKey((c || chapter()).id)); } catch (e) {} }
+  function solvedIn(o, c) { return (c || chapter()).puzzles.puzzles.filter(function (p) { return o && o.flags && o.flags[p.id]; }).length; }
 
   function onEvent(type, d) {
     d = d || {};
@@ -101,19 +117,21 @@
     else if (type === 'scene') g.state.level = 1;
     if (type === 'change' || type === 'save') saveDirty = true;
     if (type === 'win') {
-      clearSave(); var sd = stats.data();
-      lastWin = { solved: game.solvedCount(), total: K.PUZZLES.puzzles.length, time: sd ? sd.time : 0 }; g.state.score = lastWin.solved;
+      var ch = game.chapter || chapter(); clearSave(ch); var sd = stats.data();
+      if (prog.done.indexOf(ch.id) < 0) prog.done.push(ch.id); CHS.setProgress(LS, prog);
+      lastWin = { solved: game.solvedCount(), total: K.PUZZLES.puzzles.length, time: sd ? sd.time : 0, ch: ch }; g.state.score = lastWin.solved;
       setTimeout(function () { if (g._sceneName === 'play') g.win(); }, 900);
     }
   }
   function statsMeta() {
-    return { edition: K.EDITION, lang: g.i18n.lang, device: view.cls, touch: TOUCH, viewport: innerWidth + 'x' + innerHeight, dpr: global.devicePixelRatio || 1,
+    return { edition: K.EDITION, chapter: chapter().id, lang: g.i18n.lang, device: view.cls, touch: TOUCH, viewport: innerWidth + 'x' + innerHeight, dpr: global.devicePixelRatio || 1,
       canvas: cv.width + 'x' + cv.height, res: view.res, ua: navigator.userAgent };
   }
   function newGame() {
     var sv = wantContinue ? loadSave() : null; wantContinue = false;
     if (!sv) clearSave();
-    game = K.createGame({ onEvent: onEvent });
+    var ch = chapter(); useChapter(ch);
+    game = K.createGame({ chapter: ch, onEvent: onEvent });
     stats.begin(!!sv, statsMeta());
     if (!(sv && game.load(sv))) game.start(); else stats.event('scene', { id: game.state().scene });
     lastWin = null; g.state.score = game.solvedCount(); K.current = game;
@@ -139,12 +157,19 @@
   // ================= стандартные экраны движка =================
   g.useStandardScreens({});
   g.menu.removeItem('theme');       // оформление игры — тема KvestTheme, не тема движка
-  g.menu.addItem({ key: 'continue', after: 'play', label: function () { var sv = loadSave(); return sv ? g.t('cont') + ' · ' + solvedIn(sv) + ' / ' + K.PUZZLES.puzzles.length : g.t('cont') + ' —'; },
+  g.menu.addItem({ key: 'continue', after: 'play', label: function () { var sv = loadSave(); return sv ? g.t('cont') + ' · ' + solvedIn(sv) + ' / ' + chapter().puzzles.puzzles.length : g.t('cont') + ' —'; },
     onSelect: function () { if (!loadSave()) { g.audio.beep(200, 0.06); return; } wantContinue = true; g.goto('play'); } });
+  // выбор главы — только если в сборке открыто больше одной (демо: пункта нет)
+  function chapterItem() {
+    if (chapters().length < 2) { g.menu.removeItem('chapter'); return; }
+    g.menu.addItem({ key: 'chapter', before: 'play', label: function () { return chapterLabel() + '  ›'; },
+      onSelect: function () { var list = chapters(), i = list.indexOf(chapter()); prog.sel = list[(i + 1) % list.length].id; CHS.setProgress(LS, prog); useChapter(chapter()); } });
+  }
+  chapterItem();
   g.menu.addItem({ key: 'walk', scene: 'pause', before: 'menu', label: function () { return g.t('walk'); },
     onSelect: function () { g.goto('play', { resume: true }); if (game) game.openWalk(); } });
   g.menu.addItem({ key: 'restart', scene: 'pause', before: 'menu', label: function () { return g.t('restart'); },
-    onSelect: function () { clearSave(); g.goto('play'); } });
+    onSelect: function () { clearSave(game && game.chapter); g.goto('play'); } });
   // «Анимация штриха» (кипение и перо в эскизах тушью): вкл — спокойное дрожание 2,5 раза в секунду, выкл — статично
   function inkItem(scene) {
     g.menu.addItem({ key: 'inkAnim', scene: scene, before: scene === 'pause' ? 'menu' : undefined, after: scene ? undefined : 'sound',
@@ -173,13 +198,15 @@
     return lines.length;
   }
   var title = g.scenes.title, menu = g.menu.get('title');
+  var titleEnter = title.enter;
+  title.enter = function () { if (titleEnter) titleEnter.apply(this, arguments); chapterItem(); };
   title.draw = function (ctx) {
     var th = this.th(); T().drawScene(ctx, titleScene, this.time, {});
     T().drawHero(ctx, { x: 200, y: 452, dir: 1 }, 'idle', this.time);
-    var pw = 460, ph = 316, x0 = (W - pw) / 2, y0 = 66; panel(ctx, x0, y0, pw, ph);
+    var extra = Math.max(0, menu.items.length - 5) * 32, pw = 460, ph = 316 + extra, x0 = (W - pw) / 2, y0 = 66 - Math.min(40, extra); panel(ctx, x0, y0, pw, ph);
     this.text(this.t('title'), W / 2, y0 + 60, { size: this.t('title').length > 10 ? 40 : 46, align: 'center', color: th.accent, weight: 900 });
     this.text(this.t('subtitle'), W / 2, y0 + 88, { size: 15, align: 'center', color: th.ink, weight: 700 });
-    this.text(this.t('sub2'), W / 2, y0 + 110, { size: 13, align: 'center', color: th.muted, weight: 600 });
+    this.text(chapterLabel(), W / 2, y0 + 110, { size: 13, align: 'center', color: th.muted, weight: 600 });
     menu.draw(this, W / 2, y0 + 156, 32);
     panel(ctx, 40, H - 32, W - 80, 24);
     this.text(this.t(TOUCH ? 'hintTouch' : 'hint'), W / 2, H - 15, { size: 12, align: 'center', color: '#efe9dd', weight: 600 });
@@ -187,11 +214,13 @@
 
   // ---------- финал главы + экран издания (демо / полная) ----------
   var MenuCtor = menu.constructor, finMenu = new MenuCtor([]), finale = null;
-  function openMore() { var url = K.Edition.MORE_URL; var w = null; try { w = global.open(url, '_blank', 'noopener'); } catch (e) {} if (!w) location.href = url; }
+  function openMore() { K.Edition.goMore(global.location); }   // одно действие: та же вкладка (см. edition.js)
   function buildFinale() {
-    finale = K.Edition.finale(K.EDITION);
+    var ch = (lastWin && lastWin.ch) || chapter(), nx = CHS.next(ch.id, K.EDITION);
+    finale = K.Edition.finale(K.EDITION, nx, ch.n);
     finMenu.items = finale.items.map(function (k) {
-      return { key: k, label: function () { return g.t(k); }, onSelect: k === 'more' ? openMore : function () { g.goto('title'); } };
+      var act = k === 'more' ? openMore : k === 'next' ? function () { prog.sel = nx.id; CHS.setProgress(LS, prog); g.goto('play'); } : function () { g.goto('title'); };
+      return { key: k, label: function () { return k === 'next' ? chapterLabel(nx) : g.t(k); }, onSelect: act };
     });
     if (statsOn()) finMenu.items.push({ key: 'stats', label: function () { return g.t('stats'); }, onSelect: function () { exportStats(); } });
     finMenu.sel = 0;
@@ -204,12 +233,13 @@
     var th = this.th(); if (!finale) buildFinale();
     if (game) drawGame(ctx, true); else this.clear();
     var pw = 640, x0 = W / 2 - pw / 2, y0 = 70, ph = 380 + (finMenu.items.length - 2) * 34; panel(ctx, x0, y0, pw, ph);
-    this.text(this.t('win'), W / 2, y0 + 58, { size: 40, align: 'center', color: th.accent, weight: 900 });
-    var y = y0 + 90; y += 20 * wrapText(this, this.t('winSub'), W / 2, y, pw - 60, 20, { size: 15, align: 'center', color: th.ink, weight: 700 });
+    var wc = (lastWin && lastWin.ch) || chapter(), wt = wc.win ? (wc.win[g.i18n.lang] || wc.win.ru) : null;
+    this.text(wt ? wt.title : this.t('win'), W / 2, y0 + 58, { size: 40, align: 'center', color: th.accent, weight: 900 });
+    var y = y0 + 90; y += 20 * wrapText(this, wt ? wt.sub : this.t('winSub'), W / 2, y, pw - 60, 20, { size: 15, align: 'center', color: th.ink, weight: 700 });
     if (lastWin) this.text(this.t('solved') + ': ' + lastWin.solved + ' / ' + lastWin.total + (lastWin.time ? '   ·   ' + this.t('time') + ': ' + K.Stats.fmt(lastWin.time) : ''), W / 2, y + 6, { size: 13, align: 'center', color: th.muted, weight: 700 });
     ctx.save(); ctx.strokeStyle = 'rgba(240,191,90,0.35)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x0 + 80, y + 26); ctx.lineTo(x0 + pw - 80, y + 26); ctx.stroke(); ctx.restore();
-    T().drawIcon(ctx, finale.kind === 'demo' ? 'boat' : 'book', W / 2, y + 62, 46);
-    var y2 = y + 116; y2 += 30 * wrapText(this, this.t(finale.title), W / 2, y2, pw - 60, 30, { size: 24, align: 'center', color: th.accent, weight: 900 });
+    T().drawIcon(ctx, finale.kind === 'demo' ? 'boat' : finale.kind === 'next' ? 'map' : 'book', W / 2, y + 62, 46);
+    var y2 = y + 116, ft = this.t(finale.title).replace('{n}', finale.n || ''); y2 += 30 * wrapText(this, ft, W / 2, y2, pw - 60, 30, { size: 24, align: 'center', color: th.accent, weight: 900 });
     y2 += 19 * wrapText(this, this.t(finale.sub), W / 2, y2 - 4, pw - 90, 19, { size: 14, align: 'center', color: th.ink, weight: 600 });
     finMenu.draw(this, W / 2, Math.max(y2 + 22, y0 + ph - 30 - (finMenu.items.length - 1) * 34), 34);
   };
@@ -431,5 +461,5 @@
   wrapDraws();
   g.start('title');
   // для отладки/автотестов в браузере
-  K.app = { g: g, game: function () { return game; }, view: view, stats: stats, exportStats: exportStats, cacheInfo: cacheInfo, fit: fit, applyScale: applyScale, gov: gov, fps: function () { return fpsNow; } };
+  K.app = { g: g, game: function () { return game; }, chapter: chapter, chapters: chapters, progress: function () { return prog; }, view: view, stats: stats, exportStats: exportStats, cacheInfo: cacheInfo, fit: fit, applyScale: applyScale, gov: gov, fps: function () { return fpsNow; } };
 })(typeof window !== 'undefined' ? window : globalThis);

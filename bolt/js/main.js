@@ -60,7 +60,7 @@
     try {
       if (running && !game.isPaused()) game.update(dt);
       render();
-    } catch (err) { if (global.console) console.error('BOLT loop', err); }
+    } catch (err) { if (global.console) console.error('[bolt] loop', err); }
     requestAnimationFrame(loop);
   }
 

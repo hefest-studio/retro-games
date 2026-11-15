@@ -17,7 +17,8 @@
     { n: 7, ru: 'Чужая беда', en: 'Another’s Trouble' }, { n: 8, ru: 'Паровая громада', en: 'Steam Colossus' },
     { n: 9, ru: 'Штольни', en: 'The Adits' }, { n: 10, ru: 'Сердце плато', en: 'Heart of the Plateau' }];
   var NODES = [[95, 432], [178, 352], [268, 404], [350, 322], [452, 362], [528, 280], [446, 204], [334, 218], [250, 142], [400, 112]];
-  var WHO = { varvara: { col: 0, letter: { ru: 'В', en: 'V' } }, lunya: { col: 0, letter: { ru: 'Л', en: 'L' } }, foe: { col: 1, letter: { ru: 'С', en: 'G' } } };
+  var WHO = { varvara: { col: 0, letter: { ru: 'В', en: 'V' } }, lunya: { col: 0, letter: { ru: 'Л', en: 'L' } }, sava: { col: 0, letter: { ru: 'С', en: 'S' } },
+    korney: { col: 1, letter: { ru: 'К', en: 'K' } }, foe: { col: 1, letter: { ru: 'С', en: 'G' } } };
 
   function lang() { return g.i18n.lang; }
   function tx(o) { return C.txt(o, lang()); }
@@ -195,9 +196,9 @@
       portrait(c, h, hx + 14, y - 4, 14);
       var tag = (def.required || []).indexOf(h) >= 0 ? g.t('required') : (d.roster.heroes[h] && d.roster.heroes[h].wounded ? g.t('wounded') : '');
       text(c, g.t(h), hx + 34, y - 4, { size: 12, weight: 800 }); if (tag) text(c, tag, hx + 34, y + 11, { size: 11, weight: 700, color: tag === g.t('required') ? pl.warn : pl.bad });
-      hx += 140;
+      hx += (def.heroes.length > 2 ? 128 : 140);
     });
-    var vets = (d.roster.vets || []).length; if (vets) { text(c, '⌃ ' + g.t('vetsT') + ': ' + vets, hx + 4, y, { size: 12, weight: 700, color: pl.oreHi }); }
+    var vets = (d.roster.vets || []).length; if (vets) { if (def.heroes && def.heroes.length > 2) text(c, '⌃ ' + g.t('vetsT') + ': ' + vets, x, y + 30, { size: 12, weight: 700, color: pl.oreHi }); else text(c, '⌃ ' + g.t('vetsT') + ': ' + vets, hx + 4, y, { size: 12, weight: 700, color: pl.oreHi }); }
     button(c, 540, 470, 240, 44, '▶ ' + g.t('start'), function () { host.startMission(def.id); }, { primary: true, size: 16 });
     button(c, 790, 470, 140, 44, '← ' + g.t('backBtn'), function () { g.goto('camp'); });
   }
@@ -268,12 +269,14 @@
 
   // ---------- в бою ----------
   function heroUnit(W, type) { var MS = W.mission, id = MS && MS.heroes[type], u = id && W.byId[id]; return u && u.hp > 0 ? u : null; }
-  var AB = [{ hero: 'varvara', key: 'Q', label: 'abCry' }, { hero: 'lunya', key: 'E', label: 'abFlare' }];
+  var AB = [{ hero: 'varvara', key: 'Q', label: 'abCry' }, { hero: 'lunya', key: 'E', label: 'abFlare' }, { hero: 'sava', key: 'R', label: 'abFix' }];
+  // кнопки способностей — в одну строку под выделением (до трёх героев делят 290 px)
   function abilityButtons(W) {
-    var out = [], x = 160;
-    AB.forEach(function (a) { if (W.mission && W.mission.heroes[a.hero]) { out.push({ x: x, y: LY.VIEW_H + 84, w: 140, h: 24, ab: a }); x += 146; } });
+    var list = AB.filter(function (a) { return W.mission && W.mission.heroes[a.hero]; }), out = [], n = list.length, w = n > 2 ? 94 : 140, x = 160;
+    list.forEach(function (a) { out.push({ x: x, y: LY.VIEW_H + 86, w: w, h: 22, ab: a }); x += w + 4; });
     return out;
   }
+  function tipHeroes(MS) { var out = []; AB.forEach(function (a) { if (MS.heroes[a.hero]) out.push(a.key + ' — ' + g.t(a.label)); }); return out.join(' · '); }
   UI.panelAt = function (S, p) { if (!S.W || !S.W.mission) return null; var bs = abilityButtons(S.W); for (var i = 0; i < bs.length; i++) { var b = bs[i]; if (p.x >= b.x && p.x < b.x + b.w && p.y >= b.y && p.y < b.y + b.h) return b; } return null; };
   UI.useAbility = function (S, hero) {
     var W = S.W, u = W && W.mission && heroUnit(W, hero); if (!u) return false;
@@ -299,6 +302,7 @@
       else if (e.t === 'obj') { var o = MS.byObj[e.id]; if (e.state === 'done') { host.msg('✓ ' + g.t('msgObjDone') + ': ' + tx(o.def.text), 'good'); g.audio.beep(880, 0.07, 'triangle'); g.audio.beep(1320, 0.1, 'triangle'); } else if (e.state === 'active' && W.time > 1) { host.msg(g.t('msgObj') + ': ' + tx(o.def.text), 'warn'); g.audio.beep(660, 0.06); } }
       else if (e.t === 'heroDown') host.msg(g.t(e.who) + ' — ' + g.t('msgHeroDown'), 'bad');
       else if (e.t === 'night') host.msg(g.t('msgNight'), 'warn');
+      else if (e.t === 'halt' && MS.groups[e.tag] && MS.groups[e.tag].owner === 0) host.msg(g.t(e.on ? 'msgHalt' : 'msgGo'), e.on ? 'warn' : 'good');
     });
     MS.ui.length = 0;
     // метель: волна сильнее / слабее
@@ -314,14 +318,18 @@
     if (cnt && ob.state === 'active' && cnt.t === 'trained') s += ' (' + Math.min(cnt.n, W.players[0].trained[cnt.type] || 0) + '/' + cnt.n + ')';
     return s;
   }
-  function hintZone(W) { var ob = W.mission.objs.find(function (o) { return o.state === 'active' && o.def.hint && o.def.hint.zone; }); return ob ? ob.def.hint.zone : null; }
+  function hintZone(W) { var ob = W.mission.objs.find(function (o) { return o.state === 'active' && o.def.hint && (o.def.hint.zone || o.def.hint.zones); }); return ob ? ob.def.hint.zone || ob.def.hint.zones : null; }
   function hintBtn(W) { var ob = W.mission.objs.find(function (o) { return o.state === 'active' && o.def.kind !== 'opt'; }); return ob && ob.def.hint && ob.def.hint.btn; }
   // слои поверх кадра (render.frame вызывает их, если заданы в S)
   function worldOverlay(c, pl, now) {
     var W = this.W, MS = W.mission;
     W.flares.forEach(function (f) { var k = f.t / f.max; c.strokeStyle = pl.warn; c.lineWidth = 2; c.globalAlpha = 0.25 + 0.5 * k; c.setLineDash([6, 5]); c.beginPath(); c.arc(f.x * T, f.y * T, f.r * T * (0.96 + 0.04 * Math.sin(now * 6)), 0, 7); c.stroke(); c.setLineDash([]); c.fillStyle = pl.warn; c.beginPath(); c.arc(f.x * T, f.y * T, 4 + 2 * Math.sin(now * 10), 0, 7); c.fill(); c.globalAlpha = 1; });
-    var z = hintZone(W);
-    if (z) { var zd = MS.def.zones[z], p = C.zoneCenter(MS, z), r = (zd.r || 3) * T; c.strokeStyle = pl.warn; c.lineWidth = 2; c.globalAlpha = 0.55 + 0.3 * Math.sin(now * 4); c.setLineDash([8, 7]); c.lineDashOffset = -now * 20; c.beginPath(); c.arc(p.x * T, p.y * T, r, 0, 7); c.stroke(); c.setLineDash([]); c.lineDashOffset = 0; c.globalAlpha = 1; }
+    // подсказка цели: круг (или несколько — развилка), у зоны может быть подпись zone.label {ru,en}
+    var zs = hintZone(W); if (zs && !Array.isArray(zs)) zs = [zs];
+    (zs || []).forEach(function (z) {
+      var zd = MS.def.zones[z], p = C.zoneCenter(MS, z), r = (zd.r || Math.max(zd.w || 3, zd.h || 3) / 2) * T; c.strokeStyle = pl.warn; c.lineWidth = 2; c.globalAlpha = 0.55 + 0.3 * Math.sin(now * 4); c.setLineDash([8, 7]); c.lineDashOffset = -now * 20; c.beginPath(); c.arc(p.x * T, p.y * T, r, 0, 7); c.stroke(); c.setLineDash([]); c.lineDashOffset = 0; c.globalAlpha = 1;
+      if (zd.label) { var lt = tx(zd.label); c.font = '800 13px ' + pl.font; var lw = c.measureText(lt).width + 14; c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(p.x * T - lw / 2, p.y * T - r - 24, lw, 19); R.txt(c, lt, p.x * T, p.y * T - r - 10, { color: pl.warn, font: pl.font, size: 13, weight: 800, align: 'center' }); }
+    });
   }
   function viewOverlay(c, pl, now) {
     var MS = this.W.mission, VW = LY.W, VH = LY.VIEW_H;
@@ -379,9 +387,9 @@
       c.fillStyle = act ? pl.ownDk[0] : 'rgba(255,255,255,0.05)'; c.fillRect(b.x, b.y, b.w, b.h);
       if (u && cd > 0) { c.fillStyle = 'rgba(255,255,255,0.08)'; c.fillRect(b.x, b.y, b.w * (1 - cd / hd.cd), b.h); }
       c.strokeStyle = ready ? pl.own[0] : pl.line; c.lineWidth = 1; c.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
-      R.txt(c, b.ab.key, b.x + 8, b.y + 17, { color: pl.warn, font: f, size: 12, weight: 900 });
-      R.txt(c, g.t(b.ab.label), b.x + 24, b.y + 17, { color: u ? pl.ink : pl.muted, font: f, size: 12, weight: 700 });
-      R.txt(c, !u ? '✕' : ready ? g.t('abReady') : Math.ceil(cd) + (lang() === 'ru' ? 'с' : 's'), b.x + b.w - 6, b.y + 17, { color: ready ? pl.good : pl.muted, font: f, size: 11, weight: 700, align: 'right' });
+      R.txt(c, b.ab.key, b.x + 7, b.y + 16, { color: pl.warn, font: f, size: 12, weight: 900 });
+      R.txt(c, g.t(b.ab.label), b.x + 21, b.y + 16, { color: u ? pl.ink : pl.muted, font: f, size: b.w < 120 ? 11 : 12, weight: 700 });
+      R.txt(c, !u ? '✕' : ready ? (b.w < 120 ? '✓' : g.t('abReady')) : Math.ceil(cd) + (lang() === 'ru' ? 'с' : 's'), b.x + b.w - 6, b.y + 16, { color: ready ? pl.good : pl.muted, font: f, size: 11, weight: 700, align: 'right' });
     });
   }
 
@@ -391,7 +399,7 @@
     S.btnAllowed = function (b) { return C.allowed(S.W, b.type); };
     S.btnHidden = function (b) { var MS = S.W && S.W.mission; return !!MS && !Object.keys(MS.allow).length; };
     S.noEco = !Object.keys(S.W.mission.allow).length; // без базы — без строки меди и пара
-    var def = S.W.mission.def; S.idleTitle = g.t('mission') + ' ' + def.n + ': ' + tx(def.title); S.idleSub = g.t('tipQE');
+    var def = S.W.mission.def; S.idleTitle = g.t('mission') + ' ' + def.n + ': ' + tx(def.title); S.idleSub = tipHeroes(S.W.mission) || '';
     S.say = null; S.sayQ = []; S.targeting = null; S.stormWas = null; S.lastT = null;
   };
   UI.detach = function (S) { ['worldOverlay', 'viewOverlay', 'hudOverlay', 'btnAllowed', 'btnHidden', 'noEco', 'idleTitle', 'idleSub', 'say', 'targeting'].forEach(function (k) { delete S[k]; }); };

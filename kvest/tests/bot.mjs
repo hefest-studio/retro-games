@@ -6,11 +6,14 @@ import { makeSolver, solveWidget } from './solver.mjs';
 export function playChapter(K, opts = {}) {
   const log = [], events = [];
   // opts.game — уже запущенная игра (например, в браузере — та, что на экране, со всей оболочкой)
-  const G = opts.game || K.createGame({ onEvent: (t, d) => events.push({ t, d }) });
-  const LAY = K.ThemeAPI.LAYOUT, SC = {}; K.SCENES.forEach(s => { SC[s.id] = s; });
+  // opts.chapter — глава из реестра (по умолчанию K.SCENES/K.PUZZLES); таймеры главы у бота «ручные» — время ждёт, пока план не скажет «подождать»
+  const CH = opts.chapter || null, PZ = CH ? CH.puzzles : K.PUZZLES;
+  const G = opts.game || K.createGame({ chapter: CH, timers: false, onEvent: (t, d) => events.push({ t, d }) });
+  const LAY = K.ThemeAPI.LAYOUT, SC = {}; G.data.scenes.forEach(s => { SC[s.id] = s; });
+  const hsOf = (s, st) => K.logic.hotspots(SC[s], st);
   let clicks = 0, drags = 0, steps = 0;
   if (!opts.game) G.start();
-  const plan = opts.plan || makeSolver(K).explore().plan;
+  const plan = opts.plan || makeSolver(K, CH).explore().plan;
   if (!plan) return { won: false, why: 'нет плана' };
 
   function tick(n = 1) { for (let i = 0; i < n; i++) { G.update(1 / 30); steps++; } }
@@ -38,7 +41,7 @@ export function playChapter(K, opts = {}) {
       const st = G.state(), prev = { [st.scene]: null }, q = [st.scene];
       while (q.length) {
         const s = q.shift();
-        for (const h of SC[s].hotspots) if (h.to && K.logic.ok(st, h.need) && K.logic.ok(st, h.toNeed) && !(h.to in prev) && !K.logic.resolve(K.PUZZLES, st, s, h.id, null)) { prev[h.to] = { s, hs: h.id }; q.push(h.to); }
+        for (const h of hsOf(s, st)) if (h.to && K.logic.ok(st, h.need) && K.logic.ok(st, h.toNeed) && !(h.to in prev) && !K.logic.resolve(PZ, st, s, h.id, null)) { prev[h.to] = { s, hs: h.id }; q.push(h.to); }
       }
       if (!(target in prev)) throw new Error('бот: сцена ' + target + ' недоступна из ' + st.scene);
       let cur = target; while (prev[cur].s !== st.scene) cur = prev[cur].s;
@@ -61,7 +64,7 @@ export function playChapter(K, opts = {}) {
     idle();
   }
   function solveSceneWidget(id) {
-    const w = K.PUZZLES.widgets.find(x => x.id === id), T = K.Widgets.types[w.type];
+    const w = PZ.widgets.find(x => x.id === id), T = K.Widgets.types[w.type];
     const L = G.state().local[id] || T.init(w), sol = solveWidget(K, w, JSON.parse(JSON.stringify(L)));
     if (!sol) throw new Error('бот: механизм ' + id + ' без решения');
     for (const i of sol) tapHs(w.hs[i]);
@@ -72,8 +75,14 @@ export function playChapter(K, opts = {}) {
   for (const a of plan) {
     log.push(a);
     if (a.kind === 'combo') { drag(slotOf(a.a), slotOf(a.b)); idle(); continue; }
+    if (a.kind === 'timer') {   // «подождать»: дойти до сцены таймера и дать времени пройти
+      if (a.scene) gotoScene(a.scene);
+      const v0 = !!G.state().flags[a.flag]; G.waitTimer(a.flag); tick(2); idle();
+      if (!!G.state().flags[a.flag] === v0) throw new Error('бот: таймер ' + a.flag + ' не сработал в ' + G.state().scene);
+      continue;
+    }
     if (a.kind === 'enter') {
-      if (G.state().scene === a.scene) { const out = SC[a.scene].hotspots.find(h => h.to && K.logic.ok(G.state(), h.need) && K.logic.ok(G.state(), h.toNeed)); tapHs(out.id); }
+      if (G.state().scene === a.scene) { const out = hsOf(a.scene, G.state()).find(h => h.to && K.logic.ok(G.state(), h.toNeed)); tapHs(out.id); }
       gotoScene(a.scene); idle(); continue;
     }
     gotoScene(a.scene);
@@ -83,7 +92,7 @@ export function playChapter(K, opts = {}) {
     if (G.runtime().mode === 'mini') solveMini();
   }
   for (let k = 0; k < 600 && !G.won(); k++) tick();
-  const P = K.PUZZLES.puzzles;
+  const P = PZ.puzzles;
   return { won: G.won(), clicks, drags, steps, solved: P.filter(p => G.state().flags[p.id]).length, total: P.length,
     missing: P.filter(p => !G.state().flags[p.id]).map(p => p.id), events, game: G, log };
 }

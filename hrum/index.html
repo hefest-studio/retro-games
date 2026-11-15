@@ -6,14 +6,22 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:#0e1016;color:#eef2f8;font-family:Inter,system-ui,sans-serif;
   display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
-.wrap{position:relative;width:min(94vw,430px);margin-top:12px}
+.wrap{position:relative;width:min(94vw,430px);margin-top:4px}
 canvas{width:100%;display:block;border:1px solid #222838;border-radius:10px;background:#0e1016}
 .pad{width:min(94vw,430px);margin:10px 0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,52px);gap:8px;max-width:260px}
 .pad button{background:#161a24;border:1px solid #222838;border-radius:12px;color:#eef2f8;font-size:22px;font-weight:800}
 .pad .u{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
 .foot{color:#5a6273;font-size:11px;margin:2px 12px 16px;text-align:center}
 @media(min-width:760px){.pad{display:none}}
-a.back{position:fixed;left:10px;top:8px;z-index:60;color:#5a6273;font-size:12px;text-decoration:none}
+a.back{position:relative;align-self:flex-start;margin:6px 0 0 10px;z-index:60;color:#5a6273;font-size:12px;line-height:16px;text-decoration:none} /* в потоке над полем — не налезает на canvas */
+/* Телефон лёжа: поле по высоте экрана (fitField), крестовина — справа от поля, ссылка — слева сверху */
+@media (orientation:landscape) and (max-height:520px) and (pointer:coarse){
+  body{justify-content:center}
+  a.back{position:fixed;left:max(10px,env(safe-area-inset-left));top:8px;margin:0}
+  .wrap{margin:0}
+  .foot{display:none}
+  .pad{display:grid;position:fixed;right:max(8px,env(safe-area-inset-right));bottom:10px;margin:0;width:184px;grid-template-rows:repeat(2,56px)}
+}
 </style></head><body>
 <a class="back" href="../" data-catalog-back="1" data-en="&larr; Catalog">&larr; Каталог</a>
 <div class="wrap"><canvas id="c" width="420" height="500"></canvas></div>
@@ -29,7 +37,16 @@ const STR={ ru:{play:'Играть',language:'Язык',theme:'Тема',sound:'
 const GHOST={ retro:['#ff5555','#ffb8de','#55ffff','#ffb852'], modern:['#ef4444','#ec4899','#22d3ee','#f59e0b'], neon:['#ff2f9c','#ff79c6','#39e7ff','#ffb020'] };
 const g = Arcade.createGame({ canvas:'#c', width:420, height:500, gameId:'hrum', strings:STR, theme:'modern' });
 g.input.bindDpad(document.querySelector('.pad'));
-g.fit(430); addEventListener('resize', ()=>g.fit(430));
+// Поле вписывается и по ширине, и по высоте окна (масштаб по min): без обрезки и прокрутки.
+// Телефон лёжа (LAND): поле по высоте экрана, тач-кнопки — в боковых полях, «← Каталог» — в левом верхнем углу.
+var LAND='(orientation:landscape) and (max-height:520px) and (pointer:coarse)';
+function fitField(maxW, vwPart, side){ var c=document.getElementById('c'), wrap=c.parentNode, pad=document.querySelector('.pad');
+  var vw=document.documentElement.clientWidth, vh=window.innerHeight, aw, ah;
+  if(matchMedia(LAND).matches){ aw=vw-2*side; ah=vh-12; }
+  else { aw=Math.min(maxW, vw*vwPart); ah=vh-wrap.getBoundingClientRect().top-(getComputedStyle(pad).display!=='none'?pad.offsetHeight+20:0)-6; }
+  var w=Math.floor(Math.max(160, Math.min(aw, ah*g.W/g.H)));
+  wrap.style.width=w+'px'; c.style.width=w+'px'; c.style.height=(w*g.H/g.W)+'px'; }
+fitField(430,0.94,200); addEventListener('resize', ()=>fitField(430,0.94,200));
 // аудио-хук по теме: под modern — задел на не-8-бит музыку (TODO), сейчас только beeps
 g.audio.registerMusic('retro', null); g.audio.registerMusic('modern', null); // TODO: modern richer-плеер
 

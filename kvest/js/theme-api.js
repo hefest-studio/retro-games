@@ -12,30 +12,41 @@
     sky: 'небо на весь кадр (градиент по mood)',
     hill: 'дальние холмы/скалы силуэтом (seed — форма)',
     ground: 'земля/камень под ногами',
-    house: 'дом; state.windowLit — свет в окне, state.door — дверь (по умолч. есть)',
+    house: 'дом; state.windowLit — свет в окне, state.door — дверь (по умолч. есть); state.smoke — дым из трубы (коптильня); state.fish — рыбацкий дом (вяленая рыба в окне, вывеска-рыба); state.salt — солеварня (соль конусами)',
     tower: 'маяк/башня; state.lit — фонарь горит (луч)',
     tree: 'дерево', plant: 'куст/трава переднего плана',
     rock: 'камень; state.icon — высеченный знак, state.plate — плита в полу (state.down — нажата), state.variant: steps (ступени, state.up — подняты) | pillar',
     water: 'вода (волны от t); state.shell — в воде блестит ракушка',
     bridge: 'настил/мост; state.pier — причал на сваях; state.down === false — мост поднят; state.lift 0..1 — степень подъёма (анимация лебёдки)',
-    fence: 'забор; state.ladder — лестница-стремянка; state.stairs — ступени',
+    fence: 'забор; state.ladder — лестница-стремянка; state.stairs — ступени; state.rack — вешала для сушки (state.weed: wet | dry — что висит)',
     pipe: 'труба; в мини-игре — плитка: state.shape I|L|T|X|cap|sink, state.rot 0..3 (по часовой), state.wet — течёт масло, state.fixed — не вращается',
     lamp: 'фонарь; state.lit; state.small — индикатор-лампочка; state.hang — подвесной; state.big — большой фонарь маяка (state.lens, state.wick, state.oil — установлены детали)',
     wall: 'стена/фон интерьера; state.cave — скальная стена пещеры',
-    floor: 'пол интерьера', window: 'окно; state.lit', cloud: 'облако (плывёт от t)', moon: 'луна',
+    floor: 'пол интерьера', window: 'окно; state.lit; state.dawn — за окном рассвет; state.frameOnly — только рама', cloud: 'облако (плывёт от t)', moon: 'луна',
     door: 'дверь; state.open, state.lock — висит замок, state.hatch — люк в полу',
     gate: 'решётка; state.open — поднята',
     lever: 'рычаг/переключатель; state.on — положение; state.tint — цвет-метка части механизма (pin — стопор, boom — стрела, hook — крюк), state.pips — вес вентиля (точки)',
     box: 'ящик/предмет мебели; state.variant: stool | bench (state.open — ящик выдвинут, state.empty) | logs (поленница, state.empty) | net (сеть, state.empty — без рыбы) | panel (щит с трубами, state.ok); state.icon — диск/плашка с пиктограммой; state.pic + state.part + state.n — фрагмент картинки сдвижной головоломки (part −1 — целая картинка-образец)',
-    machine: 'механизм; state.variant: stove (state.wood, state.fire) | well | crane (state.prog 0..3: стопор, стрела, крюк; state.load — висит ведро) | tank | gauge (state.gauge 0..1, state.mark 0..1, state.ok) | spout (state.drip) | winch (state.crank, state.prog 0..4) | carriage (state.ok)',
+    machine: 'механизм; state.variant: stove (state.wood, state.fire) | well | crane (state.prog 0..3: стопор, стрела, крюк; state.load — висит ведро) | tank | gauge (state.gauge 0..1, state.mark 0..1, state.ok) | spout (state.drip) | winch (state.crank, state.prog 0..4) | carriage (state.ok) | clockwork (часовой привод: state.weight — гиря на цепи, state.run) | gear (шестерня механизма gears: state.rot 0..1, state.mark 0..1 — где должна стоять метка, state.ok, state.solved) | reflector (зеркало-отражатель: state.shiny, state.aim, state.lit)',
     item: 'предмет в сцене: рисуется пиктограммой drawIcon(item)',
-    npc: 'персонаж: state.type master | baker | goat | cat | gull | bird; state.pose; state.warm (master); state.post (bird — сидит на столбике), state.note 0..4 (bird — нота: высота столбика; тема «бумага» красит птицу и колокольчик одной нотой в один цвет), state.sing 0..1, state.fed (cat), state.traded (gull)'
+    npc: 'персонаж: state.type master | baker | goat | cat | gull | bird | fisher | dog | crab; state.pose; state.warm (master); state.post (bird — сидит на столбике), state.note 0..4 (bird — нота: высота столбика; тема «бумага» красит птицу и колокольчик одной нотой в один цвет), state.sing 0..1, state.fed (cat), state.traded (gull); fisher — рыбачка у бочки (state.happy); dog — пёс (state.pose: idle | sleep | happy, state.hide — прячется); crab — краб (state.away — ушёл, state.tin — сидит в жестянке)'
   };
   // ---------- kind: расширения пилота (тема без них рисует нейтральный прямоугольник) ----------
   var EXT_KINDS = {
     sign: 'доска/табличка с пиктограммами: state.icons — массив id пиктограмм (наблюдательные подсказки)',
     shelf: 'полка с кронштейнами',
-    chime: 'подвесной колокольчик-трубка: state.note 0..n-1 (длина), state.n, state.ring 0..1 — качается/звенит'
+    chime: 'подвесной колокольчик-трубка: state.note 0..n-1 (длина), state.n, state.ring 0..1 — качается/звенит',
+    // --- движок глав (coast.js): две фазы сцены, карта побережья; и предметы побережья ---
+    tide: 'море с приливом и отливом: y — верх воды в прилив, state.low — верх воды в отлив; уровень между ними — scene.phaseMix (0 — прилив, 1 — отлив, движок анимирует); под водой — мокрый песок',
+    mapsheet: 'лист карты побережья во весь кадр: море, state.coast — многоугольник суши [[x, y]…], роза ветров',
+    trail: 'тропа на карте: state.pts — ломаная [[x, y]…], state.open — открыта (закрытая — пунктир в тумане)',
+    mapnode: 'место на карте: state.icon — пиктограмма места, state.open (закрытое — «?»), state.here — здесь фишка героини, state.lit — огонь зажжён',
+    maptoken: 'фишка героини на карте (x, y — левый верх; низ — точка на тропе), state.dir',
+    beacon: 'сигнальный огонь: state.variant hearth (очаг на камнях) | chimney (корзина на трубе) | brazier (жаровня); state.fuel — топливо лежит, state.lit — горит',
+    saltpan: 'солеварня: state.variant settle (отстойный бассейн, state.brine — рассол) | boil (црен на печи: state.brine, state.boil — кипит, state.salt — соль осела)',
+    sluice: 'шлюз в канале: state.open — заслонка поднята, state.flow — течёт вода',
+    boat: 'вёсельная лодка: state.afloat — на плаву (иначе лежит на песке)',
+    tidepost: 'приливная вешка с отметками: state.low — сейчас отлив (вода у нижней отметки)'
   };
   var MOODS = ['dawn', 'day', 'dusk', 'night', 'cave', 'indoor'];
   var POSES = ['idle', 'walk', 'reach', 'think', 'happy'];
@@ -62,7 +73,12 @@
     cave: 'грот', bridge: 'мост', stairs: 'лестница маяка', gauge: 'манометр', pipe: 'трубы', lock: 'замок', lever: 'нажать рычаг',
     lever_on: 'рычаг вверх', lever_off: 'рычаг вниз', dot1: 'первый', dot2: 'второй', dot3: 'третий',
     n0: 'нота 1 (низкая)', n1: 'нота 2', n2: 'нота 3', n3: 'нота 4', n4: 'нота 5 (высокая)', firefly: 'светлячок',
-    water: 'вода', book: 'прохождение-набросок', hint: 'подсказка (лампочка)', close: 'закрыть', prev: 'назад', next: 'вперёд', timer: 'подожди'
+    water: 'вода', book: 'прохождение-набросок', hint: 'подсказка (лампочка)', close: 'закрыть', prev: 'назад', next: 'вперёд', timer: 'подожди',
+    // движок глав и побережье (themes/icons-ext.js)
+    map: 'карта побережья', tide: 'море, прилив и отлив', low: 'отлив', high: 'прилив', seaweed: 'мокрые водоросли', seaweed_dry: 'сухие водоросли',
+    tin: 'жестянка', scoop: 'совок', embers: 'совок с углями', driftwood: 'плавник (бревно)', peat: 'торф', salt: 'соль', mitten: 'варежка', scrub: 'варежка с солью',
+    weight: 'гиря', crab: 'краб', dog: 'пёс', sun: 'солнце, рассвет', hut: 'рыбацкий дом', saltpan: 'солеварня', stones: 'камни через воду',
+    rocktower: 'маяк на скале', net: 'сети', mirror: 'зеркало', gearwheel: 'шестерня с меткой'
   };
 
   // ---------- раскладка интерфейса (логические координаты 960×540; движок по ней попадает кликами, тема — рисует) ----------
@@ -88,13 +104,20 @@
     var st = { house: { windowLit: true }, tower: { lit: true }, rock: { icon: 'fish', plate: true, down: true }, water: { shell: true },
       bridge: { down: false, lift: 0.5 }, fence: { ladder: true }, pipe: { shape: 'T', rot: 1, wet: true }, lamp: { big: true, lens: true, lit: true },
       wall: { cave: true }, door: { open: false, lock: true }, gate: { open: true }, lever: { on: true }, box: { variant: 'bench', open: true, icon: 'star' },
-      machine: { variant: 'crane', prog: 2, load: true }, npc: { type: 'goat' }, sign: { icons: ['fish', 'star'] }, chime: { note: 2, n: 5, ring: 1 } };
+      machine: { variant: 'crane', prog: 2, load: true }, npc: { type: 'goat' }, sign: { icons: ['fish', 'star'] }, chime: { note: 2, n: 5, ring: 1 },
+      tide: { low: 120 }, mapsheet: { coast: [[0, 0], [960, 0], [960, 200], [500, 260], [0, 220]] }, trail: { pts: [[10, 10], [60, 40], [120, 20]], open: true },
+      mapnode: { icon: 'hut', open: true, here: true, lit: true }, maptoken: { dir: -1 }, beacon: { variant: 'chimney', fuel: true, lit: true },
+      saltpan: { variant: 'boil', brine: true, boil: true, salt: true }, sluice: { open: true, flow: true }, boat: { afloat: true }, tidepost: { low: true } };
     var all = allKinds();
     for (k in all) { objs.push({ id: 'o' + (i++), kind: k, item: 'key', x: x % 900, y: 100 + (i % 5) * 60, w: 50, h: 50, seed: i, state: st[k] || {} }); x += 55; }
     objs.push({ id: 'unknown', kind: 'zzz_unknown_kind', x: 400, y: 200, w: 40, h: 40, state: {} });
     objs.push({ id: 'machines', kind: 'machine', x: 500, y: 200, w: 60, h: 80, state: { variant: 'stove', fire: true, wood: true } });
-    ['well', 'tank', 'gauge', 'spout', 'winch', 'carriage', 'nonsense'].forEach(function (v, j) { objs.push({ id: 'm' + j, kind: 'machine', x: 100 + j * 70, y: 300, w: 60, h: 80, state: { variant: v, gauge: 0.5, prog: 2, drip: true, crank: true } }); });
-    ['master', 'baker', 'cat', 'gull', 'bird', 'nobody'].forEach(function (v, j) { objs.push({ id: 'n' + j, kind: 'npc', x: 100 + j * 70, y: 380, w: 60, h: 80, state: { type: v, pose: 'happy', post: true } }); });
+    ['well', 'tank', 'gauge', 'spout', 'winch', 'carriage', 'clockwork', 'gear', 'reflector', 'nonsense'].forEach(function (v, j) { objs.push({ id: 'm' + j, kind: 'machine', x: 100 + j * 70, y: 300, w: 60, h: 80, state: { variant: v, gauge: 0.5, prog: 2, drip: true, crank: true } }); });
+    ['master', 'baker', 'cat', 'gull', 'bird', 'fisher', 'dog', 'crab', 'nobody'].forEach(function (v, j) { objs.push({ id: 'n' + j, kind: 'npc', x: 100 + j * 70, y: 380, w: 60, h: 80, state: { type: v, pose: 'happy', post: true } }); });
+    [{ variant: 'hearth' }, { variant: 'brazier', fuel: true }, { variant: 'chimney' }].forEach(function (v, j) { objs.push({ id: 'bc' + j, kind: 'beacon', x: 600 + j * 80, y: 300, w: 60, h: 120, state: v }); });
+    [{ variant: 'settle', brine: true }, { variant: 'boil' }].forEach(function (v, j) { objs.push({ id: 'sp' + j, kind: 'saltpan', x: 600 + j * 120, y: 440, w: 110, h: 40, state: v }); });
+    objs.push({ id: 'dogs', kind: 'npc', x: 700, y: 380, w: 70, h: 60, state: { type: 'dog', pose: 'sleep', hide: true } }, { id: 'crabt', kind: 'npc', x: 780, y: 420, w: 40, h: 30, state: { type: 'crab', tin: true } });
+    objs.push({ id: 'rack', kind: 'fence', x: 300, y: 300, w: 120, h: 100, state: { rack: true, weed: 'wet' } }, { id: 'smoke', kind: 'house', x: 400, y: 200, w: 120, h: 140, state: { smoke: true } });
     ['stool', 'logs', 'net', 'panel'].forEach(function (v, j) { objs.push({ id: 'b' + j, kind: 'box', x: 100 + j * 70, y: 420, w: 60, h: 40, state: { variant: v, pic: 'frame', part: j, n: 3 } }); });
     ['I', 'L', 'X', 'cap', 'sink', '?'].forEach(function (v, j) { objs.push({ id: 'p' + j, kind: 'pipe', x: 100 + j * 70, y: 40, w: 60, h: 60, state: { shape: v, rot: j % 4, wet: j % 2 === 0, fixed: j === 2 } }); });
     return {
@@ -105,7 +128,7 @@
         { depth: 3, items: [{ kind: 'plant', x: 900, y: 420, w: 60, h: 120, seed: 1 }, { kind: 'zzz_layer_unknown', x: 10, y: 10, w: 20, h: 20 }] }],
       objects: objs,
       hotspots: [{ id: 'h', rect: [600, 300, 120, 150], cursor: 'use' }],
-      walk: [[40, 470], [920, 470]], hero: { x: 200, y: 470 }, dark: false
+      walk: [[40, 470], [920, 470]], hero: { x: 200, y: 470 }, dark: false, phase: 'low', phaseMix: 0.5
     };
   }
   function sampleUI(mode) {

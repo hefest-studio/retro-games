@@ -107,7 +107,9 @@
     var pw = 440, ph = 262, x0 = (Wc - pw) / 2, y0 = 30;
     UI.panel(ctx, x0, y0, pw, ph, P, P.pixel ? P.line : '#4a5266');
     UI.txt(this, this.t('title'), Wc / 2, y0 + 58, { size: P.pixel ? 46 : 54, align: 'center', color: P.accent, weight: 900 }, P);
-    R.boltGlyph(ctx, Wc / 2 - 92, y0 + 38, 12, P.wheel); R.boltGlyph(ctx, Wc / 2 + 92, y0 + 38, 12, P.wheel);
+    // молнии по краям названия: отступ от измеренной ширины (ctx.font выставлен последним text())
+    var gx = Math.min(pw / 2 - 14, Math.max(92, ctx.measureText(P.pixel ? this.t('title').toUpperCase() : this.t('title')).width / 2 + 16));
+    R.boltGlyph(ctx, Wc / 2 - gx, y0 + 38, 12, P.wheel); R.boltGlyph(ctx, Wc / 2 + gx, y0 + 38, 12, P.wheel);
     UI.txt(this, this.t('subtitle'), Wc / 2, y0 + 84, { size: P.pixel ? 10 : 12, align: 'center', color: th.ink, weight: 700 }, P);
     UI.txt(this, this.t('sub2'), Wc / 2, y0 + 101, { size: P.pixel ? 9 : 11, align: 'center', color: th.muted, weight: 600 }, P);
     var fake = L.newHero(0, 0); fake.ground = true; fake.vx = 1; fake.runT = demoT * 0.5; fake.aim = { x: 1, y: 0 };

@@ -70,6 +70,14 @@ drawThought(ctx, x, y, icons, t, opts)  // opts.style: 'paper' | 'ink' (маст
 
 **Необязательно (спринт 0, HiDPI):** `setResolution(s)` — масштаб кэшей темы (оболочка зовёт при смене размера канвы), `setQuality('high'|'low')` — облегчённые эффекты, `setCacheBudget(px)`, `cacheStats()`. Тема без них работает в масштабе 1.
 
+**Расширение 15.11 (спринт 1, движок глав).** Модель сцены дополнительно несёт `scene.pal` (имя палитры сцены — тема может игнорировать),
+`scene.phase` / `scene.phaseMix` (текущее из двух состояний сцены и плавный уровень 0..1 — по нему kind `tide` рисует воду), `scene.map` (это карта).
+Новые kind (тема без них рисует нейтральный прямоугольник; описания и состояния — в `theme-api.js`): `tide` (море с приливом/отливом;
+`state.at` — уровень по флагу, без анимации), `mapsheet`, `trail`, `mapnode`, `maptoken` (карта), `beacon` (сигнальный огонь: hearth | chimney | brazier),
+`saltpan` (settle | boil), `sluice`, `boat`, `tidepost`. Новые состояния: `machine.variant` clockwork | gear | reflector, `npc.type` fisher | dog | crab,
+`fence.state.rack` (+ `weed`), `house.state.fish | salt | smoke`, `window.state.dawn`, `gate.state.icon`. Пиктограммы движка глав — `js/themes/icons-ext.js`
+(общая геометрия; тема передаёт свои примитивы и цвета).
+
 `ctx` — 2D-контекст канвы, масштабированный под логический размер 960×540 (физически — × масштаб HiDPI). Тема **не меняет** состояние игры, только рисует. Анимации — только от `t` (секунды) и `seed`.
 
 ## Правила
