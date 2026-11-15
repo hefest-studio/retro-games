@@ -13,7 +13,7 @@ const store = {};
 const sandbox = { console, Math, JSON, setTimeout: () => 0, localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } } };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-const FILES = ['js/music.js', 'js/i18n.js', 'js/edition.js', 'js/stats.js', 'js/theme-api.js', 'js/scenes.js', 'js/widgets.js', 'js/puzzles.js', 'js/coast.js', 'js/chapters/index.js', 'js/game.js', 'js/audio.js', 'js/themes/icons-ext.js', 'js/themes/grey.js', 'js/themes/paper.js', 'js/themes/ink-sketch.js'];
+const FILES = ['js/music.js', 'js/i18n.js', 'js/edition.js', 'js/stats.js', 'js/theme-api.js', 'js/scenes.js', 'js/widgets.js', 'js/puzzles.js', 'js/coast.js', 'js/helpers.js', 'js/chapters/index.js', 'js/game.js', 'js/audio.js', 'js/themes/icons-ext.js', 'js/themes/grey.js', 'js/themes/paper.js', 'js/themes/paper-helpers.js', 'js/themes/ink-sketch.js'];
 for (const f of FILES) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const K = sandbox.KVEST, A = K.ThemeAPI, P = K.PUZZLES, LG = K.logic, WT = K.Widgets.types;
 
@@ -646,6 +646,118 @@ for (const id of ['grey', 'paper']) test('тема ' + id + ': новые kind �
 test('контракт: новые kind описаны в theme-api (tide, mapsheet, trail, mapnode, maptoken, beacon, saltpan, sluice, boat, tidepost)', () => {
   ['tide', 'mapsheet', 'trail', 'mapnode', 'maptoken', 'beacon', 'saltpan', 'sluice', 'boat', 'tidepost'].forEach(k => ok(A.isKind(k), k));
   ok(/fisher \| dog \| crab/.test(A.KINDS.npc) && /clockwork/.test(A.KINDS.machine) && /rack/.test(A.KINDS.fence));
+});
+
+// ---------- спринт 2: движок помощников (тестовые данные; контент главы 3 — только в полной сборке) ----------
+// двор: пёс роет холмик (ключ), чайка достаёт с высокой полки ракушку, пёс держит рычаг — пока держит, Тая отпирает дверь;
+// дом: чайку туда не пускают; Тая кладёт ракушку в шкатулку — финал. Пёс и чайка — с начала главы.
+const HCH = {
+  id: 'ch8', n: 8, title: { ru: 'Проверка помощников', en: 'Helpers check' },
+  scenes: [
+    { id: 'ha', w: 960, h: 540, mood: 'day', icon: 'hut', layers: [{ depth: 0, items: [{ kind: 'sky' }] }, { depth: 2, items: [{ kind: 'ground', x: 0, y: 452, w: 960, h: 88 }] }],
+      objects: [{ id: 'mound', kind: 'mound', x: 200, y: 420, w: 70, h: 32, state: {}, bind: { dug: 'dug' } }, { id: 'key', kind: 'item', item: 'key', x: 220, y: 424, w: 26, h: 26, show: ['dug', '!got_key'] },
+        { id: 'shelf', kind: 'nest', x: 520, y: 120, w: 70, h: 40, state: { shiny: true }, bind: { empty: 'got_shell' } }, { id: 'lever', kind: 'lever', x: 700, y: 380, w: 30, h: 72, state: {}, bind: { on: 'held:lever' } },
+        { id: 'door', kind: 'door', x: 820, y: 300, w: 90, h: 152, state: {}, bind: { open: 'doorOpen' } }],
+      hotspots: [{ id: 'mound', rect: [190, 400, 90, 52], cursor: 'use', at: 235, scent: true, need: ['!dug'] }, { id: 'key', rect: [210, 410, 46, 42], cursor: 'take', at: 235, need: ['dug', '!got_key'] },
+        { id: 'shelf', rect: [510, 110, 90, 60], cursor: 'look', at: 555, need: ['!got_shell'] }, { id: 'lever', rect: [690, 370, 50, 82], cursor: 'use', at: 680 },
+        { id: 'door', rect: [820, 300, 90, 152], cursor: 'use', at: 800, to: 'hb', toX: 80, toNeed: ['doorOpen'] }],
+      walk: [[30, 452], [930, 452]], hero: { x: 80, y: 452 } },
+    { id: 'hb', w: 960, h: 540, mood: 'indoor', icon: 'door', heroes: ['taya', 'dog'], layers: [{ depth: 0, items: [{ kind: 'wall', x: 0, y: 0, w: 960, h: 452 }] }, { depth: 2, items: [{ kind: 'floor', x: 0, y: 452, w: 960, h: 88 }] }],
+      objects: [{ id: 'box', kind: 'box', x: 480, y: 400, w: 60, h: 52, state: { variant: 'bench' } }],
+      hotspots: [{ id: 'box', rect: [470, 390, 80, 62], cursor: 'use', at: 460 }, { id: 'out', rect: [0, 300, 40, 152], cursor: 'go', at: 20, to: 'ha', toX: 780 }],
+      walk: [[20, 452], [940, 452]], hero: { x: 80, y: 452 } }
+  ],
+  puzzles: { start: { scene: 'ha', flags: {}, inv: [] }, goal: 'won', items: ['key', 'shell'],
+    heroes: [{ id: 'dog' }, { id: 'gull' }],
+    holds: [{ id: 'lever', scene: 'ha', hs: 'lever', by: ['dog', 'taya'], pose: 'pull', sfx: 'pull', puzzle: 'p_h3' }],
+    rules: [
+      { scene: 'ha', hs: 'mound', hero: 'dog', do: [['pose', 'dig', 0.8], ['set', 'dug'], ['sfx', 'dig']], puzzle: 'p_h1' },
+      { scene: 'ha', hs: 'mound', do: [['think', ['dog', 'dig']]] },
+      { scene: 'ha', hs: 'key', do: [['give', 'key'], ['set', 'got_key']] },
+      { scene: 'ha', hs: 'shelf', hero: 'gull', do: [['give', 'shell'], ['set', 'got_shell'], ['sfx', 'flap']], puzzle: 'p_h2' },
+      { scene: 'ha', hs: 'shelf', do: [['think', ['gull', 'up']]] },
+      { scene: 'ha', hs: 'door', item: 'key', need: ['held:lever', '!doorOpen'], do: [['take', 'key'], ['set', 'doorOpen']], puzzle: 'p_h4' },
+      { scene: 'ha', hs: 'door', item: 'key', need: ['!held:lever'], do: [['think', ['dog', 'hold', 'lever']]] },
+      { scene: 'hb', hs: 'box', item: 'shell', do: [['take', 'shell'], ['win']], puzzle: 'p_h5' }
+    ],
+    combos: [], enter: [], autos: [], cuts: {}, widgets: [],
+    puzzles: [{ id: 'p_h1', scene: 'ha', type: 'helper', hero: 'dog', hint: ['dog', 'dig'] }, { id: 'p_h2', scene: 'ha', type: 'helper', hero: 'gull', hint: ['gull', 'up'] },
+      { id: 'p_h3', scene: 'ha', type: 'helper', hero: 'dog', hint: ['dog', 'hold', 'lever'] }, { id: 'p_h4', scene: 'ha', type: 'item', avail: ['inv:key', 'held:lever'], hint: ['key', 'door'] },
+      { id: 'p_h5', scene: 'hb', type: 'item', avail: ['inv:shell', 'doorOpen'], hint: ['shell', 'box'] }] }
+};
+const HC = CHS.register(HCH), HLP = K.Helpers;
+const hclick = (G, id) => { const h = G.hotspot(id); ok(h, 'нет зоны ' + id); const x = h.rect[0] + h.rect[2] / 2, y = Math.min(h.rect[1] + h.rect[3] / 2, 470); G.down(x, y); G.up(x, y); };
+const portrait = (G, id) => { const L = A.LAYOUT.heroes, i = G.portraits().indexOf(id); ok(i >= 0, 'нет портрета ' + id); G.down(L.x + i * L.gap, L.y); G.up(L.x + i * L.gap, L.y); };
+test('помощники: глава объявляет героев; в главах 1–2 их нет (без портретов и отряда — как раньше)', () => {
+  eq(HLP.list(HC.puzzles).join(), 'taya,dog,gull'); ok(HLP.multi(HC.puzzles)); ok(!HLP.multi(P), 'глава 1 с помощниками');
+  const G1 = K.createGame({ chapter: CHS.get('ch1') }); G1.start(); const m1 = G1.model(); ok(!m1.ui.heroes && !m1.party.length, 'в главе 1 портреты/отряд'); ok(!G1.multi);
+  ok(A.isKind('windmill') && A.isKind('ropebridge') && A.ICONS.taya && A.ICONS.scent && A.ICONS.overview && A.LAYOUT.heroes, 'контракт помощников');
+  ok(['drawHelper', 'drawTrail', 'drawOverview'].every(k => A.HOOKS.includes(k)));
+});
+test('переключение: портрет — другой герой; глаголы у каждого свои (пёс роет, Тая — нет); сцена может не пускать чайку', () => {
+  const ev = [], G = K.createGame({ chapter: HC, timers: false, onEvent: (t, d) => ev.push({ t, d }) }); G.start();
+  let m = G.model(); eq(m.ui.heroes.map(h => h.id).join(), 'taya,dog,gull'); ok(m.ui.heroes[0].active && m.party.length === 3, 'отряд из трёх');
+  hclick(G, 'mound'); run(G, 3); ok(!G.state().flags.dug, 'Тая разрыла'); ok(G.runtime().thoughts.hero, 'нет мысли');
+  portrait(G, 'dog'); eq(G.activeHero(), 'dog'); ok(ev.some(e => e.t === 'hero' && e.d.id === 'dog'));
+  m = G.model(); ok(m.ui.heroes[1].active && m.ui.heroes[1].ability === 'scent', 'нет умения на портрете'); ok(m.party.find(p => p.id === 'dog').active);
+  hclick(G, 'mound'); ok(G.busy(), 'пёс не пошёл'); run(G, 3); ok(G.state().flags.dug && G.state().flags.p_h1, 'пёс не разрыл');
+  G.cycleHero(); eq(G.activeHero(), 'gull'); hclick(G, 'shelf'); let maxUp = 0; for (let i = 0; i < 90; i++) { G.update(1 / 30); const g = G.model().party.find(p => p.id === 'gull'); maxUp = Math.max(maxUp, g.y - g.alt); }
+  ok(G.state().flags.got_shell && G.state().inv.includes('shell'), 'чайка не достала'); ok(maxUp > 200, 'чайка не взлетела к полке: ' + maxUp);
+  G.switchHero('taya'); hclick(G, 'key'); run(G, 3); ok(G.state().inv.includes('key'));
+  // пёс тянет рычаг и держит: управление само переходит к Тае; пока держит — Тая отпирает дверь
+  G.switchHero('dog'); hclick(G, 'lever'); run(G, 3); ok(G.state().flags['held:lever'] && G.state().flags['by:lever:dog'], 'не держит'); eq(G.activeHero(), 'taya', 'управление не вернулось Тае');
+  m = G.model(); ok(m.ui.heroes[1].busy && m.party.find(p => p.id === 'dog').pose === 'pull', 'поза удержания'); eq(m.scene.objects.find(o => o.id === 'lever').state.on, true);
+  const h = G.hotspot('door'), sl = K.ThemeAPI.slotRect(G.state().inv.indexOf('key')); G.down(sl[0] + 20, sl[1] + 20); G.move(sl[0] + 60, sl[1] - 60); G.move(h.rect[0] + 40, h.rect[1] + 60); G.up(h.rect[0] + 40, h.rect[1] + 60); run(G, 3);
+  ok(G.state().flags.doorOpen && G.state().flags.p_h4, 'дверь не открылась при удержании');
+  // переход в дом: чайку не пускают (её портрет погашен), пёс держит рычаг во дворе — его тоже нет
+  hclick(G, 'door'); run(G, 3); eq(G.state().scene, 'hb'); m = G.model(); eq(m.party.map(p => p.id).join(), 'taya', 'в доме кто-то лишний');
+  ok(!m.ui.heroes[2].here && !m.ui.heroes[1].here && m.ui.heroes[1].busy); ok(!G.switchHero('gull') && !G.switchHero('dog'), 'переключился на того, кого нет в сцене');
+  hclick(G, 'out'); run(G, 3); eq(G.state().scene, 'ha'); G.switchHero('dog'); ok(G.state().flags['held:lever']); hclick(G, 'lever'); run(G, 0.2); ok(!G.state().flags['held:lever'], 'не отпустил своей зоной');
+  hclick(G, 'lever'); run(G, 3); ok(G.state().flags['held:lever']); G.switchHero('dog'); G.down(300, 300); G.up(300, 300); run(G, 0.2); ok(!G.state().flags['held:lever'], 'шаг держащего не отпустил');
+  // чайка с ракушкой: в дом её не пускают — мысль, никуда не идёт
+  G.switchHero('gull'); hclick(G, 'door'); run(G, 4); eq(G.state().scene, 'ha', 'чайка прошла в дом');
+});
+test('умения: нюх пса — след к спрятанному (пока есть что найти); взгляд сверху чайки — обзор, кто где может действовать', () => {
+  const G = K.createGame({ chapter: HC, timers: false }); G.start(); G.switchHero('dog');
+  eq(G.ability(), 'mound'); let m = G.model(); ok(m.trail && m.trail.pts.length > 4 && m.trail.rect, 'нет следа'); const e = m.trail.pts[m.trail.pts.length - 1]; ok(Math.abs(e[0] - 235) < 2, 'след не к холмику');
+  run(G, 6); ok(!G.model().trail, 'след не исчез');
+  G.switchHero('gull'); ok(G.ability() >= 2); m = G.model(); const mk = m.overview.marks; ok(mk.some(q => q.hs === 'mound' && q.hero === 'dog') && mk.some(q => q.hs === 'shelf' && q.hero === 'gull') && mk.some(q => q.hs === 'lever'), 'обзор: ' + JSON.stringify(mk.map(q => q.hs + ':' + q.hero)));
+  ok(!mk.some(q => q.hs === 'shelf' && q.hero === 'taya'), 'обзор отметил Таю у полки'); G.down(480, 300); G.up(480, 300); ok(!G.model().overview, 'тап не закрыл обзор'); ok(!G.busy(), 'тап по обзору — ещё и шаг');
+  hclick(G, 'shelf'); run(G, 4); G.switchHero('dog'); hclick(G, 'mound'); run(G, 3); eq(G.ability(), false, 'нюх нашёл уже найденное');
+  G.switchHero('taya'); eq(G.ability(), null, 'у Таи умение');
+});
+test('сохранение помощников: активный герой и удержания восстанавливаются; держащий — у своей зоны', () => {
+  const G = K.createGame({ chapter: HC, timers: false }); G.start(); G.switchHero('dog'); hclick(G, 'lever'); run(G, 5); G.switchHero('gull');
+  const json = G.serialize(), o = JSON.parse(json); eq(o.hero, 'gull'); ok(o.flags['held:lever'] && o.flags['by:lever:dog']);
+  const G2 = K.createGame({ chapter: HC }); ok(G2.load(json)); eq(G2.activeHero(), 'gull'); const d = G2.model().party.find(p => p.id === 'dog'); ok(d && d.hold === 'lever' && Math.abs(d.x - 680) < 2, 'держащий не у рычага');
+  ok(G2.load(Object.assign({}, o, { hero: 'nobody' })) && G2.activeHero() === 'taya', 'неизвестный герой');
+});
+test('поиск по главе с помощниками: финал достижим, тупиков нет (и по положению); в плане — действия пса и чайки и удержание', () => {
+  const S = makeSolver(K, HC), E = S.explore(); ok(E.goals.length, 'финал'); eq(E.dead.length, 0, 'тупики: ' + (E.dead[0] ? S.key(E.dead[0].st) : ''));
+  for (const n of E.list) eq(S.positionSafe(n.st).join(), '', 'застрять можно в');
+  ok(E.plan.some(a => a.hero === 'dog' && a.kind === 'hold') && E.plan.some(a => a.hero === 'gull') && E.plan.some(a => a.hero === 'dog' && a.hs === 'mound'), 'план: ' + JSON.stringify(E.plan));
+  ok(E.list.some(n => S.successors(n.st).some(x => x.act.kind === 'release')), 'нет перехода «отпустить»');
+  const st = { flags: {}, inv: [] }; eq(S.actors(st, 'hb').join(), 'taya,dog', 'дом пускает чайку'); st.flags['held:lever'] = st.flags['by:lever:dog'] = true; eq(S.actors(st, 'ha').join(), 'taya,gull', 'держащий действует');
+});
+test('бот проходит главу с помощниками: портреты, рытьё, полёт, удержание (кликами и перетаскиванием)', () => {
+  const r = playChapter(K, { chapter: HC }); ok(r.won, 'не прошёл'); eq(r.solved, r.total, 'не решены: ' + r.missing.join(',')); ok(r.switches >= 3, 'переключений ' + r.switches);
+});
+for (const id of ['grey', 'paper']) test('тема ' + id + ': помощники во всех позах, отряд, портреты, след и обзор, новые kind движка помощников (строгий режим)', () => {
+  const ctx = A.mockCtx(), th = THEMES[id]; sandbox.KVEST_STRICT = true;
+  try {
+    ok(typeof th.drawHelper === 'function' && typeof th.drawTrail === 'function' && typeof th.drawOverview === 'function', 'нет хуков');
+    for (const hid of ['dog', 'gull']) for (const p of A.HELPER_POSES[hid]) for (const alt of [452, 300]) th.drawHelper(ctx, { id: hid, x: 400, y: 452, alt, dir: -1, active: true }, p, 1.3);
+    const G = K.createGame({ chapter: HC, timers: false }); G.start(); G.switchHero('dog'); G.ability(); hclick(G, 'lever'); run(G, 5);
+    for (const sid of ['ha', 'hb']) { G.load({ v: 1, scene: sid, hero: 'taya', flags: { dug: true, 'held:lever': true, 'by:lever:dog': true }, inv: ['key'] }); run(G, 0.5); const m = G.model(); th.drawScene(ctx, m.scene, 1, {}); m.party.forEach(p => p.id === 'taya' ? th.drawHero(ctx, p, p.pose, 1) : th.drawHelper(ctx, p, p.pose, 1)); th.drawUI(ctx, m.ui, 1); }
+    th.drawTrail(ctx, { pts: [[100, 450], [200, 440], [300, 452]], rect: [280, 400, 50, 50], age: 2, dur: 4.5 }, 2); th.drawOverview(ctx, { marks: [{ rect: [100, 100, 60, 60], hero: 'gull' }, { rect: [0, 300, 40, 152], exit: true, icon: 'hut' }], age: 2, dur: 6 }, 2);
+    const isle = ['windmill', 'vane', 'millstone', 'millgear', 'telescope', 'shutter', 'mound', 'crate', 'nest', 'burrow', 'bollard', 'ropebridge'];
+    for (const on of [false, true]) th.drawScene(ctx, { id: 'isle', w: 960, h: 540, mood: 'day', pal: on ? 'cliffs' : 'isle', layers: [{ depth: 0, items: [{ kind: 'sky' }, { kind: 'tower', x: 600, y: 100, w: 120, h: 300, state: { dome: true, open: on } }, { kind: 'house', x: 100, y: 200, w: 160, h: 200, state: { glass: true } }] }, { depth: 1, items: [{ kind: 'wall', x: 0, y: 0, w: 960, h: 452, state: { dome: true } }] }],
+      objects: isle.map((k, i) => ({ id: 'o' + i, kind: k, x: 40 + i * 70, y: 200, w: 60, h: 120, state: { sails: on ? 4 : 3, turn: on, brake: !on, west: on, lens: on, done: on, cog: on, eye: on, aim: on, open: on, rope: on, dug: on, chick: on, shiny: !on, tied: on, taut: on } }))
+        .concat([{ id: 'terns', kind: 'npc', x: 300, y: 100, w: 200, h: 120, state: { type: 'tern', n: 4, alarm: on, down: !on } }]), hotspots: [] }, 1.5, {});
+    for (const pk of ['millroom', 'domeroom', 'orchard', 'hilltop']) th.drawScene(ctx, { id: 'pal', w: 960, h: 540, mood: 'day', pal: pk, layers: [{ depth: 0, items: [{ kind: 'sky' }, { kind: 'hill', x: 0, y: 260, w: 960, h: 120, seed: 2 }, { kind: 'wall', x: 0, y: 0, w: 960, h: 452 }, { kind: 'floor', x: 0, y: 452, w: 960, h: 88 }] }], objects: [], hotspots: [] }, 1, {});
+    ['taya', 'scent', 'overview', 'hold', 'sail', 'eyepiece', 'chick', 'windmill', 'millstone', 'windW', 'windE', 'telescope', 'dome', 'nest', 'burrow', 'dig'].forEach(ic => { ok(A.ICONS[ic], 'нет в словаре: ' + ic); th.drawIcon(ctx, ic, 100, 100, 40); });
+  } finally { sandbox.KVEST_STRICT = false; }
+  ok(ctx.calls > 800);
 });
 
 console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed));

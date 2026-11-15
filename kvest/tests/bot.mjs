@@ -1,6 +1,8 @@
 /* МАЯЧНИЦА · tests/bot.mjs — бот-«игрок»: проходит главу ТОЛЬКО вводом (тап/перетаскивание в логических координатах)
    через G.down/move/up и G.update. Маршрут — кратчайший план из поиска по состояниям (solver.mjs); механизмы
-   и мини-игры решаются поиском по их локальному состоянию, клики — по центрам зон/плиток. */
+   и мини-игры решаются поиском по их локальному состоянию, клики — по центрам зон/плиток.
+   Помощники: бот переключает героя тапом по портрету (LAYOUT.heroes), удержание — тап нужным героем по зоне, отпустить — тап
+   держащим героем по той же зоне; в переходе ведёт свободный герой, которого пускают обе сцены (Тая, если может). */
 import { makeSolver, solveWidget } from './solver.mjs';
 
 export function playChapter(K, opts = {}) {
@@ -11,6 +13,15 @@ export function playChapter(K, opts = {}) {
   const G = opts.game || K.createGame({ chapter: CH, timers: false, onEvent: (t, d) => events.push({ t, d }) });
   const LAY = K.ThemeAPI.LAYOUT, SC = {}; G.data.scenes.forEach(s => { SC[s.id] = s; });
   const hsOf = (s, st) => K.logic.hotspots(SC[s], st);
+  const HL = K.Helpers, MULTI = !!G.multi, LH = LAY.heroes, solver = makeSolver(K, CH);
+  let switches = 0;
+  function portraitPoint(id) { const l = G.portraits(), i = l.indexOf(id); if (i < 0) throw new Error('бот: нет портрета ' + id); return { x: LH.x + i * LH.gap, y: LH.y }; }
+  function switchTo(id) {
+    if (!MULTI || !id || G.activeHero() === id) return;
+    if (!G.present(id)) throw new Error('бот: герой ' + id + ' не в сцене ' + G.state().scene);
+    const p = portraitPoint(id); tap(p.x, p.y); tick(); switches++;
+    if (G.activeHero() !== id) throw new Error('бот: не переключился на ' + id);
+  }
   let clicks = 0, drags = 0, steps = 0;
   if (!opts.game) G.start();
   const plan = opts.plan || makeSolver(K, CH).explore().plan;
@@ -28,10 +39,12 @@ export function playChapter(K, opts = {}) {
     const [x, y, w, hh] = h.rect;
     for (const fy of [0.5, 0.35, 0.65, 0.2, 0.8]) for (const fx of [0.5, 0.3, 0.7, 0.15, 0.85]) {
       const px = x + w * fx, py = y + hh * fy; if (py >= LAY.inv.y - 2) continue;
+      if (G.portraitAt && G.portraitAt(px, py)) continue;   // под портретом героя клик уйдёт в переключатель
       const at = G.hotspotAt(px, py); if (at && at.id === hsId) return { x: px, y: py };
     }
     throw new Error('бот: зона ' + hsId + ' перекрыта');
   }
+  function emptyPoint() { const w = K.logic.walkOf(G.scene(), G.state()); for (let x = 60; x < 900; x += 37) { const y = K.logic.yAt(w, x) - 30; if (!G.hotspotAt(x, y) && !(G.portraitAt && G.portraitAt(x, y))) return { x, y }; } throw new Error('бот: нет пустого места'); }
   function slotOf(item) { const i = G.state().inv.indexOf(item); if (i < 0) throw new Error('бот: нет предмета ' + item); const r = K.ThemeAPI.slotRect(i); return { x: r[0] + r[2] / 2, y: r[1] + r[3] / 2 }; }
   function drag(from, to) { G.move(from.x, from.y); G.down(from.x, from.y); tick(); G.move((from.x + to.x) / 2, (from.y + to.y) / 2); G.move(to.x, to.y); G.up(to.x, to.y); drags++; }
   function tapHs(hsId) { const p = pointOf(hsId); tap(p.x, p.y); idle(); }
@@ -41,10 +54,15 @@ export function playChapter(K, opts = {}) {
       const st = G.state(), prev = { [st.scene]: null }, q = [st.scene];
       while (q.length) {
         const s = q.shift();
-        for (const h of hsOf(s, st)) if (h.to && K.logic.ok(st, h.need) && K.logic.ok(st, h.toNeed) && !(h.to in prev) && !K.logic.resolve(PZ, st, s, h.id, null)) { prev[h.to] = { s, hs: h.id }; q.push(h.to); }
+        for (const h of hsOf(s, st)) if (h.to && K.logic.ok(st, h.need) && K.logic.ok(st, h.toNeed) && !(h.to in prev) && solver.passBy(st, s, h).length) { prev[h.to] = { s, hs: h.id }; q.push(h.to); }
       }
       if (!(target in prev)) throw new Error('бот: сцена ' + target + ' недоступна из ' + st.scene);
       let cur = target; while (prev[cur].s !== st.scene) cur = prev[cur].s;
+      if (MULTI) {   // ведёт свободный герой, которого пускают обе сцены: активный, если может, иначе Тая или другой
+        const ex = G.hotspot(prev[cur].hs), ok = solver.passBy(st, st.scene, ex).filter(id => G.present(id));
+        if (!ok.length) throw new Error('бот: некому пройти ' + prev[cur].hs + ' в ' + st.scene);
+        if (ok.indexOf(G.activeHero()) < 0) switchTo(ok.indexOf('taya') >= 0 ? 'taya' : ok[0]);
+      }
       tapHs(prev[cur].hs);
     }
     if (G.state().scene !== target) throw new Error('бот: не дошёл до ' + target);
@@ -86,6 +104,13 @@ export function playChapter(K, opts = {}) {
       gotoScene(a.scene); idle(); continue;
     }
     gotoScene(a.scene);
+    if (MULTI) switchTo(a.hero || 'taya');
+    if (a.kind === 'release') {   // своя зона держащего — нажать её; зоны уже нет — шаг держащим по пустому месту
+      if (!G.state().flags['held:' + a.hold]) continue;
+      if (G.hotspot(a.hs)) tapHs(a.hs); else { const p = emptyPoint(); tap(p.x, p.y); idle(); }
+      if (G.state().flags['held:' + a.hold]) throw new Error('бот: не отпустил ' + a.hold); continue;
+    }
+    if (a.kind === 'hold') { tapHs(a.hs); if (!G.state().flags['held:' + a.hold]) throw new Error('бот: не держит ' + a.hold); continue; }
     if (a.kind === 'hs') tapHs(a.hs);
     else if (a.kind === 'use') { const p = pointOf(a.hs); drag(slotOf(a.item), p); idle(); }
     else if (a.kind === 'widget') solveSceneWidget(a.widget);
@@ -93,6 +118,6 @@ export function playChapter(K, opts = {}) {
   }
   for (let k = 0; k < 600 && !G.won(); k++) tick();
   const P = PZ.puzzles;
-  return { won: G.won(), clicks, drags, steps, solved: P.filter(p => G.state().flags[p.id]).length, total: P.length,
+  return { won: G.won(), clicks, drags, steps, switches, solved: P.filter(p => G.state().flags[p.id]).length, total: P.length,
     missing: P.filter(p => !G.state().flags[p.id]).map(p => p.id), events, game: G, log };
 }

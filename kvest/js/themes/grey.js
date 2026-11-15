@@ -394,6 +394,34 @@
     return false;
   }
 
+  // ---------- kind движка помощников (ветер, мельницы, птицы, купол): серые макеты ----------
+  KD.windmill = function (c, o, P, t) {
+    var st = o.state || {}, x = o.x, y = o.y, w = o.w, h = o.h, cx = x + w / 2, hy = y + h * 0.17, R = w * 1.12, a = st.turn ? t * 1.7 : 0.35, n = st.full ? 4 : st.sails == null ? 4 : st.sails;
+    poly(c, [x + w * 0.12, y + h, x + w * 0.88, y + h, x + w * 0.72, y + h * 0.2, x + w * 0.28, y + h * 0.2], P.obj, P.ink, 2.5);
+    poly(c, [x + w * 0.2, y + h * 0.22, cx, y, x + w * 0.8, y + h * 0.22], P.objD, P.ink, 2);
+    fillRR(c, cx - w * 0.15, y + h * 0.74, w * 0.3, h * 0.26, 6, st.open ? '#2a2826' : P.mid, P.ink, 2);
+    for (var i = 0; i < 4; i++) { var an = a + i * Math.PI / 2, ex = cx + Math.cos(an) * R, ey = hy + Math.sin(an) * R; line(c, [cx, hy, ex, ey], P.ink, 4);
+      var nx = Math.cos(an + Math.PI / 2) * R * 0.3, ny = Math.sin(an + Math.PI / 2) * R * 0.3, sx = cx + Math.cos(an) * R * 0.22, sy = hy + Math.sin(an) * R * 0.22;
+      poly(c, [sx, sy, ex, ey, ex + nx, ey + ny, sx + nx * 0.8, sy + ny * 0.8], i < n ? 'rgba(240,238,232,0.9)' : null, P.ink, i < n ? 1.5 : 1); }
+    circ(c, cx, hy, 6, P.ink); if (st.brake) drawIcon(c, 'hold', cx + w * 0.4, y + h * 0.5, 22);
+  };
+  KD.vane = function (c, o, P, t) { var st = o.state || {}, cx = o.x + o.w / 2, y = o.y + 22, d = st.west ? -1 : 1, L = o.w * 0.45, wb = st.stuck ? 0 : Math.sin(t * 3) * 3; line(c, [cx, y, cx, o.y + o.h], P.ink, 4); line(c, [cx - L * d, y + wb, cx + L * d, y - wb], P.ink, 3); poly(c, [cx - L * d - 10 * d, y + wb, cx - L * d + 4 * d, y + wb - 8, cx - L * d + 4 * d, y + wb + 8], P.objD, P.ink, 1.5); poly(c, [cx + L * d, y - wb, cx + L * d + 12 * d, y - wb - 10, cx + L * d + 12 * d, y - wb + 10], P.sky1, P.ink, 1.5); };
+  KD.millstone = function (c, o, P, t) { var st = o.state || {}, cx = o.x + o.w / 2, by = o.y + o.h, a = st.turn ? t * 2 : 0; fillRR(c, o.x - 6, by - 26, o.w + 12, 26, 3, P.objD, P.ink, 2); c.beginPath(); c.ellipse(cx, by - 40, o.w * 0.48, 14, 0, 0, TAU); c.fillStyle = P.mid; c.fill(); c.strokeStyle = P.ink; c.lineWidth = 2; c.stroke(); poly(c, [cx - 30, o.y, cx + 30, o.y, cx + 8, o.y + 34, cx - 8, o.y + 34], P.obj, P.ink, 2); line(c, [cx, by - 40, cx + Math.cos(a) * o.w * 0.4, by - 40 + Math.sin(a) * 10], P.ink, 2); if (st.lens || st.done) drawIcon(c, st.done ? 'lens' : 'lens_dirty', cx + Math.cos(a) * 16, by - 46, 28); };
+  KD.millgear = function (c, o, P, t) { var st = o.state || {}, cx = o.x + o.w / 2, cy = o.y + o.h * 0.45, r = Math.min(o.w, o.h) * 0.36, a = st.turn ? t * 1.1 : 0; fillRR(c, o.x, o.y + o.h - 20, o.w, 20, 2, P.objD, P.ink, 2); line(c, [cx, 0, cx, cy], P.objD, 10); circ(c, cx, cy, r, P.obj, P.ink, 2.5); for (var k = 0; k < 16; k++) { if (!st.cog && k === 3) continue; var an = a + k * TAU / 16; line(c, [cx + Math.cos(an) * r, cy + Math.sin(an) * r, cx + Math.cos(an) * (r + 12), cy + Math.sin(an) * (r + 12)], P.ink, 5); } if (!st.cog) drawIcon(c, 'gear', cx + Math.cos(a + 3 * TAU / 16) * (r + 8), cy + Math.sin(a + 3 * TAU / 16) * (r + 8), 20); if (st.brake) fillRR(c, cx + r - 6, cy - 22, 16, 44, 2, '#b55', P.ink, 2); };
+  KD.telescope = function (c, o, P) { var st = o.state || {}, bx = o.x + o.w * 0.42, by = o.y + o.h * 0.62, a = st.aim ? -0.78 : -0.42, L = o.w * 0.95; poly(c, [bx - 34, o.y + o.h, bx + 34, o.y + o.h, bx + 16, by, bx - 16, by], P.objD, P.ink, 2); c.save(); c.translate(bx, by); c.rotate(a); fillRR(c, -L * 0.4, -15, L, 30, 6, P.obj, P.ink, 2.5); if (st.lens) circ(c, L * 0.6, 0, 14, '#e8eef0', P.ink, 2); else circ(c, L * 0.6, 0, 14, null, P.ink, 1); if (st.eye) fillRR(c, -L * 0.4 - 16, -7, 18, 14, 2, P.ink); c.restore(); if (!st.lens) drawIcon(c, 'lens', bx + Math.cos(a) * L * 0.6, by + Math.sin(a) * L * 0.6 - 20, 22); if (!st.eye) drawIcon(c, 'eyepiece', bx - Math.cos(a) * L * 0.4 - 14, by + 16, 22); };
+  KD.shutter = function (c, o, P) { var st = o.state || {}; fillRR(c, o.x - 10, o.y - 6, o.w + 20, o.h + 12, 3, P.objD, P.ink, 2); fillRR(c, o.x, o.y, o.w, o.h, 2, st.open ? '#1c2338' : P.mid, P.ink, 1.5); if (st.open) for (var s2 = 0; s2 < 6; s2++) circ(c, o.x + 8 + rnd(4, s2) * (o.w - 16), o.y + 8 + rnd(5, s2) * o.h * 0.6, 1.4, '#efe3bf'); var rx = o.x + o.w * 0.8; line(c, st.rope ? [rx, o.y + 8, rx, o.y + o.h + 196] : [rx, o.y + 8, rx + 6, o.y + 30], '#a08c64', 4); };
+  KD.mound = function (c, o, P) { var st = o.state || {}, cx = o.x + o.w / 2, by = o.y + o.h; if (st.dug) { c.beginPath(); c.ellipse(cx, by - 6, o.w * 0.32, 8, 0, 0, TAU); c.fillStyle = '#2a2826'; c.fill(); circ(c, cx - o.w * 0.4, by - 8, 10, P.objD); circ(c, cx + o.w * 0.4, by - 8, 9, P.objD); } else { c.beginPath(); c.ellipse(cx, by, o.w * 0.5, o.h * 0.7, 0, Math.PI, TAU); c.fillStyle = P.objD; c.fill(); c.strokeStyle = P.ink; c.lineWidth = 2; c.stroke(); } };
+  KD.crate = function (c, o, P) { var st = o.state || {}; fillRR(c, o.x, o.y + 10, o.w, o.h - 10, 3, P.obj, P.ink, 2.5); if (st.open) { fillRR(c, o.x + 4, o.y + 8, o.w - 8, 10, 2, '#2a2826'); if (!st.empty) drawIcon(c, 'sail', o.x + o.w / 2, o.y + 4, 30); } else { fillRR(c, o.x - 4, o.y, o.w + 8, 12, 2, P.mid, P.ink, 2); line(c, [o.x + o.w * 0.3, o.y, o.x + o.w * 0.3, o.y + o.h], '#a08c64', 4); line(c, [o.x, o.y + o.h * 0.55, o.x + o.w, o.y + o.h * 0.55], '#a08c64', 4); circ(c, o.x + o.w * 0.3, o.y + o.h * 0.55, 7, '#a08c64', P.ink, 1.5); } };
+  KD.nest = function (c, o, P) { var st = o.state || {}, cx = o.x + o.w / 2, by = o.y + o.h; if (st.shiny && !st.empty) drawIcon(c, 'lens_dirty', cx + o.w * 0.15, by - o.h * 0.6, 26); c.beginPath(); c.ellipse(cx, by - o.h * 0.3, o.w * 0.5, o.h * 0.32, 0, 0, Math.PI); c.fillStyle = P.objD; c.fill(); c.strokeStyle = P.ink; c.lineWidth = 2; c.stroke(); if (st.chick) drawIcon(c, 'chick', cx - o.w * 0.12, by - o.h * 0.55, 28); };
+  KD.burrow = function (c, o, P) { var st = o.state || {}, cx = o.x + o.w / 2, by = o.y + o.h; c.beginPath(); c.ellipse(cx, by, o.w * 0.46, o.h * 0.6, 0, Math.PI, TAU); c.fillStyle = st.open ? '#1e1c1a' : P.objD; c.fill(); c.strokeStyle = P.ink; c.lineWidth = 2; c.stroke(); };
+  KD.bollard = function (c, o, P) { var st = o.state || {}; fillRR(c, o.x, o.y + 6, o.w, o.h - 6, 5, P.objD, P.ink, 2); if (st.tied) { line(c, [o.x - 2, o.y + 20, o.x + o.w + 2, o.y + 24], '#a08c64', 4); line(c, [o.x, o.y + 24, o.x - 60, o.y + 20], '#a08c64', 4); } };
+  KD.ropebridge = function (c, o, P) { var st = o.state || {}, sag = st.taut ? 6 : 64, pts = []; for (var i = 0; i <= 20; i++) pts.push(o.x + o.w * i / 20, o.y + Math.sin(i / 20 * Math.PI) * sag); line(c, pts, '#a08c64', 3.5); for (var k = 0; k < 11; k++) { var f = (k + 0.5) / 11; fillRR(c, o.x + o.w * f - 12, o.y + Math.sin(f * Math.PI) * sag - 2, 24, 8, 1, P.obj, P.ink, 1.5); } fillRR(c, o.x - 6, o.y - 50, 10, 66, 2, P.objD, P.ink, 2); fillRR(c, o.x + o.w - 4, o.y - 50, 10, 66, 2, P.objD, P.ink, 2); };
+  var gTower = KD.tower, gHouse = KD.house, gWall = KD.wall, gGate = KD.gate;
+  KD.gate = function (c, o, P, t) { var st = o.state || {}; if (!st.grille) return gGate(c, o, P, t); var oy = st.open ? -o.h * 0.82 : 0; for (var i = 10; i < o.w; i += 18) line(c, [o.x + i, o.y + oy, o.x + i, o.y + o.h + oy], P.ink, 4); line(c, [o.x, o.y + o.h * 0.5 + oy, o.x + o.w, o.y + o.h * 0.5 + oy], P.ink, 4); };
+  KD.tower = function (c, o, P, t) { var st = o.state || {}; if (!st.dome) return gTower(c, o, P, t); var cx = o.x + o.w / 2, dr = o.w * 0.52, dy = o.y + dr; fillRR(c, o.x, dy, o.w, o.h - dr, 2, P.obj, P.ink, 2.5); c.beginPath(); c.arc(cx, dy, dr, Math.PI, 0); c.closePath(); c.fillStyle = P.mid; c.fill(); c.strokeStyle = P.ink; c.lineWidth = 2.5; c.stroke(); fillRR(c, cx - 7, dy - dr, 14, dr, 1, st.open ? '#1c2338' : P.objD); fillRR(c, cx - o.w * 0.16, o.y + o.h * 0.7, o.w * 0.32, o.h * 0.3, 8, P.objD, P.ink, 2); };
+  KD.house = function (c, o, P, t) { var st = o.state || {}; if (!st.glass) return gHouse(c, o, P, t); poly(c, [o.x, o.y + o.h * 0.3, o.x + o.w / 2, o.y, o.x + o.w, o.y + o.h * 0.3, o.x + o.w, o.y + o.h, o.x, o.y + o.h], 'rgba(220,232,230,0.5)', P.ink, 2.5); for (var k = 1; k < 6; k++) line(c, [o.x + k * o.w / 6, o.y + o.h * 0.2, o.x + k * o.w / 6, o.y + o.h], P.ink, 1.5); };
+  KD.wall = function (c, o, P, t) { gWall(c, o, P, t); var st = o.state || {}; if (!st.dome) return; for (var k = -4; k <= 4; k++) if (k) line(c, [480 + k * 120, (o.y || 0) + o.h, 480 + k * 28, (o.y || 0) - 10], P.ink, 3); };
+
   function unknown(c, o, P) { var x = o.x || 0, y = o.y || 0, w = o.w || 30, h = o.h || 30; fillRR(c, x, y, w, h, 3, 'rgba(128,128,128,0.5)', P.ink, 2); line(c, [x, y, x + w, y + h], P.ink, 1); line(c, [x + w, y, x, y + h], P.ink, 1); }
 
   // ---------- персонажи ----------
@@ -462,8 +490,70 @@
         [-1, 1].forEach(function (d) { line(c, [cx + d * 10, by - 8, cx + d * 18, by], P.ink, 2); line(c, [cx + d * 12, by - 12, cx + d * 20, by - 22 + sn], P.ink, 3); circ(c, cx + d * 20, by - 26 + sn, 5, '#9c8a84', P.ink, 2); });
         if (s.tin) fillRR(c, cx - 14, by - 26, 28, 22, 2, '#bdbdbd', P.ink, 2.5); else { c.beginPath(); c.ellipse(cx, by - 10, 14, 9, 0, 0, TAU); c.fillStyle = '#9c8a84'; c.fill(); c.strokeStyle = P.ink; c.lineWidth = 2.5; c.stroke(); }
         return; }
+      case 'tern': {
+        var n = s.n || 3;
+        for (var i = 0; i < n; i++) {
+          var f = (i + 0.5) / n, px, py;
+          if (s.down) { px = x + w * f; py = by - 10 - Math.abs(Math.sin(t * 6 + i)) * 6; }
+          else if (s.alarm) { var a = t * 1.3 + i * TAU / n; px = cx + Math.cos(a) * w * 0.42; py = y + h * 0.35 + Math.sin(a) * h * 0.25; }
+          else { px = x + w * f; py = by - 8; }
+          c.beginPath(); c.ellipse(px, py, 12, 6, 0, 0, TAU); c.fillStyle = '#f2f1ee'; c.fill(); c.strokeStyle = P.ink; c.lineWidth = 1.5; c.stroke();
+          circ(c, px - 11, py - 4, 4.5, '#3a3836'); poly(c, [px - 15, py - 4, px - 23, py - 2, px - 15, py - 1], '#c55');
+          if (s.alarm || s.down) line(c, [px, py - 2, px + 6, py - 18 + Math.sin(t * 16 + i) * 6], P.ink, 2.5);
+        }
+        return; }
     }
     fillRR(c, x, y + h * 0.3, w, h * 0.7, 8, P.mid, P.ink, 2); circ(c, cx, y + h * 0.2, Math.min(w, h) * 0.18, P.obj, P.ink, 2);
+  }
+  // ---------- помощники в отряде: пёс Вьюн и чайка Кира (позы — theme-api HELPER_POSES) ----------
+  function drawHelper(c, p, pose, t) {
+    var x = p.x, y = p.y, dir = p.dir < 0 ? -1 : 1;
+    c.save();
+    if (p.id === 'dog') {
+      var dig = pose === 'dig', sn = pose === 'sniff' || pose === 'reach', pull = pose === 'pull' || pose === 'hold', bark = pose === 'bark', walk = pose === 'walk';
+      var bob = walk ? Math.abs(Math.sin(t * 12)) * 3 : pose === 'happy' ? Math.abs(Math.sin(t * 8)) * 6 : 0, l1 = walk ? Math.sin(t * 12) * 8 : 0;
+      c.translate(x, y - bob); c.scale(dir, 1);
+      c.fillStyle = 'rgba(0,0,0,0.18)'; c.beginPath(); c.ellipse(0, bob, 30, 5, 0, 0, TAU); c.fill();
+      line(c, [-26, -30, -36 + Math.sin(t * 10) * 4, -46], '#232120', 5);
+      [-20 + l1, -10 - l1, 14 + l1, 22 - l1].forEach(function (lx, i) { line(c, [lx > 0 ? lx - 2 : lx + 2, -24, lx + (dig && i > 1 ? Math.sin(t * 20) * 6 : 0), 0], '#232120', 5); });
+      c.beginPath(); c.ellipse(0, -32 + (pull ? 2 : 0), 30, 14, pull ? -0.15 : dig ? 0.2 : 0, 0, TAU); c.fillStyle = '#cfc8bd'; c.fill(); c.strokeStyle = '#232120'; c.lineWidth = 2.5; c.stroke();
+      var hx = 28, hy = dig ? -20 : sn ? -26 : bark ? -54 : -48; circ(c, hx, hy, 12, '#cfc8bd', '#232120', 2.5); poly(c, [hx - 8, hy - 8, hx - 14, hy + 8, hx - 4, hy + 2], '#5a5551'); circ(c, hx + 11, hy + 3, 3, '#232120');
+      fillRR(c, 14, -46, 14, 6, 2, '#b55'); if (pull) line(c, [hx + 10, hy + 6, hx + 34, hy + 2], '#a08c64', 4); if (bark) line(c, [hx + 16, hy - 4, hx + 30, hy - 12], '#232120', 2);
+    } else if (p.id === 'gull') {
+      var alt = p.alt == null ? y : p.alt, fly = y - alt > 6, fl = fly ? Math.sin(t * 11) * 14 : 0, gy = fly ? alt : y - 18;
+      c.fillStyle = 'rgba(0,0,0,0.14)'; c.beginPath(); c.ellipse(x, y + 1, 12, 3.5, 0, 0, TAU); c.fill();
+      c.translate(x, gy); c.scale(dir, 1);
+      if (!fly) { line(c, [-4, 6, -4, 18], '#c78a50', 2); line(c, [4, 6, 4, 18], '#c78a50', 2); fillRR(c, -6, 10, 4, 3, 1, '#4f7472'); }
+      c.beginPath(); c.ellipse(0, 0, 18, 9, 0, 0, TAU); c.fillStyle = '#f2f1ee'; c.fill(); c.strokeStyle = '#232120'; c.lineWidth = 2.5; c.stroke();
+      circ(c, 16, -9, 8, '#f2f1ee', '#232120', 2.5); poly(c, [22, -10, 32, -8, 22, -6], GLOW, '#232120', 1); circ(c, 18, -11, 1.8, '#232120');
+      poly(c, fly ? [-4, -4, -14, -30 - fl, 4, -28 - fl, 8, -4] : [6, -2, -20, -6, -24, 2, 4, 6], '#c9c8c4', '#232120', 2);
+    } else drawNpc(c, { x: x - 30, y: y - 60, w: 60, h: 60, state: { type: p.id } }, pose, t, PAL.day);
+    c.restore();
+  }
+  function drawActiveMark(c, p, t) { var top = p.id === 'taya' ? p.y - 150 : p.id === 'dog' ? p.y - 84 : (p.alt == null ? p.y : Math.min(p.alt, p.y - 20)) - 46; top += Math.sin(t * 3) * 2; poly(c, [p.x - 8, top - 8, p.x + 8, top - 8, p.x, top + 6], '#f0bf5a', '#2b2928', 1.5); }
+  function drawPortraits(c, ui, L, t) {
+    var LH = L.heroes; if (!LH || !ui.heroes || ui.heroes.length < 2 || ui.mode === 'mini' || ui.mode === 'walk') return;
+    ui.heroes.forEach(function (h, i) {
+      var x = LH.x + i * LH.gap, y = LH.y, r = h.active ? LH.r + 3 : LH.r - 1;
+      c.save(); if (!h.here && !h.active) c.globalAlpha = 0.5;
+      circ(c, x, y, r, h.active ? '#efe9dd' : '#9a958e', h.active ? GLOW : '#2b2928', h.active ? 4 : 2); drawIcon(c, h.icon || h.id, x, y + 1, r * 1.4); c.restore();
+      if (h.busy) drawIcon(c, 'hold', x + r * 0.72, y + r * 0.72, 20);
+      if (h.ability) drawIcon(c, h.ability, x + r * 0.78, y - r * 0.7, 20);
+    });
+  }
+  function drawTrail(c, tr, t) {
+    if (!tr || !tr.pts || tr.pts.length < 2) return; var a = Math.max(0, Math.min(1, ((tr.dur || 4.5) - (tr.age || 0)) / 0.8)); if (!a) return;
+    c.save(); c.globalAlpha = a; c.setLineDash && c.setLineDash([3, 9]); var f = []; tr.pts.forEach(function (q) { f.push(q[0], q[1]); }); line(c, f, '#2b2928', 4); c.setLineDash && c.setLineDash([]);
+    if (tr.rect) { c.strokeStyle = '#b33'; c.lineWidth = 3; c.beginPath(); c.ellipse(tr.rect[0] + tr.rect[2] / 2, tr.rect[1] + tr.rect[3] / 2, tr.rect[2] / 2 + 10, tr.rect[3] / 2 + 8, 0, 0, TAU); c.stroke(); }
+    c.restore();
+  }
+  function drawOverview(c, ov, t) {
+    if (!ov) return; c.save(); c.fillStyle = 'rgba(240,236,226,0.6)'; c.fillRect(0, 0, 960, 478); drawIcon(c, 'gull', 480, 30, 40);
+    (ov.marks || []).forEach(function (m) { var r = m.rect || [0, 0, 1, 1], cx = r[0] + r[2] / 2, cy = r[1] + r[3] / 2;
+      if (m.exit) { drawIcon(c, m.icon || 'door', cx, cy - 50, 30); return; }
+      c.strokeStyle = '#b33'; c.lineWidth = 2.5; c.beginPath(); c.ellipse(cx, cy, Math.max(20, r[2] / 2 + 6), Math.max(18, r[3] / 2 + 6), 0, 0, TAU); c.stroke();
+      drawIcon(c, m.hero === 'taya' ? 'taya' : m.hero === 'dog' ? 'dog' : m.hero === 'gull' ? 'gull' : 'question', cx + r[2] / 2, cy - r[3] / 2 - 10, 30); if (m.item) drawIcon(c, m.item, cx + r[2] / 2 - 30, cy - r[3] / 2 - 10, 24); });
+    c.restore();
   }
 
   // ---------- героиня: девочка-подмастерье (коса, длинное пальто, сумка через плечо, шарф) ----------
@@ -592,7 +682,8 @@
     drawThought: drawThought,
     drawIcon: drawIcon,
     drawCursor: drawCursor,
-    drawUI: drawUI
+    drawUI: function (c, ui, t) { drawUI(c, ui, t); if (ui && ui.heroes) drawPortraits(c, ui, ui.layout || (API && API.LAYOUT), t); },
+    drawHelper: drawHelper, drawActiveMark: drawActiveMark, drawTrail: drawTrail, drawOverview: drawOverview
   };
   // реестр тем: index.html грузит grey (отладочная, ?theme=grey) и paper (по умолчанию); выбор — в main.js
   var KV = global.KVEST = global.KVEST || {};

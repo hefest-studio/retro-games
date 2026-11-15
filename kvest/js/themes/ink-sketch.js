@@ -3,7 +3,9 @@
    Модуль подключается после темы paper и вешает на неё явные хуки контракта (см. theme-api.js, THEME-CONTRACT.md):
      drawHint(ctx, x, y, hint, t, opts)      — мысль-подсказка: эскиз цели (hint.ink — глифы из puzzles.js), opts.age — сек. с появления;
      drawWalkbook(ctx, walk, layout, t)      — разворот блокнота: шаг на страницу (только пройденные и текущий);
-     drawThought(ctx, x, y, icons, t, opts)  — opts.style === 'ink' → мысль тушью с эффектом пера (мастер в кат-сценах).
+     drawThought(ctx, x, y, icons, t, opts)  — opts.style === 'ink' → мысль тушью с эффектом пера (мастер в кат-сценах);
+     drawTrail(ctx, trail, t)                — нюх пса Вьюна: след лапами тушью от носа к спрятанному, цель — петля киноварью;
+     drawOverview(ctx, ov, t)                — «взгляд сверху» чайки Киры: сцена под листом кальки, тушью обведено, где и кто может действовать.
    Как получается «тушь»: глиф — это ТОТ ЖЕ объект сцены (или пиктограмма), отрисованный темой paper в offscreen-холст и
    переведённый попиксельно в штрих: контур по альфе, внутренние линии — оператор Собеля по яркости, тон — штриховка
    двумя направлениями и заливка в самых тёмных местах. Поэтому эскиз узнаётся: силуэт совпадает с тем, что в сцене.
@@ -387,8 +389,56 @@
     ctx.restore();
   }
 
+  // ---------- (г) нюх пса: след лапами тушью ----------
+  function drawTrail(ctx, tr, t) {
+    if (!tr || !tr.pts || tr.pts.length < 2) return;
+    var age = tr.age || 0, dur = tr.dur || 4.5, prog = anim() ? clamp(age / 1.3, 0, 1) : 1, fade = clamp((dur - age) / 0.8, 0, 1);
+    if (fade <= 0) return;
+    begin(1, t); ctx.save(); ctx.globalAlpha = fade;
+    var pts = tr.pts, tot = 0, seg = []; for (var i = 1; i < pts.length; i++) { var L = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); seg.push(L); tot += L; }
+    // запах — тонкая волнистая линия; поверх — отпечатки лап через равные промежутки (левая/правая)
+    var save = REV.left; REV.left = tot * prog; pen(ctx, pts, 1.1, 1500, 'rgba(30,25,21,0.55)'); REV.left = save;
+    var step = 30, n = Math.floor(tot * prog / step);
+    for (var k = 1; k <= n; k++) {
+      var d = k * step, j = 0; while (j < seg.length - 1 && d > seg[j]) { d -= seg[j]; j++; }
+      var a = pts[j], b = pts[j + 1] || a, f = seg[j] ? clamp(d / seg[j], 0, 1) : 0, x = a[0] + (b[0] - a[0]) * f, y = a[1] + (b[1] - a[1]) * f, ang = Math.atan2(b[1] - a[1], b[0] - a[0]), side = k % 2 ? -5 : 5;
+      var px = x - Math.sin(ang) * side, py = y + Math.cos(ang) * side;
+      ctx.save(); ctx.translate(px, py); ctx.rotate(ang);
+      ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(0, 0, 4.2, 3.4, 0, 0, TAU); ctx.fill();
+      [[5, -3.2], [6.2, 0], [5, 3.2]].forEach(function (q) { ctx.beginPath(); ctx.arc(q[0], q[1], 1.5, 0, TAU); ctx.fill(); });
+      ctx.restore();
+    }
+    if (prog >= 0.999 && tr.rect) { var r = tr.rect; REV.left = Infinity; loop(ctx, r[0] + r[2] / 2, r[1] + r[3] / 2, r[2] / 2 + 10, Math.max(16, r[3] / 2 + 8), 2.6, 1530); blot(ctx, r[0] + r[2] + 8, r[1] - 4, 2.2); }
+    else if (prog < 1 && anim()) { var e = REV.nib; if (e) nib(ctx, e); }
+    ctx.restore();
+  }
+  // ---------- (д) взгляд сверху: калька поверх сцены, тушью — где кто может действовать ----------
+  var HERO_ICON = { taya: 'taya', dog: 'dog', gull: 'gull' };
+  function drawOverview(ctx, ov, t) {
+    if (!ov) return;
+    var age = ov.age || 0, dur = ov.dur || 6, prog = anim() ? clamp((age - 0.1) / 1.4, 0, 1) : 1, fade = clamp(Math.min(age / 0.25, (dur - age) / 0.6), 0, 1);
+    if (fade <= 0) return;
+    ctx.save(); ctx.globalAlpha = 0.62 * fade; ctx.fillStyle = paperFill(ctx); ctx.fillRect(0, 0, W, 478); ctx.globalAlpha = fade;
+    begin(prog, t);
+    // заголовок: чайка с высоты (глиф) и рамка-«калька»
+    var gl = glyph({ i: 'gull' }, 42); drawGlyph(ctx, gl, W / 2 - gl.w / 2, 10, Math.min(1, prog * 3), t);
+    pen(ctx, [[18, 18], [W - 18, 16], [W - 16, 462], [16, 464], [18, 18]], 1.4, 1600);
+    (ov.marks || []).forEach(function (m, i) {
+      var r = m.rect || [0, 0, 1, 1], cx = clamp(r[0] + r[2] / 2, 40, W - 40), cy = clamp(r[1] + r[3] / 2, 40, 440), seed = 1610 + i * 13;
+      if (m.exit) { arrow(ctx, cx - 26, cy - 40, cx, cy - 6, 2.2, seed, VERM); var ge = glyph({ i: m.icon || 'door' }, 30); drawGlyph(ctx, ge, cx - ge.w / 2 - 28, cy - 74, 1, t); return; }
+      loop(ctx, cx, cy, Math.max(20, Math.min(90, r[2] / 2 + 8)), Math.max(18, Math.min(80, r[3] / 2 + 6)), 2.2, seed);
+      var hi = HERO_ICON[m.hero] || 'question', gh = glyph({ i: hi }, 34), hx = clamp(cx + Math.min(90, r[2] / 2) - 6, 20, W - 60), hy = clamp(cy - Math.min(80, r[3] / 2) - 30, 30, 420);
+      ctx.save(); ctx.beginPath(); ctx.arc(hx + gh.w / 2, hy + 17, 21, 0, TAU); ctx.fillStyle = paperFill(ctx); ctx.fill(); ctx.restore();
+      pen(ctx, ell(hx + gh.w / 2, hy + 17, 21, 21, 20, 0, TAU * 1.02), 1.3, seed + 3);
+      drawGlyph(ctx, gh, hx, hy, 1, t);
+      if (m.item) { var gi = glyph({ i: m.item }, 28); drawGlyph(ctx, gi, hx - gi.w - 8, hy + 4, 1, t); pen(ctx, [[hx - 6, hy + 18], [hx + 2, hy + 18]], 1.4, seed + 5); }
+    });
+    if (prog < 1 && anim()) nib(ctx, REV.nib);
+    ctx.restore();
+  }
+
   // ---------- подключение к теме paper ----------
-  var api = { anim: anim, setAnim: setAnim, drawHint: drawHint, drawWalkbook: drawWalkbook, drawInkThought: drawInkThought, glyph: glyph, hintSeq: hintSeq, sourceOf: sourceOf, KEY: KEY,
+  var api = { anim: anim, setAnim: setAnim, drawHint: drawHint, drawWalkbook: drawWalkbook, drawInkThought: drawInkThought, drawTrail: drawTrail, drawOverview: drawOverview, glyph: glyph, hintSeq: hintSeq, sourceOf: sourceOf, KEY: KEY,
     cacheStats: function () { return { glyphs: GCACHE.size, px: GAREA, mb: +(GAREA * 4 / 1048576).toFixed(1), ss: SS }; },
     setCacheBudget: function (px) { GMAX = Math.max(1e6, +px || GMAX); return GMAX; } };
   K.InkSketch = api;
@@ -397,6 +447,8 @@
     var base = th.drawThought;
     th.drawHint = function (ctx, x, y, hint, t, opts) { drawHint(ctx, x, y, hint, t, opts); };
     th.drawWalkbook = function (ctx, walk, layout, t) { drawWalkbook(ctx, walk, layout, t); };
+    th.drawTrail = function (ctx, trail, t) { drawTrail(ctx, trail, t); };
+    th.drawOverview = function (ctx, ov, t) { drawOverview(ctx, ov, t); };
     th.drawThought = function (ctx, x, y, icons, t, opts) { if (opts && opts.style === 'ink') return drawInkThought(ctx, x, y, icons, t, opts); return base.call(th, ctx, x, y, icons, t, opts); };
   }
   attach(K.themes && K.themes.paper);
