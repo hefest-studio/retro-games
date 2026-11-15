@@ -1522,7 +1522,7 @@
     var st = o.state || {}, f = NPC[st.type], b = npcBox(o);
     pose = st.pose || pose || 'idle';
     if (!f) { cut(ctx, rrP(o.x || 0, (o.y || 0) + (o.h || 40) * 0.3, o.w || 30, (o.h || 40) * 0.7, 8), '#cfc2a4', { live: true, seed: 6000 }); cut(ctx, ell((o.x || 0) + (o.w || 30) / 2, (o.y || 0) + (o.h || 40) * 0.2, 10, 10, 14), C.skin, { live: true, seed: 6001 }); return; }
-    if (st.type !== 'bird' && st.type !== 'gull') { ctx.fillStyle = 'rgba(40,22,10,0.25)'; ctx.beginPath(); ctx.ellipse(o.x + o.w / 2, o.y + o.h, o.w * 0.45, 4.5, 0, 0, TAU); ctx.fill(); }
+    if (st.type !== 'bird' && st.type !== 'gull' && st.type !== 'tern') { ctx.fillStyle = 'rgba(40,22,10,0.25)'; ctx.beginPath(); ctx.ellipse(o.x + o.w / 2, o.y + o.h, o.w * 0.45, 4.5, 0, 0, TAU); ctx.fill(); }
     var key = cached ? 'npc|' + (o.id || '') + '|' + st.type : null;
     actor(ctx, b[0], b[1], b[2], b[3], function (g) { f(g, o, pose, t || 0); }, key, key && (Math.floor((t || 0) * 12) + '|' + pose + '|' + stKey(st) + '|' + Math.round((st.sing || 0) * 8) + '|' + Math.round(b[0] * 4) + ',' + Math.round(b[1] * 4)));
   }
@@ -1891,8 +1891,10 @@
   var ANIM_BREAK = { cloud: 1, water: 1, tide: 1 };
   function isLiveLayer(it) { var s = it.state || {}; return ANIM_BREAK[it.kind] || (it.kind === 'lamp' && s.lit) || (it.kind === 'tower' && s.lit) || (it.kind === 'house'); }
   var PAD = { sky: 0, ground: 30, wall: 0, floor: 30, house: 40, tree: 40, door: 30, plant: 30, hill: 30 };
+  var BOX_EXT = [];   // расширения темы (paper-helpers.js): свои рамки спрайтов для новых kind
   function itemBox(it) {
     if (it.kind === 'sky') return [0, 0, W, H];
+    for (var bx = 0; bx < BOX_EXT.length; bx++) { var bb = BOX_EXT[bx](it); if (bb) return bb; }
     var p = PAD[it.kind] == null ? 40 : PAD[it.kind], x = it.x || 0, y = it.y || 0, w = it.w || 40, h = it.h || 40, st = it.state || {};
     if (it.kind === 'house') return [x - p, y - 60, w + 2 * p, h + 60 + p];
     if (it.kind === 'wall' || it.kind === 'floor') return [Math.min(0, x) - 12, y - 12, Math.max(w, W) + 24, h + 24];
@@ -2277,7 +2279,14 @@
     resolution: function () { return RES; },
     setCacheBudget: function (px) { MAX_AREA = Math.max(2e6, +px || MAX_AREA); evict(); return MAX_AREA; },
     // внутренности для модуля ink-sketch.js (эскизы тушью рисуются из тех же спрайтов, что и сцена)
-    _lib: { res: function () { return RES; }, drawIconRaw: drawIconRaw, palKey: palKey, pal: pal, itemSprite: itemSprite, blit: blit, HAS_DOM: HAS_DOM }
+    _lib: { res: function () { return RES; }, drawIconRaw: drawIconRaw, palKey: palKey, pal: pal, itemSprite: itemSprite, blit: blit, HAS_DOM: HAS_DOM },
+    // внутренности для расширения paper-helpers.js (помощники и их kind): тот же «станок» вырезок, кэш, палитры и словари kind
+    _ext: { C: C, PALS: PALS, INDOOR: INDOOR, ANIM_BREAK: ANIM_BREAK, K: K, LIVE: LIVE, NPC: NPC, BOX_EXT: BOX_EXT, NOTE: NOTE, GLOW: GLOW,
+      cut: cut, flat: flat, poly: poly, ell: ell, rectP: rectP, rrP: rrP, lump: lump, rotP: rotP, movP: movP, band: band, wob: wob, bbox: bbox,
+      Rig: Rig, M: M, tr: tr, ro: ro, ap: ap, pin: pin, q12: q12, actor: actor, sprite: sprite, blit: blit, halo: halo, addGlow: addGlow, glowAt: glowAt,
+      strokeL: strokeL, stitch: stitch, brad: brad, tape: tape, ghostIcon: ghostIcon, gearPtsP: gearPtsP, starPts: starPts, fire: fire, flamePts: flamePts,
+      drawIcon: drawIcon, drawIconRaw: drawIconRaw, iconSprite: iconSprite, drawNpc: drawNpc, drawHero: drawHero, dark: dark, light: light, mix: mix, rgba: rgba,
+      rng: rng, clamp: clamp, palKey: palKey, pal: pal, cloudPts: cloudPts, HAS_DOM: HAS_DOM, res: function () { return RES; }, frame: function () { return FRAME; } }
   };
   var KV = global.KVEST = global.KVEST || {};
   (KV.themes = KV.themes || {}).paper = theme;

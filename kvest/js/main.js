@@ -7,6 +7,8 @@
    Ввод: мышь/тач по канве (тап = действие, долгий тап / ПКМ = осмотр, перетаскивание предметов пальцем — предмет приподнят над
    пальцем, крупная зона захвата; на маленьких экранах зоны увеличены), H — подсказка, B — набросок, D — отладка и статистика,
    E — выгрузить статистику (в отладке), F — во весь экран, P/Esc — пауза (в мини-игре и наброске Esc закрывает их).
+   Помощники (глава 3+): портреты героев над сценой (тап — переключить, тап по активному помощнику — умение), Tab — следующий герой,
+   1/2/3 — герой по номеру, Q — умение (пёс — нюх, след тушью; чайка — взгляд сверху, обзор тушью).
    Экран: HiDPI (канва = размер на экране × devicePixelRatio, логика 960×540; кэши темы в том же масштабе, с потолком по памяти),
    раскладка под телефон/планшет/десктоп с учётом вырезов (safe-area), в портрете на тач-устройстве — «поверните устройство»,
    адаптивное качество: если кадров меньше ~38 в секунду, разрешение канвы снижается ступенями (и возвращается, когда запас есть). */
@@ -248,7 +250,16 @@
   function drawGame(ctx, still) {
     var m = game.model(), th = T(), t = m.time;
     th.drawScene(ctx, m.scene, t, { debug: m.ui.debug, light: m.light, hover: mouseSeen && !still ? m.cursor : null });
-    if (m.showHero) th.drawHero(ctx, m.hero, m.pose, t);
+    if (m.trail && th.drawTrail) th.drawTrail(ctx, m.trail, t);   // нюх пса — след под героями
+    if (m.party && m.party.length) {   // отряд: Тая — drawHero, помощники — drawHelper (без хука — drawNpc), активный — с меткой
+      m.party.forEach(function (p) {
+        if (p.id === 'taya') th.drawHero(ctx, p, p.pose, t);
+        else if (th.drawHelper) th.drawHelper(ctx, p, p.pose, t);
+        else th.drawNpc(ctx, { id: p.id, kind: 'npc', x: p.x - 40, y: p.y - 60, w: 80, h: 60, state: { type: p.id, dir: p.dir } }, p.pose, t);
+        if (p.active && m.party.length > 1 && !still && th.drawActiveMark) th.drawActiveMark(ctx, p, t);
+      });
+    } else if (m.showHero) th.drawHero(ctx, m.hero, m.pose, t);
+    if (m.overview && th.drawOverview) th.drawOverview(ctx, m.overview, t);   // взгляд сверху — калькой поверх сцены
     m.thoughts.forEach(function (q) {   // подсказка и мысли мастера — тушью, если тема умеет (хуки drawHint / drawThought opts.style)
       if (q.style === 'ink' && q.hint && th.drawHint) th.drawHint(ctx, q.x, q.y, q.hint, t, { age: q.age });
       else th.drawThought(ctx, q.x, q.y, q.icons, t, { style: q.style || 'paper', age: q.age });
@@ -316,6 +327,9 @@
     if (e.code === 'KeyH') { game.hint(); K.sfx(g, 'hint'); }
     else if (e.code === 'KeyB') { var rt = game.runtime(); if (rt.mode === 'walk') game.closeWalk(); else if (rt.mode === 'scene') game.openWalk(); }
     else if (e.code === 'KeyD') game.setDebug();
+    else if (e.code === 'Tab' && game.multi) { e.preventDefault(); game.cycleHero(e.shiftKey ? -1 : 1); }
+    else if (/^Digit[1-3]$/.test(e.code) && game.multi) { var hl = game.portraits(), hi = +e.code.slice(5) - 1; if (hl[hi]) game.switchHero(hl[hi]); }
+    else if (e.code === 'KeyQ' && game.multi) game.ability();
     else if (e.code === 'KeyE' && game.runtime().debug) exportStats();
   });
 

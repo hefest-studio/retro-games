@@ -29,12 +29,13 @@
     g.goto('play', { resume: true });
   }
   P.startMission = startMission;
-  // Панель миссии: обычный набор скирмиша; если миссия открывает укрепления — только разрешённые кнопки (иначе не влезут)
+  // Панель миссии: обычный набор скирмиша; если миссия открывает укрепления или юниты кампании (подрывник, бур) — только
+  // разрешённые кнопки (иначе не влезут)
   function missionButtons(def, kind) {
     var b = def.player.build || [], u = def.player.units || [];
-    var fort = b.some(function (t) { return L.FORT_LIST.indexOf(t) >= 0; });
-    if (!fort) return kind === 'bld' ? L.BUILD_LIST : L.UNIT_LIST;
-    return kind === 'bld' ? L.BUILD_LIST.concat(L.FORT_LIST).filter(function (t) { return b.indexOf(t) >= 0; }) : L.UNIT_LIST.filter(function (t) { return u.indexOf(t) >= 0; });
+    var extra = b.some(function (t) { return L.FORT_LIST.indexOf(t) >= 0; }) || u.some(function (t) { return L.CAMP_UNITS.indexOf(t) >= 0; });
+    if (!extra) return kind === 'bld' ? L.BUILD_LIST : L.UNIT_LIST;
+    return kind === 'bld' ? L.BUILD_LIST.concat(L.FORT_LIST).filter(function (t) { return b.indexOf(t) >= 0; }) : L.UNIT_LIST.concat(L.CAMP_UNITS).filter(function (t) { return u.indexOf(t) >= 0; });
   }
   function newGame() {
     S.mission = null; CU.detach(S);
@@ -80,12 +81,27 @@
   }
   function startPlacing() { var pl = S.W.players[0]; if (pl.build && pl.build.ready) { S.placing = { type: pl.build.type, tx: 0, ty: 0, ok: false }; updatePlacing(mouse.pos); } }
   function updatePlacing(p) {
-    if (!S.placing) return; var w = toWorld(p), d = L.BLDS[S.placing.type];
+    if (!S.placing) return; var w = toWorld(p), d = L.BLDS[S.placing.type], van = S.placing.van;
     S.placing.tx = Math.round(w.x - d.w / 2); S.placing.ty = Math.round(w.y - d.h / 2);
-    S.placing.ok = L.canPlace(S.W, 0, S.placing.type, S.placing.tx, S.placing.ty);
+    // разворот фургона/бура: своё правило (любая твёрдая свободная земля, вышке — жила), а не «4 клетки от базы»
+    S.placing.ok = van ? L.canDeploy(S.W, 0, S.placing.type, S.placing.tx, S.placing.ty) && S.W.vis[(S.placing.ty + 1) * S.W.w + S.placing.tx + 1] > 0 : L.canPlace(S.W, 0, S.placing.type, S.placing.tx, S.placing.ty);
     var cells = [];
-    for (var j = 0; j < d.h; j++) for (var i = 0; i < d.w; i++) { var a = S.placing.tx + i, b = S.placing.ty + j, k = b * S.W.w + a; cells.push(a > 0 && b > 0 && a < S.W.w - 1 && b < S.W.h - 1 && S.W.t[k] === L.GROUND && !S.W.occ[k] && !S.W.ore[k] && S.W.vis[k] > 0); }
+    for (var j = 0; j < d.h; j++) for (var i = 0; i < d.w; i++) { var a = S.placing.tx + i, b = S.placing.ty + j, k = b * S.W.w + a; cells.push(a > 0 && b > 0 && a < S.W.w - 1 && b < S.W.h - 1 && S.W.t[k] === L.GROUND && !S.W.occ[k] && (!S.W.ore[k] || (van && d.rate)) && S.W.vis[k] > 0); }
+    if (van && d.rate && !S.placing.ok) cells = cells.map(function () { return false; });
     S.placing.cells = cells;
+  }
+  // «Свернуть» своё здание / «Развернуть» фургон (бур) — кнопка панели или F
+  function packOrDeploy(e) {
+    if (!e || e.owner !== 0) return;
+    if (e.kind === 'bld') {
+      if (!(S.W.packOn || e.type === 'rig')) return;
+      var u = L.pack(S.W, e); if (!u) { msg(g.t('msgNoPack'), 'warn'); beep(180, 0.06, 'square'); return; }
+      S.sel = new Set([u.id]); msg(g.t('msgPacked'), 'good'); beep(520, 0.06, 'triangle'); beep(390, 0.08, 'triangle');
+      S.placing = { type: L.packedType(u), van: u.id, tx: 0, ty: 0, ok: false }; updatePlacing(mouse.pos); return;
+    }
+    var type = L.packedType(e); if (!type || e.locked) return;
+    if (S.placing && S.placing.van === e.id) { S.placing = null; return; }
+    S.placing = { type: type, van: e.id, tx: 0, ty: 0, ok: false }; updatePlacing(mouse.pos); beep(660, 0.04);
   }
 
   // ---------- мышь / тач ----------
@@ -103,6 +119,7 @@
     onDown: function (p, info) {
       var gn = R.groupAt(p.x, p.y); if (gn) { grpDown = { n: gn, t: performance.now(), ctrl: info.ctrl }; return 'capture'; }
       if (inView(p)) return;
+      var pk = R.packBtn(S); if (pk && p.x >= pk.x && p.x < pk.x + pk.w && p.y >= pk.y && p.y < pk.y + pk.h) { packOrDeploy(pk.b); return 'capture'; }
       var rb = R.repairBtn(S); if (rb && p.x >= rb.x && p.x < rb.x + rb.w && p.y >= rb.y && p.y < rb.y + rb.h) { toggleRepair(rb.b); return 'capture'; }
       if (inMinimap(p)) { if (S.targeting) { CU.placeFlare(S, mmWorld(p)); return 'capture'; } mmDrag = true; var w = mmWorld(p); centerOn(w.x, w.y); return 'capture'; }
       var ab = CU.panelAt(S, p); if (ab) { CU.useAbility(S, ab.ab.hero); return 'capture'; }
@@ -152,7 +169,7 @@
       var tg = visiblePick(w); if (tg && tg.owner === 0 && tg.kind === 'unit') tg = null;
       var k = L.commandSmart(S.W, 0, units, w.x, w.y, tg);
       if (k === 'deny') { beep(150, 0.06, 'square'); return; }
-      var c = tg ? L.center(tg) : w; S.marks.push({ x: c.x, y: c.y, kind: k, life: 0.6 });
+      var c = tg ? L.center(tg) : w; S.marks.push({ x: c.x, y: c.y, kind: k === 'plant' ? 'attack' : k, life: 0.6 });
       beep(k === 'attack' ? 300 : 520, 0.035, k === 'attack' ? 'sawtooth' : 'triangle');
     },
     onPan: function (dx, dy) { S.cam.x += dx; S.cam.y += dy; clampCam(); },
@@ -165,6 +182,12 @@
   function singleOwnBld() { if (S.sel.size !== 1) return null; var e = S.W.byId[S.sel.values().next().value]; return e && e.kind === 'bld' && e.owner === 0 ? e : null; }
   function ack() { beep(880, 0.025, 'triangle'); }
   function tryPlace() {
+    if (S.placing.van) {
+      var pv = S.placing; updatePlacing(mouse.pos);
+      if (pv.ok && L.commandDeploy(S.W, pv.van, pv.tx, pv.ty)) { S.marks.push({ x: pv.tx + 1, y: pv.ty + 1, kind: 'move', life: 0.6 }); S.placing = null; beep(520, 0.05, 'triangle'); }
+      else { msg(g.t(L.BLDS[pv.type].rate ? 'msgCantDeployRig' : 'msgCantDeploy'), 'bad'); beep(150, 0.08, 'square'); }
+      return;
+    }
     var b = L.placeBuild(S.W, 0, S.placing.tx, S.placing.ty);
     if (b) { S.placing = null; beep(440, 0.08, 'triangle'); beep(660, 0.08, 'triangle'); msg(g.t('msgPlaced') + ': ' + g.t(b.type), 'good');
       if (b.type === 'palisade' && keyShift && CMP.allowed(S.W, 'palisade')) L.startBuild(S.W, 0, 'palisade'); } // Shift — ставить частокол цепочкой
@@ -174,6 +197,7 @@
     var p = mouse.pos; S.hover = null; S.panelHover = null;
     if (!playing() || !mouse.inside) return;
     if (R.groupAt(p.x, p.y)) { mouse.setCursor('panel'); return; }
+    var pkh = R.packBtn(S); if (pkh && !inView(p) && p.x >= pkh.x && p.x < pkh.x + pkh.w && p.y >= pkh.y && p.y < pkh.y + pkh.h) { S.panelHover = pkh.b; mouse.setCursor('panel'); return; }
     var rbh = R.repairBtn(S); if (rbh && !inView(p) && p.x >= rbh.x && p.x < rbh.x + rbh.w && p.y >= rbh.y && p.y < rbh.y + rbh.h) { S.panelHover = rbh.b; mouse.setCursor('panel'); return; }
     if (!inView(p)) { var b = R.buttonAt(p.x, p.y, S) || CU.panelAt(S, p); S.panelHover = b && b.type ? b : null; mouse.setCursor(S.targeting && inMinimap(p) ? 'flare' : b || inMinimap(p) ? 'panel' : 'normal'); return; }
     if (S.placing) { mouse.setCursor('place'); return; }
@@ -183,7 +207,7 @@
     if (e && e.owner === 0 && e.kind === 'unit') { mouse.setCursor('select'); return; }
     var k = L.smartKind(S.W, 0, us, w.x, w.y, e);
     if (e && e.owner === 0 && e.kind === 'bld' && k === 'deny') { mouse.setCursor('select'); return; }
-    mouse.setCursor(k === 'attack' ? 'attack' : k === 'harvest' || k === 'return' ? 'harvest' : k === 'deny' ? 'deny' : 'move');
+    mouse.setCursor(k === 'attack' || k === 'plant' ? 'attack' : k === 'harvest' || k === 'return' ? 'harvest' : k === 'deny' ? 'deny' : 'move');
   }
 
   // ---------- группы ----------
@@ -223,6 +247,7 @@
     }
     if (e.code === 'KeyH') { var hq = L.has(S.W, 0, 'hq'); if (hq) centerOn(hq.tx + 1.5, hq.ty + 1.5); }
     if (e.code === 'KeyX') { L.stopUnits(S.W, ownSel()); }
+    if (e.code === 'KeyF' && S.sel.size === 1 && !e.ctrlKey && !e.metaKey) { packOrDeploy(S.W.byId[S.sel.values().next().value]); e.preventDefault(); }
   }, true);
 
   // ---------- события мира → звук и сообщения ----------
@@ -238,6 +263,15 @@
       else if (ev.t === 'wave' && ev.owner === 1) { msg(g.t('msgWave'), 'bad'); beep(220, 0.2, 'square'); }
       else if (ev.t === 'repaired' && ev.owner === 0) { var rb2 = W.byId[ev.id]; msg(g.t('msgRepaired') + (rb2 ? ': ' + g.t(rb2.type) : ''), 'good'); }
       else if (ev.t === 'repairStop' && ev.owner === 0) msg(g.t('msgRepairStop'), 'warn');
+      else if (ev.t === 'planted') { if (ev.owner === 0) { msg(g.t('msgPlanted'), 'good'); beep(300, 0.05, 'square'); } else if (ev.victim === 0) { msg(g.t('msgChargeOnUs') + ' (' + g.t(ev.type) + ')', 'bad'); beep(220, 0.2, 'square'); beep(330, 0.12, 'square'); } }
+      else if (ev.t === 'defused' && ev.owner === 0) { msg(g.t('msgDefused'), 'good'); beep(880, 0.06, 'triangle'); }
+      else if (ev.t === 'blast') { msg(g.t(ev.victim === 0 ? 'msgBlastOurs' : 'msgBlastTheirs') + ': ' + g.t(ev.type), ev.victim === 0 ? 'bad' : 'good'); beep(60, 0.5, 'sawtooth', 0.12); }
+      else if (ev.t === 'deployed' && ev.owner === 0) { msg(g.t('msgDeployed') + ': ' + g.t(ev.type), 'good'); beep(440, 0.08, 'triangle'); }
+      else if (ev.t === 'setupDone' && ev.owner === 0) { var sb2 = W.byId[ev.id]; msg(g.t('msgSetupDone') + (sb2 ? ': ' + g.t(sb2.type) : ''), 'good'); }
+      else if (ev.t === 'deployFail' && ev.owner === 0) msg(g.t('msgDeployFail'), 'bad');
+      else if (ev.t === 'dry' && ev.owner === 0) msg(g.t('msgDry'), 'warn');
+      else if (ev.t === 'raid' && ev.owner === 1) { msg(g.t('msgRaid'), 'bad'); beep(220, 0.2, 'square'); }
+      else if (ev.t === 'geyser' && seen(ev.x, ev.y)) beep(90, 0.5, 'sawtooth', 0.06);
       if (ev.t === 'shot' && nearOurs(W, ev.x, ev.y)) fightT = W.time;
     });
     if (W.mission) CU.drain(S);
@@ -280,7 +314,7 @@
       if (W.winner < 0) { acc += dt; var n = 0; while (acc >= STEP && n++ < 6) { acc -= STEP; if (W.mission) CMP.tick(W, STEP); else L.step(W, STEP); } if (n >= 6) acc = 0; }
       if (W.mission) CU.update(S);
       S.sel.forEach(function (id) { if (!W.byId[id]) S.sel.delete(id); });
-      if (S.placing && !(W.players[0].build && W.players[0].build.ready)) S.placing = null;
+      if (S.placing && (S.placing.van ? !W.byId[S.placing.van] : !(W.players[0].build && W.players[0].build.ready))) S.placing = null;
       if (S.placing) updatePlacing(mouse.pos);
       drainEvents(); musicBattle(W);
       for (var i = S.marks.length - 1; i >= 0; i--) { S.marks[i].life -= dt; if (S.marks[i].life <= 0) S.marks.splice(i, 1); }

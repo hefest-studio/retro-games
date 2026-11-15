@@ -46,6 +46,10 @@
     else if (kind === 'convoy') { c.fillStyle = pl.own[1]; c.fillRect(3, 9, 15, 7); c.fillStyle = pl.ore; c.fillRect(5, 6, 10, 4); c.strokeStyle = pl.ink; c.beginPath(); c.moveTo(2, 19); c.lineTo(19, 19); c.quadraticCurveTo(23, 19, 22, 15); c.stroke(); }
     else if (kind === 'foe') { c.fillStyle = pl.own[1]; c.beginPath(); c.moveTo(12, 3); c.lineTo(21, 20); c.lineTo(3, 20); c.closePath(); c.fill(); c.fillStyle = pl.panel; c.fillRect(11, 8, 2, 7); c.fillRect(11, 16, 2, 2); }
     else if (kind === 'flag') { c.fillStyle = pl.own[0]; c.fillRect(6, 3, 2, 18); c.fillRect(8, 3, 11, 7); }
+    else if (kind === 'geyser') { c.fillStyle = pl.rockLo; c.beginPath(); c.ellipse(12, 19, 8, 3, 0, 0, 7); c.fill(); c.fillStyle = '#eef3f6'; [[12, 13, 4], [9, 8, 3.5], [14, 5, 3]].forEach(function (q) { c.beginPath(); c.arc(q[0], q[1], q[2], 0, 7); c.fill(); }); }
+    else if (kind === 'charge') { c.fillStyle = pl.roof; c.fillRect(5, 9, 14, 11); c.fillStyle = pl.bad; c.fillRect(7, 11, 10, 3); c.strokeStyle = pl.warn; c.beginPath(); c.moveTo(12, 9); c.quadraticCurveTo(14, 4, 19, 3); c.stroke(); }
+    else if (kind === 'pit') { c.fillStyle = '#ff7a2e'; c.beginPath(); c.ellipse(12, 13, 10, 7, 0, 0, 7); c.fill(); c.fillStyle = '#1c1512'; c.beginPath(); c.ellipse(12, 13, 7.5, 5, 0, 0, 7); c.fill(); }
+    else if (kind === 'van') { c.fillStyle = pl.ownDk[0]; c.fillRect(2, 8, 20, 10); c.fillStyle = pl.wall; c.fillRect(4, 10, 16, 6); c.fillStyle = pl.roof; c.beginPath(); c.moveTo(7, 15); c.lineTo(12, 10); c.lineTo(17, 15); c.closePath(); c.fill(); c.fillStyle = pl.tread; c.fillRect(3, 18, 6, 3); c.fillRect(15, 18, 6, 3); }
     c.restore();
   }
   function star(c, x, y, r, filled, pl) {
@@ -158,7 +162,7 @@
     var ox = x + (maxW - map.w * s) / 2, oy = y;
     for (var j = 0; j < map.h; j++) for (var i = 0; i < map.w; i++) {
       var k = j * map.w + i, t = map.t[k];
-      c.fillStyle = t === L.ROCK ? pl.rock : t === L.WATER ? pl.water : t === L.ICE ? gp.ice : t === L.OPEN ? gp.open : map.ore[k] ? pl.ore : ((i + j) % 2 ? gp.g1 : gp.g2);
+      c.fillStyle = t === L.ROCK ? pl.rock : t === L.WATER ? pl.water : t === L.ICE ? gp.ice : t === L.OPEN ? gp.open : t === L.PIT ? gp.pitHi : t === L.BRIDGE ? pl.roofHi : map.ore[k] ? pl.ore : t === L.SHAKY ? gp.shaky : ((i + j) % 2 ? gp.g1 : gp.g2);
       c.fillRect(ox + i * s, oy + j * s, Math.ceil(s), Math.ceil(s));
     }
     c.strokeStyle = pl.line; c.lineWidth = 2; c.strokeRect(ox - 1, oy - 1, map.w * s + 2, map.h * s + 2);
@@ -302,6 +306,9 @@
       else if (e.t === 'obj') { var o = MS.byObj[e.id]; if (e.state === 'done') { host.msg('✓ ' + g.t('msgObjDone') + ': ' + tx(o.def.text), 'good'); g.audio.beep(880, 0.07, 'triangle'); g.audio.beep(1320, 0.1, 'triangle'); } else if (e.state === 'active' && W.time > 1) { host.msg(g.t('msgObj') + ': ' + tx(o.def.text), 'warn'); g.audio.beep(660, 0.06); } }
       else if (e.t === 'heroDown') host.msg(g.t(e.who) + ' — ' + g.t('msgHeroDown'), 'bad');
       else if (e.t === 'night') host.msg(g.t('msgNight'), 'warn');
+      else if (e.t === 'quake') { host.msg(g.t('msgQuake'), 'bad'); g.audio.beep(70, 0.6, 'sawtooth', 0.1); }
+      else if (e.t === 'creak') host.msg(g.t(e.type) + ' ' + g.t('msgCreak'), 'warn');
+      else if (e.t === 'geyserWarn') { var gz = MS.geys[e.id], gp2 = gz && C.pointOf(MS, gz.def.at); if (gp2 && W.units.some(function (u) { return u.owner === 0 && Math.hypot(u.x - gp2.x, u.y - gp2.y) < (gz.def.r || 2.2) + 1.5; })) host.msg(g.t('msgGeyser'), 'warn'); }
       else if (e.t === 'halt' && MS.groups[e.tag] && MS.groups[e.tag].owner === 0) host.msg(g.t(e.on ? 'msgHalt' : 'msgGo'), e.on ? 'warn' : 'good');
     });
     MS.ui.length = 0;
@@ -316,6 +323,8 @@
   function objLabel(W, ob) {
     var s = tx(ob.def.text), cnt = ob.def.count;
     if (cnt && ob.state === 'active' && cnt.t === 'trained') s += ' (' + Math.min(cnt.n, W.players[0].trained[cnt.type] || 0) + '/' + cnt.n + ')';
+    if (cnt && ob.state === 'active' && cnt.t === 'time') s += ' · ' + fmtTime(Math.max(0, cnt.gte - W.time)); // обратный отсчёт
+    if (cnt && ob.state === 'active' && cnt.t === 'zone') { var own = W.units.filter(function (u) { return u.owner === 0; }), inside = own.filter(function (u) { return C.inZone(W.mission, cnt.zone, u.x, u.y); }).length, need = cnt.all ? own.length : cnt.n; s += ' (' + Math.min(need, inside) + '/' + need + ')'; }
     return s;
   }
   function hintZone(W) { var ob = W.mission.objs.find(function (o) { return o.state === 'active' && o.def.hint && (o.def.hint.zone || o.def.hint.zones); }); return ob ? ob.def.hint.zone || ob.def.hint.zones : null; }
@@ -324,6 +333,26 @@
   function worldOverlay(c, pl, now) {
     var W = this.W, MS = W.mission;
     W.flares.forEach(function (f) { var k = f.t / f.max; c.strokeStyle = pl.warn; c.lineWidth = 2; c.globalAlpha = 0.25 + 0.5 * k; c.setLineDash([6, 5]); c.beginPath(); c.arc(f.x * T, f.y * T, f.r * T * (0.96 + 0.04 * Math.sin(now * 6)), 0, 7); c.stroke(); c.setLineDash([]); c.fillStyle = pl.warn; c.beginPath(); c.arc(f.x * T, f.y * T, 4 + 2 * Math.sin(now * 10), 0, 7); c.fill(); c.globalAlpha = 1; });
+    // предупреждение о провале: мигающие клетки зоны
+    MS.warn.forEach(function (wz) {
+      var a = 0.18 + 0.22 * (0.5 + 0.5 * Math.sin(now * 9)); c.fillStyle = pl.bad; c.globalAlpha = a;
+      wz.cells.forEach(function (k) { if (!W.vis[k]) return; var i = k % W.w, j = (k / W.w) | 0; c.fillRect(i * T + 1, j * T + 1, T - 2, T - 2); });
+      c.globalAlpha = 1; var zc = C.zoneCenter(MS, wz.zone), lt = '⚠ ' + Math.ceil(wz.t);
+      c.font = '900 14px ' + pl.font; var lw = c.measureText(lt).width + 12; c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(zc.x * T - lw / 2, zc.y * T - 11, lw, 19);
+      R.txt(c, lt, zc.x * T, zc.y * T + 4, { color: pl.bad, font: pl.font, size: 14, weight: 900, align: 'center' });
+    });
+    // гейзеры: жерло, перед выбросом — пульсирующий круг, выброс — столб пара
+    Object.keys(MS.geys).forEach(function (id) {
+      var gz = MS.geys[id], p = C.pointOf(MS, gz.def.at), r = (gz.def.r || 2.2) * T, k = Math.floor(p.y) * W.w + Math.floor(p.x); if (!W.vis[k]) return;
+      c.fillStyle = pl.pixel ? '#000' : 'rgba(20,14,10,0.75)'; c.beginPath(); c.ellipse(p.x * T, p.y * T, 10, 6, 0, 0, 7); c.fill();
+      c.strokeStyle = gz.on ? '#ff7a2e' : pl.muted; c.lineWidth = 2; c.beginPath(); c.ellipse(p.x * T, p.y * T, 10, 6, 0, 0, 7); c.stroke();
+      if (gz.on && !gz.warn && Math.sin(now * 3 + p.x) > 0.3) { c.fillStyle = pl.steam + '0.35)'; c.beginPath(); c.arc(p.x * T + 2, p.y * T - 9, 5, 0, 7); c.fill(); }
+      if (gz.warn) { c.strokeStyle = pl.warn; c.lineWidth = 2.5; c.globalAlpha = 0.5 + 0.5 * Math.sin(now * 14); c.setLineDash([6, 5]); c.beginPath(); c.arc(p.x * T, p.y * T, r, 0, 7); c.stroke(); c.setLineDash([]); c.globalAlpha = 1; R.txt(c, '!', p.x * T, p.y * T - 12, { color: pl.warn, font: pl.font, size: 16, weight: 900, align: 'center' }); }
+      var bt = now - gz.burst;
+      if (bt >= 0 && bt < 1.8) { var kk = bt / 1.8; c.fillStyle = pl.pixel ? '#ffffff' : 'rgba(238,243,246,' + (0.85 * (1 - kk)).toFixed(3) + ')'; c.globalAlpha = pl.pixel ? 1 - kk : 1;
+        for (var q = 0; q < 7; q++) { var hh = q * 9 + kk * 26, rr = 6 + q * 2.4 + kk * 14; c.beginPath(); c.arc(p.x * T + Math.sin(q * 1.7) * 6, p.y * T - hh, rr, 0, 7); c.fill(); }
+        c.globalAlpha = 0.3 * (1 - kk); c.beginPath(); c.arc(p.x * T, p.y * T, r * (0.6 + kk * 0.4), 0, 7); c.fill(); c.globalAlpha = 1; }
+    });
     // подсказка цели: круг (или несколько — развилка), у зоны может быть подпись zone.label {ru,en}
     var zs = hintZone(W); if (zs && !Array.isArray(zs)) zs = [zs];
     (zs || []).forEach(function (z) {
@@ -367,6 +396,18 @@
         c.globalAlpha = 1;
       });
     }
+    // гонка за жилой: добыча обеих сторон до цели (def.race.goal)
+    if (MS.def.race) {
+      var goal = MS.def.race.goal, rx = LY.W - 308, ry = 30, rw = 300; // справа, под кнопками групп (слева — цели)
+      c.fillStyle = 'rgba(0,0,0,0.62)'; c.fillRect(rx, ry, rw, 40);
+      R.txt(c, g.t('raceT').toUpperCase() + ' · ' + goal, rx + rw / 2, ry + 11, { color: pl.muted, font: f, size: 9, weight: 800, align: 'center' });
+      [0, 1].forEach(function (o, i) {
+        var m = Math.min(goal, Math.floor(W.players[o].mined)), y = ry + 16 + i * 12;
+        R.txt(c, g.t(o ? 'raceThem' : 'raceUs'), rx + 6, y + 8, { color: pl.own[o], font: f, size: 10, weight: 800 });
+        c.fillStyle = pl.line; c.fillRect(rx + 70, y + 1, 170, 8); c.fillStyle = pl.own[o]; c.fillRect(rx + 70, y + 1, 170 * m / goal, 8);
+        R.txt(c, String(m), rx + rw - 6, y + 9, { color: pl.ink, font: f, size: 11, weight: 800, align: 'right' });
+      });
+    }
     // реплика героя
     if (S.say) {
       var line = tx(S.say.text), name = S.say.who === 'foe' ? g.t('foeVoice') : g.t(S.say.who), a = Math.min(1, S.say.life * 2);
@@ -401,8 +442,9 @@
     S.noEco = !Object.keys(S.W.mission.allow).length; // без базы — без строки меди и пара
     var def = S.W.mission.def; S.idleTitle = g.t('mission') + ' ' + def.n + ': ' + tx(def.title); S.idleSub = tipHeroes(S.W.mission) || '';
     S.say = null; S.sayQ = []; S.targeting = null; S.stormWas = null; S.lastT = null;
+    S.msgY = def.race ? 92 : 44; // сообщения — ниже счётчика гонки
   };
-  UI.detach = function (S) { ['worldOverlay', 'viewOverlay', 'hudOverlay', 'btnAllowed', 'btnHidden', 'noEco', 'idleTitle', 'idleSub', 'say', 'targeting'].forEach(function (k) { delete S[k]; }); };
+  UI.detach = function (S) { ['worldOverlay', 'viewOverlay', 'hudOverlay', 'btnAllowed', 'btnHidden', 'noEco', 'idleTitle', 'idleSub', 'say', 'targeting', 'msgY'].forEach(function (k) { delete S[k]; }); };
   UI.finish = function (W) {
     var res = W.mission.result || C.result(W); lastRes = res;
     UI.data = C.applyResult(C.load(store), res); persist();

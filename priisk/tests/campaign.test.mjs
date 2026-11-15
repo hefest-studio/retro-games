@@ -288,4 +288,89 @@ test('мост (клетка «:»): проходим, tiles превращае�
   eq(W.t[4 * W.w + 22], L.BRIDGE); ok(L.walkable(L.BRIDGE)); C.act(W, { a: 'tiles', zone: 'br', from: ':', to: '_' }); eq(W.t[4 * W.w + 22], L.OPEN);
 });
 
+// ---------- общий код для миссий 5–6 полной версии (бур и вышка, заряды, договор, ИИ гонки, перенос зданий, подземный жар) ----------
+const HEAT_MAP = [
+  '##############################',
+  '#S.........,,,,..........OOO.#',
+  '#..........,,,,..........OOO.#',
+  '#....H.....,11,..........OOO.#',
+  '#..........,11,..............#',
+  '#..........,,,,......g.....K.#',
+  '#....OOO.......^.............#',
+  '#....OOO.....................#',
+  '#....OOO.....................#',
+  '##############################'];
+function heatDef(extra = {}) {
+  return Object.assign({ id: 'th', n: 97, title: 'т', brief: 'т', map: HEAT_MAP, legend: { '1': ',' },
+    zones: { stage1: { pts: ['1'] }, mid: { x: 11, y: 1, w: 4, h: 5 } }, treaty: true, race: { goal: 500 }, shaky: { dmg: 0.01 },
+    geysers: { g: { at: 'g', r: 2, period: 10, warn: 3, dmg: 30 } },
+    player: { copper: 2000, build: ['boiler', 'bunk', 'works'], units: ['rifleman', 'sapper', 'drill'], pack: true, start: [{ type: 'hq', at: 'H' }, { type: 'drill', at: 'S' }, { type: 'sapper', at: 'S' }, { type: 'rifleman', at: 'S', n: 2 }] },
+    enemy: { copper: 2000, start: [{ type: 'hq', at: 'K', tag: 'kontora' }] },
+    objectives: [{ id: 'x', icon: 'eye', text: 'т', done: { t: 'mined', gte: 500 } }], triggers: [] }, extra);
+}
+test('подземный жар (общий код): «,» — зыбкий грунт (проходим, строить нельзя, здания трещат), «^» — провал (непроходим); зона-точки pts', () => {
+  const m = C.parseMap(['#.,^#'], {}); eq([...m.t], [L.ROCK, L.GROUND, L.SHAKY, L.PIT, L.ROCK]);
+  ok(L.walkable(L.SHAKY) && !L.walkable(L.PIT), 'проходимость');
+  const W = C.build(heatDef()); ok(!L.canPlace(W, 0, 'boiler', 11, 1) && !L.canDeploy(W, 0, 'boiler', 11, 1), 'на зыбком строится');
+  eq(C.zoneCells(W, W.mission, 'stage1').length, 4); ok(C.inZone(W.mission, 'stage1', 12.5, 3.5) && !C.inZone(W.mission, 'stage1', 11.5, 3.5), 'inZone pts');
+  // здание на зыбком трещит; провал под ним — гибнет
+  const b = L.addBuilding(W, 0, 'boiler', 12, 3), h0 = b.hp; tickN(W, 3); ok(b.shaky && b.hp < h0 - 10, 'не трещит: ' + b.hp);
+  C.act(W, { a: 'quake', zone: 'stage1', s: 2 }); eq(W.mission.warn.length, 1); tickN(W, 2.2); eq(W.mission.warn.length, 0, 'предупреждение не гаснет');
+  C.act(W, { a: 'tiles', zone: 'stage1', to: '^' }); tickN(W, 0.1); ok(!W.byId[b.id] && W.players[0].lostB === 1, 'здание над провалом цело');
+});
+test('гейзер (общий код): предупреждение за warn с, выброс бьёт по области; burst — сценарный удар сразу', () => {
+  const W = C.build(heatDef()), MS = W.mission, g = MS.geys.g, p = C.pointOf(MS, 'g'), u = L.addUnit(W, 0, 'rifleman', p.x + 1, p.y);
+  let warnAt = -1, burstAt = -1; tickN(W, 12, 1 / 30, () => { if (g.warn && warnAt < 0) warnAt = W.time; if (g.n && burstAt < 0) burstAt = W.time; return g.n > 0; });
+  ok(warnAt > 0 && burstAt - warnAt > 2.5 && burstAt - warnAt < 3.5, 'предупреждение: ' + warnAt + ' → ' + burstAt); ok(u.hp <= 31, 'урон: ' + u.hp);
+  C.act(W, { a: 'geyser', id: 'g', on: false }); const n0 = g.n; tickN(W, 12); eq(g.n, n0, 'выключенный бьёт');
+  C.act(W, { a: 'geyser', id: 'g', burst: true }); ok(g.on); tickN(W, 3.5); eq(g.n, n0 + 1, 'burst не ударил сразу');
+});
+test('бур и буровая вышка (общий код): разворот только на богатой жиле, качает медь сама, шумит (видно сквозь туман), сворачивается обратно в бур', () => {
+  const W = C.build(heatDef()), d = W.units.find(u => u.type === 'drill'), pl = W.players[0];
+  ok(!L.canDeploy(W, 0, 'rig', 2, 1), 'вышка без жилы'); const at = L.deploySpot(W, 0, 'rig', 6, 7); ok(at, 'на жиле нет места');
+  L.commandDeploy(W, d.id, at.i, at.j); ok(tickN(W, 20, 1 / 30, () => W.blds.some(b => b.type === 'rig')), 'не развернулся');
+  const rig = W.blds.find(b => b.type === 'rig'); ok(rig.setup > 0); const m0 = pl.mined; tickN(W, L.SETUP + 5);
+  ok(pl.mined - m0 >= L.BLDS.rig.rate * 4, 'не качает: ' + (pl.mined - m0)); ok(C.cond(W, { t: 'mined', gte: 1 }));
+  const er = L.addBuilding(W, 1, 'rig', 25, 1); W.vis.fill(0); L.updateVis(W); ok(L.visibleTo0(W, er), 'чужую вышку не слышно');
+  const back = L.pack(W, rig); ok(back && back.type === 'drill' && !W.byId[rig.id], 'вышка не свернулась в бур');
+  eq(L.BUILD_LIST.concat(L.UNIT_LIST).filter(t => t === 'rig' || t === 'drill' || t === 'sapper').length, 0, 'попало в скирмиш');
+});
+test('заряды (общий код): подрывник закладывает заряд с таймером, взрыв сносит вышку; свои рядом — обезвреживают; Контору заряжать нельзя', () => {
+  const W = C.build(heatDef()), er = L.addBuilding(W, 1, 'rig', 25, 1), sp = W.units.find(u => u.type === 'sapper'), hq1 = L.has(W, 1, 'hq');
+  ok(!L.canPlantOn(W, hq1), 'Контору можно заряжать'); eq(L.smartKind(W, 0, [sp.id], 26, 2, er), 'plant');
+  sp.x = 23.5; sp.y = 2.5; L.commandPlant(W, [sp.id], er.id); ok(tickN(W, 6, 1 / 30, () => W.charges.length > 0), 'не заложил'); eq(W.charges[0].target, er.id);
+  ok(tickN(W, L.CHARGE.timer + 1, 1 / 30, () => !W.byId[er.id]), 'не взорвалось'); ok(C.cond(W, { t: 'razed', owner: 1, type: 'rig' }), 'razed');
+  const er2 = L.addBuilding(W, 1, 'rig', 25, 1), guard = L.addUnit(W, 1, 'rifleman', 25, 3.5); guard.order = { t: 'idle' }; guard.calm = true;
+  sp.x = 24; sp.y = 1.5; L.commandPlant(W, [sp.id], er2.id); ok(tickN(W, 4, 1 / 30, () => W.charges.length > 0), 'второй не заложил');
+  ok(tickN(W, 4, 1 / 30, () => !W.charges.length), 'охрана не обезвредила'); ok(W.byId[er2.id], 'взорвалось при охране');
+});
+test('договор и мирные (общий код): по зданиям пули не берут и сами по ним не стреляют, выстрел засчитан (hit); calm — не стреляют и по ним не стреляют', () => {
+  const W = C.build(heatDef()), hq1 = L.has(W, 1, 'hq'), r = W.units.find(u => u.type === 'rifleman');
+  r.x = hq1.tx - 2; r.y = hq1.ty + 1; r.order = { t: 'idle' }; tickN(W, 2); eq(W.hits['0:kontora'] || 0, 0, 'сам стреляет по зданию');
+  L.commandAttack(W, [r.id], hq1.id); tickN(W, 2); ok(C.cond(W, { t: 'hit', by: 0, tag: 'kontora' }) && hq1.hp === hq1.maxHp, 'по договору пробил / не засчитал');
+  const S = C.build(heatDef({ treaty: false })), h2 = L.has(S, 1, 'hq'), r2 = S.units.find(u => u.type === 'rifleman'); L.commandAttack(S, [r2.id], h2.id); r2.x = h2.tx - 2; r2.y = h2.ty + 1; tickN(S, 2); ok(h2.hp < h2.maxHp, 'без договора не пробивает');
+  const c = L.addUnit(W, 1, 'rifleman', r.x, r.y + 1.5); c.calm = true; c.order = { t: 'idle' }; r.order = { t: 'idle' }; tickN(W, 3); ok(c.hp === c.maxHp && r.hp === r.maxHp, 'мирный в бою');
+});
+test('перенос зданий (общий код): свернуть → фургон (не работает, Контора жива) → развернуть где угодно на твёрдом → сборка → работает; фургон разбит — потеря здания', () => {
+  const W = C.build(heatDef()), pl = W.players[0], b = L.addBuilding(W, 0, 'boiler', 7, 2); L.calcPower(W); const p0 = pl.pOut;
+  ok(L.canPack(W, b)); const v = L.pack(W, b); ok(v.type === 'van' && v.packed.type === 'boiler' && pl.pOut === p0 - 20, 'фургон / пар');
+  ok(L.canDeploy(W, 0, 'boiler', 20, 6) && !L.canPlace(W, 0, 'boiler', 20, 6), 'разворот не «где угодно»');
+  L.commandDeploy(W, v.id, 20, 6); ok(tickN(W, 30, 1 / 30, () => !!L.has(W, 0, 'boiler')), 'не развернулся'); const nb = L.has(W, 0, 'boiler');
+  eq(pl.pOut, p0 - 20, 'в сборке даёт пар'); tickN(W, L.SETUP + 0.3); eq(pl.pOut, p0, 'после сборки нет пара');
+  const hv = L.pack(W, L.has(W, 0, 'hq')); ok(L.hqAlive(W, 0) && !L.has(W, 0, 'hq')); tickN(W, 1); eq(W.winner, -1, 'Контора в фургоне — поражение');
+  const v2 = L.pack(W, nb); v2.hp = 0; tickN(W, 0.1); eq(pl.lostB, 1, 'разбитый фургон — не потеря здания');
+  hv.hp = 0; tickN(W, 0.1); eq(W.winner, 1, 'разбили фургон с Конторой — не поражение');
+  const S = C.build(heatDef({ player: Object.assign({}, heatDef().player, { pack: false }) })); ok(!L.canPack(S, L.has(S, 0, 'hq')), 'перенос без разрешения миссии');
+});
+test('ИИ гонки (общий код): ставит бур на свою жилу, держит охрану, ходит в набег подрывниками на вышку соперника, Контору не трогает', () => {
+  const W = C.build(heatDef({ enemy: { copper: 3000, start: [{ type: 'hq', at: 'K', tag: 'kontora' }] } }));
+  L.addBuilding(W, 1, 'boiler', 22, 7); L.addBuilding(W, 1, 'bunk', 19, 7); L.addBuilding(W, 1, 'works', 17, 1);
+  C.act(W, { a: 'ai', mode: 'race', spots: [{ x: 26.5, y: 2.5 }], rigs: 1, haulers: 0, sappers: 2, escort: 1, guards: 1, first: 5, every: 40 });
+  ok(W.ai && W.ai.race, 'ИИ гонки не включился'); eq(W.ai.spots.length, 1);
+  const d = W.units.find(u => u.type === 'drill'), at = L.deploySpot(W, 0, 'rig', 6, 7); d.x = at.i + 1; d.y = at.j + 1; L.deployNow(W, d, at.i, at.j);
+  let planted = 0; tickN(W, 120, 1 / 30, () => { if (W.charges.some(c => c.owner === 1)) planted++; return false; });
+  ok(W.blds.some(b => b.owner === 1 && b.type === 'rig'), 'ИИ не поставил вышку'); ok(W.ai.raids > 0 && planted > 0, 'набега с зарядом не было');
+  ok(W.units.some(u => u.owner === 1 && u.type === 'rifleman'), 'нет охраны'); eq(W.hits['1:kontora'] || 0, 0);
+});
+
 await runAll();

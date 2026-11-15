@@ -8,9 +8,10 @@
   var P = root.PRIISK = root.PRIISK || {};
 
   // Клетки: земля, скала, вода (замёрзшее озеро — непроходимо), лёд (проходим, может треснуть), полынья (открытая вода),
-  // мост (проходим, может быть взорван — кампания).
-  var GROUND = 0, ROCK = 1, WATER = 2, ICE = 3, OPEN = 4, BRIDGE = 5;
-  function walkable(t) { return t === GROUND || t === ICE || t === BRIDGE; }
+  // мост (проходим, может быть взорван — кампания), провал (яма подземного жара — непроходима), зыбкий грунт (проходим,
+  // но строить нельзя, а стоящие на нём здания трещат — кампания).
+  var GROUND = 0, ROCK = 1, WATER = 2, ICE = 3, OPEN = 4, BRIDGE = 5, PIT = 6, SHAKY = 7;
+  function walkable(t) { return t === GROUND || t === ICE || t === BRIDGE || t === SHAKY; }
   var UNITS = {
     rifleman:  { hp: 60,  speed: 1.7, range: 3.6, dmg: 9,  cd: 0.8, weapon: 'gun',   cost: 100, time: 5,  sight: 5,   r: 0.3,  cls: 'inf', from: 'bunk' },
     crawler:   { hp: 240, speed: 2.7, range: 4.6, dmg: 24, cd: 1.1, weapon: 'shell', cost: 400, time: 9,  sight: 6,   r: 0.42, cls: 'veh', from: 'works' },
@@ -23,7 +24,12 @@
     sava:      { hp: 210, speed: 1.8, range: 3.4, dmg: 7,  cd: 0.9, weapon: 'gun',   cost: 0,   time: 0,  sight: 5.5, r: 0.32, cls: 'inf', hero: true },
     // сценарная техника кампании (не строится): паровой тягач и прицепные вагоны (u.tow — за кем едет вагон)
     tractor:   { hp: 900, speed: 1.1, range: 0,   dmg: 0,  cd: 0,   weapon: null,    cost: 0,   time: 0,  sight: 5,   r: 0.5,  cls: 'veh' },
-    wagon:     { hp: 420, speed: 1.6, range: 0,   dmg: 0,  cd: 0,   weapon: null,    cost: 0,   time: 0,  sight: 3,   r: 0.45, cls: 'veh' }
+    wagon:     { hp: 420, speed: 1.6, range: 0,   dmg: 0,  cd: 0,   weapon: null,    cost: 0,   time: 0,  sight: 3,   r: 0.45, cls: 'veh' },
+    // кампания (в скирмише не открыты): подрывник — закладывает заряд с таймером под вышку/рудовоз соперника (без оружия);
+    // бур — самоходная буровая: на богатой жиле разворачивается в буровую вышку (packs: 'rig'); фургон — свёрнутое здание в пути
+    sapper:    { hp: 55,  speed: 2.0, range: 0,   dmg: 0,  cd: 0,   weapon: null,    cost: 150, time: 6,  sight: 5,   r: 0.3,  cls: 'inf', from: 'bunk', sapper: true },
+    drill:     { hp: 320, speed: 1.5, range: 0,   dmg: 0,  cd: 0,   weapon: null,    cost: 600, time: 12, sight: 4,   r: 0.46, cls: 'veh', from: 'works', packs: 'rig' },
+    van:       { hp: 520, speed: 1.35, range: 0,  dmg: 0,  cd: 0,   weapon: null,    cost: 0,   time: 0,  sight: 4,   r: 0.5,  cls: 'veh' }
   };
   // Способности героев: cry — «Клич» (аура ×2 на время), flare — «Метка» (открыть туман в точке на время).
   var HEROES = {
@@ -40,9 +46,19 @@
     // укрепления (кампания; в скирмише не открыты): частокол — дешёвая стенка 1×1, вышка — стрелковая точка 2×2.
     // fort — укрепление; gap — на сколько клеток от своих зданий можно ставить; minor — потеря не считается потерей здания
     palisade: { w: 1, h: 1, hp: 380, cost: 60, time: 2.5, power: 0, req: [], sight: 2, fort: true, gap: 7, minor: true },
-    tower:   { w: 2, h: 2, hp: 650,  cost: 260, time: 9,  power: 0,   req: ['bunk'],    sight: 7, fort: true, gap: 7, weapon: 'gun', range: 5.6, dmg: 11, cd: 0.75 }
+    tower:   { w: 2, h: 2, hp: 650,  cost: 260, time: 9,  power: 0,   req: ['bunk'],    sight: 7, fort: true, gap: 7, weapon: 'gun', range: 5.6, dmg: 11, cd: 0.75 },
+    // буровая вышка (кампания): не строится из панели — её разворачивает бур на богатой жиле; качает медь сама (rate в секунду
+    // из клеток под собой и вокруг, без рудовоза), но шумит (loud): сопернику её видно сквозь туман
+    rig:     { w: 2, h: 2, hp: 900,  cost: 0,   time: 0,  power: 0,   req: [],          sight: 3, rate: 4, loud: true, noPanel: true }
   };
   var FORT_LIST = ['palisade', 'tower'];
+  // Юниты кампании, которых нет в скирмише (кнопки — только если миссия их открыла)
+  var CAMP_UNITS = ['sapper', 'drill'];
+  // Заряд подрывника: таймер, урон цели, обезвреживание (свои юниты цели рядом с зарядом столько секунд)
+  var CHARGE = { plant: 1.5, timer: 10, dmg: 1000, splash: 1.4, splashDmg: 60, defuse: 2.5, defR: 1.4 };
+  var PLANTABLE = { rig: 1, drill: 1, hauler: 1, van: 1 };
+  // Перенос зданий: «свернуть» в фургон и «развернуть» на новом месте; после разворота здание setup секунд не работает
+  var SETUP = 5, NO_PACK = { palisade: 1 };
   // Ремонт зданий: REPAIR — доля прочности в секунду; цена — медь за единицу прочности (от стоимости здания)
   var REPAIR = 0.03;
   function repairPrice(type) { var d = BLDS[type]; return Math.max(0.15, d.cost / d.hp * 0.5); }
@@ -59,7 +75,7 @@
       w: w, h: h, t: new Uint8Array(w * h), ore: new Uint16Array(w * h), occ: new Int32Array(w * h),
       vis: new Uint8Array(w * h), units: [], blds: [], byId: Object.create(null), nextId: 1, time: 0,
       rng: mulberry32(seed || 1), fx: [], events: [], winner: -1, visT: 0, sightMul: 1, flares: [], mapRev: 0,
-      players: [newPlayer(0), newPlayer(1)], ai: null, oreMax: 0, hadHq: [false, false]
+      players: [newPlayer(0), newPlayer(1)], ai: null, oreMax: 0, hadHq: [false, false], charges: [], hits: Object.create(null)
     };
     return W;
   }
@@ -232,12 +248,12 @@
   }
 
   // ---------- Сущности ----------
-  function addBuilding(W, owner, type, tx, ty) {
+  function addBuilding(W, owner, type, tx, ty, noFree) {
     var d = BLDS[type], b = { id: W.nextId++, kind: 'bld', type: type, owner: owner, tx: tx, ty: ty, w: d.w, h: d.h, hp: d.hp, maxHp: d.hp, rally: null, hitT: -99, hitBy: 0 };
     for (var j = 0; j < d.h; j++) for (var i = 0; i < d.w; i++) W.occ[(ty + j) * W.w + tx + i] = b.id;
     W.blds.push(b); W.byId[b.id] = b; calcPower(W);
     if (type === 'hq') W.hadHq[owner] = true;
-    if (type === 'smelter') { // плавильня приходит со своим рудовозом
+    if (type === 'smelter' && !noFree) { // плавильня приходит со своим рудовозом
       var dock = dockOf(W, b), sp = nearestPassable(W, dock.i, dock.j + 1, 6, true) || dock;
       var u = addUnit(W, owner, 'hauler', sp.i + 0.5, sp.j + 0.5); u.order = { t: 'harvest', s: 'seek' };
     }
@@ -251,10 +267,14 @@
   }
   function calcPower(W) {
     for (var o = 0; o < 2; o++) { W.players[o].pOut = 0; W.players[o].pUse = 0; }
-    W.blds.forEach(function (b) { var p = BLDS[b.type].power, pl = W.players[b.owner]; if (p > 0) pl.pOut += p; else pl.pUse -= p; });
+    W.blds.forEach(function (b) { if (b.setup > 0) return; var p = BLDS[b.type].power, pl = W.players[b.owner]; if (p > 0) pl.pOut += p; else pl.pUse -= p; });
   }
   function powerFactor(W, o) { var p = W.players[o]; return p.pOut >= p.pUse ? 1 : LOW_POWER; }
   function has(W, o, type) { for (var n = 0; n < W.blds.length; n++) if (W.blds[n].owner === o && W.blds[n].type === type) return W.blds[n]; return null; }
+  // здание, которое сейчас работает (не в сборке после переноса)
+  function working(W, o, type) { for (var n = 0; n < W.blds.length; n++) { var b = W.blds[n]; if (b.owner === o && b.type === type && !(b.setup > 0)) return b; } return null; }
+  // Контора жива: стоит или едет свёрнутой в фургоне
+  function hqAlive(W, o) { if (has(W, o, 'hq')) return true; for (var n = 0; n < W.units.length; n++) { var u = W.units[n]; if (u.owner === o && u.packed && u.packed.type === 'hq' && u.hp > 0) return true; } return false; }
   function count(W, o, type) { var c = 0; W.blds.forEach(function (b) { if (b.owner === o && b.type === type) c++; }); W.units.forEach(function (u) { if (u.owner === o && u.type === type) c++; }); return c; }
   function reqMet(W, o, type) {
     if (!has(W, o, 'hq') && BLDS[type]) return false;
@@ -308,7 +328,7 @@
     if (p.build && !p.build.ready) { p.build.p += dt / BLDS[p.build.type].time * pf; if (p.build.p >= 1) { p.build.p = 1; p.build.ready = true; W.events.push({ t: 'ready', owner: o }); } }
     [['inf', 'infP', 'bunk'], ['veh', 'vehP', 'works']].forEach(function (q) {
       var list = p[q[0]]; if (!list.length) return;
-      var fac = has(W, o, q[2]); if (!fac) return;
+      var fac = working(W, o, q[2]); if (!fac) return;
       p[q[1]] += dt / UNITS[list[0]].time * pf;
       if (p[q[1]] >= 1) { p[q[1]] = 0; spawnFrom(W, fac, list.shift()); }
     });
@@ -370,6 +390,7 @@
     var us = liveUnits(W, ids).filter(function (u) { return u.owner === o; }); if (!us.length) return null;
     var i = Math.floor(x), j = Math.floor(y); if (!inb(W, i, j)) return 'deny';
     var armed = us.some(function (u) { return !!UNITS[u.type].weapon; }), haul = us.some(function (u) { return u.type === 'hauler'; });
+    if (target && target.owner !== o && us.some(function (u) { return UNITS[u.type].sapper; }) && canPlantOn(W, target)) return 'plant';
     if (target && target.owner !== o && armed) return 'attack';
     if (target && target.owner === o && target.type === 'smelter' && haul) return 'return';
     if (!target && W.ore[j * W.w + i] > 0 && haul) return 'harvest';
@@ -379,11 +400,20 @@
   }
   function commandSmart(W, o, ids, x, y, target) {
     var k = smartKind(W, o, ids, x, y, target);
-    if (k === 'attack') commandAttack(W, ids, target.id);
+    if (k === 'plant') commandPlant(W, ids, target.id);
+    else if (k === 'attack') commandAttack(W, ids, target.id);
     else if (k === 'return') commandReturn(W, ids, target.id);
     else if (k === 'harvest') commandHarvest(W, ids, Math.floor(x), Math.floor(y));
     else if (k === 'move') commandMove(W, ids, x, y);
     return k;
+  }
+  // Подрывники — закладывать заряд под цель; остальные выбранные (охрана) идут с ними в атаку-движение
+  function canPlantOn(W, e) { var pl = W.plantable || PLANTABLE; return !!e && alive(e) && !!pl[e.type] && !W.charges.some(function (c) { return c.target === e.id; }); }
+  function commandPlant(W, ids, targetId) {
+    var tg = W.byId[targetId]; if (!alive(tg)) return;
+    var rest = [], c = center(tg);
+    liveUnits(W, ids).forEach(function (u) { if (UNITS[u.type].sapper) { u.order = { t: 'plant', target: targetId, p: 0 }; u.path = []; u.repath = 0; } else rest.push(u.id); });
+    if (rest.length) commandMove(W, rest, c.x, c.y, true);
   }
   function stopUnits(W, ids) { liveUnits(W, ids).forEach(function (u) { u.path = []; u.order = { t: 'idle' }; }); }
 
@@ -412,11 +442,12 @@
     if (W.winner >= 0) return;
     W.time += dt;
     production(W, 0, dt); production(W, 1, dt);
-    if (W.ai) aiStep(W, dt);
+    if (W.ai) { if (W.ai.race) raceStep(W, dt); else aiStep(W, dt); }
     heroStep(W, dt);
     for (var n = 0; n < W.units.length; n++) unitStep(W, W.units[n], dt);
     for (n = 0; n < W.blds.length; n++) bldStep(W, W.blds[n], dt);
     separate(W, dt);
+    if (W.charges.length) chargeStep(W, dt);
     // смерти
     var dead = false;
     W.units = W.units.filter(function (u) { if (u.hp > 0) return true; kill(W, u); dead = true; return false; });
@@ -424,23 +455,26 @@
     if (dead) calcPower(W);
     for (n = W.fx.length - 1; n >= 0; n--) { W.fx[n].life -= dt; if (W.fx[n].life <= 0) W.fx.splice(n, 1); }
     W.visT -= dt; if (W.visT <= 0) { W.visT = 0.2; updateVis(W); }
-    if (W.hadHq[1] && !has(W, 1, 'hq')) W.winner = 0; else if (W.hadHq[0] && !has(W, 0, 'hq')) W.winner = 1;
+    if (W.hadHq[1] && !hqAlive(W, 1)) W.winner = 0; else if (W.hadHq[0] && !hqAlive(W, 0)) W.winner = 1;
     if (W.winner === 0) W.players[0].score += 1000 + Math.max(0, Math.round(1500 - W.time));
   }
   function kill(W, e) {
     delete W.byId[e.id];
     if (e.kind === 'bld') for (var j = 0; j < e.h; j++) for (var i = 0; i < e.w; i++) { var k = (e.ty + j) * W.w + e.tx + i; if (W.occ[k] === e.id) W.occ[k] = 0; }
     var c = center(e), val = e.kind === 'bld' ? Math.max(200, BLDS[e.type].cost) : UNITS[e.type].cost;
-    if (!(e.kind === 'bld' && BLDS[e.type].minor)) { W.players[e.owner].lost++; if (e.kind === 'bld') W.players[e.owner].lostB++; }
+    if (!(e.kind === 'bld' && BLDS[e.type].minor)) { W.players[e.owner].lost++; if (e.kind === 'bld' || e.packed) W.players[e.owner].lostB++; } // фургон со свёрнутым зданием — потеря здания
     var killer = e.hitBy && W.players[1 - e.owner]; if (killer) { killer.kills++; killer.score += Math.round(val / (e.kind === 'bld' ? 4 : 10)); }
     var ku = e.hitBy && W.byId[e.hitBy]; // ветеранство: 3 победы — звание (+20% урона, подлечился)
     if (ku && ku.kind === 'unit' && ku.owner !== e.owner) { ku.kills = (ku.kills || 0) + 1; if (ku.kills >= 3 && !ku.vet) { ku.vet = 1; ku.hp = Math.min(ku.maxHp, ku.hp + ku.maxHp * 0.2); W.events.push({ t: 'vet', owner: ku.owner, id: ku.id }); } }
     W.fx.push({ t: 'boom', x: c.x, y: c.y, life: 0.7, max: 0.7, big: e.kind === 'bld' || UNITS[e.type].cls === 'veh' });
-    W.events.push({ t: 'die', owner: e.owner, kind: e.kind, type: e.type, x: c.x, y: c.y, tag: e.tag || null, id: e.id });
+    W.events.push({ t: 'die', owner: e.owner, kind: e.kind, type: e.type, x: c.x, y: c.y, tag: e.tag || null, id: e.id, packed: e.packed ? e.packed.type : null });
   }
   function damage(W, attacker, tg) {
     var d = UNITS[attacker.type] || BLDS[attacker.type], cls = tg.kind === 'bld' ? 'bld' : UNITS[tg.type].cls;
-    tg.hp -= d.dmg * MULT[d.weapon][cls] * (0.9 + W.rng() * 0.2) * (attacker.bD || 1) * (attacker.vet ? 1.2 : 1);
+    if (tg.tag) { var hk = attacker.owner + ':' + tg.tag; W.hits[hk] = (W.hits[hk] || 0) + 1; } // кто по кому стрелял (условие hit кампании)
+    if (tg.calm && attacker.owner !== tg.owner) tg.calm = false; // по мирному выстрелили — он больше не мирный
+    // договор (W.treaty): здания пулей и снарядом не берутся (только заряд подрывника), но выстрел засчитывается в hits
+    if (!(W.treaty && tg.kind === 'bld')) tg.hp -= d.dmg * MULT[d.weapon][cls] * (0.9 + W.rng() * 0.2) * (attacker.bD || 1) * (attacker.vet ? 1.2 : 1);
     tg.hitT = W.time; tg.hitBy = attacker.id;
     var c = center(tg), ox = tg.kind === 'bld' ? (W.rng() - 0.5) * tg.w * 0.6 : 0, oy = tg.kind === 'bld' ? (W.rng() - 0.5) * tg.h * 0.6 : 0;
     var ac = center(attacker);
@@ -469,8 +503,9 @@
   }
   function scan(W, u, radius) {
     var best = null, bd = 1e9;
-    for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (e.owner === u.owner || e.hp <= 0) continue; var d = Math.hypot(e.x - u.x, e.y - u.y); if (d <= radius && d < bd) { bd = d; best = e; } }
-    if (best) return best;
+    if (u.calm) return null; // мирные (сценарные) сами не стреляют, и по ним не стреляют без приказа
+    for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (e.owner === u.owner || e.hp <= 0 || e.calm) continue; var d = Math.hypot(e.x - u.x, e.y - u.y); if (d <= radius && d < bd) { bd = d; best = e; } }
+    if (best || W.treaty) return best; // по договору здания сами не обстреливают
     for (n = 0; n < W.blds.length; n++) { var b = W.blds[n]; if (b.owner === u.owner) continue; var db = distTo(u, b); if (db <= radius && db < bd) { bd = db; best = b; } }
     return best;
   }
@@ -479,7 +514,9 @@
     u.cd -= dt;
     if (u.trail) trailStep(u);
     if (u.tow) { towStep(W, u, dt); return; }
-    if (!d.weapon && u.type !== 'hauler') { if (o.t === 'move' && !follow(W, u, dt)) u.order = { t: 'idle' }; return; }
+    if (o.t === 'plant') { plantStep(W, u, dt); return; }
+    if (o.t === 'deploy') { deployStep(W, u, dt); return; }
+    if (!d.weapon && u.type !== 'hauler') { if ((o.t === 'move' || o.t === 'amove') && !follow(W, u, dt)) u.order = { t: 'idle' }; return; }
     if (u.type === 'hauler') { haulStep(W, u, dt); return; }
     if (o.t === 'attack') {
       var tg = W.byId[o.target];
@@ -514,6 +551,8 @@
   // ---------- Здания в бою: вышки стреляют, ремонт за медь ----------
   function bldStep(W, b, dt) {
     var d = BLDS[b.type];
+    if (b.setup > 0) { b.setup -= dt; if (b.setup <= 0) { b.setup = 0; calcPower(W); W.events.push({ t: 'setupDone', owner: b.owner, id: b.id }); } return; }
+    if (d.rate) rigStep(W, b, d, dt);
     if (d.weapon) {
       b.cd = (b.cd || 0) - dt;
       if (b.cd <= 0) {
@@ -591,7 +630,7 @@
     return best;
   }
   function haulStep(W, u, dt) {
-    var o = u.order, cap = UNITS.hauler.cap;
+    var o = u.order, cap = W.haulCap || UNITS.hauler.cap; // W.haulCap — груз рудовоза в миссии (гонка: меньше за ходку)
     if (o.t === 'move') { if (!follow(W, u, dt)) u.order = { t: 'idle' }; return; }
     if (o.t !== 'harvest') return;
     if (o.s === 'seek') {
@@ -678,6 +717,8 @@
     W.units.forEach(function (u) { if (u.owner === 0) mark(u.x, u.y, Math.max(1.5, UNITS[u.type].sight * sm)); });
     W.blds.forEach(function (b) { if (b.owner === 0) mark(b.tx + b.w / 2, b.ty + b.h / 2, Math.max(2, BLDS[b.type].sight * sm) + Math.max(b.w, b.h) / 2); });
     (W.flares || []).forEach(function (f) { mark(f.x, f.y, f.r); });
+    // шумные здания соперника (буровые вышки) слышно сквозь туман — видна сама вышка
+    W.blds.forEach(function (b) { if (b.owner !== 0 && BLDS[b.type].loud) for (var j = 0; j < b.h; j++) for (var i = 0; i < b.w; i++) v[(b.ty + j) * W.w + b.tx + i] = 2; });
   }
   function visibleTo0(W, e) {
     if (e.owner === 0) return true;
@@ -727,6 +768,185 @@
       W.events.push({ t: 'ability', owner: u.owner, id: u.id, kind: 'flare', x: x, y: y }); return 'ok';
     }
     return null;
+  }
+
+  // ---------- Буровая вышка: качает медь из жилы под собой и вокруг (без рудовоза) ----------
+  function rigCells(W, b) { var out = []; for (var j = b.ty - 1; j <= b.ty + b.h; j++) for (var i = b.tx - 1; i <= b.tx + b.w; i++) if (inb(W, i, j)) out.push(j * W.w + i); return out; }
+  function rigOre(W, b) { var s = 0; rigCells(W, b).forEach(function (k) { s += W.ore[k]; }); return s; }
+  function rigStep(W, b, d, dt) {
+    b.pumpT = (b.pumpT || 0) + dt; if (b.pumpT < 1) return; b.pumpT -= 1;
+    var need = W.rigRate || d.rate, got = 0, cells = rigCells(W, b).filter(function (k) { return W.ore[k] > 0; }).sort(function (a, c) { return W.ore[c] - W.ore[a]; });
+    for (var n = 0; n < cells.length && got < need; n++) { var take = Math.min(need - got, W.ore[cells[n]]); W.ore[cells[n]] -= take; got += take; }
+    if (got > 0) { var pl = W.players[b.owner]; pl.copper += got; pl.mined += got; b.dry = false; b.pumped = (b.pumped || 0) + got; }
+    else if (!b.dry) { b.dry = true; W.events.push({ t: 'dry', owner: b.owner, id: b.id }); }
+  }
+
+  // ---------- Заряды подрывников ----------
+  // Подрывник подходит к цели вплотную, CHARGE.plant секунд закладывает заряд; заряд тикает CHARGE.timer секунд и бьёт цель
+  // (CHARGE.dmg) и всё рядом. Свои юниты цели, простоявшие у заряда CHARGE.defuse секунд, его обезвреживают.
+  function plantStep(W, u, dt) {
+    var o = u.order, tg = W.byId[o.target];
+    if (!alive(tg) || !canPlantOn(W, tg)) { u.path = []; u.order = { t: 'idle' }; return; }
+    var dist = distTo(u, tg);
+    if (dist <= 0.9) {
+      u.path = []; o.p += dt; u.aim = u.heading = turn(u.heading, Math.atan2(center(tg).y - u.y, center(tg).x - u.x), dt * 8);
+      if (o.p >= CHARGE.plant) {
+        var c = center(tg); W.charges.push({ id: W.nextId++, by: u.id, owner: u.owner, target: tg.id, x: c.x, y: c.y, t: CHARGE.timer, max: CHARGE.timer, def: 0 });
+        W.events.push({ t: 'planted', owner: u.owner, victim: tg.owner, type: tg.type, x: c.x, y: c.y }); u.order = { t: 'idle' };
+      }
+      return;
+    }
+    o.p = 0; u.repath = (u.repath || 0) - dt;
+    if (!u.path.length || u.repath <= 0) { var cc = center(tg); u.repath = 1; u.path = findPath(W, u.x, u.y, cc.x, cc.y, Math.max(2500, W.w * W.h)); }
+    follow(W, u, dt);
+  }
+  function chargeStep(W, dt) {
+    for (var n = W.charges.length - 1; n >= 0; n--) {
+      var ch = W.charges[n], tg = W.byId[ch.target];
+      if (!alive(tg)) { W.charges.splice(n, 1); continue; }
+      var c = center(tg); ch.x = c.x; ch.y = c.y;
+      var near = W.units.some(function (e) { return e.owner === tg.owner && e.hp > 0 && e !== tg && !UNITS[e.type].sapper && Math.hypot(e.x - ch.x, e.y - ch.y) <= CHARGE.defR + (tg.kind === 'bld' ? tg.w / 2 : 0); });
+      if (near) { ch.def += dt; if (ch.def >= CHARGE.defuse) { W.charges.splice(n, 1); W.events.push({ t: 'defused', owner: tg.owner, x: ch.x, y: ch.y, type: tg.type }); continue; } }
+      else ch.def = Math.max(0, ch.def - dt * 0.5);
+      ch.t -= dt;
+      if (ch.t <= 0) {
+        W.charges.splice(n, 1);
+        var by = W.byId[ch.by]; tg.hp -= CHARGE.dmg; if (by) tg.hitBy = by.id; tg.hitT = W.time;
+        W.units.forEach(function (e) { if (e !== tg && Math.hypot(e.x - ch.x, e.y - ch.y) <= CHARGE.splash) { e.hp -= CHARGE.splashDmg; e.hitT = W.time; } });
+        W.fx.push({ t: 'boom', x: ch.x, y: ch.y, life: 0.9, max: 0.9, big: true });
+        W.events.push({ t: 'blast', owner: ch.owner, victim: tg.owner, type: tg.type, x: ch.x, y: ch.y, kill: tg.hp <= 0 });
+      }
+    }
+  }
+
+  // ---------- Перенос зданий: свернуть в фургон → перевезти → развернуть ----------
+  // Свёрнутое здание — юнит 'van' (бур — для буровой вышки) с u.packed = { type, frac }: здание не работает (нет пара,
+  // производства, добычи), фургон можно подорвать или разбить — это потеря здания. Развернуть можно на свободной твёрдой земле
+  // (не зыбкой) в любом месте — правило «4 клетки от базы» не действует; вышке нужна богатая жила.
+  function canPack(W, b) { return !!b && b.kind === 'bld' && alive(b) && !NO_PACK[b.type] && (b.type === 'rig' || !!W.packOn) && !(b.setup > 0); }
+  function pack(W, b) {
+    if (!canPack(W, b)) return null;
+    var c = center(b), frac = b.hp / b.maxHp;
+    for (var j = 0; j < b.h; j++) for (var i = 0; i < b.w; i++) { var k = (b.ty + j) * W.w + b.tx + i; if (W.occ[k] === b.id) W.occ[k] = 0; }
+    W.blds = W.blds.filter(function (x) { return x !== b; }); delete W.byId[b.id]; calcPower(W);
+    W.charges = W.charges.filter(function (ch) { return ch.target !== b.id; });
+    var sp = nearestPassable(W, Math.floor(c.x), Math.floor(c.y), 6) || { i: Math.floor(c.x), j: Math.floor(c.y) };
+    var u = addUnit(W, b.owner, b.type === 'rig' ? 'drill' : 'van', sp.i + 0.5, sp.j + 0.5);
+    u.hp = Math.max(1, Math.round(u.maxHp * Math.max(0.25, frac))); u.packed = { type: b.type, frac: frac, hp0: u.hp }; if (b.tag) u.tag = b.tag;
+    if (b.rally) u.packed.rally = b.rally;
+    W.events.push({ t: 'packed', owner: b.owner, id: u.id, type: b.type });
+    return u;
+  }
+  function packedType(u) { return u && u.kind === 'unit' ? (u.packed ? u.packed.type : UNITS[u.type].packs || null) : null; }
+  // можно ли развернуть здание type с левым верхним углом (tx,ty): клетки — твёрдая земля, свободно; вышке — нужна жила
+  function canDeploy(W, o, type, tx, ty) {
+    var d = BLDS[type]; if (!d) return false;
+    if (tx < 1 || ty < 1 || tx + d.w > W.w - 1 || ty + d.h > W.h - 1) return false;
+    var oreIn = 0;
+    for (var j = 0; j < d.h; j++) for (var i = 0; i < d.w; i++) { var k = (ty + j) * W.w + tx + i; if (W.t[k] !== GROUND || W.occ[k]) return false; if (W.ore[k]) { if (!d.rate) return false; oreIn++; } }
+    if (d.rate) { if (!oreIn) return false; var s = 0; for (j = ty - 1; j <= ty + d.h; j++) for (i = tx - 1; i <= tx + d.w; i++) if (inb(W, i, j)) s += W.ore[j * W.w + i]; if (s < RICH) return false; }
+    return true;
+  }
+  var RICH = 900; // богатая жила: столько меди под вышкой и вокруг
+  function commandDeploy(W, id, tx, ty) {
+    var u = W.byId[id], type = packedType(u); if (!alive(u) || !type) return false;
+    var d = BLDS[type]; u.order = { t: 'deploy', tx: tx, ty: ty, type: type, fails: 0 }; u.path = findPath(W, u.x, u.y, tx + d.w / 2, ty + d.h / 2); u.stuck = 0; u.chk = { x: u.x, y: u.y, t: 0 };
+    return true;
+  }
+  function deployStep(W, u, dt) {
+    var o = u.order, d = BLDS[o.type], cx = o.tx + d.w / 2, cy = o.ty + d.h / 2, dist = Math.hypot(cx - u.x, cy - u.y);
+    if (dist > 0.9 && follow(W, u, dt)) return;
+    if (dist > Math.max(d.w, d.h) * 0.75 + 0.6) { if (++o.fails > 3) { u.order = { t: 'idle' }; W.events.push({ t: 'deployFail', owner: u.owner, id: u.id }); } else u.path = findPath(W, u.x, u.y, cx, cy); return; }
+    deployNow(W, u, o.tx, o.ty);
+  }
+  function deployNow(W, u, tx, ty) {
+    var type = packedType(u); if (!type || !canDeploy(W, u.owner, type, tx, ty)) { u.order = { t: 'idle' }; u.path = []; W.events.push({ t: 'deployFail', owner: u.owner, id: u.id }); return null; }
+    W.units = W.units.filter(function (x) { return x !== u; }); delete W.byId[u.id];
+    var b = addBuilding(W, u.owner, type, tx, ty, true), frac = u.packed ? u.packed.frac : 1, hp0 = u.packed ? u.packed.hp0 : u.maxHp;
+    b.hp = Math.max(1, Math.round(b.maxHp * frac * Math.min(1, u.hp / hp0))); // побитый в пути фургон — побитое здание
+    if (u.tag) b.tag = u.tag; if (u.packed && u.packed.rally) b.rally = u.packed.rally;
+    b.setup = SETUP; calcPower(W);
+    // кто стоял на месте разворота — выходит на ближайшую свободную клетку
+    W.units.forEach(function (e) { if (e.x > tx && e.x < tx + b.w && e.y > ty && e.y < ty + b.h) { var np = nearestPassable(W, Math.floor(e.x), Math.floor(e.y), 6); if (np) { e.x = np.i + 0.5; e.y = np.j + 0.5; e.path = []; } } });
+    W.events.push({ t: 'deployed', owner: b.owner, id: b.id, type: type });
+    return b;
+  }
+
+  // ---------- ИИ гонки за жилой (кампания): добыча и диверсии вместо штурма ----------
+  // Держит рудовозы, ставит буры на богатые жилы (spots), охраняет вышки (стрелки рядом, обезвреживают заряды),
+  // каждые every секунд шлёт подрывников с охраной под вышку или рудовоз соперника. Контору соперника не трогает (договор).
+  function newRaceAI(W, o, opt) {
+    opt = opt || {};
+    return { race: true, o: o, t: 0, think: opt.think || 1, spots: (opt.spots || []).slice(), haulers: opt.haulers == null ? 2 : opt.haulers, rigs: opt.rigs == null ? 2 : opt.rigs,
+      sappers: opt.sappers == null ? 2 : opt.sappers, escort: opt.escort == null ? 2 : opt.escort, guards: opt.guards == null ? 3 : opt.guards,
+      nextRaid: opt.first == null ? 150 : opt.first, every: opt.every || 110, raids: 0, reserve: opt.reserve || 0 };
+  }
+  function raceStep(W, dt) {
+    var A = W.ai, o = A.o, p = W.players[o], foe = 1 - o;
+    A.t -= dt; if (A.t > 0) return; A.t = A.think;
+    var hq = has(W, o, 'hq'); if (!hq) return;
+    var mine = W.units.filter(function (u) { return u.owner === o; }), hc = center(hq);
+    var cnt = function (t) { return mine.filter(function (u) { return u.type === t; }).length + p.inf.concat(p.veh).filter(function (x) { return x === t; }).length; };
+    var rigs = W.blds.filter(function (b) { return b.owner === o && b.type === 'rig'; });
+    // 1) экономика: рудовозы, буры (пока есть свободная жила)
+    if (working(W, o, 'works') && has(W, o, 'smelter') && cnt('hauler') < A.haulers && p.copper >= UNITS.hauler.cost) queueUnit(W, o, 'hauler');
+    var free = A.spots.filter(function (s) { return !spotTaken(W, s); });
+    if (working(W, o, 'works') && rigs.length + cnt('drill') < A.rigs && free.length && p.copper >= UNITS.drill.cost) queueUnit(W, o, 'drill');
+    mine.forEach(function (u) {
+      if (u.type !== 'drill' || u.order.t !== 'idle') return;
+      var best = null, bd = 1e9; free.forEach(function (s) { var dd = Math.hypot(s.x - u.x, s.y - u.y); if (dd < bd && !mine.some(function (m) { return m !== u && m.order.t === 'deploy' && Math.hypot(m.order.tx - s.x, m.order.ty - s.y) < 4; })) { bd = dd; best = s; } });
+      var at = best && deploySpot(W, o, 'rig', best.x, best.y); if (at) commandDeploy(W, u.id, at.i, at.j);
+    });
+    rigs.forEach(function (b) { if (b.dry && A.spots.some(function (s) { return !spotTaken(W, s); })) pack(W, b); }); // жила выработана — переезд
+    // 2) люди: подрывники и стрелки (охрана вышек + сопровождение)
+    if (working(W, o, 'bunk') && p.inf.length < 1) {
+      if (cnt('sapper') < A.sappers && p.copper >= UNITS.sapper.cost + A.reserve) queueUnit(W, o, 'sapper');
+      else if (cnt('rifleman') < A.guards + A.escort && p.copper >= UNITS.rifleman.cost + A.reserve) queueUnit(W, o, 'rifleman');
+    }
+    var armed = mine.filter(function (u) { return !!UNITS[u.type].weapon && !u.locked; });
+    // 3) заряды под нашими — ближайших свободных бойцов туда (обезвредить)
+    W.charges.forEach(function (ch) {
+      var tg = W.byId[ch.target]; if (!tg || tg.owner !== o) return;
+      var near = armed.filter(function (u) { return !u.raid && !(u.order.t === 'move' && Math.hypot(u.order.x - ch.x, u.order.y - ch.y) < 1.6); }).sort(function (a, b) { return Math.hypot(a.x - ch.x, a.y - ch.y) - Math.hypot(b.x - ch.x, b.y - ch.y); }).slice(0, 2);
+      var help = armed.filter(function (u) { return Math.hypot(u.x - ch.x, u.y - ch.y) < 1.4 || (u.order.t === 'move' && Math.hypot(u.order.x - ch.x, u.order.y - ch.y) < 1.6); }).length;
+      if (help < 2 && near.length) commandMove(W, near.slice(0, 2 - help).map(function (u) { return u.id; }), ch.x, ch.y);
+    });
+    // 4) набег: подрывники + сопровождение под вышку (её слышно) или рудовоз соперника
+    if (W.time >= A.nextRaid) {
+      var saps = mine.filter(function (u) { return u.type === 'sapper' && !u.raid && u.order.t === 'idle'; });
+      var tgt = raidTarget(W, o, hc);
+      if (saps.length >= Math.min(A.sappers, 2) && tgt) {
+        saps.forEach(function (u) { u.raid = true; }); commandPlant(W, saps.map(function (u) { return u.id; }), tgt.id);
+        var esc = armed.filter(function (u) { return !u.raid && u.order.t !== 'attack'; }).slice(0, A.escort); esc.forEach(function (u) { u.raid = true; });
+        var tc = center(tgt); if (esc.length) commandMove(W, esc.map(function (u) { return u.id; }), tc.x, tc.y, true);
+        A.raids++; A.nextRaid = W.time + A.every; W.events.push({ t: 'raid', owner: o, n: saps.length + esc.length, x: tc.x, y: tc.y });
+      } else A.nextRaid = W.time + 8;
+    }
+    // 5) вернувшиеся из набега — домой; охрана — у своих вышек (или у Конторы)
+    mine.forEach(function (u) {
+      if (u.order.t !== 'idle' || u.type === 'hauler' || u.type === 'drill' || u.locked) return;
+      if (u.raid) { if (Math.hypot(u.x - hc.x, u.y - hc.y) < 6) u.raid = false; else { commandMove(W, [u.id], hc.x + 2, hc.y + 3, !!UNITS[u.type].weapon); } return; }
+      if (!UNITS[u.type].weapon) return;
+      var post = rigs.length ? center(rigs[u.id % rigs.length]) : hc;
+      if (Math.hypot(u.x - post.x, u.y - post.y) > 3.5) commandMove(W, [u.id], post.x + ((u.id % 3) - 1) * 1.5, post.y + 2, true);
+    });
+  }
+  function spotTaken(W, s) { return W.blds.some(function (b) { return b.type === 'rig' && Math.hypot(b.tx + 1 - s.x, b.ty + 1 - s.y) < 3.5; }) || !deploySpot(W, 0, 'rig', s.x, s.y); }
+  // ближайшее к (x,y) место, где можно развернуть здание (левый верхний угол)
+  function deploySpot(W, o, type, x, y, r) {
+    var d = BLDS[type], cx = Math.round(x - d.w / 2), cy = Math.round(y - d.h / 2);
+    for (var rr = 0; rr <= (r || 3); rr++) for (var j = cy - rr; j <= cy + rr; j++) for (var i = cx - rr; i <= cx + rr; i++) {
+      if (Math.max(Math.abs(i - cx), Math.abs(j - cy)) !== rr) continue;
+      if (canDeploy(W, o, type, i, j)) return { i: i, j: j };
+    }
+    return null;
+  }
+  function raidTarget(W, o, from) {
+    var best = null, bd = 1e9;
+    W.blds.forEach(function (b) { if (b.owner !== o && b.type === 'rig' && canPlantOn(W, b)) { var c = center(b), d = Math.hypot(c.x - from.x, c.y - from.y); if (d < bd) { bd = d; best = b; } } });
+    if (best) return best;
+    W.units.forEach(function (u) { if (u.owner !== o && (u.type === 'hauler' || u.type === 'drill' || u.type === 'van') && canPlantOn(W, u)) { var d = Math.hypot(u.x - from.x, u.y - from.y); if (d < bd) { bd = d; best = u; } } });
+    return best;
   }
 
   // ---------- ИИ соседней артели ----------
@@ -795,6 +1015,9 @@
     addBuilding: addBuilding, addUnit: addUnit, calcPower: calcPower, powerFactor: powerFactor, has: has, count: count, reqMet: reqMet, dockOf: dockOf, center: center,
     startBuild: startBuild, cancelBuild: cancelBuild, queueUnit: queueUnit, dequeueUnit: dequeueUnit, canPlace: canPlace, placeBuild: placeBuild,
     commandMove: commandMove, commandAttack: commandAttack, commandHarvest: commandHarvest, commandReturn: commandReturn, commandSmart: commandSmart, smartKind: smartKind, stopUnits: stopUnits,
-    pickAt: pickAt, boxSelect: boxSelect, sameTypeIn: sameTypeIn, step: step, updateVis: updateVis, visibleTo0: visibleTo0, newAI: newAI, aiStep: aiStep
+    pickAt: pickAt, boxSelect: boxSelect, sameTypeIn: sameTypeIn, step: step, updateVis: updateVis, visibleTo0: visibleTo0, newAI: newAI, aiStep: aiStep,
+    PIT: PIT, SHAKY: SHAKY, CAMP_UNITS: CAMP_UNITS, CHARGE: CHARGE, SETUP: SETUP, RICH: RICH, working: working, hqAlive: hqAlive,
+    canPlantOn: canPlantOn, commandPlant: commandPlant, canPack: canPack, pack: pack, packedType: packedType, canDeploy: canDeploy, deploySpot: deploySpot,
+    commandDeploy: commandDeploy, deployNow: deployNow, rigOre: rigOre, newRaceAI: newRaceAI, raceStep: raceStep, raidTarget: raidTarget
   };
 })(typeof window !== 'undefined' ? window : globalThis);

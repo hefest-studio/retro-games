@@ -46,6 +46,16 @@
       case 'wind': seq(g, [880, 830, 784, 740], 110, 0.18, 'sine', 0.02); break;
       case 'crab': if (rare('crab', 300)) seq(g, [1400, 1250, 1400], 45, 0.03, 'square', 0.02); break;
       case 'bark': seq(g, [330, 262, 0, 349, 277], 90, 0.08, 'sawtooth', 0.035); break;
+      // помощники: переключение героя, нюх, рытьё, удержание, крылья, мельница, морские птицы
+      case 'switch': seq(g, [523, 659], 50, 0.05, 'triangle', 0.035); break;
+      case 'sniff': if (rare('sniff', 400)) seq(g, [1100, 0, 1150, 0, 1050], 55, 0.025, 'square', 0.015); break;
+      case 'dig': seq(g, [140, 0, 120, 0, 150, 0, 110], 60, 0.05, 'sawtooth', 0.03); break;
+      case 'pull': seq(g, [196, 175, 165], 90, 0.12, 'triangle', 0.04); break;
+      case 'release': seq(g, [262, 330], 60, 0.06, 'triangle', 0.035); break;
+      case 'flap': if (rare('flap', 250)) seq(g, [600, 0, 560, 0, 600], 40, 0.03, 'triangle', 0.02); break;
+      case 'mill': seq(g, [110, 123, 110, 98, 110], 160, 0.2, 'sawtooth', 0.02); break;
+      case 'terns': if (rare('terns', 500)) seq(g, [1600, 1900, 0, 1700, 2000, 0, 1500], 60, 0.04, 'square', 0.018); break;
+      case 'chirp': seq(g, [1800, 2100, 1900], 70, 0.04, 'sine', 0.03); break;
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

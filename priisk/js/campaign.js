@@ -1,7 +1,9 @@
 /* ПРИИСК · js/campaign.js — движок миссий кампании (без DOM): миссия = объект данных (js/missions/*.js).
    Карта — ASCII-сетка: '#' скала, '~' вода, '=' лёд (проходим, может треснуть), '_' полынья, 'o' медь (300), 'O' богатая медь (500),
-   '.' земля; любая другая буква/цифра — именованная точка (земля под ней, либо клетка из mission.legend, например { R: 'o' }).
-   Зоны: { at:'K', r:6 } — круг вокруг точки; { x, y, w, h } — прямоугольник клеток.
+   '.' земля, ',' зыбкий грунт (проходим, строить нельзя, здания на нём трещат), '^' провал (яма подземного жара, непроходим);
+   любая другая буква/цифра — именованная точка (земля под ней, либо клетка из mission.legend, например { R: 'o' }).
+   Зоны: { at:'K', r:6 } — круг вокруг точки; { x, y, w, h } — прямоугольник клеток; { pts: ['1', 'H'] } — все клетки точек с этими
+   буквами/цифрами (например, участки грунта, которые провалятся на этапе 1).
    Условия (cond): time, zone, built, builtIn (здания типа в зоне), hp (здоровье тега), units, trained, mined, copper, gone, killed, heroDead, obj, flag, seen, alerted, lostB, lostU,
    all/any/not. Действия: if (when → do / else), say, msg, spawn, group, despawn, tiles, reveal, objective, weather, night, flag, copper, win, lose, wait,
    ai (волновой ИИ скирмиша), allow. spawn.speed — множитель скорости (тяжёлые сани обоза), spawn.hp — своё здоровье, spawn.locked — игрок не командует.
@@ -10,6 +12,13 @@
    пока враг ближе halt клеток; годится и для своей колонны owner:0) (+ реакция на обстрел). tiles после смены карты перестраивает
    пути, шедшие через исчезнувшие клетки (враг ищет обход). Флаги прошлых миссий: def.carry = ['convoy'] (из сохранения кампании),
    стартовые силы с when — только если условие верно на старте. player.repair — ремонт зданий открыт (в скирмише нет).
+   Миссии 5–6: def.treaty — договор артелей (здания пулей не берутся, выстрел по ним — в условии hit; ИИ гонки ai:{mode:'race'}
+   ставит буры на жилы и шлёт подрывников); def.race = { goal } — счётчик добычи обеих сторон на экране; player.pack — перенос
+   зданий (свернуть в фургон / развернуть); def.shaky = { dmg } — здания на зыбком грунте трещат (доля прочности в секунду);
+   def.haulCap / def.rigRate — груз рудовоза за ходку и выработка вышки в секунду в этой миссии;
+   def.geysers = { id: { at, r, period, warn, dmg, phase, on } } — гейзеры бьют паром по области (с предупреждением);
+   действие quake — предупреждение о провале зоны (трещины на карте), tiles в '^' — провал (здания над ямой рушатся);
+   spawn.calm — мирные (сами не стреляют, по ним — только по приказу). Условия hit (по кому стреляли), razed (снесённые здания).
    Прогресс — localStorage 'arcade.priisk.campaign' (через переданное хранилище, с try/catch). Экспорт: PRIISK.campaign. */
 (function (root) {
   'use strict';
@@ -21,7 +30,7 @@
   function byId(id) { for (var n = 0; n < P.MISSIONS.length; n++) if (P.MISSIONS[n].id === id) return P.MISSIONS[n]; return null; }
 
   // ---------- Карта ----------
-  var TILE = { '#': L.ROCK, '~': L.WATER, '=': L.ICE, '_': L.OPEN, ':': L.BRIDGE, '.': L.GROUND, 'o': L.GROUND, 'O': L.GROUND };
+  var TILE = { '#': L.ROCK, '~': L.WATER, '=': L.ICE, '_': L.OPEN, ':': L.BRIDGE, '.': L.GROUND, 'o': L.GROUND, 'O': L.GROUND, ',': L.SHAKY, '^': L.PIT };
   function parseMap(rows, legend) {
     legend = legend || {};
     var h = rows.length, w = rows[0].length, t = new Uint8Array(w * h), ore = new Uint16Array(w * h), points = Object.create(null);
@@ -43,14 +52,17 @@
     return { x: x / cells.length, y: y / cells.length };
   }
   function zoneOf(MS, name) { var z = typeof name === 'string' ? MS.def.zones[name] : name; if (!z) throw new Error('нет зоны «' + name + '»'); return z; }
+  function ptsSet(MS, z) { if (!z._set) { z._set = Object.create(null); z._cells = []; [].concat(z.pts).forEach(function (k) { (MS.points[k] || []).forEach(function (c) { var key = c.i + ',' + c.j; if (!z._set[key]) { z._set[key] = 1; z._cells.push(c); } }); }); } return z; }
   function inZone(MS, z, x, y) {
     z = zoneOf(MS, z);
+    if (z.pts) return !!ptsSet(MS, z)._set[Math.floor(x) + ',' + Math.floor(y)];
     if (z.at != null) { var p = pointOf(MS, z.at); return Math.hypot(x - p.x, y - p.y) <= (z.r || 3); }
     return x >= z.x && x < z.x + z.w && y >= z.y && y < z.y + z.h;
   }
-  function zoneCenter(MS, z) { z = zoneOf(MS, z); if (z.at != null) return pointOf(MS, z.at); return { x: z.x + z.w / 2, y: z.y + z.h / 2 }; }
+  function zoneCenter(MS, z) { z = zoneOf(MS, z); if (z.pts) { var cs = ptsSet(MS, z)._cells, sx = 0, sy = 0; cs.forEach(function (c) { sx += c.i + 0.5; sy += c.j + 0.5; }); return { x: sx / Math.max(1, cs.length), y: sy / Math.max(1, cs.length) }; } if (z.at != null) return pointOf(MS, z.at); return { x: z.x + z.w / 2, y: z.y + z.h / 2 }; }
   function zoneCells(W, MS, z) {
     z = zoneOf(MS, z); var out = [], x0, y0, x1, y1;
+    if (z.pts) return ptsSet(MS, z)._cells.filter(function (c) { return L.inb(W, c.i, c.j); }).map(function (c) { return { i: c.i, j: c.j }; });
     if (z.at != null) { var p = pointOf(MS, z.at), r = z.r || 3; x0 = Math.floor(p.x - r); y0 = Math.floor(p.y - r); x1 = Math.ceil(p.x + r); y1 = Math.ceil(p.y + r); }
     else { x0 = z.x; y0 = z.y; x1 = z.x + z.w - 1; y1 = z.y + z.h - 1; }
     for (var j = y0; j <= y1; j++) for (var i = x0; i <= x1; i++) if (L.inb(W, i, j) && inZone(MS, z, i + 0.5, j + 0.5)) out.push({ i: i, j: j });
@@ -80,8 +92,10 @@
       def: def, id: def.id, points: map.points, objs: [], byObj: Object.create(null), fired: Object.create(null), queue: [], groups: Object.create(null),
       flags: Object.assign({}, def.flags || {}, carried(def, save)), spawned: Object.create(null), killed: Object.create(null), heroDead: Object.create(null), heroes: Object.create(null),
       ui: [], allow: Object.create(null), night: false, nightMul: 1, weather: def.weather ? Object.assign({}, def.weather) : null, storm: 0,
-      winAt: -1, reason: null, trigT: 0, aiT: 0, vetsUsed: 0, save: save
+      winAt: -1, reason: null, trigT: 0, aiT: 0, vetsUsed: 0, save: save, razed: Object.create(null), warn: [], geys: Object.create(null), creakT: 0
     };
+    W.haulCap = def.haulCap || 0; W.rigRate = def.rigRate || 0; W.treaty = !!def.treaty; W.packOn = !!def.player.pack; if (def.plantable) { W.plantable = {}; def.plantable.forEach(function (t) { W.plantable[t] = 1; }); }
+    Object.keys(def.geysers || {}).forEach(function (id) { var gd = def.geysers[id]; MS.geys[id] = { id: id, def: gd, on: gd.on !== false, t0: 0, warn: false, burst: -99, n: 0 }; });
     (def.player.build || []).forEach(function (b) { MS.allow[b] = true; });
     (def.player.units || []).forEach(function (u) { MS.allow[u] = true; });
     MS.repair = !!def.player.repair; W.repairOn = MS.repair; // ремонт зданий открыт миссией (в скирмише — нет)
@@ -99,7 +113,7 @@
           if (L.HEROES[s.type] && owner === 0) { MS.heroes[s.type] = u.id; var hs = save.roster && save.roster.heroes && save.roster.heroes[s.type]; if (hs && hs.wounded) { u.hp = Math.round(u.maxHp * 0.6); u.wounded = true; } }
           if (s.vets && owner === 0) { var k = vets.findIndex(function (v) { return v.type === s.type; }); if (k >= 0) { var v = vets.splice(k, 1)[0]; u.vet = v.vet || 1; u.kills = v.kills || 3; MS.vetsUsed++; } }
           if (s.heading != null) u.heading = u.aim = s.heading;
-          if (s.locked) u.locked = true; if (s.speed) u.sm = s.speed; if (s.hp) u.hp = u.maxHp = s.hp;
+          if (s.locked) u.locked = true; if (s.speed) u.sm = s.speed; if (s.hp) u.hp = u.maxHp = s.hp; if (s.calm) u.calm = true;
         });
       });
     }
@@ -158,6 +172,8 @@
       case 'gone': return (MS.spawned[c.tag] || 0) > 0 && !W.units.some(function (u) { return u.tag === c.tag && (!c.type || u.type === c.type); });
       case 'killed': return (MS.killed[c.tag + (c.type ? ':' + c.type : '')] || 0) >= (c.gte || 1);
       case 'heroDead': return !!MS.heroDead[c.hero];
+      case 'hit': return (W.hits[(c.by == null ? 0 : c.by) + ':' + c.tag] || 0) >= (c.gte || 1); // по тегу стрелял владелец by
+      case 'razed': return (MS.razed[o + ':' + (c.type || '*')] || 0) >= (c.gte || 1);      // снесено зданий владельца owner
       case 'obj': { var ob = MS.byObj[c.id]; return !!ob && ob.state === (c.state || 'done'); }
       case 'flag': return c.value == null ? !!MS.flags[c.key] : MS.flags[c.key] === c.value;
       case 'seen': { var zc = zoneCenter(MS, c.zone), i = Math.floor(zc.x), j = Math.floor(zc.y); return W.vis[j * W.w + i] === 2; }
@@ -172,7 +188,7 @@
   }
 
   // ---------- Действия ----------
-  var TCH = { '#': L.ROCK, '~': L.WATER, '=': L.ICE, '_': L.OPEN, ':': L.BRIDGE, '.': L.GROUND };
+  var TCH = { '#': L.ROCK, '~': L.WATER, '=': L.ICE, '_': L.OPEN, ':': L.BRIDGE, '.': L.GROUND, ',': L.SHAKY, '^': L.PIT };
   function run(W, list, from) {
     var MS = W.mission;
     for (var n = from || 0; n < list.length; n++) {
@@ -189,7 +205,7 @@
       case 'msg': MS.ui.push({ t: 'msg', text: a.text, col: a.col }); break;
       case 'spawn': {
         var p = pointOf(MS, a.at), tiles = spreadAround(W, p.x, p.y, a.n || 1), o = a.owner == null ? 1 : a.owner;
-        tiles.forEach(function (tl) { var u = L.addUnit(W, o, a.type, tl.i + 0.5, tl.j + 0.5); u.post = { x: u.x, y: u.y }; if (a.tag) { u.tag = a.tag; MS.spawned[a.tag] = (MS.spawned[a.tag] || 0) + 1; } if (a.heading != null) u.heading = u.aim = a.heading; if (a.speed) u.sm = a.speed; if (a.hp) u.hp = u.maxHp = a.hp; if (a.locked) u.locked = true; });
+        tiles.forEach(function (tl) { var u = L.addUnit(W, o, a.type, tl.i + 0.5, tl.j + 0.5); u.post = { x: u.x, y: u.y }; if (a.tag) { u.tag = a.tag; MS.spawned[a.tag] = (MS.spawned[a.tag] || 0) + 1; } if (a.heading != null) u.heading = u.aim = a.heading; if (a.speed) u.sm = a.speed; if (a.hp) u.hp = u.maxHp = a.hp; if (a.locked) u.locked = true; if (a.calm) u.calm = true; });
         break;
       }
       case 'train': makeTrain(W, MS, a); break;
@@ -197,7 +213,9 @@
       case 'despawn': W.units = W.units.filter(function (u) { if (u.tag === a.tag && (!a.type || u.type === a.type)) { delete W.byId[u.id]; return false; } return true; }); break;
       case 'tiles': {
         var to = TCH[a.to], from = a.from != null ? TCH[a.from] : null;
-        zoneCells(W, MS, a.zone).forEach(function (c) { var k = c.j * W.w + c.i; if (from == null || W.t[k] === from) W.t[k] = to; });
+        zoneCells(W, MS, a.zone).forEach(function (c) { var k = c.j * W.w + c.i; if (from == null || W.t[k] === from) { W.t[k] = to; if (!L.walkable(to)) W.ore[k] = 0; } });
+        // здание над исчезнувшей твердью (провал) рушится
+        W.blds.forEach(function (b) { for (var j = 0; j < b.h; j++) for (var i = 0; i < b.w; i++) if (!L.walkable(W.t[(b.ty + j) * W.w + b.tx + i]) && W.t[(b.ty + j) * W.w + b.tx + i] !== L.GROUND) { b.hp = 0; b.fell = true; } });
         // кто стоял на треснувшем — выбирается на ближайшую твёрдую клетку
         W.units.forEach(function (u) { var i = Math.floor(u.x), j = Math.floor(u.y); if (!L.walkable(W.t[j * W.w + i])) { var np = L.nearestPassable(W, i, j, 8); if (np) { u.x = np.i + 0.5; u.y = np.j + 0.5; } u.path = []; if (u.order.t === 'move' || u.order.t === 'amove') u.order = { t: 'idle' }; } });
         W.mapRev++; W.seedKey = 'mission:' + MS.id + ':' + W.mapRev;
@@ -212,8 +230,12 @@
       case 'copper': W.players[a.owner || 0].copper += a.n; break;
       case 'win': if (W.winner < 0) MS.winAt = W.time + (a.delay == null ? 1.5 : a.delay); break;
       case 'lose': if (W.winner < 0) { MS.reason = a.reason || null; W.winner = 1; } break;
-      case 'ai': if (a.mode === 'waves') { W.ai = L.newAI(W, a.owner == null ? 1 : a.owner); if (a.first) W.ai.nextWave = W.time + a.first; } else W.ai = null; break;
-      case 'allow': (a.build || []).concat(a.units || []).forEach(function (b) { MS.allow[b] = true; }); if (a.repair) { MS.repair = W.repairOn = true; } break;
+      case 'quake': { var qc = zoneCells(W, MS, a.zone).map(function (c) { return c.j * W.w + c.i; }); MS.warn.push({ cells: qc, t: a.s || 15, max: a.s || 15, zone: a.zone }); MS.ui.push({ t: 'quake', zone: a.zone }); break; }
+      case 'geyser': { // включить/выключить гейзер; burst — сразу предупреждение и выброс через warn секунд (сценарный удар)
+        (a.id === '*' ? Object.keys(MS.geys) : [].concat(a.id)).forEach(function (id) { var gz = MS.geys[id]; if (!gz) return; gz.on = a.on !== false; var gd = gz.def; gz.t0 = a.burst ? W.time + (gd.phase || 0) - ((gd.period || 30) - (gd.warn || 3)) + 0.05 : W.time; gz.prev = null; }); break; }
+      case 'ai': if (a.mode === 'race') { var ra = Object.assign({}, a); ra.spots = (a.spots || []).map(function (k) { return pointOf(MS, k); }); W.ai = L.newRaceAI(W, a.owner == null ? 1 : a.owner, ra); break; }
+        if (a.mode === 'waves') { W.ai = L.newAI(W, a.owner == null ? 1 : a.owner); if (a.first) W.ai.nextWave = W.time + a.first; } else W.ai = null; break;
+      case 'allow': (a.build || []).concat(a.units || []).forEach(function (b) { MS.allow[b] = true; }); if (a.repair) { MS.repair = W.repairOn = true; } if (a.pack) W.packOn = true; break;
       default: throw new Error('неизвестное действие ' + a.a);
     }
   }
@@ -291,9 +313,12 @@
         if (ev.tag) { MS.killed[ev.tag] = (MS.killed[ev.tag] || 0) + 1; MS.killed[ev.tag + ':' + ev.type] = (MS.killed[ev.tag + ':' + ev.type] || 0) + 1; }
         if (ev.owner === 0 && L.HEROES[ev.type]) { MS.heroDead[ev.type] = true; MS.ui.push({ t: 'heroDown', who: ev.type }); }
       }
+      var bt = ev.kind === 'bld' ? ev.type : ev.packed; // здание (или фургон со свёрнутым зданием) снесено
+      if (ev.t === 'die' && bt) { MS.razed[ev.owner + ':' + bt] = (MS.razed[ev.owner + ':' + bt] || 0) + 1; MS.razed[ev.owner + ':*'] = (MS.razed[ev.owner + ':*'] || 0) + 1; }
     });
     if (W.winner >= 0) { if (W.winner === 1 && !MS.reason) MS.reason = 'hq'; return; }
     applyWeather(W, MS);
+    hazards(W, MS, dt);
     // отложенные действия (wait)
     for (var n = MS.queue.length - 1; n >= 0; n--) { var q = MS.queue[n]; if (W.time >= q.at) { MS.queue.splice(n, 1); run(W, q.list, q.from); } }
     MS.trigT -= dt;
@@ -318,6 +343,36 @@
     if (MS.aiT <= 0) { MS.aiT = 0.5; Object.keys(MS.groups).forEach(function (k) { groupStep(W, MS, MS.groups[k]); }); }
   }
   function tick(W, dt) { L.step(W, dt); step(W, dt); }
+
+  // ---------- Подземный жар: гейзеры, зыбкий грунт, предупреждения о провалах ----------
+  // Гейзер: период period с, за warn с до выброса — предупреждение (w.warn), выброс — урон dmg всем юнитам в радиусе r
+  // (технике ×0.6, зданиям ×0.25 от dmg·4). Зыбкий грунт: здание, стоящее хоть одной клеткой на ',', теряет def.shaky.dmg
+  // своей прочности в секунду (трещит).
+  function hazards(W, MS, dt) {
+    Object.keys(MS.geys).forEach(function (id) {
+      var gz = MS.geys[id], gd = gz.def; if (!gz.on) { gz.warn = false; return; }
+      var per = gd.period || 30, tt = W.time - gz.t0 + (gd.phase || 0), cyc = ((tt % per) + per) % per, warnS = gd.warn || 3;
+      var wasWarn = gz.warn; gz.warn = cyc >= per - warnS;
+      if (!wasWarn && gz.warn) MS.ui.push({ t: 'geyserWarn', id: id });
+      if (gz.prev != null && cyc < gz.prev) { // выброс
+        gz.burst = W.time; gz.n++; var p = pointOf(MS, gd.at), r = gd.r || 2.2, dmg = gd.dmg || 30;
+        W.units.forEach(function (u) { if (Math.hypot(u.x - p.x, u.y - p.y) <= r) { u.hp -= dmg * (L.UNITS[u.type].cls === 'veh' ? 0.6 : 1); u.hitT = W.time; u.steamT = W.time; } });
+        W.blds.forEach(function (b) { var c = L.center(b); if (Math.hypot(c.x - p.x, c.y - p.y) <= r + Math.max(b.w, b.h) / 2) b.hp -= dmg; });
+        W.events.push({ t: 'geyser', id: id, x: p.x, y: p.y });
+      }
+      gz.prev = cyc;
+    });
+    if (MS.def.shaky) {
+      var creak = null;
+      W.blds.forEach(function (b) {
+        var on = false; for (var j = 0; j < b.h && !on; j++) for (var i = 0; i < b.w; i++) if (W.t[(b.ty + j) * W.w + b.tx + i] === L.SHAKY) { on = true; break; }
+        b.shaky = on; if (!on) return;
+        b.hp -= b.maxHp * MS.def.shaky.dmg * dt; if (b.owner === 0 && !creak) creak = b;
+      });
+      MS.creakT -= dt; if (creak && MS.creakT <= 0) { MS.creakT = 25; MS.ui.push({ t: 'creak', type: creak.type }); }
+    }
+    for (var n = MS.warn.length - 1; n >= 0; n--) { MS.warn[n].t -= dt; if (MS.warn[n].t <= 0) MS.warn.splice(n, 1); }
+  }
 
   // ---------- Итог ----------
   function result(W) {
@@ -355,5 +410,5 @@
 
   P.campaign = { KEY: KEY, register: register, byId: byId, parseMap: parseMap, build: build, step: step, tick: tick, cond: cond, act: act, run: run,
     result: result, newSave: newSave, load: load, save: save, reset: reset, applyResult: applyResult, pointOf: pointOf, inZone: inZone, zoneCenter: zoneCenter,
-    zoneCells: zoneCells, txt: txt, makeTrain: makeTrain, allowed: function (W, type) { return !W.mission || !!W.mission.allow[type]; } };
+    zoneCells: zoneCells, txt: txt, makeTrain: makeTrain, hazards: hazards, allowed: function (W, type) { return !W.mission || !!W.mission.allow[type]; } };
 })(typeof window !== 'undefined' ? window : globalThis);

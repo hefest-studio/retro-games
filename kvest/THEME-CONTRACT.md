@@ -78,6 +78,14 @@ drawThought(ctx, x, y, icons, t, opts)  // opts.style: 'paper' | 'ink' (маст
 `fence.state.rack` (+ `weed`), `house.state.fish | salt | smoke`, `window.state.dawn`, `gate.state.icon`. Пиктограммы движка глав — `js/themes/icons-ext.js`
 (общая геометрия; тема передаёт свои примитивы и цвета).
 
+**Расширение 15.11 (спринт 2, движок помощников).** Модель кадра: `model.party` — отряд в сцене `[{ id: 'taya' | 'dog' | 'gull', x, y, dir, alt, pose, active, hold }]`
+(оболочка рисует Таю через `drawHero`, помощников — через хук `drawHelper(ctx, p, pose, t)`, без хука — `drawNpc` с `state.type`), `model.trail` (нюх пса) и
+`model.overview` (взгляд сверху чайки) — хуки `drawTrail(ctx, trail, t)` и `drawOverview(ctx, ov, t)`; `ui.heroes` — портреты (рисует `drawUI` в `LAYOUT.heroes`),
+необязательный `drawActiveMark(ctx, p, t)` — метка активного героя. Позы помощников — `ThemeAPI.HELPER_POSES`. Новые kind: `windmill`, `vane`, `millstone`, `millgear`,
+`telescope`, `shutter`, `mound`, `crate`, `nest`, `burrow`, `bollard`, `ropebridge`; новые состояния: `npc.type` tern, `tower.state.dome`, `house.state.glass`,
+`wall.state.dome`, `gate.state.grille`; `state.still` у мельницы/жернова/передачи — живые части в статичном спрайте (эскизы тушью). Реализация «бумаги» — `js/themes/paper-helpers.js`
+(через `paper._ext`), серого макета — в `grey.js`; `validateTheme` проверяет новые хуки, если они есть.
+
 `ctx` — 2D-контекст канвы, масштабированный под логический размер 960×540 (физически — × масштаб HiDPI). Тема **не меняет** состояние игры, только рисует. Анимации — только от `t` (секунды) и `seed`.
 
 ## Правила

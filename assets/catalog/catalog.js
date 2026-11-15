@@ -24,7 +24,7 @@
   const THUMB_BASE = `${BASE}assets/catalog/thumbs/`;
   /* Ревизия превью: менять при перегенерации thumbs — сбрасывает кэш браузера и CDN.
      Итоговый ключ = версия игры + ревизия набора превью. */
-  const THUMB_REV = '20261115b';
+  const THUMB_REV = '20261115c';
 
   /* На file:// адреса вида "hrum/" открывают листинг каталога, а не игру,
      поэтому в этом режиме ведём прямо на "hrum/index.html". На http(s)
@@ -137,6 +137,7 @@
     { slug: 'otboynik', title: 'ОТБОЙНИК', title_en: 'BUMPERWRIGHT', subtitle: 'Пинбол-оборона мастерской', subtitle_en: 'Workshop Pinball Defense', year: 1990, developer: 'Гефест', genre: 'Pinball', genre_en: 'Pinball', tags: ['пинбол', 'оборона', 'колода', 'роглайт', 'оригинал'], summary: 'Заводные механизмы сбежали с верстаков и ползут к воротам мастерской — мастеровой отбивает их стальным шаром двумя флипперами и между волнами строит на столе горн, колокольню и пружинные стенки.', summary_en: 'Clockwork contraptions have escaped the workbenches and are crawling toward the workshop gates — a craftsman knocks them back with a steel ball and two flippers, and between waves builds a forge, a bell tower and spring walls on the table.', accent: '#e0a33a' },
     { slug: 'priisk', title: 'ПРИИСК', title_en: 'PRIISK', subtitle: 'Стратегия в реальном времени · Демо', subtitle_en: 'Real-time Strategy · Demo', year: 1995, developer: 'Гефест', genre: 'RTS', genre_en: 'RTS', tags: ['стратегия', 'база и экономика', 'пар и медь', 'кампания', 'оригинал', 'демо'], summary: 'Две артели старателей делят северное медное плато: ставь котельные и плавильню, гоняй рудовозы, собирай стрелков и самоходы на пару — и снеси Контору соседей.', summary_en: "Two prospector artels fight over a northern copper plateau: build boiler houses and a smelter, run ore carts, raise riflemen and steam walkers — and raze the neighbors' Office.", accent: '#e0a53a' },
     { slug: 'porubezhye', title: 'ПОРУБЕЖЬЕ', title_en: 'PORUBEZHYE', subtitle: 'Стратегия с асимметричными расами · Демо', subtitle_en: 'Strategy with Asymmetric Factions · Demo', year: 1996, developer: 'Гефест', genre: 'RTS', genre_en: 'RTS', tags: ['стратегия', 'две расы', 'грибница', 'туман войны', 'оригинал', 'демо'], summary: 'Сказочный северный порубежный край: Мастеровые с медью и шагоходами против Живой чащи, что растит здания на грибнице. Выбери расу и отстой заставу.', summary_en: 'A fairy-tale northern borderland: the Craftsmen with copper and walkers versus the Living Thicket, which grows its buildings on mycelium. Pick a faction and defend your outpost.', accent: '#e8913a' },
+    { slug: 'volok', title: 'ВОЛОК', subtitle: 'Изба-мастерская на колёсах и на воде', year: 1994, developer: 'Гефест', genre: "Приключение", tags: ['медитативная', 'без слов', 'вид сбоку', 'головоломки', 'оригинал'], summary: 'Подмастерье ведёт изнутри избу-мастерскую на колёсах через тундру, реку и берег, где она становится судном, — сквозь шторм и под льдами колоколом к зимовью.', title_en: 'KETTLEWAKE', subtitle_en: 'A Workshop Hut on Wheels — and on Water', genre_en: 'Adventure', summary_en: 'An apprentice runs a workshop hut on wheels from the inside — across tundra and river to the shore, where it becomes a boat, then through a storm and under the ice as a diving bell to the winter camp.', accent: '#f0a04b' }
   ];
 
   const root = document.documentElement;

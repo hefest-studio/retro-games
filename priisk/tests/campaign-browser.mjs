@@ -117,8 +117,8 @@ try {
     p2.on('pageerror', e => errs.push(e.message)); p2.on('console', m => { if (m.type() === 'error' && !/404|Failed to load resource/.test(m.text())) errs.push(m.text()); });
     await p2.route('**/priisk/js/edition.js', async r => { const res = await r.fetch(); r.fulfill({ response: res, body: (await res.text()).replace("var PRIISK_EDITION = 'demo';", "var PRIISK_EDITION = 'full';") }); });
     await p2.goto(URL0); await wait(500);
-    const st = await p2.evaluate(() => ({ b: PRIISK.Edition.BUILD, miss: PRIISK.missionMissing.join(), ids: PRIISK.MISSIONS.map(m => m.id).join(), sc: PRIISK.g._sceneName }));
-    ok(st.b === 'full' && st.miss === 'm2,m3,m4' && st.ids === 'm1' && st.sc === 'title', JSON.stringify(st));
+    const st = await p2.evaluate(() => ({ b: PRIISK.Edition.BUILD, miss: PRIISK.missionMissing.slice().sort().join(), full: PRIISK.MISSION_FILES.full.slice().sort().join(), ids: PRIISK.MISSIONS.map(m => m.id).join(), sc: PRIISK.g._sceneName }));
+    ok(st.b === 'full' && st.miss === st.full && /m2/.test(st.miss) && st.ids === 'm1' && st.sc === 'title', JSON.stringify(st)); // все файлы full (m2…) — 404
     await p2.evaluate(() => PRIISK.g.goto('camp')); await wait(200);
     ok(await p2.evaluate(() => PRIISK.campUI._test.missionList()[1].def === null && PRIISK.Edition.stub(PRIISK.EDITION) === 'soon'), 'узел 2');
     ok(!errs.length, errs.join(' | ')); await p2.close();

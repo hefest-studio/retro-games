@@ -4,25 +4,38 @@
    применяются сразу (их решаемость проверяется отдельно). Глава — makeSolver(K, chapter) (по умолчанию K.SCENES/K.PUZZLES):
    зоны сцены — с учётом её фазы (прилив/отлив) и открытых узлов карты (KVEST.logic.hotspots); таймеры главы (puzzles.timers) —
    ещё один переход «подождать» (флаг таймера меняется). Положение героини не входит в состояние — поэтому отдельная проверка
-   positionSafe: из любой достижимой сцены можно вернуться к старту (сейчас или после смены флага таймера, если сцена в его where). */
+   positionSafe: из любой достижимой сцены можно вернуться к старту (сейчас или после смены флага таймера, если сцена в его where).
+   Помощники (helpers.js): действие в сцене может сделать любой свободный герой, которого сцена пускает (правила с hero), — переходы
+   помечены act.hero; удержание — переход 'hold' (флаги held:/by: входят в состояние), отпустить — переход 'release' (если сцена
+   удержания достижима до и после). Свободные герои ходят отрядом, поэтому их положение не нужно; выход проходим, если его может
+   пройти хотя бы один свободный герой (его пускают обе сцены и на клик им по выходу нет правила/удержания). */
 export function load(sandbox) { return sandbox.KVEST; }
 
 export function makeSolver(K, ch) {
   const P = ch ? ch.puzzles : K.PUZZLES, L = K.logic, SC = {}, SCN = ch ? L.withMap(ch.scenes, ch.map) : K.SCENES; SCN.forEach(s => { SC[s.id] = s; });
   const TIMERS = P.timers || [];
+  const HL = K.Helpers || null, MULTI = !!(HL && HL.multi(P)), HEROES = MULTI ? HL.list(P) : ['taya'];
+  const as = (st, h) => ({ flags: st.flags, inv: st.inv, hero: h });
+  // кто может действовать в сцене s: свободный и пущенный сценой (держащий действует, только отпустив — переход release)
+  const actors = (st, s) => MULTI ? HEROES.filter(h => HL.free(P, st, h) && HL.allowed(SC[s], h)) : ['taya'];
+  function blocks(st, s, h, hero) {   // на клик героя по зоне сработает не выход, а правило/удержание/механизм
+    const sh = as(st, hero); if (L.resolve(P, sh, s, h.id, null)) return true;
+    if (MULTI && HL.holdFor(P, sh, s, h.id, hero)) return true;
+    const wk = hsWidget[s + ':' + h.id]; return hero === 'taya' && !!wk && L.ok(st, wk.w.need) && !st.flags['w:' + wk.w.id];
+  }
+  function passBy(st, s, h) { return actors(st, s).filter(id => (!MULTI || HL.allowed(SC[h.to], id)) && !blocks(st, s, h, id)); }
   const hsOf = (s, st) => L.hotspots(SC[s], st);
   const hsWidget = {}; P.widgets.forEach(w => { if (w.scene) w.hs.forEach((h, i) => { hsWidget[w.scene + ':' + h] = { w, i }; }); });
   const key = st => Object.keys(st.flags).filter(k => st.flags[k]).sort().join(',') + '|' + st.inv.slice().sort().join(',');
   const clone = st => ({ flags: Object.assign({}, st.flags), inv: st.inv.slice() });
-  function settle(st) { for (let i = 0; i < 6; i++) { const k0 = key(st); L.autos(P, st, null); if (key(st) === k0) break; } return st; }
+  function settle(st) { for (let i = 0; i < 6; i++) { const k0 = key(st); L.autos(P, st, null); if (MULTI) HL.autoRelease(P, st); if (key(st) === k0) break; } return st; }
   function scenesFrom(st, from) {
     const seen = { [from]: { prev: null, hs: null } }, q = [from];
     while (q.length) {
       const s = q.shift();
       for (const h of hsOf(s, st)) if (h.to && L.ok(st, h.need) && L.ok(st, h.toNeed) && !seen[h.to]) {
-        // переход срабатывает, только если на клик без предмета нет правила (правила проверяются первыми)
-        if (L.resolve(P, st, s, h.id, null)) continue;
-        const wk = hsWidget[s + ':' + h.id]; if (wk && L.ok(st, wk.w.need) && !st.flags['w:' + wk.w.id]) continue;
+        // переход срабатывает, только если на клик без предмета нет правила (правила проверяются первыми); с помощниками — хоть у одного героя
+        if (!passBy(st, s, h).length) continue;
         seen[h.to] = { prev: s, hs: h.id }; q.push(h.to);
       }
     }
@@ -39,16 +52,25 @@ export function makeSolver(K, ch) {
     for (const s of Object.keys(seen)) {
       // вход в сцену
       { const n = clone(st); let ch = false; for (const r of P.enter) if (r.scene === s && L.ok(n, r.need)) { L.apply(P, n, r.do, null); if (r.puzzle) n.flags[r.puzzle] = true; ch = true; } if (ch) push(n, { kind: 'enter', scene: s }); }
-      for (const h of hsOf(s, st)) {
-        if (!L.ok(st, h.need)) continue;
-        const wk = hsWidget[s + ':' + h.id];
-        if (wk && L.ok(st, wk.w.need) && !st.flags['w:' + wk.w.id]) { if (wk.i === 0) { const n = clone(st); L.solveWidget(P, n, wk.w, null); push(n, { kind: 'widget', scene: s, widget: wk.w.id }); } }
-        else { const r = L.resolve(P, st, s, h.id, null); if (r) { const n = clone(st); L.runRule(P, n, r, null); push(n, { kind: 'hs', scene: s, hs: h.id }); } }
-        for (const it of st.inv) { const r = L.resolve(P, st, s, h.id, it); if (r) { const n = clone(st); L.runRule(P, n, r, null); push(n, { kind: 'use', scene: s, hs: h.id, item: it }); } }
+      for (const hero of actors(st, s)) {
+        const sh = as(st, hero), tag = a => (MULTI ? Object.assign(a, { hero }) : a);
+        for (const h of hsOf(s, st)) {
+          if (!L.ok(st, h.need)) continue;
+          const wk = hsWidget[s + ':' + h.id], hd = MULTI ? HL.holdFor(P, sh, s, h.id, hero) : null;
+          if (hd) { const n = clone(st); HL.start(P, n, hd, hero); if (hd.puzzle) n.flags[hd.puzzle] = true; push(n, tag({ kind: 'hold', scene: s, hs: h.id, hold: hd.id })); }
+          else if (hero === 'taya' && wk && L.ok(st, wk.w.need) && !st.flags['w:' + wk.w.id]) { if (wk.i === 0) { const n = clone(st); L.solveWidget(P, n, wk.w, null); push(n, tag({ kind: 'widget', scene: s, widget: wk.w.id })); } }
+          else { const r = L.resolve(P, sh, s, h.id, null); if (r) { const n = clone(st); L.runRule(P, n, r, null); push(n, tag({ kind: 'hs', scene: s, hs: h.id })); } }
+          for (const it of st.inv) { const r = L.resolve(P, sh, s, h.id, it); if (r) { const n = clone(st); L.runRule(P, n, r, null); push(n, tag({ kind: 'use', scene: s, hs: h.id, item: it })); } }
+        }
       }
     }
+    // отпустить удержание: дойти до сцены удержания (сейчас) и оказаться в ней же после (держащий присоединяется к отряду)
+    if (MULTI) for (const hd of HL.heldList(P, st)) if (seen[hd.scene]) {
+      const n = clone(st), who = HL.holder(P, st, hd.id); HL.release(P, n, hd.id); settle(n);
+      if (scenesFrom(n, P.start.scene)[hd.scene]) push(n, { kind: 'release', scene: hd.scene, hold: hd.id, hs: hd.hs, hero: who });
+    }
     // таймеры главы: «подождать» — флаг меняется (если хоть одна сцена таймера достижима)
-    for (const T of TIMERS) if (!T.where || T.where.some(w => seen[w])) { const n = clone(st); if (n.flags[T.flag]) delete n.flags[T.flag]; else n.flags[T.flag] = true; push(n, { kind: 'timer', flag: T.flag, scene: (T.where || []).find(w => seen[w]) }); }
+    for (const T of TIMERS) if ((!T.where || T.where.some(w => seen[w])) && L.ok(st, T.need)) { const n = clone(st); if (n.flags[T.flag]) delete n.flags[T.flag]; else n.flags[T.flag] = true; push(n, { kind: 'timer', flag: T.flag, scene: (T.where || []).find(w => seen[w]) }); }
     for (let i = 0; i < st.inv.length; i++) for (let j = i + 1; j < st.inv.length; j++) {
       const c = L.resolveCombo(P, st, st.inv[i], st.inv[j]); if (c) { const n = clone(st); L.runRule(P, n, c, null); push(n, { kind: 'combo', a: st.inv[i], b: st.inv[j] }); }
     }
@@ -81,13 +103,13 @@ export function makeSolver(K, ch) {
     const bad = [];
     for (const s of Object.keys(scenesFrom(st, P.start.scene))) {
       if (scenesFrom(st, s)[P.start.scene]) continue;
-      const T = TIMERS.find(t => !t.where || t.where.includes(s));
+      const T = TIMERS.find(t => (!t.where || t.where.includes(s)) && L.ok(st, t.need));
       if (T) { const n = clone(st); if (n.flags[T.flag]) delete n.flags[T.flag]; else n.flags[T.flag] = true; if (scenesFrom(n, s)[P.start.scene]) continue; }
       bad.push(s);
     }
     return bad;
   }
-  return { key, start, successors, explore, scenesFrom, positionSafe, P, SC };
+  return { key, start, successors, explore, scenesFrom, positionSafe, actors, passBy, P, SC, HEROES, MULTI };
 }
 
 // Поиск решения механизма/мини-игры по его локальному состоянию (BFS по ходам). → массив индексов или null.
