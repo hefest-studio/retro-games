@@ -4,7 +4,7 @@
   var P = global.PRIISK = global.PRIISK || {};
   P.STR = {
     ru: {
-      play: 'Играть', language: 'Язык', theme: 'Тема', sound: 'Звук', on: 'вкл', off: 'выкл',
+      play: 'Скирмиш', language: 'Язык', theme: 'Тема', sound: 'Звук', on: 'вкл', off: 'выкл',
       score: 'Счёт', level: 'Партия', best: 'Рекорд', win: 'ПЛАТО НАШЕ!', gameover: 'КОНТОРА ПАЛА',
       pause: 'ПАУЗА', resume: 'Продолжить', menu: 'В меню', tapstart: 'пробел / тап',
       title: 'ПРИИСК', subtitle: 'Две артели · одно медное плато',
@@ -22,10 +22,22 @@
       tipPlace: 'ЛКМ — поставить · ПКМ / Esc — отмена', tipCmd: 'ПКМ — идти / атаковать / копать · Ctrl+1…9 — группа',
       tipPanel: 'ЛКМ — заказать · ПКМ — отменить',
       winSub: 'Контора соседей снесена', loseSub: 'Сизые взяли плато',
-      back: 'Каталог'
+      back: 'Каталог',
+      // кампания
+      restart: 'Заново', skirmish: 'Скирмиш', campaign: 'Кампания', campMap: 'МЕДНАЯ ЛИХОРАДКА', campSub: 'Кампания Артели Медного Ключа',
+      brief: 'Брифинг', start: 'Начать', next: 'Далее', retry: 'Повторить', toMap: 'Карта кампании', backBtn: 'Назад', toMenu: 'Меню',
+      mission: 'Миссия', locked: 'в работе', lockedSub: 'Откроется в следующих волнах разработки', closed: 'Пройди предыдущую миссию',
+      objectives: 'Цели', starsT: 'Звёзды', heroesT: 'Отряд', required: 'обязательна', wounded: 'ранена', vetsT: 'Ветераны', optional: 'по выбору',
+      starDone: 'Задание выполнено', bestTime: 'Лучшее время',
+      resWin: 'ЗАДАНИЕ ВЫПОЛНЕНО', resLose: 'ПРОВАЛ', resTime: 'Время', resLost: 'Потери', resKills: 'Сбито', resUnits: 'бойцов', resBlds: 'зданий',
+      resVets: 'Ветераны в строю', reasonHq: 'Контора пала', reset: 'Сбросить прогресс', resetSure: 'Ещё раз — и прогресс будет стёрт',
+      varvara: 'Варвара Клин', lunya: 'Луня', foeVoice: 'Сизый дозорный', abCry: 'Клич', abFlare: 'Метка', abReady: 'готово',
+      msgFar: 'Слишком далеко для метки', msgCd: 'Ещё не готово', msgLocked: 'Недоступно в этой миссии', tipFlare: 'ЛКМ — поставить метку (карта или мини-карта) · ПКМ / Esc — отмена',
+      msgObj: 'Новая цель', msgObjDone: 'Выполнено', msgHeroDown: 'выбыла из боя', msgStormUp: 'Метель крепчает — обзор сужается', msgStormDown: 'Метель стихает',
+      msgVet: 'Новый ветеран', msgNight: 'Ночь', tipQE: 'Q — Клич Варвары · E — Метка Луни', campHint: 'Стрелки/мышь — выбор · Enter — брифинг · Esc — меню'
     },
     en: {
-      play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
+      play: 'Skirmish', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
       score: 'Score', level: 'Match', best: 'Best', win: 'THE PLATEAU IS OURS!', gameover: 'LODGE LOST',
       pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
       title: 'PRIISK', subtitle: 'Two artels · one copper plateau',
@@ -43,7 +55,18 @@
       tipPlace: 'LMB place · RMB / Esc cancel', tipCmd: 'RMB move / attack / mine · Ctrl+1…9 group',
       tipPanel: 'LMB order · RMB cancel',
       winSub: 'The rival lodge is down', loseSub: 'The Grey Pass took the plateau',
-      back: 'Catalog'
+      back: 'Catalog',
+      restart: 'Restart', skirmish: 'Skirmish', campaign: 'Campaign', campMap: 'COPPER FEVER', campSub: 'Copper Spring Artel campaign',
+      brief: 'Briefing', start: 'Start', next: 'Next', retry: 'Retry', toMap: 'Campaign map', backBtn: 'Back', toMenu: 'Menu',
+      mission: 'Mission', locked: 'in progress', lockedSub: 'Coming in later development waves', closed: 'Finish the previous mission',
+      objectives: 'Objectives', starsT: 'Stars', heroesT: 'Squad', required: 'required', wounded: 'wounded', vetsT: 'Veterans', optional: 'your choice',
+      starDone: 'Mission complete', bestTime: 'Best time',
+      resWin: 'MISSION COMPLETE', resLose: 'FAILED', resTime: 'Time', resLost: 'Losses', resKills: 'Kills', resUnits: 'crew', resBlds: 'buildings',
+      resVets: 'Veterans on duty', reasonHq: 'The lodge has fallen', reset: 'Reset progress', resetSure: 'Once more to erase progress',
+      varvara: 'Varvara Klin', lunya: 'Lunya', foeVoice: 'Grey Pass scout', abCry: 'Rally', abFlare: 'Flare', abReady: 'ready',
+      msgFar: 'Too far for a flare', msgCd: 'Not ready yet', msgLocked: 'Not available in this mission', tipFlare: 'LMB — place the flare (map or minimap) · RMB / Esc — cancel',
+      msgObj: 'New objective', msgObjDone: 'Done', msgHeroDown: 'is out of the fight', msgStormUp: 'The snowstorm thickens — sight shrinks', msgStormDown: 'The snowstorm eases',
+      msgVet: 'New veteran', msgNight: 'Night', tipQE: 'Q — Varvara’s Rally · E — Lunya’s Flare', campHint: 'Arrows/mouse — select · Enter — briefing · Esc — menu'
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

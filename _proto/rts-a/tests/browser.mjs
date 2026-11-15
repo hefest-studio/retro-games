@@ -15,7 +15,7 @@ let chromium;
 try { ({ chromium } = require('playwright')); } catch { ({ chromium } = require('/opt/npm-tools/node_modules/playwright')); }
 
 const HERE = path.dirname(fileURLToPath(import.meta.url)), REPO = path.resolve(HERE, '../../..');
-const PORT = 8351, URL0 = `http://localhost:${PORT}/_proto/rts-a/`;
+const PORT = +(process.env.PORT || 8351), URL0 = `http://localhost:${PORT}/_proto/rts-a/`;
 const SHOTS = process.argv[2] || null;
 let srv = null;
 async function up() { try { const r = await fetch(URL0); return r.ok; } catch { return false; } }
