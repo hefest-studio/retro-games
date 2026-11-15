@@ -7,12 +7,22 @@
   'use strict';
   var P = root.PRIISK = root.PRIISK || {};
 
-  var GROUND = 0, ROCK = 1, WATER = 2;
+  // Клетки: земля, скала, вода (замёрзшее озеро — непроходимо), лёд (проходим, может треснуть), полынья (открытая вода).
+  var GROUND = 0, ROCK = 1, WATER = 2, ICE = 3, OPEN = 4;
+  function walkable(t) { return t === GROUND || t === ICE; }
   var UNITS = {
     rifleman:  { hp: 60,  speed: 1.7, range: 3.6, dmg: 9,  cd: 0.8, weapon: 'gun',   cost: 100, time: 5,  sight: 5,   r: 0.3,  cls: 'inf', from: 'bunk' },
     crawler:   { hp: 240, speed: 2.7, range: 4.6, dmg: 24, cd: 1.1, weapon: 'shell', cost: 400, time: 9,  sight: 6,   r: 0.42, cls: 'veh', from: 'works' },
     ironwagon: { hp: 560, speed: 1.6, range: 5.2, dmg: 54, cd: 1.9, weapon: 'shell', cost: 800, time: 15, sight: 6.5, r: 0.5,  cls: 'veh', from: 'works' },
-    hauler:    { hp: 480, speed: 1.9, range: 0,   dmg: 0,  cd: 0,   weapon: null,    cost: 700, time: 12, sight: 4,   r: 0.5,  cls: 'veh', from: 'works', cap: 200 }
+    hauler:    { hp: 480, speed: 1.9, range: 0,   dmg: 0,  cd: 0,   weapon: null,    cost: 700, time: 12, sight: 4,   r: 0.5,  cls: 'veh', from: 'works', cap: 200 },
+    // герои кампании (не строятся): Варвара Клин — аура боевого духа, Луня — дальний взгляд и метка
+    varvara:   { hp: 260, speed: 1.8, range: 3.8, dmg: 12, cd: 0.8, weapon: 'gun',   cost: 0,   time: 0,  sight: 6,   r: 0.34, cls: 'inf', hero: true },
+    lunya:     { hp: 150, speed: 2.0, range: 4.2, dmg: 8,  cd: 0.9, weapon: 'gun',   cost: 0,   time: 0,  sight: 9,   r: 0.3,  cls: 'inf', hero: true }
+  };
+  // Способности героев: cry — «Клич» (аура ×2 на время), flare — «Метка» (открыть туман в точке на время).
+  var HEROES = {
+    varvara: { ability: 'cry', cd: 30, dur: 8, aura: 4.5, dmg: 1.25, spd: 1.15, cryDmg: 1.5, crySpd: 1.3 },
+    lunya:   { ability: 'flare', cd: 25, dur: 12, r: 6, reach: 18 }
   };
   var BLDS = {
     hq:      { w: 3, h: 3, hp: 1600, cost: 0,   time: 0,  power: 10,  req: [],          sight: 7 },
@@ -33,12 +43,12 @@
     var W = {
       w: w, h: h, t: new Uint8Array(w * h), ore: new Uint16Array(w * h), occ: new Int32Array(w * h),
       vis: new Uint8Array(w * h), units: [], blds: [], byId: Object.create(null), nextId: 1, time: 0,
-      rng: mulberry32(seed || 1), fx: [], events: [], winner: -1, visT: 0,
+      rng: mulberry32(seed || 1), fx: [], events: [], winner: -1, visT: 0, sightMul: 1, flares: [], mapRev: 0,
       players: [newPlayer(0), newPlayer(1)], ai: null, oreMax: 0, hadHq: [false, false]
     };
     return W;
   }
-  function newPlayer(id) { return { id: id, copper: 0, pOut: 0, pUse: 0, build: null, inf: [], infP: 0, veh: [], vehP: 0, score: 0, mined: 0, kills: 0, lost: 0 }; }
+  function newPlayer(id) { return { id: id, copper: 0, pOut: 0, pUse: 0, build: null, inf: [], infP: 0, veh: [], vehP: 0, score: 0, mined: 0, kills: 0, lost: 0, lostB: 0, trained: {} }; }
 
   // Тестовая/своя карта из строк: '#' скала, '~' вода, 'o' медь (300), '.' земля.
   function worldFromMap(rows, opt) {
@@ -136,7 +146,7 @@
   // ---------- Сетка ----------
   var DX = [1, 0, -1, 0, 1, -1, -1, 1], DY = [0, 1, 0, -1, 1, 1, -1, -1];
   function inb(W, i, j) { return i >= 0 && j >= 0 && i < W.w && j < W.h; }
-  function passable(W, i, j) { if (!inb(W, i, j)) return false; var k = j * W.w + i; return W.t[k] === GROUND && W.occ[k] === 0; }
+  function passable(W, i, j) { if (!inb(W, i, j)) return false; var k = j * W.w + i; return walkable(W.t[k]) && W.occ[k] === 0; }
   function nearestPassable(W, i, j, maxR, avoidUnits) {
     if (passable(W, i, j) && !(avoidUnits && unitOn(W, i, j))) return { i: i, j: j };
     for (var r = 1; r <= (maxR || 10); r++) {
@@ -221,7 +231,7 @@
   function addUnit(W, owner, type, x, y) {
     var d = UNITS[type], u = { id: W.nextId++, kind: 'unit', type: type, owner: owner, x: x, y: y, hp: d.hp, maxHp: d.hp, path: [], order: { t: 'idle' },
       cd: 0, heading: owner === 0 ? -Math.PI / 4 : Math.PI * 3 / 4, aim: null, carry: 0, scanT: W.rng() * 0.5, chk: { x: x, y: y, t: 0 }, stuck: 0, hitT: -99, hitBy: 0, fireT: -9 };
-    u.aim = u.heading;
+    u.aim = u.heading; if (HEROES[type]) { u.abT = 0; u.abOn = 0; }
     W.units.push(u); W.byId[u.id] = u; return u;
   }
   function calcPower(W) {
@@ -292,6 +302,7 @@
     var ex = b.tx + Math.floor(b.w / 2), ey = b.ty + b.h, sp = nearestPassable(W, ex, ey, 8, true) || nearestPassable(W, ex, ey, 8);
     if (!sp) return null;
     var u = addUnit(W, b.owner, type, sp.i + 0.5, sp.j + 0.5); u.heading = u.aim = Math.PI / 2;
+    var tr = W.players[b.owner].trained; tr[type] = (tr[type] || 0) + 1;
     if (type === 'hauler') u.order = { t: 'harvest', s: 'seek' };
     else if (b.rally) commandMove(W, [u.id], b.rally.x, b.rally.y);
     W.events.push({ t: 'unit', owner: b.owner, id: u.id });
@@ -348,7 +359,7 @@
     if (target && target.owner === o && target.type === 'smelter' && haul) return 'return';
     if (!target && W.ore[j * W.w + i] > 0 && haul) return 'harvest';
     if (target && target.kind === 'bld') return 'deny';
-    if (W.t[j * W.w + i] !== GROUND) return 'deny';
+    if (!walkable(W.t[j * W.w + i])) return 'deny';
     return 'move';
   }
   function commandSmart(W, o, ids, x, y, target) {
@@ -387,6 +398,7 @@
     W.time += dt;
     production(W, 0, dt); production(W, 1, dt);
     if (W.ai) aiStep(W, dt);
+    heroStep(W, dt);
     for (var n = 0; n < W.units.length; n++) unitStep(W, W.units[n], dt);
     separate(W, dt);
     // смерти
@@ -403,14 +415,16 @@
     delete W.byId[e.id];
     if (e.kind === 'bld') for (var j = 0; j < e.h; j++) for (var i = 0; i < e.w; i++) { var k = (e.ty + j) * W.w + e.tx + i; if (W.occ[k] === e.id) W.occ[k] = 0; }
     var c = center(e), val = e.kind === 'bld' ? Math.max(200, BLDS[e.type].cost) : UNITS[e.type].cost;
-    W.players[e.owner].lost++;
+    W.players[e.owner].lost++; if (e.kind === 'bld') W.players[e.owner].lostB++;
     var killer = e.hitBy && W.players[1 - e.owner]; if (killer) { killer.kills++; killer.score += Math.round(val / (e.kind === 'bld' ? 4 : 10)); }
+    var ku = e.hitBy && W.byId[e.hitBy]; // ветеранство: 3 победы — звание (+20% урона, подлечился)
+    if (ku && ku.kind === 'unit' && ku.owner !== e.owner) { ku.kills = (ku.kills || 0) + 1; if (ku.kills >= 3 && !ku.vet) { ku.vet = 1; ku.hp = Math.min(ku.maxHp, ku.hp + ku.maxHp * 0.2); W.events.push({ t: 'vet', owner: ku.owner, id: ku.id }); } }
     W.fx.push({ t: 'boom', x: c.x, y: c.y, life: 0.7, max: 0.7, big: e.kind === 'bld' || UNITS[e.type].cls === 'veh' });
-    W.events.push({ t: 'die', owner: e.owner, kind: e.kind, type: e.type, x: c.x, y: c.y });
+    W.events.push({ t: 'die', owner: e.owner, kind: e.kind, type: e.type, x: c.x, y: c.y, tag: e.tag || null, id: e.id });
   }
   function damage(W, attacker, tg) {
     var d = UNITS[attacker.type], cls = tg.kind === 'bld' ? 'bld' : UNITS[tg.type].cls;
-    tg.hp -= d.dmg * MULT[d.weapon][cls] * (0.9 + W.rng() * 0.2);
+    tg.hp -= d.dmg * MULT[d.weapon][cls] * (0.9 + W.rng() * 0.2) * (attacker.bD || 1) * (attacker.vet ? 1.2 : 1);
     tg.hitT = W.time; tg.hitBy = attacker.id;
     var c = center(tg), ox = tg.kind === 'bld' ? (W.rng() - 0.5) * tg.w * 0.6 : 0, oy = tg.kind === 'bld' ? (W.rng() - 0.5) * tg.h * 0.6 : 0;
     W.fx.push({ t: d.weapon === 'gun' ? 'tracer' : 'shell', x0: attacker.x, y0: attacker.y, x: c.x + ox, y: c.y + oy, life: d.weapon === 'gun' ? 0.09 : 0.22, max: d.weapon === 'gun' ? 0.09 : 0.22 });
@@ -419,7 +433,7 @@
   function turn(a, b, max) { var d = Math.atan2(Math.sin(b - a), Math.cos(b - a)); return a + Math.max(-max, Math.min(max, d)); }
   function follow(W, u, dt) {
     if (!u.path.length) return false;
-    var wp = u.path[0], dx = wp.x - u.x, dy = wp.y - u.y, dl = Math.hypot(dx, dy), sp = UNITS[u.type].speed * dt;
+    var wp = u.path[0], dx = wp.x - u.x, dy = wp.y - u.y, dl = Math.hypot(dx, dy), sp = UNITS[u.type].speed * (u.bS || 1) * (u.sm || 1) * dt;
     var last = u.path.length === 1;
     if (dl <= sp || (last && dl < 0.12)) { u.x = wp.x; u.y = wp.y; u.path.shift(); }
     else { u.x += dx / dl * sp; u.y += dy / dl * sp; }
@@ -586,14 +600,47 @@
         if (!inb(W, i, j)) continue; var dx = i + 0.5 - x, dy = j + 0.5 - y; if (dx * dx + dy * dy <= r2) v[j * W.w + i] = 2;
       }
     }
-    W.units.forEach(function (u) { if (u.owner === 0) mark(u.x, u.y, UNITS[u.type].sight); });
-    W.blds.forEach(function (b) { if (b.owner === 0) mark(b.tx + b.w / 2, b.ty + b.h / 2, BLDS[b.type].sight + Math.max(b.w, b.h) / 2); });
+    var sm = W.sightMul == null ? 1 : W.sightMul; // погода/ночь кампании урезают обзор
+    W.units.forEach(function (u) { if (u.owner === 0) mark(u.x, u.y, Math.max(1.5, UNITS[u.type].sight * sm)); });
+    W.blds.forEach(function (b) { if (b.owner === 0) mark(b.tx + b.w / 2, b.ty + b.h / 2, Math.max(2, BLDS[b.type].sight * sm) + Math.max(b.w, b.h) / 2); });
+    (W.flares || []).forEach(function (f) { mark(f.x, f.y, f.r); });
   }
   function visibleTo0(W, e) {
     if (e.owner === 0) return true;
     if (e.kind === 'unit') { var i = Math.floor(e.x), j = Math.floor(e.y); return inb(W, i, j) && W.vis[j * W.w + i] === 2; }
     for (var j2 = 0; j2 < e.h; j2++) for (var i2 = 0; i2 < e.w; i2++) if (W.vis[(e.ty + j2) * W.w + e.tx + i2]) return true;
     return false;
+  }
+
+  // ---------- Герои: ауры, способности, метки ----------
+  // u.bD / u.bS — множители урона и скорости на этот шаг (аура Варвары); u.abT — перезарядка, u.abOn — способность действует.
+  function heroStep(W, dt) {
+    var us = W.units, n, m;
+    for (n = 0; n < us.length; n++) { us[n].bD = 1; us[n].bS = 1; }
+    for (n = 0; n < us.length; n++) {
+      var h = us[n], hd = HEROES[h.type]; if (!hd || h.hp <= 0) continue;
+      if (h.abT > 0) h.abT = Math.max(0, h.abT - dt);
+      if (h.abOn > 0) h.abOn = Math.max(0, h.abOn - dt);
+      if (hd.aura) {
+        var on = h.abOn > 0, R = hd.aura * (on ? 1.6 : 1), bd = on ? hd.cryDmg : hd.dmg, bs = on ? hd.crySpd : hd.spd;
+        for (m = 0; m < us.length; m++) { var a = us[m]; if (a.owner !== h.owner || a === h || UNITS[a.type].cls !== 'inf' && !on) continue;
+          if (Math.hypot(a.x - h.x, a.y - h.y) <= R) { a.bD = Math.max(a.bD, bd); a.bS = Math.max(a.bS, bs); } }
+        if (on) { h.bD = Math.max(h.bD, hd.dmg); }
+      }
+    }
+    var fl = W.flares; if (fl) for (n = fl.length - 1; n >= 0; n--) { fl[n].t -= dt; if (fl[n].t <= 0) fl.splice(n, 1); }
+  }
+  // Активная способность героя: 'ok' | 'cd' (перезарядка) | 'far' (метка слишком далеко) | null (не герой/мёртв).
+  function ability(W, u, x, y) {
+    var hd = u && HEROES[u.type]; if (!hd || !alive(u)) return null;
+    if (u.abT > 0) return 'cd';
+    if (hd.ability === 'cry') { u.abOn = hd.dur; u.abT = hd.cd; W.events.push({ t: 'ability', owner: u.owner, id: u.id, kind: 'cry', x: u.x, y: u.y }); return 'ok'; }
+    if (hd.ability === 'flare') {
+      if (x == null || Math.hypot(x - u.x, y - u.y) > hd.reach) return 'far';
+      W.flares.push({ x: x, y: y, r: hd.r, t: hd.dur, max: hd.dur, owner: u.owner }); u.abT = hd.cd; W.visT = 0;
+      W.events.push({ t: 'ability', owner: u.owner, id: u.id, kind: 'flare', x: x, y: y }); return 'ok';
+    }
+    return null;
   }
 
   // ---------- ИИ соседней артели ----------
@@ -655,7 +702,8 @@
   }
 
   P.logic = {
-    UNITS: UNITS, BLDS: BLDS, BUILD_LIST: BUILD_LIST, UNIT_LIST: UNIT_LIST, GROUND: GROUND, ROCK: ROCK, WATER: WATER, MAP_W: MAP_W, MAP_H: MAP_H,
+    UNITS: UNITS, BLDS: BLDS, HEROES: HEROES, BUILD_LIST: BUILD_LIST, UNIT_LIST: UNIT_LIST, GROUND: GROUND, ROCK: ROCK, WATER: WATER, ICE: ICE, OPEN: OPEN, MAP_W: MAP_W, MAP_H: MAP_H,
+    walkable: walkable, ability: ability, aiSpot: aiSpot, alive: alive, inb: inb,
     mulberry32: mulberry32, newWorld: newWorld, worldFromMap: worldFromMap, emptyWorld: emptyWorld,
     passable: passable, findPath: findPath, nearestPassable: nearestPassable,
     addBuilding: addBuilding, addUnit: addUnit, calcPower: calcPower, powerFactor: powerFactor, has: has, count: count, reqMet: reqMet, dockOf: dockOf, center: center,
