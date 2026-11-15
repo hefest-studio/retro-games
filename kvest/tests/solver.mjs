@@ -1,11 +1,16 @@
 /* МАЯЧНИЦА · tests/solver.mjs — поиск по состояниям главы (для тестов решаемости и бота).
    Состояние = флаги + инвентарь (сцена не нужна: переходы обратимы, доступность сцены считается по флагам).
    Переходы — ровно те же правила, что у движка (KVEST.logic: resolve/runRule/solveWidget/autos), кат-сцены и мини-игры
-   применяются сразу (их решаемость проверяется отдельно). */
+   применяются сразу (их решаемость проверяется отдельно). Глава — makeSolver(K, chapter) (по умолчанию K.SCENES/K.PUZZLES):
+   зоны сцены — с учётом её фазы (прилив/отлив) и открытых узлов карты (KVEST.logic.hotspots); таймеры главы (puzzles.timers) —
+   ещё один переход «подождать» (флаг таймера меняется). Положение героини не входит в состояние — поэтому отдельная проверка
+   positionSafe: из любой достижимой сцены можно вернуться к старту (сейчас или после смены флага таймера, если сцена в его where). */
 export function load(sandbox) { return sandbox.KVEST; }
 
-export function makeSolver(K) {
-  const P = K.PUZZLES, L = K.logic, SC = {}; K.SCENES.forEach(s => { SC[s.id] = s; });
+export function makeSolver(K, ch) {
+  const P = ch ? ch.puzzles : K.PUZZLES, L = K.logic, SC = {}, SCN = ch ? L.withMap(ch.scenes, ch.map) : K.SCENES; SCN.forEach(s => { SC[s.id] = s; });
+  const TIMERS = P.timers || [];
+  const hsOf = (s, st) => L.hotspots(SC[s], st);
   const hsWidget = {}; P.widgets.forEach(w => { if (w.scene) w.hs.forEach((h, i) => { hsWidget[w.scene + ':' + h] = { w, i }; }); });
   const key = st => Object.keys(st.flags).filter(k => st.flags[k]).sort().join(',') + '|' + st.inv.slice().sort().join(',');
   const clone = st => ({ flags: Object.assign({}, st.flags), inv: st.inv.slice() });
@@ -14,7 +19,7 @@ export function makeSolver(K) {
     const seen = { [from]: { prev: null, hs: null } }, q = [from];
     while (q.length) {
       const s = q.shift();
-      for (const h of SC[s].hotspots) if (h.to && L.ok(st, h.need) && L.ok(st, h.toNeed) && !seen[h.to]) {
+      for (const h of hsOf(s, st)) if (h.to && L.ok(st, h.need) && L.ok(st, h.toNeed) && !seen[h.to]) {
         // переход срабатывает, только если на клик без предмета нет правила (правила проверяются первыми)
         if (L.resolve(P, st, s, h.id, null)) continue;
         const wk = hsWidget[s + ':' + h.id]; if (wk && L.ok(st, wk.w.need) && !st.flags['w:' + wk.w.id]) continue;
@@ -34,7 +39,7 @@ export function makeSolver(K) {
     for (const s of Object.keys(seen)) {
       // вход в сцену
       { const n = clone(st); let ch = false; for (const r of P.enter) if (r.scene === s && L.ok(n, r.need)) { L.apply(P, n, r.do, null); if (r.puzzle) n.flags[r.puzzle] = true; ch = true; } if (ch) push(n, { kind: 'enter', scene: s }); }
-      for (const h of SC[s].hotspots) {
+      for (const h of hsOf(s, st)) {
         if (!L.ok(st, h.need)) continue;
         const wk = hsWidget[s + ':' + h.id];
         if (wk && L.ok(st, wk.w.need) && !st.flags['w:' + wk.w.id]) { if (wk.i === 0) { const n = clone(st); L.solveWidget(P, n, wk.w, null); push(n, { kind: 'widget', scene: s, widget: wk.w.id }); } }
@@ -42,6 +47,8 @@ export function makeSolver(K) {
         for (const it of st.inv) { const r = L.resolve(P, st, s, h.id, it); if (r) { const n = clone(st); L.runRule(P, n, r, null); push(n, { kind: 'use', scene: s, hs: h.id, item: it }); } }
       }
     }
+    // таймеры главы: «подождать» — флаг меняется (если хоть одна сцена таймера достижима)
+    for (const T of TIMERS) if (!T.where || T.where.some(w => seen[w])) { const n = clone(st); if (n.flags[T.flag]) delete n.flags[T.flag]; else n.flags[T.flag] = true; push(n, { kind: 'timer', flag: T.flag, scene: (T.where || []).find(w => seen[w]) }); }
     for (let i = 0; i < st.inv.length; i++) for (let j = i + 1; j < st.inv.length; j++) {
       const c = L.resolveCombo(P, st, st.inv[i], st.inv[j]); if (c) { const n = clone(st); L.runRule(P, n, c, null); push(n, { kind: 'combo', a: st.inv[i], b: st.inv[j] }); }
     }
@@ -69,7 +76,18 @@ export function makeSolver(K) {
     let best = goals.length ? goals[0] : -1;   // BFS → первый найденный финал — кратчайший
     return { list, edges, goals, dead, start: s0, plan: best >= 0 ? plan(best) : null, planTo: plan };
   }
-  return { key, start, successors, explore, scenesFrom };
+  // положение: из каждой сцены, достижимой в состоянии st, можно вернуться к старту главы (сразу или переждав таймер)
+  function positionSafe(st) {
+    const bad = [];
+    for (const s of Object.keys(scenesFrom(st, P.start.scene))) {
+      if (scenesFrom(st, s)[P.start.scene]) continue;
+      const T = TIMERS.find(t => !t.where || t.where.includes(s));
+      if (T) { const n = clone(st); if (n.flags[T.flag]) delete n.flags[T.flag]; else n.flags[T.flag] = true; if (scenesFrom(n, s)[P.start.scene]) continue; }
+      bad.push(s);
+    }
+    return bad;
+  }
+  return { key, start, successors, explore, scenesFrom, positionSafe, P, SC };
 }
 
 // Поиск решения механизма/мини-игры по его локальному состоянию (BFS по ходам). → массив индексов или null.

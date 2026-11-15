@@ -341,6 +341,21 @@
     dawn: { bands: ['#8fa4a3', '#b8b4a1', '#dcb69c', '#ecc9a1', '#f4dcb2'], bandY: [0, 96, 168, 222, 262], sun: '#e9ae49', sunY: 262, sunX: 600,
       hillFar: '#b2ad80', hillNear: '#848f50', field1: '#cdb874', field2: '#a2a86d', grass: '#6f7e3f', earth: '#a97e4f', cloud: '#f7ecd6', cloudB: '#ecc4a6',
       water: '#6d9393', glow: '255,190,105', tint: null, fog: 0.2 },
+    // побережье (движок глав): утро на берегу, марево солеварни, вечер на косе, комната старого маяка до и после огня, лист карты
+    morning: { bands: ['#a9c4cc', '#c3d6d4', '#dfe3d2', '#f0e6cc'], bandY: [0, 100, 180, 240], sun: '#f4cf7a', sunY: 200, sunX: 180,
+      hillFar: '#9fb1a8', hillNear: '#7f927e', grass: null, earth: '#d6bd8c', sand: '#c9ae7a', cloud: '#fbf3e2', cloudB: '#e3e0d6', water: '#5f949a',
+      glow: '255,220,150', tint: null, fog: 0.18, rock: '#8d8a80', rockL: '#a9a598' },
+    haze: { bands: ['#c9d6d8', '#d9e1dc', '#e8e8dc', '#f1ecdc'], bandY: [0, 110, 190, 250], sun: '#f6e2a2', sunY: 120, sunX: 700,
+      hillFar: '#b9c2b4', hillNear: '#9aa48e', grass: '#8f9a63', earth: '#c8b89a', sand: '#d9cba8', cloud: '#fbf8f0', cloudB: '#e6e6de', water: '#7aa2a8',
+      glow: '255,220,150', tint: null, fog: 0.08, rock: '#a39a88', rockL: '#bdb5a3' },
+    evening: { bands: ['#4b5274', '#76678a', '#b07e86', '#d99a7a', '#ebbd86'], bandY: [0, 80, 150, 205, 250], sun: '#e3854a', sunY: 250, sunX: 640,
+      hillFar: '#76666e', hillNear: '#4f4c4c', grass: null, earth: '#9a7a5c', sand: '#b8977a', cloud: '#e2b6a2', cloudB: '#9f7f8e', water: '#55607a',
+      glow: '255,170,95', tint: 'rgba(70,40,60,0.08)', fog: 0.35, rock: '#6d5f5a', rockL: '#8b7a72' },
+    predawn: { bands: ['#2b3140'], wall: ['#6f7480', '#676c78', '#777c88', '#62666f'], wallD: '#4a4e58', floor: ['#5d5a55', '#56534e', '#66625c'], floorD: '#44423e',
+      win: 'night', glow: '255,200,130', tint: 'rgba(20,30,60,0.12)', vign: 'rgba(14,16,30,0.5)', stone: true },
+    sunroom: { bands: ['#6a4a3a'], wall: ['#b08a6a', '#a8805f', '#b89474', '#a37b5c'], wallD: '#7a5a44', floor: ['#7c6450', '#735c49', '#856c57'], floorD: '#5f4a3a',
+      win: 'dawn', glow: '255,200,120', tint: null, vign: 'rgba(40,20,10,0.35)', stone: true },
+    map: { bands: ['#6f5a44'], glow: '255,210,140', tint: null, fog: 0 },
     day: { bands: ['#9fbdbb', '#b9cfc2', '#d6dcc6', '#e7e3cc'], bandY: [0, 120, 200, 260], sun: '#efc461', sunY: 150, sunX: 760,
       hillFar: '#a9b07c', hillNear: '#7f8f4b', field1: '#cfc078', field2: '#9fae6c', grass: '#6d813f', earth: '#ad8553', cloud: '#f7ecd6', cloudB: '#e4dccb',
       water: '#6d9393', glow: '255,220,150', tint: null, fog: 0 }
@@ -350,14 +365,15 @@
   // ключ палитры: по сцене главы, затем по mood; финал (свет маяка горит) — «lit»
   function palKey(sc) {
     if (!sc) return 'day';
-    var k = SCENE_PAL[sc.id] || MOOD_PAL[sc.mood] || 'day';
+    var k = SCENE_PAL[sc.id] || (sc.pal && PALS[sc.pal] ? sc.pal : null) || MOOD_PAL[sc.mood] || 'day';
     if (k === 'night' && sceneLit(sc)) k = 'lit';
+    if (k === 'predawn' && (sc.objects || []).some(function (o) { return o.kind === 'beacon' && o.state && o.state.lit; })) k = 'sunroom';
     if (sc.id && sc.id.indexOf('mini_') === 0) k = sc.mood === 'night' ? 'night' : 'craft';
     return k;
   }
   function sceneLit(sc) { var o = sc.objects || []; for (var i = 0; i < o.length; i++) { var s = o[i].state; if (s && s.lit && (o[i].kind === 'tower' || (o[i].kind === 'lamp' && s.big))) return true; } return false; }
   function pal(sc) { return PALS[palKey(sc)] || PALS.day; }
-  var INDOOR = { warm: 1, shed: 1, stone: 1, craft: 1 };
+  var INDOOR = { warm: 1, shed: 1, stone: 1, craft: 1, predawn: 1, sunroom: 1, map: 1 };
 
   // ================= окружение (статичные спрайты) =================
   var K = {};
@@ -488,16 +504,18 @@
       cut(g, rectP(hx - 7, hy - 7, hw + 14, hh + 14), C.dbrown, { seed: 640, lift: 3 });
       cut(g, rectP(hx, hy, hw, hh), st.windowLit ? '#8a6038' : '#5a3d2a', { seed: 641, lift: 0, amp: 0.4 });
       cut(g, rectP(hx + 6, hy + hh * 0.35, hw - 12, 5), '#3f2a1d', { seed: 642, lift: 0.5, raw: true });
-      for (var lb = 0; lb < 4; lb++) cut(g, ell(hx + 16 + lb * (hw - 32) / 3, hy + hh * 0.35 - 6, 9, 6, 12), '#d39a55', { seed: 643 + lb, lift: 1.2 }); // караваи на полке
+      if (st.fish) for (var fb = 0; fb < 5; fb++) { var fxx = hx + 12 + fb * (hw - 24) / 4; strokeL(g, [[fxx, hy + 2], [fxx, hy + 10]], '#3f2a1d', 1.2); cut(g, [[fxx - 4, hy + 10], [fxx + 4, hy + 10], [fxx + 3, hy + hh * 0.62], [fxx, hy + hh * 0.72], [fxx - 3, hy + hh * 0.62]], fb % 2 ? '#b98a4a' : '#a8743a', { seed: 643 + fb, lift: 1.2 }); } // вяленая рыба (рыбацкий дом, коптильня)
+      else if (st.salt) for (var sb = 0; sb < 4; sb++) { var sxx = hx + 16 + sb * (hw - 32) / 3, syy = hy + hh * 0.35; cut(g, [[sxx - 9, syy], [sxx, syy - 16], [sxx + 9, syy]], '#f6f4ee', { seed: 643 + sb, lift: 1.2 }); } // соль конусами (солеварня)
+      else for (var lb = 0; lb < 4; lb++) cut(g, ell(hx + 16 + lb * (hw - 32) / 3, hy + hh * 0.35 - 6, 9, 6, 12), '#d39a55', { seed: 643 + lb, lift: 1.2 }); // караваи на полке
       cut(g, rectP(hx - 12, hy + hh, hw + 24, 10), '#b98d58', { seed: 648, lift: 3 }); // прилавок
       var aw = [], na = 8; aw.push([hx - 18, hy - 12]); aw.push([hx + hw + 18, hy - 12]);
       for (var k2 = na; k2 >= 0; k2--) { var fx = hx - 18 + k2 * (hw + 36) / na; aw.push([fx, hy + 16]); if (k2) aw.push([fx - (hw + 36) / na / 2, hy + 10]); }
       cut(g, aw, C.cream, { seed: 650, lift: 3.5, raw: true });
-      g.save(); poly(g, aw); g.clip(); for (var s2 = 0; s2 < na; s2 += 2) flat(g, rectP(hx - 18 + s2 * (hw + 36) / na, hy - 14, (hw + 36) / na, 34), C.rust); g.restore();
+      g.save(); poly(g, aw); g.clip(); for (var s2 = 0; s2 < na; s2 += 2) flat(g, rectP(hx - 18 + s2 * (hw + 36) / na, hy - 14, (hw + 36) / na, 34), st.fish ? C.teal : st.salt ? '#8fa3b0' : C.rust); g.restore();
       // вывеска пекарни: крендель на круге
       var sgx = x + w * 0.86, sgy = roofY + 26;
       cut(g, rectP(sgx - 20, sgy - 26, 30, 4), C.iron, { seed: 655, raw: true, lift: 1.5 });
-      cut(g, ell(sgx, sgy, 16, 16, 24), C.cream, { seed: 656, lift: 3 }); cut(g, ell(sgx, sgy + 2, 10, 7, 18), '#c98a45', { seed: 657, lift: 1.2 });
+      cut(g, ell(sgx, sgy, 16, 16, 24), C.cream, { seed: 656, lift: 3 }); if (st.fish || st.salt) drawIconRaw(g, st.fish ? 'fish' : 'salt', sgx, sgy, 24); else cut(g, ell(sgx, sgy + 2, 10, 7, 18), '#c98a45', { seed: 657, lift: 1.2 });
       // дверь
       var dx = x + w * 0.74, dw = w * 0.17, dh = h * 0.3, dy = y + h - dh - 2;
       cut(g, rectP(dx - 5, dy - 5, dw + 10, dh + 5), C.dbrown, { seed: 660, lift: 2.5 });
@@ -606,6 +624,7 @@
 
   K.fence = function (g, it, sc, P) {
     var x = it.x, y = it.y, w = it.w, h = it.h, st = it.state || {}, R = rng(it.seed || 2);
+    if (st.rack) return rackDraw(g, it);
     if (st.ladder) {
       cut(g, rectP(x + 4, y - 10, 7, h + 10), C.brown, { seed: 1300, lift: 3 }); cut(g, rectP(x + w - 11, y - 10, 7, h + 10), C.brown, { seed: 1301, lift: 3 });
       for (var i = 8; i < h; i += 22) cut(g, rectP(x + 6, y + i, w - 12, 6), '#a07e5c', { seed: 1302 + i, lift: 2 });
@@ -737,14 +756,15 @@
       [[x + 5, y + 5], [x + w - 5, y + 5], [x + 5, y + h - 5], [x + w - 5, y + h - 5], [x + w / 2, y + h / 2]].forEach(function (q) { brad(g, q[0], q[1], 3); });
       return;
     }
-    var view = P.win || 'storm';
+    var view = st.dawn ? 'dawn' : (P.win || 'storm');
     cut(g, rectP(x - 10, y - 10, w + 20, h + 20), C.dbrown, { seed: 1910, lift: 4 });
     g.save(); poly(g, rectP(x, y, w, h)); g.clip();
-    var sky = view === 'night' ? ['#1c2338', '#2c3752'] : view === 'sea' ? ['#7d8c96', '#a9b1ad'] : ['#5d6875', '#7e8790'];
+    var sky = view === 'night' ? ['#1c2338', '#2c3752'] : view === 'sea' ? ['#7d8c96', '#a9b1ad'] : view === 'dawn' ? ['#e7a77e', '#f4d3a0'] : ['#5d6875', '#7e8790'];
     flat(g, rectP(x, y, w, h), sky[0]); cut(g, rectP(x - 5, y + h * 0.3, w + 10, h), sky[1], { seed: 1911, torn: true, lift: 2, sx: 0, sy: -0.5, rim: light(sky[1], 0.4) });
+    if (view === 'dawn') { cut(g, ell(x + w * 0.35, y + h * 0.68, w * 0.16, w * 0.16, 30), '#f8e3a0', { seed: 1916, lift: 2, torn: true, rim: '#fff6d8' }); }
     if (view === 'night') { for (var s = 0; s < 6; s++) { g.fillStyle = '#efe3bf'; g.beginPath(); g.arc(x + rnd(3, s) * w, y + rnd(4, s) * h * 0.6, 1.2, 0, TAU); g.fill(); } }
     var seaY = y + h * 0.68;
-    cut(g, rectP(x - 5, seaY, w + 10, h), view === 'night' ? '#26364a' : '#4d6670', { seed: 1912, torn: true, lift: 2, sx: 0, sy: -0.5, rim: '#c8d0cc', tornAmp: 1.5 });
+    cut(g, rectP(x - 5, seaY, w + 10, h), view === 'night' ? '#26364a' : view === 'dawn' ? '#7a8f9a' : '#4d6670', { seed: 1912, torn: true, lift: 2, sx: 0, sy: -0.5, rim: '#c8d0cc', tornAmp: 1.5 });
     if (view === 'storm' && w > 100) { // в шторм: тёмный маяк вдалеке и косой дождь
       var tx = x + w * 0.74; cut(g, [[tx - 7, seaY + 2], [tx + 7, seaY + 2], [tx + 4, seaY - 40], [tx - 4, seaY - 40]], '#cfc6b0', { seed: 1913, lift: 1.5 });
       cut(g, rectP(tx - 6, seaY - 50, 12, 10), '#2c3546', { seed: 1914, lift: 1 }); cut(g, [[tx - 8, seaY - 50], [tx, seaY - 58], [tx + 8, seaY - 50]], C.rustD, { seed: 1915, lift: 1 });
@@ -876,7 +896,7 @@
     cut(g, rectP(x - 10, y - 14, w + 20, 16), C.iron, { seed: 2550, lift: 3 });
     cut(g, rectP(x - 12, y - 14, 10, h + 14), C.stoneD, { seed: 2551, lift: 3 }); cut(g, rectP(x + w + 2, y - 14, 10, h + 14), C.stoneD, { seed: 2552, lift: 3 });
     // латунная табличка с нотой — решётку открывает мелодия
-    cut(g, ell(x + w / 2, y - 6, 16, 13, 18), C.brass, { seed: 2553, lift: 3 }); drawIconRaw(g, 'note', x + w / 2, y - 6, 20);
+    cut(g, ell(x + w / 2, y - 6, 16, 13, 18), C.brass, { seed: 2553, lift: 3 }); drawIconRaw(g, st.icon || 'note', x + w / 2, y - 6, 20);
   };
 
   // ---------- ящики и мебель ----------
@@ -914,6 +934,7 @@
         }
         return;
       case 'logs': {
+        if (st.peat) { for (var pq = 0; pq < (st.empty ? 2 : 9); pq++) { var pc = pq % 3, pr2 = (pq / 3) | 0; cut(g, rectP(x + 8 + pc * 30 + pr2 * 6, y + h - 22 - pr2 * 18, 28, 16), pq % 2 ? '#6a4a33' : '#7c5a40', { seed: 2620 + pq, lift: 2.5 }); } return; }   // торф брикетами
         var n = st.empty ? 2 : 10, R = rng(3);
         for (var i = 0; i < n; i++) {
           var col = i % 4, row = (i / 4) | 0, lx = x + 18 + col * 26 + row * 13, ly = y + h - 14 - row * 22;
@@ -1082,6 +1103,7 @@
         if (!st.ok) { drawIconRaw(g, 'gear', x + w - 22, y - 12, 30); drawIconRaw(g, 'question', x + 22, y - 12, 26); }
         return; }
     }
+    if (coastMachine(g, it, st, x, y, w, h, cx)) return;
     cut(g, rrP(x, y, w, h, 8), '#6a5848', { seed: 3050, lift: 3 }); drawIconRaw(g, 'gear', cx, y + h / 2, Math.min(w, h) * 0.6);
   };
 
@@ -1251,6 +1273,9 @@
   };
   for (var nn = 0; nn < 5; nn++) (function (n) { IC['n' + n] = function (c) { line(c, [-16, 12, 16, 12], ICON_DIM, 1.5); line(c, [-16, -16, 16, -16], ICON_DIM, 1.5); var y = 8 - n * 6; circ(c, -2, y, 5, ICON_INK); line(c, [3, y, 3, y - 14], ICON_INK, 2.5); }; })(nn);
     IC.__fill = function (f) { ICON_FILL = f || '#e9dcc0'; };
+    // пиктограммы движка глав (общие с серым макетом): themes/icons-ext.js
+    var KX = global.KVEST && global.KVEST.IconsExt;
+    if (KX) { var EX = KX({ circ: circ, line: line, poly: poly, fillRR: fillRR, glow: glow, flame: flame, ink: function () { return ICON_INK; }, fill: function () { return ICON_FILL; }, dim: function () { return ICON_DIM; } }); for (var ek in EX) if (!IC[ek]) IC[ek] = EX[ek]; }
     return IC;
   })();
   // цвет бумаги каждой пиктограммы
@@ -1260,6 +1285,7 @@
     bell: '#d9b14a', goat: '#f1ead8', cat: '#d8834c', gull: '#f6f3ea', stool: '#c69a66', up: '#f1c96a', eye: '#f6efe0', boat: '#e6d2a8', tower: '#efe5cc',
     hammer: '#b9b6ae', well: '#b3a993', barrel: '#b4824e', cave: '#857a6c', gauge: '#f2e5c7', pipe: '#cf8c5c', lock: '#d9b14a', lever: '#cfc4aa',
     lever_on: '#cfc4aa', lever_off: '#cfc4aa', book: '#f2e5c7', hint: '#f8e7a8', timer: '#f2e5c7', bread: '#d39a55', water: '#7fb0c4', lens: '#e2f1f4' };
+  (function () { var X = global.KVEST && global.KVEST.IconsExtCol; if (X) for (var k in X) if (!ICOL[k]) ICOL[k] = X[k]; })();
   function drawIconRaw(g, id, x, y, size) { // вектор без кэша (внутри спрайтов)
     var f = IC[id], s = (size || 40) / 40;
     g.save(); g.translate(x, y); g.scale(s, s); IC.__fill(ICOL[id]);
@@ -1488,6 +1514,8 @@
     if (st.type === 'bird') return [o.x - 14, o.y - 50, o.w + 28, o.h + 54];
     if (st.type === 'gull') return [o.x - 20, o.y - 20, o.w + 40, o.h + 28];
     if (st.type === 'cat') return [o.x - 14, o.y - 30, o.w + 30, o.h + 34];
+    if (st.type === 'dog') return [o.x - 30, o.y - 30, o.w + 60, o.h + 50];
+    if (st.type === 'fisher') return [o.x - 30, o.y - 40, o.w + 60, o.h + 50];
     return [o.x - 16, o.y - 24, o.w + 32, o.h + 34];
   }
   function drawNpc(ctx, o, pose, t, cached) {
@@ -1575,10 +1603,263 @@
     }
     if (st.variant === 'gauge' && st.ok) addGlow(ctx, cx, y + h * 0.6, 70, '170,230,130', 0.25 + 0.1 * Math.sin(t * 4));
     if (st.variant === 'carriage' && st.ok) addGlow(ctx, cx, y + 20, 140, GLOW, 0.2);
+    LIVE.coastMachine(ctx, o, t);
   };
   LIVE.waterObj = function (ctx, o, t) {
     if (!(o.state && o.state.shell)) return;
     var k = (t * 0.8) % 1; if (k < 0.4) { var s = Math.sin(k / 0.4 * Math.PI) * 6, sx = o.x + o.w * 0.6 + 10, sy = o.y + o.h * 0.4; cut(ctx, starPts(sx, sy, s, s * 0.25, 4), '#ffffff', { live: true, lift: 0, raw: true }); }
+  };
+
+  // ================= побережье и движок глав (coast.js): прилив, карта, огни, солеварня =================
+  // море с приливом: статично — мокрый песок под водой (в общем холсте слоя), живое — вода на текущем уровне (LIVE.tide)
+  K.tide = function (g, it, sc, P) {
+    var x = it.x, y = it.y, w = it.w, h = it.h, sand = (it.state && it.state.sand) || P.sand || '#c9ae7a', R = rng(it.seed || 3), col = P.water || C.water;
+    cut(g, rectP(x - 10, y - 2, w + 20, 30), dark(col, 0.05), { seed: 6990, lift: 0, torn: true, rim: light(col, 0.5) });   // даль моря у горизонта — в отлив остаётся на месте
+    var top = []; for (var xx = x - 10; xx <= x + w + 10; xx += 20) top.push([xx, y + 24 + Math.sin(xx * 0.017) * 3]);
+    cut(g, top.concat([[x + w + 10, y + h + 10], [x - 10, y + h + 10]]), mix(sand, '#8f7d64', 0.25), { seed: 7000, lift: 2, sx: 0, sy: -0.4, sh: 0.2 });
+    for (var r = 0; r < 4; r++) { var ry = y + 24 + r * ((h - 30) / 4), pts = []; for (var x2 = x - 10; x2 <= x + w + 10; x2 += 26) pts.push([x2, ry + Math.sin(x2 * 0.03 + r) * 3]); stitch(g, pts, rgba(light(sand, 0.4), 0.45), 1.2); }
+    for (var s = 0; s < 14; s++) { var sx = x + R() * w, sy = y + 20 + R() * (h - 30); cut(g, ell(sx, sy, 3 + R() * 4, 1.6 + R() * 1.4, 10), s % 3 ? light(sand, 0.3) : '#e9e1d0', { seed: 7010 + s, lift: 0.8, raw: true, sh: 0.15 }); }
+  };
+  function tideLevel(it, sc) { var st = it.state || {}, low = st.low != null ? st.low : it.y + 60, m = st.at != null ? (st.at ? 1 : 0) : sc && sc.phaseMix != null ? sc.phaseMix : (sc && sc.phase && sc.phase === 'low' ? 1 : 0); m = m * m * (3 - 2 * m); return it.y + (low - it.y) * m; }
+  LIVE.tide = function (ctx, it, t, sc, P) {
+    var x = it.x, w = it.w, h = it.h, col = P.water || C.water, lvl = tideLevel(it, sc), d = lvl - it.y;
+    var s = sprite('tidebody|' + palKey(sc) + '|' + x + ',' + w + ',' + h, x - 20, -14, w + 40, h + 30, function (g) {
+      var top = []; for (var xx = x - 14; xx <= x + w + 14; xx += 16) top.push([xx, Math.sin(xx * 0.03 + (it.seed || 0)) * 2.5]);
+      cut(g, top.concat([[x + w + 14, h + 12], [x - 14, h + 12]]), col, { seed: 7100, lift: 3, sx: 0, sy: -0.5, torn: true, rim: light(col, 0.55) });
+      var b2 = []; for (var x2 = x - 14; x2 <= x + w + 14; x2 += 24) b2.push([x2, h * 0.4 + Math.sin(x2 * 0.02) * 4]);
+      cut(g, b2.concat([[x + w + 14, h + 12], [x - 14, h + 12]]), dark(col, 0.14), { seed: 7101, lift: 2, sx: 0, sy: -0.5, torn: true, rim: light(col, 0.3), tornAmp: 1.4 });
+      var R = rng(7102), wc = light(col, 0.4);
+      for (var row = 0; row < 3; row++) for (var i = 0; i < Math.round(w / 80); i++) { var wx = x + (i + R() * 0.7) * 80, wy = 14 + row * 30 + R() * 10, ww = 20 + R() * 30; cut(g, [[wx, wy], [wx + ww * 0.5, wy - 3], [wx + ww, wy], [wx + ww * 0.5, wy + 2.5]], wc, { seed: 7110 + row * 40 + i, lift: 1, sh: 0.2, raw: true }); }
+    });
+    if (d > 2) { var wg = ctx.createLinearGradient(0, it.y, 0, lvl); wg.addColorStop(0, 'rgba(70,60,40,0)'); wg.addColorStop(1, 'rgba(70,60,40,0.14)'); ctx.fillStyle = wg; ctx.fillRect(x, it.y + 4, w, d); }   // мокрая полоса, откуда ушла вода
+    ctx.save(); ctx.beginPath(); ctx.rect(x - 20, it.y - 14, w + 40, h + 40); ctx.clip();
+    ctx.translate(Math.sin(t * 0.6 + (it.seed || 0)) * 6, lvl + Math.sin(t * 1.2) * 1.5); blit(ctx, s); ctx.restore();
+    var foam = []; for (var fx = x; fx <= x + w; fx += 14) foam.push([fx, lvl + 1 + Math.sin(fx * 0.05 + t * 1.6) * 2.2]);
+    strokeL(ctx, foam, 'rgba(250,248,240,0.75)', 2.4);
+  };
+  // лист карты побережья: море, суша (многоугольник), береговая штриховка, роза ветров, края листа на скотче
+  K.mapsheet = function (g, it) {
+    var st = it.state || {}, sea = '#a9c5c2', land = '#e2cc98', R = rng(it.seed || 1);
+    cut(g, rectP(-10, -10, W + 20, H + 20), '#6f5a44', { seed: 7200, lift: 0, tex: false });
+    cut(g, rectP(14, 12, W - 28, H - 24), sea, { seed: 7201, lift: 4, sh: 0.4, torn: true, rim: '#f3ead6' });
+    for (var i = 0; i < 26; i++) { var wx = 40 + R() * (W - 80), wy = 30 + R() * (H - 60), ww = 14 + R() * 18; strokeL(g, [[wx, wy], [wx + ww * 0.5, wy - 3], [wx + ww, wy]], 'rgba(70,110,112,0.45)', 1.6); }
+    if (st.coast && st.coast.length > 2) {
+      var cst = st.coast.map(function (q) { return [clamp(q[0], 16, W - 16), clamp(q[1], 14, H - 14)]; });
+      cut(g, cst, dark(sea, 0.12), { seed: 7202, lift: 0, amp: 2.2, step: 12 });
+      cut(g, movP(cst, 0, -3), land, { seed: 7203, lift: 3, sh: 0.3, amp: 2.4, step: 12, torn: true, rim: '#fbf3df' });
+      for (var k = 0; k < 40; k++) { var hx = 40 + R() * (W - 80), hy = 30 + R() * (H - 60); if (inPoly(cst, hx, hy)) strokeL(g, [[hx, hy], [hx + 6, hy - 3]], 'rgba(120,96,60,0.35)', 1.3); }
+    }
+    var cx = W - 80, cy = H - 84; // роза ветров
+    cut(g, ell(cx, cy, 32, 32, 30), '#f3ead6', { seed: 7204, lift: 2 });
+    cut(g, [[cx, cy - 30], [cx + 6, cy], [cx, cy + 30], [cx - 6, cy]], C.rust, { seed: 7205, lift: 1, raw: true });
+    cut(g, [[cx - 30, cy], [cx, cy - 6], [cx + 30, cy], [cx, cy + 6]], C.brown, { seed: 7206, lift: 1, raw: true });
+    tape(g, 60, 18, 70, 18, -0.08, 7207); tape(g, W - 60, 18, 70, 18, 0.07, 7208); tape(g, 60, H - 18, 70, 18, 0.06, 7209);
+  };
+  function inPoly(p, x, y) { var c = false; for (var i = 0, j = p.length - 1; i < p.length; j = i++) { if (((p[i][1] > y) !== (p[j][1] > y)) && (x < (p[j][0] - p[i][0]) * (y - p[i][1]) / (p[j][1] - p[i][1]) + p[i][0])) c = !c; } return c; }
+  K.trail = function (g, it) {
+    var st = it.state || {}, pts = st.pts || [[it.x, it.y], [it.x + it.w, it.y + it.h]], open = !!st.open, n = 0;
+    var dense = []; for (var i = 0; i < pts.length - 1; i++) { var a = pts[i], b = pts[i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]), m = Math.max(1, Math.round(L / 9)); for (var j = 0; j < m; j++) dense.push([a[0] + (b[0] - a[0]) * j / m, a[1] + (b[1] - a[1]) * j / m]); }
+    dense.push(pts[pts.length - 1]);
+    dense.forEach(function (q, k) { if (k % 2) return; n++; var nx = dense[Math.min(dense.length - 1, k + 1)]; if (open) cut(g, band([q, nx], 5), '#7a4e30', { seed: 7300 + n, lift: 1.2, raw: true, sh: 0.3 }); else { g.fillStyle = 'rgba(90,80,70,0.35)'; g.beginPath(); g.arc(q[0], q[1], 2, 0, TAU); g.fill(); } });
+    if (!open) for (var f = 0; f < pts.length; f++) { var p = pts[f]; cut(g, lump(p[0], p[1], 18, 7310 + f, 4, 0.2), 'rgba(238,240,236,0.8)', { seed: 7320 + f, lift: 0, tex: false }); }
+  };
+  K.mapnode = function (g, it) {
+    var st = it.state || {}, cx = it.x + it.w / 2, cy = it.y + it.h / 2, open = !!st.open;
+    cut(g, ell(cx, cy, 27, 27, 30), open ? '#f3ead6' : '#c9c3b6', { seed: 7400 + (it.seed || 0), lift: 3.5, sh: 0.4 });
+    cut(g, ell(cx, cy, 22, 22, 28), open ? (st.lit ? '#f6dc8a' : '#e9dcc0') : '#b5afa2', { seed: 7401 + (it.seed || 0), lift: 1 });
+    drawIconRaw(g, open ? (st.icon || 'question') : 'question', cx, cy, 30);
+    if (st.lit) { cut(g, flamePts(cx + 20, cy - 16, 0.55, 0, it.seed || 0), '#e8823a', { lift: 1, raw: true }); cut(g, flamePts(cx + 20, cy - 16, 0.3, 0, (it.seed || 0) + 2), '#fff1c8', { lift: 0, raw: true }); }
+    if (st.here) stitch(g, ell(cx, cy, 33, 33, 30).concat([[cx + 33, cy]]), '#b3533a', 2);
+  };
+  LIVE.mapnode = function (ctx, it, t) { var st = it.state || {}; if (st.lit) addGlow(ctx, it.x + it.w / 2 + 20, it.y + it.h / 2 - 22, 36, '255,200,110', 0.45 + 0.1 * Math.sin(t * 6 + (it.seed || 0))); };
+  function tokenDraw(ctx, o, t) {   // фишка героини: маленькая вырезка на бумажном кружке (движется — без кэша по позиции)
+    var cx = o.x + o.w / 2, by = o.y + o.h, dir = (o.state && o.state.dir) || 1, k = 0.36;
+    ctx.fillStyle = 'rgba(40,22,10,0.3)'; ctx.beginPath(); ctx.ellipse(cx + 2, by + 3, 15, 5, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#f3ead6'; ctx.beginPath(); ctx.ellipse(cx, by, 13, 4.5, 0, 0, TAU); ctx.fill();
+    ctx.save(); ctx.translate(cx, by); ctx.scale(k, k); drawHero(ctx, { x: 0, y: 0, dir: dir }, 'idle', t); ctx.restore();
+  }
+  // сигнальные огни: очаг на камнях, корзина на трубе, жаровня (огонь — LIVE)
+  K.beacon = function (g, it, sc, P) {
+    var st = it.state || {}, x = it.x, y = it.y, w = it.w, h = it.h, cx = x + w / 2, v = st.variant || 'hearth';
+    if (v === 'chimney') {
+      cut(g, [[cx - w * 0.3, y + h], [cx - w * 0.22, y + 26], [cx + w * 0.22, y + 26], [cx + w * 0.3, y + h]], '#a2533a', { seed: 7500, lift: 4, sh: 0.35 });
+      for (var b = 0; b < 8; b++) { var by = y + 40 + b * (h - 50) / 8; strokeL(g, [[cx - w * 0.28 + b * 0.4, by], [cx + w * 0.28 - b * 0.4, by]], 'rgba(60,30,20,0.35)', 1.2); }
+      cut(g, rectP(cx - w * 0.34, y + 18, w * 0.68, 10), C.iron, { seed: 7501, lift: 2 });
+      cut(g, [[cx - w * 0.3, y + 18], [cx - w * 0.36, y], [cx + w * 0.36, y], [cx + w * 0.3, y + 18]], C.ironL, { seed: 7502, lift: 2 });
+      if (st.fuel || st.lit) cut(g, ell(cx, y + 2, w * 0.3, 6, 16), '#5a3a22', { seed: 7503, lift: 1 });
+      return;
+    }
+    if (v === 'brazier') {
+      [[-0.32, 0.4], [0.32, -0.4], [0, 0]].forEach(function (l, i) { cut(g, band([[cx + l[0] * w * 0.4, y + h * 0.45], [cx + l[0] * w, y + h]], 6), C.iron, { seed: 7510 + i, lift: 2, raw: true }); });
+      cut(g, [[x, y + h * 0.3], [x + w, y + h * 0.3], [x + w * 0.82, y + h * 0.52], [x + w * 0.18, y + h * 0.52]], C.iron, { seed: 7514, lift: 3.5, sh: 0.4 });
+      cut(g, rectP(x - 3, y + h * 0.27, w + 6, 7), C.ironL, { seed: 7515, lift: 1.5 });
+      if (st.fuel || st.lit) for (var f = 0; f < 4; f++) cut(g, band([[x + w * (0.2 + f * 0.18), y + h * 0.3], [x + w * (0.3 + f * 0.14), y + h * 0.18]], 5), '#9a8a4a', { seed: 7516 + f, lift: 1, raw: true });
+      else ghostIcon(g, 'seaweed_dry', cx, y + h * 0.15, 30);
+      return;
+    }
+    // очаг: кольцо камней, поленья
+    for (var s = 0; s < 7; s++) { var a = Math.PI + s / 6 * Math.PI, rx = cx + Math.cos(a) * w * 0.42, ry = y + h - 10 + Math.sin(a) * -8; cut(g, lump(rx, ry, 11, 7520 + s, 3, 0.2), s % 2 ? C.stone : C.stoneD, { seed: 7520 + s, lift: 2.5 }); }
+    if (st.fuel || st.lit) { cut(g, band([[cx - 22, y + h - 6], [cx + 18, y + h - 22]], 9), '#b9a27e', { seed: 7530, lift: 2, raw: true }); cut(g, band([[cx + 22, y + h - 6], [cx - 16, y + h - 24]], 9), '#a58f6c', { seed: 7531, lift: 2, raw: true }); }
+    else ghostIcon(g, 'driftwood', cx, y + h - 26, 30);
+  };
+  LIVE.beacon = function (ctx, it, t) {
+    var st = it.state || {}; if (!st.lit) return;
+    var cx = it.x + it.w / 2, v = st.variant || 'hearth', fy = v === 'chimney' ? it.y + 2 : v === 'brazier' ? it.y + it.h * 0.3 : it.y + it.h - 14, s = v === 'chimney' ? 1.0 : v === 'brazier' ? 1.1 : 1.3;
+    addGlow(ctx, cx, fy - 20, v === 'chimney' ? 160 : 200, '255,170,90', 0.42 + 0.06 * Math.sin(t * 7));
+    fire(ctx, cx - 10, fy, s * 0.85, t, 0); fire(ctx, cx + 10, fy, s * 0.8, t, 3); fire(ctx, cx, fy + 1, s, t, 6);
+  };
+  // солеварня: отстойный бассейн и црен на печи
+  K.saltpan = function (g, it, sc, P) {
+    var st = it.state || {}, x = it.x, y = it.y, w = it.w, h = it.h;
+    if (st.variant === 'boil') {
+      cut(g, rectP(x + 8, y + h * 0.45, w - 16, h * 0.55), '#8e4a32', { seed: 7600, lift: 4 });
+      for (var b = 0; b < 3; b++) strokeL(g, [[x + 10, y + h * (0.6 + b * 0.13)], [x + w - 10, y + h * (0.6 + b * 0.13)]], 'rgba(50,25,15,0.35)', 1.2);
+      cut(g, [[x, y], [x + w, y], [x + w - 8, y + h * 0.45], [x + 8, y + h * 0.45]], C.iron, { seed: 7601, lift: 3, sh: 0.4 });
+      cut(g, rectP(x - 4, y - 4, w + 8, 7), C.ironL, { seed: 7602, lift: 1.5 });
+      if (st.brine) cut(g, rectP(x + 6, y + 2, w - 12, 8), '#8fb0b4', { seed: 7603, lift: 0.5, raw: true });
+      if (st.salt) for (var c = 0; c < 7; c++) cut(g, [[x + 12 + c * (w - 24) / 7, y + 6], [x + 18 + c * (w - 24) / 7, y - 8 - (c % 3) * 3], [x + 26 + c * (w - 24) / 7, y + 6]], '#f6f4ee', { seed: 7604 + c, lift: 1, raw: true });
+      return;
+    }
+    cut(g, rectP(x - 6, y - 4, w + 12, h + 8), '#8b6a4c', { seed: 7610, lift: 3 });
+    cut(g, rectP(x, y, w, h), st.brine ? '#86a8ac' : '#b7a684', { seed: 7611, lift: 0.5 });
+    if (st.brine) for (var r = 0; r < 3; r++) strokeL(g, [[x + 10 + r * 20, y + h * 0.4 + r * 4], [x + 40 + r * 22, y + h * 0.4 + r * 4]], 'rgba(240,248,250,0.6)', 1.6);
+    else for (var q = 0; q < 5; q++) strokeL(g, [[x + 8 + q * w / 5, y + h * 0.3], [x + 20 + q * w / 5, y + h * 0.7]], 'rgba(90,70,40,0.4)', 1.2);
+  };
+  LIVE.saltpan = function (ctx, it, t) {
+    var st = it.state || {}; if (st.variant !== 'boil' || !st.boil) return;
+    for (var i = 0; i < 4; i++) { var f = ((t * 0.3 + i / 4) % 1), sx = it.x + it.w * (0.2 + i * 0.2) + Math.sin(f * 6 + i) * 6, sy = it.y - f * 70; ctx.globalAlpha = (1 - f) * 0.7; ctx.fillStyle = '#f4f2ec'; poly(ctx, lump(sx, sy, 6 + f * 12, 7620 + i, 4, 0.15)); ctx.fill(); ctx.globalAlpha = 1; }
+  };
+  K.sluice = function (g, it, sc, P) {
+    var st = it.state || {}, x = it.x, y = it.y, w = it.w, h = it.h, up = st.open ? h * 0.55 : 0;
+    cut(g, rectP(x, y, 12, h), '#5b4636', { seed: 7700, lift: 3 }); cut(g, rectP(x + w - 12, y, 12, h), '#5b4636', { seed: 7701, lift: 3 });
+    cut(g, rectP(x - 4, y - 8, w + 8, 12), '#6b5240', { seed: 7702, lift: 3 });
+    if (st.flow) for (var f = 0; f < 4; f++) cut(g, rectP(x + 14 + f * (w - 28) / 4, y + h - up * 0.3 - 8, (w - 28) / 4 - 4, 10 + up * 0.3), '#8fb0b4', { seed: 7703 + f, lift: 0.5, raw: true });
+    cut(g, rectP(x + 12, y + 8 - up, w - 24, h - 14), '#9a7a58', { seed: 7710, lift: 2.5 });
+    for (var p = 1; p < 4; p++) strokeL(g, [[x + 12, y + 8 - up + p * (h - 14) / 4], [x + w - 12, y + 8 - up + p * (h - 14) / 4]], 'rgba(60,40,25,0.4)', 1.2);
+    cut(g, rectP(x + w / 2 - 3, y - 40 - up, 6, 48), C.iron, { seed: 7711, lift: 1.5, raw: true });
+  };
+  K.boat = function (g, it) {
+    var st = it.state || {}, x = it.x, y = it.y, w = it.w, h = it.h, a = st.afloat ? 0 : -0.07;
+    var hull = rotP([[x, y + h * 0.35], [x + w, y + h * 0.2], [x + w * 0.86, y + h], [x + w * 0.12, y + h]], x + w / 2, y + h, a);
+    cut(g, hull, '#4f7472', { seed: 7800, lift: 3.5, sh: 0.4 });
+    cut(g, rotP(rectP(x + 2, y + h * 0.3, w - 4, 6), x + w / 2, y + h, a), '#c49a64', { seed: 7801, lift: 1 });
+    cut(g, rotP(rectP(x + w * 0.2, y + h * 0.55, w * 0.62, 5), x + w / 2, y + h, a), '#efe5cc', { seed: 7802, lift: 0.6 });
+  };
+  K.tidepost = function (g, it) {
+    var st = it.state || {}, x = it.x, y = it.y, w = it.w, h = it.h, cx = x + w / 2;
+    cut(g, rectP(cx - 5, y + 10, 10, h - 10), '#efe5cc', { seed: 7900, lift: 3 });
+    for (var i = 0; i < 5; i++) cut(g, rectP(cx - 5, y + 20 + i * (h - 30) / 5, 10, (h - 30) / 10), i % 2 ? C.rust : C.teal, { seed: 7901 + i, lift: 0.5, raw: true });
+    cut(g, [[cx + 5, y + 10], [cx + 30, y + 18], [cx + 5, y + 28]], C.mustard, { seed: 7910, lift: 2 });
+    drawIconRaw(g, st.low ? 'low' : 'high', cx + 15, y + 19, 14);
+  };
+  // часовой привод, шестерня (механизм gears), зеркало-отражатель
+  function coastMachine(g, it, st, x, y, w, h, cx) {
+    if (st.variant === 'clockwork') {
+      cut(g, rrP(x, y, w, h * 0.55, 8), '#6b4e38', { seed: 8000, lift: 4 });
+      cut(g, ell(cx, y + h * 0.27, w * 0.32, w * 0.32, 26), C.brass, { seed: 8001, lift: 2 });
+      for (var k = 0; k < 6; k++) { var a = k * TAU / 6; strokeL(g, [[cx, y + h * 0.27], [cx + Math.cos(a) * w * 0.28, y + h * 0.27 + Math.sin(a) * w * 0.28]], '#8e6e2a', 2); }
+      var ch = []; for (var c = 0; c < 14; c++) ch.push([cx + w * 0.32 + Math.sin(c) * 1.5, y + h * 0.3 + c * h * 0.045]);
+      stitch(g, ch, '#3a3430', 2.4);
+      var wy = y + h * 0.3 + 13 * h * 0.045;
+      if (st.weight) cut(g, [[cx + w * 0.32 - 10, wy], [cx + w * 0.32 + 10, wy], [cx + w * 0.32 + 15, wy + 30], [cx + w * 0.32 - 15, wy + 30]], C.brass, { seed: 8002, lift: 2.5 });
+      else ghostIcon(g, 'weight', cx + w * 0.32, wy + 16, 30);
+      return true;
+    }
+    if (st.variant === 'gear') {
+      var r = Math.min(w, h) * 0.42, gy = y + h / 2, rot = (st.rot || 0) * TAU;
+      cut(g, gearPtsP(cx, gy, r, 12, rot), st.solved ? C.brass : '#b49a6a', { seed: 8010 + (it.seed || 0), lift: 3.5, sh: 0.4 });
+      cut(g, ell(cx, gy, r * 0.55, r * 0.55, 22), dark('#b49a6a', 0.15), { seed: 8011, lift: 1 });
+      cut(g, band([[cx, gy], [cx + Math.sin(rot) * r * 0.82, gy - Math.cos(rot) * r * 0.82]], 6), st.ok ? C.green : C.red, { seed: 8012, lift: 1, raw: true });
+      brad(g, cx, gy, 4);
+      var ma = (st.mark || 0) * TAU, pr = r + 12, px = cx + Math.sin(ma) * pr, py = gy - Math.cos(ma) * pr;   // указатель снаружи: метка шестерни должна смотреть на него
+      cut(g, rotP([[px - 8, py - 7], [px + 8, py - 7], [px, py + 5]], px, py, ma), st.ok ? C.green : C.ink, { seed: 8013, lift: 1.5, raw: true });
+      return true;
+    }
+    if (st.variant === 'reflector') {
+      var rr = Math.min(w, h * 0.8) * 0.46, ry = y + rr + 6, tilt = st.aim ? -0.25 : 0.3;
+      cut(g, band([[cx - rr * 0.9, y + h], [cx, ry + rr * 0.6], [cx + rr * 0.9, y + h]], 8), C.iron, { seed: 8020, lift: 2.5, raw: true });
+      cut(g, rotP(ell(cx, ry, rr, rr, 34), cx, ry, tilt), C.iron, { seed: 8021, lift: 4, sh: 0.4 });
+      cut(g, rotP(ell(cx, ry, rr * 0.86, rr * 0.86, 32), cx, ry, tilt), st.shiny ? '#eef3f6' : '#8f9a86', { seed: 8022, lift: 0.5 });
+      if (st.shiny) cut(g, rotP([[cx - rr * 0.5, ry - rr * 0.3], [cx - rr * 0.2, ry - rr * 0.6], [cx - rr * 0.1, ry - rr * 0.45], [cx - rr * 0.38, ry - rr * 0.16]], cx, ry, tilt), '#ffffff', { seed: 8023, lift: 0, raw: true });
+      else for (var sp = 0; sp < 6; sp++) cut(g, ell(cx + Math.cos(sp * 2.1) * rr * 0.5, ry + Math.sin(sp * 1.7) * rr * 0.5, 5 + sp % 3 * 3, 4 + sp % 2 * 3, 10), '#6f7a64', { seed: 8024 + sp, lift: 0, raw: true });
+      return true;
+    }
+    return false;
+  }
+  LIVE.coastMachine = function (ctx, o, t) {
+    var st = o.state || {};
+    if (st.variant === 'reflector' && st.lit) {   // зеркало собирает рассвет в луч на жаровню
+      var mx = o.x + o.w / 2, my = o.y + o.h * 0.38, fl = 0.8 + 0.2 * Math.sin(t * 3);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; var bg = ctx.createLinearGradient(mx, my, mx - 160, my + 120); bg.addColorStop(0, 'rgba(255,230,160,' + (0.35 * fl) + ')'); bg.addColorStop(1, 'rgba(255,200,120,0.05)');
+      ctx.fillStyle = bg; poly(ctx, [[mx - 20, my - 30], [mx - 150, my + 100], [mx - 175, my + 125], [mx + 10, my + 20]]); ctx.fill(); ctx.restore();
+      addGlow(ctx, mx, my, 240, '255,226,150', 0.5 * fl);
+    }
+    if (st.variant === 'gear' && st.solved) addGlow(ctx, o.x + o.w / 2, o.y + o.h / 2, o.w * 0.8, '190,230,140', 0.18);
+  };
+  // вешала для сушки (fence state.rack): шесты и верёвка, что висит — state.weed
+  function rackDraw(g, it) {
+    var st = it.state || {}, x = it.x, y = it.y, w = it.w, h = it.h;
+    cut(g, rectP(x, y, 8, h), C.brown, { seed: 8100, lift: 3 }); cut(g, rectP(x + w - 8, y, 8, h), C.brown, { seed: 8101, lift: 3 });
+    var rope = []; for (var i = 0; i <= 10; i++) rope.push([x + 4 + (w - 8) * i / 10, y + 8 + Math.sin(i / 10 * Math.PI) * 8]);
+    strokeL(g, rope, '#d9c18e', 2.2);
+    if (st.weed) for (var k = 0; k < 6; k++) { var p = rope[1 + k + (k > 3 ? 1 : 0)], col = st.weed === 'dry' ? '#9a8a4a' : '#4f6b3a'; cut(g, [[p[0] - 5, p[1]], [p[0] + 5, p[1]], [p[0] + 3 + Math.sin(k) * 3, p[1] + h * 0.45], [p[0] - 4, p[1] + h * 0.4]], col, { seed: 8110 + k, lift: 1.5 }); }
+    else ghostIcon(g, 'seaweed', x + w / 2, y + h * 0.4, 30);
+    for (var n = 0; n < 3; n++) cut(g, rectP(x + 14 + n * (w - 28) / 3, y + h * 0.75, (w - 28) / 3 - 6, h * 0.25), '#c49a64', { seed: 8120 + n, lift: 2 });   // ящики под вешалами
+  }
+  // персонажи побережья
+  NPC.fisher = function (g, o, pose, t) { // рыбачка у бочки: синий платок, полосатая кофта, фартук; рада — машет руками
+    var st = o.state || {}, x = o.x, y = o.y, w = o.w, h = o.h, cx = x + w / 2, by = y + h, tq = q12(t), happy = pose === 'happy' || st.happy, R = new Rig();
+    var root = M(1, 0, 0, 1, cx, by - 4 + (happy ? -Math.abs(Math.sin(tq * 7)) * 3 : 0));
+    R.add(root, [[-20, -70], [20, -70], [26, 0], [-26, 0]], '#4f6f8f', 2);
+    for (var s = 0; s < 4; s++) R.add(root, [[-21 + s, -64 + s * 12], [21 - s, -64 + s * 12], [21, -59 + s * 12], [-21, -59 + s * 12]], '#e9e2d2', 2.1, { lift: 0.3 });
+    R.add(root, [[-15, -46], [15, -46], [18, 0], [-18, 0]], '#c49a64', 2.3);
+    var hd = ro(tr(root, 0, -74), Math.sin(tq * 1.1) * 0.05);
+    R.add(hd, ell(0, -12, 12, 13, 20), C.skin, 3);
+    R.add(hd, [[-15, -10], [-12, -26], [0, -30], [12, -26], [15, -10], [9, -18], [-9, -18]], '#3b5f7f', 3.1);
+    R.add(hd, [[10, -4], [20, 4], [12, 6]], '#3b5f7f', 3.05);
+    var closed = happy || (t % 4.2) < 0.12;
+    if (closed) { R.add(hd, [[-7, -12], [-2, -12], [-2, -11], [-7, -11]], '#2c1d16', 3.3, { flat: true }); R.add(hd, [[2, -12], [7, -12], [7, -11], [2, -11]], '#2c1d16', 3.3, { flat: true }); }
+    else { R.add(hd, ell(-4.5, -12, 1.6, 2, 8), '#2c1d16', 3.3, { flat: true, hl: true }); R.add(hd, ell(4.5, -12, 1.6, 2, 8), '#2c1d16', 3.3, { flat: true, hl: true }); }
+    R.add(hd, ell(0, -4, happy ? 4 : 2.6, happy ? 2.6 : 1.2, 8, 0, Math.PI), '#7a2e22', 3.3, { flat: true });
+    [[-18, happy ? -2.5 : 0.5], [18, happy ? 2.5 : -0.7]].forEach(function (a) { var u = ro(tr(root, a[0], -62), a[1]); R.add(u, [[-5, 0], [5, 0], [4, 28], [-4, 28]], '#4f6f8f', 4); R.add(u, ell(0, 30, 4.5, 4.5, 10), C.skin, 4.1); R.pins.push(pin(u, 0, 0)); });
+    R.draw(g);
+  };
+  NPC.dog = function (g, o, pose, t) { // пёс Вьюн: лохматый, песочно-серый, тёмное ухо, белая грудь, красный платок на шее
+    var st = o.state || {}, x = o.x, y = o.y, w = o.w, h = o.h, tq = q12(t), R = new Rig(), sleep = pose === 'sleep' || st.pose === 'sleep', happy = pose === 'happy';
+    var dir = st.dir || 1, k = w / 90, root = M(dir * k, 0, 0, k, x + w / 2, y + h - (st.hide ? -18 : 0)), wag = Math.sin(tq * (happy ? 16 : 4)) * (sleep ? 0.05 : 0.5);
+    var fur = '#c8b996', furD = '#a8977a', tail = ro(tr(root, -32, -36), -0.6 + wag);
+    R.add(tail, [[-3, 0], [3, 0], [8, -24], [0, -30], [-6, -22]], furD, 0.5);
+    if (sleep) {   // свернулся калачиком: спина горкой, голова на лапах, хвост укрывает нос; дышит
+      var br = Math.sin(t * 1.6) * 1.2;
+      R.add(root, [[-38, 0], [-40, -14], [-30, -30 - br], [-6, -38 - br], [18, -32 - br], [32, -16], [34, 0]], fur, 1);
+      R.add(root, [[-24, -26 - br], [-4, -33 - br], [10, -30 - br], [-8, -22]], furD, 1.1, { lift: 0.4 });
+      R.add(root, [[10, -2], [40, -4], [44, 2], [12, 4]], '#f1ead8', 1.3);   // лапы
+      var sh = ro(tr(root, 30, -12), 0.15); R.add(sh, ell(0, 0, 15, 12, 18), fur, 2); R.add(sh, [[8, -2], [22, 2], [20, 8], [6, 7]], '#e9e2d2', 2.05);
+      R.add(sh, [[-12, -8], [-20, 8], [-6, 2]], '#5d4a3c', 2.1); R.add(sh, [[0, -3], [8, -3], [8, -2], [0, -2]], '#2c1d16', 2.2, { flat: true }); R.add(sh, ell(21, 2, 3, 2.4, 8), '#2c1d16', 2.2, { flat: true });
+      R.add(root, [[-36, -2], [-20, 6], [8, 8], [24, 4], [24, 8], [6, 12], [-22, 10], [-40, 2]], furD, 2.4);   // хвост вокруг
+      R.add(root, [[16, -46], [28, -50], [26, -42], [18, -40]], C.red, 0.5);
+      R.draw(g); return;
+    }
+    var bob = happy ? -Math.abs(Math.sin(tq * 8)) * 5 : Math.sin(tq * 1.5) * 0.8, body = tr(root, 0, bob);
+    [[-24, 0], [-14, 0], [16, 0], [26, 0]].forEach(function (l, i) { R.add(body, [[l[0] - 4, -30], [l[0] + 4, -30], [l[0] + 4, 0], [l[0] - 4, 0]], i % 2 ? furD : fur, 0.8); R.add(body, ell(l[0] + 1, -1, 5.5, 3, 8), '#f1ead8', 0.9); });
+    R.add(body, ell(0, -40, 34, 17, 24), fur, 1); R.add(body, ell(14, -38, 14, 12, 16), '#f1ead8', 1.2, { lift: 0.4 });
+    R.add(body, [[18, -54], [30, -52], [28, -44], [20, -46]], C.red, 1.4);
+    var hd = ro(tr(body, 30, -56), happy ? -0.2 + Math.sin(tq * 8) * 0.06 : Math.sin(tq * 0.7) * 0.06);
+    R.add(hd, ell(0, -6, 15, 13, 20), fur, 2); R.add(hd, [[6, -6], [24, -2], [24, 6], [8, 6]], '#e9e2d2', 2.1);
+    R.add(hd, ell(23, -1, 3.6, 3, 8), '#2c1d16', 2.3, { flat: true });
+    R.add(hd, [[-10, -16], [-18, 2], [-6, -4]], '#5d4a3c', 2.2); R.add(hd, [[4, -18], [10, -28], [12, -14]], furD, 1.9);
+    if (happy) R.add(hd, [[12, 6], [18, 6], [16, 14], [13, 14]], '#d9807a', 2.25, { flat: true });
+    R.add(hd, ell(6, -8, 2.2, 2.4, 8), '#2c1d16', 2.4, { flat: true, hl: true });
+    R.draw(g);
+  };
+  NPC.crab = function (g, o, pose, t) { // краб в луже; в жестянке — торчат клешни и ножки
+    var st = o.state || {}, x = o.x, y = o.y, w = o.w, h = o.h, cx = x + w / 2, by = y + h, tq = q12(t), R = new Rig(), sn = Math.sin(tq * 5) * 0.25;
+    var root = M(w / 44, 0, 0, h / 30, cx, by);
+    [-1, 1].forEach(function (d) { for (var l = 0; l < 3; l++) { var lg = ro(tr(root, d * (8 + l * 4), -6), d * (0.9 + l * 0.25) + sn * 0.3); R.add(lg, [[-1.5, 0], [1.5, 0], [1, 12], [-1, 12]], '#a83a26', 0.5); } });
+    [-1, 1].forEach(function (d) { var cl = ro(tr(root, d * 14, -12), d * (-0.6 + sn)); R.add(cl, [[-2, 0], [2, 0], [2, -8], [-2, -8]], '#c0442e', 1.5); R.add(cl, [[-6, -8], [6, -8], [5, -16], [0, -13], [-5, -17]], '#c0442e', 1.6); });
+    if (st.tin) { R.add(root, [[-14, -4], [14, -4], [14, -24], [-14, -24]], '#b9b6ae', 2); R.add(root, [[-14, -20], [14, -20], [14, -18], [-14, -18]], '#8c8a84', 2.1, { flat: true }); }
+    else { R.add(root, ell(0, -10, 14, 9, 18), '#c0442e', 2); R.add(root, ell(-5, -18, 2, 2, 6), '#2c1d16', 2.2, { flat: true, hl: true }); R.add(root, ell(5, -18, 2, 2, 6), '#2c1d16', 2.2, { flat: true, hl: true }); }
+    R.draw(g);
   };
 
   function itemDraw(ctx, o, t, hov) {
@@ -1607,7 +1888,7 @@
   }
 
   // ================= сборка сцены =================
-  var ANIM_BREAK = { cloud: 1, water: 1 };
+  var ANIM_BREAK = { cloud: 1, water: 1, tide: 1 };
   function isLiveLayer(it) { var s = it.state || {}; return ANIM_BREAK[it.kind] || (it.kind === 'lamp' && s.lit) || (it.kind === 'tower' && s.lit) || (it.kind === 'house'); }
   var PAD = { sky: 0, ground: 30, wall: 0, floor: 30, house: 40, tree: 40, door: 30, plant: 30, hill: 30 };
   function itemBox(it) {
@@ -1629,6 +1910,11 @@
     if (it.kind === 'fence' && st.stairs) return [x - 20, y - 50, w + 40, h + 70];
     if (it.kind === 'lever') return [x - 20, y - 20, w + 40, h + 40];
     if (it.kind === 'chime') return [x - 20, y - 10, w + 40, Math.max(h, 262) + 30];
+    if (it.kind === 'mapsheet') return [-10, -10, W + 20, H + 20];
+    if (it.kind === 'tide') return [x - 20, y - 20, w + 40, h + 40];
+    if (it.kind === 'trail') return [x - 30, y - 30, w + 60, h + 60];
+    if (it.kind === 'beacon') return [x - 40, y - 50, w + 80, h + 80];
+    if (it.kind === 'machine' && st.variant === 'gear') return [x - 30, y - 30, w + 60, h + 60];
     return [x - p, y - p, w + 2 * p, h + 2 * p];
   }
   function drawFnFor(it) {
@@ -1719,6 +2005,7 @@
       drawNpc(ctx, o, (o.state && o.state.pose) || 'idle', t, true); return;
     }
     if (o.kind === 'item') { itemDraw(ctx, o, t, hov); return; }
+    if (o.kind === 'maptoken') { tokenDraw(ctx, o, t); return; }
     var st = o.state || {}, s = itemSprite(o, sc, P, pk);
     if (hot && s.c && !(o.kind === 'box' && st.pic)) {
       var hl = halo(s, hov ? 4 : 2, hov ? 'rgba(255,232,150,1)' : 'rgba(255,246,226,0.75)');
@@ -1737,6 +2024,7 @@
   // флажки переходов: стрелка + пиктограмма сцены назначения
   function sceneIcon(id) { var S = global.KVEST && global.KVEST.SCENES; if (S) for (var i = 0; i < S.length; i++) if (S[i].id === id) return S[i].icon; return null; }
   function exitMarkers(ctx, sc, t, hvh) {
+    if (sc.map) return;   // на карте переходы — сами узлы-места
     var hs = sc.hotspots || [], objs = sc.objects || [];
     hs.forEach(function (h) {
       if (h.cursor !== 'go' || !h.to) return;

@@ -25,13 +25,13 @@
       ]
     },
     en: {
-      title: 'BOLT', sub: 'ESCAPE FROM SLAG-9',
+      title: 'SLAGBREAK', sub: 'ESCAPE FROM SLAG-9',
       tagline: 'A mercenary robot is stranded on planet Slag-9. Blast your way to the exit.',
       start: 'START', how: 'HOW TO PLAY', back: 'Catalog',
       gfx: 'GRAPHICS', snd: 'SOUND', on: 'ON', off: 'OFF', retro: '8-BIT', modern: 'NEON',
       pause: 'PAUSE', resume: 'RESUME',
       over: 'SYSTEM FAILURE', again: 'PLAY AGAIN',
-      win: 'ESCAPE COMPLETE!', winSub: 'BOLT has left Slag-9.',
+      win: 'ESCAPE COMPLETE!', winSub: 'The mercenary robot has left Slag-9.',
       score: 'SCORE', best: 'BEST', lives: 'LIVES', level: 'SECTOR', charge: 'POWER',
       ready: 'SECTOR', go: 'GO!', clear: 'SECTOR CLEAR',
       help: [

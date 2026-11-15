@@ -2074,3 +2074,62 @@ html[data-theme="modern"] .skip-link {
 .pager-btn:disabled { opacity: .3; cursor: default; }
 @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+
+/* ---------- переключатель языка RU | EN (шапка обеих главных) ---------- */
+.lang-switch {
+  display: inline-flex;
+  align-items: stretch;
+  min-height: 44px;
+  border: 2px solid var(--line-strong);
+  border-radius: var(--radius-field);
+  background: var(--panel);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.7);
+  font: 700 11px/1 var(--font-mono);
+  letter-spacing: 0.14em;
+}
+
+.lang-switch a,
+.lang-switch span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 40px;
+  padding: 0 10px;
+  color: var(--dim);
+  text-decoration: none;
+}
+
+.lang-switch a:hover,
+.lang-switch a:focus-visible {
+  color: var(--accent);
+}
+
+.lang-switch [aria-current] {
+  background: var(--accent);
+  color: #06070b;
+}
+
+html[data-theme="modern"] .lang-switch {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 10px 26px -18px rgba(0, 0, 0, 0.9);
+  overflow: hidden;
+}
+
+html[data-theme="modern"] .lang-switch [aria-current] {
+  background: linear-gradient(135deg, #8aa4ff, #5ef0e0);
+  color: #070912;
+}
+
+@media (max-width: 560px) {
+  .topbar-side { gap: 8px; }
+  .lang-switch a,
+  .lang-switch span { min-width: 34px; padding: 0 8px; }
+}
+/* узкие телефоны: шапка с переключателем языка помещается в одну строку */
+.tt-mode { white-space: nowrap; }
+@media (max-width: 560px) {
+  .brand-title { font-size: 13px; letter-spacing: 0.08em; }
+}
+@media (max-width: 420px) {
+  .theme-toggle .tt-icon { display: none; }
+}

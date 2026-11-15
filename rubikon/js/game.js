@@ -2020,7 +2020,7 @@ ru: {
   mute_off:'ЗВУК ВЫКЛ'
 },
 en: {
-  title1:'RUBICON', title2:'',
+  title1:'DEEPRISE', title2:'',
   subtitle:'HEFEST ARCADE · WEB ORIGINAL',
   start:'ENTER - START',
   brief:'I - BRIEFING',
@@ -3096,7 +3096,7 @@ function mPause(){
 function mTitle(){
   mMenuBg();
   const L = L10N[LANG];
-  const t1 = LANG === 'ru' ? 'РУБИКОН' : 'RUBICON';
+  const t1 = LANG === 'ru' ? 'РУБИКОН' : 'DEEPRISE';
   const t2 = LANG === 'ru' ? '' : '';
 
   mBadge(L.neon_badge || 'NEON EDITION', 16, 14, MC.cyan);

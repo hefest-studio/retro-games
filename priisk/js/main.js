@@ -1,39 +1,47 @@
 /* ПРИИСК · js/main.js — сборка: движок Гефест Arcade (меню/пауза/темы/язык/звук/рекорд) + логика (game.js)
-   + рендер (render.js) + мышь/тач (mouse.js). Камера, выделение, приказы, группы Ctrl+1…9, курсоры, звук. */
+   + рендер (render.js) + мышь/тач (mouse.js). Камера, выделение, приказы, группы Ctrl+1…9 (запасной Alt+1…9) и кнопки групп,
+   курсоры, звук, музыка по сценам (js/music.js: меню / поле / бой). */
 (function (global) {
   'use strict';
   var P = global.PRIISK, L = P.logic, R = P.render, LY = R.LAYOUT, T = R.TILE, CMP = P.campaign;
   var TH = Arcade.themes || {};
-  var g = Arcade.createGame({ canvas: '#c', width: LY.W, height: LY.H, gameId: 'priisk', strings: P.STR, theme: 'modern', lives: 1,
+  var g = Arcade.createGame({ canvas: '#c', width: LY.W, height: LY.H, gameId: 'priisk', strings: P.STR, theme: 'modern', lives: 1, musicAuto: false,
     themes: { modern: Object.assign({}, TH.modern, { bg: '#101318', accent: '#e0a53a' }), retro: Object.assign({}, TH.retro, { bg: '#000000', accent: '#ffff55' }) } });
   P.g = g;
   g.useStandardScreens({ title: 'ПРИИСК', subtitle: 'Две артели · одно медное плато', lives: 1 });
   g.menu.setHint(function () { return [g.t('hint1'), { text: g.t('hint2'), dim: true }]; }, 'title');
   g.menu.addItem({ scene: 'pause', key: 'restart', after: 'resume', label: function () { return g.t('restart'); }, onSelect: function () { if (S.mission) startMission(S.mission); else g.goto('play'); } });
 
-  var S = { W: null, cam: { x: 0, y: 0 }, sel: new Set(), hover: null, placing: null, box: null, marks: [], msgs: [], th: 'modern', t: function (k) { return g.t(k); }, panelHover: null };
+  var S = { groups: null, W: null, cam: { x: 0, y: 0 }, sel: new Set(), hover: null, placing: null, box: null, marks: [], msgs: [], th: 'modern', t: function (k) { return g.t(k); }, panelHover: null };
   var groups = {}, lastGroup = { n: 0, t: 0 }, acc = 0, endT = 0, lowWas = false, shotT = 0, worldN = 0, mmDrag = false;
-  P.S = S; P.groups = groups;
+  P.S = S; P.groups = groups; S.groups = groups;
   var STEP = 1 / 60;
 
   // ---------- кампания: старт миссии ----------
-  function resetUi() { S.sel = new Set(); S.placing = null; S.marks = []; S.msgs = []; endT = 0; acc = 0; for (var k in groups) delete groups[k]; }
+  function resetUi() { fightT = -99; S.sel = new Set(); S.placing = null; S.marks = []; S.msgs = []; endT = 0; acc = 0; for (var k in groups) delete groups[k]; }
   function startMission(id) {
     var def = CMP.byId(id); if (!def) return;
     S.mission = id; S.W = CMP.build(def, { save: CU.data, seed: (Date.now() % 9973) + 1 }); resetUi();
-    CU.attach(S);
+    CU.attach(S); R.setButtons(missionButtons(def, 'bld'), missionButtons(def, 'unit')); R.fitMinimap(S.W);
     var hq = L.has(S.W, 0, 'hq'), hero = S.W.units.find(function (u) { return u.owner === 0; });
     if (hq) centerOn(hq.tx + 3, hq.ty + 1); else if (hero) centerOn(hero.x + 8, hero.y - 4);
     R.resetCache(); g.state.score = 0; g.state.lives = 1;
     g.goto('play', { resume: true });
   }
   P.startMission = startMission;
+  // Панель миссии: обычный набор скирмиша; если миссия открывает укрепления — только разрешённые кнопки (иначе не влезут)
+  function missionButtons(def, kind) {
+    var b = def.player.build || [], u = def.player.units || [];
+    var fort = b.some(function (t) { return L.FORT_LIST.indexOf(t) >= 0; });
+    if (!fort) return kind === 'bld' ? L.BUILD_LIST : L.UNIT_LIST;
+    return kind === 'bld' ? L.BUILD_LIST.concat(L.FORT_LIST).filter(function (t) { return b.indexOf(t) >= 0; }) : L.UNIT_LIST.filter(function (t) { return u.indexOf(t) >= 0; });
+  }
   function newGame() {
     S.mission = null; CU.detach(S);
     var seed = (Date.now() % 100000) + 1, q = new URLSearchParams(location.search);
     if (q.get('seed')) seed = parseInt(q.get('seed'), 10) || 1;
-    S.W = L.newWorld({ seed: seed }); S.W.seedKey = ++worldN + ':' + seed;
-    S.sel = new Set(); S.placing = null; S.marks = []; S.msgs = []; endT = 0; acc = 0;
+    S.W = L.newWorld({ seed: seed }); S.W.seedKey = ++worldN + ':' + seed; R.setButtons(); R.fitMinimap(S.W);
+    S.sel = new Set(); S.placing = null; S.marks = []; S.msgs = []; endT = 0; acc = 0; fightT = -99;
     for (var k in groups) delete groups[k];
     var hq = L.has(S.W, 0, 'hq'); centerOn(hq.tx + 1.5, hq.ty + 1.5);
     R.resetCache(); msg(g.t('msgStart'));
@@ -46,7 +54,8 @@
   function inView(p) { return p.y < LY.VIEW_H; }
   function inMinimap(p) { var M = LY.MM; return p.x >= M.x && p.x < M.x + S.W.w * M.s && p.y >= M.y && p.y < M.y + S.W.h * M.s; }
   function mmWorld(p) { var M = LY.MM; return { x: (p.x - M.x) / M.s, y: (p.y - M.y) / M.s }; }
-  function ownSel() { var out = []; S.sel.forEach(function (id) { var e = S.W.byId[id]; if (e && e.owner === 0 && e.kind === 'unit') out.push(id); }); return out; }
+  // свои юниты под командой игрока (сценарные — тягач и вагоны колонны, u.locked — не слушают приказов)
+  function ownSel() { var out = []; S.sel.forEach(function (id) { var e = S.W.byId[id]; if (e && e.owner === 0 && e.kind === 'unit' && !e.locked) out.push(id); }); return out; }
   function visiblePick(w) { return L.pickAt(S.W, w.x, w.y, function (e) { return L.visibleTo0(S.W, e); }); }
   function viewRect() { return { x0: S.cam.x / T, y0: S.cam.y / T, x1: (S.cam.x + LY.W) / T, y1: (S.cam.y + LY.VIEW_H) / T }; }
   function playing() { return g._sceneName === 'play' && S.W && S.W.winner < 0; }
@@ -92,14 +101,19 @@
       deny: 'not-allowed', place: 'crosshair', pan: 'grabbing', panel: 'pointer', normal: 'default'
     },
     onDown: function (p, info) {
+      var gn = R.groupAt(p.x, p.y); if (gn) { grpDown = { n: gn, t: performance.now(), ctrl: info.ctrl }; return 'capture'; }
       if (inView(p)) return;
+      var rb = R.repairBtn(S); if (rb && p.x >= rb.x && p.x < rb.x + rb.w && p.y >= rb.y && p.y < rb.y + rb.h) { toggleRepair(rb.b); return 'capture'; }
       if (inMinimap(p)) { if (S.targeting) { CU.placeFlare(S, mmWorld(p)); return 'capture'; } mmDrag = true; var w = mmWorld(p); centerOn(w.x, w.y); return 'capture'; }
       var ab = CU.panelAt(S, p); if (ab) { CU.useAbility(S, ab.ab.hero); return 'capture'; }
       var b = R.buttonAt(p.x, p.y, S); if (b) panelOrder(b);
       return 'capture';
     },
     onDrag: function (p) { if (mmDrag) { var M = LY.MM, w = mmWorld({ x: Math.max(M.x, Math.min(M.x + S.W.w * M.s - 1, p.x)), y: Math.max(M.y, Math.min(M.y + S.W.h * M.s - 1, p.y)) }); centerOn(w.x, w.y); } },
-    onUp: function () { mmDrag = false; },
+    onUp: function (p) {
+      mmDrag = false;
+      if (grpDown) { var gd = grpDown; grpDown = null; if (R.groupAt(p.x, p.y) === gd.n) { if (gd.ctrl || performance.now() - gd.t >= 480) assignGroup(gd.n); else recallGroup(gd.n); } }
+    },
     onClick: function (p, info) {
       if (!inView(p)) return;
       if (info.touch && S.placing) updatePlacing(p);
@@ -123,6 +137,7 @@
       if (ids.length) ack();
     },
     onCommand: function (p, info) {
+      var gc = R.groupAt(p.x, p.y); if (gc) { assignGroup(gc); return; } // ПКМ по кнопке группы — назначить
       if (S.placing) { S.placing = null; beep(300, 0.04); return; }
       if (S.targeting) { S.targeting = null; beep(300, 0.04); return; }
       if (!inView(p)) {
@@ -151,12 +166,15 @@
   function ack() { beep(880, 0.025, 'triangle'); }
   function tryPlace() {
     var b = L.placeBuild(S.W, 0, S.placing.tx, S.placing.ty);
-    if (b) { S.placing = null; beep(440, 0.08, 'triangle'); beep(660, 0.08, 'triangle'); msg(g.t('msgPlaced') + ': ' + g.t(b.type), 'good'); }
+    if (b) { S.placing = null; beep(440, 0.08, 'triangle'); beep(660, 0.08, 'triangle'); msg(g.t('msgPlaced') + ': ' + g.t(b.type), 'good');
+      if (b.type === 'palisade' && keyShift && CMP.allowed(S.W, 'palisade')) L.startBuild(S.W, 0, 'palisade'); } // Shift — ставить частокол цепочкой
     else { msg(g.t('msgCantPlace'), 'bad'); beep(150, 0.08, 'square'); }
   }
   function updateCursor() {
     var p = mouse.pos; S.hover = null; S.panelHover = null;
     if (!playing() || !mouse.inside) return;
+    if (R.groupAt(p.x, p.y)) { mouse.setCursor('panel'); return; }
+    var rbh = R.repairBtn(S); if (rbh && !inView(p) && p.x >= rbh.x && p.x < rbh.x + rbh.w && p.y >= rbh.y && p.y < rbh.y + rbh.h) { S.panelHover = rbh.b; mouse.setCursor('panel'); return; }
     if (!inView(p)) { var b = R.buttonAt(p.x, p.y, S) || CU.panelAt(S, p); S.panelHover = b && b.type ? b : null; mouse.setCursor(S.targeting && inMinimap(p) ? 'flare' : b || inMinimap(p) ? 'panel' : 'normal'); return; }
     if (S.placing) { mouse.setCursor('place'); return; }
     if (S.targeting) { mouse.setCursor('flare'); return; }
@@ -168,21 +186,40 @@
     mouse.setCursor(k === 'attack' ? 'attack' : k === 'harvest' || k === 'return' ? 'harvest' : k === 'deny' ? 'deny' : 'move');
   }
 
-  // ---------- клавиатура: группы Ctrl+1…9 (и Alt+1…9 — Ctrl+цифра в части браузеров переключает вкладки), H — к конторе, X — стоп ----------
+  // ---------- группы ----------
+  // Назначить: Ctrl+1…9 (на macOS — тоже Ctrl), запасной Alt+1…9; кнопки групп — Ctrl+клик / ПКМ / долгий тап.
+  // Ctrl+цифра в Chrome — не «зарезервированная» команда (в отличие от Ctrl+T/W/N/Tab): страница получает keydown первой,
+  // и preventDefault не даёт переключить вкладку. Cmd+цифра на macOS не трогаем — пусть остаётся переключением вкладок.
+  var grpDown = null, keyShift = false;
+  function assignGroup(n) { var ids = ownSel(); if (!ids.length) { msg(g.t('msgGroupEmpty'), 'warn'); return false; } groups[n] = ids.slice(); msg(g.t('msgGroup') + ' ' + n + ': ' + ids.length); beep(740, 0.04); return true; }
+  function recallGroup(n, add) {
+    var gr = (groups[n] || []).filter(function (id) { return S.W.byId[id]; }); groups[n] = gr; if (!gr.length) return false;
+    if (add) gr.forEach(function (id) { S.sel.add(id); }); else S.sel = new Set(gr);
+    var now = performance.now();
+    if (lastGroup.n === n && now - lastGroup.t < 400) { var u = S.W.byId[gr[0]]; centerOn(u.x, u.y); }
+    lastGroup = { n: n, t: now }; ack(); return true;
+  }
+  P.assignGroup = assignGroup; P.recallGroup = recallGroup;
+  function toggleRepair(b) {
+    if (b.repair) { L.setRepair(S.W, b, false); beep(300, 0.05); return; }
+    if (b.hp >= b.maxHp) { msg(g.t('msgNoRepair'), 'warn'); beep(180, 0.06, 'square'); return; }
+    if (!L.setRepair(S.W, b, true)) { msg(g.t('msgNoCopper'), 'bad'); beep(160, 0.1, 'square'); return; }
+    msg(g.t('repairing') + ': ' + g.t(b.type), 'good'); beep(620, 0.05, 'triangle');
+  }
+  addEventListener('keyup', function (e) { if (e.key === 'Shift') keyShift = false; }, true);
   addEventListener('keydown', function (e) {
+    keyShift = !!e.shiftKey;
     if (!playing()) return;
     if (e.code === 'Escape' && S.placing) { S.placing = null; e.preventDefault(); e.stopImmediatePropagation(); return; }
     if (e.code === 'Escape' && S.targeting) { S.targeting = null; e.preventDefault(); e.stopImmediatePropagation(); return; }
-    if (S.mission && (e.code === 'KeyQ' || e.code === 'KeyE')) { CU.useAbility(S, e.code === 'KeyQ' ? 'varvara' : 'lunya'); e.preventDefault(); return; }
+    var hk = { KeyQ: 'varvara', KeyE: 'lunya', KeyR: 'sava' }[e.code];
+    if (S.mission && hk && !e.ctrlKey && !e.metaKey && !e.altKey) { CU.useAbility(S, hk); e.preventDefault(); return; }
     var m = /^(Digit|Numpad)([1-9])$/.exec(e.code);
     if (m) {
+      if (e.metaKey && !e.ctrlKey) return; // Cmd+цифра (macOS) — вкладки браузера, не мешаем
       var n = +m[2]; e.preventDefault();
-      if (e.ctrlKey || e.metaKey || e.altKey) { var ids = ownSel(); if (ids.length) { groups[n] = ids.slice(); msg(g.t('msgGroup') + ' ' + n + ': ' + ids.length); beep(740, 0.04); } return; }
-      var gr = (groups[n] || []).filter(function (id) { return S.W.byId[id]; }); groups[n] = gr; if (!gr.length) return;
-      if (e.shiftKey) gr.forEach(function (id) { S.sel.add(id); }); else S.sel = new Set(gr);
-      var now = performance.now();
-      if (lastGroup.n === n && now - lastGroup.t < 400) { var u = S.W.byId[gr[0]]; centerOn(u.x, u.y); }
-      lastGroup = { n: n, t: now }; ack(); return;
+      if (e.ctrlKey || e.altKey) { assignGroup(n); return; }
+      recallGroup(n, e.shiftKey); return;
     }
     if (e.code === 'KeyH') { var hq = L.has(S.W, 0, 'hq'); if (hq) centerOn(hq.tx + 1.5, hq.ty + 1.5); }
     if (e.code === 'KeyX') { L.stopUnits(S.W, ownSel()); }
@@ -199,10 +236,37 @@
       else if (ev.t === 'die' && ev.owner === 0 && ev.kind === 'bld') msg(g.t('msgLost'), 'bad');
       else if (ev.t === 'shot' && seen(ev.x, ev.y) && W.time - shotT > 0.07) { shotT = W.time; beep(ev.weapon === 'gun' ? 1400 : 180, ev.weapon === 'gun' ? 0.015 : 0.06, ev.weapon === 'gun' ? 'square' : 'sawtooth', 0.025); }
       else if (ev.t === 'wave' && ev.owner === 1) { msg(g.t('msgWave'), 'bad'); beep(220, 0.2, 'square'); }
+      else if (ev.t === 'repaired' && ev.owner === 0) { var rb2 = W.byId[ev.id]; msg(g.t('msgRepaired') + (rb2 ? ': ' + g.t(rb2.type) : ''), 'good'); }
+      else if (ev.t === 'repairStop' && ev.owner === 0) msg(g.t('msgRepairStop'), 'warn');
+      if (ev.t === 'shot' && nearOurs(W, ev.x, ev.y)) fightT = W.time;
     });
     if (W.mission) CU.drain(S);
     W.events.length = 0;
     var low = W.players[0].pOut < W.players[0].pUse; if (low && !lowWas && W.blds.some(function (b) { return b.owner === 0; })) msg(g.t('msgLowPower'), 'warn'); lowWas = low;
+  }
+
+  // ---------- музыка: меню / поле / бой ----------
+  // musicAuto выключен: трек выбирается по сцене (меню и экраны кампании — menu; игра — field, а при перестрелке рядом
+  // с нашими — battle, назад к field через 12 с тишины); пауза держит позицию, победа/поражение — стоп.
+  var TR = Arcade.priiskTracks || {}, mus = { cur: null }, fightT = -99;
+  function nearOurs(W, x, y) { for (var n = 0; n < W.units.length; n++) { var u = W.units[n]; if (u.owner === 0 && Math.abs(u.x - x) < 9 && Math.abs(u.y - y) < 9) return true; } for (n = 0; n < W.blds.length; n++) { var b = W.blds[n]; if (b.owner === 0 && Math.abs(b.tx + b.w / 2 - x) < 9 && Math.abs(b.ty + b.h / 2 - y) < 9) return true; } return false; }
+  function useTrack(name, restart) {
+    var m = g.audio.music, t = TR[name]; if (!t) return;
+    if (mus.cur !== name) { mus.cur = name; m.want = 'stop'; m._sync(); g.audio.setMusic(t); m.play(true); }
+    else m.play(!!restart);
+  }
+  function musicScene(name, d) {
+    var m = g.audio.music;
+    if (name === 'play') { if (d && d.resume && mus.cur && mus.cur !== 'menu') m.play(); else { fightT = -99; useTrack('field', true); } }
+    else if (name === 'pause') m.pause();
+    else if (name === 'win' || name === 'gameover') { m.stop(); mus.cur = null; }
+    else useTrack('menu');
+  }
+  P.music = { state: function () { return { track: mus.cur, want: g.audio.music.want, playing: g.audio.music.playing }; }, tracks: TR };
+  function musicBattle(W) {
+    if (g._sceneName !== 'play' || !W) return;
+    var hot = W.time - fightT < 12 && W.winner < 0;
+    if (hot && mus.cur === 'field') useTrack('battle', true); else if (!hot && mus.cur === 'battle') useTrack('field', true);
   }
 
   g.scene('play', {
@@ -218,7 +282,7 @@
       S.sel.forEach(function (id) { if (!W.byId[id]) S.sel.delete(id); });
       if (S.placing && !(W.players[0].build && W.players[0].build.ready)) S.placing = null;
       if (S.placing) updatePlacing(mouse.pos);
-      drainEvents();
+      drainEvents(); musicBattle(W);
       for (var i = S.marks.length - 1; i >= 0; i--) { S.marks[i].life -= dt; if (S.marks[i].life <= 0) S.marks.splice(i, 1); }
       for (i = S.msgs.length - 1; i >= 0; i--) { S.msgs[i].life -= dt; if (S.msgs[i].life <= 0) S.msgs.splice(i, 1); }
       updateCursor();
@@ -241,7 +305,7 @@
   if (bp) bp.addEventListener('click', function () { if (g._sceneName === 'play') { mouse.cancel(); g.pause(); } else if (g._sceneName === 'pause') g.goto('play', { resume: true }); });
   // курсор вне игры — обычный
   var CU = P.campUI.install(g, { S: S, msg: msg, beep: beep, centerOn: centerOn, startMission: startMission, mouse: mouse });
-  var origGoto = g.goto; g.goto = function (name, d) { if (name !== 'play') { mouse.cancel(); S.box = null; mouse.setCursor('normal'); } return origGoto.call(this, name, d); };
+  var origGoto = g.goto; g.goto = function (name, d) { if (name !== 'play') { mouse.cancel(); S.box = null; mouse.setCursor('normal'); } musicScene(name, d); return origGoto.call(this, name, d); };
 
   function fit() {
     var foot = document.getElementById('foot'), fh = foot && getComputedStyle(foot).display !== 'none' ? foot.offsetHeight + 4 : 4;

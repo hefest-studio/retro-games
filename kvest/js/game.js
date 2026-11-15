@@ -1,4 +1,7 @@
-/* МАЯЧНИЦА · game.js — движок point-and-click: интерпретирует данные сцен (scenes.js) и логики (puzzles.js, widgets.js).
+/* МАЯЧНИЦА · game.js — движок point-and-click: интерпретирует данные главы — сцены, логику (puzzles), механизмы (widgets.js).
+   Глава: createGame({ chapter }) — { scenes, puzzles, map } из реестра глав (chapters/index.js); без chapter — K.SCENES/K.PUZZLES.
+   Общие механики глав (coast.js): сцена с двумя состояниями (scene.phase — прилив/отлив), таймеры главы (puzzles.timers),
+   карта побережья (chapter.map — экран-переход; фишка героини идёт по тропе к узлу, затем вход в сцену).
    Без DOM: ввод — G.down/move/up/look в логических координатах 960×540, время — G.update(dt), отрисовка — G.model()
    (main.js отдаёт модель в window.KvestTheme). Чистая логика правил — KVEST.logic (её же использует поиск в тестах). */
 (function (global) {
@@ -54,6 +57,7 @@
     }
   }
   function walkOf(sc, st) {
+    if (sc.walkPhase && K.Coast) { var ph = K.Coast.phaseOf(sc, st); if (sc.walkPhase[ph]) return sc.walkPhase[ph]; }
     if (sc.walkIf) for (var i = 0; i < sc.walkIf.length; i++) if (ok(st, sc.walkIf[i].need)) return sc.walkIf[i].walk;
     return sc.walk;
   }
@@ -66,13 +70,22 @@
   function inRect(r, x, y) { return x >= r[0] && y >= r[1] && x <= r[0] + r[2] && y <= r[1] + r[3]; }
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
 
+  // зоны сцены в состоянии st: need + фаза сцены; у карты — открытые узлы (coast.js)
+  function hotspotsOf(sc, st) { return K.Coast ? K.Coast.sceneHotspots(sc, st) : sc.hotspots.filter(function (h) { return ok(st, h.need); }); }
+  // сцены главы с картой (карта — обычная сцена движка с id = map.id)
+  function withMap(scenes, map) { if (!map || !K.Coast || scenes.some(function (s) { return s.map; })) return scenes; return scenes.concat([K.Coast.mapScene(map)]); }
+
   K.logic = { has: has, ok: ok, resolve: resolve, resolveCombo: resolveCombo, apply: apply, runRule: runRule, autos: autos,
-    solveWidget: solveWidget, widget: widget, walkOf: walkOf, yAt: yAt, clampX: clampX, inRect: inRect, stateStep: stateStep };
+    solveWidget: solveWidget, widget: widget, walkOf: walkOf, yAt: yAt, clampX: clampX, inRect: inRect, stateStep: stateStep,
+    hotspots: hotspotsOf, withMap: withMap };
 
   // ---------- игра ----------
   K.createGame = function (opts) {
     opts = opts || {};
-    var SCN = opts.scenes || K.SCENES, P = opts.puzzles || K.PUZZLES, WT = K.Widgets.types, LAY = K.ThemeAPI.LAYOUT;
+    var CH = opts.chapter || null;
+    var P = opts.puzzles || (CH && CH.puzzles) || K.PUZZLES, WT = K.Widgets.types, LAY = K.ThemeAPI.LAYOUT;
+    var SCN = withMap(opts.scenes || (CH && CH.scenes) || K.SCENES, opts.map || (CH && CH.map) || null);
+    var TIMERS = P.timers || [], TIMERS_ON = opts.timers !== false, TRAVEL = 260, PHASE_T = 1.8;
     var emit = opts.onEvent || function () {};
     var SC = {}; SCN.forEach(function (s) { SC[s.id] = s; });
     var hsWidget = {}; P.widgets.forEach(function (w) { if (w.scene) w.hs.forEach(function (h, i) { hsWidget[w.scene + ':' + h] = { w: w, i: i }; }); });
@@ -80,12 +93,14 @@
 
     function fresh() {
       var s = { v: SAVE_V, scene: P.start.scene, flags: clone(P.start.flags || {}), inv: (P.start.inv || []).slice(), local: {}, heroX: 0, hintFree: {}, hintCD: 0 };
+      if (CH && CH.id) s.ch = CH.id;
+      if (TIMERS.length) s.tt = {};
       return s;
     }
     function freshRt() {
       return { mode: 'scene', hero: { x: 0, y: 0, dir: 1 }, target: null, reach: null, thoughts: {}, cut: null, cutQ: [], pose: 'idle', poseT: 0, npcPose: {},
         ring: {}, mini: null, miniDone: 0, walk: null, sel: null, drag: null, ptr: null, hover: { x: -1, y: -1 }, time: 0, debug: !!opts.debug, hintAfterMini: false,
-        pad: rt ? rt.pad : (+opts.pad || 0) };
+        pad: rt ? rt.pad : (+opts.pad || 0), phase: { name: null, t0: -99 }, token: null, travel: null, timerSeen: {} };
     }
     st = fresh(); rt = freshRt();
 
@@ -116,15 +131,21 @@
     function placeHero(x) { var w = walkOf(sc(), st); rt.hero.x = clampX(w, x); rt.hero.y = yAt(w, rt.hero.x); }
     function go(id, x) {
       if (!SC[id]) return;
-      st.scene = id; rt.target = null; rt.reach = null; rt.thoughts = {}; rt.sel = null;
+      var prev = st.scene;
+      st.scene = id; rt.target = null; rt.reach = null; rt.thoughts = {}; rt.sel = null; rt.travel = null;
       placeHero(x != null ? x : SC[id].hero.x); rt.hero.dir = rt.hero.x > 480 ? -1 : 1;
+      rt.phase = { name: K.Coast ? K.Coast.phaseOf(SC[id], st) : null, t0: -99 };
+      if (SC[id].map) {   // карта: фишка героини — у узла сцены, из которой пришли
+        var M = SC[id].map, n = K.Coast.nodeOfScene(M, prev); if (n) st.mapAt = n.id; if (!st.mapAt || !K.Coast.node(M, st.mapAt)) st.mapAt = M.start;
+        var nn = K.Coast.node(M, st.mapAt); rt.token = { x: nn.x, y: nn.y, dir: 1 };
+      }
       emit('scene', { id: id });
       P.enter.forEach(function (r) { if (r.scene === id && ok(st, r.need)) { apply(P, st, r.do, fx); setPuzzle(st, r.puzzle, fx); } });
       runAutos(); changed();
     }
 
     // ---------- взаимодействие ----------
-    function visibleHs() { var s = sc(); return s.hotspots.filter(function (h) { return ok(st, h.need); }); }
+    function visibleHs() { return hotspotsOf(sc(), st); }
     function hsAt(x, y) { var list = visibleHs(); for (var i = list.length - 1; i >= 0; i--) if (inRect(list[i].rect, x, y)) return list[i]; return null; }
     // тач на маленьком экране: если точного попадания нет — ближайшая зона в пределах rt.pad (логических пикселей)
     function hsAtTouch(x, y) {
@@ -281,6 +302,55 @@
       rt.thoughts = {}; rt.pose = 'idle'; changed(); emit('save', {});
     }
 
+    // ---------- карта: фишка идёт по открытым тропам к узлу, затем вход в сцену ----------
+    function mapGo(h) {
+      var M = sc().map, from = st.mapAt || M.start;
+      if (h.node === from) { emit('sfx', { name: 'step' }); go(h.to, h.toX); return; }
+      var pts = K.Coast.path(M, st, from, h.node);
+      if (!pts) { think('hero', [K.Coast.node(M, h.node).icon, 'cross'], 1.6); emit('sfx', { name: 'nope' }); return; }
+      rt.travel = { pts: pts, i: 1, hs: h }; emit('walk', { map: true, to: h.node });
+    }
+    function travelStep(dt) {
+      var tv = rt.travel, tk = rt.token, left = TRAVEL * dt;
+      while (left > 0 && tv.i < tv.pts.length) {
+        var p = tv.pts[tv.i], dx = p[0] - tk.x, dy = p[1] - tk.y, d = Math.hypot(dx, dy);
+        if (Math.abs(dx) > 0.5) tk.dir = dx < 0 ? -1 : 1;
+        if (d <= left) { tk.x = p[0]; tk.y = p[1]; tv.i++; left -= d; } else { tk.x += dx / d * left; tk.y += dy / d * left; left = 0; }
+      }
+      if (tv.i >= tv.pts.length) { var h = tv.hs; rt.travel = null; st.mapAt = h.node; emit('sfx', { name: 'step' }); go(h.to, h.toX); emit('save', {}); }
+    }
+    // ---------- две фазы сцены и таймеры главы ----------
+    function phaseWatch() {
+      var s = sc(), ph = K.Coast ? K.Coast.phaseOf(s, st) : null;
+      if (ph === rt.phase.name) return;
+      rt.phase = { name: ph, t0: rt.time, from: rt.phase.name };
+      emit('phase', { scene: s.id, phase: ph });
+      var w = walkOf(s, st), cx = clampX(w, rt.hero.x);   // полоса ходьбы стала короче (прилив) — героиня отходит
+      if (Math.abs(cx - rt.hero.x) > 0.5) { rt.reach = null; rt.target = { x: cx, hs: null }; }
+      else rt.hero.y = yAt(w, rt.hero.x);
+      changed();
+    }
+    function timerStep(dt) {
+      if (!TIMERS.length) return;
+      st.tt = st.tt || {};
+      TIMERS.forEach(function (T) {
+        var f = T.flag, v = !!st.flags[f];
+        if (rt.timerSeen[f] !== undefined && rt.timerSeen[f] !== v) st.tt[f] = 0;   // флаг сменило действие (вешка, рычаг) — отсчёт заново
+        rt.timerSeen[f] = v;
+        if (T.where && T.where.indexOf(st.scene) < 0) return;
+        if (TIMERS_ON) st.tt[f] = (st.tt[f] || 0) + dt;
+        if ((st.tt[f] || 0) >= T.every) {
+          st.tt[f] = 0; if (st.flags[f]) delete st.flags[f]; else st.flags[f] = true; rt.timerSeen[f] = !!st.flags[f];
+          emit('sfx', { name: T.sfx || 'tide' }); emit('timer', { flag: f, on: !!st.flags[f] }); runAutos(); changed(); emit('save', {});
+        }
+      });
+    }
+    // «подождать»: таймер сработает на следующем шаге (бот, тесты; в игре — то же, что дождаться)
+    function waitTimer(flag) {
+      for (var i = 0; i < TIMERS.length; i++) if (TIMERS[i].flag === flag) { if (TIMERS[i].where && TIMERS[i].where.indexOf(st.scene) < 0) return false; st.tt = st.tt || {}; st.tt[flag] = TIMERS[i].every; return true; }
+      return false;
+    }
+
     // ---------- ходьба ----------
     function stepHero(tx, dt) {
       var d = tx - rt.hero.x, w = walkOf(sc(), st);
@@ -288,7 +358,7 @@
       if (d) rt.hero.dir = d < 0 ? -1 : 1;
       rt.hero.y = yAt(w, rt.hero.x); rt.pose = 'walk'; rt.poseT = 0.05;
     }
-    function busy() { return !!(rt.cut || rt.cutQ.length || rt.target || rt.reach); }
+    function busy() { return !!(rt.cut || rt.cutQ.length || rt.target || rt.reach || rt.travel); }
 
     // ---------- ввод ----------
     function slotAt(x, y) {
@@ -322,8 +392,10 @@
         return;
       }
       var h = hsAtTouch(x, y);
+      if (h && sc().map && !rt.sel) { mapGo(h); return; }
       if (h) { var it = rt.sel; rt.sel = null; approach(h, it); return; }
       rt.sel = null;
+      if (sc().map) return;
       var w = walkOf(sc(), st); rt.target = { x: clampX(w, x), hs: null }; rt.reach = null;
     }
     function down(x, y) {
@@ -360,7 +432,10 @@
       if (st.hintCD > 0) st.hintCD = Math.max(0, st.hintCD - dt);
       if (rt.ptr && !rt.ptr.moved && !rt.ptr.long && rt.time - rt.ptr.t >= LONG_T && rt.ptr.slot < 0 && rt.mode === 'scene') { rt.ptr.long = true; lookAt(rt.ptr.x, rt.ptr.y); }
       if (rt.mode === 'mini' && rt.miniDone && rt.time - rt.miniDone > 0.9) closeMini();
+      phaseWatch();
       if (rt.cut || rt.cutQ.length) { cutStep(dt); return; }
+      if (rt.mode === 'scene') timerStep(dt);
+      if (rt.travel) { travelStep(dt); return; }
       if (rt.reach) {
         rt.reach.t -= dt;
         if (rt.reach.t <= 0) { var R = rt.reach; rt.reach = null; perform(R.hs, R.item); if (!rt.cut && !rt.cutQ.length) emit('save', {}); }
@@ -381,10 +456,11 @@
 
     // ---------- модель для отрисовки ----------
     function sceneView() {
-      var s = sc(), wv = {};
+      var s = sc(), wv = {}, ph = K.Coast ? K.Coast.phaseOf(s, st) : null;
       P.widgets.forEach(function (w) { if (w.scene === s.id) { var v = WT[w.type].view(w, local(w), st); for (var id in v) wv[id] = v[id]; } });
       var objs = [];
-      s.objects.forEach(function (o) {
+      if (s.map) objs = K.Coast.objects(s.map, st, st.mapAt, rt.token);
+      (s.map ? [] : K.Coast ? K.Coast.sceneObjects(s, st) : s.objects).forEach(function (o) {
         if (!ok(st, o.show)) return;
         var state = {}, k;
         if (o.state) for (k in o.state) state[k] = o.state[k];
@@ -394,14 +470,17 @@
         if (o.kind === 'npc' && o.state && o.state.type === 'bird' && rt.ring.birds != null) { var dtb = rt.time - rt.ring.birds; state.sing = Math.max(0, 1 - Math.abs(dtb - (+o.id.slice(4) - 1) * 0.32) / 0.3); }
         objs.push({ id: o.id, kind: o.kind, item: o.item, x: o.x, y: o.y, w: o.w, h: o.h, seed: o.seed, state: state });
       });
-      return { id: s.id, w: s.w, h: s.h, mood: s.mood, layers: s.layers, objects: objs, hotspots: visibleHs(),
-        walk: walkOf(s, st), hero: s.hero, dark: !!(s.darkUnless && !st.flags[s.darkUnless]) };
+      var mix = null;
+      if (s.phase) { var k = Math.max(0, Math.min(1, (rt.time - rt.phase.t0) / PHASE_T)); mix = ph === s.phase.b ? k : 1 - k; }
+      return { id: s.id, w: s.w, h: s.h, mood: s.mood, pal: s.pal, layers: K.Coast ? K.Coast.layersOf(s, ph) : s.layers, objects: objs, hotspots: visibleHs(),
+        walk: walkOf(s, st), hero: s.hero, dark: !!(s.darkUnless && !st.flags[s.darkUnless]), phase: ph, phaseMix: mix, map: !!s.map };
     }
     function thoughtsView() {
       var out = [], s = sc();
       for (var who in rt.thoughts) {
         var th = rt.thoughts[who], x, y;
-        if (who === 'hero') { x = rt.hero.x; y = rt.hero.y - 132; }
+        if (who === 'hero' && s.map && rt.token) { x = rt.token.x; y = rt.token.y - 70; }
+        else if (who === 'hero') { x = rt.hero.x; y = rt.hero.y - 132; }
         else { var o = s.objects.filter(function (ob) { return ob.id === who; })[0]; if (!o) continue; x = o.x + o.w / 2; y = o.y - 8; }
         var q = { who: who, x: x, y: y, icons: th.icons, age: (th.dur || th.t) - th.t };
         if (th.meta && th.meta.hint) { q.style = 'ink'; q.hint = { target: th.meta.target, scene: th.meta.scene, here: th.meta.here, icons: th.icons, ink: (P.puzzles.filter(function (p) { return p.id === th.meta.target; })[0] || {}).ink || null }; }
@@ -426,7 +505,7 @@
         hint: { ready: hintReady(), free: !st.hintFree[st.scene], cd: st.hintCD > 0 ? st.hintCD / HINT_CD : 0 },
         close: !!mini, solvedMini: !!(mini && rt.miniDone), debug: rt.debug, progress: { solved: solvedCount(), total: P.puzzles.length },
         walk: rt.mode === 'walk' ? { page: rt.walk.page, pages: walkPages(), per: walkPer(), steps: openSteps(), total: P.puzzles.length, flip: rt.walk.flip || null, open: rt.walk.open, time: rt.time } : null };
-      return { mode: ui.mode, scene: scene, showHero: !mini, hero: { x: rt.hero.x, y: rt.hero.y, dir: rt.hero.dir }, pose: rt.pose,
+      return { mode: ui.mode, scene: scene, showHero: !mini && !sc().map, hero: { x: rt.hero.x, y: rt.hero.y, dir: rt.hero.dir }, pose: rt.pose,
         thoughts: mini ? [] : thoughtsView(), ui: ui, cursor: { kind: cursorKind(), x: rt.hover.x, y: rt.hover.y, item: rt.sel },
         light: { x: rt.hero.x, y: rt.hero.y - 60, r: st.inv.indexOf('lantern_lit') >= 0 ? 260 : 70 }, time: rt.time };
     }
@@ -437,8 +516,14 @@
       var o; try { o = typeof json === 'string' ? JSON.parse(json) : json; } catch (e) { return false; }
       if (!o || o.v !== SAVE_V || !SC[o.scene] || typeof o.flags !== 'object' || !Array.isArray(o.inv)) return false;
       if (o.inv.some(function (i) { return P.items.indexOf(i) < 0; })) return false;
+      if (CH && CH.id && o.ch && o.ch !== CH.id) return false;   // сохранение другой главы
       st = { v: SAVE_V, scene: o.scene, flags: o.flags, inv: o.inv.slice(), local: o.local || {}, heroX: o.heroX || 0, hintFree: o.hintFree || {}, hintCD: +o.hintCD || 0 };
+      if (CH && CH.id) st.ch = CH.id;
+      if (TIMERS.length) st.tt = o.tt && typeof o.tt === 'object' ? o.tt : {};
+      if (o.mapAt) st.mapAt = o.mapAt;
       rt = freshRt(); placeHero(st.heroX || SC[st.scene].hero.x);
+      rt.phase = { name: K.Coast ? K.Coast.phaseOf(SC[st.scene], st) : null, t0: -99 };
+      if (SC[st.scene].map) { var M = SC[st.scene].map, nn = K.Coast.node(M, st.mapAt) || K.Coast.node(M, M.start); st.mapAt = nn.id; rt.token = { x: nn.x, y: nn.y, dir: 1 }; }
       runAutos(); changed(); return true;
     }
     function start() { go(st.scene, SC[st.scene].hero.x); return api; }
@@ -452,7 +537,8 @@
       ringBirds: function () { rt.ring.birds = rt.time; },
       state: function () { return st; }, runtime: function () { return rt; }, scene: function () { return sc(); },
       hotspot: hsById, hotspotAt: hsAt, slotAt: slotAt, solvedCount: solvedCount, hintTarget: hintTarget, hintIcons: hintIcons, walkSteps: walkSteps, openSteps: openSteps, walkFlip: walkFlip,
-      won: function () { return !!st.flags.won; }, data: { scenes: SCN, puzzles: P }
+      won: function () { return !!st.flags.won; }, data: { scenes: SCN, puzzles: P, map: opts.map || (CH && CH.map) || null }, chapter: CH,
+      waitTimer: waitTimer, setTimers: function (v) { TIMERS_ON = !!v; return TIMERS_ON; }, mapGo: function (nodeId) { var h = hsById('n_' + nodeId); if (h && sc().map) mapGo(h); return !!h; }
     };
     return api;
   };

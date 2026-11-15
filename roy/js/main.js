@@ -43,7 +43,7 @@
     });
   }
 
-  g.useStandardScreens({ lives: 3 }); // заголовок берётся из i18n (title), подзаголовок рисуем сами
+  g.useStandardScreens({ lives: 3, subtitle: R.STR.ru.subtitle }); // заголовок и подзаголовок рисует движок (RU — из cfg, EN — из таблицы i18n)
 
   // Фон со звёздами — на всех экранах (меню, победа, конец игры)
   var baseClear = Object.getPrototypeOf(g).clear;
@@ -54,7 +54,7 @@
   title.draw = function (ctx) {
     titleDraw.call(this, ctx);
     var th = this.th(), W = this.W, H = this.H, r = rnd(), t = this.time;
-    this.text(this.t('subtitle'), W / 2, H / 2 - 40, { size: 14, align: 'center', color: th.muted, weight: 700 });
+    // подзаголовок рисует сам движок v2.3 (стандартная заставка) — второй раз не рисуем, иначе строки накладываются
     var kinds = ['medusa', 'wedge', 'wedge', 'spore', 'spore'];
     for (var i = 0; i < 5; i++) {
       var b = 1 + 0.08 * Math.sin(t * 1.7);

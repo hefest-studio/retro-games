@@ -30,8 +30,8 @@
   ];
   function pal(a, rt) { return (rt ? AR : AM)[Math.max(0, Math.min(5, (a || 1) - 1))]; }
   // героиня: тёмно-зелёный плащ с капюшоном, серп на тросе (медь + сталь)
-  var HM = { cloak: '#2f5e3d', cloakHi: '#4f8a5c', cloakLo: '#1b3424', hood: '#24482f', face: '#d9b494', shade: '#16261b', eye: '#ffcf5a', boot: '#2a2420', leg: '#23302a', belt: '#c9a043', blade: '#dfe5ec', bladeHi: '#ffffff', handle: '#9a6a32', cable: '#b89a64' };
-  var HR = { cloak: E.G, cloakHi: E.Gm, cloakLo: E.k, hood: E.G, face: E.Y, shade: E.k, eye: E.y, boot: E.n, leg: E.k, belt: E.N, blade: E.l, bladeHi: E.w, handle: E.N, cable: E.N };
+  var HM = { cloak: '#2f5e3d', cloakHi: '#4f8a5c', cloakLo: '#1b3424', hood: '#24482f', face: '#d9b494', gloom: '#16261b', eye: '#ffcf5a', boot: '#2a2420', leg: '#23302a', belt: '#c9a043', blade: '#dfe5ec', bladeHi: '#ffffff', handle: '#9a6a32', cable: '#b89a64' };
+  var HR = { cloak: E.G, cloakHi: E.Gm, cloakLo: E.k, hood: E.G, face: E.Y, gloom: E.k, eye: E.y, boot: E.n, leg: E.k, belt: E.N, blade: E.l, bladeHi: E.w, handle: E.N, cable: E.N };
   // Синдикат: ржавое железо + холодные глаза
   var XM = { rust: '#8a3b26', rustHi: '#b85a34', rustLo: '#5a2416', iron: '#4a4e58', ironHi: '#7a808c', eye: '#7fe3ff', red: '#ff4a3a', brass: '#c9a043', dark: '#1a1416', glass: '#ffe9a8' };
   var XR = { rust: E.r, rustHi: E.R, rustLo: E.n, iron: E.d, ironHi: E.g, eye: E.c, red: E.R, brass: E.N, dark: E.k, glass: E.Y };
@@ -158,7 +158,7 @@
     if (st === 'slide' || st === 'crouch') {
       poly(ctx, [-9 - flut, -2, -6, -11, 4, -12, 8, -3, 6, 0, -9, 0], c.cloak);
       poly(ctx, [-9 - flut, -2, -6, -6, -2, -1], c.cloakLo);
-      circ(ctx, 5, -11, 4.5, c.hood); ell(ctx, 7, -10.5, 2, 2.2, c.shade); rect(ctx, 7, -11.5, 1.5, 1, c.eye);
+      circ(ctx, 5, -11, 4.5, c.hood); ell(ctx, 7, -10.5, 2, 2.2, c.gloom); rect(ctx, 7, -11.5, 1.5, 1, c.eye);
       rect(ctx, st === 'slide' ? 2 : -3, -2, 7, 2, c.boot);
       sickle(ctx, c, 6, -6, 0.6, 0.8);
       ctx.restore(); return;
@@ -167,7 +167,7 @@
       rect(ctx, -5, -9, 3, 7, c.leg); rect(ctx, -6, -3, 4, 3, c.boot); rect(ctx, -1, -12, 3, 6, c.leg); rect(ctx, -1, -7, 5, 3, c.boot);
       poly(ctx, [-6, -20, 3, -20, 5, -9, -7, -6, -7, -4], c.cloak); poly(ctx, [-7, -12, -6, -3, -4, -12], c.cloakLo);
       rect(ctx, -6, -12, 10, 1.5, c.belt);
-      circ(ctx, -1, -22, 5, c.hood); ell(ctx, 1.5, -21.5, 2.3, 2.6, c.shade); rect(ctx, 1.5, -22.5, 1.5, 1, c.eye); rect(ctx, 3.3, -22.5, 1, 1, c.eye);
+      circ(ctx, -1, -22, 5, c.hood); ell(ctx, 1.5, -21.5, 2.3, 2.6, c.gloom); rect(ctx, 1.5, -22.5, 1.5, 1, c.eye); rect(ctx, 3.3, -22.5, 1, 1, c.eye);
       line(ctx, -5, -18, -8, -21, c.cloakHi, 2);
       sickle(ctx, c, 4, -15, o.atk, 0);
       ctx.restore(); return;
@@ -187,7 +187,7 @@
     rect(ctx, -5, -12, 10, 1.5, c.belt); circ(ctx, -3, -10, 1.6, c.cable);
     // голова: капюшон, тень лица, глаза-огоньки
     circ(ctx, 0.5, -22, 5, c.hood); poly(ctx, [-4, -24, -8 - flut * 0.6, -21, -4, -19], c.hood);
-    ell(ctx, 3, -21.5, 2.4, 2.8, c.shade); rect(ctx, 3, -22.5, 1.5, 1, c.eye); rect(ctx, 5, -22.5, 1, 1, c.eye);
+    ell(ctx, 3, -21.5, 2.4, 2.8, c.gloom); rect(ctx, 3, -22.5, 1.5, 1, c.eye); rect(ctx, 5, -22.5, 1, 1, c.eye);
     rect(ctx, 1.6, -19.6, 3, 1.2, c.face);
     // рука с серпом / с тросом
     if (st === 'swing') { line(ctx, 1, -18, 2, -26, c.cloak, 2.4); circ(ctx, 2, -26.5, 1.5, c.face); sickle(ctx, c, -4, -12, 0, 2.4); }

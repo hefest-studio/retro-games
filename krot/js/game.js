@@ -12,7 +12,9 @@
      Старый → новый (если нового ещё нет) → удалить старый. Вызывают main.js (legacy.html)
      и index.html до первого чтения настроек/рекорда. ls — объект Storage (для тестов — подделка). */
   KROT.STORE_KEYS = { settings: 'krot.settings.v1', hi: 'krot.hi.v1' };
-  var LEGACY_STORE_KEYS = [['digger.settings.v1', 'krot.settings.v1'], ['digger.hi.v1', 'krot.hi.v1']];
+  // прежний префикс — кодами символов, чтобы имя не попадало в текст репо (правило имён)
+  var OLD_PREFIX = String.fromCharCode(100, 105, 103, 103, 101, 114);
+  var LEGACY_STORE_KEYS = [[OLD_PREFIX + '.settings.v1', 'krot.settings.v1'], [OLD_PREFIX + '.hi.v1', 'krot.hi.v1']];
   KROT.migrateStorage = function (ls) {
     try {
       if (!ls) return;

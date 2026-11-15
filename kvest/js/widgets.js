@@ -1,4 +1,5 @@
 /* МАЯЧНИЦА · widgets.js — механизмы в сцене и мини-игры крупным планом (чистая логика, без DOM).
+   Типы: toggles, gauge, sequence, dials, gears (сцепленные шестерни) — в сцене; pipes, slider, melody, catch — крупным планом.
    Тип механизма: { init(def) → local, act(def, L, i) → {ok?, fail?}, solved(def, L), view(def, L, t) → {objId: state},
    moves(def, L) → [i…] (для поиска решения в тестах/боте), key(L) — ключ состояния }.
    Мини-игры ещё дают scene(def, L, t, rt) — сцену крупного плана из kind контракта (рисует тема), и hit(def, L, x, y, t) → i | -1. */
@@ -72,6 +73,22 @@
     key: function (L) { return L.s.join(','); }
   };
 
+  // Сцепленные шестерни: клик по шестерне i поворачивает её на шаг вперёд, а сцепленные с ней (links[i]) — на шаг назад
+  // (зубья крутят соседа в обратную сторону). m — положений метки; цель — target (метки смотрят на указатель).
+  T.gears = {
+    init: function (d) { return { s: d.start.slice() }; },
+    act: function (d, L, i) { L.s[i] = (L.s[i] + 1) % d.m; (d.links[i] || []).forEach(function (j) { L.s[j] = (L.s[j] + d.m - 1) % d.m; }); return { ok: true }; },
+    solved: function (d, L) { return eq(L.s, d.target); },
+    view: function (d, L) {
+      var v = {}, done = eq(L.s, d.target);
+      d.objs.forEach(function (id, i) { v[id] = { rot: L.s[i] / d.m, mark: d.target[i] / d.m, ok: L.s[i] === d.target[i], solved: done }; });
+      if (d.machine) v[d.machine] = { ok: done };
+      return v;
+    },
+    moves: function (d) { return d.hs.map(function (h, i) { return i; }); },
+    key: function (L) { return L.s.join(','); }
+  };
+
   // ---------- мини-игра: трубы (поворот плиток, масло от бака к носику) ----------
   var PC = 100, PY0 = 110;
   function pipeOrigin(d) { return { x0: (960 - d.cols * PC) / 2, y0: PY0 }; }
@@ -110,8 +127,10 @@
       });
       objs.push({ id: 'src', kind: 'pipe', x: o.x0 - PC + 3, y: o.y0 + d.src.r * PC + 3, w: PC - 6, h: PC - 6, state: { shape: 'cap', rot: 1, wet: true } });
       objs.push({ id: 'dst', kind: 'pipe', x: o.x0 + d.cols * PC + 3, y: o.y0 + d.dst.r * PC + 3, w: PC - 6, h: PC - 6, state: { shape: 'sink', rot: 3, wet: f.done } });
-      objs.push({ id: 'tankMini', kind: 'machine', x: o.x0 - PC - 10, y: o.y0 + d.src.r * PC - 150, w: PC, h: 140, state: { variant: 'tank' } });
-      objs.push({ id: 'canMini', kind: 'item', item: f.done ? 'oilcan_full' : 'oilcan', x: o.x0 + d.cols * PC + 20, y: o.y0 + d.dst.r * PC + PC + 10, w: 60, h: 60 });
+      // источник и приёмник крупного плана: по умолчанию бак и маслёнка (глава 1); глава может задать свои (srcObj, dstItems)
+      var so = d.srcObj || { kind: 'machine', state: { variant: 'tank' } }, di = d.dstItems || ['oilcan', 'oilcan_full'];
+      objs.push({ id: 'tankMini', kind: so.kind, x: o.x0 - PC - 10, y: o.y0 + d.src.r * PC - 150, w: PC, h: 140, state: so.state || {} });
+      objs.push({ id: 'canMini', kind: 'item', item: f.done ? di[1] : di[0], x: o.x0 + d.cols * PC + 20, y: o.y0 + d.dst.r * PC + PC + 10, w: 60, h: 60 });
       return closeup(d, objs);
     },
     moves: function (d) { return d.grid.map(function (g, i) { return i; }).filter(function (i) { return !d.grid[i].f; }); },

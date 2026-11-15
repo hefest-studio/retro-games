@@ -8,7 +8,7 @@
     [
       { art: 'workshop', ru: 'Полночь. Мастерская «Гефест». Сейф вскрыт — пропали чертежи парового сердца, над которыми мастера работали три года.', en: 'Midnight at the Hephaestus workshop. The safe is open — the steam heart blueprints, three years of work, are gone.' },
       { art: 'clue', ru: 'На полу — ржавая заклёпка с клеймом в виде шестерни без зубца. Знак Ржавого Синдиката.', en: 'On the floor lies a rusty rivet stamped with a toothless gear. The mark of the Rust Syndicate.' },
-      { art: 'hero', ru: 'Мастер зовёт разведчицу по прозвищу Тень: плащ, серп на тросе и крюк. «Верни чертежи. И не попадайся в свет».', en: 'The master calls the scout known as Shade: a cloak, a sickle on a line and a grapple. "Bring the blueprints back. And stay out of the light."' }
+      { art: 'hero', ru: 'Мастер зовёт разведчицу по прозвищу Тень: плащ, серп на тросе и крюк. «Верни чертежи. И не попадайся в свет».', en: 'The master calls the scout known as Duskhook: a cloak, a sickle on a line and a grapple. "Bring the blueprints back. And stay out of the light."' }
     ],
     [
       { art: 'fortress', ru: 'Крыши предместья позади. Впереди — цитадель Синдиката: трубы, прожекторы и стражи на каждой стене.', en: 'The outskirts are behind her. Ahead looms the Syndicate stronghold: chimneys, searchlights and a guard on every wall.' },
@@ -16,10 +16,10 @@
     ],
     [
       { art: 'dock', ru: 'Котёл-Молот остыл. Но свёрток с чертежами уже грузят на дирижабль у причальных мачт.', en: 'The Boiler Hammer is cold. But the blueprint bundle is already being loaded onto an airship at the mooring masts.' },
-      { art: 'hero', ru: 'Тень проверяет трос. До верфи — только по кольцам грузовых кранов, над пустотой.', en: 'Shade checks her line. The only way to the dock is along the crane rings, over the drop.' }
+      { art: 'hero', ru: 'Тень проверяет трос. До верфи — только по кольцам грузовых кранов, над пустотой.', en: 'Duskhook checks her line. The only way to the dock is along the crane rings, over the drop.' }
     ],
     [
-      { art: 'airship', ru: 'Швартовы отданы. Тень цепляется крюком за якорный трос уходящего дирижабля.', en: 'The lines are cast off. Shade hooks onto the anchor line of the departing airship.' },
+      { art: 'airship', ru: 'Швартовы отданы. Тень цепляется крюком за якорный трос уходящего дирижабля.', en: 'The lines are cast off. Duskhook hooks onto the anchor line of the departing airship.' },
       { art: 'clouds', ru: 'Над облаками ветер рвёт плащ. На палубах — дроны-птицы и стрелки Синдиката.', en: 'Above the clouds the wind tears at her cloak. The decks crawl with bird drones and Syndicate gunners.' }
     ],
     [
@@ -32,7 +32,7 @@
     ],
     [
       { art: 'fall', ru: 'Канцлер повержен. Прожекторы цитадели гаснут один за другим.', en: 'The Chancellor falls. One by one, the stronghold searchlights go dark.' },
-      { art: 'dawn', ru: 'На рассвете чертежи лежат на верстаке мастерской. А Тень уже растворилась в утреннем тумане.', en: 'At dawn the blueprints lie on the workshop bench. And Shade has already vanished into the morning mist.' }
+      { art: 'dawn', ru: 'На рассвете чертежи лежат на верстаке мастерской. А Тень уже растворилась в утреннем тумане.', en: 'At dawn the blueprints lie on the workshop bench. And Duskhook has already vanished into the morning mist.' }
     ]
   ];
 })(typeof window !== 'undefined' ? window : globalThis);

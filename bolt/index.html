@@ -27,7 +27,7 @@ a.back{position:fixed;z-index:60;left:10px;top:8px;color:#5a6273;font-size:12px;
   <button data-d="L">◀</button><button data-d="R">▶</button>
   <button data-d="U">⤒</button><button id="bFire">●</button>
 </div>
-<div class="foot" data-en="&lt;b&gt;BOLT&lt;/b&gt; · ◀▶ move, ↑/W/space — jump, J/X/● — shoot, P — pause · L language, T theme, M sound."><b>БОЛТ</b> · ◀▶ ход, ↑/W/пробел — прыжок, J/X/● — выстрел, P — пауза · L язык, T тема, M звук.</div>
+<div class="foot" data-en="&lt;b&gt;SLAGBREAK&lt;/b&gt; · ◀▶ move, ↑/W/space — jump, J/X/● — shoot, P — pause · L language, T theme, M sound."><b>БОЛТ</b> · ◀▶ ход, ↑/W/пробел — прыжок, J/X/● — выстрел, P — пауза · L язык, T тема, M звук.</div>
 <script src="./engine.js"></script>
 <script src="./js/music.js"></script>
 <script src="./js/i18n.js"></script>
@@ -38,7 +38,7 @@ a.back{position:fixed;z-index:60;left:10px;top:8px;color:#5a6273;font-size:12px;
 'use strict';
 var STR={
  ru:{play:'Играть',language:'Язык',theme:'Тема',sound:'Звук',on:'вкл',off:'выкл',score:'Счёт',level:'Ур.',best:'Рекорд',win:'ПОБЕГ УДАЛСЯ!',gameover:'СИСТЕМА ОТКАЗАЛА',pause:'ПАУЗА',resume:'Продолжить',menu:'В меню',tapstart:'пробел / тап',title:'БОЛТ',subtitle:'Побег со Шлак-9 · ран-н-ган'},
- en:{play:'Play',language:'Language',theme:'Theme',sound:'Sound',on:'on',off:'off',score:'Score',level:'Lvl',best:'Best',win:'ESCAPED!',gameover:'SYSTEM DOWN',pause:'PAUSE',resume:'Resume',menu:'Menu',tapstart:'space / tap',title:'BOLT',subtitle:'Escape from Slag-9 · run-n-gun'}
+ en:{play:'Play',language:'Language',theme:'Theme',sound:'Sound',on:'on',off:'off',score:'Score',level:'Lvl',best:'Best',win:'ESCAPED!',gameover:'SYSTEM DOWN',pause:'PAUSE',resume:'Resume',menu:'Menu',tapstart:'space / tap',title:'SLAGBREAK',subtitle:'Escape from Slag-9 · run-n-gun'}
 };
 var g=Arcade.createGame({canvas:'#c',width:960,height:600,gameId:'bolt',strings:STR,theme:'modern'});
 g.input.bindDpad(document.querySelector('.pad'));

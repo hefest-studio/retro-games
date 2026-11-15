@@ -100,6 +100,9 @@
   };
   for (var nn = 0; nn < 5; nn++) (function (n) { IC['n' + n] = function (c) { line(c, [-16, 12, 16, 12], ICON_DIM, 1.5); line(c, [-16, -16, 16, -16], ICON_DIM, 1.5); var y = 8 - n * 6; circ(c, -2, y, 5, ICON_INK); line(c, [3, y, 3, y - 14], ICON_INK, 2.5); }; })(nn);
 
+  // пиктограммы движка глав (общие с «бумагой»): themes/icons-ext.js
+  (function () { var KX = global.KVEST && global.KVEST.IconsExt; if (!KX) return; var EX = KX({ circ: circ, line: line, poly: poly, fillRR: fillRR, glow: glow, flame: flame, ink: function () { return ICON_INK; }, fill: function () { return ICON_FILL; }, dim: function () { return ICON_DIM; } }); for (var k in EX) if (!IC[k]) IC[k] = EX[k]; })();
+
   function drawIcon(c, id, x, y, size) {
     var f = IC[id], s = (size || 40) / 40;
     c.save(); c.translate(x, y); c.scale(s, s); c.globalAlpha = c.globalAlpha == null ? 1 : c.globalAlpha;
@@ -164,6 +167,9 @@
   KD.fence = function (c, o, P) {
     var s = o.state || {}, x = o.x, y = o.y, w = o.w, h = o.h;
     if (s.ladder) { line(c, [x + 6, y, x + 6, y + h], P.objD, 4); line(c, [x + w - 6, y, x + w - 6, y + h], P.objD, 4); for (var i = 10; i < h; i += 22) line(c, [x + 6, y + i, x + w - 6, y + i], P.objD, 3); return; }
+    if (s.rack) { line(c, [x + 4, y, x + 4, y + h], P.objD, 5); line(c, [x + w - 4, y, x + w - 4, y + h], P.objD, 5); line(c, [x + 4, y + 8, x + w / 2, y + 16, x + w - 4, y + 8], P.ink, 2);
+      if (s.weed) for (var q = 0; q < 6; q++) fillRR(c, x + 12 + q * (w - 24) / 6, y + 12, 8, h * 0.4, 2, s.weed === 'dry' ? '#a39d86' : '#5f6a5a', P.ink, 1); else drawIcon(c, 'seaweed', x + w / 2, y + h * 0.4, 26);
+      for (var r2 = 0; r2 < 3; r2++) fillRR(c, x + 14 + r2 * (w - 28) / 3, y + h * 0.75, (w - 28) / 3 - 6, h * 0.25, 2, P.mid, P.ink, 1.5); return; }
     if (s.stairs) { var n = 8; for (var k = 0; k < n; k++) { var sw = w / n, sx = x + k * sw, sh = h * (k + 1) / n; fillRR(c, sx, y + h - sh, sw + 1, sh, 1, P.mid, P.objD, 1.5); } return; }
     for (var p = 0; p <= w; p += 40) { c.fillStyle = P.near; c.fillRect(x + p - 4, y, 8, h); }
     c.fillStyle = P.near; c.fillRect(x, y + h * 0.3, w, 6); c.fillRect(x, y + h * 0.7, w, 6);
@@ -314,6 +320,7 @@
         if (!s.ok) drawIcon(c, 'gear', x + w - 26, y - 14, 30);
         return; }
     }
+    if (coastMachine(c, o, P, t)) return;
     fillRR(c, x, y, w, h, 8, P.mid, P.ink, 3); drawIcon(c, 'gear', cx, y + h / 2, Math.min(w, h) * 0.6);
   };
   KD.item = function (c, o, P, t) {
@@ -337,6 +344,56 @@
     fillRR(c, -o.w / 2, 16, o.w, len, o.w / 2, ring > 0.05 ? '#f3ead2' : P.obj, P.ink, 3); line(c, [-o.w / 2 + 6, 26, -o.w / 2 + 6, 10 + len], 'rgba(255,255,255,0.6)', 3);
     c.restore();
   };
+  // ---------- движок глав: прилив, карта, огни, солеварня ----------
+  var CUR = null;   // текущая сцена (уровень прилива — scene.phaseMix)
+  KD.tide = function (c, o, P, t) {
+    var st = o.state || {}, low = st.low != null ? st.low : o.y + 60, m = st.at != null ? (st.at ? 1 : 0) : CUR && CUR.phaseMix != null ? CUR.phaseMix : 0, lvl = o.y + (low - o.y) * m;
+    c.fillStyle = '#a49b88'; c.fillRect(o.x, o.y, o.w, o.h); c.fillStyle = P.water; c.fillRect(o.x, lvl, o.w, o.y + o.h - lvl);
+    c.strokeStyle = 'rgba(255,255,255,0.5)'; c.lineWidth = 2; c.beginPath(); for (var x = o.x; x <= o.x + o.w; x += 12) c.lineTo(x, lvl + Math.sin(x * 0.05 + t * 1.6) * 2); c.stroke();
+  };
+  KD.mapsheet = function (c, o, P) {
+    var st = o.state || {}; c.fillStyle = '#9fa6a8'; c.fillRect(0, 0, 960, 540);
+    if (st.coast) { var f = []; st.coast.forEach(function (q) { f.push(q[0], q[1]); }); poly(c, f, '#cfc9bd', P.ink, 2); }
+    circ(c, 880, 456, 28, '#e6e2da', P.ink, 2); poly(c, [880, 430, 886, 456, 880, 482, 874, 456], P.ink);
+  };
+  KD.trail = function (c, o, P) {
+    var st = o.state || {}, pts = st.pts || [], f = []; pts.forEach(function (q) { f.push(q[0], q[1]); }); if (f.length < 4) return;
+    c.save(); c.setLineDash && c.setLineDash(st.open ? [10, 6] : [3, 8]); line(c, f, st.open ? P.ink : 'rgba(0,0,0,0.3)', st.open ? 4 : 2); c.restore();
+  };
+  KD.mapnode = function (c, o, P, t) {
+    var st = o.state || {}, cx = o.x + o.w / 2, cy = o.y + o.h / 2;
+    if (st.lit) glow(c, cx, cy, 50, 0.4 + 0.1 * Math.sin(t * 6));
+    circ(c, cx, cy, 26, st.open ? '#ecebe8' : '#a3a09b', P.ink, st.here ? 4 : 2.5); drawIcon(c, st.open ? (st.icon || 'question') : 'question', cx, cy, 30);
+    if (st.lit) flame(c, cx + 20, cy - 12, 0.7, t);
+  };
+  KD.maptoken = function (c, o, P) { var cx = o.x + o.w / 2, by = o.y + o.h; c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(cx, by, 12, 4, 0, 0, TAU); c.fill(); poly(c, [cx - 9, by, cx, by - 30, cx + 9, by], '#8a5a4a', P.ink, 2); circ(c, cx, by - 33, 6, '#d6cdc1', P.ink, 2); };
+  KD.beacon = function (c, o, P, t) {
+    var st = o.state || {}, x = o.x, y = o.y, w = o.w, h = o.h, cx = x + w / 2, v = st.variant || 'hearth', fy;
+    if (v === 'chimney') { poly(c, [cx - w * 0.3, y + h, cx - w * 0.22, y + 24, cx + w * 0.22, y + 24, cx + w * 0.3, y + h], P.mid, P.ink, 2.5); poly(c, [cx - w * 0.36, y, cx + w * 0.36, y, cx + w * 0.3, y + 18, cx - w * 0.3, y + 18], P.objD, P.ink, 2); fy = y + 4; }
+    else if (v === 'brazier') { line(c, [cx - w * 0.3, y + h, cx, y + h * 0.45, cx + w * 0.3, y + h], P.ink, 4); poly(c, [x, y + h * 0.3, x + w, y + h * 0.3, x + w * 0.8, y + h * 0.52, x + w * 0.2, y + h * 0.52], P.objD, P.ink, 2.5); fy = y + h * 0.3; if (!st.fuel && !st.lit) drawIcon(c, 'seaweed_dry', cx, y + h * 0.15, 24); }
+    else { for (var i = 0; i < 6; i++) circ(c, x + 8 + i * (w - 16) / 5, y + h - 8, 9, P.mid, P.ink, 2); fy = y + h - 12; if (!st.fuel && !st.lit) drawIcon(c, 'driftwood', cx, y + h - 26, 24); else line(c, [cx - 20, y + h - 6, cx + 18, y + h - 22], P.obj, 7); }
+    if (st.lit) { glow(c, cx, fy - 16, 150, 0.5); flame(c, cx - 8, fy, 1.2, t); flame(c, cx + 8, fy, 1.0, t + 1); }
+  };
+  KD.saltpan = function (c, o, P, t) {
+    var st = o.state || {}, x = o.x, y = o.y, w = o.w, h = o.h;
+    if (st.variant === 'boil') { fillRR(c, x + 8, y + h * 0.45, w - 16, h * 0.55, 2, P.mid, P.ink, 2); poly(c, [x, y, x + w, y, x + w - 8, y + h * 0.45, x + 8, y + h * 0.45], P.objD, P.ink, 2.5);
+      if (st.brine) c.fillStyle = P.water, c.fillRect(x + 6, y + 2, w - 12, 7); if (st.salt) for (var k = 0; k < 6; k++) poly(c, [x + 12 + k * (w - 24) / 6, y + 6, x + 18 + k * (w - 24) / 6, y - 8, x + 24 + k * (w - 24) / 6, y + 6], '#ffffff', P.ink, 1);
+      if (st.boil) for (var i = 0; i < 3; i++) { var f = (t * 0.3 + i / 3) % 1; c.globalAlpha = 1 - f; circ(c, x + w * (0.3 + i * 0.2), y - f * 60, 6 + f * 10, '#f0f0f0'); c.globalAlpha = 1; } return; }
+    fillRR(c, x - 6, y - 4, w + 12, h + 8, 2, P.objD, P.ink, 2); c.fillStyle = st.brine ? P.water : '#b9b2a5'; c.fillRect(x, y, w, h);
+  };
+  KD.sluice = function (c, o, P) { var st = o.state || {}, up = st.open ? o.h * 0.55 : 0; fillRR(c, o.x, o.y, 12, o.h, 2, P.objD); fillRR(c, o.x + o.w - 12, o.y, 12, o.h, 2, P.objD); if (st.flow) { c.fillStyle = P.water; c.fillRect(o.x + 12, o.y + o.h - 12, o.w - 24, 12); } fillRR(c, o.x + 12, o.y + 8 - up, o.w - 24, o.h - 14, 2, P.mid, P.ink, 2); line(c, [o.x + o.w / 2, o.y - 40 - up, o.x + o.w / 2, o.y + 8 - up], P.ink, 4); };
+  KD.boat = function (c, o, P) { var x = o.x, y = o.y, w = o.w, h = o.h; poly(c, [x, y + h * 0.35, x + w, y + h * 0.2, x + w * 0.86, y + h, x + w * 0.12, y + h], P.mid, P.ink, 2.5); line(c, [x + 4, y + h * 0.33, x + w - 4, y + h * 0.22], P.obj, 3); };
+  KD.tidepost = function (c, o, P) { var st = o.state || {}, cx = o.x + o.w / 2; fillRR(c, cx - 5, o.y + 10, 10, o.h - 10, 2, P.obj, P.ink, 2); for (var i = 0; i < 5; i++) if (i % 2) c.fillStyle = P.objD, c.fillRect(cx - 5, o.y + 20 + i * (o.h - 30) / 5, 10, (o.h - 30) / 10); poly(c, [cx + 5, o.y + 10, cx + 28, o.y + 18, cx + 5, o.y + 26], P.mid, P.ink, 1.5); drawIcon(c, st.low ? 'low' : 'high', cx + 14, o.y + 18, 13); };
+  function coastMachine(c, o, P, t) {
+    var s = o.state || {}, x = o.x, y = o.y, w = o.w, h = o.h, cx = x + w / 2;
+    if (s.variant === 'clockwork') { fillRR(c, x, y, w, h * 0.55, 6, P.mid, P.ink, 2.5); circ(c, cx, y + h * 0.27, w * 0.3, P.obj, P.ink, 2); line(c, [cx + w * 0.32, y + h * 0.3, cx + w * 0.32, y + h * 0.88], P.ink, 2);
+      if (s.weight) poly(c, [cx + w * 0.32 - 10, y + h * 0.88, cx + w * 0.32 + 10, y + h * 0.88, cx + w * 0.32 + 14, y + h, cx + w * 0.32 - 14, y + h], P.objD, P.ink, 2); else drawIcon(c, 'weight', cx + w * 0.32, y + h * 0.92, 24); return true; }
+    if (s.variant === 'gear') { var r = Math.min(w, h) * 0.42, gy = y + h / 2, rot = (s.rot || 0) * TAU; for (var i = 0; i < 12; i++) { var a = rot + i * TAU / 12; line(c, [cx + Math.cos(a) * r * 0.8, gy + Math.sin(a) * r * 0.8, cx + Math.cos(a) * r, gy + Math.sin(a) * r], P.ink, 6); }
+      circ(c, cx, gy, r * 0.82, s.solved ? '#e6e0c8' : P.obj, P.ink, 2.5); line(c, [cx, gy, cx + Math.sin(rot) * r * 0.75, gy - Math.cos(rot) * r * 0.75], s.ok ? '#3f5f3d' : '#6a3b35', 5); var ma = (s.mark || 0) * TAU, px = cx + Math.sin(ma) * (r + 10), py = gy - Math.cos(ma) * (r + 10); circ(c, px, py, 6, s.ok ? '#3f5f3d' : P.ink); return true; }
+    if (s.variant === 'reflector') { var rr = Math.min(w, h * 0.8) * 0.46, ry = y + rr + 6; if (s.lit) glow(c, cx, ry, 220, 0.5); line(c, [cx - rr * 0.9, y + h, cx, ry + rr * 0.6, cx + rr * 0.9, y + h], P.ink, 5); circ(c, cx, ry, rr, s.shiny ? '#f4f6f7' : '#8d9088', P.ink, 4); if (s.shiny) line(c, [cx - rr * 0.5, ry - rr * 0.3, cx - rr * 0.2, ry - rr * 0.6], '#ffffff', 4); return true; }
+    return false;
+  }
+
   function unknown(c, o, P) { var x = o.x || 0, y = o.y || 0, w = o.w || 30, h = o.h || 30; fillRR(c, x, y, w, h, 3, 'rgba(128,128,128,0.5)', P.ink, 2); line(c, [x, y, x + w, y + h], P.ink, 1); line(c, [x + w, y, x, y + h], P.ink, 1); }
 
   // ---------- персонажи ----------
@@ -384,6 +441,26 @@
         c.beginPath(); c.ellipse(bx, bY, 11, 8, 0, 0, TAU); c.fillStyle = sing > 0.1 ? '#f3ead2' : '#e2ded8'; c.fill(); c.strokeStyle = P.ink; c.lineWidth = 2; c.stroke();
         circ(c, bx + 8, bY - 6, 5, '#e2ded8', P.ink, 2); poly(c, [bx + 12, bY - 7, bx + 18, bY - 5, bx + 12, bY - 3], P.ink); line(c, [bx - 10, bY, bx - 17, bY - 5], P.ink, 3);
         if (sing > 0.1) drawIcon(c, 'note', bx + 4, bY - 26, 22);
+        return; }
+      case 'fisher': {
+        var hp = pose === 'happy' || s.happy; c.save(); c.translate(0, bob);
+        fillRR(c, x + 6, y + h * 0.3, w - 12, h * 0.7, 10, '#a6a8ab', P.ink, 2.5); fillRR(c, x + 14, y + h * 0.5, w - 28, h * 0.5, 6, '#d6cdc1', P.ink, 2);
+        circ(c, cx, y + h * 0.2, h * 0.12, '#d6cdc1', P.ink, 2.5); poly(c, [cx - h * 0.14, y + h * 0.2, cx, y + h * 0.04, cx + h * 0.14, y + h * 0.2], '#7d8288', P.ink, 2);
+        if (hp) { line(c, [x + 10, y + h * 0.4, x - 6, y + h * 0.12], P.ink, 5); line(c, [x + w - 10, y + h * 0.4, x + w + 6, y + h * 0.12], P.ink, 5); }
+        c.restore(); return; }
+      case 'dog': {
+        var sl = pose === 'sleep' || s.pose === 'sleep', wag = Math.sin(t * (pose === 'happy' ? 16 : 4)) * 6, dy = s.hide ? 18 : 0;
+        if (sl) { c.beginPath(); c.ellipse(cx, by - 14 + dy, w * 0.45, 16, 0, 0, TAU); c.fillStyle = '#cfc8bd'; c.fill(); c.strokeStyle = P.ink; c.lineWidth = 2.5; c.stroke(); circ(c, cx + w * 0.34, by - 18 + dy, 12, '#cfc8bd', P.ink, 2.5); line(c, [cx + w * 0.3, by - 20 + dy, cx + w * 0.38, by - 20 + dy], P.ink, 2); return; }
+        c.save(); c.translate(0, bob + dy);
+        line(c, [x + 6, by - 36, x - 6 + wag * 0.3, by - 56 + wag], P.ink, 5);
+        c.beginPath(); c.ellipse(cx - 4, by - 38, w * 0.38, 16, 0, 0, TAU); c.fillStyle = '#cfc8bd'; c.fill(); c.strokeStyle = P.ink; c.lineWidth = 2.5; c.stroke();
+        [x + 12, x + 24, x + w - 30, x + w - 18].forEach(function (lx) { line(c, [lx, by - 26, lx, by], P.ink, 5); });
+        circ(c, x + w - 14, by - 56, 14, '#cfc8bd', P.ink, 2.5); poly(c, [x + w - 24, by - 66, x + w - 30, by - 50, x + w - 18, by - 56], '#5a5551'); circ(c, x + w - 2, by - 53, 3, P.ink); circ(c, x + w - 10, by - 59, 2, P.ink);
+        fillRR(c, x + w - 34, by - 50, 14, 7, 2, '#8a5a4a'); c.restore(); return; }
+      case 'crab': {
+        var sn = Math.sin(t * 5) * 3;
+        [-1, 1].forEach(function (d) { line(c, [cx + d * 10, by - 8, cx + d * 18, by], P.ink, 2); line(c, [cx + d * 12, by - 12, cx + d * 20, by - 22 + sn], P.ink, 3); circ(c, cx + d * 20, by - 26 + sn, 5, '#9c8a84', P.ink, 2); });
+        if (s.tin) fillRR(c, cx - 14, by - 26, 28, 22, 2, '#bdbdbd', P.ink, 2.5); else { c.beginPath(); c.ellipse(cx, by - 10, 14, 9, 0, 0, TAU); c.fillStyle = '#9c8a84'; c.fill(); c.strokeStyle = P.ink; c.lineWidth = 2.5; c.stroke(); }
         return; }
     }
     fillRR(c, x, y + h * 0.3, w, h * 0.7, 8, P.mid, P.ink, 2); circ(c, cx, y + h * 0.2, Math.min(w, h) * 0.18, P.obj, P.ink, 2);
@@ -487,7 +564,7 @@
 
   function drawItem(c, o, P, t) { var f = KD[o.kind]; try { if (f) f(c, o, P, t); else unknown(c, o, P); } catch (e) { unknown(c, o, P); } }
   function drawScene(c, scene, t, opts) {
-    opts = opts || {}; var P = pal(scene && scene.mood); t = t || 0;
+    opts = opts || {}; var P = pal(scene && scene.mood); t = t || 0; CUR = scene || null;
     c.save(); c.fillStyle = P.sky1; c.fillRect(0, 0, (scene && scene.w) || 960, (scene && scene.h) || 540);
     var layers = ((scene && scene.layers) || []).slice().sort(function (a, b) { return (a.depth || 0) - (b.depth || 0); });
     layers.forEach(function (L) { if ((L.depth || 0) < 3) (L.items || []).forEach(function (it) { drawItem(c, it, P, t); }); });

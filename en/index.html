@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="retro" data-base="../">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Retro Arcade Hall — original browser arcade games by Hefest studio</title>
+  <meta name="description" content="71 original browser arcade games and platformers by Hefest studio, inspired by the classics of the genre. Two graphics styles — 8-bit and neon. Works offline, no build step, no dependencies.">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#06070b">
+  <link rel="canonical" href="https://arcade.hefest.ru/en/">
+  <link rel="alternate" hreflang="ru" href="https://arcade.hefest.ru/">
+  <link rel="alternate" hreflang="en" href="https://arcade.hefest.ru/en/">
+  <link rel="alternate" hreflang="x-default" href="https://arcade.hefest.ru/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Hefest">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="ru_RU">
+  <meta property="og:title" content="Retro Arcade Hall — Hefest studio">
+  <meta property="og:description" content="71 original browser arcade games and platformers inspired by the classics. 8-bit and neon, offline, no build step.">
+  <meta property="og:url" content="https://arcade.hefest.ru/en/">
+  <meta property="og:image" content="https://arcade.hefest.ru/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Retro Arcade Hall — Hefest studio">
+  <meta name="twitter:description" content="71 original browser arcade games. 8-bit and neon, offline.">
+  <meta name="twitter:image" content="https://arcade.hefest.ru/og.png">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"CollectionPage","name":"Retro Arcade Hall — Hefest studio","url":"https://arcade.hefest.ru/en/","description":"71 original browser arcade games and platformers by Hefest studio, inspired by the classics of the genre; two graphics styles (8-bit and neon), offline.","inLanguage":"en","isPartOf":{"@type":"WebSite","name":"Hefest","url":"https://hefest.ru/"},"publisher":{"@type":"Organization","name":"Hefest","url":"https://hefest.ru/"}}
+  </script>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../assets/catalog/catalog.css">
+  <script>
+    /* Apply the theme before first paint (shared with the Russian page) to avoid a flash. */
+    (function () {
+      try {
+        var stored = localStorage.getItem('retro-games-catalog-theme');
+        if (stored === 'modern') document.documentElement.setAttribute('data-theme', 'modern');
+      } catch (e) { /* private mode / file:// */ }
+    }());
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#games">Skip to the catalog</a>
+
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="./" aria-label="Retro Arcade Hall — home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-text">
+          <span class="brand-title">Arcade Hall</span>
+          <span class="brand-sub">retro hall · 71 games</span>
+        </span>
+      </a>
+      <div class="topbar-side">
+        <nav class="lang-switch" aria-label="Language · Язык">
+          <a href="../" data-lang-target="../" hreflang="ru" lang="ru" title="Русская версия">RU</a>
+          <span aria-current="page" lang="en" title="English">EN</span>
+        </nav>
+        <span class="key-hint"><kbd>G</kbd><span class="key-hint-text">switch graphics</span></span>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false" aria-label="The 8-bit retro style is on. Switch to the neon style (G key)">
+          <span class="tt-icon" aria-hidden="true"></span>
+          <span class="tt-copy">
+            <span class="tt-label">graphics</span>
+            <span class="tt-mode" id="theme-mode">8-bit</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-glow" aria-hidden="true"></div>
+
+  <main class="main">
+    <section class="hero container" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>Arcade catalog · studio originals</p>
+        <h1 class="hero-title" id="hero-title">Retro<br>Arcade Hall</h1>
+        <p class="lede">
+          Seventy-one original browser games by Hefest studio — arcade games and platformers
+          inspired by the classics. Pick a game, insert a coin and switch the graphics between
+          8-bit retro and a neon remaster at any moment.
+        </p>
+        <ul class="hero-stats">
+          <li class="hero-stat">
+            <strong id="hero-games">71 games</strong>
+            <span>originals</span>
+          </li>
+          <li class="hero-stat">
+            <strong>2 styles</strong>
+            <span>8-bit / neon</span>
+          </li>
+          <li class="hero-stat">
+            <strong>Offline</strong>
+            <span>no CDN, no build</span>
+          </li>
+        </ul>
+        <div class="hero-actions">
+          <button class="btn btn-primary" id="random-game" type="button">
+            <span class="btn-icon" aria-hidden="true">▶</span>Random game
+          </button>
+          <a class="btn btn-ghost" href="#games">
+            Browse the catalog <span class="btn-icon" aria-hidden="true">↓</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="hero-art" aria-hidden="true">
+        <div class="cabinet">
+          <p class="cabinet-marquee">Retro Hall</p>
+          <div class="cabinet-screen">
+            <div class="screen-inner">
+              <p class="screen-kicker">select a game</p>
+              <p class="screen-big">71<span>games</span></p>
+              <p class="screen-press">press <b>start</b></p>
+            </div>
+          </div>
+          <div class="cabinet-deck">
+            <span class="deck-stick"><i></i></span>
+            <span class="deck-buttons">
+              <i class="deck-btn deck-btn-a"></i>
+              <i class="deck-btn deck-btn-b"></i>
+              <i class="deck-btn deck-btn-c"></i>
+            </span>
+            <span class="deck-plate">player 1 <em>· insert coin</em></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="catalog container" id="games" aria-labelledby="games-title">
+      <div class="catalog-head">
+        <div class="catalog-head-copy">
+          <p class="catalog-kicker">
+            <span id="catalog-count">71 games</span>
+            <span aria-hidden="true">·</span>
+            <span id="catalog-years">1980–1997</span>
+          </p>
+          <h2 class="catalog-title" id="games-title">Choose a game</h2>
+        </div>
+        <label class="search-field">
+          <svg class="search-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <circle cx="9" cy="9" r="5.6" fill="none" stroke="currentColor" stroke-width="2"></circle>
+            <path d="M13.2 13.2 17 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+          </svg>
+          <input id="game-search" type="search" placeholder="Search by title…" aria-label="Search games by title" autocomplete="off" spellcheck="false">
+        </label>
+      </div>
+
+      <div class="toolbar">
+        <div class="filters" id="genre-filters" role="group" aria-label="Filter by genre"></div>
+        <div class="toolbar-side">
+          <label class="per-page"><span>Per page</span>
+            <select id="per-page" aria-label="Games per page">
+              <option value="15" selected>15</option>
+              <option value="30">30</option>
+              <option value="0">all</option>
+            </select>
+          </label>
+          <p class="results" id="results" role="status" aria-live="polite">Showing 1–15 of 71</p>
+        </div>
+      </div>
+
+      <ol class="grid" id="game-grid" aria-busy="true"></ol>
+
+      <nav class="pager" id="pager" aria-label="Catalog pages" hidden></nav>
+
+      <div class="empty" id="empty-state" hidden>
+        <p class="empty-face" aria-hidden="true">:(</p>
+        <p class="empty-title">Nothing found</p>
+        <p class="empty-hint">Try another genre or clear the search.</p>
+        <button class="btn btn-ghost" id="reset-filters" type="button">Reset filters</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-copy">
+        <p class="footer-brand">Retro Arcade Hall <span>· studio originals</span></p>
+        <p class="footer-text">
+          Every game in the catalog is an original work by Hefest studio, made in the genres
+          and spirit of the classic arcade era: our own titles, heroes, levels, graphics and music.
+          Each game runs offline: plain HTML, CSS and
+          JavaScript, no build step, no CDN and no external dependencies.
+        </p>
+        <p class="footer-note">Run locally: <code>python3 -m http.server 8080</code></p>
+      </div>
+      <div class="footer-links">
+        <p class="footer-col-title">Project</p>
+        <ul class="footer-list">
+          <li><a class="footer-link" href="https://github.com/hefest-studio/retro-games" target="_blank" rel="noopener noreferrer">GitHub repository <span aria-hidden="true">↗</span></a></li>
+          <li><a class="footer-link" href="#games">Game catalog <span aria-hidden="true">↓</span></a></li>
+          <li><a class="footer-link" href="../" hreflang="ru" lang="ru">Русская версия <span aria-hidden="true">→</span></a></li>
+          <li><a class="footer-link" href="#hero-title">Back to top <span aria-hidden="true">↑</span></a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>© 2026 · Hefest studio</p>
+      <p>Made with plain HTML / CSS / JS</p>
+    </div>
+  </footer>
+
+  <noscript>
+    <p class="noscript-note container">The catalog needs JavaScript: it builds the cards from <code>assets/catalog/games.json</code> and powers the filters. The games themselves work without it.</p>
+  </noscript>
+
+  <script src="../assets/catalog/catalog.js" defer></script>
+</body>
+</html>

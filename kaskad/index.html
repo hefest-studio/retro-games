@@ -6,14 +6,22 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;background:#0e1016;color:#eef2f8;font-family:Inter,system-ui,sans-serif;
   display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
-.wrap{position:relative;width:min(94vw,440px);margin-top:12px}
+.wrap{position:relative;width:min(94vw,440px);margin-top:4px}
 canvas{width:100%;display:block;border:1px solid #222838;border-radius:10px;background:#0e1016}
 .pad{width:min(94vw,440px);margin:10px 0;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:360px}
 .pad button{height:52px;background:#161a24;border:1px solid #222838;border-radius:12px;color:#eef2f8;font-size:20px;font-weight:800}
 .pad button:active{background:#232a38}
 .foot{color:#5a6273;font-size:11px;margin:2px 12px 16px;text-align:center}
 @media(min-width:760px){.pad{display:none}}
-a.back{position:fixed;left:10px;top:8px;z-index:60;color:#5a6273;font-size:12px;text-decoration:none}
+a.back{position:relative;align-self:flex-start;margin:6px 0 0 10px;z-index:60;color:#5a6273;font-size:12px;line-height:16px;text-decoration:none} /* в потоке над полем — не налезает на canvas */
+/* Телефон лёжа: поле по высоте экрана (fitField), кнопки 3×2 — справа от поля, ссылка — слева сверху */
+@media (orientation:landscape) and (max-height:520px) and (pointer:coarse){
+  body{justify-content:center}
+  a.back{position:fixed;left:max(10px,env(safe-area-inset-left));top:8px;margin:0}
+  .wrap{margin:0}
+  .foot{display:none}
+  .pad{display:grid;position:fixed;right:max(8px,env(safe-area-inset-right));bottom:10px;margin:0;width:184px;grid-template-columns:repeat(3,1fr)}
+}
 </style></head><body>
 <a class="back" href="../" data-catalog-back="1" data-en="&larr; Catalog">&larr; Каталог</a>
 <div class="wrap"><canvas id="c" width="420" height="640"></canvas></div>
@@ -38,7 +46,16 @@ const PAL = {
 };
 const g = Arcade.createGame({ canvas:'#c', width:420, height:640, gameId:'kaskad', strings:STR, theme:'modern' });
 g.input.bindDpad(document.querySelector('.pad'));
-g.fit(440); addEventListener('resize', ()=>g.fit(440));
+// Поле вписывается и по ширине, и по высоте окна (масштаб по min): без обрезки и прокрутки.
+// Телефон лёжа (LAND): поле по высоте экрана, тач-кнопки — в боковых полях, «← Каталог» — в левом верхнем углу.
+var LAND='(orientation:landscape) and (max-height:520px) and (pointer:coarse)';
+function fitField(maxW, vwPart, side){ var c=document.getElementById('c'), wrap=c.parentNode, pad=document.querySelector('.pad');
+  var vw=document.documentElement.clientWidth, vh=window.innerHeight, aw, ah;
+  if(matchMedia(LAND).matches){ aw=vw-2*side; ah=vh-12; }
+  else { aw=Math.min(maxW, vw*vwPart); ah=vh-wrap.getBoundingClientRect().top-(getComputedStyle(pad).display!=='none'?pad.offsetHeight+20:0)-6; }
+  var w=Math.floor(Math.max(160, Math.min(aw, ah*g.W/g.H)));
+  wrap.style.width=w+'px'; c.style.width=w+'px'; c.style.height=(w*g.H/g.W)+'px'; }
+fitField(440,0.94,200); addEventListener('resize', ()=>fitField(440,0.94,200));
 function pcol(id){ return (PAL[g.themeName]||PAL.modern)[id] || g.th().accent; }
 
 const CELL=28, BX=14, BY=28, BW=10, BH=20;

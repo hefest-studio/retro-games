@@ -323,6 +323,9 @@ test('правило имён: в папке игры нет чужих назв
   ok(files.length >= 14, 'файлов: ' + files.length);
   for (const f of files){ const m = fs.readFileSync(f, 'utf8').match(BAD); ok(!m, path.relative(ROOT, f) + ': «' + (m && m[0]) + '»'); }
   for (const f of walk(ROOT)) ok(!BAD.test(path.relative(ROOT, f)), 'имя файла: ' + f);
+  const OLD_EN = new RegExp(Buffer.from('KD88IVtcdy5dKSg/OkdST018R3JvbSkoPyFbXHcuXSk=', 'base64').toString('utf8'));
+  for (const f of files){ const m = fs.readFileSync(f, 'utf8').match(OLD_EN); ok(!m, 'старое EN-название в ' + path.relative(ROOT, f) + ': «' + (m && m[0]) + '»'); }
+  ok(OLD_EN.test('<b>' + 'GR' + 'OM</b>') && OLD_EN.test("title: 'Gr" + "om'") && !OLD_EN.test('global.GR' + 'OM') && !OLD_EN.test('GR' + 'OM.app') && !OLD_EN.test("gameId:'gr" + "om'") && !OLD_EN.test('STORMCLAD'), 'шаблон старого EN-названия');
   ok(!BAD.test('turret') && !BAD.test('ГРОМ') && !BAD.test('Гефест') && !BAD.test('CONTRACT.md') && !BAD.test('millstone'), 'стоп-лист без ложных срабатываний на наши слова');
 });
 

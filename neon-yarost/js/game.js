@@ -13881,9 +13881,19 @@
       s = Math.max(0.5, s);
     }
     var sw = Math.round(W * s), sh = Math.round(H * s);
+    /* Ссылка «← Каталог» (a.back, левый верхний угол, ~LINK_W×LINK_H) не должна лежать на кадре:
+       если ни боковое, ни верхнее поле её не вмещает — отдаём сверху полосу под ссылку. */
+    var LINK_W = 84, LINK_H = 26, top = 0;
+    if ((cw - sw) / 2 < LINK_W && (ch - sh) / 2 < LINK_H) {
+      top = LINK_H;
+      var s2 = Math.min(cw / W, (ch - top) / H);
+      if (NR.settings.gfx === 'retro' && s2 >= 2) s2 = Math.floor(s2 + 0.0001);
+      s = Math.max(0.5, s2);
+      sw = Math.round(W * s); sh = Math.round(H * s);
+    }
     stage = {
       x: Math.round((cw - sw) / 2),
-      y: Math.round((ch - sh) / 2),
+      y: top + Math.round((ch - top - sh) / 2),
       w: sw, h: sh, scale: s
     };
     offCtx.imageSmoothingEnabled = false;

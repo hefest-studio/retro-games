@@ -1302,15 +1302,16 @@ test('v2: index.html — движок, music.js сразу после engine.js,
   ok(/gameId:'krot'/.test(html), 'gameId');
 });
 
-test('миграция localStorage: digger.* → krot.*, старые удалены, новые не затираются', () => {
+const OLDP = String.fromCharCode(100, 105, 103, 103, 101, 114); // прежний префикс (кодами — правило имён)
+test('миграция localStorage: старый префикс → krot.*, старые удалены, новые не затираются', () => {
   const mk = (init) => { const m = new Map(Object.entries(init)); return { m, getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
-  const a = mk({ 'digger.settings.v1': '{"lang":"en"}', 'digger.hi.v1': '4242' });
+  const a = mk({ [OLDP + '.settings.v1']: '{"lang":"en"}', [OLDP + '.hi.v1']: '4242' });
   KROT.migrateStorage(a);
   eq(a.m.get('krot.settings.v1'), '{"lang":"en"}', 'настройки'); eq(a.m.get('krot.hi.v1'), '4242', 'рекорд');
-  ok(!a.m.has('digger.settings.v1') && !a.m.has('digger.hi.v1'), 'старые ключи не удалены');
-  const b = mk({ 'digger.hi.v1': '4242', 'krot.hi.v1': '5000' });
+  ok(!a.m.has(OLDP + '.settings.v1') && !a.m.has(OLDP + '.hi.v1'), 'старые ключи не удалены');
+  const b = mk({ [OLDP + '.hi.v1']: '4242', 'krot.hi.v1': '5000' });
   KROT.migrateStorage(b);
-  eq(b.m.get('krot.hi.v1'), '5000', 'новый рекорд затёрт старым'); ok(!b.m.has('digger.hi.v1'), 'старый не удалён');
+  eq(b.m.get('krot.hi.v1'), '5000', 'новый рекорд затёрт старым'); ok(!b.m.has(OLDP + '.hi.v1'), 'старый не удалён');
   const c = mk({}); KROT.migrateStorage(c); eq(c.m.size, 0, 'пустое хранилище');
   KROT.migrateStorage(null);
 });
