@@ -2,7 +2,8 @@
    её же используют поиск по состояниям и бот в тестах.
    ГЕРОИ. Тая ('taya') есть всегда. Глава объявляет помощников: puzzles.heroes = [{ id: 'dog' | 'gull', need: [...] }]
    (need — когда помощник присоединился). Активный герой — st.hero (по умолчанию 'taya'); переключение — портрет в интерфейсе.
-   Сцена может не пускать помощника: scene.heroes = ['taya', 'dog'] (чайка ждёт снаружи — её портрет погашен).
+   Сцена может не пускать помощника: scene.heroes = ['taya', 'dog'] (чайка ждёт снаружи — её портрет погашен). Удобнее — в главе:
+   puzzles.heroes = [{ id: 'dog', not: ['сцена', …] }] или only: [...]; подводные сцены (scene.water) пускают только героев с dive: true.
    ОТРЯД. Свободные герои ходят вместе с активным (идут следом). Кого сцена не пускает — ждёт «за кадром» и снова появляется,
    когда отряд выйдет туда, где ему можно. Поэтому положение свободных героев = сцена активного, в состоянии его хранить не нужно.
    ГЛАГОЛЫ. Правило с полем hero: 'dog' | ['dog', 'gull'] срабатывает только у этого героя; правило без hero — только у Таи
@@ -26,7 +27,17 @@
   function multi(P) { return defs(P).length > 0; }
   function def(P, id) { var d = defs(P); for (var i = 0; i < d.length; i++) if (d[i].id === id) return d[i]; return null; }
   function joined(P, st, id) { if (id === 'taya') return true; var d = def(P, id); return !!d && ok(st, d.need); }
-  function allowed(sc, id) { return id === 'taya' || !sc || !sc.heroes || sc.heroes.indexOf(id) >= 0; }
+  // пускает ли сцена героя: scene.heroes (список) — главное; иначе — объявление помощника в главе: not: [сцены] / only: [сцены];
+  // под воду (scene.water) — только тот, у кого dive: true (Вьюн и Кира ждут на поверхности, их портреты погашены)
+  function allowed(sc, id, P) {
+    if (id === 'taya' || !sc) return true;
+    if (sc.heroes) return sc.heroes.indexOf(id) >= 0;
+    var d = P ? def(P, id) : null;
+    if (d && d.not && d.not.indexOf(sc.id) >= 0) return false;
+    if (d && d.only && d.only.indexOf(sc.id) < 0) return false;
+    if (sc.water && !(d && d.dive)) return false;
+    return true;
+  }
   function holds(P) { return (P && P.holds) || []; }
   function hold(P, id) { var a = holds(P); for (var i = 0; i < a.length; i++) if (a[i].id === id) return a[i]; return null; }
   function holder(P, st, hid) { var hs = list(P); for (var i = 0; i < hs.length; i++) if (st.flags['by:' + hid + ':' + hs[i]]) return hs[i]; return null; }
@@ -37,7 +48,7 @@
   function present(P, st, sc, id) {
     if (!joined(P, st, id)) return false;
     var b = busy(P, st, id); if (b) return !!sc && b.scene === sc.id;
-    return allowed(sc, id);
+    return allowed(sc, id, P);
   }
   function heroOk(r, hero) { hero = hero || 'taya'; var h = r && r.hero; if (!h) return hero === 'taya'; return typeof h === 'string' ? h === hero : h.indexOf(hero) >= 0; }
   // удержание, которое начнёт герой hero нажатием зоны hs в сцене scene (если оно свободно и выполнено need)

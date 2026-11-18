@@ -59,7 +59,15 @@
     nest: 'гнездо на уступе: state.chick — в гнезде птенец, state.shiny — блестит что-то (state.empty — забрали)',
     burrow: 'лаз под забором: state.open — прорыт',
     bollard: 'причальная тумба/столбик: state.tied — к нему привязана верёвка',
-    ropebridge: 'верёвочный мостик через расщелину: state.taut — натянут (держат или привязан), иначе провис'
+    ropebridge: 'верёвочный мостик через расщелину: state.taut — натянут (держат или привязан), иначе провис',
+    // --- подводные механики (water.js, глава 4+): колокол-водолаз, колокола-ориентиры, воздушные карманы ---
+    divebell: 'колокол-водолаз (медный купол с иллюминаторами): state.under — стоит на дне (внутри — воздух, свет), иначе висит на тросе над водой; state.down — опущен (над водой виден только трос); state.knot — трос запутан узлом наверху; state.ballast — подвешен груз',
+    seabell: 'колокол на дне / на балке: state.note 0..4 (размер, цвет, точки — как колокольчики главы 1), state.ring 0..1 — качается и звенит, state.sunk — лежит в иле на боку, state.great — большой колокол звонницы, state.empty — пустой крюк (колокола нет)',
+    kelp: 'ламинария, длинные ленты водорослей (покачиваются от t; seed — форма); state.cut — срезаны/раздвинуты',
+    airpocket: 'воздушный карман: state.variant boat (перевёрнутая лодка) | vent (родник пузырей) | dome (воздух под сводом); state.on — воздух есть (серебристая линза и пузыри)',
+    buoy: 'буёк на воде: state.bell — с колокольчиком, state.set — поставлен на место (качается, звенит)',
+    arch: 'подводная арка-ворота затонувшего квартала: state.open — балка поднята; state.chain — к балке привязана цепь от троса колокола; state.kelp — заросла',
+    crane: 'поворотная стрела причала с барабаном лебёдки: state.knot — трос запутан на конце стрелы, state.wound — трос выбран (колокол наверху), state.held — барабан держат'
   };
   var MOODS = ['dawn', 'day', 'dusk', 'night', 'cave', 'indoor'];
   var POSES = ['idle', 'walk', 'reach', 'think', 'happy'];
@@ -77,7 +85,11 @@
   //  drawTrail(ctx, trail, t) — нюх пса: trail = { pts: [[x, y]…] от носа к цели, rect — цель, age, dur } (след лапами тушью, цель — петля киноварью).
   //  drawOverview(ctx, ov, t) — «взгляд сверху» чайки: ov = { marks: [{ rect, hero, item?, exit?, icon? }], age, dur } (обзор тушью: где и кто может действовать).
   //  Портреты героев рисует drawUI по ui.heroes = [{ id, icon, active, here, busy, hold, ability }] в LAYOUT.heroes.
-  var HOOKS = ['drawHint', 'drawWalkbook', 'drawHelper', 'drawTrail', 'drawOverview'];
+  //  drawWater(ctx, wv, t) — подводная сцена (глава 4+, рисуется поверх отряда, до мыслей): wv = { murk, vis, hero: {x, y}, fade 0..1 (мягкий возврат —
+  //    затемнение), air: { left, max, f 0..1, low, pocket, bubbles } — пузыри-индикатор, pockets: [{ x, w }], sounds: [{ id, x, y, note, big, active, age, n }] };
+  //    муть — туман тушью поверх сцены кроме круга vis вокруг героини; звук — кольца-волны тушью от источника (age — секунды с удара, точки ноты) —
+  //    визуальный дубль звона для игры без звука. Без хука оболочка ничего не рисует (механика работает).
+  var HOOKS = ['drawHint', 'drawWalkbook', 'drawHelper', 'drawTrail', 'drawOverview', 'drawWater'];
   var HELPER_POSES = { dog: ['idle', 'walk', 'reach', 'dig', 'sniff', 'pull', 'hold', 'bark', 'happy', 'think'], gull: ['idle', 'walk', 'reach', 'carry', 'hold', 'happy', 'think'] };
 
   // ---------- пиктограммы (мысли, инвентарь, интерфейс) ----------
@@ -102,7 +114,10 @@
     // помощники и их kind (themes/icons-ext.js)
     taya: 'Тая (портрет)', scent: 'нюх пса (след)', overview: 'взгляд сверху (чайка)', hold: 'держать', sail: 'полотно крыла мельницы', eyepiece: 'окуляр',
     chick: 'птенец', windmill: 'мельница', millstone: 'жернов', windW: 'ветер с запада', windE: 'ветер с востока', telescope: 'телескоп', dome: 'обсерватория',
-    nest: 'гнездо / птичий базар', burrow: 'лаз, нора', dig: 'рыть', whale: 'кит (силуэт)'
+    nest: 'гнездо / птичий базар', burrow: 'лаз, нора', dig: 'рыть', whale: 'кит (силуэт)',
+    // подводные механики (themes/icons-ext.js)
+    ear: 'прислушаться (звон колоколов)', air: 'воздух (пузыри)', divebell: 'колокол-водолаз', seabell: 'колокол со дна', buoy: 'буёк', buoybell: 'буёк с колокольчиком',
+    chain: 'цепь', kelp: 'водоросли', belfry: 'звонница', pier: 'причал со стрелой'
   };
 
   // ---------- раскладка интерфейса (логические координаты 960×540; движок по ней попадает кликами, тема — рисует) ----------
@@ -135,7 +150,9 @@
       saltpan: { variant: 'boil', brine: true, boil: true, salt: true }, sluice: { open: true, flow: true }, boat: { afloat: true }, tidepost: { low: true },
       windmill: { sails: 4, turn: true, brake: false, door: true }, vane: { west: true }, millstone: { turn: true, lens: true }, millgear: { cog: true, turn: true },
       telescope: { lens: true, eye: true, aim: true }, shutter: { open: true, rope: true }, mound: { dug: false, mark: true }, crate: { open: true },
-      nest: { chick: true, shiny: true }, burrow: { open: true }, bollard: { tied: true }, ropebridge: { taut: true } };
+      nest: { chick: true, shiny: true }, burrow: { open: true }, bollard: { tied: true }, ropebridge: { taut: true },
+      divebell: { under: true, ballast: true }, seabell: { note: 3, ring: 0.6 }, kelp: {}, airpocket: { variant: 'boat', on: true }, buoy: { bell: true, set: true },
+      arch: { open: false, chain: true }, crane: { knot: true } };
     var all = allKinds();
     for (k in all) { objs.push({ id: 'o' + (i++), kind: k, item: 'key', x: x % 900, y: 100 + (i % 5) * 60, w: 50, h: 50, seed: i, state: st[k] || {} }); x += 55; }
     objs.push({ id: 'unknown', kind: 'zzz_unknown_kind', x: 400, y: 200, w: 40, h: 40, state: {} });
@@ -167,6 +184,11 @@
       walk: mode === 'walk' ? { page: 0, pages: 2, steps: [{ icons: ['hammer', 'stool', 'up'], done: true }, { icons: ['well', 'bucket'], done: false }] } : null };
   }
 
+  function sampleWater() {
+    return { murk: true, vis: 150, hero: { x: 300, y: 452 }, fade: 0.4, air: { left: 3, max: 12, f: 0.25, low: true, pocket: false, bubbles: 10 },
+      pockets: [{ id: 'p', x: 120, w: 56 }], time: 3,
+      sounds: [{ id: 'a', x: 200, y: 300, note: 0, active: true, age: 0.5, n: 1 }, { id: 'b', x: 700, y: -10, note: 4, big: true, active: true, age: 1.4, n: 3 }, { id: 'c', x: 500, y: 200, note: 9, active: false, age: 99, n: 0 }] };
+  }
   // Канва-заглушка: любой метод — пустая функция, градиенты — объект с addColorStop, свойства запоминаются.
   function mockCtx() {
     var store = { canvas: { width: 960, height: 540 }, calls: 0 };
@@ -212,11 +234,12 @@
     if (typeof theme.drawHelper === 'function') ['dog', 'gull', 'zzz'].forEach(function (id) { (HELPER_POSES[id] || ['idle']).concat(['strange']).forEach(function (p) { tryit('drawHelper ' + id + ' ' + p, function () { theme.drawHelper(ctx, { id: id, x: 300, y: 450, dir: -1, alt: 360, active: true, hold: p === 'hold' ? 'x' : null }, p, 0.7); }); }); });
     if (typeof theme.drawTrail === 'function') { tryit('drawTrail', function () { theme.drawTrail(ctx, { pts: [[100, 450], [200, 440], [320, 452]], rect: [300, 400, 50, 50], age: 1, dur: 4 }, 1); }); tryit('drawTrail пусто', function () { theme.drawTrail(ctx, { pts: [], age: 0 }, 1); }); }
     if (typeof theme.drawOverview === 'function') { tryit('drawOverview', function () { theme.drawOverview(ctx, { marks: [{ rect: [100, 100, 60, 60], hero: 'dog' }, { rect: [400, 200, 40, 80], hero: 'taya', item: 'key' }, { rect: [0, 300, 40, 150], exit: true, icon: 'hut' }, { rect: [1, 1, 1, 1], hero: 'zzz' }], age: 0.8, dur: 5 }, 1); }); tryit('drawOverview пусто', function () { theme.drawOverview(ctx, { marks: [], age: 9 }, 1); }); }
+    if (typeof theme.drawWater === 'function') { tryit('drawWater', function () { theme.drawWater(ctx, sampleWater(), 1.2); }); tryit('drawWater пусто', function () { theme.drawWater(ctx, { murk: false, sounds: [], pockets: [] }, 0); }); }
     if (typeof theme.drawWalkbook === 'function') tryit('drawWalkbook', function () { theme.drawWalkbook(ctx, { page: 0, pages: 2, per: 2, total: 3, flip: { d: 1, t: 0.9 }, open: 0, time: 1, steps: [{ id: 'a', scene: null, icons: ['gear', 'key'], done: true, current: false, open: true, ink: null }, { id: 'b', scene: 'zzz', icons: ['gear'], done: false, current: true, open: true, ink: [{ i: 'lamp', mark: true }] }] }, LAYOUT, 1); });
     return { ok: errors.length === 0, errors: errors };
   }
 
   K.ThemeAPI = { version: '1.0', KINDS: KINDS, EXT_KINDS: EXT_KINDS, MOODS: MOODS, POSES: POSES, CURSORS: CURSORS, METHODS: METHODS,
     ICONS: ICONS, LAYOUT: LAYOUT, HOOKS: HOOKS, HELPER_POSES: HELPER_POSES, slotRect: slotRect, allKinds: allKinds, isKind: isKind,
-    sampleScene: sampleScene, sampleUI: sampleUI, mockCtx: mockCtx, validateTheme: validateTheme };
+    sampleScene: sampleScene, sampleUI: sampleUI, sampleWater: sampleWater, mockCtx: mockCtx, validateTheme: validateTheme };
 })(typeof window !== 'undefined' ? window : globalThis);

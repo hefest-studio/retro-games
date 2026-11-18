@@ -15,7 +15,7 @@
     return [{ depth: 0, items: items.concat(extra || []) }];
   }
   function closeup(def, objs, extra) {
-    return { id: 'mini_' + def.id, w: 960, h: 540, mood: def.mood || 'indoor', layers: bg(def.mood, extra), objects: objs, hotspots: [], walk: [[0, 540], [960, 540]], hero: { x: -100, y: 540 } };
+    return { id: 'mini_' + def.id, w: 960, h: 540, mood: def.mood || 'indoor', pal: def.pal, layers: bg(def.mood, extra), objects: objs, hotspots: [], walk: [[0, 540], [960, 540]], hero: { x: -100, y: 540 } };
   }
   function eq(a, b) { if (a.length !== b.length) return false; for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false; return true; }
   function rng(seed) { var s = seed >>> 0; return function () { s = (s + 0x6D2B79F5) >>> 0; var t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -224,7 +224,7 @@
       var objs = [];
       for (var i = 0; i < d.n; i++) {
         var r = chimeRect(i), ring = rt && rt.ring && rt.ring['c' + i] != null ? Math.max(0, 1 - (t - rt.ring['c' + i]) / 1.2) : 0;
-        objs.push({ id: 'chime' + i, kind: 'chime', x: r.x, y: r.y, w: r.w, h: r.h, state: { note: i, n: d.n, ring: ring } });
+        objs.push({ id: 'chime' + i, kind: d.kind || 'chime', x: r.x, y: r.y, w: r.w, h: r.h, state: { note: i, n: d.n, ring: ring } });   // d.kind: 'seabell' — колокола звонницы (глава 4)
       }
       for (var j = 0; j < d.target.length; j++) objs.push({ id: 'led' + j, kind: 'lamp', x: 380 + j * 44, y: 470, w: 24, h: 30, state: { small: true, lit: j < L.k } });
       return closeup(d, objs, [{ kind: 'shelf', x: 220, y: 56, w: 540, h: 14 }]);
