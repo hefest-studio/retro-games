@@ -61,13 +61,15 @@
     bollard: 'причальная тумба/столбик: state.tied — к нему привязана верёвка',
     ropebridge: 'верёвочный мостик через расщелину: state.taut — натянут (держат или привязан), иначе провис',
     // --- подводные механики (water.js, глава 4+): колокол-водолаз, колокола-ориентиры, воздушные карманы ---
-    divebell: 'колокол-водолаз (медный купол с иллюминаторами): state.under — стоит на дне (внутри — воздух, свет), иначе висит на тросе над водой; state.down — опущен (над водой виден только трос); state.knot — трос запутан узлом наверху; state.ballast — подвешен груз',
+    divebell: 'колокол-водолаз (медный купол с иллюминаторами): state.under — стоит на дне (внутри — воздух, свет), иначе висит на тросе над водой; state.down — опущен (над водой виден только трос); state.knot — трос запутан узлом наверху; state.ballast — подвешен груз; state.rope — длина троса над колоколом (до блока стрелы)',
     seabell: 'колокол на дне / на балке: state.note 0..4 (размер, цвет, точки — как колокольчики главы 1), state.ring 0..1 — качается и звенит, state.sunk — лежит в иле на боку, state.great — большой колокол звонницы, state.empty — пустой крюк (колокола нет)',
     kelp: 'ламинария, длинные ленты водорослей (покачиваются от t; seed — форма); state.cut — срезаны/раздвинуты',
     airpocket: 'воздушный карман: state.variant boat (перевёрнутая лодка) | vent (родник пузырей) | dome (воздух под сводом); state.on — воздух есть (серебристая линза и пузыри)',
     buoy: 'буёк на воде: state.bell — с колокольчиком, state.set — поставлен на место (качается, звенит)',
     arch: 'подводная арка-ворота затонувшего квартала: state.open — балка поднята; state.chain — к балке привязана цепь от троса колокола; state.kelp — заросла',
-    crane: 'поворотная стрела причала с барабаном лебёдки: state.knot — трос запутан на конце стрелы, state.wound — трос выбран (колокол наверху), state.held — барабан держат'
+    crane: 'поворотная стрела причала с барабаном лебёдки: state.knot — трос запутан на конце стрелы, state.wound — трос выбран (колокол наверху), state.held — барабан держат',
+    ruin: 'затонувшая постройка: state.variant wall (обломок стены с окном) | house (фасад со щипцом; state.door — дверной проём) | column (обломок колонны); state.far — дальний силуэт; state.kelp — заросла; state.window === false — без окон',
+    whale: 'Туманный Кит (не враг): огромный силуэт в глубине; state.near — подплыл близко (виден глаз, складки, плавник), иначе далёкая тень в мути; state.eye — глаз открыт; state.hook — в плавнике железный крюк с обрывком цепи; state.sing — поёт (пузыри из дыхала); state.calm — спокоен'
   };
   var MOODS = ['dawn', 'day', 'dusk', 'night', 'cave', 'indoor'];
   var POSES = ['idle', 'walk', 'reach', 'think', 'happy'];
@@ -86,9 +88,11 @@
   //  drawOverview(ctx, ov, t) — «взгляд сверху» чайки: ov = { marks: [{ rect, hero, item?, exit?, icon? }], age, dur } (обзор тушью: где и кто может действовать).
   //  Портреты героев рисует drawUI по ui.heroes = [{ id, icon, active, here, busy, hold, ability }] в LAYOUT.heroes.
   //  drawWater(ctx, wv, t) — подводная сцена (глава 4+, рисуется поверх отряда, до мыслей): wv = { murk, vis, hero: {x, y}, fade 0..1 (мягкий возврат —
-  //    затемнение), air: { left, max, f 0..1, low, pocket, bubbles } — пузыри-индикатор, pockets: [{ x, w }], sounds: [{ id, x, y, note, big, active, age, n }] };
-  //    муть — туман тушью поверх сцены кроме круга vis вокруг героини; звук — кольца-волны тушью от источника (age — секунды с удара, точки ноты) —
-  //    визуальный дубль звона для игры без звука. Без хука оболочка ничего не рисует (механика работает).
+  //    затемнение), air: { left, max, f 0..1, low, pocket, bubbles } — шкала пузырьков в LAYOUT.air (без цифр; low — мало воздуха, pocket — героиня в кармане),
+  //    pockets: [{ x, w }], sounds: [{ id, x, y, note, big, harsh, active, age, n, near 0..1, pan −1..1 }] };
+  //    муть — туман тушью поверх сцены кроме круга vis вокруг героини; звук — кольца-волны тушью от источника (age — секунды с удара, точки ноты;
+  //    near — близость: ближе — жирнее; harsh — лязг железа: ломаные кольца) — визуальный дубль звона для игры без звука и для доступности;
+  //    активные карманы в мути помечаются столбиком пузырьков. Без хука оболочка ничего не рисует (механика работает).
   var HOOKS = ['drawHint', 'drawWalkbook', 'drawHelper', 'drawTrail', 'drawOverview', 'drawWater'];
   var HELPER_POSES = { dog: ['idle', 'walk', 'reach', 'dig', 'sniff', 'pull', 'hold', 'bark', 'happy', 'think'], gull: ['idle', 'walk', 'reach', 'carry', 'hold', 'happy', 'think'] };
 
@@ -117,7 +121,7 @@
     nest: 'гнездо / птичий базар', burrow: 'лаз, нора', dig: 'рыть', whale: 'кит (силуэт)',
     // подводные механики (themes/icons-ext.js)
     ear: 'прислушаться (звон колоколов)', air: 'воздух (пузыри)', divebell: 'колокол-водолаз', seabell: 'колокол со дна', buoy: 'буёк', buoybell: 'буёк с колокольчиком',
-    chain: 'цепь', kelp: 'водоросли', belfry: 'звонница', pier: 'причал со стрелой'
+    chain: 'цепь', kelp: 'водоросли', belfry: 'звонница', pier: 'причал со стрелой', ruin: 'затонувшая улица', murk: 'мутная вода'
   };
 
   // ---------- раскладка интерфейса (логические координаты 960×540; движок по ней попадает кликами, тема — рисует) ----------
@@ -128,6 +132,7 @@
     book: { x: 106, y: 509, r: 20 },
     close: { x: 916, y: 44, r: 24 },
     heroes: { x: 40, y: 40, r: 23, gap: 56 },   // портреты-переключатели героев (главы с помощниками): i-й — в (x + i·gap, y)
+    air: { x: 399, y: 26, gap: 18, r: 7, n: 10 },   // шкала воздуха под водой: n пузырьков в ряд (без цифр), i-й — в (x + i·gap, y)
     // блокнот: разворот из двух страниц (per шагов на разворот); x0..ch — карточки для тем без своего блокнота
     walk: { prev: { x: 46, y: 280, r: 28 }, next: { x: 914, y: 280, r: 28 }, close: { x: 916, y: 44, r: 24 },
       x0: 96, y0: 80, cw: 372, ch: 392, gap: 0, cols: 2, rows: 1, per: 2,
@@ -152,7 +157,7 @@
       telescope: { lens: true, eye: true, aim: true }, shutter: { open: true, rope: true }, mound: { dug: false, mark: true }, crate: { open: true },
       nest: { chick: true, shiny: true }, burrow: { open: true }, bollard: { tied: true }, ropebridge: { taut: true },
       divebell: { under: true, ballast: true }, seabell: { note: 3, ring: 0.6 }, kelp: {}, airpocket: { variant: 'boat', on: true }, buoy: { bell: true, set: true },
-      arch: { open: false, chain: true }, crane: { knot: true } };
+      arch: { open: false, chain: true }, crane: { knot: true }, ruin: { variant: 'house', door: true, kelp: true }, whale: { near: true, eye: true, hook: true, sing: true } };
     var all = allKinds();
     for (k in all) { objs.push({ id: 'o' + (i++), kind: k, item: 'key', x: x % 900, y: 100 + (i % 5) * 60, w: 50, h: 50, seed: i, state: st[k] || {} }); x += 55; }
     objs.push({ id: 'unknown', kind: 'zzz_unknown_kind', x: 400, y: 200, w: 40, h: 40, state: {} });
@@ -187,7 +192,8 @@
   function sampleWater() {
     return { murk: true, vis: 150, hero: { x: 300, y: 452 }, fade: 0.4, air: { left: 3, max: 12, f: 0.25, low: true, pocket: false, bubbles: 10 },
       pockets: [{ id: 'p', x: 120, w: 56 }], time: 3,
-      sounds: [{ id: 'a', x: 200, y: 300, note: 0, active: true, age: 0.5, n: 1 }, { id: 'b', x: 700, y: -10, note: 4, big: true, active: true, age: 1.4, n: 3 }, { id: 'c', x: 500, y: 200, note: 9, active: false, age: 99, n: 0 }] };
+      sounds: [{ id: 'a', x: 200, y: 300, note: 0, active: true, age: 0.5, n: 1, near: 0.9, pan: -0.2 }, { id: 'b', x: 700, y: -10, note: 4, big: true, active: true, age: 1.4, n: 3, near: 0.3, pan: 1 },
+        { id: 'c', x: 500, y: 200, note: 9, active: false, age: 99, n: 0 }, { id: 'd', x: 520, y: 240, note: 0, harsh: true, active: true, age: 0.2, n: 2, near: 0.6, pan: 0.4 }] };
   }
   // Канва-заглушка: любой метод — пустая функция, градиенты — объект с addColorStop, свойства запоминаются.
   function mockCtx() {

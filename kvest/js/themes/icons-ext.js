@@ -71,7 +71,10 @@
       belfry: function (c) { poly(c, [-12, 16, -12, -6, 0, -18, 12, -6, 12, 16], F(), I(), 2.5); c.beginPath(); c.moveTo(-7, 6); c.lineTo(-7, -3); c.quadraticCurveTo(0, -10, 7, -3); c.lineTo(7, 6); c.closePath(); c.fillStyle = '#3a2d26'; c.fill();
         c.beginPath(); c.moveTo(-4, 4); c.quadraticCurveTo(-4, -4, 0, -4); c.quadraticCurveTo(4, -4, 4, 4); c.closePath(); c.fillStyle = '#e2b04a'; c.fill(); line(c, [-17, 12, 17, 12], '#5f8a8c', 2.5); },
       pier: function (c) { line(c, [-14, 16, -14, -12], I(), 3.5); line(c, [-14, -12, 14, -16], I(), 3); line(c, [10, -15, 10, 0], I(), 1.5); c.beginPath(); c.moveTo(4, 8); c.quadraticCurveTo(10, -2, 16, 8); c.closePath(); c.fillStyle = '#c08a4a'; c.fill(); c.strokeStyle = I(); c.lineWidth = 2; c.stroke();
-        line(c, [-18, 12, 18, 12], '#5f8a8c', 2.5); fillRR(c, -18, 14, 12, 4, 1, D()); }
+        line(c, [-18, 12, 18, 12], '#5f8a8c', 2.5); fillRR(c, -18, 14, 12, 4, 1, D()); },
+      ruin: function (c) { wave(c, -15, '#5f8a8c', 2.5); poly(c, [-15, 16, -15, -2, -9, -8, -4, -3, -4, 16], F(), I(), 2.5); poly(c, [2, 16, 2, -6, 8, -10, 15, -4, 15, 16], F(), I(), 2.5); fillRR(c, 5, 2, 6, 14, 3, '#3a2d26');
+        c.beginPath(); c.moveTo(-9, 16); c.quadraticCurveTo(-14, 8, -8, 2); c.strokeStyle = '#5e7d3a'; c.lineWidth = 3; c.lineCap = 'round'; c.stroke(); circ(c, -1, -9, 1.8, '#e6f1f2', I(), 1.2); },
+      murk: function (c) { [[-12, -10, 9], [3, -12, 7], [12, -2, 8], [-4, 0, 10], [-12, 8, 7], [6, 10, 9]].forEach(function (q, i) { circ(c, q[0], q[1], q[2], i % 2 ? '#9aa79c' : '#b4bfb2'); }); wave(c, -3, I(), 2); wave(c, 7, D(), 2); circ(c, 13, -13, 2, '#e6f1f2', I(), 1.2); }
     };
   };
   // «бумажные» цвета новых пиктограмм (тема paper красит ими подложку)
@@ -80,5 +83,6 @@
     sun: '#f8e7a8', hut: '#e9dcc0', saltpan: '#dfe8ea', stones: '#d8d2c4', rocktower: '#d8d2c4', net: '#efe2c4', mirror: '#e2f1f4', gearwheel: '#e9dcc0',
     taya: '#f3e4cc', scent: '#efe2c4', overview: '#f6efe0', hold: '#efe2c4', sail: '#efe5cc', eyepiece: '#e9dcc0', chick: '#fbf0c8', windmill: '#e9dcc0', millstone: '#d8d2c4',
     windW: '#dfe8ea', windE: '#dfe8ea', telescope: '#efe0b0', dome: '#dfe4e8', nest: '#e4d4b6', burrow: '#c9b08a', dig: '#e4d4b6', whale: '#dfe4e8',
-    ear: '#f3e4cc', air: '#dfeef0', divebell: '#efe0b0', seabell: '#efe0b0', buoy: '#f2d6c6', buoybell: '#f2d6c6', chain: '#e4ded2', kelp: '#d8e6c4', belfry: '#e4ded2', pier: '#dfe8ea' };
+    ear: '#f3e4cc', air: '#dfeef0', divebell: '#efe0b0', seabell: '#efe0b0', buoy: '#f2d6c6', buoybell: '#f2d6c6', chain: '#e4ded2', kelp: '#d8e6c4', belfry: '#e4ded2', pier: '#dfe8ea',
+    ruin: '#d6e2dc', murk: '#d2d8cc' };
 })(typeof window !== 'undefined' ? window : globalThis);

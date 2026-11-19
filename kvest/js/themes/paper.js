@@ -368,7 +368,7 @@
     var k = SCENE_PAL[sc.id] || (sc.pal && PALS[sc.pal] ? sc.pal : null) || MOOD_PAL[sc.mood] || 'day';
     if (k === 'night' && sceneLit(sc)) k = 'lit';
     if (k === 'predawn' && (sc.objects || []).some(function (o) { return o.kind === 'beacon' && o.state && o.state.lit; })) k = 'sunroom';
-    if (sc.id && sc.id.indexOf('mini_') === 0) k = sc.mood === 'night' ? 'night' : 'craft';
+    if (sc.id && sc.id.indexOf('mini_') === 0) k = sc.pal && PALS[sc.pal] && INDOOR[sc.pal] ? sc.pal : sc.mood === 'night' ? 'night' : 'craft';   // крупный план: своя палитра интерьера, если глава её задала
     return k;
   }
   function sceneLit(sc) { var o = sc.objects || []; for (var i = 0; i < o.length; i++) { var s = o[i].state; if (s && s.lit && (o[i].kind === 'tower' || (o[i].kind === 'lamp' && s.big))) return true; } return false; }

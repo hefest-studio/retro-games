@@ -1,469 +1,447 @@
 /* ОТГОН · логика игры (чистая, без DOM и канвы — тестируется в Node).
-   Вид сверху: подросток-пастух мастеровых ведёт стадо мохнатых северных оленей-«шерстней»
-   с медными колокольчиками через шесть перевалов. Мир — горный коридор вдоль оси X между верхней
-   и нижней кромкой (скала или обрыв), высота мира = высота экрана (540), камера едет по X.
-   Стадо — флокинг (разделение, сближение, выравнивание), особи обходят скалы, боятся пастуха вблизи,
-   идут на свист, разбегаются от окрика, успокаиваются от колокола на посохе.
-   API: OTGON.Game({ rng, onEvent, snapshot, level }) → { state(), update(dt), setMove(dx,dy), moveTo(x,y),
-        whistle(), shout(), staff(), snapshot(), restore(sn), ... } */
+   Вид сверху-сбоку: подпасок мастерской с посохом-фонарём ведёт стадо ветроногов — круглых шерстяных
+   северных существ на тонких ходульных ногах с флюгерком-хохолком — через шесть участков гор к летнему пастбищу.
+   Мир участка — коридор вдоль оси X между верхней стеной и нижней кромкой (стена или обрыв), высота 540, камера едет по X.
+   Стадо — флокинг: держатся вместе, идут от подпаска (он подгоняет сзади), тянутся за соседями, к траве и воде,
+   пугаются (птица, молния) и убегают, отбившиеся стоят и ждут свиста.
+   API: OTGON.Game({ rng, onEvent, snapshot }) → { start(), state(), update(dt), setMove(dx,dy,run), moveTo(x,y),
+        whistle(), staff(), snapshot(), nextLeg(), setMark(id, mark) } */
 (function (global) {
   'use strict';
   var O = global.OTGON = global.OTGON || {};
 
   // ---------- Константы ----------
-  var WH = 540, HERO_V = 104, WALK = 34, RUN = 84, CALF_K = 0.78;
-  var WHISTLE_R = 340, WHISTLE_T = 4, SHOUT_R = 230, SHOUT_T = 1.6, BELL_R = 170, TORCH_R = 115, WAVE_R = 215;
-  var SEP_R = 19, COH_R = 120, PRESS_R = 62, EDGE_AV = 36;
-  var HUNGER_RATE = 1 / 200, TIRE_RATE = 1 / 140, GRAZE_RATE = 0.085;
-  var NIGHT_MAX = 150, SLEEP_NEED = 3, SHELTER_PART = 0.75;
+  var WH = 540, HERD = 10;
+  var HERO_WALK = 66, HERO_RUN = 130, WALK = 43, TROT = 55, RUN = 90, BOLT = 120;
+  var PRESS_R = 150, WHISTLE_R = 320, WHISTLE_T = 3.6, WHISTLE_CD = 1.4, STAFF_R = 240, STAFF_T = 4.5, STAFF_CD = 0.5;
+  var SEP_R = 22, STRAY_D = 270, STRAY_HERO = 190;
+  var FOOD_RATE = 1 / 250, PEP_RATE = 1 / 280, GRAZE = 1 / 24, DRINK = 1 / 18, IDLE_REST = 1 / 100;
+  var CAMP_R = 80, CAMP_NEAR = 300, CAMP_FAR = 560, CAMP_DWELL = 1.6;
+  // нравы по номеру существа: вожак, упрямцы, пугливые, обжора, копуша, обычные
+  var TEMPERS = ['lead', 'plain', 'stubborn', 'timid', 'glutton', 'plain', 'dawdler', 'timid', 'stubborn', 'plain'];
+  var MARKS = ['dot', 'ring', 'tri', 'square', 'diamond', 'cross', 'bar', 'moon', 'star', 'wave'];
 
-  // ---------- Перевалы ----------
-  // top/bot — кромки коридора (точки [x,y]); cliffs — участки нижней кромки-обрыва [x0,x1];
-  // rocks/pastures/waters/shelters — круги [x,y,r]; river {x,w,f0,f1} — бурная река поперёк пути, брод — только y∈[f0,f1];
-  // falls — зоны камнепада [x0,x1]; aval — лавина [x0,x1]; snow — метель [x0,x1,сила]; night — x наступления ночи (укрытие — shelters[0]);
-  // pred — хищник ночи; joins — отбившиеся дикие шерстни [x,y]; calf — к утру рождается телёнок; cps — x чекпоинтов; end — x ворот перевала.
-  var LEVELS = [
-    { len: 5400, start: 220, end: 5180,
-      top: [[0, 96], [900, 118], [1700, 84], [2600, 120], [3400, 92], [4300, 126], [5400, 100]],
-      bot: [[0, 474], [1100, 500], [2000, 452], [2900, 470], [3800, 498], [4700, 462], [5400, 480]],
-      cliffs: [[2250, 3050]], rocks: [[760, 250, 30], [1500, 380, 26], [2400, 210, 34], [3550, 300, 30], [4450, 210, 28], [4800, 400, 24]],
-      pastures: [[1250, 300, 95], [3250, 250, 100]], waters: [[2050, 200, 48], [4250, 360, 52]], shelters: [],
-      falls: [], snow: null, aval: null, river: null, night: 0, pred: null, joins: [], calf: false, cps: [1900, 3700] },
-    { len: 6200, start: 200, end: 5980,
-      top: [[0, 100], [1000, 80], [1800, 130], [2700, 96], [3600, 120], [4500, 90], [5300, 110], [6200, 100]],
-      bot: [[0, 470], [900, 490], [1800, 440], [2700, 486], [3500, 456], [4400, 494], [5300, 470], [6200, 480]],
-      cliffs: [[3050, 3750]], rocks: [[600, 300, 28], [1700, 220, 30], [2500, 360, 26], [3300, 220, 32], [4100, 380, 28], [5300, 240, 30], [5600, 420, 22]],
-      pastures: [[1150, 330, 92], [3150, 360, 90], [5550, 300, 90]], waters: [[2700, 420, 46], [5000, 250, 50]], shelters: [[4920, 330, 84]],
-      falls: [[1500, 2250], [3850, 4400]], snow: null, aval: null, river: null, night: 4620, pred: 'wolf', joins: [[2850, 170]], calf: false, cps: [2600, 3900] },
-    { len: 6400, start: 200, end: 6180,
-      top: [[0, 96], [1200, 120], [2200, 90], [2900, 110], [3800, 92], [4800, 126], [5600, 96], [6400, 110]],
-      bot: [[0, 476], [1100, 452], [2100, 496], [2900, 492], [3900, 462], [4900, 486], [5700, 470], [6400, 480]],
-      cliffs: [[4750, 5350]], rocks: [[700, 280, 28], [1650, 380, 30], [2250, 300, 26], [3200, 200, 30], [3550, 400, 26], [4500, 240, 30], [5800, 360, 26]],
-      pastures: [[1250, 270, 95], [3400, 330, 92], [5500, 270, 90]], waters: [[2350, 430, 42], [5150, 230, 46]], shelters: [[4250, 340, 86]],
-      falls: [], snow: null, aval: null, river: { x: 2620, w: 150, f0: 150, f1: 238 }, night: 3900, pred: 'wolf', joins: [], calf: true, cps: [2950, 4700] },
-    { len: 6600, start: 200, end: 6380,
-      top: [[0, 110], [800, 130], [1700, 170], [2600, 190], [3500, 170], [4300, 110], [5200, 96], [6600, 110]],
-      bot: [[0, 470], [800, 440], [1700, 330], [2600, 350], [3500, 330], [4300, 450], [5200, 480], [6600, 470]],
-      cliffs: [[1700, 3650]], rocks: [[900, 300, 30], [2200, 240, 18], [3100, 250, 18], [4700, 300, 30], [5500, 230, 28], [5900, 400, 26]],
-      pastures: [[1000, 220, 90], [4000, 300, 95], [5800, 300, 90]], waters: [[1450, 300, 40], [5150, 330, 48]], shelters: [[4620, 260, 86]],
-      falls: [[2350, 3000]], snow: null, aval: null, river: null, night: 4300, pred: 'lynx', joins: [[5300, 430]], calf: false, cps: [1600, 3800, 5400] },
-    { len: 6800, start: 200, end: 6580,
-      top: [[0, 100], [1000, 120], [2000, 90], [2900, 110], [3800, 96], [4700, 120], [5600, 100], [6800, 110]],
-      bot: [[0, 480], [1000, 470], [2000, 496], [2900, 470], [3800, 450], [4700, 480], [5600, 470], [6800, 476]],
-      cliffs: [[3450, 4150]], rocks: [[800, 320, 28], [1800, 200, 28], [2400, 400, 26], [3700, 230, 30], [4500, 360, 26], [5900, 240, 30]],
-      pastures: [[1100, 260, 92], [4350, 260, 92], [6000, 380, 90]], waters: [[1450, 400, 44], [5550, 250, 46]], shelters: [[5050, 300, 86]],
-      falls: [], snow: [1600, 4300, 1], aval: [2650, 3200], river: null, night: 4750, pred: 'wolf', joins: [], calf: true, cps: [2400, 3400, 4400] },
-    { len: 7200, start: 200, end: 6980,
-      top: [[0, 96], [1000, 120], [2000, 96], [2800, 110], [3700, 130], [4600, 100], [5500, 120], [6400, 92], [7200, 100]],
-      bot: [[0, 478], [1000, 456], [2000, 490], [2800, 492], [3700, 460], [4600, 490], [5500, 470], [6400, 486], [7200, 476]],
-      cliffs: [[3550, 4200]], rocks: [[700, 300, 28], [1600, 220, 28], [2200, 380, 26], [3300, 240, 30], [4400, 300, 28], [5300, 200, 26], [6200, 380, 28]],
-      pastures: [[950, 330, 92], [3300, 380, 90], [5000, 280, 92]], waters: [[2250, 230, 44], [4700, 420, 44], [6600, 300, 46]], shelters: [[6000, 300, 88]],
-      falls: [[1150, 1800]], snow: [4500, 5500, 0.6], aval: null, river: { x: 2700, w: 150, f0: 340, f1: 430 }, night: 5650, pred: 'wolf', joins: [[1900, 440]], calf: false, cps: [1950, 3000, 4500] }
+  // ---------- Участки пути ----------
+  // top/bot — кромки коридора (точки [x,y]); drops — участки нижней кромки-обрыва [x0,x1] (карниз);
+  // isl — развилка: провал посреди пути {x0,x1,yt,yb}: верхняя ветка — узкий карниз над провалом (короче по времени, опаснее),
+  //       нижняя — широкая, но вязкая (глубокий снег/топь: медленнее, безопаснее);
+  // grass/water — круги [x,y,r]; rivers — {x,w,f0,f1}: брод только при y∈[f0,f1]; bliz/storm/birds — зоны [x0,x1];
+  // cps — x чекпоинтов-туров; camp — костёр [x,y] (конец участка); tod — время суток от начала к концу (0 рассвет … 0.7 сумерки).
+  var LEGS = [
+    { id: 'meadow', len: 9000, ground: 'meadow', tod: [0.05, 0.6],
+      top: [[0, 120], [1500, 140], [3000, 112], [4600, 128], [6200, 112], [7600, 135], [9000, 120]],
+      bot: [[0, 480], [1400, 494], [3100, 470], [4700, 496], [6100, 500], [7700, 492], [9000, 480]],
+      drops: [], isl: { x0: 5000, x1: 6800, yt: 186, yb: 322 },
+      grass: [[1500, 380, 95], [3700, 250, 90], [6000, 430, 62], [7800, 300, 100]], water: [[2600, 410, 46], [7300, 210, 44]],
+      rivers: [], bliz: null, storm: null, birds: null, cps: [2400, 4700, 7100], camp: [8740, 300] },
+    { id: 'gorge', len: 9000, ground: 'rock', tod: [0.08, 0.62],
+      top: [[0, 120], [1400, 130], [2300, 150], [2700, 232], [4200, 228], [4600, 140], [6200, 118], [7800, 132], [9000, 120]],
+      bot: [[0, 480], [1500, 490], [2300, 440], [2700, 306], [4200, 304], [4600, 450], [6100, 492], [7700, 480], [9000, 480]],
+      drops: [[2380, 4540]], isl: null,
+      grass: [[1300, 300, 95], [5200, 360, 90], [8000, 300, 95]], water: [[1900, 400, 42], [6600, 220, 44]],
+      rivers: [], bliz: null, storm: null, birds: [4800, 7600], cps: [2200, 4700, 7000], camp: [8740, 300] },
+    { id: 'river', len: 9000, ground: 'valley', tod: [0.08, 0.62], rain: true,
+      top: [[0, 120], [1500, 132], [3000, 118], [4400, 126], [6000, 112], [7600, 130], [9000, 120]],
+      bot: [[0, 480], [1500, 492], [3100, 486], [4500, 500], [6100, 500], [7700, 490], [9000, 480]],
+      drops: [], isl: { x0: 4300, x1: 6100, yt: 184, yb: 320 }, birdsUpper: true,
+      grass: [[1400, 330, 95], [3600, 300, 85], [5200, 430, 60], [8100, 300, 95]], water: [],
+      rivers: [{ x: 2500, w: 230, f0: 250, f1: 340 }, { x: 6900, w: 200, f0: 320, f1: 420 }],
+      bliz: null, storm: null, birds: [4500, 5900], cps: [2100, 4100, 6500], camp: [8740, 300] },
+    { id: 'pass', len: 9000, ground: 'snow', tod: [0.1, 0.64],
+      top: [[0, 120], [1500, 136], [3000, 120], [4500, 140], [6000, 112], [7600, 128], [9000, 120]],
+      bot: [[0, 480], [1500, 490], [3000, 476], [4500, 492], [6000, 500], [7700, 494], [9000, 480]],
+      drops: [], isl: { x0: 6000, x1: 7700, yt: 184, yb: 320 },
+      grass: [[1100, 320, 90], [2150, 300, 80], [3700, 330, 64], [5550, 330, 78], [8200, 300, 95]], water: [[1800, 400, 42], [5380, 210, 38], [8000, 200, 40]],
+      rivers: [], bliz: [2400, 5000], storm: null, birds: null, cps: [2000, 3700, 5500, 7800], camp: [8740, 300] },
+    { id: 'ridge', len: 9000, ground: 'ridge', tod: [0.2, 0.68],
+      top: [[0, 120], [1500, 130], [3000, 150], [3400, 230], [4500, 226], [4900, 140], [6200, 118], [7800, 132], [9000, 120]],
+      bot: [[0, 480], [1500, 490], [3000, 440], [3400, 306], [4500, 304], [4900, 450], [6100, 492], [7700, 480], [9000, 480]],
+      drops: [[3080, 4840]], isl: null,
+      grass: [[1100, 300, 95], [5400, 330, 90], [8200, 300, 95]], water: [[2200, 380, 42], [6000, 220, 42]],
+      rivers: [], bliz: null, storm: [1800, 5900], birds: [6300, 8000], cps: [2800, 5000, 7000], camp: [8740, 300] },
+    { id: 'descent', len: 9000, ground: 'summer', tod: [0.02, 0.3], last: true,
+      top: [[0, 120], [1500, 130], [3000, 118], [5000, 150], [5400, 228], [6300, 226], [6700, 136], [7800, 112], [9000, 100]],
+      bot: [[0, 480], [1500, 490], [3100, 486], [5000, 440], [5400, 304], [6300, 302], [6700, 460], [7700, 500], [9000, 506]],
+      drops: [[5080, 6640]], isl: null,
+      grass: [[1200, 320, 90], [4300, 300, 90], [7300, 300, 80], [8600, 300, 170]], water: [[3200, 400, 42], [8250, 170, 40]],
+      rivers: [{ x: 1900, w: 220, f0: 260, f1: 350 }], bliz: null, storm: null, birds: [1500, 4900], cps: [2400, 5000, 6900], camp: [8640, 300] }
   ];
-  var START_HERD = 12;
 
+  // ---------- Геометрия ----------
   function interp(pts, x) {
     if (x <= pts[0][0]) return pts[0][1];
     for (var i = 1; i < pts.length; i++) if (x <= pts[i][0]) { var a = pts[i - 1], b = pts[i], k = (x - a[0]) / (b[0] - a[0]); k = k * k * (3 - 2 * k); return a[1] + (b[1] - a[1]) * k; }
     return pts[pts.length - 1][1];
   }
-  function wob(x, s) { return 7 * Math.sin(x / 61 + s) + 4 * Math.sin(x / 23 + s * 2.1); }
+  function wob(x, s) { return 4 * Math.sin(x / 61 + s) + 2.5 * Math.sin(x / 23 + s * 2.1); }
   function topY(L, x) { return interp(L.top, x) + wob(x, 1.3); }
   function botY(L, x) { return interp(L.bot, x) - wob(x, 4.1); }
-  function isCliff(L, x) { for (var i = 0; i < L.cliffs.length; i++) if (x >= L.cliffs[i][0] && x <= L.cliffs[i][1]) return true; return false; }
-  function inRiver(L, x) { var r = L.river; return !!r && x > r.x && x < r.x + r.w; }
-  function inFord(L, y) { var r = L.river; return !!r && y >= r.f0 && y <= r.f1; }
-  function inCircle(c, x, y, pad) { var dx = x - c[0], dy = y - c[1]; return dx * dx + dy * dy < (c[2] + (pad || 0)) * (c[2] + (pad || 0)); }
-  function snowAt(L, x) { var s = L.snow; if (!s || x < s[0] || x > s[1]) return 0; return s[2] * Math.min(1, (x - s[0]) / 300, (s[1] - x) / 300); }
+  function dropAt(L, x) { for (var i = 0; i < L.drops.length; i++) if (x >= L.drops[i][0] && x <= L.drops[i][1]) return true; return false; }
+  // провал развилки: {t, b} — верхний и нижний край на данном x, либо null
+  function islAt(L, x) {
+    var I = L.isl; if (!I || x <= I.x0 || x >= I.x1) return null;
+    var k = Math.min(1, (x - I.x0) / 220, (I.x1 - x) / 220); k = k * k * (3 - 2 * k);
+    var m = (I.yt + I.yb) / 2; return { t: m - (m - I.yt) * k, b: m + (I.yb - m) * k, m: m };
+  }
+  function slowAt(L, x, y) { var a = islAt(L, x); return !!a && a.b - a.t > 30 && y > a.b; }
+  function riverAt(L, x, pad) { for (var i = 0; i < L.rivers.length; i++) { var r = L.rivers[i]; if (x > r.x - (pad || 0) && x < r.x + r.w + (pad || 0)) return r; } return null; }
+  function zoneK(z, x) { if (!z || x < z[0] || x > z[1]) return 0; return Math.min(1, (x - z[0]) / 260, (z[1] - x) / 260); }
+  function inZone(z, x) { return !!z && x >= z[0] && x <= z[1]; }
   function len(x, y) { return Math.sqrt(x * x + y * y); }
-  function stars(k) { return k >= 0.95 ? 3 : k >= 0.75 ? 2 : k >= 0.4 ? 1 : 0; }
-
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  // безопасная середина пути на данном x (branch: 'up' — верхняя ветка развилки, иначе нижняя)
+  function laneY(L, x, branch) {
+    var t = topY(L, x), b = botY(L, x), a = islAt(L, x), r = riverAt(L, x, 90);
+    if (a && a.b - a.t > 8) return branch === 'up' ? (t + a.t) / 2 - 4 : (a.b + b) / 2;
+    if (r) return (r.f0 + r.f1) / 2;
+    for (var i = 0; i < L.rivers.length; i++) {   // заранее выйти на линию брода
+      var rv = L.rivers[i]; if (x > rv.x - 520 && x <= rv.x - 90) { var kr = clamp((x - (rv.x - 520)) / 330, 0, 1); kr = kr * kr * (3 - 2 * kr); return (t + b) / 2 * (1 - kr) + (rv.f0 + rv.f1) / 2 * kr; }
+    }
+    var I = L.isl;
+    if (I && x > I.x0 - 700 && x <= I.x0 + 40) {   // заранее сместиться к выбранной ветке развилки
+      var k = clamp((x - (I.x0 - 700)) / 420, 0, 1); k = k * k * (3 - 2 * k);
+      return (t + b) / 2 * (1 - k) + (branch === 'up' ? (t + I.yt) / 2 - 4 : (I.yb + b) / 2) * k;
+    }
+    return (t + b) / 2;
+  }
+  function todAt(L, x) { return L.tod[0] + (L.tod[1] - L.tod[0]) * clamp(x / L.len, 0, 1); }
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
   // ---------- Игра ----------
   function Game(opts) {
     opts = opts || {};
     var rng = opts.rng || mulberry32(1), emit = opts.onEvent || function () {};
-    var S = null, nextId = 1, moveIn = { x: 0, y: 0 }, target = null;
+    var S = null, mv = { x: 0, y: 0, run: false }, target = null;
 
-    function animal(x, y, calf, st) {
-      return { id: nextId++, x: x, y: y, vx: 0, vy: 0, calf: !!calf, st: st || 'ok', hunger: 0.9, tired: 0.1, fear: 0,
-        whT: 0, pushT: 0, px: 0, py: 0, calmT: 0, fx: 0, fy: 0, fallT: 0, lie: false, ph: rng() * 6.28, inj: false, seizeT: 0, face: 0 };
+    function creature(id, mark) {
+      return { id: id, temper: TEMPERS[id % TEMPERS.length], mark: mark != null ? mark : id % MARKS.length, x: 0, y: 0, vx: 0, vy: 0,
+        food: 0.9, pep: 0.9, fear: 0, fx: 0, fy: 0, bolt: 0, bx: 0, by: 0, callT: 0, cmdT: 0, cx: 1, cy: 0, cmdRun: false, calmT: 0,
+        balk: 0, balkIn: 18 + rng() * 26, balked: {}, need: null, deepT: 0, st: 'ok', stray: false, graze: false, drink: false,
+        ph: rng() * 6.28, nz: rng() * 6.28, face: 1 };
     }
-    function L() { return LEVELS[S.lv]; }
-    function midY(x) { var l = L(); return (topY(l, x) + botY(l, x)) / 2; }
+    function L() { return LEGS[S.lv]; }
+    function alive() { return S.herd.filter(function (c) { return c.st === 'ok'; }); }
 
-    function placeHerd(list, cx) {
-      var l = L(), cy = midY(cx), n = list.length;
-      S.herd = list.map(function (h, i) {
-        var a = (i / Math.max(1, n)) * 6.28 + 0.4, r = 18 + (i % 3) * 16;
-        var x = cx + Math.cos(a) * r, y = Math.max(topY(l, x) + 22, Math.min(botY(l, x) - 22, cy + Math.sin(a) * r * 0.8));
-        var an = animal(x, y, h.calf); an.hunger = h.hunger != null ? h.hunger : 0.9; an.tired = h.tired != null ? h.tired : 0.1; return an;
+    function place(x) {
+      var l = L(), list = alive(), n = list.length;
+      S.hero.x = x; S.hero.y = laneY(l, x); S.hero.fx = 1; S.hero.fy = 0; target = null;
+      list.forEach(function (c, i) {
+        var a = (i / Math.max(1, n)) * 6.28 + 0.4, r = 20 + (i % 3) * 15, cx = x + 78 + Math.cos(a) * r;
+        c.x = cx; c.y = clamp(laneY(l, cx) + Math.sin(a) * r * 0.8, topY(l, cx) + 14, botY(l, cx) - 14);
+        c.vx = c.vy = 0; c.fear = 0; c.bolt = 0; c.callT = 0; c.cmdT = 0; c.balk = 0; c.balked = {}; c.deepT = 0; c.stray = false;
       });
-      S.hero.x = cx - 70; S.hero.y = cy; target = null;
     }
-    function newLevel(lv, herdList, keep) {
-      S.lv = lv; var l = L();
-      S.phase = 'play'; S.t = 0; S.night = 0; S.nightOn = false; S.nightDone = !l.night; S.nightT = 0; S.sleepT = 0; S.sleeping = 0;
-      S.preds = []; S.predT = 6; S.rocksFall = []; S.fallZ = l.falls.map(function () { return { st: 'idle', t: 2 + rng() * 2, spots: [] }; });
-      S.aval = l.aval ? { st: 'idle', t: 0, front: 0, cool: 0 } : null;
-      S.wild = l.joins.map(function (j) { var a = animal(j[0], j[1], false, 'wild'); a.hunger = 1; return a; });
-      S.calfBorn = !l.calf; S.cpIdx = 0; S.done = null; S.levelStart = herdList.length;
-      S.hero = S.hero || { x: 0, y: 0 }; S.hero.carry = null; S.hero.tend = null; S.hero.stun = 0; S.hero.face = { x: 1, y: 0 }; S.hero.waveT = 0;
-      placeHerd(herdList, l.start + 80);
-      S.cp = makeCp(l.start + 80);
-      if (!keep) emit('level', { lv: lv });
+    function setupLeg(lv, x) {
+      S.lv = lv; S.phase = 'play'; S.bird = null; S.birdT = 6 + rng() * 5; S.strikes = []; S.strikeT = 5 + rng() * 4; S.flash = 0;
+      S.campT = 0; S.campNear = 0; S.cpIdx = 0; S.legT = 0;
+      var l = L(); x = x || 220;
+      while (S.cpIdx < l.cps.length && l.cps[S.cpIdx] <= x + 1) S.cpIdx++;
+      place(x);
     }
-    function liveHerd() { return S.herd.filter(function (a) { return a.st !== 'lost'; }); }
-    function makeCp(x) {
-      return { lv: S.lv, x: x, herd: liveHerd().map(function (a) { return { calf: a.calf, hunger: Math.max(0.6, a.hunger), tired: Math.min(0.3, a.tired) }; }),
-        totalEver: S.totalEver, delivered: S.delivered.slice(), starsLv: S.starsLv.slice(), nightDone: S.nightDone, calfBorn: S.calfBorn,
-        wild: S.wild.filter(function (w) { return w.st === 'wild'; }).map(function (w) { return [w.x, w.y]; }), cpIdx: S.cpIdx, score: S.score };
+    function snap(x) {
+      return { v: 1, lv: S.lv, x: Math.round(x != null ? x : S.hero.x), T: Math.round(S.T),
+        herd: alive().map(function (c) { return { id: c.id, mark: c.mark, food: +Math.max(0.5, c.food).toFixed(3), pep: +Math.max(0.5, c.pep).toFixed(3) }; }),
+        gone: S.gone.map(function (g) { return { id: g.id, why: g.why, lv: g.lv, mark: g.mark }; }) };
     }
-    function checkpoint(x) { S.cp = makeCp(x); emit('checkpoint', { save: S.cp }); }
-
-    function restoreCp(cp) {
-      S.totalEver = cp.totalEver; S.delivered = cp.delivered.slice(); S.starsLv = cp.starsLv.slice(); S.score = cp.score || 0;
-      newLevel(cp.lv, cp.herd, true);
-      S.nightDone = cp.nightDone; S.calfBorn = cp.calfBorn; S.cpIdx = cp.cpIdx || 0;
-      S.wild = (cp.wild || []).map(function (j) { var a = animal(j[0], j[1], false, 'wild'); return a; });
-      placeHerd(cp.herd, cp.x); S.cp = cp;
+    function init(sn) {
+      S = { lv: 0, T: 0, t: 0, phase: 'play', total: HERD, hero: { x: 0, y: 0, fx: 1, fy: 0, mx: 0, my: 0, moving: false, run: false, wT: 0, sT: 0, wAnim: 0, sAnim: 0 },
+        herd: [], gone: [], bird: null, strikes: [], cp: null, score: 0 };
+      if (sn && sn.herd && sn.herd.length) {
+        S.T = sn.T || 0;
+        S.herd = sn.herd.map(function (h) { var c = creature(h.id, h.mark); c.food = h.food; c.pep = h.pep; return c; });
+        S.gone = (sn.gone || []).map(function (g) { return { id: g.id, why: g.why, lv: g.lv, mark: g.mark }; });
+        setupLeg(clamp(sn.lv | 0, 0, LEGS.length - 1), sn.x);
+      } else {
+        for (var i = 0; i < HERD; i++) S.herd.push(creature(i));
+        setupLeg(0, 220);
+      }
+      S.cp = snap();
     }
 
-    function start() {
-      S = { lv: 0, herd: [], hero: { x: 0, y: 0 }, totalEver: START_HERD, delivered: [], starsLv: [], score: 0, t: 0, events: 0, won: false, cool: { wh: 0, sh: 0, st: 0 } };
-      if (opts.snapshot) { restoreCp(opts.snapshot); return api; }
-      var list = []; for (var i = 0; i < START_HERD; i++) list.push({ calf: false });
-      newLevel(opts.level || 0, list);
-      return api;
+    function lose(c, why) {
+      if (c.st !== 'ok') return;
+      c.st = 'gone'; S.gone.push({ id: c.id, why: why, lv: S.lv, mark: c.mark, x: c.x, y: c.y, t: S.t });
+      emit('lost', { id: c.id, why: why, left: alive().length });
+    }
+    function centroid() {
+      var x = 0, y = 0, n = 0, lead = null, list = alive();
+      list.forEach(function (c) { if (!c.stray) { x += c.x; y += c.y; n++; } if (c.temper === 'lead') lead = c; });
+      if (!n && list.length) { list.forEach(function (c) { c.stray = false; x += c.x; y += c.y; n++; }); }
+      return n ? { x: x / n, y: y / n, n: n, lead: lead } : { x: S.hero.x, y: S.hero.y, n: 0, lead: null };
+    }
+    function nearest(list, c, maxD) {
+      var best = null, bd = maxD;
+      for (var i = 0; i < list.length; i++) { var d = len(list[i][0] - c.x, list[i][1] - c.y) - list[i][2]; if (d < bd) { bd = d; best = list[i]; } }
+      return best;
     }
 
-    // ---------- Действия пастуха ----------
+    // ---------- Подпасок ----------
+    function stepHero(dt) {
+      var h = S.hero, l = L(), dx = mv.x, dy = mv.y, run = mv.run;
+      if (dx || dy) target = null;
+      else if (target) { var tx = target.x - h.x, ty = target.y - h.y, td = len(tx, ty); if (td < 6) target = null; else { dx = tx / td; dy = ty / td; run = td > 260; } }
+      var d = len(dx, dy);
+      h.moving = d > 0.01; h.run = h.moving && !!run;
+      if (h.moving) {
+        dx /= d; dy /= d; h.mx = dx; h.my = dy; h.fx = dx; h.fy = dy;
+        var sp = (h.run ? HERO_RUN : HERO_WALK) * Math.min(1, d);
+        if (slowAt(l, h.x, h.y)) sp *= 0.74;
+        var r = riverAt(l, h.x); if (r) sp *= (h.y >= r.f0 && h.y <= r.f1) ? 0.78 : 0.5;
+        sp *= 1 - 0.25 * zoneK(l.bliz, h.x);
+        h.x += dx * sp * dt; h.y += dy * sp * dt;
+      } else { h.mx = h.my = 0; }
+      h.x = clamp(h.x, 30, l.len - 30);
+      var a = islAt(l, h.x);
+      if (a && a.b - a.t > 4 && h.y > a.t - 8 && h.y < a.b + 8) h.y = h.y < a.m ? a.t - 8 : a.b + 8;
+      h.y = clamp(h.y, topY(l, h.x) + 10, botY(l, h.x) - 10);
+      h.wT = Math.max(0, h.wT - dt); h.sT = Math.max(0, h.sT - dt); h.wAnim = Math.max(0, h.wAnim - dt); h.sAnim = Math.max(0, h.sAnim - dt);
+    }
+
+    // ---------- Существо ----------
+    function stepCreature(c, dt, l, cen, list) {
+      var h = S.hero, dxh = c.x - h.x, dyh = c.y - h.y, dH = len(dxh, dyh) || 0.001;
+      var bl = zoneK(l.bliz, c.x), i, o, dx, dy, d;
+      var sx = 0, sy = 0, nvx = 0, nvy = 0, nn = 0;
+      for (i = 0; i < list.length; i++) {
+        o = list[i]; if (o === c) continue;
+        dx = c.x - o.x; dy = c.y - o.y; d = len(dx, dy) || 0.01;
+        if (d < SEP_R) { var k = (SEP_R - d) / SEP_R; sx += dx / d * k; sy += dy / d * k; }
+        if (d < 100 && !o.stray) { nvx += o.vx; nvy += o.vy; nn++; }
+      }
+      var dc = len(c.x - cen.x, c.y - cen.y);
+      c.stray = cen.n > 0 && dc > STRAY_D && dH > STRAY_HERO && c.callT <= 0 && c.bolt <= 0 && c.cmdT <= 0;
+
+      var spd = len(c.vx, c.vy), moving = spd > 8, running = spd > 72;
+      c.food = Math.max(0, c.food - FOOD_RATE * dt * (running ? 1.8 : moving ? 1 : 0.45));
+      c.pep = Math.max(0, c.pep - PEP_RATE * dt * (running ? 2.4 : moving ? 1 : 0) * (1 + bl * 0.5));
+      c.fear = Math.max(0, c.fear - dt * (c.calmT > 0 ? 0.7 : 0.1));
+      c.callT -= dt; c.cmdT -= dt; c.calmT -= dt; c.balk -= dt; c.ph += dt * (moving ? 9 : 2);
+      c.graze = c.drink = false;
+
+      var dvx = 0, dvy = 0, sp, forced = false, edgeK = 1, flock = true;
+      if (c.fear >= 0.7 && c.bolt <= 0) {
+        var ax = c.x - c.fx, ay = c.y - c.fy, ad = len(ax, ay) || 1, an = Math.atan2(ay, ax) + (rng() - 0.5) * 0.9;
+        c.bolt = (1.0 + c.fear * 1.1) * (c.temper === 'timid' ? 1.3 : 1); c.bx = Math.cos(an); c.by = Math.sin(an) * 0.8; c.fear = 0.45; c.cmdT = 0; c.callT = 0;
+        emit('bolt', { id: c.id });
+      }
+      if (c.bolt > 0) { c.bolt -= dt; dvx = c.bx * BOLT; dvy = c.by * BOLT; forced = true; edgeK = 0.45; flock = false; }
+      else if (c.stray) { c.nz += dt * 0.5; dvx = Math.cos(c.nz) * 5; dvy = Math.sin(c.nz) * 5; c.pep = Math.min(1, c.pep + IDLE_REST * dt); flock = false; }
+      else if (c.cmdT > 0) { sp = c.cmdRun ? RUN : TROT; dvx = c.cx * sp; dvy = c.cy * sp; forced = c.cmdRun; edgeK = c.cmdRun ? 0.55 : 1; }
+      else if (c.balk > 0) { /* упрямец встал */ }
+      else if (c.callT > 0 && dH > 56) { sp = dH > 230 ? RUN : WALK; dvx = -dxh / dH * sp; dvy = -dyh / dH * sp; }
+      else {
+        var pressed = false, want = null;
+        // голодный (или обжора) тянется к траве, даже когда его гонят
+        if (c.food < 0.2 || (c.temper === 'glutton' && c.food < 0.72 && c.need !== 'water')) want = nearest(l.grass, c, 150);
+        if (!want && h.moving && dH < PRESS_R * (1 - 0.3 * bl)) {
+          var dot = (h.mx * dxh + h.my * dyh) / dH;
+          if (dot > 0.15) {
+            var px = 0.55 * h.mx + 0.45 * dxh / dH, py = 0.55 * h.my + 0.45 * dyh / dH, pd = len(px, py) || 1;
+            sp = h.run ? RUN : (dH < 54 ? TROT : WALK); dvx = px / pd * sp; dvy = py / pd * sp; pressed = true; forced = h.run; edgeK = h.run ? 0.55 : 1;
+            if (c.temper === 'timid' && h.run && dH < 40) { c.fear = Math.min(1, c.fear + dt * 0.5); c.fx = h.x; c.fy = h.y; }
+          }
+        }
+        // стоит на траве голодным или у воды усталым и его не гонят — остаётся на привале, за соседями не тянется
+        var here = null;
+        if (!pressed && !want) {
+          if (c.food < 0.94 || c.need === 'food') { here = nearest(l.grass, c, -8); }
+          if (!here && (c.pep < 0.92 || c.need === 'water')) { here = nearest(l.water, c, 16); if (here) here = 'w'; }
+        }
+        if (!pressed && !want && !here && nn && bl < 0.5) { nvx /= nn; nvy /= nn; if (len(nvx, nvy) > 14) { dvx = nvx * 0.9; dvy = nvy * 0.9; pressed = true; } }
+        if (pressed && c.temper === 'stubborn') { c.balkIn -= dt; if (c.balkIn <= 0) { c.balkIn = 24 + rng() * 28; c.balk = 3.2; emit('balk', { id: c.id }); } }
+        if (!pressed) {
+          // привал: трава и вода
+          if (c.need === 'food' && c.food >= 0.985) c.need = null; else if (c.need === 'water' && c.pep >= 0.97) c.need = null;
+          var g = null, w = null;
+          if (want) { g = want; c.need = 'food'; }
+          else {
+            if (c.need !== 'water' && (c.food < 0.94 || c.need === 'food')) g = nearest(l.grass, c, 280);
+            if (!g && c.need !== 'food' && (c.pep < 0.92 || c.need === 'water')) w = nearest(l.water, c, 280);
+            if (!g && !w && c.need) { c.need = null; }
+            if (g && !c.need && c.pep < c.food - 0.12) { var w2 = nearest(l.water, c, 280); if (w2 && nearest(l.grass, c, -8) !== g) { g = null; w = w2; } }
+            c.need = g ? 'food' : w ? 'water' : null;
+          }
+          if (g) { d = len(g[0] - c.x, g[1] - c.y); if (d < g[2] - 8) { c.graze = true; c.food = Math.min(1, c.food + GRAZE * dt); } else { dvx = (g[0] - c.x) / d * WALK * 0.85; dvy = (g[1] - c.y) / d * WALK * 0.85; } }
+          else if (w) { d = len(w[0] - c.x, w[1] - c.y); if (d < w[2] + 16) { c.drink = true; c.pep = Math.min(1, c.pep + DRINK * dt); } else { dvx = (w[0] - c.x) / d * WALK * 0.85; dvy = (w[1] - c.y) / d * WALK * 0.85; } }
+          if (!moving) c.pep = Math.min(1, c.pep + IDLE_REST * dt);
+        }
+      }
+      if (flock) {
+        var tx = cen.x, ty = cen.y, ck = 1;
+        if (cen.lead && cen.lead !== c && !cen.lead.stray) { tx = (tx + cen.lead.x) / 2; ty = (ty + cen.lead.y) / 2; } else if (!cen.lead) ck = 0.55;
+        dx = tx - c.x; dy = ty - c.y; d = len(dx, dy);
+        if (d > 46) { var pull = Math.min(34, (d - 46) * 0.4) * ck * (c.temper === 'timid' ? 1.3 : 1) * (1 + bl * 0.6); dvx += dx / d * pull; dvy += dy / d * pull; }
+        if (dH < 20) { dvx += dxh / dH * 40; dvy += dyh / dH * 40; }
+      }
+      dvx += sx * 70; dvy += sy * 70;
+      if (bl > 0 && c.bolt <= 0) {   // буран: сбивает с направления и сносит по ветру
+        c.nz += dt * 0.6; var ra = Math.sin(c.nz + S.t * 0.4) * 0.75 * bl, cs = Math.cos(ra), sn = Math.sin(ra), rx = dvx * cs - dvy * sn; dvy = dvx * sn + dvy * cs; dvx = rx;
+        dvx -= 5 * bl; dvy += 9 * bl;
+      }
+      // края: обрыв и провал — спокойное существо держится подальше
+      var by = botY(l, c.x), a = islAt(l, c.x);
+      if (dropAt(l, c.x)) { d = by - c.y; if (d < 36) dvy -= (36 - d) / 36 * 110 * edgeK; }
+      if (a && a.b - a.t > 4 && c.y < a.m) { d = a.t - c.y; if (d < 34) dvy -= (34 - d) / 34 * 110 * edgeK; }
+      // река: спокойное существо в глубину не идёт и тянется к броду
+      var r = riverAt(l, c.x, 80), mult = 1;
+      if (r) {
+        var inFord = c.y >= r.f0 && c.y <= r.f1, inW = c.x > r.x && c.x < r.x + r.w;
+        if (!forced) {
+          if (c.y < r.f0 + 12) dvy = (inW ? Math.max(0, dvy) : dvy) + (inW ? 46 : 24); else if (c.y > r.f1 - 12) dvy = (inW ? Math.min(0, dvy) : dvy) - (inW ? 46 : 24);
+          if (!inFord && !inW && c.x <= r.x && c.x > r.x - 18 && dvx > 0) dvx = 0;
+          if (c.temper === 'stubborn' && !c.balked[r.x] && c.x > r.x - 34 && c.x < r.x && dvx > 0 && c.cmdT <= 0) { c.balked[r.x] = 1; c.balk = 3.6; emit('balk', { id: c.id }); }
+        }
+        if (inW) mult *= inFord ? 0.72 : 0.45;
+      }
+      if (slowAt(l, c.x, c.y)) mult *= 0.45;
+      if (c.bolt <= 0) {
+        if (c.food < 0.25) mult *= c.food <= 0.02 ? 0.5 : 0.75;
+        if (c.pep < 0.25) mult *= c.pep <= 0.02 ? 0.5 : 0.75;
+        if (c.temper === 'dawdler') mult *= 0.9; else if (c.temper === 'lead') mult *= 1.04;
+      }
+      var kk = Math.min(1, dt * 5);
+      c.vx += (dvx * mult - c.vx) * kk; c.vy += (dvy * mult - c.vy) * kk;
+      c.x += c.vx * dt; c.y += c.vy * dt;
+      if (Math.abs(c.vx) > 6) c.face = c.vx > 0 ? 1 : -1;
+      // глубокая вода: течение сносит, долго — унесёт
+      var rr = riverAt(l, c.x);
+      if (rr && !forced && r === rr && c.wasFord) c.y = clamp(c.y, rr.f0 + 1, rr.f1 - 1);   // спокойное с брода не сходит
+      c.wasFord = !!rr && c.y >= rr.f0 && c.y <= rr.f1;
+      if (rr && (c.y < rr.f0 || c.y > rr.f1)) { c.y += 30 * dt; c.deepT += dt; if (c.deepT > 2.8) return lose(c, 'river'); } else c.deepT = Math.max(0, c.deepT - dt * 2);
+      // столкновения с краями
+      c.x = clamp(c.x, 16, l.len - 16);
+      var t = topY(l, c.x) + 9; by = botY(l, c.x);
+      if (c.y < t) { c.y = t; if (c.vy < 0) c.vy = 0; }
+      if (dropAt(l, c.x)) { if (c.y > by + 3) return lose(c, 'fall'); }
+      else if (c.y > by - 9) { c.y = by - 9; if (c.vy > 0) c.vy = 0; }
+      a = islAt(l, c.x);
+      if (a && a.b - a.t > 4 && c.y > a.t && c.y < a.b + 7) {
+        if (c.y < a.m) { if (c.y > a.t + 4) return lose(c, 'fall'); }
+        else { c.y = a.b + 7; if (c.vy < 0) c.vy = 0; }
+      }
+    }
+
+    // ---------- Опасности ----------
+    function stepBird(dt, l, cen, list) {
+      var h = S.hero, b = S.bird;
+      if (!b) {
+        var zone = inZone(l.birds, cen.x) && list.length;
+        if (zone && l.birdsUpper) { var a = islAt(l, cen.x); zone = !!a && cen.y < a.m; }
+        if (!zone) return;
+        S.birdT -= dt; if (S.birdT > 0) return;
+        var tg = null, bd = -1;
+        list.forEach(function (c) { var d = len(c.x - h.x, c.y - h.y) + (c.stray ? 200 : 0); if (d > bd) { bd = d; tg = c; } });
+        S.bird = { ph: 'circle', t: 3.4, id: tg.id, x: tg.x - 220, y: tg.y - 170, a: rng() * 6.28, out: 0 };
+        emit('bird', { id: tg.id }); return;
+      }
+      var tgt = null; list.forEach(function (c) { if (c.id === b.id) tgt = c; });
+      if (!tgt && b.ph !== 'away') b.ph = 'away';
+      if (b.ph === 'circle') {
+        b.t -= dt; b.a += dt * 2.6;
+        var gx = tgt.x + Math.cos(b.a) * 74, gy = tgt.y - 30 + Math.sin(b.a) * 40;
+        b.x += (gx - b.x) * Math.min(1, dt * 3); b.y += (gy - b.y) * Math.min(1, dt * 3);
+        if (len(h.x - tgt.x, h.y - tgt.y) < 90) { b.ph = 'away'; emit('shoo', { by: 'near' }); }
+        else if (b.t <= 0) { b.ph = 'dive'; b.t = 0.75; emit('dive', { id: tgt.id }); }
+      } else if (b.ph === 'dive') {
+        b.t -= dt; b.x += (tgt.x - b.x) * Math.min(1, dt * 6); b.y += (tgt.y - b.y) * Math.min(1, dt * 6);
+        if (len(h.x - tgt.x, h.y - tgt.y) < 78) { b.ph = 'away'; emit('shoo', { by: 'near' }); }
+        else if (b.t <= 0) {
+          tgt.fear = 1; tgt.fx = b.x - 20; tgt.fy = b.y - 30;
+          list.forEach(function (c) { var d = len(c.x - tgt.x, c.y - tgt.y); if (c !== tgt && d < 90) { c.fear = Math.min(1, c.fear + (c.temper === 'timid' ? 0.75 : 0.42) * (c.calmT > 0 ? 0.4 : 1)); c.fx = tgt.x; c.fy = tgt.y; } });
+          b.ph = 'away'; emit('swoop', { id: tgt.id });
+        }
+      } else { b.out += dt; b.x += dt * 190; b.y -= dt * 230; if (b.out > 1.6) { S.bird = null; S.birdT = 13 + rng() * 9; } }
+    }
+    function stepStorm(dt, l, cen, list) {
+      S.flash = Math.max(0, S.flash - dt);
+      if (inZone(l.storm, cen.x) && list.length) {
+        S.strikeT -= dt;
+        if (S.strikeT <= 0) {
+          S.strikeT = 8 + rng() * 7;
+          var x = cen.x + (rng() - 0.5) * 320, y = clamp(cen.y + (rng() - 0.5) * 200, topY(l, x) + 20, botY(l, x) - 20);
+          S.strikes.push({ x: x, y: y, t: 1.7 }); emit('charge', {});
+        }
+      }
+      for (var i = S.strikes.length - 1; i >= 0; i--) {
+        var s = S.strikes[i]; s.t -= dt; if (s.t > 0) continue;
+        S.strikes.splice(i, 1); S.flash = 0.45; S.lastStrike = { x: s.x, y: s.y }; emit('thunder', {});
+        list.forEach(function (c) {
+          var d = len(c.x - s.x, c.y - s.y); if (d > 170) return;
+          c.fear = Math.min(1, c.fear + 0.95 * (1 - d / 170) * (c.temper === 'timid' ? 1.5 : 1) * (c.calmT > 0 ? 0.3 : 1)); c.fx = s.x; c.fy = s.y;
+        });
+      }
+    }
+
+    // ---------- Кадр ----------
+    function update(dt) {
+      if (S.phase !== 'play') return;
+      if (dt > 0.05) dt = 0.05;
+      S.t += dt; S.T += dt; S.legT += dt;
+      var l = L(); stepHero(dt);
+      var list = alive(), cen = centroid();
+      for (var i = 0; i < list.length; i++) stepCreature(list[i], dt, l, cen, list);
+      list = alive(); cen = centroid(); S.cen = cen;
+      stepBird(dt, l, cen, list); stepStorm(dt, l, cen, list);
+      if (!list.length) { S.phase = 'alone'; emit('alone', {}); return; }
+      var h = S.hero, near = 0;
+      list.forEach(function (c) { if (len(c.x - h.x, c.y - h.y) < 320) near++; });
+      if (S.cpIdx < l.cps.length && h.x > l.cps[S.cpIdx] && near > 0) { S.cpIdx++; S.cp = snap(); emit('checkpoint', { save: S.cp }); }
+      // костёр: подпасок у огня, стадо рядом → ночёвка (или финал); кто остался далеко — отстал
+      var cx = l.camp[0], cy = l.camp[1]; S.campNear = 0;
+      list.forEach(function (c) { if (len(c.x - cx, c.y - cy) < CAMP_NEAR) S.campNear++; });
+      if (len(h.x - cx, h.y - cy) < CAMP_R && S.campNear > 0) S.campT += dt; else S.campT = 0;
+      if (S.campT > CAMP_DWELL) {
+        list.forEach(function (c) { if (len(c.x - cx, c.y - cy) > CAMP_FAR) lose(c, 'left'); });
+        list = alive(); S.score = list.length * 100;
+        if (l.last) { S.phase = 'won'; emit('win', { home: list.length, total: S.total, ids: list.map(function (c) { return c.id; }), time: S.T }); }
+        else { S.phase = 'camp'; emit('camp', { lv: S.lv, n: list.length }); }
+      }
+    }
+    function nextLeg() {
+      if (S.phase !== 'camp') return false;
+      alive().forEach(function (c) { c.pep = 1; c.food = Math.max(c.food, 0.7); });
+      setupLeg(S.lv + 1, 220); S.cp = snap(); emit('leg', { lv: S.lv }); emit('checkpoint', { save: S.cp });
+      return true;
+    }
     function whistle() {
-      if (S.cool.wh > 0 || S.phase !== 'play') return false; S.cool.wh = 0.5; var h = S.hero;
-      S.herd.forEach(function (a) { if (a.st === 'ok' && len(a.x - h.x, a.y - h.y) < WHISTLE_R) a.whT = WHISTLE_T; });
-      S.wild.forEach(function (w) { if (w.st === 'wild' && len(w.x - h.x, w.y - h.y) < 260) { w.st = 'ok'; w.whT = WHISTLE_T; S.herd.push(w); S.totalEver++; emit('join', {}); } });
-      S.wild = S.wild.filter(function (w) { return w.st === 'wild'; });
-      S.lastWh = 0.6; emit('whistle', {}); return true;
-    }
-    function shout() {
-      if (S.cool.sh > 0 || S.phase !== 'play') return false; S.cool.sh = 0.6; var h = S.hero, f = h.face;
-      S.herd.forEach(function (a) {
-        if (a.st !== 'ok') return; var dx = a.x - h.x, dy = a.y - h.y, d = len(dx, dy); if (d > SHOUT_R) return;
-        var ux = dx / (d || 1), uy = dy / (d || 1), px = ux * 0.55 + f.x * 0.75, py = uy * 0.55 + f.y * 0.75, pl = len(px, py) || 1;
-        a.pushT = SHOUT_T; a.px = px / pl; a.py = py / pl; a.whT = 0; a.fear = Math.min(1, a.fear + (d < 90 ? 0.22 : 0.1)); a.fx = h.x; a.fy = h.y; a.lie = false;
+      var h = S.hero; if (S.phase !== 'play' || h.wT > 0) return false;
+      h.wT = WHISTLE_CD; h.wAnim = 0.6;
+      var R = WHISTLE_R * (1 - 0.45 * zoneK(L().bliz, h.x)), n = 0;
+      alive().forEach(function (c) {
+        var d = len(c.x - h.x, c.y - h.y); if (d > R) return;
+        c.calmT = 4; c.fear = Math.max(0, c.fear - 0.7); if (c.bolt > 0 && d < R * 0.75) c.bolt = 0;
+        if (c.balk <= 0) { c.callT = WHISTLE_T; c.cmdT = 0; n++; }
       });
-      S.lastSh = 0.6; emit('shout', {}); return true;
+      S.lastWhistleR = R; emit('whistle', { n: n }); return true;
     }
     function staff() {
-      if (S.cool.st > 0 || S.phase !== 'play') return false; S.cool.st = 0.35; var h = S.hero;
-      if (h.carry) { var c = byId(h.carry); h.carry = null; if (c) { c.st = 'ok'; c.x = h.x + 14; c.y = h.y + 6; c.lie = false; clampAnimal(c); } emit('drop', {}); return 'drop'; }
-      var inj = nearest(function (a) { return a.st === 'ok' && a.inj; }, 38);
-      if (inj) { h.tend = { id: inj.id, t: 0 }; emit('tend', {}); return 'tend'; }
-      var calf = nearest(function (a) { return a.st === 'ok' && a.calf && (a.lie || a.tired > 0.5); }, 34);
-      if (calf) { h.carry = calf.id; calf.st = 'carried'; emit('pick', {}); return 'pick'; }
-      // колокол на посохе: успокоить; ночью — ещё и махнуть факелом
-      S.herd.forEach(function (a) { if ((a.st === 'ok' || a.st === 'carried') && len(a.x - h.x, a.y - h.y) < BELL_R) a.calmT = 2.2; });
-      if (S.night > 0.3) { h.waveT = 1.6; emit('torch', {}); } else emit('bell', {});
-      S.lastBell = 0.7; return 'bell';
-    }
-    function byId(id) { for (var i = 0; i < S.herd.length; i++) if (S.herd[i].id === id) return S.herd[i]; return null; }
-    function nearest(pred, r) { var h = S.hero, best = null, bd = r; S.herd.forEach(function (a) { if (!pred(a)) return; var d = len(a.x - h.x, a.y - h.y); if (d < bd) { bd = d; best = a; } }); return best; }
-
-    // ---------- Коллизии ----------
-    function clampAnimal(a) {
-      var l = L(), t = topY(l, a.x) + 9, b = botY(l, a.x) - 9;
-      if (a.x < 16) a.x = 16; if (a.x > l.len - 16) a.x = l.len - 16;
-      if (a.y < t) { a.y = t; if (a.vy < 0) a.vy = 0; }
-      if (a.y > b && !(isCliff(l, a.x) || inRiver(l, a.x))) { a.y = b; if (a.vy > 0) a.vy = 0; }
-      for (var i = 0; i < l.rocks.length; i++) { var r = l.rocks[i], dx = a.x - r[0], dy = a.y - r[1], d = len(dx, dy), m = r[2] + 7;
-        if (d < m) { if (d < 0.01) { dx = 1; dy = 0; d = 1; } a.x = r[0] + dx / d * m; a.y = r[1] + dy / d * m; } }
-    }
-    function clampHero(h, ox) {
-      var l = L();
-      if (inRiver(l, h.x) && !inFord(l, h.y)) { h.x = ox; }
-      var t = topY(l, h.x) + 10, b = botY(l, h.x) - (isCliff(l, h.x) ? 14 : 10);
-      if (inRiver(l, h.x)) { var r = l.river; t = Math.max(t, r.f0); b = Math.min(b, r.f1); }
-      h.x = Math.max(14, Math.min(l.len - 14, h.x)); h.y = Math.max(t, Math.min(b, h.y));
-      for (var i = 0; i < l.rocks.length; i++) { var r2 = l.rocks[i], dx = h.x - r2[0], dy = h.y - r2[1], d = len(dx, dy), m = r2[2] + 8;
-        if (d < m) { if (d < 0.01) { dx = 1; d = 1; } h.x = r2[0] + dx / d * m; h.y = r2[1] + dy / d * m; } }
-    }
-
-    // ---------- Шаг ----------
-    function centroid(list) { var x = 0, y = 0, n = 0; list.forEach(function (a) { x += a.x; y += a.y; n++; }); return n ? { x: x / n, y: y / n, n: n } : null; }
-    function active() { return S.herd.filter(function (a) { return a.st === 'ok' || a.st === 'carried' || a.st === 'seized'; }); }
-
-    function update(dt) {
-      if (!S || S.phase === 'won') return;
-      S.t += dt; S.cool.wh -= dt; S.cool.sh -= dt; S.cool.st -= dt; S.lastWh = (S.lastWh || 0) - dt; S.lastSh = (S.lastSh || 0) - dt; S.lastBell = (S.lastBell || 0) - dt;
-      if (S.phase === 'done') { S.doneT -= dt; if (S.doneT <= 0) nextLevel(); return; }
-      if (S.sleeping > 0) { S.sleeping -= dt; if (S.sleeping <= 0) dawn(); return; }
-      var l = L(), h = S.hero;
-      // пастух
-      var ox = h.x, mx = moveIn.x, my = moveIn.y;
-      if (target && !mx && !my) { var tx = target.x - h.x, ty = target.y - h.y, tl = len(tx, ty); if (tl < 6) target = null; else { mx = tx / tl; my = ty / tl; } }
-      var ml = len(mx, my); if (ml > 1) { mx /= ml; my /= ml; }
-      if (h.stun > 0) { h.stun -= dt; mx = my = 0; }
-      if (ml > 0.05) { h.face = { x: mx / (ml > 1 ? 1 : (ml || 1)), y: my / (ml > 1 ? 1 : (ml || 1)) }; var fl = len(h.face.x, h.face.y) || 1; h.face.x /= fl; h.face.y /= fl; if (h.tend) h.tend = null; }
-      var hv = HERO_V * (h.carry ? 0.8 : 1) * (1 - snowAt(l, h.x) * 0.25);
-      h.x += mx * hv * dt; h.y += my * hv * dt; clampHero(h, ox); h.moving = ml > 0.05;
-      h.waveT = Math.max(0, h.waveT - dt);
-      if (h.tend) { var ta = byId(h.tend.id); if (!ta || ta.st !== 'ok' || len(ta.x - h.x, ta.y - h.y) > 46) h.tend = null; else { h.tend.t += dt; ta.vx *= 0.8; ta.vy *= 0.8; if (h.tend.t >= 1.8) { ta.inj = false; ta.fear = 0; h.tend = null; emit('heal', {}); } } }
-      if (h.carry) { var cc = byId(h.carry); if (cc) { cc.x = h.x - 4; cc.y = h.y - 12; cc.tired = Math.max(0, cc.tired - 0.08 * dt); cc.fear = Math.max(0, cc.fear - dt); } else h.carry = null; }
-
-      var act = active(), C = centroid(act.filter(function (a) { return a.st !== 'seized'; })) || centroid(act);
-      S.C = C;
-      updNight(dt, l, C);
-      updHazards(dt, l, C);
-      updPreds(dt, l, C);
-      for (var i = 0; i < S.herd.length; i++) stepAnimal(S.herd[i], dt, l);
-      S.wild.forEach(function (w) { w.ph += dt; if (C && len(w.x - C.x, w.y - C.y) < 110) { w.st = 'ok'; S.herd.push(w); S.totalEver++; emit('join', {}); } });
-      S.wild = S.wild.filter(function (w) { return w.st === 'wild'; });
-
-      act = active();
-      if (!act.length) { emit('regroup', {}); restoreCp(S.cp); return; }
-      // чекпоинты — каменные туры с колокольцем
-      if (C && S.cpIdx < l.cps.length && C.x > l.cps[S.cpIdx] && !S.nightOn) { var cx = l.cps[S.cpIdx]; S.cpIdx++; checkpoint(cx); }
-      // ворота перевала
-      if (h.x > l.end - 70) {
-        var near = act.filter(function (a) { return a.x > l.end - 170; }).length;
-        if (near >= Math.ceil(act.length * 0.6)) finishLevel(l);
-      }
-    }
-
-    function stepAnimal(a, dt, l) {
-      if (a.st === 'lost' || a.st === 'carried' || a.st === 'wild') { if (a.st === 'wild') { a.vx = a.vy = 0; } return; }
-      if (a.st === 'fall') { a.fallT += dt; a.y += 60 * dt; if (a.fallT > 0.9) { a.st = 'lost'; emit('lost', { why: 'fall' }); } return; }
-      if (a.st === 'swept') { a.y += 95 * dt; a.x += (l.river.x + l.river.w / 2 - a.x) * dt; if (a.y > botY(l, a.x) - 6) { a.st = 'lost'; emit('lost', { why: 'river' }); } return; }
-      if (a.st === 'seized') { a.seizeT -= dt; a.fear = 1; if (a.seizeT <= 0) { a.st = 'lost'; emit('lost', { why: 'pred' }); } return; }
-      var h = S.hero, ax = 0, ay = 0, sepR = a.calf ? 14 : SEP_R, snow = snowAt(l, a.x), cohR = COH_R * (1 - snow * 0.5);
-      var cx = 0, cy = 0, cn = 0, vx = 0, vy = 0;
-      for (var i = 0; i < S.herd.length; i++) {
-        var b = S.herd[i]; if (b === a || (b.st !== 'ok' && b.st !== 'seized')) continue;
-        var dx = a.x - b.x, dy = a.y - b.y, d = len(dx, dy);
-        if (d < sepR && d > 0.01) { var k = (sepR - d) / sepR * 1.7; ax += dx / d * k; ay += dy / d * k; }
-        if (d < cohR) { cx += b.x; cy += b.y; vx += b.vx; vy += b.vy; cn++; if (b.fear > a.fear + 0.3 && d < 50) { a.fear += 0.35 * dt; a.fx = b.fx; a.fy = b.fy; } }
-      }
-      if (cn) { var gx = cx / cn - a.x, gy = cy / cn - a.y, gl = len(gx, gy); if (gl > 30) { ax += gx / gl * 0.32; ay += gy / gl * 0.32; } ax += vx / cn / WALK * 0.22; ay += vy / cn / WALK * 0.22; }
-      // пастух рядом — отходят (так его «давлением» можно подгонять)
-      var hdx = a.x - h.x, hdy = a.y - h.y, hd = len(hdx, hdy), pr = a.whT > 0 ? 30 : PRESS_R;
-      if (hd < pr && hd > 0.01) { var hk = (1 - hd / pr) * 1.2; ax += hdx / hd * hk; ay += hdy / hd * hk; }
-      // свист — идут к пастуху (паника глушит свист)
-      if (a.whT > 0) { a.whT -= dt; if (hd > 46 && a.fear < 0.55) { ax -= hdx / hd * 1.25; ay -= hdy / hd * 1.25; } }
-      // окрик — погнать по направлению
-      if (a.pushT > 0) { a.pushT -= dt; ax += a.px * 1.5; ay += a.py * 1.5; }
-      // страх — бегут прочь от источника
-      if (a.fear > 0.45) { var fdx = a.x - a.fx, fdy = a.y - a.fy, fd = len(fdx, fdy) || 1; ax += fdx / fd * a.fear * 1.6; ay += fdy / fd * a.fear * 1.6; }
-      // бродят понемногу
-      a.ph += dt * (0.6 + (a.id % 5) * 0.07);
-      var wk = 0.12 + (a.hunger < 0.25 ? 0.25 : 0) + snow * 0.25;
-      ax += Math.cos(a.ph * 0.7 + a.id) * wk; ay += Math.sin(a.ph * 0.9 + a.id * 2) * wk;
-      // метель — ветер к обрыву (вниз)
-      if (snow) ay += snow * 0.32;
-      // кромки, скалы, река — обходят (паника притупляет осторожность)
-      var care = a.fear > 0.75 ? 0.45 : 1, t = topY(l, a.x), bt = botY(l, a.x), cl = isCliff(l, a.x);
-      if (a.y - t < EDGE_AV) ax += 0, ay += (EDGE_AV - (a.y - t)) / EDGE_AV * 1.4;
-      if (bt - a.y < EDGE_AV + (cl ? 14 : 0)) ay -= (EDGE_AV + (cl ? 14 : 0) - (bt - a.y)) / EDGE_AV * (cl ? 2.6 * care : 1.4);
-      l.rocks.forEach(function (r) { var dx = a.x - r[0], dy = a.y - r[1], d = len(dx, dy), m = r[2] + 26; if (d < m && d > 0.01) { var k = (m - d) / 26 * 1.2; ax += dx / d * k; ay += dy / d * k; } });
-      if (l.river && !inFord(l, a.y)) { var rv = l.river, lx = rv.x - a.x, rx = a.x - (rv.x + rv.w);
-        if (lx > 0 && lx < 44) ax -= (44 - lx) / 44 * 2.4 * care; if (rx > 0 && rx < 44) ax += (44 - rx) / 44 * 2.4 * care; }
-      if (l.river && inRiver(l, a.x) && inFord(l, a.y)) { var fm = (l.river.f0 + l.river.f1) / 2; ay += (fm - a.y) / 40 * 0.8; }
-      // тени камнепада: сыплется мелкий щебень — особи шарахаются от места удара
-      for (var fz = 0; fz < S.fallZ.length; fz++) { var FZ = S.fallZ[fz]; if (FZ.st !== 'warn') continue;
-        for (var q = 0; q < FZ.spots.length; q++) { var sq = FZ.spots[q], qx = a.x - sq[0], qy = a.y - sq[1], qd = len(qx, qy), qm = sq[2] + 18;
-          if (qd < qm && qd > 0.01) { var qk = (qm - qd) / qm * 2.2; ax += qx / qd * qk; ay += qy / qd * qk; } } }
-      // пастбище / водопой / лежка
-      var onPast = false, onWater = false;
-      for (var p = 0; p < l.pastures.length; p++) if (inCircle(l.pastures[p], a.x, a.y)) onPast = true;
-      for (var w = 0; w < l.waters.length; w++) if (inCircle(l.waters[w], a.x, a.y, 14)) onWater = true;
-      // голодные чуют траву, уставшие — воду (если их не зовут и не гонят)
-      if (a.whT <= 0 && a.pushT <= 0 && a.fear < 0.4) {
-        if (a.hunger < 0.6 && !onPast) for (var p2 = 0; p2 < l.pastures.length; p2++) { var pp = l.pastures[p2], pdx = pp[0] - a.x, pdy = pp[1] - a.y, pd = len(pdx, pdy); if (pd < pp[2] + 140 && pd > 1) { ax += pdx / pd * 0.6; ay += pdy / pd * 0.6; break; } }
-        if (a.tired > 0.5 && !onWater) for (var w2 = 0; w2 < l.waters.length; w2++) { var ww = l.waters[w2], wdx = ww[0] - a.x, wdy = ww[1] - a.y, wd = len(wdx, wdy); if (wd < ww[2] + 120 && wd > 1) { ax += wdx / wd * 0.5; ay += wdy / wd * 0.5; break; } }
-      }
-      var al = len(ax, ay); if (al > 1) { ax /= al; ay /= al; al = 1; }
-      var sp = WALK * (1 - a.tired * 0.5) * (a.calf ? CALF_K : 1) * (a.inj ? 0.45 : 1) * (a.hunger < 0.12 ? 0.7 : 1) * (1 - snow * 0.25);
-      if (a.fear > 0.45 && !a.inj) sp = Math.max(sp, RUN * a.fear);
-      var grazing = onPast && a.hunger < 0.97 && a.whT <= 0 && a.pushT <= 0 && a.fear < 0.4 && hd > 40;
-      if (grazing) { sp *= 0.12; a.hunger = Math.min(1, a.hunger + GRAZE_RATE * dt); }
-      if (a.tired >= 1) a.lie = true; if (a.lie && (a.tired < 0.45 || a.fear > 0.7 || a.pushT > 0.5 && !a.calf)) a.lie = false;
-      if (a.lie) sp = 0;
-      if (al < 0.18 && !a.lie) sp *= al / 0.18;    // мелкие силы — стоят на месте
-      var dvx = ax * sp, dvy = ay * sp, kk = Math.min(1, dt * 3.2);
-      a.vx += (dvx - a.vx) * kk; a.vy += (dvy - a.vy) * kk;
-      // река вне брода — уносит
-      var ox = a.x, oy = a.y;
-      a.x += a.vx * dt; a.y += a.vy * dt;
-      if (inRiver(l, a.x)) { if (inFord(l, a.y)) { a.x = ox + (a.x - ox) * 0.6; a.y += 6 * dt; } else { a.st = 'swept'; a.fear = 1; emit('swept', {}); return; } }
-      if (cl && a.y > bt - 3) { a.st = 'fall'; a.fallT = 0; emit('fall', {}); return; }
-      clampAnimal(a);
-      var spd = len(a.vx, a.vy); if (spd > 2) a.face = Math.atan2(a.vy, a.vx);
-      // показатели
-      a.hunger = Math.max(0, a.hunger - HUNGER_RATE * dt * (spd > 5 ? 1.1 : 0.8));
-      if (spd > 5) a.tired = Math.min(1, a.tired + TIRE_RATE * dt * (spd / WALK) * (a.calf ? 2 : 1) * (1 + snow * 0.8));
-      else a.tired = Math.max(0, a.tired - (onWater ? 0.11 : 0.025) * dt);
-      if (onWater && spd < 8) a.tired = Math.max(0, a.tired - 0.04 * dt);
-      var inShelter = l.shelters.length && inCircle(l.shelters[0], a.x, a.y, 10);
-      if (S.night > 0.5 && !inShelter && hd > TORCH_R) a.fear = Math.min(1, a.fear + 0.02 * dt);
-      if (snow > 0.3 && a.calmT <= 0) a.fear = Math.min(0.7, a.fear + 0.018 * snow * dt);
-      if (a.calmT > 0) { a.calmT -= dt; a.fear = Math.max(0, a.fear - 1.3 * dt); }
-      a.fear = Math.max(0, a.fear - (inShelter ? 0.3 : 0.11) * dt);
-      a.grazing = grazing; a.onWater = onWater; a.spd = spd;
-    }
-
-    // ---------- Ночь ----------
-    function updNight(dt, l, C) {
-      if (!l.night || S.nightDone) { S.night = Math.max(0, S.night - dt / 8); return; }
-      if (!S.nightOn && C && (C.x > l.night || S.hero.x > l.night + 300)) { S.nightOn = true; S.nightT = 0; emit('dusk', {}); }
-      if (!S.nightOn) return;
-      S.nightT += dt; S.night = Math.min(1, S.nightT / 12);
-      var sh = l.shelters[0], act = active(), inside = act.filter(function (a) { return inCircle(sh, a.x, a.y, 10); }).length;
-      S.inShelter = inside; S.shelterNeed = Math.ceil(act.length * SHELTER_PART);
-      if (S.night > 0.6 && inCircle(sh, S.hero.x, S.hero.y, 6) && inside >= S.shelterNeed) { S.sleepT += dt; if (S.sleepT >= SLEEP_NEED) { S.sleeping = 3; emit('sleep', {}); } }
-      else S.sleepT = Math.max(0, S.sleepT - dt);
-      if (S.nightT > NIGHT_MAX) dawn();
-    }
-    function dawn() {
-      var l = L(); S.nightOn = false; S.nightDone = true; S.sleepT = 0; S.sleeping = 0; S.preds = [];
-      S.herd.forEach(function (a) { if (a.st === 'ok' || a.st === 'carried') { a.tired = 0; a.fear = 0; a.lie = false; a.hunger = Math.max(0.35, a.hunger - 0.15); } });
-      if (!S.calfBorn) {
-        S.calfBorn = true; var sh = l.shelters[0], c = animal(sh[0] + 10, sh[1] + 8, true); c.hunger = 1; c.tired = 0; S.herd.push(c); S.totalEver++; emit('calf', {});
-      }
-      emit('dawn', {}); checkpoint(Math.max(S.cp.x, (S.C ? S.C.x : S.hero.x)));
-    }
-
-    // ---------- Камнепад, лавина ----------
-    function updHazards(dt, l, C) {
-      var h = S.hero;
-      l.falls.forEach(function (z, i) {
-        var f = S.fallZ[i], occ = (h.x > z[0] && h.x < z[1]) || S.herd.some(function (a) { return a.st === 'ok' && a.x > z[0] && a.x < z[1]; });
-        f.t -= dt;
-        if (f.st === 'idle' && occ && f.t <= 0) {
-          f.st = 'warn'; f.t = 2; f.spots = [];
-          var pool = S.herd.filter(function (a) { return a.st === 'ok' && a.x > z[0] && a.x < z[1]; });
-          var n = 2 + Math.floor(rng() * 3);
-          for (var k = 0; k < n; k++) {
-            var base = pool.length && rng() < 0.35 ? pool[Math.floor(rng() * pool.length)] : null;
-            var x = base ? base.x + (rng() - 0.5) * 60 : z[0] + rng() * (z[1] - z[0]);
-            var y = base ? base.y + (rng() - 0.5) * 60 : topY(l, x) + 20 + rng() * (botY(l, x) - topY(l, x) - 40);
-            f.spots.push([x, y, 24]);
-          }
-          emit('rumble', {});
-        } else if (f.st === 'warn' && f.t <= 0) {
-          f.st = 'idle'; f.t = 5 + rng() * 3;
-          f.spots.forEach(function (sp) {
-            S.rocksFall.push({ x: sp[0], y: sp[1], t: 0 });
-            S.herd.forEach(function (a) {
-              if (a.st !== 'ok') return; var d = len(a.x - sp[0], a.y - sp[1]);
-              if (d < sp[2]) { if (!a.inj) emit('hurt', {}); a.inj = true; a.fear = 1; a.fx = sp[0]; a.fy = sp[1]; }
-              else if (d < 130) { a.fear = Math.min(1, a.fear + 0.55); a.fx = sp[0]; a.fy = sp[1]; }
-            });
-            if (len(h.x - sp[0], h.y - sp[1]) < sp[2]) h.stun = 1;
-          });
-          f.spots = []; emit('rocks', {});
-        } else if (f.st === 'idle' && !occ) f.t = Math.max(f.t, 1.2);
+      var h = S.hero; if (S.phase !== 'play' || h.sT > 0) return false;
+      h.sT = STAFF_CD; h.sAnim = 0.4; var n = 0;
+      alive().forEach(function (c) {
+        if (len(c.x - h.x, c.y - h.y) > STAFF_R || c.bolt > 0) return;
+        var bl = zoneK(L().bliz, c.x), a = Math.atan2(h.fy, h.fx) + (rng() - 0.5) * 1.0 * bl;
+        c.cmdT = STAFF_T * (1 - 0.5 * bl); c.cx = Math.cos(a); c.cy = Math.sin(a); c.cmdRun = h.run; c.callT = 0; c.balk = 0; n++;
       });
-      S.rocksFall = S.rocksFall.filter(function (r) { r.t += dt; return r.t < 4; });
-      var av = S.aval, z2 = l.aval;
-      if (av) {
-        av.cool -= dt;
-        if (av.st === 'idle' && av.cool <= 0 && C && C.x > z2[0] - 160 && C.x < z2[1]) { av.st = 'warn'; av.t = 3.2; emit('avalwarn', {}); }
-        else if (av.st === 'warn') { av.t -= dt; if (av.t <= 0) { av.st = 'run'; av.front = 0; emit('aval', {}); } }
-        else if (av.st === 'run') {
-          av.front += dt / 2.2;
-          S.herd.forEach(function (a) {
-            if (a.st !== 'ok' || a.x < z2[0] || a.x > z2[1]) return;
-            var t = topY(l, a.x), b = botY(l, a.x), fy = t + (b - t) * av.front;
-            if (a.y < fy + 6) { a.y = Math.min(b - 10, fy + 6); a.inj = true; a.fear = 1; a.fx = a.x; a.fy = t; a.hit = (a.hit || 0) + 1; if (a.hit === 1) emit('hurt', {}); }
-          });
-          if (h.x > z2[0] && h.x < z2[1]) { var ht = topY(l, h.x), hb = botY(l, h.x), hy = ht + (hb - ht) * av.front; if (h.y < hy) { h.y = Math.min(hb - 12, hy + 4); h.stun = 0.8; } }
-          if (av.front >= 1) { av.st = 'idle'; av.cool = 18; S.herd.forEach(function (a) { a.hit = 0; }); }
-        }
-      }
-    }
-
-    // ---------- Хищники ----------
-    function updPreds(dt, l, C) {
-      var h = S.hero;
-      if (S.nightOn && S.night > 0.5 && C && l.pred) {
-        S.predT -= dt;
-        var maxP = l.pred === 'lynx' ? 2 : (S.lv >= 4 ? 3 : 2);
-        if (S.predT <= 0 && S.preds.length < maxP) {
-          S.predT = 8 + rng() * 5;
-          var side = rng() < 0.5 ? -1 : 1, x = Math.max(40, Math.min(l.len - 40, C.x + side * (300 + rng() * 160)));
-          var y = rng() < 0.5 ? topY(l, x) + 14 : botY(l, x) - 14;
-          S.preds.push({ x: x, y: y, kind: l.pred, st: 'stalk', tgt: null, t: 0, vx: 0, vy: 0 });
-          emit('howl', { kind: l.pred });
-        }
-      }
-      var sh = l.shelters[0];
-      S.preds.forEach(function (p) {
-        p.t += dt; var tr = h.waveT > 0 ? WAVE_R : TORCH_R, dh = len(p.x - h.x, p.y - h.y);
-        if (p.st !== 'flee' && dh < tr && S.night > 0.3) {
-          if (p.st === 'hold') { var v = byId(p.tgt); if (v && v.st === 'seized') { v.st = 'ok'; v.inj = true; v.fear = 1; v.fx = p.x; v.fy = p.y; emit('saved', {}); } }
-          p.st = 'flee'; emit('scared', {});
-        }
-        if (p.st === 'stalk') {
-          var best = null, bd = 1e9;
-          S.herd.forEach(function (a) {
-            if (a.st !== 'ok' || (sh && inCircle(sh, a.x, a.y, 10))) return;
-            var d = len(a.x - p.x, a.y - p.y) - (C ? len(a.x - C.x, a.y - C.y) * 1.5 : 0) + len(a.x - h.x, a.y - h.y) * -0.3;
-            if (d < bd) { bd = d; best = a; }
-          });
-          if (!best) { p.st = 'flee'; return; }
-          p.tgt = best.id; var dx = best.x - p.x, dy = best.y - p.y, d = len(dx, dy) || 1, sp = p.kind === 'lynx' ? 74 : 62;
-          // обходит пастуха по дуге
-          var ax = dx / d, ay = dy / d; if (dh < 170) { ax += (p.x - h.x) / dh * 0.9; ay += (p.y - h.y) / dh * 0.9; }
-          var al = len(ax, ay) || 1; p.vx = ax / al * sp; p.vy = ay / al * sp; p.x += p.vx * dt; p.y += p.vy * dt;
-          if (d < 12) { p.st = 'hold'; best.st = 'seized'; best.seizeT = 2.8; best.vx = best.vy = 0; emit('seize', {}); }
-        } else if (p.st === 'hold') {
-          var v2 = byId(p.tgt); if (!v2 || v2.st !== 'seized') { p.st = 'flee'; return; } p.x = v2.x - 8; p.y = v2.y - 4;
-        } else if (p.st === 'flee') {
-          var fx = p.x - h.x, fy = p.y - h.y, fl = len(fx, fy) || 1; p.vx = fx / fl * 130; p.vy = fy / fl * 130; p.x += p.vx * dt; p.y += p.vy * dt;
-          if (fl > 560) p.gone = true;
-        }
-        S.herd.forEach(function (a) { if (a.st !== 'ok') return; var d2 = len(a.x - p.x, a.y - p.y); if (d2 < 150 && p.st !== 'flee') { a.fear = Math.min(1, a.fear + 0.9 * dt); a.fx = p.x; a.fy = p.y; } });
-      });
-      S.preds = S.preds.filter(function (p) { return !p.gone; });
-      if (!S.nightOn && S.preds.length) S.preds.forEach(function (p) { if (p.st !== 'hold') p.st = 'flee'; });
-    }
-
-    // ---------- Конец перевала ----------
-    function finishLevel(l) {
-      var act = active(), got = act.filter(function (a) { return a.st !== 'seized' && a.x > l.end - 900; });
-      var left = act.length - got.length;
-      got.forEach(function (a) { if (a.st === 'carried') a.st = 'ok'; });
-      S.hero.carry = null;
-      var k = got.length / Math.max(1, S.levelStart + countAdded()), st = stars(Math.min(1, got.length / Math.max(1, S.levelStart)));
-      S.delivered[S.lv] = got.length; S.starsLv[S.lv] = st; S.score += got.length * 10 + st * 50;
-      S.done = { got: got.length, left: left, stars: st, lv: S.lv };
-      S.nextHerd = got.map(function (a) { return { calf: a.calf, hunger: Math.max(0.7, a.hunger), tired: 0.1 }; });
-      S.phase = 'done'; S.doneT = 4.5; emit('pass', S.done);
-      if (S.lv === LEVELS.length - 1) { S.phase = 'won'; S.won = true; S.finalStars = stars(got.length / S.totalEver); emit('win', { got: got.length, total: S.totalEver, stars: S.finalStars }); }
-    }
-    function countAdded() { return 0; }
-    function nextLevel() {
-      var lv = S.lv + 1; newLevel(lv, S.nextHerd);
-      checkpoint(L().start + 80);
+      var b = S.bird;
+      if (b && b.ph !== 'away' && len(b.x - h.x, b.y - h.y) < 200) { b.ph = 'away'; emit('shoo', { by: 'staff' }); }
+      emit('staff', { n: n }); return true;
     }
 
     var api = {
-      start: start, update: update,
-      state: function () { return S; },
-      setMove: function (x, y) { moveIn.x = x || 0; moveIn.y = y || 0; if (x || y) target = null; },
+      start: function () { init(opts.snapshot); return api; },
+      state: function () { return S; }, update: update,
+      setMove: function (dx, dy, run) { mv.x = dx || 0; mv.y = dy || 0; mv.run = !!run; },
       moveTo: function (x, y) { target = { x: x, y: y }; },
-      clearTarget: function () { target = null; },
-      target: function () { return target; },
-      whistle: whistle, shout: shout, staff: staff,
-      active: active, level: function () { return L(); },
-      snapshot: function () { return JSON.parse(JSON.stringify(S.cp)); },
-      restore: function (cp) { restoreCp(cp); },
-      gotoLevel: function (lv) { var list = liveHerd().map(function (a) { return { calf: a.calf }; }); newLevel(lv, list); S.cp = makeCp(L().start + 80); }
+      whistle: whistle, staff: staff, nextLeg: nextLeg, snapshot: function () { return snap(); },
+      setMark: function (id, mark) { S.herd.forEach(function (c) { if (c.id === id) c.mark = ((mark % MARKS.length) + MARKS.length) % MARKS.length; }); if (S.cp) S.cp.herd.forEach(function (hh) { if (hh.id === id) hh.mark = ((mark % MARKS.length) + MARKS.length) % MARKS.length; }); },
+      alive: function () { return alive(); }, leg: function () { return L(); }
     };
     return api;
   }
 
-  O.logic = { LEVELS: LEVELS, WH: WH, topY: topY, botY: botY, isCliff: isCliff, inRiver: inRiver, inFord: inFord, inCircle: inCircle, snowAt: snowAt, stars: stars,
-    START_HERD: START_HERD, WHISTLE_R: WHISTLE_R, SHOUT_R: SHOUT_R, BELL_R: BELL_R, TORCH_R: TORCH_R, WAVE_R: WAVE_R, mulberry32: mulberry32 };
-  O.Game = function (o) { return Game(o); };
+  O.Game = Game;
+  O.logic = { WH: WH, HERD: HERD, LEGS: LEGS, TEMPERS: TEMPERS, MARKS: MARKS, topY: topY, botY: botY, dropAt: dropAt, islAt: islAt, slowAt: slowAt, riverAt: riverAt,
+    zoneK: zoneK, inZone: inZone, laneY: laneY, todAt: todAt, mulberry32: mulberry32,
+    K: { HERO_WALK: HERO_WALK, HERO_RUN: HERO_RUN, WALK: WALK, TROT: TROT, RUN: RUN, PRESS_R: PRESS_R, WHISTLE_R: WHISTLE_R, WHISTLE_CD: WHISTLE_CD, STAFF_R: STAFF_R, STAFF_CD: STAFF_CD,
+      STRAY_D: STRAY_D, CAMP_R: CAMP_R, CAMP_NEAR: CAMP_NEAR, CAMP_FAR: CAMP_FAR } };
 })(typeof window !== 'undefined' ? window : globalThis);

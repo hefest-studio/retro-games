@@ -157,7 +157,7 @@
       placeHero(x != null ? x : SC[id].hero.x); rt.hero.dir = rt.hero.x > 480 ? -1 : 1;
       rt.trail = null; rt.overview = null; placeParty();
       if (AIR && !(SC[prev] && wet(SC[prev]) && wet(SC[id]))) st.air = AIR.max;   // с суши под воду — с полным воздухом
-      rt.listenQ = []; rt.ringN = {};
+      rt.listenQ = []; rt.ringN = {}; rt.ringK = {}; rt.rings = {};
       rt.phase = { name: K.Coast ? K.Coast.phaseOf(SC[id], st) : null, t0: -99 };
       if (SC[id].map) {   // карта: фишка героини — у узла сцены, из которой пришли
         var M = SC[id].map, n = K.Coast.nodeOfScene(M, prev); if (n) st.mapAt = n.id; if (!st.mapAt || !K.Coast.node(M, st.mapAt)) st.mapAt = M.start;
@@ -251,8 +251,10 @@
     }
     // умение активного помощника: пёс — нюх (след тушью к спрятанному), чайка — взгляд сверху (обзор тушью)
     function ability() {
-      if (!MULTI || rt.mode !== 'scene' || rt.cut || rt.cutQ.length || rt.travel || sc().map) return null;
-      var a = active(); if (a === 'dog') return sniff(); if (a === 'gull') return overview(); if (a === 'taya' && canListen()) return listen(); return null;
+      if (rt.mode !== 'scene' || rt.cut || rt.cutQ.length || rt.travel || rt.surf || sc().map) return null;
+      var a = active(); if (a === 'taya') return canListen() ? listen() : null;   // Тая под водой — «прислушаться» (и в главах без помощников)
+      if (!MULTI) return null;
+      if (a === 'dog') return sniff(); if (a === 'gull') return overview(); return null;
     }
     // ---------- под водой: воздух, мягкий возврат, колокола-ориентиры ----------
     function wet(s) { return !!(WT_ && s && s.water); }
@@ -269,10 +271,10 @@
     function ring(src, how) {
       rt.rings[src.id] = rt.time; rt.ringN[src.id] = (rt.ringN[src.id] || 0) + 1;
       var v = WT_.voice(src, rt.hero.x, WT_.murky(sc(), st));
-      emit('ring', { id: src.id, note: src.note, big: !!src.big, pan: v.pan, gain: v.gain, semis: v.semis, cutoff: v.cutoff, dist: v.dist, how: how || 'auto' });
+      emit('ring', { id: src.id, note: src.note, big: !!src.big, harsh: !!src.harsh, pan: v.pan, gain: v.gain, semis: v.semis, cutoff: v.cutoff, dist: v.dist, how: how || 'auto' });
     }
     function ringStep() {
-      var s = sc(); if (!wet(s)) return;
+      var s = sc(); if (!wet(s) || rt.mode !== 'scene' || rt.surf) return;   // в мини-игре и наброске колокола сцены молчат
       var srcs = WT_.sources(s, st);
       for (var i = 0; i < srcs.length; i++) {
         var q = srcs[i], ev = q.every || WT_.EVERY, k = Math.floor((rt.time + (q.phase || 0)) / ev);
@@ -285,7 +287,7 @@
       if (!AIR) return;
       var s = sc();
       if (!wet(s)) { st.air = AIR.max; return; }
-      if (rt.surf || rt.mode !== 'scene' || rt.cut || rt.cutQ.length) return;
+      if (rt.surf || rt.mode !== 'scene' || rt.cut || rt.cutQ.length || st.flags.won) return;   // в кат-сцене, мини-игре, наброске и после финала воздух не убывает
       var p = WT_.pocketAt(s, st, rt.hero.x), moving = !!(rt.target || rt.reach);
       if (p) st.pocket = { scene: s.id, x: p.x, id: p.id };
       var a0 = st.air; st.air = WT_.step(st.air, AIR.max, dt, moving, !!p);
@@ -295,7 +297,7 @@
     }
     // мягкий возврат: темнеет тушью — героиня у последнего кармана (или в home главы); прогресс не меняется
     function surface() {
-      rt.surf = { t0: rt.time, phase: 'out' }; rt.target = null; rt.reach = null; rt.sel = null; rt.listenQ = [];
+      rt.surf = { t0: rt.time, phase: 'out' }; rt.outs = (rt.outs || 0) + 1; rt.target = null; rt.reach = null; rt.sel = null; rt.listenQ = [];
       emit('sfx', { name: 'surface' }); emit('air', { out: true, scene: st.scene }); emit('error', { kind: 'air', scene: st.scene });
     }
     function surfStep() {
@@ -313,7 +315,8 @@
       return { murk: WT_.murky(s, st), vis: s.water.vis || WT_.VIS, hero: { x: rt.hero.x, y: rt.hero.y }, fade: fade,
         air: AIR ? { left: st.air, max: AIR.max, f: Math.max(0, st.air / AIR.max), low: st.air < AIR.max * 0.3, pocket: !!WT_.pocketAt(s, st, rt.hero.x), bubbles: 10 } : null,
         pockets: WT_.pockets(s, st).map(function (p) { return { id: p.id, x: p.x, w: p.w || WT_.POCKET_W }; }),
-        sounds: (s.water.sounds || []).map(function (q) { var on = ok(st, q.need), t0 = rt.rings[q.id]; return { id: q.id, x: q.x, y: q.y == null ? 300 : q.y, note: q.note, big: !!q.big, active: on, age: t0 == null ? 99 : rt.time - t0, n: rt.ringN[q.id] || 0 }; }),
+        sounds: (s.water.sounds || []).map(function (q) { var on = ok(st, q.need), t0 = rt.rings[q.id], v = WT_.voice(q, rt.hero.x, false);
+          return { id: q.id, x: q.x, y: q.y == null ? 300 : q.y, note: q.note, big: !!q.big, harsh: !!q.harsh, active: on, age: t0 == null ? 99 : rt.time - t0, n: rt.ringN[q.id] || 0, near: v.near, pan: v.pan }; }),
         time: rt.time };
     }
     function useful(r) { if (!r) return false; if (r.puzzle && !st.flags[r.puzzle]) return true; return r.do.some(function (x) { return x[0] === 'give' || x[0] === 'cut' || x[0] === 'mini' || x[0] === 'set' || x[0] === 'toggle'; }); }
@@ -585,9 +588,9 @@
       return -1;
     }
     // портреты героев (LAYOUT.heroes): только в главах с помощниками, по порядку присоединившихся
-    function portraitList() { return MULTI ? HEROES.filter(function (id) { return HL.joined(P, st, id); }) : []; }
+    function portraitList() { return MULTI ? HEROES.filter(function (id) { return HL.joined(P, st, id); }) : (canListen() ? ['taya'] : []); }   // без помощников: портрет Таи — только под водой, где есть что слушать
     function portraitAt(x, y) {
-      var LH = LAY.heroes; if (!MULTI || !LH || rt.mode !== 'scene') return null;
+      var LH = LAY.heroes; if (!LH || rt.mode !== 'scene' || sc().map) return null;
       var l = portraitList(); for (var i = 0; i < l.length; i++) if (near({ x: LH.x + i * LH.gap, y: LH.y, r: LH.r }, x, y)) return l[i];
       return null;
     }
@@ -737,6 +740,8 @@
       if (rt.mode !== 'scene' || rt.cut) return null;
       if (y >= LAY.inv.y || near(LAY.hint, x, y) || near(LAY.book, x, y) || portraitAt(x, y)) return slotAt(x, y) >= 0 && st.inv[slotAt(x, y)] ? 'take' : 'use';
       var h = hsAt(x, y);
+      // в мутной воде курсор не выдаёт то, чего не видно: зона дальше круга видимости — как пустое место (тап туда — идти и действовать)
+      if (h && WT_ && wet(sc()) && WT_.murky(sc(), st) && Math.hypot(Math.max(h.rect[0] - rt.hero.x, 0, rt.hero.x - h.rect[0] - h.rect[2]), Math.max(h.rect[1] - (rt.hero.y - 70), 0, rt.hero.y - 70 - h.rect[1] - h.rect[3])) > (sc().water.vis || WT_.VIS)) return 'walk';
       if (h) return (rt.sel || rt.drag) ? 'use' : (h.to && !(h.toNeed && !ok(st, h.toNeed)) && h.cursor === 'go' ? 'go' : h.cursor);
       return 'walk';
     }
@@ -762,6 +767,7 @@
         close: !!mini, solvedMini: !!(mini && rt.miniDone), debug: rt.debug, progress: { solved: solvedCount(), total: P.puzzles.length },
         walk: rt.mode === 'walk' ? { page: rt.walk.page, pages: walkPages(), per: walkPer(), steps: openSteps(), total: P.puzzles.length, flip: rt.walk.flip || null, open: rt.walk.open, time: rt.time } : null };
       // портреты: кто здесь, кого сцена не пускает (allowed: false — погашен, значок «нельзя»), кто держит в другой сцене (where — её пиктограмма)
+      if (!MULTI && !sc().map && canListen()) ui.heroes = [{ id: 'taya', icon: 'taya', active: true, here: true, busy: false, hold: null, ability: 'ear', allowed: true, where: null }];
       if (MULTI && !sc().map) ui.heroes = portraitList().map(function (id) {
         var b = HL.busy(P, st, id), here = presentHere(id), al = HL.allowed(sc(), id, P), ab = id === active() ? (HL.ABILITY[id] || (id === 'taya' && canListen() ? 'ear' : null)) : null;
         return { id: id, icon: heroIcon(id), active: id === active(), here: here, busy: !!b, hold: b ? b.id : null, ability: ab, allowed: al,
@@ -810,7 +816,7 @@
       won: function () { return !!st.flags.won; }, data: { scenes: SCN, puzzles: P, map: opts.map || (CH && CH.map) || null }, chapter: CH,
       switchHero: switchTo, cycleHero: cycleHero, ability: ability, sniff: sniff, overview: overview, activeHero: active, heroes: function () { return HEROES.slice(); },
       present: presentHere, releaseHold: releaseHold, portraitAt: portraitAt, portraits: portraitList, multi: MULTI,
-      air: function () { return AIR ? { left: st.air, max: AIR.max, speed: AIR.speed, pocket: st.pocket } : null; }, listen: listen, water: waterView, surfacing: function () { return !!rt.surf; },
+      air: function () { return AIR ? { left: st.air, max: AIR.max, speed: AIR.speed, pocket: st.pocket, outs: rt.outs || 0 } : null; }, listen: listen, water: waterView, surfacing: function () { return !!rt.surf; },
       waitTimer: waitTimer, setTimers: function (v) { TIMERS_ON = !!v; return TIMERS_ON; }, mapGo: function (nodeId) { var h = hsById('n_' + nodeId); if (h && sc().map) mapGo(h); return !!h; }
     };
     return api;

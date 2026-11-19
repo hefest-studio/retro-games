@@ -18,7 +18,7 @@
     { n: 9, ru: 'Штольни', en: 'The Adits' }, { n: 10, ru: 'Сердце плато', en: 'Heart of the Plateau' }];
   var NODES = [[95, 432], [178, 352], [268, 404], [350, 322], [452, 362], [528, 280], [446, 204], [334, 218], [250, 142], [400, 112]];
   var WHO = { varvara: { col: 0, letter: { ru: 'В', en: 'V' } }, lunya: { col: 0, letter: { ru: 'Л', en: 'L' } }, sava: { col: 0, letter: { ru: 'С', en: 'S' } },
-    korney: { col: 1, letter: { ru: 'К', en: 'K' } }, foe: { col: 1, letter: { ru: 'С', en: 'G' } } };
+    korney: { col: 1, letter: { ru: 'К', en: 'K' } }, foe: { col: 1, letter: { ru: 'С', en: 'G' } }, zavod: { col: 3, letter: { ru: 'З', en: 'M' } } };
 
   function lang() { return g.i18n.lang; }
   function tx(o) { return C.txt(o, lang()); }
@@ -49,6 +49,10 @@
     else if (kind === 'geyser') { c.fillStyle = pl.rockLo; c.beginPath(); c.ellipse(12, 19, 8, 3, 0, 0, 7); c.fill(); c.fillStyle = '#eef3f6'; [[12, 13, 4], [9, 8, 3.5], [14, 5, 3]].forEach(function (q) { c.beginPath(); c.arc(q[0], q[1], q[2], 0, 7); c.fill(); }); }
     else if (kind === 'charge') { c.fillStyle = pl.roof; c.fillRect(5, 9, 14, 11); c.fillStyle = pl.bad; c.fillRect(7, 11, 10, 3); c.strokeStyle = pl.warn; c.beginPath(); c.moveTo(12, 9); c.quadraticCurveTo(14, 4, 19, 3); c.stroke(); }
     else if (kind === 'pit') { c.fillStyle = '#ff7a2e'; c.beginPath(); c.ellipse(12, 13, 10, 7, 0, 0, 7); c.fill(); c.fillStyle = '#1c1512'; c.beginPath(); c.ellipse(12, 13, 7.5, 5, 0, 0, 7); c.fill(); }
+    else if (kind === 'fire') { c.fillStyle = pl.bad; c.beginPath(); c.moveTo(5, 20); c.quadraticCurveTo(2, 11, 9, 8); c.quadraticCurveTo(9, 3, 13, 2); c.quadraticCurveTo(13, 8, 18, 10); c.quadraticCurveTo(22, 15, 18, 20); c.closePath(); c.fill(); c.fillStyle = pl.warn; c.beginPath(); c.moveTo(9, 20); c.quadraticCurveTo(8, 14, 12, 11); c.quadraticCurveTo(16, 15, 15, 20); c.closePath(); c.fill(); }
+    else if (kind === 'water') { c.fillStyle = pl.waterHi; c.beginPath(); c.moveTo(12, 2); c.quadraticCurveTo(20, 12, 19, 16); c.arc(12, 15, 7, 0.1, Math.PI - 0.1); c.quadraticCurveTo(4, 12, 12, 2); c.fill(); c.fillStyle = pl.panel; c.fillRect(9, 15, 2, 4); }
+    else if (kind === 'ally') { c.fillStyle = pl.own[0]; c.beginPath(); c.arc(8, 9, 5, 0, 7); c.fill(); c.fillStyle = pl.own[1]; c.beginPath(); c.arc(16, 9, 5, 0, 7); c.fill(); c.strokeStyle = pl.good; c.lineWidth = 3; c.beginPath(); c.moveTo(4, 19); c.lineTo(20, 19); c.stroke(); }
+    else if (kind === 'boss') { c.fillStyle = pl.tread; c.fillRect(2, 5, 17, 3); c.fillRect(2, 17, 17, 3); c.fillStyle = pl.metal; c.fillRect(4, 8, 13, 9); c.fillStyle = pl.metalHi; c.beginPath(); c.moveTo(17, 7); c.lineTo(23, 12.5); c.lineTo(17, 18); c.closePath(); c.fill(); c.fillStyle = pl.glow; c.beginPath(); c.arc(10, 12.5, 2.6, 0, 7); c.fill(); }
     else if (kind === 'van') { c.fillStyle = pl.ownDk[0]; c.fillRect(2, 8, 20, 10); c.fillStyle = pl.wall; c.fillRect(4, 10, 16, 6); c.fillStyle = pl.roof; c.beginPath(); c.moveTo(7, 15); c.lineTo(12, 10); c.lineTo(17, 15); c.closePath(); c.fill(); c.fillStyle = pl.tread; c.fillRect(3, 18, 6, 3); c.fillRect(15, 18, 6, 3); }
     c.restore();
   }
@@ -130,7 +134,7 @@
       for (var k = 0; k < 3; k++) star(c, cx + 26 + k * 26, y, 9, !!(rec && rec.stars[k]), pl);
       if (rec) text(c, g.t('bestTime') + ' ' + fmtTime(rec.time), cx + 112, y + 5, { size: 12, color: pl.muted, weight: 600 });
       y += 28;
-      (m.def.objectives || []).forEach(function (o) { if (y > cy + 330) return; icon(c, o.icon, cx + 16, y - 13, 18, pl); text(c, tx(o.text) + (o.kind === 'opt' ? ' · ' + g.t('optional') : ''), cx + 42, y, { size: 12, weight: 600, color: pl.ink }); y += 24; });
+      (m.def.objectives || []).forEach(function (o) { if (y > cy + 330 || o.secret) return; /* secret — цель ветки развилки: в брифинге не показываем */ icon(c, o.icon, cx + 16, y - 13, 18, pl); text(c, tx(o.text) + (o.kind === 'opt' ? ' · ' + g.t('optional') : ''), cx + 42, y, { size: 12, weight: 600, color: pl.ink }); y += 24; });
       if (m.id === 'm2' && d.flags.convoy && m.def.flagText) { y += 4; wrap(c, '◆ ' + tx(m.def.flagText.convoy[d.flags.convoy]), cw - 32, 11).forEach(function (ln) { text(c, ln, cx + 16, y, { size: 11, weight: 600, color: pl.warn }); y += 16; }); }
       if (st === 'closed') text(c, g.t('closed'), cx + 16, cy + 372, { size: 12, color: pl.muted, weight: 600 });
       else button(c, cx + 16, cy + 352, cw - 32, 40, '▶ ' + g.t('brief'), function () { openBrief(m); }, { primary: true });
@@ -185,7 +189,7 @@
     // правая колонка: цели, звёзды, отряд
     var x = 540; y = 100;
     text(c, g.t('objectives').toUpperCase(), x, y, { size: 12, color: pl.muted }); y += 10;
-    def.objectives.forEach(function (o, i) {
+    def.objectives.filter(function (o) { return !o.secret; }).forEach(function (o, i) { // secret — цель ветки развилки: в брифинге не показываем
       c.fillStyle = 'rgba(255,255,255,0.04)'; c.fillRect(x, y, 390, 28);
       icon(c, o.icon, x + 6, y + 3, 22, pl);
       text(c, (o.kind === 'opt' ? '◇ ' : (i + 1) + '. ') + tx(o.text), x + 38, y + 19, { size: 13, weight: 700, color: o.kind === 'opt' ? pl.warn : pl.ink });
@@ -309,6 +313,8 @@
       else if (e.t === 'quake') { host.msg(g.t('msgQuake'), 'bad'); g.audio.beep(70, 0.6, 'sawtooth', 0.1); }
       else if (e.t === 'creak') host.msg(g.t(e.type) + ' ' + g.t('msgCreak'), 'warn');
       else if (e.t === 'geyserWarn') { var gz = MS.geys[e.id], gp2 = gz && C.pointOf(MS, gz.def.at); if (gp2 && W.units.some(function (u) { return u.owner === 0 && Math.hypot(u.x - gp2.x, u.y - gp2.y) < (gz.def.r || 2.2) + 1.5; })) host.msg(g.t('msgGeyser'), 'warn'); }
+      else if (e.t === 'part') { host.msg(g.t('msgPart_' + e.k) + (e.left ? '' : ' — ' + g.t('msgBossDown')), 'good'); g.audio.beep(140, 0.3, 'sawtooth', 0.1); g.audio.beep(660, 0.1, 'triangle'); }
+      else if (e.t === 'scald') { host.msg(g.t('msgScald'), 'good'); g.audio.beep(90, 0.6, 'sawtooth', 0.08); }
       else if (e.t === 'halt' && MS.groups[e.tag] && MS.groups[e.tag].owner === 0) host.msg(g.t(e.on ? 'msgHalt' : 'msgGo'), e.on ? 'warn' : 'good');
     });
     MS.ui.length = 0;
@@ -324,6 +330,11 @@
     var s = tx(ob.def.text), cnt = ob.def.count;
     if (cnt && ob.state === 'active' && cnt.t === 'trained') s += ' (' + Math.min(cnt.n, W.players[0].trained[cnt.type] || 0) + '/' + cnt.n + ')';
     if (cnt && ob.state === 'active' && cnt.t === 'time') s += ' · ' + fmtTime(Math.max(0, cnt.gte - W.time)); // обратный отсчёт
+    if (cnt && ob.state === 'active' && cnt.t === 'zone' && cnt.who) { var tin = W.units.filter(function (u) { return u.tag === cnt.who && C.inZone(W.mission, cnt.zone, u.x, u.y); }).length; return s + ' (' + Math.min(cnt.n, tin) + '/' + cnt.n + ')'; } // «сколько дошло» по тегу
+    if (cnt && ob.state === 'active' && cnt.t === 'since') { var so = W.mission.byObj[cnt.obj]; if (so && so.state === 'done') s += ' · ' + fmtTime(Math.max(0, cnt.gte - (W.time - so.t))); }
+    if (cnt && ob.state === 'active' && cnt.t === 'fires') s += ' · ' + W.fires.filter(function (f) { return f.hp > 0 && (!cnt.tag || [].concat(cnt.tag).indexOf(f.tag) >= 0); }).length;
+    if (cnt && ob.state === 'active' && cnt.t === 'owned') s += ' (' + Math.min(cnt.n, W.blds.filter(function (b) { return b.owner === 0 && (b.tag === cnt.tag || b.tag0 === cnt.tag) && (!cnt.type || b.type === cnt.type); }).length) + '/' + cnt.n + ')';
+    if (cnt && ob.state === 'active' && cnt.t === 'parts') s += ' (' + (W.mission.partsN[cnt.tag || '*'] || 0) + '/' + cnt.gte + ')';
     if (cnt && ob.state === 'active' && cnt.t === 'zone') { var own = W.units.filter(function (u) { return u.owner === 0; }), inside = own.filter(function (u) { return C.inZone(W.mission, cnt.zone, u.x, u.y); }).length, need = cnt.all ? own.length : cnt.n; s += ' (' + Math.min(need, inside) + '/' + need + ')'; }
     return s;
   }

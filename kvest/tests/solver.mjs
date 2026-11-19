@@ -8,7 +8,12 @@
    Помощники (helpers.js): действие в сцене может сделать любой свободный герой, которого сцена пускает (правила с hero), — переходы
    помечены act.hero; удержание — переход 'hold' (флаги held:/by: входят в состояние), отпустить — переход 'release' (если сцена
    удержания достижима до и после). Свободные герои ходят отрядом, поэтому их положение не нужно; выход проходим, если его может
-   пройти хотя бы один свободный герой (его пускают обе сцены и на клик им по выходу нет правила/удержания). */
+   пройти хотя бы один свободный герой (его пускают обе сцены и на клик им по выходу нет правила/удержания).
+   Под водой (water.js): воздух в состояние НЕ входит (перебор не растёт) — это ограничение длины пути между воздушными карманами:
+   достижимость сцен считает KVEST.Water.reach (с каким запасом воздуха героиня входит в подводную сцену; карман даёт полный запас),
+   зона подводной сцены доступна, только если до неё хватает воздуха (hsOk). Зоны в мутной воде с полем guide активны, пока звучит
+   их колокол (KVEST.logic.hotspots). positionSafe: из КАЖДОГО активного кармана подводной сцены можно вернуться к старту главы
+   (мягкий возврат приводит героиню в последний карман — значит, застрять можно только в нём). */
 export function load(sandbox) { return sandbox.KVEST; }
 
 export function makeSolver(K, ch) {
@@ -17,19 +22,30 @@ export function makeSolver(K, ch) {
   const HL = K.Helpers || null, MULTI = !!(HL && HL.multi(P)), HEROES = MULTI ? HL.list(P) : ['taya'];
   const as = (st, h) => ({ flags: st.flags, inv: st.inv, hero: h });
   // кто может действовать в сцене s: свободный и пущенный сценой (держащий действует, только отпустив — переход release)
-  const actors = (st, s) => MULTI ? HEROES.filter(h => HL.free(P, st, h) && HL.allowed(SC[s], h)) : ['taya'];
+  const actors = (st, s) => MULTI ? HEROES.filter(h => HL.free(P, st, h) && HL.allowed(SC[s], h, P)) : ['taya'];
+  const WA = K.Water || null, AIR = !!(WA && WA.conf(P)), wet = s => AIR && WA.isWater(SC[s]);
+  const standX = (s, st, h) => L.clampX(L.walkOf(SC[s], st), h.at != null ? h.at : h.rect[0] + h.rect[2] / 2);
   function blocks(st, s, h, hero) {   // на клик героя по зоне сработает не выход, а правило/удержание/механизм
     const sh = as(st, hero); if (L.resolve(P, sh, s, h.id, null)) return true;
     if (MULTI && HL.holdFor(P, sh, s, h.id, hero)) return true;
     const wk = hsWidget[s + ':' + h.id]; return hero === 'taya' && !!wk && L.ok(st, wk.w.need) && !st.flags['w:' + wk.w.id];
   }
-  function passBy(st, s, h) { return actors(st, s).filter(id => (!MULTI || HL.allowed(SC[h.to], id)) && !blocks(st, s, h, id)); }
+  function passBy(st, s, h) { return actors(st, s).filter(id => (!MULTI || HL.allowed(SC[h.to], id, P)) && !blocks(st, s, h, id)); }
   const hsOf = (s, st) => L.hotspots(SC[s], st);
   const hsWidget = {}; P.widgets.forEach(w => { if (w.scene) w.hs.forEach((h, i) => { hsWidget[w.scene + ':' + h] = { w, i }; }); });
   const key = st => Object.keys(st.flags).filter(k => st.flags[k]).sort().join(',') + '|' + st.inv.slice().sort().join(',');
   const clone = st => ({ flags: Object.assign({}, st.flags), inv: st.inv.slice() });
   function settle(st) { for (let i = 0; i < 6; i++) { const k0 = key(st); L.autos(P, st, null); if (MULTI) HL.autoRelease(P, st); if (key(st) === k0) break; } return st; }
-  function scenesFrom(st, from) {
+  // достижимость с учётом воздуха: результат Water.reach (seen + запас воздуха в точках входа); fromX — точки старта под водой
+  function airReach(st, from, fromX) {
+    return WA.reach(SC, P, st, from, { fromX,
+      hotspots: s => hsOf(s, st),
+      pass: (s, h) => L.ok(st, h.need) && L.ok(st, h.toNeed) && passBy(st, s, h).length > 0,
+      stand: (s, h) => standX(s, st, h),
+      entryX: (s, h) => L.clampX(L.walkOf(SC[h.to], st), h.toX != null ? h.toX : SC[h.to].hero.x) });
+  }
+  function scenesFrom(st, from, fromX) {
+    if (AIR) { const R = airReach(st, from, fromX); Object.defineProperty(R.seen, '__air', { value: R, enumerable: false }); return R.seen; }
     const seen = { [from]: { prev: null, hs: null } }, q = [from];
     while (q.length) {
       const s = q.shift();
@@ -47,7 +63,8 @@ export function makeSolver(K, ch) {
     return settle(st);
   }
   function successors(st) {
-    const out = [], k0 = key(st), seen = scenesFrom(st, P.start.scene);
+    const out = [], k0 = key(st), seen = scenesFrom(st, P.start.scene), RA = seen.__air || null;
+    const inAir = (s, h) => !RA || WA.hsOk(SC, P, RA, s, standX(s, st, h));   // до зоны под водой хватает воздуха
     const push = (n, act) => { settle(n); if (key(n) !== k0) out.push({ st: n, act }); };
     for (const s of Object.keys(seen)) {
       // вход в сцену
@@ -55,7 +72,7 @@ export function makeSolver(K, ch) {
       for (const hero of actors(st, s)) {
         const sh = as(st, hero), tag = a => (MULTI ? Object.assign(a, { hero }) : a);
         for (const h of hsOf(s, st)) {
-          if (!L.ok(st, h.need)) continue;
+          if (!L.ok(st, h.need) || !inAir(s, h)) continue;
           const wk = hsWidget[s + ':' + h.id], hd = MULTI ? HL.holdFor(P, sh, s, h.id, hero) : null;
           if (hd) { const n = clone(st); HL.start(P, n, hd, hero); if (hd.puzzle) n.flags[hd.puzzle] = true; push(n, tag({ kind: 'hold', scene: s, hs: h.id, hold: hd.id })); }
           else if (hero === 'taya' && wk && L.ok(st, wk.w.need) && !st.flags['w:' + wk.w.id]) { if (wk.i === 0) { const n = clone(st); L.solveWidget(P, n, wk.w, null); push(n, tag({ kind: 'widget', scene: s, widget: wk.w.id })); } }
@@ -102,6 +119,11 @@ export function makeSolver(K, ch) {
   function positionSafe(st) {
     const bad = [];
     for (const s of Object.keys(scenesFrom(st, P.start.scene))) {
+      if (wet(s)) {   // под водой: из каждого активного кармана сцены (туда приводит мягкий возврат) можно вернуться к старту
+        const R0 = scenesFrom(st, P.start.scene).__air, ps = WA.pockets(SC[s], st).filter(p => R0.best(s, p.x) >= 0);   // только карманы, до которых она может дойти
+        if (ps.every(p => scenesFrom(st, s, [p.x])[P.start.scene])) continue;
+        bad.push(s); continue;
+      }
       if (scenesFrom(st, s)[P.start.scene]) continue;
       const T = TIMERS.find(t => (!t.where || t.where.includes(s)) && L.ok(st, t.need));
       if (T) { const n = clone(st); if (n.flags[T.flag]) delete n.flags[T.flag]; else n.flags[T.flag] = true; if (scenesFrom(n, s)[P.start.scene]) continue; }
@@ -109,7 +131,7 @@ export function makeSolver(K, ch) {
     }
     return bad;
   }
-  return { key, start, successors, explore, scenesFrom, positionSafe, actors, passBy, P, SC, HEROES, MULTI };
+  return { key, start, successors, explore, scenesFrom, positionSafe, actors, passBy, airReach, standX, P, SC, HEROES, MULTI, AIR };
 }
 
 // Поиск решения механизма/мини-игры по его локальному состоянию (BFS по ходам). → массив индексов или null.

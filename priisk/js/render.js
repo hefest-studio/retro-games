@@ -166,6 +166,13 @@
       c.fillStyle = pal.water; c.beginPath(); c.arc(x + w - 14, y + h - 15, 9, 0, 7); c.fill(); c.fillStyle = pal.waterHi; c.fillRect(x + w - 18, y + h - 19, 4, 3);
       c.fillStyle = pal.tread; c.fillRect(x + w - 6, y + h - 17, 5, 4);
       c.fillStyle = own; c.fillRect(x + 4, y + h - 8, w - 9, 3);
+    } else if (b.type === 'shaft') { // копёр: сруб надшахтного здания, решётчатая вышка с колесом, устье с отвалом
+      box(x + 3, y + h - 34, w - 7, 30, pal.wall, 3); box(x + 3, y + h - 38, w - 7, 9, pal.roof, 2); c.fillStyle = pal.roofHi; c.fillRect(x + 3, y + h - 33, w - 7, 2);
+      c.strokeStyle = pal.metal; c.lineWidth = 3; c.beginPath(); c.moveTo(x + 14, y + h - 36); c.lineTo(x + 26, y + 8); c.lineTo(x + 38, y + h - 36); c.moveTo(x + 18, y + 26); c.lineTo(x + 34, y + 26); c.moveTo(x + 26, y + 8); c.lineTo(x + w - 10, y + h - 30); c.stroke();
+      var wa = ghost ? 0 : now * 1.6; c.strokeStyle = pal.metalHi; c.lineWidth = 2; c.beginPath(); c.arc(x + 26, y + 11, 7, 0, 7); c.stroke();
+      for (var ws = 0; ws < 3; ws++) { c.beginPath(); c.moveTo(x + 26 + Math.cos(wa + ws * 2.09) * 7, y + 11 + Math.sin(wa + ws * 2.09) * 7); c.lineTo(x + 26 - Math.cos(wa + ws * 2.09) * 7, y + 11 - Math.sin(wa + ws * 2.09) * 7); c.stroke(); }
+      box(x + w / 2 - 9, y + h - 20, 18, 16, pal.tread, 2); c.fillStyle = pal.glow; c.globalAlpha = 0.5; c.fillRect(x + w / 2 - 5, y + h - 12, 10, 8); c.globalAlpha = 1;
+      c.fillStyle = pal.ore; c.fillRect(x + w - 20, y + h - 12, 10, 7); c.fillStyle = own; c.fillRect(x + 3, y + h - 38, w - 7, 2);
     } else if (b.type === 'store') { // склад: длинный сруб с воротами, ящики с медью у стены
       box(x + 2, y + 5, w - 5, h - 9, pal.wall, 3);
       box(x + 3, y + 3, w - 7, 14, pal.roof, 2); c.fillStyle = pal.roofHi; c.fillRect(x + 3, y + 9, w - 7, 2);
@@ -329,24 +336,21 @@
     if (u.id && now - (u.fixT || -9) < 0.3) sparks(c, x, y, now, pal);
     if (u.vet && !L.HEROES[u.type]) { c.strokeStyle = pal.oreHi; c.lineWidth = 1.6; c.beginPath(); c.moveTo(x - 3.5, y - 10); c.lineTo(x, y - 13); c.lineTo(x + 3.5, y - 10); c.stroke(); } // звание ветерана
   }
-  // ---------- громада: корпус + узлы (гусеницы, бур, труба, котёл); текущий узел обведён (открыт — тёплым, закрыт — серым) ----------
+  // ---------- громада: корпус + узлы (гусеницы, бур, кабина, котёл); узел, по которому попали, вспыхивает; сбитый — обломки ----------
   function drawColossus(c, u, pal, now, own, dk) {
-    var x = u.x * T, y = u.y * T, B = u.bs || { st: 'walk' }, px = pal.pixel, cur = L.curPart(u), cutK = cur && cur.k, open = cur && L.partOpen(u, cur, cur.k === 'tracks' ? 'shell' : 'gun') >= 0.99;
-    var alive = function (k) { return L.partAlive(u, k); };
+    var x = u.x * T, y = u.y * T, B = u.bs || { st: 'walk', cfg: L.BOSS }, px = pal.pixel, wt = u.wt == null ? now : u.wt;
+    var alive = function (k) { return L.partAlive(u, k); }, hot = function (k) { var p = L.partOf(u, k); return !!p && p.hp > 0 && wt - p.hitT < 0.14; };
     c.save(); c.translate(x, y);
     c.fillStyle = 'rgba(0,0,0,0.3)'; c.beginPath(); c.ellipse(3, 5, 42, 30, 0, 0, 7); c.fill();
     if (B.st === 'warn' || B.st === 'vent') { c.strokeStyle = pal.steam + (B.st === 'vent' ? '0.65)' : '0.4)'); c.lineWidth = 2; c.setLineDash([6, 5]); c.beginPath(); c.arc(0, 0, B.cfg.ventR * T, 0, 7); c.stroke(); c.setLineDash([]); }
-    if (B.bw) { c.strokeStyle = pal.bad; c.globalAlpha = 0.5 + 0.5 * Math.sin(now * 16); c.lineWidth = 2.5; c.beginPath(); c.arc(0, 0, B.cfg.blastR * T, 0, 7); c.stroke(); c.globalAlpha = 1; }
     c.rotate(u.heading);
-    var outline = function (k, fn) { if (cutK !== k) return; c.save(); c.strokeStyle = open ? pal.warn : pal.muted; c.lineWidth = open ? 3 : 2; c.globalAlpha = open ? 0.6 + 0.4 * Math.sin(now * 8) : 0.7; fn(); c.restore(); };
-    // гусеницы
-    var tk = ((now * (u.moveT && now - u.moveT < 0.2 ? 6 : 0)) | 0) % 2;
+    // гусеницы (борта)
+    var tk = ((now * (u.moveT != null && wt - u.moveT < 0.2 ? 6 : 0)) | 0) % 2;
     [-25, 17].forEach(function (ty) {
-      c.fillStyle = alive('tracks') ? pal.tread : pal.rockLo; c.fillRect(-38, ty, 74, 8);
+      c.fillStyle = alive('tracks') ? pal.tread : pal.rockLo; c.fillRect(-38, ty, 74, 8); if (hot('tracks')) { c.strokeStyle = pal.warn; c.lineWidth = 1.5; c.strokeRect(-38.5, ty - 0.5, 75, 9); }
       if (alive('tracks')) { c.fillStyle = pal.metal; for (var s = -37 + tk * 3; s < 35; s += 6) c.fillRect(s, ty + 1, 2, 6); }
-      else { c.fillStyle = pal.glow; c.fillRect(-10, ty + 2, 5, 3); c.fillStyle = pal.metal; c.fillRect(10, ty - 2, 6, 3); }
+      else { c.fillStyle = pal.glow; c.fillRect(-10, ty + 2, 5, 3); c.fillStyle = pal.metal; c.fillRect(10, ty - 2, 6, 3); c.fillRect(-27, ty + 6, 7, 3); }
     });
-    outline('tracks', function () { c.strokeRect(-39, -26, 76, 10); c.strokeRect(-39, 16, 76, 10); });
     // корпус
     c.fillStyle = dk; if (px) c.fillRect(-32, -18, 58, 36); else { roundRect(c, -32, -18, 58, 36, 5); c.fill(); }
     c.fillStyle = own; c.fillRect(-29, -15, 52, 4); c.fillRect(-29, 11, 52, 4);
@@ -355,30 +359,44 @@
     // бур спереди
     if (alive('drill')) {
       c.save(); c.translate(26, 0); var spin = now * (B.st === 'bore' ? 14 : 2.5);
-      c.fillStyle = pal.metalHi; c.beginPath(); c.moveTo(0, -12); c.lineTo(22, 0); c.lineTo(0, 12); c.closePath(); c.fill();
+      c.fillStyle = pal.metalHi; c.beginPath(); c.moveTo(0, -12); c.lineTo(22, 0); c.lineTo(0, 12); c.closePath(); c.fill(); if (hot('drill')) { c.strokeStyle = pal.warn; c.lineWidth = 1.5; c.stroke(); }
       c.strokeStyle = pal.tread; c.lineWidth = 2; for (var sp = 0; sp < 4; sp++) { var o2 = ((spin * 3 + sp * 5.5) % 22); c.beginPath(); c.moveTo(o2, -12 + o2 * 0.55); c.lineTo(o2 + 3, 12 - (o2 + 3) * 0.55); c.stroke(); }
       if (B.st === 'bore') for (var db = 0; db < 4; db++) { c.fillStyle = db % 2 ? pal.oreHi : pal.rockHi; c.fillRect(22 + Math.sin(now * 23 + db) * 6, Math.cos(now * 19 + db * 2) * 9, 3, 3); }
       c.restore();
     } else { c.fillStyle = pal.rockLo; c.fillRect(26, -7, 8, 14); c.fillStyle = pal.glow; c.fillRect(28, -2, 3, 4); }
-    outline('drill', function () { c.beginPath(); c.moveTo(25, -14); c.lineTo(50, 0); c.lineTo(25, 14); c.closePath(); c.stroke(); });
-    // котёл в середине
-    var rage = cutK === 'boiler', bl = rage ? 0.55 + 0.45 * Math.sin(now * (B.bw ? 18 : 6)) : 0.6;
-    c.fillStyle = pal.metalHi; c.beginPath(); c.arc(-4, 0, 13, 0, 7); c.fill();
-    c.fillStyle = pal.metal; c.beginPath(); c.arc(-4, 0, 9, 0, 7); c.fill();
-    c.fillStyle = rage ? pal.bad : pal.glow; c.globalAlpha = bl; c.fillRect(-9, -3, 10, 6); c.globalAlpha = 1;
-    outline('boiler', function () { c.beginPath(); c.arc(-4, 0, 15, 0, 7); c.stroke(); });
-    // дымовая труба сзади
-    if (alive('stack')) {
-      c.fillStyle = pal.rockLo; c.beginPath(); c.arc(-22, -6, 6.5, 0, 7); c.fill(); c.fillStyle = B.st === 'warn' ? pal.warn : pal.tread; c.beginPath(); c.arc(-22, -6, 3.5, 0, 7); c.fill();
+    // котёл в середине: топка светится, труба дымит; сбит — тёмный, без дыма
+    if (alive('boiler')) {
+      c.fillStyle = pal.metalHi; c.beginPath(); c.arc(0, 0, 12, 0, 7); c.fill(); if (hot('boiler')) { c.strokeStyle = pal.warn; c.lineWidth = 1.5; c.stroke(); }
+      c.fillStyle = pal.metal; c.beginPath(); c.arc(0, 0, 8.5, 0, 7); c.fill();
+      c.fillStyle = pal.glow; c.globalAlpha = 0.6 + 0.3 * Math.sin(now * 5); c.fillRect(-5, -3, 10, 6); c.globalAlpha = 1;
+      c.fillStyle = pal.tread; c.beginPath(); c.arc(8, -9, 3.5, 0, 7); c.fill();
       if (B.st === 'vent' || (B.st === 'warn' && Math.sin(now * 20) > 0)) for (var vq = 0; vq < 2; vq++) puff(u.x + (Math.random() - 0.5) * 2.4, u.y + (Math.random() - 0.5) * 2.4, 1.6);
-      else if (hash(u.id, (now * 4) | 0) < 0.5) puff(u.x - Math.cos(u.heading) * 0.9, u.y - Math.sin(u.heading) * 0.9, 1.2);
-    } else { c.fillStyle = pal.rockLo; c.fillRect(-25, -9, 6, 6); }
-    outline('stack', function () { c.beginPath(); c.arc(-22, -6, 9, 0, 7); c.stroke(); });
-    // пушка на корпусе (поворачивается отдельно)
-    c.rotate((u.aim == null ? u.heading : u.aim) - u.heading);
-    c.fillStyle = pal.tread; c.fillRect(4, -2.5, 20, 5); if (now - (u.fireT || -9) < 0.08) { c.fillStyle = pal.glow; c.beginPath(); c.arc(26, 0, 4, 0, 7); c.fill(); }
-    c.fillStyle = dk; c.beginPath(); c.arc(6, 0, 6, 0, 7); c.fill(); c.fillStyle = own; c.beginPath(); c.arc(6, 0, 3, 0, 7); c.fill();
+      else if (hash(u.id, (now * 4) | 0) < 0.5) puff(u.x, u.y - 0.3, 1.2);
+    } else { c.fillStyle = pal.rockLo; c.beginPath(); c.arc(0, 0, 12, 0, 7); c.fill(); c.fillStyle = pal.tread; c.beginPath(); c.arc(1, 1, 7, 0, 7); c.fill(); }
+    // кабина на корме: будка машиниста с окнами и пушкой на крыше (поворачивается отдельно)
+    if (alive('cabin')) {
+      c.fillStyle = dk; c.fillRect(-31, -11, 15, 22); if (hot('cabin')) { c.strokeStyle = pal.warn; c.lineWidth = 1.5; c.strokeRect(-31.5, -11.5, 16, 23); } c.fillStyle = own; c.fillRect(-30, -10, 13, 3);
+      c.fillStyle = pal.waterHi; c.fillRect(-19, -6, 2, 4); c.fillRect(-19, 2, 2, 4);
+      c.save(); c.translate(-23, 0); c.rotate((u.aim == null ? u.heading : u.aim) - u.heading);
+      c.fillStyle = pal.tread; c.fillRect(0, -2, 17, 4); if (wt - (u.fireT == null ? -9 : u.fireT) < 0.08) { c.fillStyle = pal.glow; c.beginPath(); c.arc(19, 0, 4, 0, 7); c.fill(); }
+      c.fillStyle = pal.metalHi; c.beginPath(); c.arc(0, 0, 4.5, 0, 7); c.fill(); c.restore();
+    } else { c.fillStyle = pal.rockLo; c.fillRect(-31, -11, 15, 22); c.fillStyle = pal.tread; c.fillRect(-28, -6, 8, 5); c.fillStyle = pal.glow; c.fillRect(-25, 3, 3, 3); }
     c.restore();
+    if (u.bs && u.bs.stun > 0) for (var sq = 0; sq < 2; sq++) puff(u.x + (Math.random() - 0.5) * 3, u.y + (Math.random() - 0.5) * 3, 1.8); // обварена гейзером — стоит в пару
+  }
+  // полоски узлов над громадой: гусеницы, бур, кабина, котёл (сбитый — пустая)
+  function drawParts(c, u, pal) {
+    if (!u.parts) return; var x0 = u.x * T - 46, y0 = u.y * T - 52, w = 21;
+    u.parts.forEach(function (p, n) {
+      var bx = x0 + n * (w + 3), f = p.hp / p.maxHp;
+      c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(bx - 1, y0 - 1, w + 2, 7);
+      c.fillStyle = f > 0.5 ? pal.good : f > 0.2 ? pal.warn : pal.bad; c.fillRect(bx, y0, w * f, 5);
+      c.fillStyle = f > 0 ? pal.ink : pal.muted; var ix = bx + w / 2, iy = y0 - 6; // значок узла
+      if (p.k === 'tracks') { c.fillRect(ix - 7, iy - 2, 14, 2); c.fillRect(ix - 7, iy + 2, 14, 2); }
+      else if (p.k === 'drill') { c.beginPath(); c.moveTo(ix - 5, iy - 3); c.lineTo(ix + 6, iy); c.lineTo(ix - 5, iy + 3); c.closePath(); c.fill(); }
+      else if (p.k === 'cabin') { c.fillRect(ix - 4, iy - 3, 8, 6); c.fillRect(ix + 4, iy - 1, 4, 2); }
+      else { c.beginPath(); c.arc(ix, iy, 3.5, 0, 7); c.fill(); }
+    });
   }
   // ---------- огонь и бочки с водой ----------
   function drawFires(c, W, pal, now) {
@@ -397,6 +415,13 @@
     W.depots.forEach(function (dp) {
       var k = Math.floor(dp.y) * W.w + Math.floor(dp.x); if (!W.vis[k]) return;
       var n = Math.ceil(Math.min(8, dp.w / 50)), bx = dp.x * T, by = dp.y * T;
+      if (dp.kind === 'sand') { // куча песка с лопатой
+        c.fillStyle = 'rgba(0,0,0,0.3)'; c.beginPath(); c.ellipse(bx + 1, by + 7, 24, 8, 0, 0, 7); c.fill();
+        c.fillStyle = pal.pixel ? '#aa5500' : '#b89a5e'; c.beginPath(); c.moveTo(bx - 22, by + 8); c.quadraticCurveTo(bx - 6, by - 20, bx + 4, by - 8); c.quadraticCurveTo(bx + 14, by - 14, bx + 22, by + 8); c.closePath(); c.fill();
+        c.fillStyle = pal.pixel ? '#ffff55' : '#d9c084'; c.beginPath(); c.moveTo(bx - 12, by + 2); c.quadraticCurveTo(bx - 5, by - 13, bx + 2, by - 4); c.closePath(); c.fill();
+        c.fillStyle = pal.tread; c.fillRect(bx + 12, by - 16, 2, 16); c.fillStyle = pal.metalHi; c.fillRect(bx + 10, by - 2, 6, 6);
+        return;
+      }
       c.fillStyle = 'rgba(0,0,0,0.3)'; c.beginPath(); c.ellipse(bx + 1, by + 6, 20, 8, 0, 0, 7); c.fill();
       for (var b = 0; b < Math.max(n, 1); b++) {
         var ix = bx - 15 + (b % 4) * 10, iy = by - 2 - Math.floor(b / 4) * 9; c.fillStyle = b < n ? pal.roof : pal.rockLo; c.fillRect(ix, iy, 9, 10);
@@ -475,6 +500,7 @@
     }
     S.sel.forEach(function (id) { var e = W.byId[id]; mark(e, e && e.owner === 0 ? pal.sel : e && L.friendTo0(W, e.owner) ? pal.good : pal.bad); });
     if (S.hover && !S.sel.has(S.hover.id)) mark(S.hover, S.hover.owner === 0 ? 'rgba(255,255,255,0.45)' : L.friendTo0(W, S.hover.owner) ? pal.good : pal.bad);
+    W.units.forEach(function (u) { if (u.parts && L.visibleTo0(W, u)) drawParts(c, u, pal); });
     W.units.forEach(function (u) { if (u.owner === 0 && u.hp < u.maxHp && !S.sel.has(u.id) && W.time - u.hitT < 3) { var r = L.UNITS[u.type].r * T + 3; hpBar(c, u.x * T - r, u.y * T - r - 6, r * 2, u.hp / u.maxHp, pal); } });
     // туман
     for (var j = j0; j <= j1; j++) for (var i = i0; i <= i1; i++) {
@@ -623,13 +649,13 @@
       hpBar(c, ix, y0 + 8, 200, e.hp / e.maxHp, pal);
       txt(c, Math.ceil(e.hp) + ' / ' + e.maxHp, ix + 208, y0 + 13, { color: pal.muted, font: f, size: 11, weight: 600 });
       var extra = '';
-      if (e.type === 'hauler') extra = t('load') + ': ' + e.carry + ' / ' + (W.haulCap || L.UNITS.hauler.cap);
-      else if (e.packed) extra = t('packedOf') + ': ' + t(e.packed.type);
+      if (e.packed) extra = t('packedOf') + ': ' + t(e.packed.type);
       else if (e.type === 'drill') extra = t('drillTip');
       else if (e.type === 'sapper') extra = t('sapperTip');
-      else if (e.type === 'bowser') extra = t('water') + ': ' + Math.round(e.water || 0) + ' / ' + L.UNITS.bowser.water + ' · ' + t('bowserTip');
+      else if (e.kind === 'unit' && L.waterCap(W, e) > 0 && (e.type === 'bowser' || e.order.t === 'douse' || e.water > 0)) extra = t(e.type === 'bowser' ? 'water' : 'sand') + ': ' + Math.round(e.water || 0) + ' / ' + L.waterCap(W, e) + ' · ' + t('bowserTip');
+      else if (e.type === 'hauler') extra = t('load') + ': ' + e.carry + ' / ' + (W.haulCap || L.UNITS.hauler.cap);
       else if (e.type === 'engineer') extra = t('engineerTip');
-      else if (e.type === 'colossus') { var cp = L.curPart(e); extra = cp ? t('part_' + cp.k) + ': ' + Math.ceil(cp.hp) + ' · ' + t(L.partOpen(e, cp, cp.k === 'tracks' ? 'shell' : 'gun') >= 0.99 ? (cp.k === 'tracks' ? 'partArmor' : 'partOpen') : 'partShut') : ''; }
+      else if (e.type === 'colossus') extra = e.parts.map(function (cp) { return t('part_' + cp.k) + ' ' + (cp.hp > 0 ? Math.ceil(cp.hp / cp.maxHp * 100) + '%' : '✕'); }).join(' · ');
       else if (e.type === 'store') extra = e.stock ? t('storeTip') + ' · ' + e.stock : t('storeEmpty');
       else if (e.type === 'pump') extra = t('pumpTip');
       else if (e.type === 'rig') extra = e.dry ? t('rigDry') : '+' + (W.rigRate || L.BLDS.rig.rate) + ' ' + t('perSec') + ' · ' + t('rigLeft') + ' ' + L.rigOre(W, e);
@@ -676,6 +702,6 @@
   }
   function buttonAt(x, y, S) { for (var n = 0; n < BTNS.length; n++) { var b = BTNS[n]; if (S && S.btnHidden && S.btnHidden(b)) continue; if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) return b; } return null; }
 
-  P.render = { drawColossus: drawColossus, frame: frame, packBtn: packBtn, HEAT: HEAT, LAYOUT: LAYOUT, PAL: PAL, SNOW: SNOW, TILE: T, buttonAt: buttonAt, BTNS: BTNS, setButtons: setButtons, groupAt: groupAt, groupRect: groupRect, repairBtn: repairBtn, fitMinimap: fitMinimap, drawIcon: drawIcon, drawBld: drawBld, drawUnit: drawUnit, txt: txt, roundRect: roundRect, groundPal: groundPal,
+  P.render = { drawColossus: drawColossus, drawParts: drawParts, frame: frame, packBtn: packBtn, HEAT: HEAT, LAYOUT: LAYOUT, PAL: PAL, SNOW: SNOW, TILE: T, buttonAt: buttonAt, BTNS: BTNS, setButtons: setButtons, groupAt: groupAt, groupRect: groupRect, repairBtn: repairBtn, fitMinimap: fitMinimap, drawIcon: drawIcon, drawBld: drawBld, drawUnit: drawUnit, txt: txt, roundRect: roundRect, groundPal: groundPal,
     resetCache: function () { cache.key = ''; mm.t = -1; puffs.length = 0; } };
 })(window);

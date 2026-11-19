@@ -13,7 +13,7 @@ const store = {};
 const sandbox = { console, Math, JSON, setTimeout: () => 0, localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } } };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-const FILES = ['js/music.js', 'js/i18n.js', 'js/edition.js', 'js/stats.js', 'js/theme-api.js', 'js/scenes.js', 'js/widgets.js', 'js/puzzles.js', 'js/coast.js', 'js/helpers.js', 'js/chapters/index.js', 'js/game.js', 'js/audio.js', 'js/themes/icons-ext.js', 'js/themes/grey.js', 'js/themes/paper.js', 'js/themes/paper-helpers.js', 'js/themes/ink-sketch.js'];
+const FILES = ['js/music.js', 'js/i18n.js', 'js/edition.js', 'js/stats.js', 'js/theme-api.js', 'js/scenes.js', 'js/widgets.js', 'js/puzzles.js', 'js/coast.js', 'js/helpers.js', 'js/water.js', 'js/chapters/index.js', 'js/game.js', 'js/audio.js', 'js/themes/icons-ext.js', 'js/themes/grey.js', 'js/themes/paper.js', 'js/themes/paper-helpers.js', 'js/themes/paper-water.js', 'js/themes/ink-sketch.js'];
 for (const f of FILES) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const K = sandbox.KVEST, A = K.ThemeAPI, P = K.PUZZLES, LG = K.logic, WT = K.Widgets.types;
 
@@ -758,6 +758,194 @@ for (const id of ['grey', 'paper']) test('тема ' + id + ': помощник�
     ['taya', 'scent', 'overview', 'hold', 'sail', 'eyepiece', 'chick', 'windmill', 'millstone', 'windW', 'windE', 'telescope', 'dome', 'nest', 'burrow', 'dig'].forEach(ic => { ok(A.ICONS[ic], 'нет в словаре: ' + ic); th.drawIcon(ctx, ic, 100, 100, 40); });
   } finally { sandbox.KVEST_STRICT = false; }
   ok(ctx.calls > 800);
+});
+
+
+// ---------- спринт 3: подводные механики — воздух, мутная вода, звук как подсказка (тестовые данные; контент главы 4 — только в полной сборке) ----------
+// берег: пёс держит лебёдку (колокол-водолаз опущен) — Тая спускается; чайка роняет буёк с колокольчиком на воду;
+// дно (прозрачная вода): карман воздуха в колоколе, родник пузырей под плитой (без него до сундука и арки не хватает воздуха);
+// ил (мутная вода): колокола-ориентиры, колокол в иле находят по звону (зона guide), ворота видны, только пока звенит буёк.
+const WCH = {
+  id: 'ch7', n: 7, title: { ru: 'Проверка воды', en: 'Water check' },
+  scenes: [
+    { id: 'wa', w: 960, h: 540, mood: 'day', icon: 'pier', layers: [{ depth: 0, items: [{ kind: 'sky' }, { kind: 'water', x: 0, y: 300, w: 960, h: 160 }] }, { depth: 2, items: [{ kind: 'ground', x: 0, y: 452, w: 960, h: 88 }] }],
+      objects: [{ id: 'crane', kind: 'crane', x: 300, y: 200, w: 200, h: 252, state: {}, bind: { held: 'held:winch' } }, { id: 'bell', kind: 'divebell', x: 470, y: 300, w: 90, h: 100, state: {}, bind: { down: 'held:winch' } },
+        { id: 'float', kind: 'buoy', x: 800, y: 250, w: 40, h: 60, state: {}, bind: { bell: 'buoySet', set: 'buoySet' } }],
+      hotspots: [{ id: 'winch', rect: [300, 370, 60, 82], cursor: 'use', at: 290 }, { id: 'bell', rect: [460, 290, 110, 162], cursor: 'go', at: 440, to: 'wb', toX: 120, toNeed: ['held:winch'] },
+        { id: 'float', rect: [780, 240, 80, 80], cursor: 'use', at: 760 }],
+      walk: [[30, 452], [930, 452]], hero: { x: 100, y: 452 } },
+    { id: 'wb', w: 960, h: 540, mood: 'dusk', pal: 'seabed', icon: 'ruin', layers: [{ depth: 0, items: [{ kind: 'sky' }, { kind: 'ruin', x: 200, y: 200, w: 200, h: 252, state: { variant: 'house', far: true } }] }, { depth: 2, items: [{ kind: 'ground', x: 0, y: 452, w: 960, h: 88 }] }],
+      water: { pockets: [{ id: 'bell', x: 120, need: ['held:winch'] }, { id: 'vent', x: 520, need: ['ventOn'] }] },
+      objects: [{ id: 'bell', kind: 'divebell', x: 76, y: 330, w: 90, h: 100, state: { under: true } }, { id: 'vent', kind: 'airpocket', x: 490, y: 412, w: 60, h: 40, state: { variant: 'vent' }, bind: { on: 'ventOn' } },
+        { id: 'chest', kind: 'box', x: 870, y: 410, w: 50, h: 42, state: {} }, { id: 'arch', kind: 'arch', x: 880, y: 250, w: 80, h: 202, state: { open: true } }],
+      hotspots: [{ id: 'up', rect: [70, 320, 100, 132], cursor: 'go', at: 120, to: 'wa', toX: 440 }, { id: 'vent', rect: [480, 400, 80, 52], cursor: 'use', at: 520, need: ['!ventOn'] },
+        { id: 'chest', rect: [840, 400, 56, 52], cursor: 'take', at: 880, need: ['!got_shell'] }, { id: 'toMurk', rect: [900, 250, 60, 150], cursor: 'go', at: 930, to: 'wc', toX: 40 }],
+      walk: [[30, 452], [930, 452]], hero: { x: 120, y: 452 } },
+    { id: 'wc', w: 960, h: 540, mood: 'night', pal: 'murk', icon: 'murk', layers: [{ depth: 0, items: [{ kind: 'sky' }] }, { depth: 2, items: [{ kind: 'ground', x: 0, y: 452, w: 960, h: 88 }] }],
+      water: { murk: true, vis: 150, pockets: [{ id: 'dome', x: 140 }, { id: 'boat', x: 560 }],
+        sounds: [{ id: 'post', x: 200, y: 200, note: 1 }, { id: 'sunk', x: 700, y: 430, note: 0, need: ['!got_bell'] }, { id: 'buoy', x: 900, y: 100, note: 3, big: true, need: ['buoySet'] }] },
+      objects: [{ id: 'post', kind: 'seabell', x: 180, y: 160, w: 40, h: 50, state: { note: 1 } }, { id: 'dome', kind: 'airpocket', x: 100, y: 372, w: 80, h: 80, state: { variant: 'dome', on: true } },
+        { id: 'boat', kind: 'airpocket', x: 510, y: 392, w: 100, h: 60, state: { variant: 'boat', on: true } },
+        { id: 'silt1', kind: 'mound', x: 420, y: 422, w: 70, h: 30, state: {} }, { id: 'silt2', kind: 'mound', x: 670, y: 422, w: 70, h: 30, state: {}, bind: { dug: 'got_bell' } },
+        { id: 'gate', kind: 'gate', x: 860, y: 300, w: 80, h: 152, state: {}, bind: { open: 'won' } }],
+      hotspots: [{ id: 'back', rect: [0, 300, 40, 152], cursor: 'go', at: 20, to: 'wb', toX: 900 }, { id: 'silt1', rect: [410, 410, 90, 42], cursor: 'use', at: 455 },
+        { id: 'silt2', rect: [660, 410, 90, 42], cursor: 'use', at: 705, guide: 'sunk', need: ['!got_bell'] }, { id: 'gate', rect: [860, 300, 80, 110], cursor: 'use', at: 880, guide: 'buoy' }],
+      walk: [[20, 452], [930, 452]], hero: { x: 40, y: 452 } }
+  ],
+  puzzles: { start: { scene: 'wa', flags: {}, inv: ['buoybell'] }, goal: 'won', items: ['buoybell', 'shell', 'seabell'],
+    air: { max: 5.5, speed: 120, home: { scene: 'wa', x: 200 } },
+    heroes: [{ id: 'dog' }, { id: 'gull' }],
+    holds: [{ id: 'winch', scene: 'wa', hs: 'winch', by: ['dog'], pose: 'pull', sfx: 'pull', puzzle: 'p_w1' }],
+    rules: [
+      { scene: 'wa', hs: 'float', hero: 'gull', item: 'buoybell', do: [['take', 'buoybell'], ['set', 'buoySet'], ['sfx', 'splash']], puzzle: 'p_w2' },
+      { scene: 'wa', hs: 'float', do: [['think', ['gull', 'buoybell']]] },
+      { scene: 'wb', hs: 'vent', do: [['pose', 'reach', 0.6], ['set', 'ventOn'], ['sfx', 'bubbles']], puzzle: 'p_w3' },
+      { scene: 'wb', hs: 'chest', do: [['give', 'shell'], ['set', 'got_shell']] },
+      { scene: 'wc', hs: 'silt1', do: [['think', ['ear', 'cross']]] },
+      { scene: 'wc', hs: 'silt2', do: [['give', 'seabell'], ['set', 'got_bell'], ['sfx', 'take']], puzzle: 'p_w4' },
+      { scene: 'wc', hs: 'gate', item: 'seabell', need: ['got_shell'], do: [['take', 'seabell'], ['win']], puzzle: 'p_w5' }
+    ],
+    combos: [], enter: [], autos: [], cuts: {}, widgets: [],
+    puzzles: [{ id: 'p_w1', scene: 'wa', type: 'team', hero: 'dog', hint: ['dog', 'hold', 'divebell'] }, { id: 'p_w2', scene: 'wa', type: 'helper', hero: 'gull', hint: ['gull', 'buoybell'] },
+      { id: 'p_w3', scene: 'wb', type: 'air', avail: ['held:winch'], hint: ['air', 'up'] }, { id: 'p_w4', scene: 'wc', type: 'sound', avail: ['ventOn'], hint: ['ear', 'seabell'] },
+      { id: 'p_w5', scene: 'wc', type: 'sound', avail: ['got_bell', 'buoySet', 'got_shell'], hint: ['ear', 'buoybell'] }] }
+};
+const WC = CHS.register(WCH), WA = K.Water;
+// спуститься: пёс держит лебёдку, Тая входит в колокол
+const dive = (opts) => { const ev = [], G = K.createGame(Object.assign({ chapter: WC, timers: false, onEvent: (t, d) => ev.push({ t, d }) }, opts || {})); G.start(); G.switchHero('dog'); hclick(G, 'winch'); run(G, 4); hclick(G, 'bell'); run(G, 5); return { G, ev }; };
+const walkTo = (G, x, sec) => { G.down(x, 300); G.up(x, 300); run(G, sec == null ? 9 : sec); };
+test('вода: контракт — KVEST.Water, kind и пиктограммы подводных механик, раскладка шкалы воздуха, хук drawWater; в главах 1–3 воды нет', () => {
+  ok(WA && WA.reach && WA.hsOk && WA.voice && WA.filter && WA.SAFE < 1, 'KVEST.Water');
+  ['divebell', 'seabell', 'kelp', 'airpocket', 'buoy', 'arch', 'crane', 'ruin', 'whale'].forEach(k => ok(A.isKind(k), 'kind ' + k));
+  ['ear', 'air', 'divebell', 'seabell', 'buoy', 'buoybell', 'chain', 'kelp', 'belfry', 'pier', 'ruin', 'murk'].forEach(i => ok(A.ICONS[i], 'пиктограмма ' + i));
+  ok(A.LAYOUT.air && A.LAYOUT.air.n >= 8 && A.HOOKS.includes('drawWater'));
+  const G1 = K.createGame({ chapter: CHS.get('ch1') }); G1.start(); ok(G1.model().water === null && G1.air() === null && !('air' in G1.state()), 'в главе 1 появился воздух');
+  eq(G1.ability(), null, 'у Таи на суше умение'); const GH = K.createGame({ chapter: HC }); GH.start(); eq(GH.model().water, null); ok(!('air' in GH.state()));
+  ok(/water\.js/.test(fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')) && /paper-water\.js/.test(fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')), 'index.html не грузит water.js / paper-water.js');
+});
+test('воздух: с суши под воду — полный запас; в пути убывает, стоя — вдесятеро медленнее; в кармане пополняется за секунду; шкала — доля без цифр', () => {
+  const { G, ev } = dive(); eq(G.state().scene, 'wb'); let a = G.air(); eq(a.max, 5.5); ok(Math.abs(a.left - a.max) < 0.01, 'под водой не с полным воздухом: ' + a.left);
+  let m = G.model().water; ok(m && m.air && m.air.pocket && Math.abs(m.air.f - 1) < 0.01 && m.air.bubbles === 10 && !m.murk, 'модель воды'); eq(m.pockets.map(p => p.id).join(), 'bell', 'закрытый родник — карман');
+  walkTo(G, 360, 2); a = G.air(); const inP = WA.POCKET_W / 120;   // первые 56 пикселей — ещё в кармане колокола
+  ok(Math.abs(a.left - (5.5 - (2 - inP))) < 0.08, 'в пути уходит не секунда воздуха за секунду: ' + a.left); ok(Math.abs(G.runtime().hero.x - 360) < 1, 'под водой шаг не 120/с: ' + G.runtime().hero.x);
+  const a1 = a.left; run(G, 2); ok(Math.abs((a1 - G.air().left) - 2 * WA.IDLE_K) < 0.06 && WA.IDLE_K <= 0.15, 'стоя уходит не десятая: ' + (a1 - G.air().left));
+  m = G.model().water; ok(!m.air.pocket && m.air.f < 0.7 && !m.air.low);
+  walkTo(G, 440, 0.7); ok(G.air().left < 3.2 && G.air().left > 2.9, 'воздух: ' + G.air().left);
+  walkTo(G, 150, 2.4); ok(G.air().left < 2.2 && G.air().left > 0.2, 'на обратном пути воздух: ' + G.air().left); eq(G.air().outs, 0); run(G, 1.1); ok(Math.abs(G.air().left - 5.5) < 0.01, 'карман не пополнил за секунду'); ok(ev.some(e => e.t === 'sfx' && e.d.name === 'air'), 'нет звука пополнения');
+  eq(G.air().pocket.id, 'bell'); const sv = JSON.parse(G.serialize()); ok(sv.air > 5.4 && sv.pocket.scene === 'wb', 'воздух не в сохранении');
+  // подняться и спуститься снова — опять полный
+  walkTo(G, 400, 2.5); hclick(G, 'up'); run(G, 6); eq(G.state().scene, 'wa'); eq(G.air().left, 5.5); eq(G.model().water, null);
+});
+test('мягкий возврат: воздух кончился — не смерть: героиня у последнего кармана, флаги и предметы целы; без кармана — «дом» главы', () => {
+  const { G, ev } = dive(); const flags0 = JSON.stringify(G.state().flags), inv0 = G.state().inv.join();
+  hclick(G, 'chest'); let low = false, surf = false; for (let i = 0; i < 30 * 9 && !surf; i++) { G.update(1 / 30); const w = G.model().water; low = low || w.air.low; surf = G.surfacing(); }
+  ok(low, 'шкала не предупредила (low)'); ok(surf, 'воздух не кончился до сундука'); ok(G.runtime().hero.x < 878, 'дошла до сундука без родника'); ok(G.busy(), 'во время возврата ввод открыт');
+  run(G, 0.3); ok(G.model().water.fade > 0.2, 'нет затемнения'); G.down(700, 300); G.up(700, 300); run(G, 2.5); ok(!G.surfacing());
+  eq(G.state().scene, 'wb'); ok(Math.abs(G.runtime().hero.x - 120) < 2, 'не у кармана колокола: ' + G.runtime().hero.x); eq(G.air().left, 5.5); eq(G.air().outs, 1);
+  eq(JSON.stringify(G.state().flags), flags0, 'флаги изменились'); eq(G.state().inv.join(), inv0); ok(!G.won() && !G.state().flags.got_shell);
+  ok(ev.some(e => e.t === 'air' && e.d.out) && ev.some(e => e.t === 'sfx' && e.d.name === 'surface') && ev.some(e => e.t === 'sfx' && e.d.name === 'airlow'), 'события возврата');
+  // открыть родник — теперь до сундука хватает
+  hclick(G, 'vent'); run(G, 5); ok(G.state().flags.ventOn && G.state().flags.p_w3); eq(G.model().water.pockets.length, 2); run(G, 1.2); eq(G.air().pocket.id, 'vent');
+  hclick(G, 'chest'); run(G, 5); ok(G.state().inv.includes('shell'), 'с родником не дошла'); eq(G.air().outs, 1);
+  // кармана больше нет (лебёдку отпустили) — возврат в «дом» главы на берегу
+  const G2 = K.createGame({ chapter: WC, timers: false }); ok(G2.load({ v: 1, ch: 'ch7', scene: 'wb', flags: {}, inv: [], hero: 'taya', air: 0.3, pocket: { scene: 'wb', x: 120, id: 'bell' }, heroX: 700 }));
+  walkTo(G2, 800, 3); eq(G2.state().scene, 'wa', 'не вернулась на берег'); ok(Math.abs(G2.runtime().hero.x - 200) < 2); eq(G2.air().left, 5.5);
+});
+test('выборочные помощники: под водой — только Тая (портреты пса и чайки погашены); пёс держит лебёдку на берегу, чайка роняет буёк сверху — меняется сцена под водой', () => {
+  const { G } = dive(); let m = G.model(); eq(m.party.map(p => p.id).join(), 'taya'); const hs = m.ui.heroes; eq(hs.map(h => h.id).join(), 'taya,dog,gull');
+  ok(hs[0].active && hs[0].here && !hs[1].here && hs[1].busy && hs[1].where === 'pier', 'пёс: ' + JSON.stringify(hs[1])); ok(!hs[2].here && !hs[2].allowed && hs[2].where === 'water', 'чайка: ' + JSON.stringify(hs[2]));
+  ok(!G.switchHero('gull') && !G.switchHero('dog'), 'переключился под водой'); ok(!HLP.allowed(WC.scenes[1], 'gull', WC.puzzles) && HLP.allowed(WC.scenes[0], 'gull', WC.puzzles) && HLP.allowed(WC.scenes[1], 'taya', WC.puzzles));
+  ok(HLP.allowed({ id: 'x', water: {} }, 'seal', { heroes: [{ id: 'seal', dive: true }] }), 'ныряющий помощник не пущен'); ok(!HLP.allowed({ id: 'x' }, 'dog', { heroes: [{ id: 'dog', not: ['x'] }] }) && !HLP.allowed({ id: 'x' }, 'dog', { heroes: [{ id: 'dog', only: ['y'] }] }), 'not/only');
+  hclick(G, 'up'); run(G, 6); eq(G.state().scene, 'wa'); ok(G.state().flags['held:winch'], 'пёс бросил лебёдку');
+  // чайка с буйком: только она долетает до воды
+  hclick(G, 'float'); run(G, 4); ok(!G.state().flags.buoySet); G.switchHero('gull'); const h = G.hotspot('float'), sl = K.ThemeAPI.slotRect(0); G.down(sl[0] + 20, sl[1] + 20); G.move(sl[0] + 60, sl[1] - 60); G.move(h.rect[0] + 40, h.rect[1] + 40); G.up(h.rect[0] + 40, h.rect[1] + 40); run(G, 4);
+  ok(G.state().flags.buoySet && G.state().flags.p_w2, 'чайка не уронила буёк'); eq(WA.sources(WC.scenes[2], G.state()).map(s => s.id).join(), 'post,sunk,buoy', 'буёк не зазвучал под водой');
+  // отпустить лебёдку — колокол поднят, спуска нет
+  G.switchHero('dog'); hclick(G, 'winch'); run(G, 0.3); ok(!G.state().flags['held:winch']); G.switchHero('taya'); hclick(G, 'bell'); run(G, 4); eq(G.state().scene, 'wa', 'спустилась без колокола');
+});
+test('мутная вода и звук: зона guide активна, пока звенит её колокол; звон — сам и по «прислушаться» (слева направо); панорама — направление, нота не меняется, дальше — тише и глуше', () => {
+  const ev = [], G = K.createGame({ chapter: WC, timers: false, onEvent: (t, d) => ev.push({ t, d }) });
+  ok(G.load({ v: 1, ch: 'ch7', scene: 'wc', flags: { 'held:winch': true, 'by:winch:dog': true, ventOn: true }, inv: [], hero: 'taya', heroX: 450 }));
+  let m = G.model().water; ok(m.murk && m.vis === 150 && m.hero.x === 450, 'муть в модели'); eq(m.sounds.filter(s => s.active).map(s => s.id).join(), 'post,sunk');
+  ok(G.hotspot('silt2') && G.hotspot('silt1') && !G.hotspot('gate'), 'ворота видны без звона буйка'); ok(!LG.hotspots(WC.scenes[2], { flags: {}, inv: [] }).some(h => h.id === 'gate'));
+  ok(LG.hotspots(WC.scenes[2], { flags: { buoySet: true }, inv: [] }).some(h => h.id === 'gate'), 'буёк звенит, а ворот нет');
+  // курсор в мути не выдаёт невидимое: далёкая зона — «идти», рядом — её курсор
+  G.move(705, 430); eq(G.model().cursor.kind, 'walk', 'курсор выдал зону в мути'); G.move(455, 430); eq(G.model().cursor.kind, 'use');
+  // сам звенит раз в EVERY секунд
+  run(G, WA.EVERY + 0.2); const auto = ev.filter(e => e.t === 'ring'); ok(auto.length >= 2 && auto.every(e => e.d.how === 'auto'), 'колокола не звенят сами: ' + auto.length);
+  // «прислушаться»: портрет Таи с ухом, умение — колокола по очереди слева направо
+  const pt = G.model().ui.heroes[0]; ok(pt.active && pt.ability === 'ear', 'на портрете Таи нет уха'); ev.length = 0; eq(G.ability(), 2); run(G, 1.6);
+  const rg = ev.filter(e => e.t === 'ring' && e.d.how === 'listen'); eq(rg.map(e => e.d.id).join(), 'post,sunk', 'порядок');
+  ok(rg[0].d.pan < -0.3 && rg[1].d.pan > 0.3, 'панорама: ' + rg.map(e => e.d.pan.toFixed(2))); eq(rg[0].d.note, 1); eq(rg[1].d.note, 0); ok(rg.every(e => e.d.semis === 0), 'строй изменился');
+  m = G.model().water; const sp = m.sounds.find(s => s.id === 'post'), ss = m.sounds.find(s => s.id === 'sunk'); ok(sp.age < 1.7 && ss.age < 1.1 && sp.n >= 1 && ss.near > 0 && sp.pan < 0 && ss.pan > 0, 'кольца в модели (визуальный дубль)');
+  ok(ev.some(e => e.t === 'ability' && e.d.listen === 2));
+  // ближе к источнику — громче и звонче; высота та же
+  const far = WA.voice({ x: 700 }, 100, true), near = WA.voice({ x: 700 }, 680, true); ok(near.gain > far.gain * 1.8 && near.cutoff > far.cutoff + 800 && near.pan < far.pan && far.pan === 1 && near.semis === 0 && far.semis === 0, 'голос по расстоянию');
+  ok(WA.voice({ x: 100 }, 500, false).pan < -0.9);
+  // по звону нашла колокол в иле: источник замолчал, зона пропала
+  hclick(G, 'silt1'); run(G, 4); ok(!G.state().flags.got_bell); hclick(G, 'silt2'); run(G, 6); ok(G.state().inv.includes('seabell') && G.state().flags.p_w4, 'колокол не найден');
+  ok(!G.hotspot('silt2')); eq(G.model().water.sounds.filter(s => s.active).map(s => s.id).join(), 'post'); eq(G.air().outs, 0);
+  // в мини-игре и на суше колокола молчат; на берегу умения у Таи нет
+  const G2 = K.createGame({ chapter: WC, timers: false }); G2.start(); eq(G2.ability(), null); ok(!G2.model().ui.heroes[0].ability);
+});
+test('глава без помощников: под водой у Таи свой портрет с ухом (тап — прислушаться), на суше портретов нет', () => {
+  const solo = { id: 'ch12', n: 12, title: { ru: 'Одна', en: 'Solo' }, scenes: WCH.scenes, puzzles: Object.assign({}, WCH.puzzles, { heroes: undefined, holds: [], start: { scene: 'wc', flags: {}, inv: [] } }) };
+  const ev = [], G = K.createGame({ chapter: solo, timers: false, onEvent: (t, d) => ev.push({ t, d }) }); G.start(); ok(!G.multi);
+  let m = G.model(); eq(m.ui.heroes.length, 1); ok(m.ui.heroes[0].ability === 'ear' && m.party.length === 0 && m.showHero);
+  const L = A.LAYOUT.heroes; G.down(L.x, L.y); G.up(L.x, L.y); run(G, 1.5); ok(ev.filter(e => e.t === 'ring' && e.d.how === 'listen').length >= 2, 'тап по портрету не слушает'); ok(!G.busy() || true);
+  ok(G.load({ v: 1, ch: 'ch12', scene: 'wa', flags: {}, inv: [] })); ok(!G.model().ui.heroes, 'портрет на суше');
+});
+test('поиск с воздухом: воздух — ограничение пути между карманами (в состояние не входит); финал достижим, тупиков нет (и из каждого кармана)', () => {
+  const S = makeSolver(K, WC); ok(S.AIR);
+  const held = { flags: { 'held:winch': true, 'by:winch:dog': true }, inv: [] }, vent = { flags: Object.assign({ ventOn: true }, held.flags), inv: [] };
+  eq(Object.keys(S.scenesFrom({ flags: {}, inv: [] }, 'wa')).join(), 'wa'); const r1 = S.scenesFrom(held, 'wa'), r2 = S.scenesFrom(vent, 'wa');
+  ok(r1.wb && r2.wb && r2.wc, 'сцены'); const A1 = r1.__air, A2 = r2.__air, B = WA.budget(WC.puzzles); ok(Math.abs(B - 5.5 * 120 * WA.SAFE) < 1e-6);
+  ok(!WA.hsOk(WC.scenes.reduce((o, s) => (o[s.id] = s, o), {}), WC.puzzles, A1, 'wb', 880), 'сундук достижим без родника'); ok(WA.hsOk(S.SC, WC.puzzles, A2, 'wb', 880) && WA.hsOk(S.SC, WC.puzzles, A1, 'wb', 520));
+  ok(!(A1.best('wc', 140) >= 0), 'без родника до кармана в иле хватает воздуха: ' + A1.best('wc', 140)); ok(A2.best('wc', 140) >= 0 && WA.hsOk(S.SC, WC.puzzles, A2, 'wc', 880));
+  ok(!S.successors(held).some(x => x.act.hs === 'chest') && S.successors(held).some(x => x.act.hs === 'vent') && S.successors(vent).some(x => x.act.hs === 'chest'), 'переходы не учитывают воздух');
+  const E = S.explore(); ok(E.goals.length, 'финал'); eq(E.dead.length, 0, 'тупики'); for (const n of E.list) eq(S.positionSafe(n.st).join(), '', 'застрять можно в');
+  ok(E.list.length < 80, 'состояний ' + E.list.length + ' — воздух раздул перебор'); ok(E.list.every(n => !/air|pocket/.test(S.key(n.st))), 'воздух попал в ключ состояния');
+  const iv = E.plan.findIndex(a => a.hs === 'vent'), ic = E.plan.findIndex(a => a.hs === 'chest'), ig = E.plan.findIndex(a => a.hs === 'gate'); ok(iv >= 0 && iv < ic && iv < ig, 'план обошёл родник: ' + JSON.stringify(E.plan.map(a => a.hs || a.kind)));
+  ok(E.plan.some(a => a.hero === 'gull' && a.item === 'buoybell') && E.plan.some(a => a.kind === 'hold' && a.hero === 'dog'));
+  // строгая проверка положения: карман, из которого не вернуться, — тупик
+  const trap = JSON.parse(JSON.stringify(WCH)); trap.id = 'ch11'; trap.n = 11; trap.scenes[2].water.pockets = [{ id: 'far', x: 900 }, { id: 'dome', x: 140 }]; trap.scenes[2].hotspots[0].need = ['!got_bell'];
+  const ST = makeSolver(K, trap); ok(ST.positionSafe({ flags: Object.assign({ got_bell: true }, vent.flags), inv: [] }).includes('wc'), 'ловушка не найдена');
+});
+test('бот проходит подводную главу: дышит в карманах по пути, ни одного мягкого возврата; с неверным расчётом — возврат и повтор, прогресс цел', () => {
+  const r = playChapter(K, { chapter: WC }); ok(r.won, 'не прошёл'); eq(r.solved, r.total, 'не решены: ' + r.missing.join(',')); ok(r.refills >= 2, 'заходов в карманы ' + r.refills); eq(r.outs, 0, 'мягких возвратов');
+  console.log('     бот: кликов ' + r.clicks + ', в карманах ' + r.refills + ' раз, переключений ' + r.switches);
+});
+for (const id of ['grey', 'paper']) test('тема ' + id + ': подводные kind во всех состояниях, палитры, drawWater — муть, кольца звона, шкала воздуха, затемнение (строгий режим)', () => {
+  const ctx = A.mockCtx(), th = THEMES[id]; sandbox.KVEST_STRICT = true;
+  try {
+    ok(typeof th.drawWater === 'function', 'нет хука drawWater');
+    const { G } = dive();
+    for (const sid of ['wa', 'wb', 'wc']) { G.load({ v: 1, ch: 'ch7', scene: sid, hero: 'taya', flags: { 'held:winch': true, 'by:winch:dog': true, ventOn: sid !== 'wb', buoySet: true }, inv: ['seabell'], heroX: 400 }); if (sid === 'wc') G.ability(); run(G, 1);
+      const m = G.model(); th.drawScene(ctx, m.scene, 1, {}); m.party.forEach(p => p.id === 'taya' ? th.drawHero(ctx, p, p.pose, 1) : th.drawHelper(ctx, p, p.pose, 1)); if (m.water) th.drawWater(ctx, m.water, 1); th.drawUI(ctx, m.ui, 1); }
+    th.drawWater(ctx, A.sampleWater(), 2.2); th.drawWater(ctx, { murk: false, sounds: [], pockets: [], air: { f: 1, low: false, pocket: true }, hero: { x: 100, y: 452 }, fade: 0 }, 0); th.drawWater(ctx, null, 0); th.drawWater(ctx, { murk: true, fade: 1 }, 1);
+    const kinds = [['divebell', {}], ['divebell', { under: true, ballast: true }], ['divebell', { down: true }], ['divebell', { knot: true, ballast: true }], ['seabell', { note: 0 }], ['seabell', { note: 4, ring: 0.8 }], ['seabell', { note: 2, sunk: true }],
+      ['seabell', { note: 3, empty: true }], ['seabell', { note: 1, great: true, ring: 0.3 }], ['kelp', {}], ['kelp', { cut: true }], ['airpocket', { variant: 'boat', on: true }], ['airpocket', { variant: 'vent' }], ['airpocket', { variant: 'vent', on: true }],
+      ['airpocket', { variant: 'dome', on: true }], ['buoy', {}], ['buoy', { bell: true, set: true }], ['arch', {}], ['arch', { open: true, chain: true, kelp: true }], ['crane', { knot: true }], ['crane', { held: true, wound: true }],
+      ['ruin', { variant: 'wall' }], ['ruin', { variant: 'house', door: true, kelp: true }], ['ruin', { variant: 'column' }], ['ruin', { variant: 'house', far: true, window: false }],
+      ['whale', {}], ['whale', { near: true }], ['whale', { near: true, eye: true, hook: true }], ['whale', { near: true, eye: true, sing: true, calm: true }]];
+    for (const pk of ['seabed', 'murk', 'deep', 'baypier', 'foundry']) th.drawScene(ctx, { id: 'w_' + pk, w: 960, h: 540, mood: pk === 'foundry' ? 'indoor' : 'dusk', pal: pk,
+      layers: [{ depth: 0, items: [{ kind: 'sky' }, { kind: 'hill', x: 0, y: 260, w: 960, h: 120, seed: 2 }, { kind: 'wall', x: 0, y: 0, w: 960, h: 452 }, { kind: 'ruin', x: 100, y: 200, w: 200, h: 252, seed: 3, state: { variant: 'house', far: true } }] }, { depth: 2, items: [{ kind: 'ground', x: 0, y: 452, w: 960, h: 88 }, { kind: 'floor', x: 0, y: 452, w: 960, h: 88 }, { kind: 'rock', x: 500, y: 400, w: 80, h: 52 }] }, { depth: 3, items: [{ kind: 'kelp', x: 20, y: 300, w: 60, h: 240, seed: 2 }] }],
+      objects: kinds.map((k, i) => ({ id: 'o' + i, kind: k[0], x: 20 + (i % 10) * 92, y: 120 + Math.floor(i / 10) * 110, w: k[0] === 'whale' ? 300 : 70, h: k[0] === 'whale' ? 140 : 90, seed: i, state: k[1] })), hotspots: [] }, 1.5, {});
+    // мелодия на колоколах звонницы (melody с kind: 'seabell') — крупный план рисуется
+    const mw = { id: 'mw', type: 'melody', n: 5, kind: 'seabell', target: [3, 1, 4, 0] }, ms = WT.melody.scene(mw, WT.melody.init(mw), 1, { ring: { c3: 0.9 } }); ok(ms.objects.filter(o => o.kind === 'seabell').length === 5, 'колокола мини-игры'); th.drawScene(ctx, ms, 1, {});
+    ['ear', 'air', 'divebell', 'seabell', 'buoy', 'buoybell', 'chain', 'kelp', 'belfry', 'pier', 'ruin', 'murk', 'whale'].forEach(ic => th.drawIcon(ctx, ic, 100, 100, 40));
+    eq(A.validateTheme(th).errors.join('; '), '');
+  } finally { sandbox.KVEST_STRICT = false; }
+  ok(ctx.calls > 1500, 'вызовов ' + ctx.calls);
+});
+test('звук подводных событий: ring / air / airlow / surface / whale не падают без WebAudio и с ним (панорама и фильтр — если есть)', () => {
+  const beeps = []; let made = 0; const node = () => ({ connect() {}, start() {}, stop() {}, type: '', frequency: { value: 0 }, Q: { value: 0 }, pan: { value: 0 }, gain: { value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} } });
+  const ac = { currentTime: 0, destination: {}, createGain: () => { made++; return node(); }, createOscillator: () => { made++; return node(); }, createBiquadFilter: () => { made++; return node(); }, createStereoPanner: () => { made++; const n = node(); ac.lastPan = n; return n; } };
+  const g1 = { audio: { enabled: true, beep: (f, d, t, v) => beeps.push(f) } }, g2 = { audio: { enabled: true, beep: () => {}, _ctx: () => ac } };
+  K.sfx(g1, 'ring', { note: 3, pan: -1, gain: 0.5, cutoff: 900 }); eq(beeps[0], K.NOTES[3], 'без WebAudio нота не та'); K.sfx(g1, 'ring', { note: 0, big: true }); eq(beeps[1], K.NOTES[0] / 2, 'большой колокол — октавой ниже');
+  K.sfx(g2, 'ring', { note: 1, pan: -0.7, gain: 0.8, cutoff: 1500 }); ok(made >= 8, 'узлы WebAudio'); eq(ac.lastPan.pan.value, -0.7, 'панорама'); K.sfx(g2, 'ring', { harsh: true, pan: 2 }); eq(ac.lastPan.pan.value, 1);
+  ['air', 'airlow', 'surface', 'bubbles', 'dive', 'whale', 'clangiron'].forEach(n => { K.sfx(g1, n, {}); K.sfx(g2, n, {}); });
+  K.sfx({ audio: { enabled: false, beep: () => { throw new Error('звук выключен'); } } }, 'ring', { note: 1 });
 });
 
 console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed));

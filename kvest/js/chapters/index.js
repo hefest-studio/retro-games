@@ -10,7 +10,7 @@
 (function (global) {
   'use strict';
   var K = global.KVEST = global.KVEST || {};
-  var FILES = K.CHAPTER_FILES = { demo: ['ch1'], full: ['ch2', 'ch3'] };
+  var FILES = K.CHAPTER_FILES = { demo: ['ch1'], full: ['ch2', 'ch3', 'ch4'] };
   var LIST = [], BY = {};
   var OLD_SAVE = 'arcade.save.kvest', SAVE_PREFIX = 'arcade.save.kvest.', PROG = 'arcade.kvest.chapters';
 

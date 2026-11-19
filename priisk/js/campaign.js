@@ -8,7 +8,8 @@
    all/any/not. Действия: if (when → do / else), say, msg, spawn, group, despawn, tiles, reveal, objective, weather, night, flag, copper, win, lose, wait,
    ai (волновой ИИ скирмиша), allow. spawn.speed — множитель скорости (тяжёлые сани обоза), spawn.hp — своё здоровье, spawn.locked — игрок не командует.
    train — тягач с вагонами (сцепка: вагоны едут по следу тягача). ':' на карте — мост (проходим; tiles может его «взорвать»).
-   Сценарный ИИ групп по тегу: hold, patrol, attack (target — точка, prey — охота за юнитами с тегом), convoy (route, halt — стоять,
+   Сценарный ИИ групп по тегу: hold, patrol, attack (target — точка, prey — охота за юнитами с тегом), capture (инженеры занимают
+   чужие здания с тегами g.tags, охрана идёт с ними), convoy (route, halt — стоять,
    пока враг ближе halt клеток; годится и для своей колонны owner:0) (+ реакция на обстрел). tiles после смены карты перестраивает
    пути, шедшие через исчезнувшие клетки (враг ищет обход). Флаги прошлых миссий: def.carry = ['convoy'] (из сохранения кампании),
    стартовые силы с when — только если условие верно на старте. player.repair — ремонт зданий открыт (в скирмише нет).
@@ -21,10 +22,12 @@
    spawn.calm — мирные (сами не стреляют, по ним — только по приказу). Условия hit (по кому стреляли), razed (снесённые здания).
    Миссии 7–8: def.teams = [0, 1, 0] — союзник (владелец 2) в команде игрока: не стреляем друг в друга, общий обзор; def.ally.start —
    его стартовые силы; def.paint — цвет владельцев на экране (например, { 1: 3 } — наёмники); действие owner — сменить владельца
-   по тегу (союз или вражда после развилки); choice — развилка: игра стоит, пока игрок не выберет (флаг = ключ варианта, вариант
-   выполняет свои действия; C.choose); fire / douse — очаги пожара (и погасить сценарно); def.depots и depot — бочки с водой;
-   boss — маршрут громады; группа mode 'douse' — водовозы тушат огонь в своей зоне. Условия fires (сколько очагов), doused
-   (сколько потушено), owned (здания с тегом у владельца — захват), captured, part (узел громады сломан), bossDone (дошла).
+   по тегу (союз или вражда после развилки; развилка — действием игрока: обычные триггеры zone / captured / hit ставят флаг);
+   fire / douse — очаги пожара (и погасить сценарно); def.depots и depot — бочки с водой / кучи песка; def.sand — рудовозы
+   тоже тушат (груз песка); boss — маршрут и настройка громады ({ tag, route, cfg }); гейзер под громадой обваривает её узлы
+   (gd.boss — урон узлу, gd.stun — на сколько секунд встанет); группа mode 'douse' — водовозы тушат огонь в своей зоне.
+   Условия fires (сколько очагов), doused (сколько потушено), owned (здания с тегом у владельца — захват), captured, part
+   (узел громады сломан), parts (сколько узлов сломано), since (секунд после выполнения цели), bossDone (дошла до конца маршрута), scalded (громаду обварило гейзером).
    Прогресс — localStorage 'arcade.priisk.campaign' (через переданное хранилище, с try/catch). Экспорт: PRIISK.campaign. */
 (function (root) {
   'use strict';
@@ -99,11 +102,11 @@
       flags: Object.assign({}, def.flags || {}, carried(def, save)), spawned: Object.create(null), killed: Object.create(null), heroDead: Object.create(null), heroes: Object.create(null),
       ui: [], allow: Object.create(null), night: false, nightMul: 1, weather: def.weather ? Object.assign({}, def.weather) : null, storm: 0,
       winAt: -1, reason: null, trigT: 0, aiT: 0, vetsUsed: 0, save: save, razed: Object.create(null), warn: [], geys: Object.create(null), creakT: 0,
-      choice: null, doused: Object.create(null), captured: Object.create(null), partsDown: Object.create(null), bossDone: Object.create(null)
+      doused: Object.create(null), captured: Object.create(null), partsDown: Object.create(null), partsN: Object.create(null), bossDone: Object.create(null), scalded: Object.create(null)
     };
     if (def.teams) W.team = def.teams.slice(); if (def.paint) { W.paint = {}; Object.keys(def.paint).forEach(function (k) { W.paint[k] = def.paint[k]; }); }
-    Object.keys(def.depots || {}).forEach(function (id) { var dd = def.depots[id], dp = pointOf(MS, dd.at); W.depots.push({ id: id, x: dp.x, y: dp.y, w: dd.w == null ? 400 : dd.w, max: dd.max || dd.w || 400, team: dd.team == null ? null : dd.team }); });
-    W.haulCap = def.haulCap || 0; W.rigRate = def.rigRate || 0; W.treaty = !!def.treaty; W.packOn = !!def.player.pack; if (def.plantable) { W.plantable = {}; def.plantable.forEach(function (t) { W.plantable[t] = 1; }); }
+    Object.keys(def.depots || {}).forEach(function (id) { var dd = def.depots[id], dp = pointOf(MS, dd.at); W.depots.push({ id: id, x: dp.x, y: dp.y, w: dd.w == null ? 400 : dd.w, max: dd.max || dd.w || 400, team: dd.team == null ? null : dd.team, kind: dd.kind || 'water' }); });
+    W.sand = def.sand || 0; W.haulCap = def.haulCap || 0; W.rigRate = def.rigRate || 0; W.treaty = !!def.treaty; W.packOn = !!def.player.pack; if (def.plantable) { W.plantable = {}; def.plantable.forEach(function (t) { W.plantable[t] = 1; }); }
     Object.keys(def.geysers || {}).forEach(function (id) { var gd = def.geysers[id]; MS.geys[id] = { id: id, def: gd, on: gd.on !== false, t0: 0, warn: false, burst: -99, n: 0 }; });
     (def.player.build || []).forEach(function (b) { MS.allow[b] = true; });
     (def.player.units || []).forEach(function (u) { MS.allow[u] = true; });
@@ -123,7 +126,7 @@
           if (L.HEROES[s.type] && owner === 0) { MS.heroes[s.type] = u.id; var hs = save.roster && save.roster.heroes && save.roster.heroes[s.type]; if (hs && hs.wounded) { u.hp = Math.round(u.maxHp * 0.6); u.wounded = true; } }
           if (s.vets && owner === 0) { var k = vets.findIndex(function (v) { return v.type === s.type; }); if (k >= 0) { var v = vets.splice(k, 1)[0]; u.vet = v.vet || 1; u.kills = v.kills || 3; MS.vetsUsed++; } }
           if (s.heading != null) u.heading = u.aim = s.heading;
-          if (s.locked) u.locked = true; if (s.speed) u.sm = s.speed; if (s.hp) u.hp = u.maxHp = s.hp; if (s.calm) u.calm = true;
+          if (s.locked) u.locked = true; if (s.speed) u.sm = s.speed; if (s.hp) u.hp = u.maxHp = s.hp; if (s.calm) u.calm = true; if (s.water != null) u.water = s.water;
         });
       });
     }
@@ -186,6 +189,7 @@
       case 'hit': return (W.hits[(c.by == null ? 0 : c.by) + ':' + c.tag] || 0) >= (c.gte || 1); // по тегу стрелял владелец by
       case 'razed': return (MS.razed[o + ':' + (c.type || '*')] || 0) >= (c.gte || 1);      // снесено зданий владельца owner
       case 'obj': { var ob = MS.byObj[c.id]; return !!ob && ob.state === (c.state || 'done'); }
+      case 'since': { var so = MS.byObj[c.obj]; return !!so && so.state === (c.state || 'done') && W.time - so.t >= c.gte; } // прошло секунд с тех пор, как цель выполнена
       case 'flag': return c.value == null ? !!MS.flags[c.key] : MS.flags[c.key] === c.value;
       case 'seen': { var zc = zoneCenter(MS, c.zone), i = Math.floor(zc.x), j = Math.floor(zc.y); return W.vis[j * W.w + i] === 2; }
       case 'alerted': return !!(MS.groups[c.group] && MS.groups[c.group].alerted);
@@ -194,6 +198,8 @@
       case 'owned': return W.blds.filter(function (b) { return b.owner === o && (b.tag === c.tag || b.tag0 === c.tag) && (!c.type || b.type === c.type); }).length >= (c.n || 1);
       case 'captured': return (MS.captured[(c.type || '*')] || 0) >= (c.gte || 1);
       case 'part': return !!MS.partsDown[(c.tag || '*') + ':' + c.k];
+      case 'parts': return (MS.partsN[c.tag || '*'] || 0) >= (c.gte || 1);
+      case 'scalded': return (MS.scalded[c.tag || '*'] || 0) >= (c.gte || 1);
       case 'bossDone': return !!MS.bossDone[c.tag || '*'];
       case 'lostB': return pl.lostB <= (c.lte || 0);
       case 'lostU': return pl.lost - pl.lostB <= (c.lte || 0);
@@ -256,22 +262,16 @@
         var to = a.to; W.units.concat(W.blds).forEach(function (e) { if (e.tag === a.tag && (!a.type || e.type === a.type)) { L.setOwner(W, e, to); if (a.calm != null && e.kind === 'unit') e.calm = !!a.calm; } });
         if (MS.groups[a.tag]) MS.groups[a.tag].owner = to; break; }
       case 'paint': W.paint = W.paint || {}; W.paint[a.owner] = a.to; W.units.concat(W.blds).forEach(function (e) { if (e.owner === a.owner) e.pi = a.to; }); break;
-      case 'fire': { var fp = pointOf(MS, a.at); var area = a.area ? Object.assign({ r: 3 }, pointOf(MS, a.area.at || a.at), { r: a.area.r || 3 }) : null;
+      case 'fire': { var fat = a.at; // at — точка или список точек (тогда — случайная из тех, где ещё не горит)
+        if (Array.isArray(fat)) { var freeAt = fat.filter(function (k) { var q = pointOf(MS, k); return !W.fires.some(function (f) { return f.hp > 0 && Math.hypot(f.x - q.x, f.y - q.y) < 1.2; }); }); if (!freeAt.length) break; fat = freeAt[Math.floor(W.rng() * freeAt.length) % freeAt.length]; }
+        var fp = pointOf(MS, fat); var area = a.area ? Object.assign({ r: 3 }, pointOf(MS, a.area.at || fat), { r: a.area.r || 3 }) : null;
         L.addFire(W, fp.x + (a.dx || 0), fp.y + (a.dy || 0), { r: a.r, max: a.max, hp: a.hp, grow: a.grow, dps: a.dps, bdps: a.bdps, tag: a.tag, spread: a.spread, area: area, cap: a.cap }); break; }
       case 'douse': W.fires.forEach(function (f) { if (!a.tag || f.tag === a.tag) f.hp = 0; }); break;
       case 'depot': W.depots.forEach(function (dp) { if (dp.id === a.id) { if (a.w != null) dp.w = a.w; if (a.team !== undefined) dp.team = a.team; } }); break;
-      case 'boss': { var rt = (a.route || []).map(function (k) { return pointOf(MS, k); }); W.units.forEach(function (u) { if (u.tag === a.tag && u.bs) { u.bs.route = rt; u.bs.ri = 0; u.bs.done = false; u.path = []; } }); break; }
-      case 'choice': MS.choice = { id: a.id, key: a.key || a.id, who: a.who || null, title: a.title, text: a.text, options: a.options }; MS.ui.push({ t: 'choice', id: a.id }); break;
+      case 'boss': { var rt = a.route ? a.route.map(function (k) { return pointOf(MS, k); }) : null; W.units.forEach(function (u) { if (u.tag === a.tag && u.bs) { if (a.cfg) L.setBoss(u, a.cfg); if (rt) { u.bs.route = rt; u.bs.ri = 0; u.bs.done = false; u.bs.goal = null; u.path = []; } } }); break; }
       case 'allow': (a.build || []).concat(a.units || []).forEach(function (b) { MS.allow[b] = true; }); if (a.repair) { MS.repair = W.repairOn = true; } if (a.pack) W.packOn = true; break;
       default: throw new Error('неизвестное действие ' + a.a);
     }
-  }
-  // Развилка: игрок выбрал вариант key — флаг развилки = key, выполняются действия варианта, игра идёт дальше
-  function choose(W, key) {
-    var MS = W.mission, ch = MS && MS.choice; if (!ch) return false;
-    var opt = ch.options.filter(function (o) { return o.key === key; })[0]; if (!opt) return false;
-    MS.choice = null; MS.flags[ch.key] = key; MS.ui.push({ t: 'chosen', id: ch.id, key: key });
-    run(W, opt.do || []); return true;
   }
   function setObj(W, MS, id, state) {
     var ob = MS.byObj[id]; if (!ob || ob.state === state) return;
@@ -311,6 +311,17 @@
         if (L.UNITS[u.type].water) { var f = L.nearestFire(W, zc ? zc.x : u.x, zc ? zc.y : u.y, zr); if (f) L.commandDouse(W, [u.id], f.id); else if (u.water < L.UNITS[u.type].water && L.waterSource(W, u)) L.commandFill(W, [u.id], L.waterSource(W, u)); else if (u.post && Math.hypot(u.x - u.post.x, u.y - u.post.y) > 2.5) L.commandMove(W, [u.id], u.post.x, u.post.y); }
         else if (u.post && Math.hypot(u.x - u.post.x, u.y - u.post.y) > 2.5) L.commandMove(W, [u.id], u.post.x, u.post.y);
       });
+    } else if (g.mode === 'capture') { // инженеры группы занимают чужие здания (g.tags — только с такими тегами), остальные идут с ними и отгоняют охрану
+      var engs = mem.filter(function (u) { return L.UNITS[u.type].engineer; }), goalB = null;
+      engs.forEach(function (u) {
+        var cur = u.order.t === 'capture' ? W.byId[u.order.target] : null; if (cur && L.canCapture(W, g.owner, cur)) { goalB = goalB || cur; return; }
+        var best = null, bd = 1e9; W.blds.forEach(function (b) { if (!L.canCapture(W, g.owner, b) || (g.tags && g.tags.indexOf(b.tag) < 0 && g.tags.indexOf(b.tag0) < 0)) return;
+          var d = L.distTo(u, b) + (engs.some(function (e) { return e !== u && e.order.t === 'capture' && e.order.target === b.id; }) ? 6 : 0); if (d < bd) { bd = d; best = b; } });
+        if (best) { L.commandCapture(W, [u.id], best.id); goalB = goalB || best; }
+      });
+      var lead = engs[0], gp = lead ? { x: lead.x, y: lead.y } : g.target ? pointOf(MS, g.target) : null;
+      if (gp) { var esc = idle.filter(function (u) { return !L.UNITS[u.type].engineer && Math.hypot(u.x - gp.x, u.y - gp.y) > 3; }); if (esc.length) L.commandMove(W, esc.map(function (u) { return u.id; }), gp.x, gp.y, true); }
+      else if (idle.length) { var nf2 = nearestFoe(W, idle[0], foeOf); if (nf2) L.commandMove(W, idle.map(function (u) { return u.id; }), nf2.x, nf2.y, true); }
     } else if (g.mode === 'hold') {
       idle.forEach(function (u) { if (u.post && Math.hypot(u.x - u.post.x, u.y - u.post.y) > 2.5) L.commandMove(W, [u.id], u.post.x, u.post.y); });
     } else if (g.mode === 'patrol') {
@@ -346,6 +357,7 @@
   // ---------- Шаг миссии (после L.step) ----------
   function step(W, dt) {
     var MS = W.mission; if (!MS) return;
+    if (W.winner < 0) { applyWeather(W, MS); hazards(W, MS, dt); } // до разбора событий: выброс гейзера сам рождает события (обваренная громада, сбитые узлы)
     // события мира (каждое — один раз; main.js потом очищает W.events)
     W.events.forEach(function (ev) {
       if (ev._m) return; ev._m = 1;
@@ -355,14 +367,13 @@
       }
       if (ev.t === 'doused' && ev.by >= 0) { MS.doused[ev.tag || '-'] = (MS.doused[ev.tag || '-'] || 0) + 1; MS.doused['*'] = (MS.doused['*'] || 0) + 1; }
       if (ev.t === 'captured' && ev.owner === 0) { MS.captured[ev.type] = (MS.captured[ev.type] || 0) + 1; MS.captured['*'] = (MS.captured['*'] || 0) + 1; }
-      if (ev.t === 'part') { MS.partsDown[(ev.tag || '-') + ':' + ev.k] = true; MS.partsDown['*:' + ev.k] = true; }
+      if (ev.t === 'part') { MS.partsDown[(ev.tag || '-') + ':' + ev.k] = true; MS.partsDown['*:' + ev.k] = true; MS.partsN[ev.tag || '-'] = (MS.partsN[ev.tag || '-'] || 0) + 1; MS.partsN['*'] = (MS.partsN['*'] || 0) + 1; MS.ui.push({ t: 'part', k: ev.k, left: ev.left }); }
+      if (ev.t === 'bossScald') { MS.scalded[ev.tag || '-'] = (MS.scalded[ev.tag || '-'] || 0) + 1; MS.scalded['*'] = (MS.scalded['*'] || 0) + 1; MS.ui.push({ t: 'scald' }); }
       if (ev.t === 'bossArrived') { MS.bossDone[ev.tag || '-'] = true; MS.bossDone['*'] = true; }
       var bt = ev.kind === 'bld' ? ev.type : ev.packed; // здание (или фургон со свёрнутым зданием) снесено
       if (ev.t === 'die' && bt) { MS.razed[ev.owner + ':' + bt] = (MS.razed[ev.owner + ':' + bt] || 0) + 1; MS.razed[ev.owner + ':*'] = (MS.razed[ev.owner + ':*'] || 0) + 1; }
     });
     if (W.winner >= 0) { if (W.winner === 1 && !MS.reason) MS.reason = 'hq'; return; }
-    applyWeather(W, MS);
-    hazards(W, MS, dt);
     // отложенные действия (wait)
     for (var n = MS.queue.length - 1; n >= 0; n--) { var q = MS.queue[n]; if (W.time >= q.at) { MS.queue.splice(n, 1); run(W, q.list, q.from); } }
     MS.trigT -= dt;
@@ -386,7 +397,7 @@
     MS.aiT -= dt;
     if (MS.aiT <= 0) { MS.aiT = 0.5; Object.keys(MS.groups).forEach(function (k) { groupStep(W, MS, MS.groups[k]); }); }
   }
-  function tick(W, dt) { if (W.mission && W.mission.choice) return; L.step(W, dt); step(W, dt); } // развилка — мир стоит, пока игрок выбирает
+  function tick(W, dt) { L.step(W, dt); step(W, dt); }
 
   // ---------- Подземный жар: гейзеры, зыбкий грунт, предупреждения о провалах ----------
   // Гейзер: период period с, за warn с до выброса — предупреждение (w.warn), выброс — урон dmg всем юнитам в радиусе r
@@ -400,7 +411,8 @@
       if (!wasWarn && gz.warn) MS.ui.push({ t: 'geyserWarn', id: id });
       if (gz.prev != null && cyc < gz.prev) { // выброс
         gz.burst = W.time; gz.n++; var p = pointOf(MS, gd.at), r = gd.r || 2.2, dmg = gd.dmg || 30;
-        W.units.forEach(function (u) { if (!u.parts && Math.hypot(u.x - p.x, u.y - p.y) <= r) { u.hp -= dmg * (L.UNITS[u.type].cls === 'veh' ? 0.6 : 1); u.hitT = W.time; u.steamT = W.time; } });
+        W.units.forEach(function (u) { if (u.parts) { if (Math.hypot(u.x - p.x, u.y - p.y) <= r + L.UNITS[u.type].r * 0.6) L.bossSteam(W, u, gd.boss, gd.stun); return; } // громаду обваривает по узлам
+          if (Math.hypot(u.x - p.x, u.y - p.y) <= r) { u.hp -= dmg * (L.UNITS[u.type].cls === 'veh' ? 0.6 : 1); u.hitT = W.time; u.steamT = W.time; } });
         W.blds.forEach(function (b) { var c = L.center(b); if (Math.hypot(c.x - p.x, c.y - p.y) <= r + Math.max(b.w, b.h) / 2) b.hp -= dmg; });
         W.events.push({ t: 'geyser', id: id, x: p.x, y: p.y });
       }
@@ -454,5 +466,5 @@
 
   P.campaign = { KEY: KEY, register: register, byId: byId, parseMap: parseMap, build: build, step: step, tick: tick, cond: cond, act: act, run: run,
     result: result, newSave: newSave, load: load, save: save, reset: reset, applyResult: applyResult, pointOf: pointOf, inZone: inZone, zoneCenter: zoneCenter,
-    zoneCells: zoneCells, txt: txt, makeTrain: makeTrain, hazards: hazards, choose: choose, allowed: function (W, type) { return !W.mission || !!W.mission.allow[type]; } };
+    zoneCells: zoneCells, txt: txt, makeTrain: makeTrain, hazards: hazards, allowed: function (W, type) { return !W.mission || !!W.mission.allow[type]; } };
 })(typeof window !== 'undefined' ? window : globalThis);

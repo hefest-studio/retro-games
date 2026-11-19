@@ -1,7 +1,8 @@
 /* ПРИИСК · tests/campaign.test.mjs — кампания публичной (демо) сборки: парсер ASCII-карт, условия/триггеры/действия,
    сценарный ИИ, герои, сохранение прогресса (localStorage-ключ arcade.priisk.campaign), бот проходит миссию 1 (реакция 150–250 мс,
    цели по порядку), миссия 1 не тупиковая (A*), тексты RU/EN; издание: флаг сборки, реестр миссий без m2, замочки 2–10, экран демо.
-   Общий код для миссий полной версии (укрепления, ремонт, механик, поезд/колонна, мост, смена карты, if/carry/when) — на мини-картах.
+   Общий код для миссий полной версии (укрепления, ремонт, механик, поезд/колонна, мост, смена карты, if/carry/when; для миссий 7–8 —
+   союзник, пожар и вода, захват инженером, многочастная громада и приманка под гейзер) — на мини-картах.
    Тесты миссий 2+ — в приватной полной сборке (arcade-full/priisk/tests/campaign-full.test.mjs). Стоп-лист имён — в engine.test.mjs.
    Запуск: node priisk/tests/campaign.test.mjs */
 import fs from 'node:fs';
@@ -371,6 +372,122 @@ test('ИИ гонки (общий код): ставит бур на свою ж�
   let planted = 0; tickN(W, 120, 1 / 30, () => { if (W.charges.some(c => c.owner === 1)) planted++; return false; });
   ok(W.blds.some(b => b.owner === 1 && b.type === 'rig'), 'ИИ не поставил вышку'); ok(W.ai.raids > 0 && planted > 0, 'набега с зарядом не было');
   ok(W.units.some(u => u.owner === 1 && u.type === 'rifleman'), 'нет охраны'); eq(W.hits['1:kontora'] || 0, 0);
+});
+
+// ---------- Общий код миссий 7–8 полной версии: союзник, пожар и вода, захват, многочастная громада ----------
+const WAR_MAP = [
+  '########################################',
+  '#S.......~~~......................OOO..#',
+  '#........~~~..d.......1...........OOO..#',
+  '#..H.....P...........RRR....g.....OOO..#',
+  '#....................RRR...............#',
+  '#..........q.........RRR..2.........B..#',
+  '#......................................#',
+  '#...A........K...........t.....E.......#',
+  '#......................................#',
+  '#......................................#',
+  '#......................................#',
+  '########################################'];
+function warDef(extra = {}) {
+  return Object.assign({ id: 'tw', n: 96, title: 'т', brief: 'т', map: WAR_MAP, legend: { R: '.' },
+    zones: { gate: { at: 'K', r: 2 }, mine: { at: '1', r: 7 } }, teams: [0, 1, 0], paint: { 2: 1 }, sand: 60,
+    depots: { barrels: { at: 'd', w: 200 }, pile: { at: 'q', w: 9999, kind: 'sand' } },
+    geysers: { g: { at: 'g', r: 2.4, period: 10, warn: 3, dmg: 30, on: false } },
+    player: { copper: 1000, build: ['boiler', 'pump', 'tower'], units: ['rifleman', 'bowser', 'engineer', 'sapper', 'drill'],
+      start: [{ type: 'hq', at: 'H' }, { type: 'boiler', at: 'A' }, { type: 'sava', at: 'S' }, { type: 'rifleman', at: 'S', n: 2 }, { type: 'bowser', at: 'S', n: 1, water: 100 }, { type: 'hauler', at: 'S', n: 1 }, { type: 'engineer', at: 'S', n: 1 }, { type: 'sapper', at: 'S', n: 1 }, { type: 'drill', at: 'S', n: 1 }] },
+    enemy: { copper: 0, start: [{ type: 'shaft', at: 'R', tag: 'rudnik' }, { type: 'store', at: 't', tag: 'sstore', stock: 400 }, { type: 'rifleman', at: 'K', n: 2, tag: 'sz', calm: true }] },
+    groups: { sz: { owner: 1, mode: 'hold' } },
+    objectives: [{ id: 'fork', icon: 'ally', text: 'т' }, { id: 'hold', icon: 'clock', text: 'т', done: { t: 'since', obj: 'fork', gte: 5 } }],
+    triggers: [{ id: 'help', when: { t: 'all', of: [{ t: 'zone', zone: 'gate' }, { t: 'not', of: { t: 'flag', key: 'alliance' } }] }, do: [{ a: 'flag', key: 'alliance', value: 'helped' }, { a: 'objective', id: 'fork', state: 'done' }, { a: 'owner', tag: 'sz', to: 2, calm: false }, { a: 'owner', tag: 'rudnik', to: 2 }, { a: 'paint', owner: 1, to: 3 }] }] }, extra);
+}
+test('союзник (общий код): развилка действием — юнит в зоне → owner; владелец 2 в команде игрока: не стреляем друг в друга, общий обзор, ПКМ по союзнику — «идти»; чужака бьют оба; цвет paint; since', () => {
+  const W = C.build(warDef()), MS = W.mission, sz = W.units.filter(u => u.tag === 'sz'), r = W.units.find(u => u.type === 'rifleman' && u.owner === 0), shaft = W.blds.find(b => b.tag === 'rudnik');
+  ok(L.hostile(W, 0, 1) && !L.hostile(W, 0, 2) && L.hostile(W, 2, 1) && L.friendTo0(W, 2) && !L.friendTo0(W, 1), 'команды'); eq(shaft.pi, 1);
+  tickN(W, 2); eq(MS.flags.alliance, undefined); ok(!L.visibleTo0(W, sz[0]), 'мирных Сизых видно издалека');
+  const K = C.pointOf(MS, 'K'); r.x = K.x + 1; r.y = K.y; tickN(W, 1); eq(MS.flags.alliance, 'helped'); ok(sz.every(u => u.owner === 2 && !u.calm && u.pi === 1), 'не союзники'); eq(shaft.owner, 2);
+  r.x = 2.5; r.y = 9.5; L.updateVis(W); ok(L.visibleTo0(W, sz[0]) && L.visibleTo0(W, shaft), 'нет общего обзора');
+  eq(L.smartKind(W, 0, [r.id], sz[0].x, sz[0].y, sz[0]), 'move'); tickN(W, 3); ok(sz.every(u => u.hp === 60) && r.hp === 60, 'союзники стреляют друг в друга');
+  const foe = L.addUnit(W, 1, 'rifleman', sz[0].x + 3, sz[0].y + 1); eq(foe.pi, 3, 'цвет третьей силы'); ok(tickN(W, 12, 1 / 30, () => foe.hp <= 0 || sz.some(u => u.hp < 60)), 'союзник и чужак не дерутся');
+  tickN(W, 3); ok(!C.cond(W, { t: 'since', obj: 'fork', gte: 100 }) && C.cond(W, { t: 'since', obj: 'fork', gte: 3 }), 'since'); eq(MS.byObj.hold.state, 'done');
+  ok(!L.newWorld({ seed: 3 }).team, 'команды в скирмише'); eq(L.newWorld({ seed: 3 }).players.length, 3);
+});
+test('пожар и вода (общий код): огонь разгорается, жжёт юнитов и здания, даёт новые очаги; водовоз: бочки → огонь; рудовоз с песком (def.sand); Сава засыпает; насос — только у воды; группа douse', () => {
+  const W = C.build(warDef()), MS = W.mission, shaft = W.blds.find(b => b.tag === 'rudnik'), bw = W.units.find(u => u.type === 'bowser'), hl = W.units.find(u => u.type === 'hauler'), sv = W.units.find(u => u.type === 'sava');
+  C.act(W, { a: 'fire', at: '1', tag: 'mine', r: 1.7, max: 200, hp: 150, grow: 5, bdps: 10, spread: 4, area: { at: '1', r: 5 }, cap: 3 });
+  const f = W.fires[0], h0 = shaft.hp, vic = L.addUnit(W, 0, 'rifleman', f.x + 0.5, f.y); tickN(W, 12);
+  ok(f.hp > 190, 'не разгорается'); ok(shaft.hp < h0, 'здание не горит'); ok(vic.hp < 60 || !W.byId[vic.id], 'юнит не горит'); ok(W.fires.length >= 2 && W.fires.length <= 3, 'очагов: ' + W.fires.length);
+  ok(C.cond(W, { t: 'fires', tag: 'mine', gte: 2 }) && !C.cond(W, { t: 'fires', tag: 'mine', lte: 0 }), 'условие fires');
+  // водовоз: пустой → ПКМ по бочкам (fill), ПКМ по огню (douse); бочки убывают
+  bw.water = 0; bw.x = 13; bw.y = 4; const dp = W.depots[0]; eq(L.smartKind(W, 0, [bw.id], dp.x, dp.y, null), 'fill'); eq(L.smartKind(W, 0, [bw.id], f.x, f.y, null), 'douse'); eq(L.smartKind(W, 0, [W.units.find(u => u.type === 'rifleman').id], f.x, f.y, null), 'move');
+  L.commandSmart(W, 0, [bw.id], f.x, f.y, null); ok(tickN(W, 20, 1 / 30, () => bw.water > 60), 'не набрал'); ok(dp.w < 200, 'бочки не убывают');
+  ok(tickN(W, 40, 1 / 30, () => (MS.doused.mine || 0) >= 1), 'не потушил'); ok(C.cond(W, { t: 'doused', tag: 'mine' }), 'условие doused');
+  // рудовоз возит песок только там, где миссия разрешила; Сава засыпает рядом
+  eq(L.waterCap(W, hl), 60); eq(L.waterCap(L.newWorld({ seed: 2 }), hl), 0, 'песок в скирмише');
+  C.act(W, { a: 'douse' }); tickN(W, 0.2); C.act(W, { a: 'fire', at: '2', tag: 'b', max: 200, grow: 0, bdps: 0, dps: 0 }); const f2 = W.fires[W.fires.length - 1];
+  hl.x = f2.x - 4; hl.y = f2.y + 2; hl.water = 0; const q = W.depots[1]; hl.x = q.x - 1.5; hl.y = q.y - 1; L.commandDouse(W, [hl.id], f2.id); ok(tickN(W, 40, 1 / 30, () => f2.hp < 150), 'песок не гасит'); ok(hl.water < 60, 'песок не тратится');
+  W.treaty = true; f2.hp = 200; sv.x = f2.x + f2.r + 1.5; sv.y = f2.y + 2; sv.path = []; sv.order = { t: 'idle' }; // договор: Сава не отвлекается на чужой копёр рядом
+  hl.order = { t: 'idle' }; hl.water = 0; tickN(W, 3); ok(f2.hp < 180, 'Сава не засыпает');
+  // насос — только у воды, зато где угодно; водовоз наливается у него без счёта
+  ok(!L.canPlace(W, 0, 'pump', 14, 8), 'насос без воды'); ok(L.canPlace(W, 0, 'pump', 12, 2), 'насос у воды не ставится'); const pump = L.addBuilding(W, 0, 'pump', 12, 2);
+  bw.water = 0; dp.w = 0; eq(L.waterSource(W, bw).id, pump.id); eq(L.smartKind(W, 0, [bw.id], 13, 3, pump), 'fill');
+  // группа douse: водовозы союзника сами тушат в своей зоне
+  C.act(W, { a: 'douse' }); tickN(W, 0.2); eq(W.fires.length, 0, 'действие douse не гасит');
+  const ab = L.addUnit(W, 2, 'bowser', 20, 7); ab.tag = 'szb'; ab.water = 100; C.act(W, { a: 'group', tag: 'szb', owner: 2, mode: 'douse', zone: 'mine' }); C.act(W, { a: 'fire', at: '1', tag: 'c', max: 120, grow: 0 });
+  ok(tickN(W, 30, 1 / 30, () => (MS.doused.c || 0) >= 1), 'союзный водовоз не тушит');
+  eq(L.BUILD_LIST.concat(L.UNIT_LIST).filter(t => ['pump', 'store', 'shaft', 'bowser', 'engineer', 'colossus'].includes(t)).length, 0, 'попало в скирмиш');
+});
+test('захват (общий код): инженер занимает чужое здание (склад отдаёт медь), охрана рядом не пускает, Контору и союзное — нельзя; группа capture — инженеры ИИ занимают наше; договор — пулей здания не берут', () => {
+  const W = C.build(warDef({ treaty: true })), MS = W.mission, e = W.units.find(u => u.type === 'engineer'), st = W.blds.find(b => b.tag === 'sstore'), shaft = W.blds.find(b => b.tag === 'rudnik'), hq = L.has(W, 0, 'hq');
+  ok(L.canCapture(W, 0, st) && !L.canCapture(W, 1, hq) && !L.canCapture(W, 0, hq), 'canCapture'); e.x = st.tx - 1; e.y = st.ty + 1;
+  eq(L.smartKind(W, 0, [e.id], st.tx + 1, st.ty + 1, st), 'capture'); const g = L.addUnit(W, 1, 'rifleman', st.tx + 1, st.ty + 3.5); g.calm = false; ok(L.guarded(W, st), 'охраны не видно');
+  L.commandSmart(W, 0, [e.id], st.tx + 1, st.ty + 1, st); const c0 = W.players[0].copper; tickN(W, 1); eq(st.owner, 1, 'занят под охраной'); g.hp = 0;
+  ok(tickN(W, 5, 1 / 30, () => st.owner === 0), 'не занят'); eq(W.players[0].copper - c0, 400, 'медь склада'); ok(!W.byId[e.id], 'инженер не вошёл'); tickN(W, 0.3);
+  ok(C.cond(W, { t: 'captured' }) && C.cond(W, { t: 'owned', tag: 'sstore' }) && !C.cond(W, { t: 'owned', owner: 1, tag: 'sstore' }), 'условия captured/owned'); eq(W.players[0].lost, 0, 'инженер посчитан потерей');
+  // союзное здание не берём; ИИ-группа capture забирает наш склад обратно, если его не охраняют
+  C.act(W, { a: 'owner', tag: 'rudnik', to: 2 }); ok(!L.canCapture(W, 0, shaft), 'берём союзное');
+  W.units.filter(u => u.owner === 0 && L.UNITS[u.type].weapon).forEach(u => { u.x = 2.5; u.y = 9.5; }); W.units.filter(u => u.tag === 'sz').forEach(u => { u.hp = 0; });
+  C.act(W, { a: 'spawn', owner: 1, type: 'engineer', n: 1, at: 'E', tag: 'rt' }); C.act(W, { a: 'spawn', owner: 1, type: 'rifleman', n: 1, at: 'E', tag: 'rt' }); C.act(W, { a: 'group', tag: 'rt', owner: 1, mode: 'capture', tags: ['sstore'] });
+  ok(tickN(W, 20, 1 / 30, () => st.owner === 1), 'ИИ не отбил склад'); ok(C.cond(W, { t: 'owned', owner: 1, tag: 'sstore' }), 'owned по первому тегу'); eq(L.has(W, 0, 'boiler').owner, 0, 'ИИ взял здание без тега из списка');
+  // договор: по зданию пуля не берёт
+  const r = W.units.find(u => u.type === 'rifleman' && u.owner === 0); r.x = st.tx - 2; r.y = st.ty; const h0 = st.hp; W.units.filter(u => u.owner === 1).forEach(u => { u.hp = 0; }); L.commandAttack(W, [r.id], st.id); tickN(W, 2); eq(st.hp, h0, 'договор не держит');
+});
+test('громада (общий код): узлы со своей прочностью; попадание — в ближайший к стрелку целый узел; эффекты: кабина — пушка, котёл — пар и ход, бур — здания, гусеницы — ход; все узлы — уничтожена; условия part/parts', () => {
+  const W = C.build(warDef()), MS = W.mission; W.units.filter(u => u.tag === 'sz').forEach(u => { u.hp = 0; }); W.blds.filter(b => b.owner === 1).forEach(b => { b.hp = 0; }); tickN(W, 0.1);
+  C.act(W, { a: 'spawn', owner: 1, type: 'colossus', n: 1, at: 'B', tag: 'boss', heading: Math.PI }); C.act(W, { a: 'boss', tag: 'boss', route: ['E', 'K'], cfg: { parts: { tracks: 300, drill: 200, cabin: 150, boiler: 250 }, ventEvery: 6, ventWarn: 1, vent: 2 } });
+  const b = W.units.find(u => u.tag === 'boss'), part = k => L.partOf(b, k); eq(b.parts.map(p => p.k).join(), 'tracks,drill,cabin,boiler'); eq(b.hp, 900); eq(b.maxHp, 900); eq(b.bs.route.length, 2);
+  const at = (f, s) => ({ x: b.x + Math.cos(b.heading) * f - Math.sin(b.heading) * s, y: b.y + Math.sin(b.heading) * f + Math.cos(b.heading) * s }), toward = (f, s) => { const q = at(f, s); return L.partToward(b, q.x, q.y).k; };
+  eq([toward(8, 0), toward(0, 8), toward(0, -8), toward(-8, 0)], ['drill', 'tracks', 'tracks', 'cabin'], 'какой узел откуда');
+  // идёт по маршруту, пушка стреляет; с кормы сбиваем кабину — пушка молчит
+  const x0 = b.x, vic = L.addUnit(W, 0, 'hauler', b.x - 4, b.y + 4); tickN(W, 4); ok(b.x < x0 - 0.8, 'не идёт'); ok(vic.hp < vic.maxHp, 'пушка молчит');
+  { const q = at(-8, 0); L.hitPart(W, b, 500, 'shell', q.x, q.y); } eq(part('cabin').hp, 0); eq(b.hp, 900 - 150 - (300 - part('tracks').hp) - (200 - part('drill').hp) - (250 - part('boiler').hp), 'hp = сумма узлов');
+  vic.hp = vic.maxHp; vic.x = b.x - 4; vic.y = b.y + 4; tickN(W, 4); eq(vic.hp, vic.maxHp, 'пушка без кабины стреляет');
+  // пар: предупреждение → выброс рядом с корпусом; без котла — нет, и ход тише
+  vic.x = b.x; vic.y = b.y + 2.6; let vent = 0; tickN(W, 12, 1 / 30, () => { if (b.bs.st === 'vent') vent++; vic.x = b.x; vic.y = b.y + 2.6; return false; }); ok(vent > 30, 'нет выброса'); ok(vic.hp < vic.maxHp, 'пар не жжёт');
+  const v1 = b.x; b.bs.st = 'walk'; b.bs.vent = 99; tickN(W, 3); const fast = v1 - b.x; part('boiler').hp = 1; { const q = at(0, 0); L.hitPart(W, b, 5, 'shell', q.x, q.y); } eq(part('boiler').hp, 0);
+  vent = 0; const v2 = b.x; b.bs.vent = 0; tickN(W, 3, 1 / 30, () => { if (b.bs.st !== 'walk') vent++; return false; }); eq(vent, 0, 'пар без котла'); ok(v2 - b.x < fast * 0.7 && v2 - b.x > 0.1, 'ход без котла: ' + fast.toFixed(2) + ' → ' + (v2 - b.x).toFixed(2));
+  // здание на пути: бур берёт быстро, корпус — медленно
+  const put = () => { const t = L.addBuilding(W, 0, 'tower', Math.floor(b.x) - 5, Math.floor(b.y) - 1); b.heading = Math.PI; b.bs.goal = null; b.path = []; const t0 = W.time; ok(tickN(W, 120, 1 / 30, () => !W.byId[t.id]), 'здание устояло'); return W.time - t0; };
+  vic.hp = 0; const withDrill = put(); part('drill').hp = 1; { const q = at(8, 0); L.hitPart(W, b, 5, 'shell', q.x, q.y); } const noDrill = put(); ok(noDrill > withDrill + 4, 'без бура не медленнее: ' + withDrill.toFixed(1) + ' / ' + noDrill.toFixed(1));
+  // гусеницы — стоит; последний узел — конец
+  tickN(W, 0.3); ok(C.cond(W, { t: 'part', tag: 'boss', k: 'drill' }) && C.cond(W, { t: 'parts', tag: 'boss', gte: 3 }) && !C.cond(W, { t: 'parts', tag: 'boss', gte: 4 }), 'part/parts');
+  b.bs.goal = null; const x1 = b.x; tickN(W, 2); ok(b.x < x1 - 0.1, 'встала раньше времени'); part('tracks').hp = 1; { const q = at(0, 8); L.hitPart(W, b, 5, 'shell', q.x, q.y); }
+  ok(b.hp <= 0, 'жива без узлов'); tickN(W, 0.3); ok(!W.byId[b.id] && C.cond(W, { t: 'gone', tag: 'boss' }) && C.cond(W, { t: 'parts', gte: 4 }), 'не уничтожена');
+});
+test('громада (общий код): идёт на шум буровой вышки (частокол — не приманка), гейзер обваривает все узлы и останавливает (не чаще scaldCd); заряд подрывника — в ближний узел; дошла — bossDone, без гусениц стоит', () => {
+  const W = C.build(warDef()), MS = W.mission; W.units.filter(u => u.tag === 'sz').forEach(u => { u.hp = 0; }); W.blds.filter(b => b.owner === 1).forEach(b => { b.hp = 0; }); tickN(W, 0.1);
+  C.act(W, { a: 'spawn', owner: 1, type: 'colossus', n: 1, at: 'B', tag: 'boss', heading: Math.PI }); C.act(W, { a: 'boss', tag: 'boss', route: ['E', 'K'], cfg: { parts: { tracks: 3000, drill: 2000, cabin: 1500, boiler: 2500 }, steam: 400, stun: 4, ventEvery: 999, lureLoud: 12, charge: 700 } });
+  const b = W.units.find(u => u.tag === 'boss'), d = W.units.find(u => u.type === 'drill'), at = L.deploySpot(W, 0, 'rig', 35, 2); ok(at, 'нет места под вышку');
+  L.addBuilding(W, 0, 'palisade', 33, 8); tickN(W, 1.5); eq(b.bs.lure, 0, 'частокол — приманка');
+  d.x = at.i + 1; d.y = at.j + 1; const rig = L.deployNow(W, d, at.i, at.j); rig.setup = 0; tickN(W, 1.5); eq(b.bs.lure, rig.id, 'не идёт на шум вышки');
+  // гейзер по дороге к вышке: обварило все узлы, встала; второй выброс подряд не берёт
+  b.x = 25; b.y = 4; b.path = []; b.bs.goal = null; C.act(W, { a: 'geyser', id: 'g' }); const hp0 = b.parts.map(p => p.hp);
+  ok(tickN(W, 25, 1 / 30, () => (MS.scalded.boss || 0) >= 1), 'не обварило'); ok(b.parts.every((p, n) => p.hp <= hp0[n] - 399), 'не все узлы'); ok(b.bs.stun > 3, 'не встала'); ok(C.cond(W, { t: 'scalded', tag: 'boss' }) && !C.cond(W, { t: 'scalded', gte: 2 }), 'scalded');
+  const xs = b.x; tickN(W, 2); eq(b.x, xs, 'едет оглушённая'); ok(!L.bossSteam(W, b), 'обварило дважды подряд'); b.bs.scaldT = -999; ok(L.bossSteam(W, b), 'после паузы не берёт');
+  // заряд подрывника: с кормы — в кабину
+  C.act(W, { a: 'geyser', id: 'g', on: false }); rig.hp = 0; b.bs.stun = 40; const sp = W.units.find(u => u.type === 'sapper'), c0 = L.partOf(b, 'cabin').hp; sp.x = b.x - Math.cos(b.heading) * 3; sp.y = b.y - Math.sin(b.heading) * 3;
+  eq(L.smartKind(W, 0, [sp.id], b.x, b.y, b), 'plant'); L.commandPlant(W, [sp.id], b.id); ok(tickN(W, 16, 1 / 30, () => L.partOf(b, 'cabin').hp < c0), 'заряд не ударил'); eq(c0 - L.partOf(b, 'cabin').hp, 700, 'урон заряда');
+  // маршрут до конца → bossDone, потом идёт на ближайшее чужое здание (Контора)
+  b.bs.stun = 0; b.sm = 30; ok(tickN(W, 30, 1 / 30, () => C.cond(W, { t: 'bossDone', tag: 'boss' })), 'не дошла'); ok(tickN(W, 40, 1 / 30, () => W.winner === 1), 'Контору не снесла');
 });
 
 await runAll();

@@ -211,6 +211,9 @@
 
   // ---------- мини-игра: колокольчики (мелодия из пяти нот, подсказка — птицы на площади) ----------
   function chimeRect(i) { return { x: 250 + i * 104, y: 70, w: 64, h: 190 + i * 26 }; }
+  // колокола звонницы (d.kind: 'seabell', глава 4): выше нота — меньше колокол; висят на той же балке
+  function bellRect(i) { var w = 116 - i * 13, h = 150 - i * 17; return { x: 282 + i * 104 - w / 2, y: 74, w: w, h: h }; }
+  function melRect(d, i) { return d.kind === 'seabell' ? bellRect(i) : chimeRect(i); }
   T.melody = {
     init: function () { return { k: 0 }; },
     act: function (d, L, i) {
@@ -218,12 +221,12 @@
       L.k = d.target[0] === i ? 1 : 0; return { fail: true, note: i };
     },
     solved: function (d, L) { return L.k >= d.target.length; },
-    hit: function (d, L, x, y) { for (var i = 0; i < d.n; i++) { var r = chimeRect(i); if (x >= r.x - 14 && x <= r.x + r.w + 14 && y >= r.y && y <= r.y + r.h + 30) return i; } return -1; },
-    center: function (d, i) { var r = chimeRect(i); return { x: r.x + r.w / 2, y: r.y + r.h - 30 }; },
+    hit: function (d, L, x, y) { for (var i = 0; i < d.n; i++) { var r = melRect(d, i); if (x >= r.x - 14 && x <= r.x + r.w + 14 && y >= r.y && y <= r.y + r.h + 30) return i; } return -1; },
+    center: function (d, i) { var r = melRect(d, i); return { x: r.x + r.w / 2, y: d.kind === 'seabell' ? r.y + r.h * 0.6 : r.y + r.h - 30 }; },
     scene: function (d, L, t, rt) {
       var objs = [];
       for (var i = 0; i < d.n; i++) {
-        var r = chimeRect(i), ring = rt && rt.ring && rt.ring['c' + i] != null ? Math.max(0, 1 - (t - rt.ring['c' + i]) / 1.2) : 0;
+        var r = melRect(d, i), ring = rt && rt.ring && rt.ring['c' + i] != null ? Math.max(0, 1 - (t - rt.ring['c' + i]) / 1.2) : 0;
         objs.push({ id: 'chime' + i, kind: d.kind || 'chime', x: r.x, y: r.y, w: r.w, h: r.h, state: { note: i, n: d.n, ring: ring } });   // d.kind: 'seabell' — колокола звонницы (глава 4)
       }
       for (var j = 0; j < d.target.length; j++) objs.push({ id: 'led' + j, kind: 'lamp', x: 380 + j * 44, y: 470, w: 24, h: 30, state: { small: true, lit: j < L.k } });
