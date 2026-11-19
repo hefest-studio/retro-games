@@ -1,16 +1,19 @@
 #!/usr/bin/env node
 /**
  * audit-games.mjs — приёмка всех игр: HTTP 200, title, canvas, консоль/страницы,
- * внешние запросы (офлайн), скриншоты в reports/qa-shots/.
+ * внешние запросы (офлайн), скриншоты в tools/qa/reports/qa-shots/.
  *
  * Пример:
  *   node tools/qa/audit-games.mjs --base http://127.0.0.1:8098 \
- *     --out-dir reports/qa-shots --json reports/qa-shots/games-audit.json
+ *     --out-dir tools/qa/reports/qa-shots --json tools/qa/reports/qa-shots/games-audit.json
  *
  * Скрипт ничего не меняет в играх; только читает страницы и снимает скриншоты.
  */
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { launch, parseArgs, httpCheck } from './lib.mjs';
+
+const QA_SHOTS = fileURLToPath(new URL('./reports/qa-shots', import.meta.url)); // tools/qa/reports/qa-shots, а не reports/ в корне
 
 // слаги игр — из каталога (assets/catalog/games.json), без жёсткого списка
 const DEFAULT_SLUGS = JSON.parse(readFileSync(new URL('../../assets/catalog/games.json', import.meta.url), 'utf8'))
@@ -110,8 +113,8 @@ async function inspectPage(session) {
 async function main() {
   const args = parseArgs(process.argv.slice(2), {
     base: 'http://127.0.0.1:8098',
-    outDir: 'reports/qa-shots',
-    json: 'reports/qa-shots/games-audit.json',
+    outDir: QA_SHOTS,
+    json: `${QA_SHOTS}/games-audit.json`,
     wait: 2200,
   });
   if (args.help) {

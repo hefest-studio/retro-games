@@ -6,21 +6,26 @@
  * в localStorage после перезагрузки, смену превью, фильтры по жанрам, поиск,
  * HTTP 200 по всем ссылкам каталога, alt/naturalWidth превью, отсутствие внешних
  * запросов, мобильный и десктопный лейаут, клавиатурную навигацию/Enter,
- * aria-label/aria-pressed, контраст (прикидка), prefers-reduced-motion, 404.
+ * aria-label/aria-pressed, контраст (прикидка), prefers-reduced-motion, 404;
+ * схему games.json (RU+EN поля), превью по HTTP, соответствие FALLBACK_GAMES (catalog.js) и sitemap.xml
+ * каталогу, английскую главную /en/ (все карточки, ссылки с ?lang=en). Код возврата 1 — есть FAIL.
  *
- * Пишет скриншоты в reports/qa-shots/ и сырой JSON рядом с ними.
+ * Пишет скриншоты в tools/qa/reports/qa-shots/ и сырой JSON рядом с ними.
  * Ничего не меняет в файлах каталога: только читает страницу и взаимодействует.
  *
  * Пример:
  *   node tools/qa/audit-catalog.mjs --base http://127.0.0.1:8098 \
- *     --out-dir reports/qa-shots --json reports/qa-shots/catalog-audit.json
+ *     --out-dir tools/qa/reports/qa-shots --json tools/qa/reports/qa-shots/catalog-audit.json
  */
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { launch, parseArgs, httpCheck } from './lib.mjs';
 
 // слаги игр — из каталога (assets/catalog/games.json), без жёсткого списка
 const DEFAULT_SLUGS = JSON.parse(readFileSync(new URL('../../assets/catalog/games.json', import.meta.url), 'utf8'))
   .games.map((g) => g.slug);
+
+const QA_SHOTS = fileURLToPath(new URL('./reports/qa-shots', import.meta.url));
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -394,7 +399,7 @@ function inventoryExpr(slugs) {
       h1: [...document.querySelectorAll('h1')].map((e) => txt(e)),
       bodyTextLen: bodyText.length,
       bodyTextHead: bodyText.slice(0, 500),
-      hasCounter: new RegExp(DEFAULT_SLUGS.length + '\\s*(игр|оригинальн)', 'i').test(bodyText),
+      hasCounter: new RegExp(SLUGS.length + '\\s*(игр|оригинальн)', 'i').test(bodyText), // SLUGS — список в странице (PAGE_HELPERS); DEFAULT_SLUGS живёт в Node
       yearsMentioned: /19\\d\\d\\s*[–—-]\\s*19\\d\\d/.test(bodyText),
       themeNodes,
       themeProbe,
@@ -526,11 +531,40 @@ function scrollAndShoot(session, outPath, which) {
   })();
 }
 
+// Статические сверки (без браузера): запасной список FALLBACK_GAMES в catalog.js (его видит file://) и sitemap.xml
+// должны соответствовать games.json.
+function staticChecks(games) {
+  const out = { fallback: [], sitemap: [] };
+  const read = (rel) => readFileSync(new URL('../../' + rel, import.meta.url), 'utf8');
+  try {
+    const js = read('assets/catalog/catalog.js'); const i = js.indexOf('const FALLBACK_GAMES'); const a = js.indexOf('[', i);
+    let d = 0, e = a; for (; e < js.length; e += 1) { if (js[e] === '[') d += 1; else if (js[e] === ']') { d -= 1; if (!d) break; } }
+    const fb = i < 0 ? null : new Function('return ' + js.slice(a, e + 1))();
+    if (!fb) out.fallback.push('FALLBACK_GAMES не найден');
+    else {
+      if (JSON.stringify(fb.map((f) => f.slug)) !== JSON.stringify(games.map((g) => g.slug))) out.fallback.push('состав/порядок slug отличается от games.json');
+      for (const f of fb) {
+        const g = games.find((x) => x.slug === f.slug); if (!g) { out.fallback.push(`${f.slug}: нет в games.json`); continue; }
+        for (const k of Object.keys(f)) if (JSON.stringify(f[k]) !== JSON.stringify(g[k])) out.fallback.push(`${f.slug}.${k}: «${String(f[k]).slice(0, 60)}» ≠ games.json «${String(g[k]).slice(0, 60)}»`);
+        for (const k of ['title', 'title_en', 'subtitle', 'subtitle_en', 'genre', 'genre_en', 'summary', 'summary_en']) if (f[k] == null || f[k] === '') out.fallback.push(`${f.slug}: нет поля ${k}`);
+      }
+    }
+  } catch (err) { out.fallback.push('не разобран: ' + err.message); }
+  try {
+    const locs = [...read('sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
+    for (const g of games) if (!locs.includes(`/${g.slug}/`)) out.sitemap.push(`нет /${g.slug}/`);
+    for (const need of ['/', '/en/']) if (!locs.includes(need)) out.sitemap.push(`нет ${need}`);
+    for (const l of locs) { const m = /^\/([^/]+)\/$/.exec(l); if (m && m[1] !== 'en' && !games.some((g) => g.slug === m[1])) out.sitemap.push(`лишний ${l}`); }
+    if (new Set(locs).size !== locs.length) out.sitemap.push('дубликаты <loc>');
+  } catch (err) { out.sitemap.push('не разобран: ' + err.message); }
+  return out;
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2), {
     base: 'http://127.0.0.1:8098',
-    outDir: 'reports/qa-shots',
-    json: 'reports/qa-shots/catalog-audit.json',
+    outDir: QA_SHOTS, // tools/qa/reports/qa-shots — независимо от текущей папки (раньше создавалась reports/ в корне репо)
+    json: `${QA_SHOTS}/catalog-audit.json`,
     wait: 1800,
   });
   if (args.help) {
@@ -576,7 +610,10 @@ async function main() {
 
   // ── валидация схемы games.json ──
   if (games.length) {
-    const required = ['slug', 'title', 'subtitle', 'year', 'developer', 'genre', 'tags', 'players', 'summary', 'description', 'features', 'controls', 'styles', 'languages', 'accent', 'thumb'];
+    // Обязательные поля карточки (RU + EN-каталог /en/). Необязательные: styles (подписи тем — только у игр со своими
+    // названиями стилей) и thumb (превью по умолчанию лежит по соглашению assets/catalog/thumbs/<slug>-<тема>.webp).
+    const required = ['slug', 'title', 'title_en', 'subtitle', 'subtitle_en', 'year', 'developer', 'genre', 'genre_en', 'tags', 'players',
+      'summary', 'summary_en', 'description', 'features', 'controls', 'languages', 'accent', 'version'];
     const issues = [];
     if (games.length !== DEFAULT_SLUGS.length) issues.push(`games.length=${games.length}, ожидается ${DEFAULT_SLUGS.length}`);
     const seen = new Set();
@@ -598,11 +635,11 @@ async function main() {
     const sorted = [...years].sort((a, b) => a - b);
     const orderOk = JSON.stringify(years) === JSON.stringify(sorted);
     report.schema = { ok: issues.length === 0, issues, orderByYearOk: orderOk, gamesCount: games.length };
+    report.static = staticChecks(games);
     // HTTP-проверка превью
     for (const g of games) {
       for (const kind of ['retro', 'modern']) {
-        const rel = g.thumb?.[kind];
-        if (!rel) continue;
+        const rel = g.thumb?.[kind] || `assets/catalog/thumbs/${g.slug}-${kind}.webp`; // по соглашению, если thumb не задан
         const res = await httpCheck(`${base}/${rel.replace(/^\//, '')}`);
         http.thumbs.push({ slug: g.slug, kind, rel, status: res.status, contentType: res.contentType, bytes: res.bytes, ok: res.status === 200 });
       }
@@ -1037,6 +1074,27 @@ async function main() {
       shot: await shoot('catalog-404.png').catch(() => null),
     };
 
+    // ── английская главная /en/: все карточки, ссылки на игры с ?lang=en, <html lang="en">, без кириллицы в названиях ──
+    await session.setViewport({ width: 1440, height: 900, mobile: false });
+    await session.goto(`${base}/en/`, { wait: args.wait });
+    await scrollThrough(session);
+    report.en = await session.evaluate(`(() => {
+      ${PAGE_HELPERS.replace('__SLUGS__', JSON.stringify(slugs))}
+      const seen = {};
+      for (const a of document.querySelectorAll('a[href]')) { const s = slugOf(a); if (!s || seen[s]) continue; const u = new URL(a.href);
+        const h = a.querySelector('h2, h3, .card-title, [class*="title"]');
+        seen[s] = { href: a.getAttribute('href'), langEn: u.searchParams.get('lang') === 'en', title: txt(h).slice(0, 60) }; }
+      return { lang: document.documentElement.lang || '', title: document.title, cards: seen };
+    })()`);
+    capture();
+    {
+      const c = report.en.cards || {}, issues = [];
+      if (report.en.lang !== 'en') issues.push(`<html lang="${report.en.lang}"> вместо en`);
+      for (const sl of slugs) { if (!c[sl]) issues.push(`нет карточки ${sl}`); else { if (!c[sl].langEn) issues.push(`${sl}: ссылка без ?lang=en (${c[sl].href})`); if (/[А-Яа-яЁё]/.test(c[sl].title)) issues.push(`${sl}: кириллица в названии «${c[sl].title}»`); } }
+      report.en.issues = issues;
+    }
+    report.en.shot = await shoot('catalog-en-1440.png').catch(() => null);
+
     // ── внешние запросы за все фазы ──
     const externalMap = new Map();
     const baseHost = new URL(base).hostname;
@@ -1076,7 +1134,10 @@ async function main() {
       ariaOk: report.a11y.togglesHaveAriaPressed,
       reducedMotionHandled: report.reducedMotion.emulationMatched && (report.reducedMotion.cssRules.count > 0 || report.reducedMotion.animationsReduced),
       gamesJsonOk: report.schema.ok !== false,
-      thumbsHttpOk: http.thumbs.every((t) => t.ok),
+      thumbsHttpOk: http.thumbs.length === slugs.length * 2 && http.thumbs.every((t) => t.ok),
+      fallbackMatchesJson: !report.static || report.static.fallback.length === 0,
+      sitemapOk: !report.static || report.static.sitemap.length === 0,
+      enCatalogOk: report.en.issues.length === 0,
       linksRelativeTrailingSlash: report.links.every((l) => l.relative && l.trailingSlash),
     };
   } finally {
@@ -1090,6 +1151,11 @@ async function main() {
   const v = report.verdictHints;
   console.log('\n=== CATALOG AUDIT ===');
   for (const [k, val] of Object.entries(v)) console.log(`${val === true ? 'OK  ' : 'FAIL'} ${k}${val === null ? ' (n/a)' : ''}`);
+  const list = (name, arr) => { if (arr && arr.length) { console.log(`\n${name} (${arr.length}):`); for (const x of arr) console.log('  - ' + x); } };
+  list('games.json', report.schema?.issues); list('FALLBACK_GAMES (catalog.js)', report.static?.fallback); list('sitemap.xml', report.static?.sitemap); list('/en/', report.en?.issues);
+  list('превью (HTTP)', http.thumbs.filter((t) => !t.ok).map((t) => `${t.slug} ${t.kind}: ${t.status} ${t.rel}`));
+  if (report.schema && !report.schema.orderByYearOk) console.log('\n(справочно) games.json не отсортирован по year — порядок карточек задаётся вручную');
+  if (Object.values(v).some((x) => x !== true)) process.exitCode = 1;
   console.log('\nlinks:', report.links.map((l) => `${l.slug}:${l.status}`).join(' '));
   console.log('filters:', report.filters.map((f) => `${f.text}=${f.visibleCount}`).join(' '));
   console.log('console errors:', report.errors.length, report.errors.slice(0, 5));

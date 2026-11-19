@@ -12,6 +12,8 @@
       back: 'Каталог', leg: 'участок', camp: 'НОЧЁВКА', home: 'дошли', of: 'из',
       campHint: '◀ ▶ — выбрать · ▲ ▼ — сменить метку · Enter / тап по костру — в путь',
       hint: 'Стрелки/WASD: идти · Shift: бег · Пробел: свист · E: посох · P: пауза · T: тема · L: язык',
+      hintTouch: 'Палец по экрану или ◀▲▼▶: идти · »: бег · ♪: свист · ⚑: посох · II: пауза',
+      campHintTouch: 'Тап по ветроногу — выбрать, ещё тап — сменить метку · ♪ или тап по костру — в путь',
       foot: 'Веди стадо ветроногов подпаском: иди сзади — они пойдут от тебя; свист собирает и успокаивает, посох направляет и отгоняет птиц. Трава и вода — привал. У костра — ночёвка.'
     },
     en: {
@@ -22,6 +24,8 @@
       back: 'Catalog', leg: 'leg', camp: 'NIGHT CAMP', home: 'made it', of: 'of',
       campHint: '◀ ▶ — select · ▲ ▼ — change mark · Enter / tap the fire — move on',
       hint: 'Arrows/WASD: walk · Shift: run · Space: whistle · E: staff · P: pause · T: theme · L: language',
+      hintTouch: 'Finger on the screen or ◀▲▼▶: walk · »: run · ♪: whistle · ⚑: staff · II: pause',
+      campHintTouch: 'Tap a windshank to select, tap again to change its mark · ♪ or tap the fire — move on',
       foot: 'Drive the windshank herd as the workshop\'s herd-boy: walk behind and they move away from you; the whistle gathers and calms, the staff points the way and shoos birds. Grass and water mean rest. The campfire means a night camp.'
     }
   };

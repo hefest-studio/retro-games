@@ -7,6 +7,7 @@
       (и выполнено need, если оно задано: например, ветер стихает, когда дело сделано).
    2) КАРТА ПОБЕРЕЖЬЯ — экран-переход между местами главы по тропе. chapter.map = { id, icon, mood, pal, start, coast,
       nodes: [{ id, scene, x, y, icon, toX, need, lit }], trails: [{ a, b, pts: [[x, y]…], need }] }.
+      Узел без scene — дальний огонь: его видно на карте (и он может гореть — lit), но войти в него нельзя (глава 6: огни побережья).
       Узел открыт по need; тропа открыта, если открыты оба её узла и выполнен её need. Кликабельны узлы, связанные открытыми
       тропами с узлом start. Карта — обычная сцена движка (id = map.id): в неё ведут выходы to: map.id из сцен, а зоны узлов
       ведут в сцены (переход — когда фишка героини дошла по тропе). Тема рисует kind: mapsheet, trail, mapnode, maptoken. */
@@ -63,7 +64,7 @@
   var R = 34;
   function hotspots(map, st) {
     var r = reach(map, st);
-    return map.nodes.filter(function (n) { return r[n.id]; }).map(function (n) {
+    return map.nodes.filter(function (n) { return r[n.id] && n.scene; }).map(function (n) {   // узел без сцены — дальний огонь: виден, но войти в него нельзя
       return { id: 'n_' + n.id, rect: [n.x - R, n.y - R, R * 2, R * 2], cursor: 'go', to: n.scene, toX: n.toX, at: n.x, node: n.id, look: [n.icon] };
     });
   }
@@ -76,7 +77,7 @@
     map.nodes.forEach(function (n, i) {
       var open = !!r[n.id];
       out.push({ id: 'n_' + n.id, kind: 'mapnode', x: n.x - 30, y: n.y - 30, w: 60, h: 60, seed: i + 1,
-        state: { icon: open ? n.icon : 'question', open: open, here: n.id === at, lit: !!(n.lit && ok(st, [n.lit])) } });
+        state: { icon: open ? n.icon : 'question', open: open, here: n.id === at, lit: !!(n.lit && ok(st, [n.lit])), far: !n.scene } });
     });
     if (token) out.push({ id: 'token', kind: 'maptoken', x: token.x - 14, y: token.y - 40, w: 28, h: 40, state: { dir: token.dir || 1 } });
     return out;

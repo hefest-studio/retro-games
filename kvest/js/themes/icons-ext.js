@@ -9,6 +9,8 @@
   K.IconsExt = function (H) {
     var circ = H.circ, line = H.line, poly = H.poly, fillRR = H.fillRR, glow = H.glow, flame = H.flame;
     function I() { return H.ink(); } function F() { return H.fill(); } function D() { return H.dim(); }
+    // лист-эскиз (мысль мастера, записанная тушью): слоновая кость, загнутый уголок
+    function card(c) { poly(c, [-15, -16, 10, -16, 15, -11, 15, 16, -15, 16], '#f3ead6', '#2a2420', 1.6); line(c, [10, -16, 10, -11, 15, -11], '#2a2420', 1.2); }
     function wave(c, y, col, lw) { c.beginPath(); c.moveTo(-17, y); for (var x = -17; x <= 17; x += 2) c.lineTo(x, y + Math.sin(x * 0.45) * 3); c.strokeStyle = col; c.lineWidth = lw || 3; c.lineCap = 'round'; c.stroke(); }
     return {
       map: function (c) { poly(c, [-17, -12, -6, -15, 6, -11, 17, -14, 17, 13, 6, 16, -6, 12, -17, 15], F(), I(), 2.5); line(c, [-6, -15, -6, 12], D(), 1.5); line(c, [6, -11, 6, 16], D(), 1.5); line(c, [-12, 6, -4, -2, 4, 4, 12, -6], '#b3533a', 2.5); circ(c, 12, -6, 2.5, '#b3533a'); },
@@ -74,7 +76,20 @@
         line(c, [-18, 12, 18, 12], '#5f8a8c', 2.5); fillRR(c, -18, 14, 12, 4, 1, D()); },
       ruin: function (c) { wave(c, -15, '#5f8a8c', 2.5); poly(c, [-15, 16, -15, -2, -9, -8, -4, -3, -4, 16], F(), I(), 2.5); poly(c, [2, 16, 2, -6, 8, -10, 15, -4, 15, 16], F(), I(), 2.5); fillRR(c, 5, 2, 6, 14, 3, '#3a2d26');
         c.beginPath(); c.moveTo(-9, 16); c.quadraticCurveTo(-14, 8, -8, 2); c.strokeStyle = '#5e7d3a'; c.lineWidth = 3; c.lineCap = 'round'; c.stroke(); circ(c, -1, -9, 1.8, '#e6f1f2', I(), 1.2); },
-      murk: function (c) { [[-12, -10, 9], [3, -12, 7], [12, -2, 8], [-4, 0, 10], [-12, 8, 7], [6, 10, 9]].forEach(function (q, i) { circ(c, q[0], q[1], q[2], i % 2 ? '#9aa79c' : '#b4bfb2'); }); wave(c, -3, I(), 2); wave(c, 7, D(), 2); circ(c, 13, -13, 2, '#e6f1f2', I(), 1.2); }
+      murk: function (c) { [[-12, -10, 9], [3, -12, 7], [12, -2, 8], [-4, 0, 10], [-12, 8, 7], [6, 10, 9]].forEach(function (q, i) { circ(c, q[0], q[1], q[2], i % 2 ? '#9aa79c' : '#b4bfb2'); }); wave(c, -3, I(), 2); wave(c, 7, D(), 2); circ(c, 13, -13, 2, '#e6f1f2', I(), 1.2); },
+      // --- сны, живая тушь, хор огней (главы 5–6) ---
+      quill: function (c) { poly(c, [14, -17, 16, -9, 4, 5, -3, 8, -1, 1], F(), I(), 2.2); line(c, [-3, 8, -12, 16], I(), 2.5); line(c, [11, -12, 0, 3], D(), 1.4); circ(c, -13, 17, 2.2, I()); line(c, [-16, 12, -6, 17], I(), 1.2); },
+      dream: function (c) { circ(c, -2, -2, 12, '#e8e4cf', I(), 2.2); circ(c, 4, -6, 10, '#5a5f7c'); line(c, [-17, 9, 2, 9], D(), 3.5); line(c, [-8, 15, 14, 15], D(), 3.5); line(c, [8, -15, 15, -15, 8, -8, 15, -8], I(), 1.8); },
+      noise: function (c) { var p = [], n = 9; for (var i = 0; i < n * 2; i++) { var a = i * Math.PI / n, r = i % 2 ? 9 : 17; p.push(Math.cos(a) * r, Math.sin(a) * r); } poly(c, p, '#f0d2c6', '#96281a', 2.5); line(c, [-5, -5, 5, 5], '#96281a', 3); line(c, [5, -5, -5, 5], '#96281a', 3); },
+      hush: function (c) { poly(c, [-11, 8, -7, -8, 0, -13, 7, -8, 11, 8], F(), I(), 2.5); line(c, [-13, 8, 13, 8], I(), 3); c.beginPath(); c.arc(0, -1, 17, -0.5, 0.5); c.strokeStyle = D(); c.lineWidth = 1.6; c.stroke(); c.beginPath(); c.arc(0, -1, 17, Math.PI - 0.5, Math.PI + 0.5); c.stroke(); line(c, [-7, 14, 7, 14], '#5e7d3a', 3.5); },
+      song: function (c) { var ys = [2, -10, 8, -4, 14], col = ['#e2b23a', '#c0458c', '#3f9a5a', '#e0703a', '#3f6fb5']; line(c, [-17, 16, 17, 16], D(), 1.2); line(c, [-17, -14, 17, -14], D(), 1.2); for (var i = 0; i < 5; i++) { circ(c, -14 + i * 7, ys[i], 3.4, col[i], I(), 1.2); if (i) line(c, [-14 + (i - 1) * 7, ys[i - 1], -14 + i * 7, ys[i]], I(), 1); } },
+      ink_door: function (c) { card(c); line(c, [-7, 13, -7, -9, 0, -13, 7, -9, 7, 13], '#2a2420', 2.2); line(c, [-7, 13, 7, 13], '#2a2420', 2.2); circ(c, 3.5, 2, 1.5, '#2a2420'); },
+      ink_bridge: function (c) { card(c); line(c, [-13, 6, 13, 6], '#2a2420', 2.4); c.beginPath(); c.moveTo(-13, 6); c.quadraticCurveTo(0, -12, 13, 6); c.strokeStyle = '#2a2420'; c.lineWidth = 1.8; c.stroke(); for (var i = -2; i <= 2; i++) line(c, [i * 5, 6, i * 5, -2 + Math.abs(i) * 3], '#2a2420', 1.3); },
+      ink_ladder: function (c) { card(c); line(c, [-6, 14, -4, -14], '#2a2420', 2.2); line(c, [6, 14, 4, -14], '#2a2420', 2.2); for (var i = 0; i < 4; i++) line(c, [-5.5 + i * 0.4, 9 - i * 6.5, 5.5 - i * 0.4, 9 - i * 6.5], '#2a2420', 1.6); },
+      ink_boat: function (c) { card(c); line(c, [-13, 2, 13, 2, 8, 11, -8, 11, -13, 2], '#2a2420', 2.2); line(c, [0, 2, 0, -13], '#2a2420', 1.8); line(c, [1, -12, 9, -1, 1, -1], '#2a2420', 1.5); },
+      ink_lamp: function (c) { card(c); line(c, [-6, 12, -6, -4, 6, -4, 6, 12, -6, 12], '#2a2420', 2.2); line(c, [-8, -4, 0, -12, 8, -4], '#2a2420', 2); line(c, [0, 8, -2, 3, 0, -1, 2, 3, 0, 8], '#b3402a', 1.6); },
+      oar: function (c) { line(c, [-14, 14, 6, -6], '#8a6448', 4); poly(c, [4, -10, 10, -4, 17, -11, 15, -15, 11, -17], '#b9a27e', I(), 2); circ(c, -14, 14, 2.5, I()); },
+      beam: function (c) { glow(c, -8, 0, 16, 0.5); poly(c, [-8, -3, 17, -13, 17, 13, -8, 3], '#fff1c4'); fillRR(c, -15, -7, 9, 14, 2, F(), I(), 2.2); line(c, [-11, 7, -11, 15], I(), 2.5); }
     };
   };
   // «бумажные» цвета новых пиктограмм (тема paper красит ими подложку)
@@ -84,5 +99,7 @@
     taya: '#f3e4cc', scent: '#efe2c4', overview: '#f6efe0', hold: '#efe2c4', sail: '#efe5cc', eyepiece: '#e9dcc0', chick: '#fbf0c8', windmill: '#e9dcc0', millstone: '#d8d2c4',
     windW: '#dfe8ea', windE: '#dfe8ea', telescope: '#efe0b0', dome: '#dfe4e8', nest: '#e4d4b6', burrow: '#c9b08a', dig: '#e4d4b6', whale: '#dfe4e8',
     ear: '#f3e4cc', air: '#dfeef0', divebell: '#efe0b0', seabell: '#efe0b0', buoy: '#f2d6c6', buoybell: '#f2d6c6', chain: '#e4ded2', kelp: '#d8e6c4', belfry: '#e4ded2', pier: '#dfe8ea',
-    ruin: '#d6e2dc', murk: '#d2d8cc' };
+    ruin: '#d6e2dc', murk: '#d2d8cc',
+    quill: '#efe2c4', dream: '#cfd3e2', noise: '#f6e2da', hush: '#e2ecd6', song: '#f6efe0', ink_door: '#e9e2d0', ink_bridge: '#e9e2d0', ink_ladder: '#e9e2d0',
+    ink_boat: '#e9e2d0', ink_lamp: '#e9e2d0', oar: '#e4d4b6', beam: '#f8e7a8' };
 })(typeof window !== 'undefined' ? window : globalThis);

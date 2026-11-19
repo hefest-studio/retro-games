@@ -10,7 +10,8 @@
 (function (global) {
   'use strict';
   var K = global.KVEST = global.KVEST || {};
-  var FILES = K.CHAPTER_FILES = { demo: ['ch1'], full: ['ch2', 'ch3', 'ch4'] };
+  var FILES = K.CHAPTER_FILES = { demo: ['ch1'], full: ['ch2', 'ch3', 'ch4', 'ch5', 'ch6'] };
+  var TOTAL = FILES.demo.length + FILES.full.length;   // глав в полной игре (экран выбора главы показывает все)
   var LIST = [], BY = {};
   var OLD_SAVE = 'arcade.save.kvest', SAVE_PREFIX = 'arcade.save.kvest.', PROG = 'arcade.kvest.chapters';
 
@@ -18,6 +19,7 @@
     if (!ch || !/^ch\d+$/.test(ch.id || '') || !ch.scenes || !ch.puzzles) { if (global.console) console.warn('МАЯЧНИЦА: неверная глава', ch && ch.id); return null; }
     if (BY[ch.id]) return BY[ch.id];
     ch.n = ch.n || +ch.id.slice(2);
+    if (K.Dream) K.Dream.prepare(ch.puzzles); if (K.Chorus) K.Chorus.prepare(ch.puzzles);   // живая тушь и хор огней → обычные правила (их видят игра, поиск и бот)
     if (ch.map && K.logic && K.logic.withMap) ch.scenes = K.logic.withMap(ch.scenes, ch.map);
     else if (ch.map && K.Coast && !ch.scenes.some(function (s) { return s.map; })) ch.scenes = ch.scenes.concat([K.Coast.mapScene(ch.map)]);
     BY[ch.id] = ch; LIST.push(ch); LIST.sort(function (a, b) { return a.n - b.n; });
@@ -55,11 +57,29 @@
     if (i < 0) return false; if (i === 0) return true;
     return p.done.indexOf(av[i - 1].id) >= 0 || (p.open || []).indexOf(id) >= 0;
   }
+  // сводка для экрана выбора главы: все главы игры по порядку (в демо главы 2+ — без названий: их файлов в сборке нет), у каждой —
+  // открыта ли, пройдена ли, сколько головоломок решено (пройденная — все; иначе — по сохранению главы), и общий процент игры.
+  // Главы, файла которых в сборке нет, считаются по среднему числу головоломок известных глав (процент — оценка, без чисел не из данных).
+  function solvedIn(store, ch) {
+    try { var o = JSON.parse(store.getItem(saveKey(ch.id)) || 'null'); if (!o || o.v !== 1 || !o.flags) return 0; return ch.puzzles.puzzles.filter(function (p) { return o.flags[p.id]; }).length; } catch (e) { return 0; }
+  }
+  function summary(store, edition, prog) {
+    var p = prog || progress(store), av = available(edition), rows = [], solved = 0, total = 0, known = 0, kn = 0;
+    for (var n = 1; n <= TOTAL; n++) {
+      var id = 'ch' + n, ch = BY[id] && av.indexOf(BY[id]) >= 0 ? BY[id] : null;
+      if (!ch) { rows.push({ id: id, n: n, title: null, present: false, unlocked: false, done: false, solved: 0, total: 0 }); continue; }
+      var tot = ch.puzzles.puzzles.length, done = p.done.indexOf(id) >= 0, sv = done ? tot : solvedIn(store, ch);
+      rows.push({ id: id, n: n, title: ch.title || null, present: true, unlocked: unlocked(id, p, edition), done: done, solved: sv, total: tot });
+      solved += sv; total += tot; known += tot; kn++;
+    }
+    var avg = kn ? known / kn : 0, miss = rows.filter(function (r) { return !r.present; }).length, all = total + miss * avg;
+    return { rows: rows, solved: solved, total: total, chapters: TOTAL, done: rows.filter(function (r) { return r.done; }).length, pct: all ? Math.round(solved / all * 100) : 0 };
+  }
   // ?chapter=2 | ?chapter=ch2 — выбрать и открыть главу (плейтест владельца)
   function fromQuery(search) { var m = /[?&]chapter=(?:ch)?(\d+)\b/.exec(String(search || '')); return m ? 'ch' + (+m[1]) : null; }
 
   K.Chapters = { FILES: FILES, OLD_SAVE: OLD_SAVE, PROG: PROG, register: register, files: files, available: available, get: get, next: next, use: use,
-    list: function () { return LIST.slice(); }, saveKey: saveKey, migrate: migrate, progress: progress, setProgress: setProgress, unlocked: unlocked, fromQuery: fromQuery,
+    list: function () { return LIST.slice(); }, TOTAL: TOTAL, summary: summary, solvedIn: solvedIn, saveKey: saveKey, migrate: migrate, progress: progress, setProgress: setProgress, unlocked: unlocked, fromQuery: fromQuery,
     missing: [], onError: function (id) { K.Chapters.missing.push(id); if (global.console) console.warn('МАЯЧНИЦА: нет файла главы ' + id); } };
 
   // глава 1 — данные публичного дерева (scenes.js + puzzles.js)

@@ -2,7 +2,8 @@
    сценарный ИИ, герои, сохранение прогресса (localStorage-ключ arcade.priisk.campaign), бот проходит миссию 1 (реакция 150–250 мс,
    цели по порядку), миссия 1 не тупиковая (A*), тексты RU/EN; издание: флаг сборки, реестр миссий без m2, замочки 2–10, экран демо.
    Общий код для миссий полной версии (укрепления, ремонт, механик, поезд/колонна, мост, смена карты, if/carry/when; для миссий 7–8 —
-   союзник, пожар и вода, захват инженером, многочастная громада и приманка под гейзер) — на мини-картах.
+   союзник, пожар и вода, захват инженером, многочастная громада и приманка под гейзер; для миссий 9–10 клети шахты, темнота и
+   фонари, места работ, обвалы, третья сторона, эскорт, учёт выкачанного, данные экрана финала) — на мини-картах.
    Тесты миссий 2+ — в приватной полной сборке (arcade-full/priisk/tests/campaign-full.test.mjs). Стоп-лист имён — в engine.test.mjs.
    Запуск: node priisk/tests/campaign.test.mjs */
 import fs from 'node:fs';
@@ -488,6 +489,120 @@ test('громада (общий код): идёт на шум буровой в
   eq(L.smartKind(W, 0, [sp.id], b.x, b.y, b), 'plant'); L.commandPlant(W, [sp.id], b.id); ok(tickN(W, 16, 1 / 30, () => L.partOf(b, 'cabin').hp < c0), 'заряд не ударил'); eq(c0 - L.partOf(b, 'cabin').hp, 700, 'урон заряда');
   // маршрут до конца → bossDone, потом идёт на ближайшее чужое здание (Контора)
   b.bs.stun = 0; b.sm = 30; ok(tickN(W, 30, 1 / 30, () => C.cond(W, { t: 'bossDone', tag: 'boss' })), 'не дошла'); ok(tickN(W, 40, 1 / 30, () => W.winner === 1), 'Контору не снесла');
+});
+
+// ---------- Общий код для миссий 9–10 полной версии: клети шахты, фонари, места работ, третья сторона, финал ----------
+// мини-шахта: два яруса (верхний и нижний коридоры) разделены породой, клеть A–a; T–t — вторая клеть (выключена)
+function mineDef(extra = {}) {
+  return Object.assign(tiny({
+    id: 't9', ground: 'mine', night: 0.5,
+    map: [
+      '########################',
+      '#......................#',
+      '#.S.......l....A....T..#',
+      '#......................#',
+      '########################',
+      '########################',
+      '#......................#',
+      '#.K...c...m....a....t..#',
+      '#......................#',
+      '########################'],
+    zones: { k: { at: 'K', r: 2 }, low: { x: 1, y: 6, w: 22, h: 3 }, fall: { x: 9, y: 6, w: 2, h: 3 } },
+    lifts: { cage: { a: 'A', b: 'a', cap: 2, ride: 3, wait: 1 }, spare: { a: 'T', b: 't', cap: 4, ride: 2, wait: 1, on: false } },
+    lamps: { l1: { at: 'l', r: 4 }, l2: { at: 'm', r: 4 } },
+    sites: { s1: { at: 'c', r: 1.5, who: 'sapper', time: 2, label: { ru: 'Заряд', en: 'Charge' } }, s2: { at: 'K', r: 1.5, who: ['sava', 'sapper'], time: 2, on: false } },
+    player: { copper: 0, build: [], units: [], start: [{ type: 'rifleman', at: 'S', n: 3 }, { type: 'sapper', at: 'S', n: 1 }] },
+    objectives: [{ id: 'go', icon: 'eye', text: 'дойди', done: { t: 'zone', zone: 'k' } }]
+  }), extra);
+}
+test('клеть: ярусы — разные области, пешком не пройти; ПКМ по площадке — «ехать»; едут частями по cap, остальные ждут следующего рейса', () => {
+  const W = C.build(mineDef()), MS = W.mission, lf = L.liftById(W, 'cage'), A = C.pointOf(MS, 'A'), a = C.pointOf(MS, 'a'), K = C.pointOf(MS, 'K');
+  ok(L.regionOf(W, A.x, A.y) !== L.regionOf(W, a.x, a.y), 'ярусы — одна область'); ok(!reach(W, A, K, 1.6), 'пешком на нижний ярус');
+  ok(L.liftReach(W, 2, 2, K.x, K.y), 'клетью не доехать'); eq(L.liftRoute(W, 2, 2, K.x, K.y).lift.id, 'cage'); eq(L.liftRoute(W, 2, 2, K.x, K.y).end, 'a'); eq(L.liftRoute(W, 2, 2, 20, 2), null, 'та же область');
+  const us = W.units.filter(u => u.owner === 0), ids = us.map(u => u.id);
+  eq(L.smartKind(W, 0, ids, A.x, A.y, null), 'lift'); eq(L.smartKind(W, 0, ids, A.x + 3, A.y, null), 'move'); eq(L.smartKind(W, 0, ids, C.pointOf(MS, 'T').x, 2.5, null), 'move', 'выключенная клеть');
+  L.commandSmart(W, 0, ids, A.x, A.y, null); ok(us.every(u => u.order.t === 'lift'), 'приказ «ехать»');
+  let dep = null, arr = null; const watch = () => { for (const ev of W.events) { if (ev.t === 'liftDepart' && !dep) dep = ev; if (ev.t === 'liftArrive' && ev.ids.length && !arr) arr = ev; } return false; };
+  const run = (sec, until) => { for (let i = 0; i < sec * 30; i++) { C.tick(W, 1 / 30); watch(); W.events.length = 0; if (until && until()) return true; } return false; };
+  ok(run(20, () => !!dep), 'клеть не ушла'); eq(dep.ids.length, 2, 'мест — 2'); eq(dep.left, 2, 'остались ждать'); eq(W.units.filter(u => u.owner === 0).length, 2, 'ездоки остались на карте'); eq(L.riders(W).length, 2);
+  ok(dep.ids.every(id => !W.byId[id]), 'ездок виден миру'); ok(C.cond(W, { t: 'units', n: 4 }), 'условие units не считает едущих'); ok(!C.cond(W, { t: 'liftAt', id: 'cage', end: 'a' }), 'liftAt в пути');
+  ok(run(6, () => !!arr), 'клеть не пришла'); eq(arr.end, 'b'); ok(arr.ids.every(id => W.byId[id] && W.byId[id].y > 5 && W.byId[id].order.t === 'idle'), 'не вышли на нижнем ярусе'); ok(C.cond(W, { t: 'rode', id: 'cage' }) && !C.cond(W, { t: 'rode', id: 'cage', gte: 2 }), 'rode');
+  // клеть сама возвращается за ждущими и везёт второй рейс
+  ok(run(20, () => W.units.filter(u => u.owner === 0 && u.y > 5).length === 4), 'второй рейс не приехал'); eq(lf.trips, 2); eq(lf.at, 'b'); eq(L.riders(W).length, 0);
+  // вызов клети с другого яруса: один едет наверх; приехавшие на площадку без приказа никуда не едут
+  const u0 = W.units.find(u => u.owner === 0); L.commandLift(W, [u0.id], lf, 'b'); ok(run(12, () => u0.y < 4 && !!W.byId[u0.id]), 'наверх не уехал'); eq(W.units.filter(u => u.owner === 0 && u.y > 5).length, 3, 'уехали без приказа');
+  L.commandLift(W, [W.units.find(u => u.owner === 0 && u.y > 5).id], lf, 'b'); ok(run(8, () => lf.st === 'move'), 'клеть не вызвана снизу'); eq(lf.to, 'b'); eq(lf.riders.length, 0, 'вызванная клеть идёт пустой');
+});
+test('клеть: действие lift включает запасную клеть; ждущий на площадке отстреливается; выключенная клеть сбрасывает приказ', () => {
+  const W = C.build(mineDef()), MS = W.mission, sp = L.liftById(W, 'spare'), T = C.pointOf(MS, 'T'); eq(sp.on, false); ok(!L.liftAt(W, T.x, T.y), 'выключенная клеть под курсором');
+  C.act(W, { a: 'lift', id: 'spare' }); ok(sp.on && L.liftAt(W, T.x, T.y).lift === sp, 'не включилась');
+  const r = W.units.find(u => u.type === 'rifleman'); r.x = T.x; r.y = T.y; L.commandLift(W, [r.id], sp, 'a'); sp.wait = 30;
+  const foe = L.addUnit(W, 1, 'rifleman', T.x - 3, T.y); foe.calm = true; foe.calm = false; foe.order = { t: 'idle' }; foe.cd = 99; tickN(W, 3); ok(foe.hp < 60, 'ждущий клеть не отстреливается'); eq(r.order.t, 'lift', 'бросил ждать');
+  C.act(W, { a: 'lift', id: 'spare', on: false }); tickN(W, 0.3); eq(r.order.t === 'lift', false, 'ждёт выключенную клеть');
+});
+test('темнота и фонари: обзор урезан, свой юнит рядом зажигает фонарь — круг света остаётся, когда отряд ушёл; условие lit', () => {
+  const W = C.build(mineDef()), MS = W.mission, l = C.pointOf(MS, 'l'), cell = Math.floor(l.y) * W.w + Math.floor(l.x); tickN(W, 0.5);
+  eq(W.sightMul, 0.5, 'темнота'); ok(W.vis[cell] !== 2, 'фонарь виден издалека'); ok(!C.cond(W, { t: 'lit' }), 'lit до срока');
+  const r = W.units.find(u => u.type === 'rifleman'); r.x = l.x - 1; r.y = l.y; tickN(W, 0.5); ok(MS.lamps.l1.on && C.cond(W, { t: 'lit' }) && !C.cond(W, { t: 'lit', gte: 2 }), 'не зажёгся'); eq(W.lights.length, 1);
+  r.x = 2.5; r.y = 2.5; tickN(W, 0.5); eq(W.vis[cell], 2, 'свет погас, когда ушли'); eq(W.vis[Math.floor(l.y) * W.w + Math.floor(l.x) + 3], 2, 'круг света мал');
+  C.act(W, { a: 'lamp', id: 'l2' }); ok(MS.lamps.l2.on && MS.litN === 2, 'действие lamp');
+  // привал у зажжённого фонаря (def.rest): раненая пехота вне боя перевязывается; у погашенного и под огнём — нет
+  const R = C.build(mineDef({ rest: { hp: 5, r: 2.5, calm: 3 } })), a = R.units.find(u => u.type === 'rifleman'), b = R.units.filter(u => u.type === 'rifleman')[1], lp = C.pointOf(R.mission, 'l');
+  a.hp = 20; b.hp = 20; a.x = lp.x + 1; a.y = lp.y; b.x = 21.5; b.y = 2.5; tickN(R, 4); ok(a.hp > 35 && a.hp < 45, 'у фонаря не лечится: ' + a.hp); eq(b.hp, 20, 'лечится без фонаря');
+  a.hitT = R.time; const h0 = a.hp; tickN(R, 2); eq(a.hp, h0, 'лечится под огнём'); tickN(R, 20); eq(a.hp, 60, 'не долечился');
+});
+test('прямая видимость (def.los): сквозь породу не видно и не стреляют — стрелок обходит стену; без los — как раньше; метка Луни видит сквозь породу', () => {
+  const mk = los => C.build(tiny({ los, map: ['############', '#S.........#', '#..........#', '#####.######', '#..K.......#', '#..........#', '############'], zones: { k: { at: 'K', r: 1 } }, objectives: [{ id: 'go', icon: 'eye', text: 'жди', done: { t: 'flag', key: 'never' } }],
+    player: { copper: 0, build: [], units: [], start: [{ type: 'rifleman', at: 'S', n: 1 }] } }));
+  for (const los of [true, false]) {
+    const W = mk(los), r = W.units[0], foe = L.addUnit(W, 1, 'rifleman', 2.5, 4.5); foe.cd = 99; r.x = 2.5; r.y = 2.5; L.updateVis(W);
+    eq(L.sees(W, 2.5, 2.5, 2.5, 4.5), !los, 'sees ' + los); eq(W.vis[4 * W.w + 2] === 2, !los, 'обзор сквозь породу ' + los); eq(W.vis[3 * W.w + 2], 2, 'стену не видно');
+    tickN(W, 1.5); eq(foe.hp < 60, !los, 'стрельба сквозь породу ' + los);
+    if (los) { ok(L.sees(W, 2.5, 2.5, 5.5, 2.5), 'вдоль штрека не видно'); L.commandAttack(W, [r.id], foe.id); ok(tickN(W, 12, 1 / 30, () => foe.hp < 60), 'не обошёл стену'); ok(r.y > 3 || r.x > 4, 'стрелял с места');
+      W.flares.push({ x: 8.5, y: 4.5, r: 2, t: 5, max: 5, owner: 0 }); r.x = 2.5; r.y = 1.5; L.updateVis(W); eq(W.vis[4 * W.w + 8], 2, 'метка не видит за породой'); }
+  }
+});
+test('место работ: подрывник стоит на месте time секунд — заряд заложен (site/sites); чужой тип и идущий мимо не считаются; выключенное — ждёт действия site', () => {
+  const W = C.build(mineDef({ objectives: [{ id: 'go', icon: 'eye', text: 'жди', done: { t: 'flag', key: 'never' } }] })), MS = W.mission, c = C.pointOf(MS, 'c'), K = C.pointOf(MS, 'K'), sp = W.units.find(u => u.type === 'sapper'), r = W.units.find(u => u.type === 'rifleman');
+  r.x = c.x; r.y = c.y; tickN(W, 3); ok(!MS.sites.s1.done && MS.sites.s1.p === 0, 'стрелок закладывает заряд');
+  sp.x = c.x + 0.5; sp.y = c.y; tickN(W, 1); ok(MS.sites.s1.p > 0.8 && MS.sites.s1.busy, 'работа не идёт'); ok(!C.cond(W, { t: 'site', id: 's1' }));
+  tickN(W, 1.3); ok(C.cond(W, { t: 'site', id: 's1' }) && C.cond(W, { t: 'sites', gte: 1 }) && !C.cond(W, { t: 'sites', gte: 2 }) && C.cond(W, { t: 'sites', ids: ['s1'], gte: 1 }) && !C.cond(W, { t: 'sites', ids: ['s2'], gte: 1 }), 'site/sites');
+  sp.x = K.x; sp.y = K.y - 5; sp.x = K.x; tickN(W, 0.2); sp.y = K.y; tickN(W, 3); ok(!MS.sites.s2.done, 'выключенное место сработало');
+  C.act(W, { a: 'site', id: 's2', on: true }); tickN(W, 2.3); ok(MS.sites.s2.done && MS.sitesN === 2, 'включённое не сработало'); C.act(W, { a: 'site', id: 's2', done: true }); eq(MS.sitesN, 2, 'дважды засчитано');
+  const D = C.build(mineDef({ carry: ['prep'], flags: { prep: 'no' }, sites: { s1: { at: 'c', who: 'sapper', time: 2, done: { t: 'flag', key: 'prep', value: 'set' } } } }), { save: Object.assign(C.newSave(), { flags: { prep: 'set' } }) });
+  ok(D.mission.sites.s1.done && D.mission.sitesN === 1, 'сделанное по флагу прошлой миссии');
+});
+test('обвал: tiles в скалу с dmg ранит накрытых и выталкивает их, пути перестраиваются; ярус не отрезан, если есть обход', () => {
+  const W = C.build(mineDef()), MS = W.mission, K = C.pointOf(MS, 'K'), a = C.pointOf(MS, 'a'); const r = W.units.find(u => u.type === 'rifleman'); r.x = 9.5; r.y = 7.5; const hp0 = r.hp;
+  ok(reach(W, a, K, 1.6), 'до обвала пути нет'); C.act(W, { a: 'tiles', zone: 'fall', to: '#', dmg: 25 }); eq(r.hp, hp0 - 25, 'обвал не ранил'); ok(L.walkable(W.t[Math.floor(r.y) * W.w + Math.floor(r.x)]), 'остался в породе');
+  ok(!reach(W, a, K, 1.6), 'обвал не перекрыл штрек'); ok(L.regionOf(W, a.x, a.y) !== L.regionOf(W, K.x, K.y), 'области не пересчитаны');
+});
+test('третья сторона: действие teams — владелец 2 враждебен всем; calm — мирные не стреляют; группа escort идёт за героем и сама едет клетью', () => {
+  const W = C.build(mineDef({ teams: [0, 1, 0], ally: { start: [{ type: 'rifleman', at: 'l', n: 2, tag: 'kor' }] }, groups: { kor: { owner: 2, mode: 'escort', follow: 'sapper', dist: 3 } } })), MS = W.mission;
+  const kor = W.units.filter(u => u.tag === 'kor'), sp = W.units.find(u => u.type === 'sapper'), lf = L.liftById(W, 'cage'); eq(kor.length, 2); ok(!L.hostile(W, 0, 2), 'союзник враждебен');
+  tickN(W, 8); ok(kor.every(u => Math.hypot(u.x - sp.x, u.y - sp.y) < 5), 'не подошли к ведущему');
+  sp.x = C.pointOf(MS, 'K').x + 3; sp.y = 7.5; sp.post = null; ok(tickN(W, 40, 1 / 30, () => kor.every(u => W.byId[u.id] && u.y > 5 && Math.hypot(u.x - sp.x, u.y - sp.y) < 6)), 'эскорт не приехал клетью за ведущим'); ok(lf.trips >= 1, 'клеть не возила');
+  C.act(W, { a: 'teams', set: [0, 1, 2] }); ok(L.hostile(W, 0, 2) && L.hostile(W, 1, 2), 'teams'); const hp0 = sp.hp; MS.groups.kor.mode = 'hold'; tickN(W, 5); ok(sp.hp < hp0 || kor.some(u => u.hp < 60), 'третья сторона не дерётся');
+  C.act(W, { a: 'calm', tag: 'kor' }); W.units.filter(u => u.owner === 0).forEach(u => { u.order = { t: 'idle' }; }); const h1 = W.units.filter(u => u.owner === 0).map(u => u.hp).join(), k1 = kor.map(u => u.hp).join(); tickN(W, 4);
+  eq(W.units.filter(u => u.owner === 0).map(u => u.hp).join(), h1, 'мирные стреляют'); eq(kor.map(u => u.hp).join(), k1, 'по мирным стреляют');
+});
+test('выкачано в зоне: условие pumped считает медь вышек игрока только в зоне учёта (def.pumped)', () => {
+  const W = C.build(tiny({ map: ['####################', '#S.................#', '#.....OOOO.........#', '#.....OROO....K....#', '#.....OOOO.........#', '#..................#', '#..................#', '####################'], legend: { R: 'O' },
+    zones: { k: { at: 'K', r: 2 }, heart: { at: 'R', r: 3 } }, pumped: ['heart'], rigRate: 20, player: { copper: 0, build: [], units: [], start: [{ type: 'rig', at: 'R' }, { type: 'rifleman', at: 'S' }] } }));
+  tickN(W, 5.5); const got = W.mission.pumped.heart; ok(got >= 80 && got <= 120, 'pumped: ' + got); ok(C.cond(W, { t: 'pumped', zone: 'heart', gte: 80 }) && !C.cond(W, { t: 'pumped', zone: 'heart', gte: 500 }), 'условие pumped');
+});
+test('финал кампании: итог по флагам (заголовок по концовке, решения из flagText миссий, реплики по условиям), звёзды по миссиям', () => {
+  const m = C.byId('m1'), keepFT = m.flagText, keepF = m.finale;
+  m.flagText = { way: { a: { ru: 'путь А', en: 'way A' }, b: { ru: 'путь Б', en: 'way B' } } };
+  m.finale = { title: { key: 'ending', x: { ru: 'Икс', en: 'X' }, y: { ru: 'Игрек', en: 'Y' } }, sub: { ru: 'итог', en: 'sum' }, rows: [{ mission: 'm1', key: 'way' }, { mission: 'm1', key: 'none' }, { mission: 'zz', key: 'way' }],
+    quotes: [{ who: 'varvara', when: { ending: 'x' }, text: { ru: '1', en: '1' } }, { who: 'korney', when: { ending: 'y' }, text: { ru: '2', en: '2' } }, { who: 'sava', when: { ending: ['x', 'y'], way: 'b' }, text: { ru: '3', en: '3' } }, { who: 'lunya', text: { ru: '4', en: '4' } }], note: { ru: 'дальше', en: 'next' } };
+  try {
+    const d = C.newSave(); d.flags = { ending: 'y', way: 'b' }; d.missions.m1 = { stars: [true, false, true], time: 10 };
+    const F = C.finale(m, d); eq(C.txt(F.title, 'ru'), 'Игрек'); eq(F.rows.length, 1); eq(C.txt(F.rows[0].text, 'en'), 'way B'); eq(F.rows[0].n, 1);
+    eq(F.quotes.map(q => q.who).join(), 'korney,sava,lunya'); eq(F.total, 2); eq(F.max, P.MISSIONS.length * 3); eq(F.stars[0].stars, [true, false, true]); eq(C.txt(F.note, 'ru'), 'дальше'); eq(F.ending, 'y');
+    d.flags.ending = 'x'; eq(C.finale(m, d).quotes.map(q => q.who).join(), 'varvara,sava,lunya'); eq(C.finale(C.byId('m1'), C.newSave()).title, null, 'нет флага — нет заголовка');
+  } finally { m.flagText = keepFT; m.finale = keepF; }
+  eq(C.finale(m, C.newSave()), null, 'у миссии без finale — null');
 });
 
 await runAll();

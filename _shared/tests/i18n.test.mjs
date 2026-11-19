@@ -3,6 +3,7 @@
    • без параметра — сохранённый arcade.lang, иначе язык игры по умолчанию (opts.lang), иначе ru;
    • неверный ?lang= игнорируется; L/toggle сохраняет выбор; перевод DOM по data-en / data-ru;
    • заголовок/подзаголовок заставки в EN берутся из strings.en, даже если в cfg — русский литерал.
+   • ссылка «← Каталог» (a[data-catalog-back], v2.4): RU → ../ , EN → ../en/ ; подпись и href следуют языку.
    Запуск: node _shared/tests/i18n.test.mjs */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,11 +16,11 @@ const SRC = fs.readFileSync(path.join(ROOT, '_shared/engine.js'), 'utf8');
 function el(html, attrs = {}) {
   return { innerHTML: html, _a: Object.assign({}, attrs), getAttribute(k) { return k in this._a ? this._a[k] : null; }, setAttribute(k, v) { this._a[k] = String(v); } };
 }
-function makeEnv({ search = '', store = {}, dom = [] } = {}) {
+function makeEnv({ search = '', store = {}, dom = [], links = [], protocol = 'https:' } = {}) {
   const drawn = [];
   const win = {
     Math, Object, Array, JSON, Error, Float32Array, parseInt, parseFloat, Date, console,
-    location: { search, hash: '' },
+    location: { search, hash: '', protocol },
     localStorage: { _d: Object.assign({}, store), getItem(k) { return this._d[k] ?? null; }, setItem(k, v) { this._d[k] = String(v); } },
     addEventListener() {}, removeEventListener() {}, setInterval() { return 1; }, clearInterval() {}, setTimeout() { return 0; },
     requestAnimationFrame() { return 0; }, cancelAnimationFrame() {}, performance: { now: () => 0 },
@@ -28,7 +29,7 @@ function makeEnv({ search = '', store = {}, dom = [] } = {}) {
   const ctx = { imageSmoothingEnabled: true, fillText(s) { drawn.push(String(s)); }, fillRect() {}, save() {}, restore() {}, beginPath() {}, arc() {}, fill() {}, strokeRect() {}, measureText: () => ({ width: 10 }) };
   const canvas = { width: 100, height: 100, style: {}, addEventListener() {}, getContext: () => ctx };
   const docEl = { lang: 'ru' };
-  win.document = { querySelector: () => canvas, querySelectorAll: (q) => (q === '[data-en]' ? dom : []), documentElement: docEl, addEventListener() {}, hidden: false };
+  win.document = { querySelector: () => canvas, querySelectorAll: (q) => (q === '[data-en]' ? dom.concat(links.filter((l) => l.getAttribute('data-en') != null)) : q === 'a[data-catalog-back]' ? links : []), documentElement: docEl, addEventListener() {}, hidden: false };
   win.window = win; win.globalThis = win;
   vm.createContext(win);
   vm.runInContext(SRC, win, { filename: 'engine.js' });
@@ -94,6 +95,50 @@ test('заставка: в EN заголовок/подзаголовок из s
   eq(e.drawn.includes('GAME') && e.drawn.includes('Subtitle') && !e.drawn.includes('ИГРА'), true, String(e.drawn));
   e.drawn.length = 0; g.i18n.toggle(); g.scenes.title.draw.call(g);
   eq(e.drawn.includes('ИГРА') && e.drawn.includes('Подзаголовок'), true, String(e.drawn));
+});
+
+// ---------- ссылка «← Каталог» (v2.4) ----------
+const back = (html = '← Каталог', attrs = {}) => el(html, Object.assign({ href: '../', 'data-catalog-back': '1', 'data-en': '← Catalog' }, attrs));
+test('каталог: RU — ссылка ведёт в ../ и подписана по-русски', () => {
+  const a = back(); makeEnv({ links: [a] }).game();
+  eq([a.getAttribute('href'), a.innerHTML, a.getAttribute('hreflang')], ['../', '← Каталог', 'ru']);
+});
+test('каталог: ?lang=en — ссылка ведёт в ../en/ и подписана по-английски', () => {
+  const a = back(); makeEnv({ search: '?lang=en', links: [a] }).game();
+  eq([a.getAttribute('href'), a.innerHTML, a.getAttribute('hreflang')], ['../en/', '← Catalog', 'en']);
+});
+test('каталог: сохранённый выбор en (без параметра) — тоже ../en/', () => {
+  const a = back(); makeEnv({ store: { 'arcade.lang': 'en' }, links: [a] }).game();
+  eq(a.getAttribute('href'), '../en/');
+});
+test('каталог: переключение языка в игре (L) обновляет href и подпись в обе стороны', () => {
+  const a = back(); const g = makeEnv({ links: [a] }).game();
+  g.i18n.toggle(); eq([a.getAttribute('href'), a.innerHTML], ['../en/', '← Catalog']);
+  g.i18n.toggle(); eq([a.getAttribute('href'), a.innerHTML], ['../', '← Каталог']);
+  g.i18n.set('en'); g.i18n.set('en'); eq(a.getAttribute('href'), '../en/', 'повторный set не дублирует en/');
+});
+test('каталог: ссылка без data-en — движок сам ставит английскую подпись и возвращает русскую', () => {
+  const a = el('← Каталог', { href: '../', 'data-catalog-back': '1' }); const g = makeEnv({ search: '?lang=en', links: [a] }).game();
+  eq([a.getAttribute('href'), a.innerHTML], ['../en/', '← Catalog']);
+  g.i18n.toggle(); eq([a.getAttribute('href'), a.innerHTML], ['../', '← Каталог']);
+});
+test('каталог: ссылка со своей разметкой внутри и без data-en — меняется только href', () => {
+  const a = el('&larr; <span class="lbl">Каталог</span>', { href: '../', 'data-catalog-back': '1' }); makeEnv({ search: '?lang=en', links: [a] }).game();
+  eq([a.getAttribute('href'), a.innerHTML], ['../en/', '&larr; <span class="lbl">Каталог</span>']);
+});
+test('каталог: file:// — с index.html (без листинга папки); исходный ../index.html не ломает правило', () => {
+  const a = back(), b = back('← Каталог', { href: '../index.html' });
+  const g = makeEnv({ search: '?lang=en', links: [a, b], protocol: 'file:' }).game();
+  eq([a.getAttribute('href'), b.getAttribute('href')], ['../en/index.html', '../en/index.html']);
+  g.i18n.toggle(); eq([a.getAttribute('href'), b.getAttribute('href')], ['../index.html', '../index.html']);
+});
+test('каталог: catalogRoot — корень каталога из любого вида адреса', () => {
+  const A = makeEnv().A;
+  eq(['../', '../index.html', '../en/', '../en/index.html', '../../', '../?x=1', null, ''].map(A.catalogRoot), ['../', '../', '../', '../', '../../', '../', '../', '../']);
+});
+test('каталог: несколько ссылок на странице (шапка + экран конца) обновляются все', () => {
+  const a = back(), b = back(); makeEnv({ search: '?lang=en', links: [a, b] }).game();
+  eq([a.getAttribute('href'), b.getAttribute('href')], ['../en/', '../en/']);
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

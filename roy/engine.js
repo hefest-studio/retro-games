@@ -4,7 +4,7 @@
  * настройки: язык/тема/звук), сцены, сетка, частицы, HUD, счёт+рекорд (localStorage по игре).
  * Встроены критерии: проходимость (win/lose+финал, difficulty), играбельность (отклик, фидбек),
  * непресность (нарастание). Игры самодостаточны: build.sh копирует файл в игру. API — README.
- * (c) Студия «Гефест». v2.3.0 (единое правило языка ?lang= → arcade.lang → ru, перевод DOM по data-en; v2.2: g.menu, g.input.player(i), g.usePlayers, touchOnly)
+ * (c) Студия «Гефест». v2.4.0 (v2.4: ссылка «← Каталог» a[data-catalog-back] ведёт в каталог текущего языка — ../ или ../en/, dt первого кадра не отрицательный; v2.3: единое правило языка ?lang= → arcade.lang → ru, перевод DOM по data-en; v2.2: g.menu, g.input.player(i), g.usePlayers, touchOnly)
  */
 (function (global) {
   'use strict';
@@ -53,8 +53,36 @@
         var v = el.getAttribute(lang === 'en' ? 'data-en' : 'data-ru'); if (v != null && el.innerHTML !== v) el.innerHTML = v;
       }
     } catch (e) {}
+    this.applyCatalogLink();
   };
-  I18n.resolve = resolveLang; I18n.urlLang = urlLang;
+  // Ссылка «← Каталог» (v2.4): a[data-catalog-back] ведёт в каталог ТЕКУЩЕГО языка — RU: ../ , EN: ../en/
+  // (на file:// — с index.html, иначе браузер покажет листинг папки). Исходный адрес запоминается в
+  // data-catalog-root. Подпись: если у ссылки нет data-en и внутри нет своей разметки — движок ставит
+  // «← Catalog» сам (обычный путь — data-en в разметке, см. applyDom).
+  I18n.prototype.applyCatalogLink = function () {
+    if (!doc || !doc.querySelectorAll) return; var en = this.lang === 'en';
+    try {
+      var file = !!(global.location && global.location.protocol === 'file:');
+      var ls = doc.querySelectorAll('a[data-catalog-back]');
+      for (var i = 0; i < ls.length; i++) {
+        var a = ls[i], root = a.getAttribute('data-catalog-root');
+        if (root == null) { root = catalogRoot(a.getAttribute('href')); a.setAttribute('data-catalog-root', root); }
+        var href = root + (en ? 'en/' : '') + (file ? 'index.html' : '');
+        if (a.getAttribute('href') !== href) a.setAttribute('href', href);
+        a.setAttribute('hreflang', en ? 'en' : 'ru');
+        if (a.getAttribute('data-en') == null && !/<[a-z]/i.test(a.innerHTML || '')) {
+          if (a.getAttribute('data-ru') == null) a.setAttribute('data-ru', a.innerHTML);
+          a.setAttribute('data-en', '\u2190 Catalog'); if (en) a.innerHTML = '\u2190 Catalog';
+        }
+      }
+    } catch (e) {}
+  };
+  // '../', '../index.html', '../en/', '../en/index.html' → '../' (корень каталога относительно игры)
+  function catalogRoot(href) {
+    var h = String(href == null ? '../' : href).replace(/[?#].*$/, '').replace(/index\.html$/i, '').replace(/(^|\/)en\/$/i, '$1');
+    return h || '../';
+  }
+  I18n.resolve = resolveLang; I18n.urlLang = urlLang; I18n.catalogRoot = catalogRoot;
 
   // ---------- Темы (retro / modern). modern — основная (вместо неона). ----------
   var THEMES = {
@@ -464,6 +492,7 @@
     this.menu = new MenuApi(this);
     this.musicAuto = opts.musicAuto !== false; // музыка по сценам: play — звучит, pause — пауза, прочие — стоп
     this.i18n = new I18n(opts.strings, opts.lang);
+    if (doc && doc.readyState === 'loading' && doc.addEventListener) { var i18n = this.i18n; doc.addEventListener('DOMContentLoaded', function () { i18n.applyDom(); }); } // движок подключён в <head>
     this.themeName = Store.get('arcade.theme', opts.theme || 'modern'); // modern по умолчанию
     this.themesMap = Object.assign({}, THEMES, opts.themes || {});
     this.step = opts.step || 1 / 60; this.scenes = Object.create(null); this.current = null;
@@ -516,7 +545,7 @@
     this.goto(name || 'title'); this.running = true; this._last = performance.now();
     var loop = function (t) {
       self._raf = requestAnimationFrame(loop);
-      var dt = (t - self._last) / 1000; self._last = t; if (dt > 0.25) dt = 0.25;
+      var dt = (t - self._last) / 1000; self._last = t; if (dt > 0.25) dt = 0.25; else if (dt < 0) dt = 0; // метка rAF первого кадра бывает раньше performance.now() из start() — без отрицательного времени (иначе g.time < 0 и кадры спрайтов с индексом -1)
       self.time += dt; self.particles.update(dt);
       var sc = self.current; if (!sc) return;
       if (sc.realtime) { if (sc.update) sc.update.call(self, dt); }
@@ -622,7 +651,7 @@
 
   // Arcade.tracks[gameId] = track — так js/music.js игры регистрирует свою мелодию до createGame.
   var Arcade = (global.Arcade && global.Arcade.tracks) ? global.Arcade : {};
-  Object.assign(Arcade, { createGame: function (o) { return new Engine(o); }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, version: '2.3.0' });
+  Object.assign(Arcade, { createGame: function (o) { return new Engine(o); }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, version: '2.4.0', catalogRoot: catalogRoot });
   Arcade.tracks = Arcade.tracks || {};
   if (typeof module !== 'undefined' && module.exports) module.exports = Arcade;
   global.Arcade = Arcade;

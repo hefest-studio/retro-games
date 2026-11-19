@@ -1932,7 +1932,7 @@
     g.save(); if (g.setLineDash) g.setLineDash([4, 4]); poly(g, p); g.strokeStyle = 'rgba(80,60,40,0.4)'; g.lineWidth = 1; g.stroke(); g.restore();
     tape(g, x + w / 2, y, Math.min(30, w * 0.6), 9, 0.1, 2301);
   }
-  function stKey(st) { if (!st) return ''; var k = Object.keys(st).sort(), s = ''; for (var i = 0; i < k.length; i++) { if (k[i] === 'ring' || k[i] === 'sing' || k[i] === 'pose') continue; s += k[i] + '=' + JSON.stringify(st[k[i]]) + ';'; } return s; }
+  function stKey(st) { if (!st) return ''; var k = Object.keys(st).sort(), s = ''; for (var i = 0; i < k.length; i++) { if (k[i] === 'ring' || k[i] === 'sing' || k[i] === 'pose' || k[i] === 'drawn') continue; /* «живые» поля — не в ключ спрайта */ s += k[i] + '=' + JSON.stringify(st[k[i]]) + ';'; } return s; }
   function itemSprite(it, sc, P, pk) {
     var b = itemBox(it), fn = drawFnFor(it);
     var key = pk + '|' + (sc.id || '') + '|' + it.kind + '|' + (it.item || '') + '|' + it.x + ',' + it.y + ',' + it.w + ',' + it.h + ',' + (it.seed || 0) + '|' + stKey(it.state);
@@ -2128,7 +2128,10 @@
       (sc.objects || []).forEach(function (o) {
         if (o.kind === 'npc' && opts.npcSeparate) return;
         var hot = hotFor(sc, o), hov = hv && hot === hv;
+        var mvd = o.dx || o.dy;   // кат-сцена: объект плывёт — готовый спрайт сдвигается (ключ спрайта не меняется)
+        if (mvd) { ctx.save(); ctx.translate(o.dx || 0, o.dy || 0); }
         try { drawObject(ctx, o, sc, P, pk, t, hot, hov); } catch (e) { if (global.KVEST_STRICT) throw e; unknownKind(ctx, o); }
+        if (mvd) ctx.restore();
       });
       if (hv && hv.cursor !== 'go' && !(sc.objects || []).some(function (o) { return hotFor(sc, o) === hv; })) { var r = hv.rect; addGlow(ctx, r[0] + r[2] / 2, r[1] + r[3] / 2, Math.max(r[2], r[3]) * 0.6, '255,236,170', 0.22); }
       exitMarkers(ctx, sc, t, hv);

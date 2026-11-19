@@ -18,7 +18,7 @@
   var STEP = 1 / 60;
 
   // ---------- кампания: старт миссии ----------
-  function resetUi() { fightT = -99; S.sel = new Set(); S.placing = null; S.marks = []; S.msgs = []; endT = 0; acc = 0; for (var k in groups) delete groups[k]; }
+  function resetUi() { fightT = -99; for (var rk in rideSel) delete rideSel[rk]; S.sel = new Set(); S.placing = null; S.marks = []; S.msgs = []; endT = 0; acc = 0; for (var k in groups) delete groups[k]; }
   function startMission(id) {
     var def = CMP.byId(id); if (!def) return;
     S.mission = id; S.W = CMP.build(def, { save: CU.data, seed: (Date.now() % 9973) + 1 }); resetUi();
@@ -114,6 +114,7 @@
       attack: C("<circle cx='16' cy='16' r='10' fill='none' stroke='black' stroke-width='5'/><circle cx='16' cy='16' r='10' fill='none' stroke='#ff5a4e' stroke-width='2.5'/><path d='M16 2 L16 10 M16 22 L16 30 M2 16 L10 16 M22 16 L30 16' stroke='#ff5a4e' stroke-width='2.5'/>", 16, 16, 'crosshair'),
       flare: C("<circle cx='16' cy='16' r='11' fill='none' stroke='black' stroke-width='5' stroke-dasharray='5 3'/><circle cx='16' cy='16' r='11' fill='none' stroke='#ffb020' stroke-width='2.5' stroke-dasharray='5 3'/><circle cx='16' cy='16' r='4' fill='#ffe08a' stroke='black'/>", 16, 16, 'crosshair'),
       harvest: C("<path d='M6 26 L20 12' stroke='black' stroke-width='6'/><path d='M6 26 L20 12' stroke='#c8a070' stroke-width='3'/><path d='M10 6 Q22 4 28 16 Q20 10 12 10 Z' fill='#eca664' stroke='black' stroke-width='1.5'/>", 18, 10, 'cell'),
+      lift: C("<rect x='7' y='9' width='18' height='18' fill='#3a3f47' stroke='black' stroke-width='2'/><path d='M16 1 L16 9' stroke='black' stroke-width='4'/><path d='M16 1 L16 9' stroke='#ffb020' stroke-width='2'/><path d='M12 21 L16 14 L20 21 Z' fill='#ffb020' stroke='black'/>", 16, 18, 'pointer'),
       deny: 'not-allowed', place: 'crosshair', pan: 'grabbing', panel: 'pointer', normal: 'default'
     },
     onDown: function (p, info) {
@@ -169,7 +170,8 @@
       var tg = visiblePick(w); if (tg && tg.owner === 0 && tg.kind === 'unit') tg = null;
       var k = L.commandSmart(S.W, 0, units, w.x, w.y, tg);
       if (k === 'deny') { beep(150, 0.06, 'square'); return; }
-      var c = tg ? L.center(tg) : w; S.marks.push({ x: c.x, y: c.y, kind: k === 'plant' || k === 'capture' || k === 'douse' ? 'attack' : k === 'fill' ? 'harvest' : k, life: 0.6 });
+      var c = tg ? L.center(tg) : w; S.marks.push({ x: c.x, y: c.y, kind: k === 'plant' || k === 'capture' || k === 'douse' ? 'attack' : k === 'fill' || k === 'lift' ? 'harvest' : k, life: 0.6 });
+      if (k === 'lift') { var la = L.liftAt(S.W, w.x, w.y); if (la && la.lift.at !== la.end && la.lift.st !== 'move') msg(g.t('msgLiftCall'), 'warn'); }
       beep(k === 'attack' ? 300 : 520, 0.035, k === 'attack' ? 'sawtooth' : 'triangle');
     },
     onPan: function (dx, dy) { S.cam.x += dx; S.cam.y += dy; clampCam(); },
@@ -207,17 +209,18 @@
     if (e && e.owner === 0 && e.kind === 'unit') { mouse.setCursor('select'); return; }
     var k = L.smartKind(S.W, 0, us, w.x, w.y, e);
     if (e && e.owner === 0 && e.kind === 'bld' && k === 'deny') { mouse.setCursor('select'); return; }
-    mouse.setCursor(k === 'attack' || k === 'plant' || k === 'capture' || k === 'douse' ? 'attack' : k === 'harvest' || k === 'return' || k === 'fill' ? 'harvest' : k === 'deny' ? 'deny' : 'move');
+    mouse.setCursor(k === 'attack' || k === 'plant' || k === 'capture' || k === 'douse' ? 'attack' : k === 'harvest' || k === 'return' || k === 'fill' ? 'harvest' : k === 'lift' ? 'lift' : k === 'deny' ? 'deny' : 'move');
   }
 
   // ---------- группы ----------
   // Назначить: Ctrl+1…9 (на macOS — тоже Ctrl), запасной Alt+1…9; кнопки групп — Ctrl+клик / ПКМ / долгий тап.
   // Ctrl+цифра в Chrome — не «зарезервированная» команда (в отличие от Ctrl+T/W/N/Tab): страница получает keydown первой,
   // и preventDefault не даёт переключить вкладку. Cmd+цифра на macOS не трогаем — пусть остаётся переключением вкладок.
-  var grpDown = null, keyShift = false;
+  var grpDown = null, keyShift = false, rideSel = {}; // rideSel — кто из выделенных уехал клетью: вернуть в выделение по прибытии
   function assignGroup(n) { var ids = ownSel(); if (!ids.length) { msg(g.t('msgGroupEmpty'), 'warn'); return false; } groups[n] = ids.slice(); msg(g.t('msgGroup') + ' ' + n + ': ' + ids.length); beep(740, 0.04); return true; }
   function recallGroup(n, add) {
-    var gr = (groups[n] || []).filter(function (id) { return S.W.byId[id]; }); groups[n] = gr; if (!gr.length) return false;
+    var riding = {}; L.riders(S.W).forEach(function (u) { riding[u.id] = 1; }); // едущие в клети остаются в группе
+    groups[n] = (groups[n] || []).filter(function (id) { return S.W.byId[id] || riding[id]; }); var gr = groups[n].filter(function (id) { return S.W.byId[id]; }); if (!gr.length) return false;
     if (add) gr.forEach(function (id) { S.sel.add(id); }); else S.sel = new Set(gr);
     var now = performance.now();
     if (lastGroup.n === n && now - lastGroup.t < 400) { var u = S.W.byId[gr[0]]; centerOn(u.x, u.y); }
@@ -278,6 +281,9 @@
       else if (ev.t === 'bossVentWarn' && seen(ev.x, ev.y)) { msg(g.t('msgVent'), 'warn'); beep(330, 0.15, 'square'); }
       else if (ev.t === 'bossVent' && seen(ev.x, ev.y)) beep(100, 0.6, 'sawtooth', 0.07);
       else if (ev.t === 'bossBore' && seen(ev.x, ev.y)) beep(55, 0.5, 'sawtooth', 0.1);
+      else if (ev.t === 'liftDepart' && ev.owner === 0) { var kept = ev.ids.filter(function (id) { return S.sel.has(id); }); if (kept.length) rideSel[ev.id] = (rideSel[ev.id] || []).concat(kept); msg(g.t('msgLiftGo') + (ev.left ? ' · ' + g.t('msgLiftLeft') + ': ' + ev.left : ''), ev.left ? 'warn' : null); beep(140, 0.25, 'sawtooth', 0.06); }
+      else if (ev.t === 'liftArrive' && ev.owner === 0) { (rideSel[ev.id] || []).forEach(function (id) { if (W.byId[id]) S.sel.add(id); }); delete rideSel[ev.id]; msg(g.t('msgLiftArrive'), 'good'); beep(520, 0.06, 'triangle'); beep(390, 0.1, 'triangle'); }
+      else if (ev.t === 'liftCall' && ev.owner === 0) beep(200, 0.2, 'sawtooth', 0.05);
       if (ev.t === 'shot' && nearOurs(W, ev.x, ev.y)) fightT = W.time;
     });
     if (W.mission) CU.drain(S);

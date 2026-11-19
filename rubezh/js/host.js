@@ -90,7 +90,7 @@
     // Параметры адреса: тема/язык только на этот запуск
     var hg = o.urlTheme ? o.urlTheme(P) : P.get('gfx'), hl = P.get('lang');
     if (hg === 'retro' || hg === 'modern') { g.themeName = hg; g._applyPixel(); }
-    if (hl === 'ru' || hl === 'en') g.i18n.lang = hl;
+    if (hl === 'ru' || hl === 'en') { g.i18n.lang = hl; g.i18n.applyDom(); } // без сохранения; DOM и ссылка «← Каталог» — по языку запуска
 
     // Стандартные экраны; заголовок/подзаголовок — по текущему языку
     var cfg = { lives: 0 };

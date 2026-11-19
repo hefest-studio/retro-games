@@ -1,8 +1,10 @@
 /* МАЯЧНИЦА · сборка: оболочка — фреймворк Гефест Arcade v2.2 (меню, пауза, язык, звук, музыка), игра — KVEST.createGame
    (game.js по данным scenes.js/puzzles.js/widgets.js), отрисовка — только через window.KvestTheme (контракт «КВЕСТ»).
-   Сцены движка: title (+ «Глава» — выбор главы, если их в сборке больше одной; «Продолжить» — сохранение выбранной главы),
-   pause (+ «Прохождение-набросок», «Начать главу заново»), win — финал главы с экраном издания (демо: «Продолжение — в полной
-   версии»; полная: «Глава N+1» или «Глава N+1 — скоро», см. edition.js); своя — play. Главы — реестр chapters/index.js,
+   Сцены движка: title (+ «Глава» — если глав в сборке больше одной: открывает экран chapters — все главы игры, прогресс каждой
+   и общий процент; «Продолжить» — сохранение выбранной главы), pause (+ «Прохождение-набросок», «Начать главу заново»),
+   win — финал главы с экраном издания (демо: «Продолжение — в полной версии»; полная: «Глава N+1», «Глава N+1 — скоро» или,
+   после последней главы, «Конец», см. edition.js); credits — титры после финала последней главы (строки — из словаря i18n);
+   своя — play. Главы — реестр chapters/index.js,
    сохранения — по главам (arcade.save.kvest.<id>; старое сохранение пилота переносится в главу 1). ?chapter=N — выбрать главу.
    Ввод: мышь/тач по канве (тап = действие, долгий тап / ПКМ = осмотр, перетаскивание предметов пальцем — предмет приподнят над
    пальцем, крупная зона захвата; на маленьких экранах зоны увеличены), H — подсказка, B — набросок, D — отладка и статистика,
@@ -36,6 +38,7 @@
   function chapter() { var c = CHS.get(prog.sel); return c && chapters().indexOf(c) >= 0 ? c : CHS.get('ch1'); }
   function chapterLabel(c) { c = c || chapter(); return c.title ? g.t('chapter') + ' ' + c.n + ' · ' + (c.title[g.i18n.lang] || c.title.ru) : g.t('sub2'); }
   function SAVE() { return CHS.saveKey(chapter().id); }
+  function lastChapter(c) { return K.EDITION === 'full' && !!c && c.n === CHS.TOTAL && !CHS.next(c.id, K.EDITION); }
   function useChapter(c) {
     CHS.use(c.id); var tr = typeof c.music === 'string' ? Arcade.tracks[c.music] : c.music;
     if (tr && g.setMusic) g.setMusic(tr);
@@ -117,6 +120,8 @@
     stats.event(type, d);
     if (type === 'sfx') K.sfx(g, d.name, d);
     else if (type === 'ring') K.sfx(g, 'ring', d);   // колокол-ориентир под водой: нота, панорама, глухота — по расстоянию
+    else if (type === 'voice') K.sfx(g, 'voice', d);   // хор огней: голос спел ноту (или мимо — огни гаснут)
+    else if (type === 'note') K.sfx(g, 'note', d);     // мотив кат-сцены по нотам («песня маяка» в финале)
     else if (type === 'puzzle') { K.sfx(g, 'puzzle'); g.state.score = d.solved; }
     else if (type === 'scene') g.state.level = 1;
     if (type === 'change' || type === 'save') saveDirty = true;
@@ -124,7 +129,8 @@
       var ch = game.chapter || chapter(); clearSave(ch); var sd = stats.data();
       if (prog.done.indexOf(ch.id) < 0) prog.done.push(ch.id); CHS.setProgress(LS, prog);
       lastWin = { solved: game.solvedCount(), total: K.PUZZLES.puzzles.length, time: sd ? sd.time : 0, ch: ch }; g.state.score = lastWin.solved;
-      setTimeout(function () { if (g._sceneName === 'play') g.win(); }, 900);
+      var last = lastChapter(ch);   // после финала последней главы — титры, потом экран «Конец»
+      setTimeout(function () { if (g._sceneName !== 'play') return; if (last) g.goto('credits'); else g.win(); }, last ? 1600 : 900);
     }
   }
   function statsMeta() {
@@ -163,13 +169,17 @@
   g.menu.removeItem('theme');       // оформление игры — тема KvestTheme, не тема движка
   g.menu.addItem({ key: 'continue', after: 'play', label: function () { var sv = loadSave(); return sv ? g.t('cont') + ' · ' + solvedIn(sv) + ' / ' + chapter().puzzles.puzzles.length : g.t('cont') + ' —'; },
     onSelect: function () { if (!loadSave()) { g.audio.beep(200, 0.06); return; } wantContinue = true; g.goto('play'); } });
-  // выбор главы — только если в сборке открыто больше одной (демо: пункта нет)
+  // выбор главы — когда открыто больше одной главы (демо и до прохождения главы 1 — пункта нет); пункт открывает экран «Главы»:
+  // все главы игры, прогресс каждой и общий процент (закрытые — видны, но не выбираются)
   function chapterItem() {
     if (chapters().length < 2) { g.menu.removeItem('chapter'); return; }
-    g.menu.addItem({ key: 'chapter', before: 'play', label: function () { return chapterLabel() + '  ›'; },
-      onSelect: function () { var list = chapters(), i = list.indexOf(chapter()); prog.sel = list[(i + 1) % list.length].id; CHS.setProgress(LS, prog); useChapter(chapter()); } });
+    g.menu.addItem({ key: 'chapter', before: 'play', label: function () { return chapterLabel() + '  ›'; }, onSelect: function () { g.goto('chapters'); } });
   }
   chapterItem();
+  function selectChapter(id) {
+    var c = CHS.get(id); if (!c || chapters().indexOf(c) < 0) return false;
+    prog.sel = id; CHS.setProgress(LS, prog); useChapter(chapter()); return true;
+  }
   g.menu.addItem({ key: 'walk', scene: 'pause', before: 'menu', label: function () { return g.t('walk'); },
     onSelect: function () { g.goto('play', { resume: true }); if (game) game.openWalk(); } });
   g.menu.addItem({ key: 'restart', scene: 'pause', before: 'menu', label: function () { return g.t('restart'); },
@@ -221,9 +231,9 @@
   function openMore() { K.Edition.goMore(global.location); }   // одно действие: та же вкладка (см. edition.js)
   function buildFinale() {
     var ch = (lastWin && lastWin.ch) || chapter(), nx = CHS.next(ch.id, K.EDITION);
-    finale = K.Edition.finale(K.EDITION, nx, ch.n);
+    finale = K.Edition.finale(K.EDITION, nx, ch.n, lastChapter(ch));
     finMenu.items = finale.items.map(function (k) {
-      var act = k === 'more' ? openMore : k === 'next' ? function () { prog.sel = nx.id; CHS.setProgress(LS, prog); g.goto('play'); } : function () { g.goto('title'); };
+      var act = k === 'more' ? openMore : k === 'credits' ? function () { g.goto('credits', { from: 'win' }); } : k === 'next' ? function () { prog.sel = nx.id; CHS.setProgress(LS, prog); g.goto('play'); } : function () { g.goto('title'); };
       return { key: k, label: function () { return k === 'next' ? chapterLabel(nx) : g.t(k); }, onSelect: act };
     });
     if (statsOn()) finMenu.items.push({ key: 'stats', label: function () { return g.t('stats'); }, onSelect: function () { exportStats(); } });
@@ -242,11 +252,82 @@
     var y = y0 + 90; y += 20 * wrapText(this, wt ? wt.sub : this.t('winSub'), W / 2, y, pw - 60, 20, { size: 15, align: 'center', color: th.ink, weight: 700 });
     if (lastWin) this.text(this.t('solved') + ': ' + lastWin.solved + ' / ' + lastWin.total + (lastWin.time ? '   ·   ' + this.t('time') + ': ' + K.Stats.fmt(lastWin.time) : ''), W / 2, y + 6, { size: 13, align: 'center', color: th.muted, weight: 700 });
     ctx.save(); ctx.strokeStyle = 'rgba(240,191,90,0.35)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x0 + 80, y + 26); ctx.lineTo(x0 + pw - 80, y + 26); ctx.stroke(); ctx.restore();
-    T().drawIcon(ctx, finale.kind === 'demo' ? 'boat' : finale.kind === 'next' ? 'map' : 'book', W / 2, y + 62, 46);
+    T().drawIcon(ctx, finale.kind === 'demo' ? 'boat' : finale.kind === 'next' ? 'map' : finale.kind === 'end' ? 'tower' : 'book', W / 2, y + 62, 46);
     var y2 = y + 116, ft = this.t(finale.title).replace('{n}', finale.n || ''); y2 += 30 * wrapText(this, ft, W / 2, y2, pw - 60, 30, { size: 24, align: 'center', color: th.accent, weight: 900 });
     y2 += 19 * wrapText(this, this.t(finale.sub), W / 2, y2 - 4, pw - 90, 19, { size: 14, align: 'center', color: th.ink, weight: 600 });
     finMenu.draw(this, W / 2, Math.max(y2 + 22, y0 + ph - 30 - (finMenu.items.length - 1) * 34), 34);
   };
+
+  // ---------- экран «Главы»: все главы игры, прогресс каждой, общий процент ----------
+  var chMenu = new MenuCtor([]), chSum = null;
+  function rowTitle(r) {
+    if (!r.present) return g.t('chapter') + ' ' + r.n;
+    return r.title ? g.t('chapter') + ' ' + r.n + ' · ' + (r.title[g.i18n.lang] || r.title.ru) : g.t('sub2');
+  }
+  function rowState(r) { return !r.present ? g.t('chFull') : !r.unlocked ? g.t('chLocked') : r.done ? g.t('chDone') : r.solved ? r.solved + ' / ' + r.total : g.t('chNew'); }
+  function buildChapters() {
+    chSum = CHS.summary(LS, K.EDITION, prog);
+    chMenu.items = chSum.rows.map(function (r) {
+      return { key: r.id, row: r, label: function () { return rowTitle(r); },
+        onSelect: function () { if (!selectChapter(r.id)) { g.audio.beep(200, 0.06); return; } g.goto('title'); } };
+    });
+    chMenu.items.push({ key: 'back', label: function () { return g.t('chBack'); }, onSelect: function () { g.goto('title'); } });
+    var cur = chapter(); chMenu.sel = 0; chMenu.items.forEach(function (it, i) { if (it.key === cur.id) chMenu.sel = i; });
+  }
+  g.scene('chapters', {
+    _menu: chMenu,
+    enter: function () { buildChapters(); },
+    press: function (a) { if (a === 'pause') this.goto('title'); },
+    draw: function (ctx) {
+      var th = this.th(), self = this; if (!chSum) buildChapters();
+      T().drawScene(ctx, titleScene, this.time, {});
+      var pw = 660, x0 = (W - pw) / 2, y0 = 36, lh = 46, n = chSum.rows.length, ph = 122 + n * lh + 74; panel(ctx, x0, y0, pw, ph);
+      this.text(this.t('chapters'), W / 2, y0 + 44, { size: 30, align: 'center', color: th.accent, weight: 900 });
+      // общий процент: полоска и число
+      var bx = x0 + 60, bw = pw - 120, by = y0 + 62, f = Math.max(0, Math.min(1, chSum.pct / 100));
+      ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(bx, by, bw, 8); ctx.fillStyle = th.accent; ctx.fillRect(bx, by, bw * f, 8); ctx.restore();
+      this.text(this.t('chTotal') + ': ' + chSum.pct + ' %   ·   ' + chSum.solved + ' / ' + chSum.total, W / 2, by + 28, { size: 13, align: 'center', color: th.muted, weight: 700 });
+      chMenu.items.forEach(function (it, i) {
+        var on = i === chMenu.sel, y = y0 + 126 + i * lh, r = it.row;
+        if (!r) { self.text((on ? '▸ ' : '  ') + self.t('chBack'), W / 2, y + 18, { size: 17, align: 'center', color: on ? th.accent : th.muted, weight: on ? 800 : 600 }); it._y = y + 18; return; }
+        var open = r.present && r.unlocked;
+        if (on) { ctx.save(); ctx.fillStyle = 'rgba(240,191,90,0.13)'; ctx.fillRect(x0 + 24, y - 20, pw - 48, lh - 6); ctx.restore(); }
+        ctx.save(); ctx.globalAlpha = open ? 1 : 0.55; T().drawIcon(ctx, r.done ? 'check' : open ? (r.id === chapter().id ? 'book' : 'map') : 'lock', x0 + 52, y, 24); ctx.restore();
+        self.text(rowTitle(r), x0 + 78, y + 6, { size: 17, color: !open ? th.muted : on ? th.accent : th.ink, weight: on ? 800 : 700 });
+        self.text(rowState(r), x0 + pw - 40, y + 6, { size: 14, align: 'right', color: r.done ? th.good : open ? th.ink : th.muted, weight: 700 });
+        if (open && !r.done && r.total) { ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.10)'; ctx.fillRect(x0 + 78, y + 14, pw - 118, 3); ctx.fillStyle = th.accent; ctx.fillRect(x0 + 78, y + 14, (pw - 118) * r.solved / r.total, 3); ctx.restore(); }
+        it._y = y + 6;
+      });
+      this.text(this.t('chHint'), W / 2, y0 + ph - 14, { size: 11, align: 'center', color: th.muted, weight: 600 });
+    }
+  });
+
+  // ---------- титры (после финала последней главы): строки — из словаря i18n, лента едет по финальной сцене ----------
+  var credT = 0, credFrom = null;
+  function endCredits() { if (g._sceneName !== 'credits') return; if (credFrom === 'win' || !lastWin) g.goto(credFrom === 'title' ? 'title' : 'win'); else g.win(); }
+  g.scene('credits', {
+    realtime: true,
+    enter: function (d) {
+      credT = 0; credFrom = (d && d.from) || null;
+      var ch = (lastWin && lastWin.ch) || chapter(), tr = ch && (ch.creditsMusic || ch.music); tr = typeof tr === 'string' ? Arcade.tracks[tr] : tr;
+      if (tr && g.setMusic) { g.setMusic(tr); try { g.audio.music.play(true); } catch (e) {} }   // титры идут под мотив «песни маяка»
+    },
+    press: function (a) { if (credT > 0.6 && (a === 'action' || a === 'start' || a === 'pause')) endCredits(); },
+    update: function (dt) { credT += dt; if (game) game.update(dt); if (K.Credits.at(credT).done) endCredits(); },
+    draw: function (ctx) {
+      var th = this.th(), C = K.Credits.at(credT), self = this;
+      if (game) drawGame(ctx, true); else T().drawScene(ctx, titleScene, this.time, {});
+      ctx.save(); var k = Math.min(1, credT / 1.2), gr = ctx.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, 'rgba(24,22,26,' + (0.62 * k).toFixed(3) + ')'); gr.addColorStop(0.5, 'rgba(24,22,26,' + (0.5 * k).toFixed(3) + ')'); gr.addColorStop(1, 'rgba(24,22,26,' + (0.7 * k).toFixed(3) + ')');
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H); ctx.restore();
+      C.lines.forEach(function (l) {
+        if (l.a <= 0.01) return; ctx.save(); ctx.globalAlpha = l.a;
+        if (l.icon) T().drawIcon(ctx, l.icon, W / 2, l.y - 12, 44);
+        else self.text(self.t(l.key), W / 2, l.y, { size: l.size, align: 'center', color: l.accent ? th.accent : l.dim ? th.muted : th.ink, weight: l.accent ? 900 : l.dim ? 600 : 800 });
+        ctx.restore();
+      });
+      if (credT > 2) { ctx.save(); ctx.globalAlpha = 0.55; this.text(this.t('credSkip'), W - 24, H - 16, { size: 11, align: 'right', color: th.muted, weight: 600 }); ctx.restore(); }
+    }
+  });
 
   // ================= игровая сцена =================
   function drawGame(ctx, still) {
@@ -261,7 +342,10 @@
         if (p.active && m.party.length > 1 && !still && th.drawActiveMark) th.drawActiveMark(ctx, p, t);
       });
     } else if (m.showHero) th.drawHero(ctx, m.hero, m.pose, t);
-    if (m.water && th.drawWater) th.drawWater(ctx, m.water, t);   // под водой: муть, кольца звона тушью, шкала воздуха (пузырьки)
+    // под водой: муть, кольца звона тушью, шкала воздуха (пузырьки); на экране финала шкала воздуха не нужна
+    if (m.water && th.drawWater) th.drawWater(ctx, still && m.water.air ? Object.assign({}, m.water, { air: null }) : m.water, t);
+    if (m.scene.dream && th.drawDream) th.drawDream(ctx, m.scene.dream, t);   // сцена-сон: вуаль сна (в яви тает)
+    if (m.fx && m.fx.length && th.drawFx) th.drawFx(ctx, m.fx, t);            // эффекты финальной кат-сцены: рассвет, туман уходит, кольца песни
     if (m.overview && th.drawOverview) th.drawOverview(ctx, m.overview, t);   // взгляд сверху — калькой поверх сцены
     m.thoughts.forEach(function (q) {   // подсказка и мысли мастера — тушью, если тема умеет (хуки drawHint / drawThought opts.style)
       if (q.style === 'ink' && q.hint && th.drawHint) th.drawHint(ctx, q.x, q.y, q.hint, t, { age: q.age });
@@ -269,6 +353,7 @@
     });
     if (still) return;
     th.drawUI(ctx, m.ui, t);
+    if (m.chorus && th.drawChorus) th.drawChorus(ctx, m.chorus, t);   // хор огней: строка мелодии (какие ноты уже спеты)
     if (mouseSeen && m.cursor.kind && m.cursor.x >= 0) {
       th.drawCursor(ctx, m.cursor.kind, m.cursor.x, m.cursor.y);
       if (m.cursor.item && !m.ui.drag) th.drawIcon(ctx, m.cursor.item, m.cursor.x + 22, m.cursor.y + 22, 28);
@@ -341,7 +426,7 @@
   function pt(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) }; }
   function inPlay() { return g._sceneName === 'play' && game; }
   function touchPad() { var k = view.css / W; return Math.max(10, Math.min(24, (44 / k - 30) / 2)); }   // мин. цель ≈ 44 css-пикселя, запас под палец ≥ 10
-  cv.addEventListener('mousedown', function (e) { if (!inPlay()) return; mouseSeen = true; game.setTouchPad(0); if (e.button === 2) return; var p = pt(e); game.down(p.x, p.y); });
+  cv.addEventListener('mousedown', function (e) { if (g._sceneName === 'credits' && credT > 0.6) { endCredits(); return; } if (!inPlay()) return; mouseSeen = true; game.setTouchPad(0); if (e.button === 2) return; var p = pt(e); game.down(p.x, p.y); });
   cv.addEventListener('mousemove', function (e) { if (!inPlay()) return; mouseSeen = true; var p = pt(e); game.move(p.x, p.y); });
   addEventListener('mouseup', function (e) { if (!inPlay() || e.button === 2) return; var p = pt(e); game.up(p.x, p.y); });
   cv.addEventListener('mouseleave', function () { if (inPlay()) game.move(-100, -100); });
@@ -350,6 +435,7 @@
   function myTouch(e) { for (var i = 0; i < e.changedTouches.length; i++) if (e.changedTouches[i].identifier === tid) return e.changedTouches[i]; return null; }
   function lifted(p) { if (game.runtime().drag) p.y -= LIFT; return p; }
   cv.addEventListener('touchstart', function (e) {
+    if (g._sceneName === 'credits' && credT > 0.6) { e.preventDefault(); endCredits(); return; }
     if (!inPlay()) return; e.preventDefault(); if (tid !== null) return;
     if (performance.now() - playSince < 250) return;   // касание, которым выбрали пункт меню, не должно сразу пропустить вступление
     var t = e.changedTouches[0]; tid = t.identifier; mouseSeen = false; TOUCH = true; game.setTouchPad(touchPad());
@@ -478,5 +564,5 @@
   wrapDraws();
   g.start('title');
   // для отладки/автотестов в браузере
-  K.app = { g: g, game: function () { return game; }, chapter: chapter, chapters: chapters, progress: function () { return prog; }, view: view, stats: stats, exportStats: exportStats, cacheInfo: cacheInfo, fit: fit, applyScale: applyScale, gov: gov, fps: function () { return fpsNow; } };
+  K.app = { g: g, game: function () { return game; }, chapter: chapter, chapters: chapters, selectChapter: selectChapter, summary: function () { return CHS.summary(LS, K.EDITION, prog); }, credits: function () { return { t: credT, at: K.Credits.at(credT) }; }, progress: function () { return prog; }, view: view, stats: stats, exportStats: exportStats, cacheInfo: cacheInfo, fit: fit, applyScale: applyScale, gov: gov, fps: function () { return fpsNow; } };
 })(typeof window !== 'undefined' ? window : globalThis);

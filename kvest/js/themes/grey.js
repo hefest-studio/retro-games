@@ -365,7 +365,42 @@
     if (st.lit) glow(c, cx, cy, 50, 0.4 + 0.1 * Math.sin(t * 6));
     circ(c, cx, cy, 26, st.open ? '#ecebe8' : '#a3a09b', P.ink, st.here ? 4 : 2.5); drawIcon(c, st.open ? (st.icon || 'question') : 'question', cx, cy, 30);
     if (st.lit) flame(c, cx + 20, cy - 12, 0.7, t);
+    if (st.voice && st.note != null && (st.ready || st.lit)) noteDots(c, cx, o.y + o.h + 14, st.note);   // хор огней: нота узла и номер по счёту
+    if (st.sung) for (var i = 0; i < st.sung; i++) circ(c, cx - (st.sung - 1) * 4 + i * 8, o.y - 12, 3, GLOW, P.ink, 1.2);
   };
+  function noteDots(c, x, y, n) { n = Math.max(0, Math.min(4, n | 0)); fillRR(c, x - (n + 1) * 5 - 5, y - 8, (n + 1) * 10 + 10, 16, 8, '#f1ede6', '#2b2928', 1.5); for (var d = 0; d <= n; d++) circ(c, x - n * 5 + d * 10, y, 3, '#2b2928'); }
+  // --- сны, живая тушь, хор огней (главы 5–6): упрощённо ---
+  var INK_SH = {
+    door: [[0.1, 1, 0.1, 0.12, 0.5, 0, 0.9, 0.12, 0.9, 1], [0, 1, 1, 1]], bridge: [[0, 0.56, 1, 0.56], [0, 0.78, 1, 0.78], [0, 0.56, 0.25, 0.18, 0.5, 0.05, 0.75, 0.18, 1, 0.56]],
+    ladder: [[0.22, 1, 0.3, 0], [0.78, 1, 0.7, 0], [0.25, 0.75, 0.75, 0.75], [0.27, 0.5, 0.73, 0.5], [0.29, 0.25, 0.71, 0.25]],
+    boat: [[0, 0.55, 1, 0.55, 0.84, 1, 0.16, 1, 0, 0.55], [0.5, 0.55, 0.5, 0], [0.53, 0.04, 0.9, 0.46, 0.53, 0.46]], lamp: [[0.2, 1, 0.2, 0.3, 0.8, 0.3, 0.8, 1, 0.2, 1], [0.08, 0.3, 0.5, 0.02, 0.92, 0.3, 0.08, 0.3]]
+  };
+  function inkLines(c, o, col, lw, frac) {
+    var sh = INK_SH[(o.state || {}).shape] || INK_SH.door, n = Math.max(1, Math.ceil(sh.length * (frac == null ? 1 : frac)));
+    for (var i = 0; i < n && i < sh.length; i++) line(c, sh[i].map(function (v, k) { return k % 2 ? o.y + v * o.h : o.x + v * o.w; }), col, lw);
+  }
+  KD.inkdraw = function (c, o, P, t) {
+    var st = o.state || {}, d = st.drawn == null ? (st.live ? 1 : 0) : st.drawn; if (d <= 0.001) return;
+    if (st.live) { c.fillStyle = st.open ? '#3a3734' : 'rgba(236,232,222,0.85)'; if (st.shape === 'bridge') c.fillRect(o.x, o.y + o.h * 0.56, o.w, o.h * 0.22); else if (st.shape !== 'ladder') c.fillRect(o.x + o.w * 0.12, o.y + o.h * (st.shape === 'boat' ? 0.55 : 0.14), o.w * 0.76, o.h * (st.shape === 'boat' ? 0.45 : 0.86)); if (st.lit) glow(c, o.x + o.w / 2, o.y + o.h * 0.6, o.w, 0.5); }
+    inkLines(c, o, '#1c1a19', 3, d);
+  };
+  KD.inkspot = function (c, o) { var st = o.state || {}; if (st.used) return; c.save(); c.setLineDash && c.setLineDash([6, 5]); fillRR(c, o.x - 6, o.y - 6, o.w + 12, o.h + 12, 8, 'rgba(240,236,228,0.2)', '#f1ede6', 2); inkLines(c, o, 'rgba(28,26,25,0.4)', 1.5); c.setLineDash && c.setLineDash([]); c.restore(); drawIcon(c, 'quill', o.x + o.w - 4, o.y + 2, 24); };
+  KD.inkthought = function (c, o, P, t) { var cx = o.x + o.w / 2, cy = o.y + o.h / 2 + Math.sin(t * 1.6 + o.x) * 3, s = Math.min(o.w, o.h); fillRR(c, cx - s * 0.6, cy - s * 0.6, s * 1.2, s * 1.2, 8, '#f1ede6', '#2b2928', 2); drawIcon(c, (o.state || {}).icon || 'quill', cx, cy, s * 0.95); circ(c, cx + s * 0.2, cy + s * 0.85, 4, '#f1ede6', '#2b2928', 1.2); circ(c, cx + s * 0.05, cy + s * 1.08, 2.6, '#f1ede6', '#2b2928', 1.2); };
+  KD.upfall = function (c, o, P, t) {
+    var st = o.state || {}, cx = o.x + o.w / 2, by = o.y + o.h; c.beginPath(); c.ellipse(cx, by - 4, o.w * 0.5, 7, 0, 0, TAU); c.fillStyle = P.water; c.fill(); if (!st.on) return;
+    c.fillStyle = 'rgba(162,168,172,0.55)'; c.fillRect(o.x + o.w * 0.2, o.y, o.w * 0.6, o.h - 6);
+    for (var i = 0; i < 7; i++) { var f = ((t * 0.45 + rnd(i, 1)) % 1), x = o.x + o.w * (0.25 + 0.5 * rnd(i, 2)), y = by - f * o.h; line(c, [x, y, x, y - 16], '#f1ede6', 2); poly(c, [x - 4, y - 16, x, y - 23, x + 4, y - 16], '#f1ede6'); }
+  };
+  KD.clang = function (c, o, P, t) {
+    var st = o.state || {}, cx = o.x + o.w / 2, cy = o.y + o.h / 2, v = st.variant || 'chain';
+    if (v === 'chain') drawIcon(c, 'chain', cx, cy, Math.min(o.w, o.h)); else if (v === 'hammer') drawIcon(c, 'hammer', cx, cy, Math.min(o.w, o.h)); else if (v === 'shutter') fillRR(c, o.x, o.y, o.w, o.h, 2, P.objD, P.ink, 2);
+    if (!st.on) { if (v !== 'winch') line(c, [o.x, cy, o.x + o.w, cy + 3], '#b9705c', 7); return; }
+    var age = (t + (o.seed || 0) * 0.37) % 1.3, a = 1 - age / 1.3;
+    for (var k = 0; k < 2; k++) { var r = 12 + (age - k * 0.2) * 70; if (r < 6) continue; c.beginPath(); for (var j = 0; j <= 16; j++) { var an = j / 16 * TAU, r3 = r + (j % 2 ? 7 : -7); if (j) c.lineTo(cx + Math.cos(an) * r3, cy + Math.sin(an) * r3); else c.moveTo(cx + r3, cy); } c.strokeStyle = 'rgba(150,40,26,' + (a * (1 - k * 0.3)).toFixed(2) + ')'; c.lineWidth = 3 - k; c.stroke(); }
+  };
+  KD.songline = function (c, o, P, t) { var p = (o.state || {}).pts; if (!p || p.length < 2) return; line(c, [p[0][0], p[0][1], p[1][0], p[1][1]], '#2b2928', 6); line(c, [p[0][0], p[0][1], p[1][0], p[1][1]], GLOW, 3); var f = (t * 0.5) % 1; circ(c, p[0][0] + (p[1][0] - p[0][0]) * f, p[0][1] + (p[1][1] - p[0][1]) * f, 4, '#fff3c8'); };
+  function fogVeil(c, a) { if (a <= 0.01) return; c.fillStyle = 'rgba(214,216,216,' + (0.7 * a).toFixed(2) + ')'; c.fillRect(0, 0, 960, 478); }
+  KD.fogbank = function (c, o) { var st = o.state || {}; if (!st.clear) fogVeil(c, st.thin ? 0.5 : 1); };
   KD.maptoken = function (c, o, P) { var cx = o.x + o.w / 2, by = o.y + o.h; c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(cx, by, 12, 4, 0, 0, TAU); c.fill(); poly(c, [cx - 9, by, cx, by - 30, cx + 9, by], '#8a5a4a', P.ink, 2); circ(c, cx, by - 33, 6, '#d6cdc1', P.ink, 2); };
   KD.beacon = function (c, o, P, t) {
     var st = o.state || {}, x = o.x, y = o.y, w = o.w, h = o.h, cx = x + w / 2, v = st.variant || 'hearth', fy;
@@ -754,7 +789,7 @@
     for (var p = 0; p < wk.pages; p++) circ(c, 480 - (wk.pages - 1) * 10 + p * 20, 520, 5, p === wk.page ? '#2b2928' : '#b4afa6');
   }
 
-  function drawItem(c, o, P, t) { var f = KD[o.kind]; try { if (f) f(c, o, P, t); else unknown(c, o, P); } catch (e) { unknown(c, o, P); } }
+  function drawItem(c, o, P, t) { var f = KD[o.kind], mv = o.dx || o.dy; if (mv) { c.save(); c.translate(o.dx || 0, o.dy || 0); } try { if (f) f(c, o, P, t); else unknown(c, o, P); } catch (e) { if (global.KVEST_STRICT) throw e; unknown(c, o, P); } if (mv) c.restore(); }
   function drawScene(c, scene, t, opts) {
     opts = opts || {}; var P = pal(scene && scene.mood); t = t || 0; CUR = scene || null;
     c.save(); c.fillStyle = P.sky1; c.fillRect(0, 0, (scene && scene.w) || 960, (scene && scene.h) || 540);
@@ -776,6 +811,29 @@
     c.restore();
   }
 
+  // сцена-сон: вуаль по краям, пылинки (во сне — вверх); хор огней: строка мелодии; эффекты финала
+  function drawDream(c, dv, t) {
+    if (!dv) return; var a = 1 - (dv.mix == null ? (dv.wake ? 1 : 0) : dv.mix); c.save();
+    if (a > 0.01) { var g = c.createRadialGradient(480, 250, 170, 480, 250, 620); g.addColorStop(0, 'rgba(200,204,214,0)'); g.addColorStop(1, 'rgba(200,204,214,' + (0.75 * a).toFixed(2) + ')'); c.fillStyle = g; c.fillRect(0, 0, 960, 478); }
+    for (var i = 0; i < 18; i++) { var px = rnd(i, 3) * 960, py = dv.up ? (rnd(i, 5) * 478 - t * (10 + rnd(i, 4) * 16) + 47800) % 478 : rnd(i, 5) * 478; circ(c, px, py, 1.6, 'rgba(240,242,246,' + (0.2 + 0.4 * a).toFixed(2) + ')'); }
+    c.restore();
+  }
+  function drawChorus(c, cv, t) {
+    if (!cv || !cv.n) return; var L = (API && API.LAYOUT && API.LAYOUT.chorus) || { x: 404, y: 30, gap: 38, r: 13 }, n = cv.n, x0 = 480 - (n - 1) * L.gap / 2, miss = cv.miss != null && cv.miss < 1;
+    c.save(); fillRR(c, x0 - 24, L.y - 20, (n - 1) * L.gap + 48, 40, 20, 'rgba(30,34,36,0.45)');
+    for (var i = 0; i < n; i++) { var cx = x0 + i * L.gap; circ(c, cx, L.y, L.r, i < cv.k ? (cv.done ? GLOW : '#f1ede6') : null, miss ? '#b33' : 'rgba(255,255,255,0.5)', 1.5); if (i < cv.k) { var nt = cv.notes[i]; for (var d = 0; d <= nt; d++) circ(c, cx - nt * 2.4 + d * 4.8, L.y, 1.7, '#2b2928'); } }
+    c.restore();
+  }
+  function drawFx(c, list, t) {
+    (list || []).forEach(function (f) {
+      var k = Math.max(0, Math.min(1, f.k == null ? 1 : f.k));
+      if (f.name === 'dawn') { c.fillStyle = 'rgba(240,191,90,' + (0.22 * k).toFixed(2) + ')'; c.fillRect(0, 0, 960, 478); }
+      else if (f.name === 'fogclear') fogVeil(c, 1 - k);
+      else if (f.name === 'songrings') { for (var i = 0; i < 3; i++) { var age = ((f.age || 0) * 0.6 + i / 3) % 1; c.beginPath(); c.ellipse(480, 250, 30 + age * 500, (30 + age * 500) * 0.6, 0, 0, TAU); c.strokeStyle = 'rgba(240,191,90,' + (0.8 * (1 - age)).toFixed(2) + ')'; c.lineWidth = 3; c.stroke(); } }
+      else if (f.name === 'white') { var w = Math.sin(Math.PI * k); if (w > 0.01) { c.fillStyle = 'rgba(255,255,255,' + (0.9 * w).toFixed(2) + ')'; c.fillRect(0, 0, 960, 540); } }
+    });
+  }
+
   var theme = {
     id: 'grey', name: { ru: 'Серый макет', en: 'Greybox' },
     drawScene: drawScene,
@@ -785,7 +843,8 @@
     drawIcon: drawIcon,
     drawCursor: drawCursor,
     drawUI: function (c, ui, t) { drawUI(c, ui, t); if (ui && ui.heroes) drawPortraits(c, ui, ui.layout || (API && API.LAYOUT), t); },
-    drawHelper: drawHelper, drawActiveMark: drawActiveMark, drawTrail: drawTrail, drawOverview: drawOverview, drawWater: drawWater
+    drawHelper: drawHelper, drawActiveMark: drawActiveMark, drawTrail: drawTrail, drawOverview: drawOverview, drawWater: drawWater,
+    drawDream: drawDream, drawChorus: drawChorus, drawFx: drawFx
   };
   // реестр тем: index.html грузит grey (отладочная, ?theme=grey) и paper (по умолчанию); выбор — в main.js
   var KV = global.KVEST = global.KVEST || {};

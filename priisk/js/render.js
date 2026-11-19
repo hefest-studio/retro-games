@@ -33,7 +33,10 @@
   // Подземный жар (миссии 5–6): провал — тёмная яма с отсветом, зыбкий грунт — земля в трещинах
   var HEAT = { modern: { pit: '#1c1512', pitHi: '#ff7a2e', pitLo: '#3a2a22', shaky: '#6f6a5c', crack: '#3b332b' },
     retro: { pit: '#000000', pitHi: '#ff5555', pitLo: '#aa0000', shaky: '#55552a', crack: '#000000' } };
-  function groundPal(W, th, pal) { var sn = SNOW[th] || SNOW.modern, ht = HEAT[th] || HEAT.modern; pal = Object.assign({}, pal, ht); return W.ground === 'snow' ? Object.assign({}, pal, { g1: sn.g1, g2: sn.g2, g3: sn.g3, snow: true }, { ice: sn.ice, iceHi: sn.iceHi, iceLo: sn.iceLo, open: sn.open, openHi: sn.openHi }) : Object.assign({}, pal, { ice: sn.ice, iceHi: sn.iceHi, iceLo: sn.iceLo, open: sn.open, openHi: sn.openHi }); }
+  // Шахта (миссия 9, W.ground === 'mine'): тёмный каменный пол, порода вместо скал
+  var MINE = { modern: { g1: '#4b453d', g2: '#48423a', g3: '#4f4940', rock: '#24211e', rockHi: '#37322c', rockLo: '#131110', mine: true },
+    retro: { g1: '#2a1a08', g2: '#33200c', g3: '#2a1a08', rock: '#555555', rockHi: '#aaaaaa', rockLo: '#000000', mine: true } };
+  function groundPal(W, th, pal) { var sn = SNOW[th] || SNOW.modern, ht = HEAT[th] || HEAT.modern; pal = Object.assign({}, pal, ht); if (W.ground === 'mine') pal = Object.assign(pal, MINE[th] || MINE.modern); return W.ground === 'snow' ? Object.assign({}, pal, { g1: sn.g1, g2: sn.g2, g3: sn.g3, snow: true }, { ice: sn.ice, iceHi: sn.iceHi, iceLo: sn.iceLo, open: sn.open, openHi: sn.openHi }) : Object.assign({}, pal, { ice: sn.ice, iceHi: sn.iceHi, iceLo: sn.iceLo, open: sn.open, openHi: sn.openHi }); }
   function hash(i, j) { var h = (i * 374761393 + j * 668265263) | 0; h = (h ^ (h >> 13)) * 1274126177; return ((h ^ (h >> 16)) >>> 0) / 4294967296; }
 
   var cache = { key: '', cv: null }, mm = { cv: null, t: -1 }, puffs = [];
@@ -49,6 +52,7 @@
       c.fillStyle = r < 0.33 ? pal.g1 : r < 0.66 ? pal.g2 : pal.g3; c.fillRect(x, y, T, T);
       if (pal.pixel) { c.fillStyle = pal.snow ? '#ffffff' : pal.g2; for (var d = 0; d < 6; d++) c.fillRect(x + ((hash(i + d, j) * 6) | 0) * 4, y + ((hash(i, j + d) * 6) | 0) * 4, 2, 2); }
       else if (pal.snow) { if (r > 0.7) { c.fillStyle = 'rgba(255,255,255,0.55)'; c.beginPath(); c.ellipse(x + r * T, y + (1 - r) * T * 0.8 + 4, 7, 2.5, -0.3, 0, 7); c.fill(); } else if (r < 0.1) { c.fillStyle = 'rgba(90,100,110,0.18)'; c.fillRect(x + 6, y + 12, 9, 2); } }
+      else if (pal.mine) { if (r > 0.8) { c.fillStyle = 'rgba(0,0,0,0.22)'; c.fillRect(x + r * 14, y + (1 - r) * 60, 3, 2); } else if (r < 0.1) { c.fillStyle = 'rgba(255,255,255,0.05)'; c.fillRect(x + 9, y + 13, 4, 2); } }
       else if (r > 0.82) { c.fillStyle = 'rgba(255,255,255,0.06)'; c.beginPath(); c.arc(x + r * T, y + (1 - r) * T, 2, 0, 7); c.fill(); }
       else if (r < 0.12) { c.strokeStyle = 'rgba(40,50,35,0.22)'; c.lineWidth = 1; c.beginPath(); c.moveTo(x + 8, y + 15); c.lineTo(x + 6, y + 9); c.moveTo(x + 10, y + 15); c.lineTo(x + 11, y + 8); c.moveTo(x + 12, y + 15); c.lineTo(x + 15, y + 10); c.stroke(); }
     }
@@ -429,6 +433,29 @@
       }
     });
   }
+  // клети шахты: площадка с рамой копра; клеть на месте — ящик с решёткой, иначе — пустой ствол с канатом; отсчёт посадки и пути
+  function drawLifts(c, W, pal, now) {
+    W.lifts.forEach(function (lf) {
+      ['a', 'b'].forEach(function (end) {
+        var p = lf[end], k = Math.floor(p.y) * W.w + Math.floor(p.x); if (!W.vis[k]) return;
+        var x = p.x * T, y = p.y * T, here = lf.at === end && lf.st !== 'move', s = 15;
+        c.fillStyle = pal.pixel ? '#000000' : 'rgba(8,6,5,0.85)'; c.fillRect(x - s, y - s, s * 2, s * 2);
+        c.strokeStyle = lf.on ? pal.metalHi : pal.rockLo; c.lineWidth = 3; c.strokeRect(x - s + 1.5, y - s + 1.5, s * 2 - 3, s * 2 - 3);
+        c.strokeStyle = pal.tread; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x, y - s - 8); c.lineTo(x, y - (here ? 9 : -s + 4)); c.stroke(); // канат
+        c.fillStyle = pal.metal; c.fillRect(x - s - 2, y - s - 10, s * 2 + 4, 4); c.fillStyle = pal.metalHi; c.beginPath(); c.arc(x, y - s - 8, 4, 0, 7); c.fill(); // шкив
+        if (here) {
+          c.fillStyle = lf.on ? pal.roof : pal.rockLo; c.fillRect(x - 10, y - 9, 20, 19); c.fillStyle = lf.on ? pal.roofHi : pal.rock; c.fillRect(x - 10, y - 9, 20, 3);
+          c.strokeStyle = pal.tread; c.lineWidth = 1.5; c.beginPath(); for (var q = -6; q <= 6; q += 4) { c.moveTo(x + q, y - 6); c.lineTo(x + q, y + 10); } c.stroke();
+          if (lf.on && lf.st === 'idle') { c.fillStyle = pal.good; c.fillRect(x + s - 6, y - s + 3, 3, 3); }
+        }
+        var lab = null, col = pal.warn;
+        if (!lf.on) { lab = '×'; col = pal.muted; }
+        else if (lf.st === 'load' && here) lab = String(Math.ceil(lf.t));
+        else if (lf.st === 'move') { lab = (lf.to === end ? '▼ ' : '▲ ') + Math.ceil(lf.t); if (lf.riders.length) lab += ' · ' + lf.riders.length + '/' + lf.cap; }
+        if (lab) { c.font = '900 13px ' + pal.font; var lw = c.measureText(lab).width + 10; c.fillStyle = 'rgba(0,0,0,0.7)'; c.fillRect(x - lw / 2, y + s + 3, lw, 17); txt(c, lab, x, y + s + 16, { color: col, font: pal.font, size: 13, weight: 900, align: 'center' }); }
+      });
+    });
+  }
   // струя водовоза: капли от брандспойта к огню
   function drawSpray(c, W, pal, now) {
     W.units.forEach(function (u) {
@@ -466,6 +493,7 @@
     var i0 = Math.max(0, Math.floor(cam.x / T)), j0 = Math.max(0, Math.floor(cam.y / T)), i1 = Math.min(W.w - 1, Math.floor((cam.x + LAYOUT.W) / T)), j1 = Math.min(W.h - 1, Math.floor((cam.y + VH) / T));
     c.drawImage(terrainCache(W, S.th, pal), i0 * T, j0 * T, (i1 - i0 + 1) * T, (j1 - j0 + 1) * T, i0 * T, j0 * T, (i1 - i0 + 1) * T, (j1 - j0 + 1) * T);
     drawOre(c, W, pal, i0, j0, i1, j1);
+    if (W.lifts && W.lifts.length) drawLifts(c, W, pal, now);
     // точки сбора выбранного здания
     S.sel.forEach(function (id) { var b = W.byId[id]; if (b && b.kind === 'bld' && b.rally && b.owner === 0) { var cx = (b.tx + b.w / 2) * T, cy = (b.ty + b.h) * T; c.strokeStyle = pal.own[0]; c.setLineDash([4, 4]); c.beginPath(); c.moveTo(cx, cy); c.lineTo(b.rally.x * T, b.rally.y * T); c.stroke(); c.setLineDash([]); c.fillStyle = pal.own[0]; c.fillRect(b.rally.x * T - 1, b.rally.y * T - 12, 2, 12); c.fillRect(b.rally.x * T, b.rally.y * T - 12, 7, 5); } });
     W.blds.forEach(function (b) { if (b.tx + b.w < i0 || b.tx > i1 + 1 || b.ty + b.h < j0 || b.ty > j1 + 1) return; if (L.visibleTo0(W, b)) drawBld(c, b, pal, now); });
@@ -538,12 +566,15 @@
     var mins = Math.floor(W.time / 60), secs = Math.floor(W.time % 60);
     txt(c, (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs, LAYOUT.W - 58, 20, { color: pal.ink, font: f, size: 14, align: 'right' });
     // сообщения
-    var y = S.msgY || 44; S.msgs.forEach(function (m) {
-      var a = Math.min(1, m.life); c.globalAlpha = a; c.font = '700 14px ' + f; var w = c.measureText(m.text).width + 20;
-      c.fillStyle = 'rgba(0,0,0,0.55)'; c.fillRect(LAYOUT.W / 2 - w / 2, y - 16, w, 22);
-      txt(c, m.text, LAYOUT.W / 2, y, { color: m.col ? pal[m.col] : pal.ink, font: f, size: 14, align: 'center' }); c.globalAlpha = 1; y += 26;
+    // сообщения: по центру; если строка налезла бы на блок целей миссии (S.objBox — слева вверху) — сдвигаем вправо от него,
+    // а не помещается — опускаем под блок
+    var y = S.msgY || 44, ob = S.objBox; S.msgs.forEach(function (m) {
+      var a = Math.min(1, m.life); c.globalAlpha = a; c.font = '700 14px ' + f; var w = c.measureText(m.text).width + 20, cx = LAYOUT.W / 2;
+      if (ob && y - 16 < ob.b && cx - w / 2 < ob.r + 6) { if (w <= LAYOUT.W - 8 - (ob.r + 6)) cx = ob.r + 6 + w / 2; else y = ob.b + 22; }
+      c.fillStyle = 'rgba(0,0,0,0.55)'; c.fillRect(cx - w / 2, y - 16, w, 22);
+      txt(c, m.text, cx, y, { color: m.col ? pal[m.col] : pal.ink, font: f, size: 14, align: 'center' }); c.globalAlpha = 1; y += 26;
     });
-    var tip = S.placing ? t('tipPlace') : S.panelHover ? t('tipPanel') : (S.sel.size ? t('tipCmd') : '');
+    var tip = S.placing ? t('tipPlace') : S.panelHover ? t('tipPanel') : (S.sel.size ? (W.lifts && W.lifts.length ? t('liftTip') : t('tipCmd')) : '');
     if (tip) { c.font = '600 12px ' + f; var tw = c.measureText(tip).width + 16; c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(8, LAYOUT.VIEW_H - 24, tw, 18); txt(c, tip, 16, LAYOUT.VIEW_H - 11, { color: pal.muted, font: f, size: 12, weight: 600 }); }
   }
 
@@ -558,7 +589,7 @@
       mm.rev = W.seedKey + W.mapRev;
       mm.t = W.time; mm.th = S.th; var mc = mm.cv.getContext('2d'), img = mc.createImageData(W.w, W.h), d = img.data;
       var col = function (h) { return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)]; };
-      var gp = groundPal(W, S.th, pal), cg = col(gp.g1), cr = col(pal.rock), cw = col(pal.water), co = col(pal.ore), ci = col(gp.ice), cop = col(gp.open), cbr = col(pal.roofHi), cpit = col(gp.pitHi), csh = col(gp.shaky);
+      var gp = groundPal(W, S.th, pal), cg = col(gp.g1), cr = col(gp.rock || pal.rock), cw = col(pal.water), co = col(pal.ore), ci = col(gp.ice), cop = col(gp.open), cbr = col(pal.roofHi), cpit = col(gp.pitHi), csh = col(gp.shaky);
       for (var k = 0; k < W.w * W.h; k++) {
         var tk = W.t[k], v = W.vis[k], cc = tk === L.ROCK ? cr : tk === L.WATER ? cw : tk === L.ICE ? ci : tk === L.OPEN ? cop : tk === L.BRIDGE ? cbr : tk === L.PIT ? cpit : W.ore[k] ? co : tk === L.SHAKY ? csh : cg, m = v === 0 ? 0 : v === 1 ? 0.55 : 1;
         if (v === 0) { d[k * 4] = 26; d[k * 4 + 1] = 29; d[k * 4 + 2] = 34; } else { d[k * 4] = cc[0] * m; d[k * 4 + 1] = cc[1] * m; d[k * 4 + 2] = cc[2] * m; } d[k * 4 + 3] = 255;
@@ -569,6 +600,7 @@
     c.imageSmoothingEnabled = false; c.drawImage(mm.cv, M.x, M.y, W.w * M.s, W.h * M.s); c.imageSmoothingEnabled = !pal.pixel;
     W.blds.forEach(function (b) { if (!L.visibleTo0(W, b)) return; c.fillStyle = pal.own[b.pi != null ? b.pi : b.owner]; c.fillRect(M.x + b.tx * M.s, M.y + b.ty * M.s, b.w * M.s, b.h * M.s); });
     W.units.forEach(function (u) { if (!L.visibleTo0(W, u)) return; c.fillStyle = S.sel.has(u.id) ? pal.sel : pal.own[u.pi != null ? u.pi : u.owner]; var us2 = u.parts ? 5 : 2.5; c.fillRect(M.x + u.x * M.s - us2 / 2, M.y + u.y * M.s - us2 / 2, us2, us2); });
+    (W.lifts || []).forEach(function (lf) { ['a', 'b'].forEach(function (e) { var q = lf[e]; if (!W.vis[Math.floor(q.y) * W.w + Math.floor(q.x)]) return; c.fillStyle = '#000'; c.fillRect(M.x + q.x * M.s - 3, M.y + q.y * M.s - 3, 6, 6); c.fillStyle = lf.on ? pal.warn : pal.muted; c.fillRect(M.x + q.x * M.s - 2, M.y + q.y * M.s - 2, 4, 4); }); });
     if (W.fires.length) { c.fillStyle = pal.glow; W.fires.forEach(function (f) { if (W.vis[Math.floor(f.y) * W.w + Math.floor(f.x)]) c.fillRect(M.x + f.x * M.s - 1.5, M.y + f.y * M.s - 1.5, 3, 3); }); }
     c.strokeStyle = pal.sel; c.lineWidth = 1;
     c.strokeRect(M.x + S.cam.x / T * M.s + 0.5, M.y + S.cam.y / T * M.s + 0.5, LAYOUT.W / T * M.s, LAYOUT.VIEW_H / T * M.s);
@@ -690,10 +722,17 @@
       if (b.kind === 'unit') { var q = d.from === 'bunk' ? pl.inf : pl.veh; qn = q.filter(function (x) { return x === b.type; }).length; if (q[0] === b.type) prog = d.from === 'bunk' ? pl.infP : pl.vehP; }
       if (prog > 0) { c.fillStyle = 'rgba(95,207,128,0.22)'; c.fillRect(b.x + 1, b.y + 1, (b.w - 2) * prog, b.h - 2); }
       c.globalAlpha = can ? 1 : 0.35;
-      drawIcon(c, b.kind, b.type, b.x + 4, b.y + 9, pal);
-      var lb = t(b.type), ls = 12; c.font = '700 12px ' + f; while (ls > 9 && c.measureText(lb).width > b.w - 44) { ls--; c.font = '700 ' + ls + 'px ' + f; }
-      txt(c, lb, b.x + 40, b.y + 20, { color: pal.ink, font: f, size: ls, weight: 700 });
-      txt(c, String(d.cost), b.x + 40, b.y + 38, { color: pl.copper >= d.cost ? pal.oreHi : pal.bad, font: f, size: 12, weight: 700 });
+      var lb = t(b.type), ls = 12; c.font = '700 12px ' + f;
+      if (c.measureText(lb).width > b.w - 44) { // узкая кнопка (5–6 в ряду): название — строкой сверху на всю ширину, значок ниже
+        while (ls > 8 && c.measureText(lb).width > b.w - 8) { ls--; c.font = '700 ' + ls + 'px ' + f; }
+        txt(c, lb, b.x + 5, b.y + 13, { color: pal.ink, font: f, size: ls, weight: 700 });
+        c.save(); c.translate(b.x + 5, b.y + 18); c.scale(0.9, 0.9); drawIcon(c, b.kind, b.type, 0, 0, pal); c.restore();
+        txt(c, String(d.cost), b.x + 38, b.y + 40, { color: pl.copper >= d.cost ? pal.oreHi : pal.bad, font: f, size: 12, weight: 700 });
+      } else {
+        drawIcon(c, b.kind, b.type, b.x + 4, b.y + 9, pal);
+        txt(c, lb, b.x + 40, b.y + 20, { color: pal.ink, font: f, size: ls, weight: 700 });
+        txt(c, String(d.cost), b.x + 40, b.y + 38, { color: pl.copper >= d.cost ? pal.oreHi : pal.bad, font: f, size: 12, weight: 700 });
+      }
       c.globalAlpha = 1;
       if (locked) { c.fillStyle = pal.muted; c.globalAlpha = 0.7; c.fillRect(b.x + b.w - 15, b.y + 9, 9, 7); c.strokeStyle = pal.muted; c.lineWidth = 1.5; c.beginPath(); c.arc(b.x + b.w - 10.5, b.y + 9, 3, Math.PI, 0); c.stroke(); c.globalAlpha = 1; } // замок
       if (ready) { c.globalAlpha = 0.6 + 0.4 * Math.sin(W.time * 6); txt(c, t('ready'), b.x + b.w - 6, b.y + 38, { color: pal.good, font: f, size: 11, weight: 800, align: 'right' }); c.globalAlpha = 1; }
@@ -702,6 +741,6 @@
   }
   function buttonAt(x, y, S) { for (var n = 0; n < BTNS.length; n++) { var b = BTNS[n]; if (S && S.btnHidden && S.btnHidden(b)) continue; if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) return b; } return null; }
 
-  P.render = { drawColossus: drawColossus, drawParts: drawParts, frame: frame, packBtn: packBtn, HEAT: HEAT, LAYOUT: LAYOUT, PAL: PAL, SNOW: SNOW, TILE: T, buttonAt: buttonAt, BTNS: BTNS, setButtons: setButtons, groupAt: groupAt, groupRect: groupRect, repairBtn: repairBtn, fitMinimap: fitMinimap, drawIcon: drawIcon, drawBld: drawBld, drawUnit: drawUnit, txt: txt, roundRect: roundRect, groundPal: groundPal,
+  P.render = { MINE: MINE, drawLifts: drawLifts, drawColossus: drawColossus, drawParts: drawParts, frame: frame, packBtn: packBtn, HEAT: HEAT, LAYOUT: LAYOUT, PAL: PAL, SNOW: SNOW, TILE: T, buttonAt: buttonAt, BTNS: BTNS, setButtons: setButtons, groupAt: groupAt, groupRect: groupRect, repairBtn: repairBtn, fitMinimap: fitMinimap, drawIcon: drawIcon, drawBld: drawBld, drawUnit: drawUnit, txt: txt, roundRect: roundRect, groundPal: groundPal,
     resetCache: function () { cache.key = ''; mm.t = -1; puffs.length = 0; } };
 })(window);

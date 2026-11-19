@@ -67,7 +67,7 @@
     this.text(this.t('subtitle'), W / 2, py + 96, { size: 14, align: 'center', color: th.muted, weight: 600 });
     menu.draw(this, W / 2, py + 140, 30);
     if (this.state.best) this.text(this.t('best') + ': ' + this.state.best + ' ' + this.t('of') + ' ' + L.HERD, W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600 });
-    this.text(this.t('hint'), W / 2, H - 14, { size: 12, align: 'center', color: '#e8ecee', weight: 600 });
+    this.text(this.t(this.input.touchOnly ? 'hintTouch' : 'hint'), W / 2, this.input.touchOnly ? 20 : H - 14, { size: 12, align: 'center', color: '#e8ecee', weight: 600 }); // на телефоне — подсказка про тач, сверху (низ занят кнопками)
   };
   function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
   function panel(ctx, px, py, pw, ph, retro) {
@@ -165,7 +165,7 @@
         RD.creature(ctx, view, x - 2, y, P, s.t, { scale: 1.5, sleep: ok, ghost: !ok });
         if (ok) { RD.mark(ctx, cr.mark, x, y + 20, 8, P.marks[cr.mark % P.marks.length]); temperIcon(ctx, L.TEMPERS[i], x + 20, y - 48, P); }
       }
-      this.text(this.t('campHint'), W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600 });
+      this.text(this.t(this.input.touchOnly ? 'campHintTouch' : 'campHint'), W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600 });
     }
   });
   // значок нрава: вожак — колокольчик, упрямец — крестик, пугливый — «!», обжора — травинки, копуша — дуги сна
@@ -215,6 +215,7 @@
   function pos(clientX, clientY) { var r = cv.getBoundingClientRect(); return { x: (clientX - r.left) * W / r.width, y: (clientY - r.top) * H / r.height }; }
   function campTap(p) {
     var s = game.state(), a = game.alive(), n = s.total, gap = 70, x0 = W / 2 - (n - 1) * gap / 2;
+    if (campT > 0.6 && p.x > 740 && p.x < 856 && p.y > 160 && p.y < 240) { campGo(); return; } // сам костёр с шалашом (816, 214) — «тап по костру»: раньше попадал в ряд существ и не срабатывал
     if (p.y > 216 && p.y < 330) { var i = Math.round((p.x - x0) / gap), cr = null; s.herd.forEach(function (q) { if (q.id === i && q.st === 'ok') cr = q; }); if (cr) { var idx = a.indexOf(cr); if (idx === campSel) campMark(1); else campSel = idx; return; } }
     if (campT > 0.6 && (p.y > 330 || p.y < 150)) campGo();
   }
