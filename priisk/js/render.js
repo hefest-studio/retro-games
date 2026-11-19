@@ -11,7 +11,7 @@
     modern: {
       g1: '#7a826c', g2: '#777f69', g3: '#7e8670', rock: '#4b4f57', rockHi: '#5f646d', rockLo: '#383b41', water: '#a9c8d8', waterHi: '#d3e6ef',
       oreDirt: '#6e5c45', ore: '#c8763a', oreHi: '#eca664', fog: '#0b0d10', seen: 'rgba(11,13,16,0.52)',
-      own: ['#e0a53a', '#9b7bd6'], ownDk: ['#7a5216', '#4b3577'], metal: '#3a3f47', metalHi: '#596170', tread: '#23262b',
+      own: ['#e0a53a', '#9b7bd6', '#5fb8a6', '#c8573e'], ownDk: ['#7a5216', '#4b3577', '#24584f', '#62261a'], metal: '#3a3f47', metalHi: '#596170', tread: '#23262b',
       roof: '#5c4a3a', roofHi: '#77624f', wall: '#8c7c68', steam: 'rgba(235,240,245,', glow: '#ff9a3c',
       panel: '#14171d', line: '#2a2f39', ink: '#e9edf2', muted: '#8d96a5', good: '#5fcf80', bad: '#ff6b5e', warn: '#ffb020', sel: '#f2f5f8',
       font: 'Inter, system-ui, sans-serif', pixel: false
@@ -19,7 +19,7 @@
     retro: {
       g1: '#2b2a12', g2: '#33311a', g3: '#2b2a12', rock: '#555555', rockHi: '#aaaaaa', rockLo: '#000000', water: '#0055aa', waterHi: '#55ffff',
       oreDirt: '#3a2408', ore: '#aa5500', oreHi: '#ffaa55', fog: '#000000', seen: 'rgba(0,0,0,0.55)',
-      own: ['#ffff55', '#ff55ff'], ownDk: ['#aa5500', '#aa00aa'], metal: '#555555', metalHi: '#aaaaaa', tread: '#000000',
+      own: ['#ffff55', '#ff55ff', '#55ffff', '#ff5555'], ownDk: ['#aa5500', '#aa00aa', '#00aaaa', '#aa0000'], metal: '#555555', metalHi: '#aaaaaa', tread: '#000000',
       roof: '#aa5500', roofHi: '#ffaa55', wall: '#aaaaaa', steam: 'rgba(255,255,255,', glow: '#ff5555',
       panel: '#000000', line: '#555555', ink: '#ffffff', muted: '#aaaaaa', good: '#55ff55', bad: '#ff5555', warn: '#ffff55', sel: '#ffffff',
       font: '"Courier New", ui-monospace, monospace', pixel: true
@@ -104,7 +104,7 @@
 
   // ---------- здания ----------
   function drawBld(c, b, pal, now, ghost) {
-    var x = b.tx * T, y = b.ty * T, w = b.w * T, h = b.h * T, own = pal.own[b.owner], dk = pal.ownDk[b.owner], px = pal.pixel;
+    var pi = b.pi != null ? b.pi : b.owner, x = b.tx * T, y = b.ty * T, w = b.w * T, h = b.h * T, own = pal.own[pi], dk = pal.ownDk[pi], px = pal.pixel;
     function box(xx, yy, ww, hh, col, rad) { c.fillStyle = col; if (px || !rad) c.fillRect(xx, yy, ww, hh); else { roundRect(c, xx, yy, ww, hh, rad); c.fill(); } }
     box(x + 2, y + 3, w - 3, h - 3, 'rgba(0,0,0,0.28)', 4); // тень
     if (b.type === 'hq') {
@@ -158,6 +158,27 @@
       c.fillStyle = pal.ore; c.fillRect(x + 5, y + h - 9, 6, 5); c.fillRect(x + w - 11, y + h - 9, 6, 5);
       c.fillStyle = own; c.fillRect(x + w / 2 - 2, y + 1, 4, 4);
       if (!ghost && !b.dry && !(b.setup > 0) && hash(b.id, (now * 4) | 0) < 0.45) puff(b.tx + b.w / 2 + 0.3, b.ty + 0.3, 0.8);
+    } else if (b.type === 'pump') { // насос: паровой цилиндр, коромысло, труба к воде, бак
+      box(x + 2, y + 2, w - 5, h - 5, pal.metal, 4);
+      box(x + 5, y + 8, 14, 26, pal.metalHi, 3); c.fillStyle = pal.glow; c.fillRect(x + 9, y + 28, 6, 3);
+      var pk = ghost || b.setup > 0 ? 0 : Math.sin(now * 3 + b.id) * 0.3;
+      c.save(); c.translate(x + 24, y + 12); c.rotate(pk); c.fillStyle = own; c.fillRect(-14, -2, 28, 4); c.restore();
+      c.fillStyle = pal.water; c.beginPath(); c.arc(x + w - 14, y + h - 15, 9, 0, 7); c.fill(); c.fillStyle = pal.waterHi; c.fillRect(x + w - 18, y + h - 19, 4, 3);
+      c.fillStyle = pal.tread; c.fillRect(x + w - 6, y + h - 17, 5, 4);
+      c.fillStyle = own; c.fillRect(x + 4, y + h - 8, w - 9, 3);
+    } else if (b.type === 'shaft') { // копёр: сруб надшахтного здания, решётчатая вышка с колесом, устье с отвалом
+      box(x + 3, y + h - 34, w - 7, 30, pal.wall, 3); box(x + 3, y + h - 38, w - 7, 9, pal.roof, 2); c.fillStyle = pal.roofHi; c.fillRect(x + 3, y + h - 33, w - 7, 2);
+      c.strokeStyle = pal.metal; c.lineWidth = 3; c.beginPath(); c.moveTo(x + 14, y + h - 36); c.lineTo(x + 26, y + 8); c.lineTo(x + 38, y + h - 36); c.moveTo(x + 18, y + 26); c.lineTo(x + 34, y + 26); c.moveTo(x + 26, y + 8); c.lineTo(x + w - 10, y + h - 30); c.stroke();
+      var wa = ghost ? 0 : now * 1.6; c.strokeStyle = pal.metalHi; c.lineWidth = 2; c.beginPath(); c.arc(x + 26, y + 11, 7, 0, 7); c.stroke();
+      for (var ws = 0; ws < 3; ws++) { c.beginPath(); c.moveTo(x + 26 + Math.cos(wa + ws * 2.09) * 7, y + 11 + Math.sin(wa + ws * 2.09) * 7); c.lineTo(x + 26 - Math.cos(wa + ws * 2.09) * 7, y + 11 - Math.sin(wa + ws * 2.09) * 7); c.stroke(); }
+      box(x + w / 2 - 9, y + h - 20, 18, 16, pal.tread, 2); c.fillStyle = pal.glow; c.globalAlpha = 0.5; c.fillRect(x + w / 2 - 5, y + h - 12, 10, 8); c.globalAlpha = 1;
+      c.fillStyle = pal.ore; c.fillRect(x + w - 20, y + h - 12, 10, 7); c.fillStyle = own; c.fillRect(x + 3, y + h - 38, w - 7, 2);
+    } else if (b.type === 'store') { // склад: длинный сруб с воротами, ящики с медью у стены
+      box(x + 2, y + 5, w - 5, h - 9, pal.wall, 3);
+      box(x + 3, y + 3, w - 7, 14, pal.roof, 2); c.fillStyle = pal.roofHi; c.fillRect(x + 3, y + 9, w - 7, 2);
+      box(x + w / 2 - 8, y + h - 18, 16, 13, dk, 1); c.fillStyle = pal.tread; c.fillRect(x + w / 2 - 1, y + h - 18, 2, 13);
+      if (b.stock) { c.fillStyle = pal.ore; c.fillRect(x + 5, y + h - 13, 7, 7); c.fillRect(x + w - 13, y + h - 13, 7, 7); c.fillStyle = pal.oreHi; c.fillRect(x + 6, y + h - 12, 3, 2); }
+      c.fillStyle = own; c.fillRect(x + 3, y + 3, w - 7, 2);
     } else if (b.type === 'works') {
       box(x + 2, y + 2, w - 5, h - 5, pal.metal, 5);
       box(x + 6, y + 6, w - 13, h - 26, pal.metalHi, 3);
@@ -172,6 +193,7 @@
       c.strokeStyle = pal.warn; c.lineWidth = 1.5; c.setLineDash([4, 4]); c.lineDashOffset = -now * 12; c.strokeRect(x + 1.5, y + 1.5, w - 3, h - 3); c.setLineDash([]); c.lineDashOffset = 0;
       c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(x + 4, y + h / 2 - 3, w - 8, 6); c.fillStyle = pal.warn; c.fillRect(x + 5, y + h / 2 - 2, (w - 10) * (1 - b.setup / L.SETUP), 4);
     }
+    if (!ghost && now - (b.burnT || -9) < 0.3 && hash(b.id, (now * 6) | 0) < 0.35) puff(b.tx + b.w * (0.2 + 0.6 * hash(b.id, (now * 2) | 0)), b.ty + 0.3, 1.1); // горит — дым
     if (!ghost && b.shaky) { var sh = Math.sin(now * 23 + b.id) > 0.6 ? 1 : 0; c.strokeStyle = pal.bad; c.globalAlpha = 0.5 + 0.3 * sh; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x + 4, y + h - 4); c.lineTo(x + w * 0.35, y + h * 0.55); c.lineTo(x + w * 0.5, y + h - 6); c.lineTo(x + w * 0.7, y + h * 0.5); c.stroke(); c.globalAlpha = 1; }
   }
   // искры ремонта (гаечный ключ мигает над целью)
@@ -190,7 +212,8 @@
 
   // ---------- юниты ----------
   function drawUnit(c, u, pal, now) {
-    var x = u.x * T, y = u.y * T, own = pal.own[u.owner], dk = pal.ownDk[u.owner], px = pal.pixel;
+    var pi = u.pi != null ? u.pi : u.owner, x = u.x * T, y = u.y * T, own = pal.own[pi], dk = pal.ownDk[pi], px = pal.pixel;
+    if (u.type === 'colossus') { drawColossus(c, u, pal, now, own, dk); return; }
     c.save(); c.translate(x, y);
     c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(1.5, 2.5, L.UNITS[u.type].r * T, L.UNITS[u.type].r * T * 0.7, 0, 0, 7); c.fill();
     if (u.type === 'sava') { // механик: ящик с инструментом за спиной, ключ в руке
@@ -261,6 +284,21 @@
         c.fillStyle = pal.roof; c.beginPath(); c.moveTo(-5, 3); c.lineTo(0, -3.5); c.lineTo(5, 3); c.closePath(); c.fill();
       }
       if (u.path && u.path.length && hash(u.id, (now * 4) | 0) < 0.3) puff(u.x - Math.cos(u.heading) * 0.4, u.y - Math.sin(u.heading) * 0.4, 0.5);
+    } else if (u.type === 'bowser') { // водовоз: бочка на колёсах, будка, брандспойт
+      c.rotate(u.heading);
+      c.fillStyle = pal.tread; c.fillRect(-9, -9, 6, 3); c.fillRect(4, -9, 6, 3); c.fillRect(-9, 6, 6, 3); c.fillRect(4, 6, 6, 3);
+      c.fillStyle = dk; if (px) c.fillRect(-11, -7, 22, 14); else { roundRect(c, -11, -7, 22, 14, 3); c.fill(); }
+      c.fillStyle = pal.water; if (px) c.fillRect(-9, -5.5, 13, 11); else { roundRect(c, -9, -5.5, 13, 11, 5); c.fill(); }   // бочка
+      var wf = Math.max(0, Math.min(1, (u.water || 0) / L.UNITS.bowser.water)); c.fillStyle = pal.waterHi; c.fillRect(-8, 4 - 8 * wf, 2, 8 * wf);
+      c.fillStyle = own; c.fillRect(5, -6, 5, 12);                                                     // будка
+      c.rotate((u.aim == null ? u.heading : u.aim) - u.heading); c.fillStyle = pal.metalHi; c.fillRect(0, -1, 12, 2); // брандспойт
+    } else if (u.type === 'engineer') { // инженер: ящик с инструментом, каска с фонарём
+      c.rotate(u.heading);
+      c.fillStyle = dk; c.beginPath(); c.arc(0, 0, 5.6, 0, 7); c.fill();
+      c.fillStyle = own; c.beginPath(); c.arc(0, 0, 4.2, 0, 7); c.fill();
+      c.fillStyle = pal.metalHi; c.fillRect(-8, -3.5, 4.5, 7); c.fillStyle = pal.metal; c.fillRect(-7.5, -1, 3.5, 2);    // ящик
+      c.fillStyle = pal.wall; c.beginPath(); c.arc(1, 0, 2.6, 0, 7); c.fill(); c.fillStyle = pal.warn; c.fillRect(3, -1, 2, 2); // каска с фонарём
+      if (u.order && u.order.t === 'capture' && u.order.p > 0) { c.fillStyle = pal.good; c.fillRect(6, -1.5 + Math.sin(now * 18) * 1.5, 3, 3); }
     } else if (u.type === 'rifleman') {
       c.rotate(u.heading);
       c.fillStyle = pal.tread; c.fillRect(2, -1, 9, 2);                         // винтовка
@@ -298,6 +336,107 @@
     if (u.id && now - (u.fixT || -9) < 0.3) sparks(c, x, y, now, pal);
     if (u.vet && !L.HEROES[u.type]) { c.strokeStyle = pal.oreHi; c.lineWidth = 1.6; c.beginPath(); c.moveTo(x - 3.5, y - 10); c.lineTo(x, y - 13); c.lineTo(x + 3.5, y - 10); c.stroke(); } // звание ветерана
   }
+  // ---------- громада: корпус + узлы (гусеницы, бур, кабина, котёл); узел, по которому попали, вспыхивает; сбитый — обломки ----------
+  function drawColossus(c, u, pal, now, own, dk) {
+    var x = u.x * T, y = u.y * T, B = u.bs || { st: 'walk', cfg: L.BOSS }, px = pal.pixel, wt = u.wt == null ? now : u.wt;
+    var alive = function (k) { return L.partAlive(u, k); }, hot = function (k) { var p = L.partOf(u, k); return !!p && p.hp > 0 && wt - p.hitT < 0.14; };
+    c.save(); c.translate(x, y);
+    c.fillStyle = 'rgba(0,0,0,0.3)'; c.beginPath(); c.ellipse(3, 5, 42, 30, 0, 0, 7); c.fill();
+    if (B.st === 'warn' || B.st === 'vent') { c.strokeStyle = pal.steam + (B.st === 'vent' ? '0.65)' : '0.4)'); c.lineWidth = 2; c.setLineDash([6, 5]); c.beginPath(); c.arc(0, 0, B.cfg.ventR * T, 0, 7); c.stroke(); c.setLineDash([]); }
+    c.rotate(u.heading);
+    // гусеницы (борта)
+    var tk = ((now * (u.moveT != null && wt - u.moveT < 0.2 ? 6 : 0)) | 0) % 2;
+    [-25, 17].forEach(function (ty) {
+      c.fillStyle = alive('tracks') ? pal.tread : pal.rockLo; c.fillRect(-38, ty, 74, 8); if (hot('tracks')) { c.strokeStyle = pal.warn; c.lineWidth = 1.5; c.strokeRect(-38.5, ty - 0.5, 75, 9); }
+      if (alive('tracks')) { c.fillStyle = pal.metal; for (var s = -37 + tk * 3; s < 35; s += 6) c.fillRect(s, ty + 1, 2, 6); }
+      else { c.fillStyle = pal.glow; c.fillRect(-10, ty + 2, 5, 3); c.fillStyle = pal.metal; c.fillRect(10, ty - 2, 6, 3); c.fillRect(-27, ty + 6, 7, 3); }
+    });
+    // корпус
+    c.fillStyle = dk; if (px) c.fillRect(-32, -18, 58, 36); else { roundRect(c, -32, -18, 58, 36, 5); c.fill(); }
+    c.fillStyle = own; c.fillRect(-29, -15, 52, 4); c.fillRect(-29, 11, 52, 4);
+    c.fillStyle = pal.metal; c.fillRect(-26, -10, 46, 20);
+    for (var rv = -24; rv < 20; rv += 8) { c.fillStyle = pal.metalHi; c.fillRect(rv, -10, 2, 2); c.fillRect(rv, 8, 2, 2); }
+    // бур спереди
+    if (alive('drill')) {
+      c.save(); c.translate(26, 0); var spin = now * (B.st === 'bore' ? 14 : 2.5);
+      c.fillStyle = pal.metalHi; c.beginPath(); c.moveTo(0, -12); c.lineTo(22, 0); c.lineTo(0, 12); c.closePath(); c.fill(); if (hot('drill')) { c.strokeStyle = pal.warn; c.lineWidth = 1.5; c.stroke(); }
+      c.strokeStyle = pal.tread; c.lineWidth = 2; for (var sp = 0; sp < 4; sp++) { var o2 = ((spin * 3 + sp * 5.5) % 22); c.beginPath(); c.moveTo(o2, -12 + o2 * 0.55); c.lineTo(o2 + 3, 12 - (o2 + 3) * 0.55); c.stroke(); }
+      if (B.st === 'bore') for (var db = 0; db < 4; db++) { c.fillStyle = db % 2 ? pal.oreHi : pal.rockHi; c.fillRect(22 + Math.sin(now * 23 + db) * 6, Math.cos(now * 19 + db * 2) * 9, 3, 3); }
+      c.restore();
+    } else { c.fillStyle = pal.rockLo; c.fillRect(26, -7, 8, 14); c.fillStyle = pal.glow; c.fillRect(28, -2, 3, 4); }
+    // котёл в середине: топка светится, труба дымит; сбит — тёмный, без дыма
+    if (alive('boiler')) {
+      c.fillStyle = pal.metalHi; c.beginPath(); c.arc(0, 0, 12, 0, 7); c.fill(); if (hot('boiler')) { c.strokeStyle = pal.warn; c.lineWidth = 1.5; c.stroke(); }
+      c.fillStyle = pal.metal; c.beginPath(); c.arc(0, 0, 8.5, 0, 7); c.fill();
+      c.fillStyle = pal.glow; c.globalAlpha = 0.6 + 0.3 * Math.sin(now * 5); c.fillRect(-5, -3, 10, 6); c.globalAlpha = 1;
+      c.fillStyle = pal.tread; c.beginPath(); c.arc(8, -9, 3.5, 0, 7); c.fill();
+      if (B.st === 'vent' || (B.st === 'warn' && Math.sin(now * 20) > 0)) for (var vq = 0; vq < 2; vq++) puff(u.x + (Math.random() - 0.5) * 2.4, u.y + (Math.random() - 0.5) * 2.4, 1.6);
+      else if (hash(u.id, (now * 4) | 0) < 0.5) puff(u.x, u.y - 0.3, 1.2);
+    } else { c.fillStyle = pal.rockLo; c.beginPath(); c.arc(0, 0, 12, 0, 7); c.fill(); c.fillStyle = pal.tread; c.beginPath(); c.arc(1, 1, 7, 0, 7); c.fill(); }
+    // кабина на корме: будка машиниста с окнами и пушкой на крыше (поворачивается отдельно)
+    if (alive('cabin')) {
+      c.fillStyle = dk; c.fillRect(-31, -11, 15, 22); if (hot('cabin')) { c.strokeStyle = pal.warn; c.lineWidth = 1.5; c.strokeRect(-31.5, -11.5, 16, 23); } c.fillStyle = own; c.fillRect(-30, -10, 13, 3);
+      c.fillStyle = pal.waterHi; c.fillRect(-19, -6, 2, 4); c.fillRect(-19, 2, 2, 4);
+      c.save(); c.translate(-23, 0); c.rotate((u.aim == null ? u.heading : u.aim) - u.heading);
+      c.fillStyle = pal.tread; c.fillRect(0, -2, 17, 4); if (wt - (u.fireT == null ? -9 : u.fireT) < 0.08) { c.fillStyle = pal.glow; c.beginPath(); c.arc(19, 0, 4, 0, 7); c.fill(); }
+      c.fillStyle = pal.metalHi; c.beginPath(); c.arc(0, 0, 4.5, 0, 7); c.fill(); c.restore();
+    } else { c.fillStyle = pal.rockLo; c.fillRect(-31, -11, 15, 22); c.fillStyle = pal.tread; c.fillRect(-28, -6, 8, 5); c.fillStyle = pal.glow; c.fillRect(-25, 3, 3, 3); }
+    c.restore();
+    if (u.bs && u.bs.stun > 0) for (var sq = 0; sq < 2; sq++) puff(u.x + (Math.random() - 0.5) * 3, u.y + (Math.random() - 0.5) * 3, 1.8); // обварена гейзером — стоит в пару
+  }
+  // полоски узлов над громадой: гусеницы, бур, кабина, котёл (сбитый — пустая)
+  function drawParts(c, u, pal) {
+    if (!u.parts) return; var x0 = u.x * T - 46, y0 = u.y * T - 52, w = 21;
+    u.parts.forEach(function (p, n) {
+      var bx = x0 + n * (w + 3), f = p.hp / p.maxHp;
+      c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(bx - 1, y0 - 1, w + 2, 7);
+      c.fillStyle = f > 0.5 ? pal.good : f > 0.2 ? pal.warn : pal.bad; c.fillRect(bx, y0, w * f, 5);
+      c.fillStyle = f > 0 ? pal.ink : pal.muted; var ix = bx + w / 2, iy = y0 - 6; // значок узла
+      if (p.k === 'tracks') { c.fillRect(ix - 7, iy - 2, 14, 2); c.fillRect(ix - 7, iy + 2, 14, 2); }
+      else if (p.k === 'drill') { c.beginPath(); c.moveTo(ix - 5, iy - 3); c.lineTo(ix + 6, iy); c.lineTo(ix - 5, iy + 3); c.closePath(); c.fill(); }
+      else if (p.k === 'cabin') { c.fillRect(ix - 4, iy - 3, 8, 6); c.fillRect(ix + 4, iy - 1, 4, 2); }
+      else { c.beginPath(); c.arc(ix, iy, 3.5, 0, 7); c.fill(); }
+    });
+  }
+  // ---------- огонь и бочки с водой ----------
+  function drawFires(c, W, pal, now) {
+    W.fires.forEach(function (f) {
+      var k = Math.floor(f.y) * W.w + Math.floor(f.x); if (!W.vis[k]) return;
+      var fx = f.x * T, fy = f.y * T, s = f.hp / f.max, R = f.r * T;
+      c.fillStyle = pal.pixel ? 'rgba(170,0,0,0.35)' : 'rgba(255,110,40,' + (0.12 + 0.18 * s).toFixed(3) + ')'; c.beginPath(); c.arc(fx, fy, R, 0, 7); c.fill();
+      for (var q = 0; q < 6; q++) {
+        var a = q * 1.05 + f.id, ox = Math.cos(a) * R * 0.5, oy = Math.sin(a) * R * 0.35, fl = (6 + 7 * s) * (0.75 + 0.25 * Math.sin(now * 11 + q * 1.7 + f.id));
+        c.fillStyle = q % 2 ? pal.bad : pal.glow; c.beginPath(); c.moveTo(fx + ox - fl * 0.45, fy + oy); c.quadraticCurveTo(fx + ox, fy + oy - fl * 2.1, fx + ox + fl * 0.45, fy + oy); c.fill();
+        c.fillStyle = pal.warn; c.fillRect(fx + ox - 1.5, fy + oy - fl * 0.7, 3, 3);
+      }
+      if (hash(f.id, (now * 5) | 0) < 0.5 * s + 0.1) puff(f.x + (Math.random() - 0.5) * f.r, f.y - 0.3, 1 + s);
+      if (s < 0.999) { c.fillStyle = 'rgba(0,0,0,0.55)'; c.fillRect(fx - 13, fy + R + 2, 26, 4); c.fillStyle = pal.warn; c.fillRect(fx - 12, fy + R + 3, 24 * s, 2); }
+    });
+    W.depots.forEach(function (dp) {
+      var k = Math.floor(dp.y) * W.w + Math.floor(dp.x); if (!W.vis[k]) return;
+      var n = Math.ceil(Math.min(8, dp.w / 50)), bx = dp.x * T, by = dp.y * T;
+      if (dp.kind === 'sand') { // куча песка с лопатой
+        c.fillStyle = 'rgba(0,0,0,0.3)'; c.beginPath(); c.ellipse(bx + 1, by + 7, 24, 8, 0, 0, 7); c.fill();
+        c.fillStyle = pal.pixel ? '#aa5500' : '#b89a5e'; c.beginPath(); c.moveTo(bx - 22, by + 8); c.quadraticCurveTo(bx - 6, by - 20, bx + 4, by - 8); c.quadraticCurveTo(bx + 14, by - 14, bx + 22, by + 8); c.closePath(); c.fill();
+        c.fillStyle = pal.pixel ? '#ffff55' : '#d9c084'; c.beginPath(); c.moveTo(bx - 12, by + 2); c.quadraticCurveTo(bx - 5, by - 13, bx + 2, by - 4); c.closePath(); c.fill();
+        c.fillStyle = pal.tread; c.fillRect(bx + 12, by - 16, 2, 16); c.fillStyle = pal.metalHi; c.fillRect(bx + 10, by - 2, 6, 6);
+        return;
+      }
+      c.fillStyle = 'rgba(0,0,0,0.3)'; c.beginPath(); c.ellipse(bx + 1, by + 6, 20, 8, 0, 0, 7); c.fill();
+      for (var b = 0; b < Math.max(n, 1); b++) {
+        var ix = bx - 15 + (b % 4) * 10, iy = by - 2 - Math.floor(b / 4) * 9; c.fillStyle = b < n ? pal.roof : pal.rockLo; c.fillRect(ix, iy, 9, 10);
+        c.fillStyle = b < n ? pal.water : pal.rockLo; c.fillRect(ix + 1, iy + 1, 7, 2); c.fillStyle = pal.tread; c.fillRect(ix, iy + 4, 9, 1.5);
+      }
+    });
+  }
+  // струя водовоза: капли от брандспойта к огню
+  function drawSpray(c, W, pal, now) {
+    W.units.forEach(function (u) {
+      if (!u.sprayT || W.time - u.sprayT > 0.12 || !L.visibleTo0(W, u)) return;
+      var a = u.aim == null ? u.heading : u.aim, L2 = (L.H2O.hose + 1.3) * T;
+      for (var q = 0; q < 9; q++) { var t = ((now * 3 + q / 9) % 1), d = 12 + t * L2; c.fillStyle = q % 2 ? pal.waterHi : pal.water; c.fillRect(u.x * T + Math.cos(a) * d - 1.5 + Math.sin(q * 7) * 2, u.y * T + Math.sin(a) * d - 1.5 + Math.cos(q * 5) * 2, 3, 3); }
+    });
+  }
   function puff(x, y, s) { if (puffs.length < 160) puffs.push({ x: x, y: y, s: s, life: 1.4, vx: (Math.random() - 0.5) * 0.3, vy: -0.35 - Math.random() * 0.2 }); }
   function drawPuffs(c, pal, dt) {
     for (var n = puffs.length - 1; n >= 0; n--) {
@@ -332,7 +471,10 @@
     W.blds.forEach(function (b) { if (b.tx + b.w < i0 || b.tx > i1 + 1 || b.ty + b.h < j0 || b.ty > j1 + 1) return; if (L.visibleTo0(W, b)) drawBld(c, b, pal, now); });
     // приказы: метки клика
     S.marks.forEach(function (m) { var k = m.life / 0.6, col = m.kind === 'attack' ? pal.bad : m.kind === 'harvest' || m.kind === 'return' ? pal.oreHi : pal.good; c.strokeStyle = col; c.lineWidth = 2; c.beginPath(); c.arc(m.x * T, m.y * T, 4 + (1 - k) * 10, 0, 7); c.globalAlpha = k; c.stroke(); c.globalAlpha = 1; });
-    W.units.forEach(function (u) { if (u.x < i0 - 1 || u.x > i1 + 2 || u.y < j0 - 1 || u.y > j1 + 2) return; if (L.visibleTo0(W, u)) drawUnit(c, u, pal, now); });
+    W.units.forEach(function (u) { if (u.x < i0 - 2 || u.x > i1 + 3 || u.y < j0 - 2 || u.y > j1 + 3) return; if (L.visibleTo0(W, u)) { drawUnit(c, u, pal, now);
+      if (u.owner !== 0 && L.friendTo0(W, u.owner) && u.id) { c.fillStyle = pal.good; c.strokeStyle = '#000'; c.lineWidth = 1; var ar = L.UNITS[u.type].r * T; c.beginPath(); c.arc(u.x * T + ar * 0.8, u.y * T - ar * 0.8, 2.6, 0, 7); c.fill(); c.stroke(); } } }); // зелёная точка — союзник
+    if (W.fires.length || W.depots.length) drawFires(c, W, pal, now);
+    drawSpray(c, W, pal, now);
     // заряды подрывников: мигающий ящик, таймер, полоса обезвреживания
     (W.charges || []).forEach(function (ch) {
       var vis = W.vis[Math.floor(ch.y) * W.w + Math.floor(ch.x)] === 2 || ch.owner === 0; if (!vis) return;
@@ -344,7 +486,8 @@
     // эффекты выстрелов и взрывов
     W.fx.forEach(function (f) {
       var k = f.life / f.max;
-      if (f.t === 'tracer') { c.strokeStyle = pal.oreHi; c.lineWidth = 1; c.globalAlpha = k; c.beginPath(); c.moveTo(f.x0 * T, f.y0 * T); c.lineTo(f.x * T, f.y * T); c.stroke(); c.globalAlpha = 1; }
+      if (f.t === 'ping') { c.fillStyle = pal.sel; c.globalAlpha = k; for (var pq = 0; pq < 3; pq++) c.fillRect(f.x * T + Math.cos(pq * 2.1 + k * 4) * 6 * (1.2 - k), f.y * T + Math.sin(pq * 2.1 + k * 4) * 6 * (1.2 - k), 2, 2); c.globalAlpha = 1; }
+      else if (f.t === 'tracer') { c.strokeStyle = pal.oreHi; c.lineWidth = 1; c.globalAlpha = k; c.beginPath(); c.moveTo(f.x0 * T, f.y0 * T); c.lineTo(f.x * T, f.y * T); c.stroke(); c.globalAlpha = 1; }
       else if (f.t === 'shell') { var tt = 1 - k, sx = f.x0 + (f.x - f.x0) * tt, sy = f.y0 + (f.y - f.y0) * tt; c.fillStyle = pal.glow; c.fillRect(sx * T - 2, sy * T - 2, 4, 4); if (k < 0.25) { c.fillStyle = pal.steam + '0.6)'; c.beginPath(); c.arc(f.x * T, f.y * T, 7, 0, 7); c.fill(); } }
       else if (f.t === 'boom') { var r = (f.big ? 26 : 12) * (1.2 - k); c.fillStyle = pal.glow; c.globalAlpha = k; c.beginPath(); c.arc(f.x * T, f.y * T, r, 0, 7); c.fill(); c.fillStyle = pal.steam + '0.7)'; c.beginPath(); c.arc(f.x * T + 3, f.y * T - 4, r * 0.7, 0, 7); c.fill(); c.globalAlpha = 1; if (k > 0.9) for (var q = 0; q < (f.big ? 4 : 1); q++) puff(f.x + (Math.random() - 0.5), f.y + (Math.random() - 0.5), 1.2); }
     });
@@ -355,8 +498,9 @@
       if (e.kind === 'unit') { var r = L.UNITS[e.type].r * T + 3; brackets(c, e.x * T - r, e.y * T - r, r * 2, r * 2, col); hpBar(c, e.x * T - r, e.y * T - r - 6, r * 2, e.hp / e.maxHp, pal); }
       else { brackets(c, e.tx * T - 1, e.ty * T - 1, e.w * T + 2, e.h * T + 2, col); hpBar(c, e.tx * T + 4, e.ty * T - 7, e.w * T - 8, e.hp / e.maxHp, pal); }
     }
-    S.sel.forEach(function (id) { var e = W.byId[id]; mark(e, e && e.owner === 0 ? pal.sel : pal.bad); });
-    if (S.hover && !S.sel.has(S.hover.id)) mark(S.hover, S.hover.owner === 0 ? 'rgba(255,255,255,0.45)' : pal.bad);
+    S.sel.forEach(function (id) { var e = W.byId[id]; mark(e, e && e.owner === 0 ? pal.sel : e && L.friendTo0(W, e.owner) ? pal.good : pal.bad); });
+    if (S.hover && !S.sel.has(S.hover.id)) mark(S.hover, S.hover.owner === 0 ? 'rgba(255,255,255,0.45)' : L.friendTo0(W, S.hover.owner) ? pal.good : pal.bad);
+    W.units.forEach(function (u) { if (u.parts && L.visibleTo0(W, u)) drawParts(c, u, pal); });
     W.units.forEach(function (u) { if (u.owner === 0 && u.hp < u.maxHp && !S.sel.has(u.id) && W.time - u.hitT < 3) { var r = L.UNITS[u.type].r * T + 3; hpBar(c, u.x * T - r, u.y * T - r - 6, r * 2, u.hp / u.maxHp, pal); } });
     // туман
     for (var j = j0; j <= j1; j++) for (var i = i0; i <= i1; i++) {
@@ -423,8 +567,9 @@
     }
     c.fillStyle = '#000'; c.fillRect(M.x - 1, M.y - 1, M.w + 2, M.h + 2);
     c.imageSmoothingEnabled = false; c.drawImage(mm.cv, M.x, M.y, W.w * M.s, W.h * M.s); c.imageSmoothingEnabled = !pal.pixel;
-    W.blds.forEach(function (b) { if (!L.visibleTo0(W, b)) return; c.fillStyle = pal.own[b.owner]; c.fillRect(M.x + b.tx * M.s, M.y + b.ty * M.s, b.w * M.s, b.h * M.s); });
-    W.units.forEach(function (u) { if (!L.visibleTo0(W, u)) return; c.fillStyle = S.sel.has(u.id) ? pal.sel : pal.own[u.owner]; c.fillRect(M.x + u.x * M.s - 1, M.y + u.y * M.s - 1, 2.5, 2.5); });
+    W.blds.forEach(function (b) { if (!L.visibleTo0(W, b)) return; c.fillStyle = pal.own[b.pi != null ? b.pi : b.owner]; c.fillRect(M.x + b.tx * M.s, M.y + b.ty * M.s, b.w * M.s, b.h * M.s); });
+    W.units.forEach(function (u) { if (!L.visibleTo0(W, u)) return; c.fillStyle = S.sel.has(u.id) ? pal.sel : pal.own[u.pi != null ? u.pi : u.owner]; var us2 = u.parts ? 5 : 2.5; c.fillRect(M.x + u.x * M.s - us2 / 2, M.y + u.y * M.s - us2 / 2, us2, us2); });
+    if (W.fires.length) { c.fillStyle = pal.glow; W.fires.forEach(function (f) { if (W.vis[Math.floor(f.y) * W.w + Math.floor(f.x)]) c.fillRect(M.x + f.x * M.s - 1.5, M.y + f.y * M.s - 1.5, 3, 3); }); }
     c.strokeStyle = pal.sel; c.lineWidth = 1;
     c.strokeRect(M.x + S.cam.x / T * M.s + 0.5, M.y + S.cam.y / T * M.s + 0.5, LAYOUT.W / T * M.s, LAYOUT.VIEW_H / T * M.s);
   }
@@ -499,15 +644,20 @@
     var sel = []; S.sel.forEach(function (id) { if (W.byId[id]) sel.push(W.byId[id]); });
     var y0 = VH + 50;
     if (sel.length === 1) {
-      var e = sel[0], nm = t(e.type) + (e.owner === 1 ? ' · ' + t('foe') : '');
-      txt(c, nm, ix, y0, { color: e.owner === 0 ? pal.ink : pal.own[1], font: f, size: 14, weight: 800 });
+      var e = sel[0], fr = L.friendTo0(W, e.owner), nm = t(e.type) + (e.owner !== 0 ? ' · ' + t(fr ? 'ally' : 'foe') : '');
+      txt(c, nm, ix, y0, { color: e.owner === 0 ? pal.ink : pal.own[e.pi != null ? e.pi : e.owner], font: f, size: 14, weight: 800 });
       hpBar(c, ix, y0 + 8, 200, e.hp / e.maxHp, pal);
       txt(c, Math.ceil(e.hp) + ' / ' + e.maxHp, ix + 208, y0 + 13, { color: pal.muted, font: f, size: 11, weight: 600 });
       var extra = '';
-      if (e.type === 'hauler') extra = t('load') + ': ' + e.carry + ' / ' + (W.haulCap || L.UNITS.hauler.cap);
-      else if (e.packed) extra = t('packedOf') + ': ' + t(e.packed.type);
+      if (e.packed) extra = t('packedOf') + ': ' + t(e.packed.type);
       else if (e.type === 'drill') extra = t('drillTip');
       else if (e.type === 'sapper') extra = t('sapperTip');
+      else if (e.kind === 'unit' && L.waterCap(W, e) > 0 && (e.type === 'bowser' || e.order.t === 'douse' || e.water > 0)) extra = t(e.type === 'bowser' ? 'water' : 'sand') + ': ' + Math.round(e.water || 0) + ' / ' + L.waterCap(W, e) + ' · ' + t('bowserTip');
+      else if (e.type === 'hauler') extra = t('load') + ': ' + e.carry + ' / ' + (W.haulCap || L.UNITS.hauler.cap);
+      else if (e.type === 'engineer') extra = t('engineerTip');
+      else if (e.type === 'colossus') extra = e.parts.map(function (cp) { return t('part_' + cp.k) + ' ' + (cp.hp > 0 ? Math.ceil(cp.hp / cp.maxHp * 100) + '%' : '✕'); }).join(' · ');
+      else if (e.type === 'store') extra = e.stock ? t('storeTip') + ' · ' + e.stock : t('storeEmpty');
+      else if (e.type === 'pump') extra = t('pumpTip');
       else if (e.type === 'rig') extra = e.dry ? t('rigDry') : '+' + (W.rigRate || L.BLDS.rig.rate) + ' ' + t('perSec') + ' · ' + t('rigLeft') + ' ' + L.rigOre(W, e);
       else if (e.kind === 'unit') { var ud = L.UNITS[e.type]; extra = e.locked ? t('scripted') : '⚔ ' + ud.dmg + '  ⌖ ' + ud.range + '  ⇢ ' + ud.speed; }
       else { var bd = L.BLDS[e.type]; extra = bd.weapon ? '⚔ ' + bd.dmg + '  ⌖ ' + bd.range : bd.power ? t('steam') + ' ' + (bd.power > 0 ? '+' : '') + bd.power : ''; }
@@ -552,6 +702,6 @@
   }
   function buttonAt(x, y, S) { for (var n = 0; n < BTNS.length; n++) { var b = BTNS[n]; if (S && S.btnHidden && S.btnHidden(b)) continue; if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) return b; } return null; }
 
-  P.render = { frame: frame, packBtn: packBtn, HEAT: HEAT, LAYOUT: LAYOUT, PAL: PAL, SNOW: SNOW, TILE: T, buttonAt: buttonAt, BTNS: BTNS, setButtons: setButtons, groupAt: groupAt, groupRect: groupRect, repairBtn: repairBtn, fitMinimap: fitMinimap, drawIcon: drawIcon, drawBld: drawBld, drawUnit: drawUnit, txt: txt, roundRect: roundRect, groundPal: groundPal,
+  P.render = { drawColossus: drawColossus, drawParts: drawParts, frame: frame, packBtn: packBtn, HEAT: HEAT, LAYOUT: LAYOUT, PAL: PAL, SNOW: SNOW, TILE: T, buttonAt: buttonAt, BTNS: BTNS, setButtons: setButtons, groupAt: groupAt, groupRect: groupRect, repairBtn: repairBtn, fitMinimap: fitMinimap, drawIcon: drawIcon, drawBld: drawBld, drawUnit: drawUnit, txt: txt, roundRect: roundRect, groundPal: groundPal,
     resetCache: function () { cache.key = ''; mm.t = -1; puffs.length = 0; } };
 })(window);

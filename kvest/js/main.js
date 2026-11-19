@@ -8,7 +8,8 @@
    пальцем, крупная зона захвата; на маленьких экранах зоны увеличены), H — подсказка, B — набросок, D — отладка и статистика,
    E — выгрузить статистику (в отладке), F — во весь экран, P/Esc — пауза (в мини-игре и наброске Esc закрывает их).
    Помощники (глава 3+): портреты героев над сценой (тап — переключить, тап по активному помощнику — умение), Tab — следующий герой,
-   1/2/3 — герой по номеру, Q — умение (пёс — нюх, след тушью; чайка — взгляд сверху, обзор тушью).
+   1/2/3 — герой по номеру, Q — умение (пёс — нюх, след тушью; чайка — взгляд сверху, обзор тушью; Тая под водой — прислушаться
+   к колоколам: кольца-волны тушью). Под водой (глава 4+): шкала воздуха пузырьками, муть, звон — хук темы drawWater.
    Экран: HiDPI (канва = размер на экране × devicePixelRatio, логика 960×540; кэши темы в том же масштабе, с потолком по памяти),
    раскладка под телефон/планшет/десктоп с учётом вырезов (safe-area), в портрете на тач-устройстве — «поверните устройство»,
    адаптивное качество: если кадров меньше ~38 в секунду, разрешение канвы снижается ступенями (и возвращается, когда запас есть). */
@@ -115,6 +116,7 @@
     d = d || {};
     stats.event(type, d);
     if (type === 'sfx') K.sfx(g, d.name, d);
+    else if (type === 'ring') K.sfx(g, 'ring', d);   // колокол-ориентир под водой: нота, панорама, глухота — по расстоянию
     else if (type === 'puzzle') { K.sfx(g, 'puzzle'); g.state.score = d.solved; }
     else if (type === 'scene') g.state.level = 1;
     if (type === 'change' || type === 'save') saveDirty = true;
@@ -259,6 +261,7 @@
         if (p.active && m.party.length > 1 && !still && th.drawActiveMark) th.drawActiveMark(ctx, p, t);
       });
     } else if (m.showHero) th.drawHero(ctx, m.hero, m.pose, t);
+    if (m.water && th.drawWater) th.drawWater(ctx, m.water, t);   // под водой: муть, кольца звона тушью, шкала воздуха (пузырьки)
     if (m.overview && th.drawOverview) th.drawOverview(ctx, m.overview, t);   // взгляд сверху — калькой поверх сцены
     m.thoughts.forEach(function (q) {   // подсказка и мысли мастера — тушью, если тема умеет (хуки drawHint / drawThought opts.style)
       if (q.style === 'ink' && q.hint && th.drawHint) th.drawHint(ctx, q.x, q.y, q.hint, t, { age: q.age });
@@ -329,7 +332,7 @@
     else if (e.code === 'KeyD') game.setDebug();
     else if (e.code === 'Tab' && game.multi) { e.preventDefault(); game.cycleHero(e.shiftKey ? -1 : 1); }
     else if (/^Digit[1-3]$/.test(e.code) && game.multi) { var hl = game.portraits(), hi = +e.code.slice(5) - 1; if (hl[hi]) game.switchHero(hl[hi]); }
-    else if (e.code === 'KeyQ' && game.multi) game.ability();
+    else if (e.code === 'KeyQ') game.ability();   // умение активного героя; у Таи под водой — «прислушаться»
     else if (e.code === 'KeyE' && game.runtime().debug) exportStats();
   });
 

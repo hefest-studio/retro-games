@@ -33,9 +33,9 @@
   // разрешённые кнопки (иначе не влезут)
   function missionButtons(def, kind) {
     var b = def.player.build || [], u = def.player.units || [];
-    var extra = b.some(function (t) { return L.FORT_LIST.indexOf(t) >= 0; }) || u.some(function (t) { return L.CAMP_UNITS.indexOf(t) >= 0; });
+    var extra = b.some(function (t) { return L.FORT_LIST.indexOf(t) >= 0 || L.CAMP_BLDS.indexOf(t) >= 0; }) || u.some(function (t) { return L.CAMP_UNITS.indexOf(t) >= 0; });
     if (!extra) return kind === 'bld' ? L.BUILD_LIST : L.UNIT_LIST;
-    return kind === 'bld' ? L.BUILD_LIST.concat(L.FORT_LIST).filter(function (t) { return b.indexOf(t) >= 0; }) : L.UNIT_LIST.concat(L.CAMP_UNITS).filter(function (t) { return u.indexOf(t) >= 0; });
+    return kind === 'bld' ? L.BUILD_LIST.concat(L.FORT_LIST, L.CAMP_BLDS).filter(function (t) { return b.indexOf(t) >= 0; }) : L.UNIT_LIST.concat(L.CAMP_UNITS).filter(function (t) { return u.indexOf(t) >= 0; });
   }
   function newGame() {
     S.mission = null; CU.detach(S);
@@ -169,7 +169,7 @@
       var tg = visiblePick(w); if (tg && tg.owner === 0 && tg.kind === 'unit') tg = null;
       var k = L.commandSmart(S.W, 0, units, w.x, w.y, tg);
       if (k === 'deny') { beep(150, 0.06, 'square'); return; }
-      var c = tg ? L.center(tg) : w; S.marks.push({ x: c.x, y: c.y, kind: k === 'plant' ? 'attack' : k, life: 0.6 });
+      var c = tg ? L.center(tg) : w; S.marks.push({ x: c.x, y: c.y, kind: k === 'plant' || k === 'capture' || k === 'douse' ? 'attack' : k === 'fill' ? 'harvest' : k, life: 0.6 });
       beep(k === 'attack' ? 300 : 520, 0.035, k === 'attack' ? 'sawtooth' : 'triangle');
     },
     onPan: function (dx, dy) { S.cam.x += dx; S.cam.y += dy; clampCam(); },
@@ -207,7 +207,7 @@
     if (e && e.owner === 0 && e.kind === 'unit') { mouse.setCursor('select'); return; }
     var k = L.smartKind(S.W, 0, us, w.x, w.y, e);
     if (e && e.owner === 0 && e.kind === 'bld' && k === 'deny') { mouse.setCursor('select'); return; }
-    mouse.setCursor(k === 'attack' || k === 'plant' ? 'attack' : k === 'harvest' || k === 'return' ? 'harvest' : k === 'deny' ? 'deny' : 'move');
+    mouse.setCursor(k === 'attack' || k === 'plant' || k === 'capture' || k === 'douse' ? 'attack' : k === 'harvest' || k === 'return' || k === 'fill' ? 'harvest' : k === 'deny' ? 'deny' : 'move');
   }
 
   // ---------- группы ----------
@@ -272,6 +272,12 @@
       else if (ev.t === 'dry' && ev.owner === 0) msg(g.t('msgDry'), 'warn');
       else if (ev.t === 'raid' && ev.owner === 1) { msg(g.t('msgRaid'), 'bad'); beep(220, 0.2, 'square'); }
       else if (ev.t === 'geyser' && seen(ev.x, ev.y)) beep(90, 0.5, 'sawtooth', 0.06);
+      else if (ev.t === 'captured') { if (ev.owner === 0) { msg(g.t('msgCaptured') + ': ' + g.t(ev.type) + (ev.gain ? ' · +' + ev.gain + ' ' + g.t('copper').toLowerCase() : ''), 'good'); beep(660, 0.07, 'triangle'); beep(990, 0.09, 'triangle'); } else if (ev.from === 0) { msg(g.t('msgCapturedOurs') + ': ' + g.t(ev.type), 'bad'); beep(220, 0.2, 'square'); } }
+      else if (ev.t === 'guarded' && ev.owner === 0) msg(g.t('msgGuarded'), 'warn');
+      else if (ev.t === 'doused' && ev.by >= 0 && seen(ev.x, ev.y)) { msg(g.t('msgDoused'), 'good'); beep(520, 0.08, 'triangle'); }
+      else if (ev.t === 'bossVentWarn' && seen(ev.x, ev.y)) { msg(g.t('msgVent'), 'warn'); beep(330, 0.15, 'square'); }
+      else if (ev.t === 'bossVent' && seen(ev.x, ev.y)) beep(100, 0.6, 'sawtooth', 0.07);
+      else if (ev.t === 'bossBore' && seen(ev.x, ev.y)) beep(55, 0.5, 'sawtooth', 0.1);
       if (ev.t === 'shot' && nearOurs(W, ev.x, ev.y)) fightT = W.time;
     });
     if (W.mission) CU.drain(S);

@@ -29,13 +29,19 @@
     // бур — самоходная буровая: на богатой жиле разворачивается в буровую вышку (packs: 'rig'); фургон — свёрнутое здание в пути
     sapper:    { hp: 55,  speed: 2.0, range: 0,   dmg: 0,  cd: 0,   weapon: null,    cost: 150, time: 6,  sight: 5,   r: 0.3,  cls: 'inf', from: 'bunk', sapper: true },
     drill:     { hp: 320, speed: 1.5, range: 0,   dmg: 0,  cd: 0,   weapon: null,    cost: 600, time: 12, sight: 4,   r: 0.46, cls: 'veh', from: 'works', packs: 'rig' },
-    van:       { hp: 520, speed: 1.35, range: 0,  dmg: 0,  cd: 0,   weapon: null,    cost: 0,   time: 0,  sight: 4,   r: 0.5,  cls: 'veh' }
+    van:       { hp: 520, speed: 1.35, range: 0,  dmg: 0,  cd: 0,   weapon: null,    cost: 0,   time: 0,  sight: 4,   r: 0.5,  cls: 'veh' },
+    // кампания (миссии 7–8; в скирмише не открыты): водовоз — бочка на колёсах, тушит пожары (наливается у насоса или у бочек);
+    // инженер — входит во вражеское здание, и оно становится нашим (захват); громада — многочастная буровая махина-босс.
+    // Если миссия открыла W.sand, рудовозы тоже тушат: возят песок (тот же приказ, что у водовоза, груз меньше)
+    bowser:    { hp: 300, speed: 1.9, range: 0,   dmg: 0,  cd: 0,   weapon: null,    cost: 300, time: 8,  sight: 5,   r: 0.44, cls: 'veh', from: 'works', water: 100 },
+    engineer:  { hp: 70,  speed: 1.9, range: 0,   dmg: 0,  cd: 0,   weapon: null,    cost: 250, time: 7,  sight: 5,   r: 0.3,  cls: 'inf', from: 'bunk', engineer: true },
+    colossus:  { hp: 15000, speed: 0.42, range: 5.8, dmg: 42, cd: 1.7, weapon: 'shell', cost: 0,  time: 0,  sight: 7.5, r: 1.45, cls: 'veh', boss: true }
   };
   // Способности героев: cry — «Клич» (аура ×2 на время), flare — «Метка» (открыть туман в точке на время).
   var HEROES = {
     varvara: { ability: 'cry', cd: 30, dur: 8, aura: 4.5, dmg: 1.25, spd: 1.15, cryDmg: 1.5, crySpd: 1.3 },
     lunya:   { ability: 'flare', cd: 25, dur: 12, r: 6, reach: 18 },
-    sava:    { ability: 'fix', cd: 35, dur: 6, r: 4.5, rate: 45, field: 2.6, fieldRate: 5 }
+    sava:    { ability: 'fix', cd: 35, dur: 6, r: 4.5, rate: 45, field: 2.6, fieldRate: 5, douse: 10, douseFast: 45 }
   };
   var BLDS = {
     hq:      { w: 3, h: 3, hp: 1600, cost: 0,   time: 0,  power: 10,  req: [],          sight: 7 },
@@ -49,14 +55,34 @@
     tower:   { w: 2, h: 2, hp: 650,  cost: 260, time: 9,  power: 0,   req: ['bunk'],    sight: 7, fort: true, gap: 7, weapon: 'gun', range: 5.6, dmg: 11, cd: 0.75 },
     // буровая вышка (кампания): не строится из панели — её разворачивает бур на богатой жиле; качает медь сама (rate в секунду
     // из клеток под собой и вокруг, без рудовоза), но шумит (loud): сопернику её видно сквозь туман
-    rig:     { w: 2, h: 2, hp: 900,  cost: 0,   time: 0,  power: 0,   req: [],          sight: 3, rate: 4, loud: true, noPanel: true }
+    rig:     { w: 2, h: 2, hp: 900,  cost: 0,   time: 0,  power: 0,   req: [],          sight: 3, rate: 4, loud: true, noPanel: true },
+    // насос (кампания): ставится у воды (рядом хоть одна клетка воды/полыньи) где угодно на карте, водовозы наливаются у него без счёта
+    pump:    { w: 2, h: 2, hp: 500,  cost: 250, time: 8,  power: -5,  req: ['boiler'],  sight: 4, pump: true, gap: 999 },
+    // склад (кампания, сценарный): запас меди stock — достаётся тому, кто захватит склад инженером
+    store:   { w: 2, h: 2, hp: 800,  cost: 0,   time: 0,  power: 0,   req: [],          sight: 3, stock: 600, noPanel: true },
+    // копёр рудника (кампания, сценарный): надшахтная вышка с колесом — сердце чужого рудника
+    shaft:   { w: 3, h: 3, hp: 2000, cost: 0,   time: 0,  power: 0,   req: [],          sight: 5, noPanel: true }
   };
   var FORT_LIST = ['palisade', 'tower'];
-  // Юниты кампании, которых нет в скирмише (кнопки — только если миссия их открыла)
-  var CAMP_UNITS = ['sapper', 'drill'];
+  // Здания и юниты кампании, которых нет в скирмише (кнопки — только если миссия их открыла)
+  var CAMP_BLDS = ['pump'];
+  var CAMP_UNITS = ['sapper', 'drill', 'bowser', 'engineer'];
+  // Пожар и вода: водовоз набирает воду (FILL в секунду), льёт SPRAY в секунду с расстояния HOSE от края огня; литр воды гасит
+  // DOUSE единиц силы огня. Огонь сам разгорается (grow), жжёт юнитов (dps; технике ×0.5) и здания (bdps) в радиусе r.
+  var H2O = { fill: 50, spray: 25, douse: 1.6, hose: 1.7, auto: 7 };
+  // Захват: инженер у самого здания CAPTURE секунд «входит» (если рядом нет вооружённой охраны) — здание переходит к нему.
+  var CAPTURE = { t: 1.2, guard: 2.5 };
+  // Громада: узлы — у каждого своя прочность, место на корпусе (at: вдоль хода / поперёк, в клетках) и эффект при разрушении.
+  // Попадание приходится в ближайший к стрелку целый узел: с борта — гусеницы, спереди — бур, с кормы — кабина; котёл в середине
+  // открывается, когда сбиты узлы, что ближе к стрелку (с борта — сразу за гусеницами). Без гусениц стоит; без бура не бурит (здания давит корпусом, медленно — crush); без
+  // кабины молчит пушка; без котла нет выбросов пара и ход тише (cold). Разбиты все узлы — громада уничтожена. Идёт по маршруту
+  // u.bs.route, сворачивает к чужим зданиям не дальше lure клеток (на шум буровой вышки — с lureLoud: приманка), выброс гейзера обваривает все узлы (steam) и
+  // останавливает её на stun секунд (не чаще раза в scaldCd секунд); заряд подрывника бьёт ближайший к подрывнику узел (charge).
+  var BOSS = { parts: [{ k: 'tracks', hp: 5000, at: [[0.5, -1.2], [0.5, 1.2], [-0.6, -1.2], [-0.6, 1.2]] }, { k: 'drill', hp: 3200, at: [[1.6, 0]] }, { k: 'cabin', hp: 2400, at: [[-1.4, 0]] }, { k: 'boiler', hp: 4400, at: [[0, 0]] }],
+    charge: 900, bore: 5, boreDps: 60, boreR: 2.4, crush: 45, ventEvery: 20, ventWarn: 3, vent: 4.5, ventR: 3.4, ventDps: 20, squash: 40, lure: 5, lureLoud: 11, steam: 600, stun: 5, scaldCd: 40, cold: 0.55 };
   // Заряд подрывника: таймер, урон цели, обезвреживание (свои юниты цели рядом с зарядом столько секунд)
   var CHARGE = { plant: 1.5, timer: 10, dmg: 1000, splash: 1.4, splashDmg: 60, defuse: 2.5, defR: 1.4 };
-  var PLANTABLE = { rig: 1, drill: 1, hauler: 1, van: 1 };
+  var PLANTABLE = { rig: 1, drill: 1, hauler: 1, van: 1, colossus: 1 };
   // Перенос зданий: «свернуть» в фургон и «развернуть» на новом месте; после разворота здание setup секунд не работает
   var SETUP = 5, NO_PACK = { palisade: 1 };
   // Ремонт зданий: REPAIR — доля прочности в секунду; цена — медь за единицу прочности (от стоимости здания)
@@ -75,7 +101,8 @@
       w: w, h: h, t: new Uint8Array(w * h), ore: new Uint16Array(w * h), occ: new Int32Array(w * h),
       vis: new Uint8Array(w * h), units: [], blds: [], byId: Object.create(null), nextId: 1, time: 0,
       rng: mulberry32(seed || 1), fx: [], events: [], winner: -1, visT: 0, sightMul: 1, flares: [], mapRev: 0,
-      players: [newPlayer(0), newPlayer(1)], ai: null, oreMax: 0, hadHq: [false, false], charges: [], hits: Object.create(null)
+      players: [newPlayer(0), newPlayer(1), newPlayer(2)], ai: null, oreMax: 0, hadHq: [false, false], charges: [], hits: Object.create(null),
+      fires: [], depots: [], team: null, paint: null
     };
     return W;
   }
@@ -178,6 +205,7 @@
   var DX = [1, 0, -1, 0, 1, -1, -1, 1], DY = [0, 1, 0, -1, 1, 1, -1, -1];
   function inb(W, i, j) { return i >= 0 && j >= 0 && i < W.w && j < W.h; }
   function passable(W, i, j) { if (!inb(W, i, j)) return false; var k = j * W.w + i; return walkable(W.t[k]) && W.occ[k] === 0; }
+  var passableCell = passable;
   function nearestPassable(W, i, j, maxR, avoidUnits) {
     if (passable(W, i, j) && !(avoidUnits && unitOn(W, i, j))) return { i: i, j: j };
     for (var r = 1; r <= (maxR || 10); r++) {
@@ -194,10 +222,15 @@
 
   // A*: 8 направлений, без срезания углов у препятствий, октильная эвристика. Возвращает [{x,y}] (центры клеток)
   // без стартовой клетки. Если цель непроходима — идём к ближайшей проходимой; если недостижима — к ближайшей достижимой точке.
-  function findPath(W, sx, sy, gx, gy, maxNodes) {
+  // big — путь для громады: по рельефу с запасом 3×3 клетки, здания не мешают (она их бурит и давит)
+  function passBig(W, i, j) { for (var b = j - 1; b <= j + 1; b++) for (var a = i - 1; a <= i + 1; a++) if (!inb(W, a, b) || !walkable(W.t[b * W.w + a])) return false; return true; }
+  function nearestBig(W, i, j, maxR) { if (passBig(W, i, j)) return { i: i, j: j }; for (var r = 1; r <= maxR; r++) for (var b = j - r; b <= j + r; b++) for (var a = i - r; a <= i + r; a++) if (Math.max(Math.abs(a - i), Math.abs(b - j)) === r && passBig(W, a, b)) return { i: a, j: b }; return null; }
+  function findPath(W, sx, sy, gx, gy, maxNodes, big) {
     var w = W.w, h = W.h, si = Math.floor(sx), sj = Math.floor(sy), gi = Math.floor(gx), gj = Math.floor(gy);
     if (!inb(W, gi, gj)) { gi = Math.max(0, Math.min(w - 1, gi)); gj = Math.max(0, Math.min(h - 1, gj)); }
-    if (!passable(W, gi, gj)) { var np = nearestPassable(W, gi, gj, 12); if (!np) return []; gi = np.i; gj = np.j; }
+    var passable = big ? passBig : passableCell;
+    if (big) { var nb = nearestBig(W, gi, gj, 8); if (!nb) return []; gi = nb.i; gj = nb.j; }
+    else if (!passable(W, gi, gj)) { var np = nearestPassable(W, gi, gj, 12); if (!np) return []; gi = np.i; gj = np.j; }
     if (si === gi && sj === gj) return [{ x: gi + 0.5, y: gj + 0.5 }];
     var N = w * h, G = new Float32Array(N), came = new Int32Array(N), state = new Uint8Array(N);
     G.fill(Infinity); came.fill(-1);
@@ -225,7 +258,7 @@
     var out = [], c = best;
     while (c !== s && c !== -1) { out.push({ x: (c % w) + 0.5, y: ((c / w) | 0) + 0.5 }); c = came[c]; }
     out.reverse();
-    return smooth(W, { x: sx, y: sy }, out);
+    return big ? out : smooth(W, { x: sx, y: sy }, out);
   }
   // Сглаживание: выкидываем промежуточные точки, если отрезок проходит по свободным клеткам (с запасом на радиус).
   function smooth(W, from, pts) {
@@ -249,7 +282,8 @@
 
   // ---------- Сущности ----------
   function addBuilding(W, owner, type, tx, ty, noFree) {
-    var d = BLDS[type], b = { id: W.nextId++, kind: 'bld', type: type, owner: owner, tx: tx, ty: ty, w: d.w, h: d.h, hp: d.hp, maxHp: d.hp, rally: null, hitT: -99, hitBy: 0 };
+    var d = BLDS[type], b = { id: W.nextId++, kind: 'bld', type: type, owner: owner, pi: paintOf(W, owner), tx: tx, ty: ty, w: d.w, h: d.h, hp: d.hp, maxHp: d.hp, rally: null, hitT: -99, hitBy: 0 };
+    if (d.stock) b.stock = d.stock;
     for (var j = 0; j < d.h; j++) for (var i = 0; i < d.w; i++) W.occ[(ty + j) * W.w + tx + i] = b.id;
     W.blds.push(b); W.byId[b.id] = b; calcPower(W);
     if (type === 'hq') W.hadHq[owner] = true;
@@ -260,13 +294,15 @@
     return b;
   }
   function addUnit(W, owner, type, x, y) {
-    var d = UNITS[type], u = { id: W.nextId++, kind: 'unit', type: type, owner: owner, x: x, y: y, hp: d.hp, maxHp: d.hp, path: [], order: { t: 'idle' },
+    var d = UNITS[type], u = { id: W.nextId++, kind: 'unit', type: type, owner: owner, pi: paintOf(W, owner), x: x, y: y, hp: d.hp, maxHp: d.hp, path: [], order: { t: 'idle' },
       cd: 0, heading: owner === 0 ? -Math.PI / 4 : Math.PI * 3 / 4, aim: null, carry: 0, scanT: W.rng() * 0.5, chk: { x: x, y: y, t: 0 }, stuck: 0, hitT: -99, hitBy: 0, fireT: -9 };
     u.aim = u.heading; if (HEROES[type]) { u.abT = 0; u.abOn = 0; }
+    if (d.water) u.water = 0;
+    if (d.boss) initBoss(u);
     W.units.push(u); W.byId[u.id] = u; return u;
   }
   function calcPower(W) {
-    for (var o = 0; o < 2; o++) { W.players[o].pOut = 0; W.players[o].pUse = 0; }
+    for (var o = 0; o < W.players.length; o++) { W.players[o].pOut = 0; W.players[o].pUse = 0; }
     W.blds.forEach(function (b) { if (b.setup > 0) return; var p = BLDS[b.type].power, pl = W.players[b.owner]; if (p > 0) pl.pOut += p; else pl.pUse -= p; });
   }
   function powerFactor(W, o) { var p = W.players[o]; return p.pOut >= p.pUse ? 1 : LOW_POWER; }
@@ -290,6 +326,20 @@
     return Math.hypot(cx - u.x, cy - u.y);
   }
   function alive(e) { return e && e.hp > 0; }
+  // Стороны: W.team[владелец] — команда (кампания: союзник — владелец 2 в команде игрока); без W.team команда = владелец.
+  // hostile — стреляют ли друг в друга; friendTo0 — свой или союзник игрока (общий обзор, не цель).
+  function teamOf(W, o) { return W.team && W.team[o] != null ? W.team[o] : o; }
+  function hostile(W, a, b) { return teamOf(W, a) !== teamOf(W, b); }
+  function friendTo0(W, o) { return o === 0 || teamOf(W, o) === teamOf(W, 0); }
+  // цвет на экране: W.paint[владелец] — индекс палитры (например, наёмники — свой цвет, Сизые-союзники — сирень)
+  function paintOf(W, o) { return W.paint && W.paint[o] != null ? W.paint[o] : o; }
+  // сменить владельца юнита/здания (союз, захват): приказы сброшены, цвет — по новому владельцу
+  function setOwner(W, e, o) {
+    if (!e || e.owner === o) return e;
+    e.owner = o; e.pi = paintOf(W, o);
+    if (e.kind === 'unit') { e.path = []; e.order = { t: 'idle' }; e.post = { x: e.x, y: e.y }; } else { e.repair = false; e.rally = null; if (e.type === 'hq') W.hadHq[o] = true; }
+    calcPower(W); return e;
+  }
 
   // ---------- Стройка и производство ----------
   function startBuild(W, o, type) {
@@ -312,6 +362,7 @@
     var d = BLDS[type]; if (!d) return false;
     if (tx < 1 || ty < 1 || tx + d.w > W.w - 1 || ty + d.h > W.h - 1) return false;
     for (var j = 0; j < d.h; j++) for (var i = 0; i < d.w; i++) { var k = (ty + j) * W.w + tx + i; if (W.t[k] !== GROUND || W.occ[k] || W.ore[k]) return false; }
+    if (d.pump && !nearWater(W, tx, ty, d.w, d.h)) return false; // насос — только у воды
     for (var n = 0; n < W.units.length; n++) { var u = W.units[n], r = UNITS[u.type].r; if (u.x + r > tx && u.x - r < tx + d.w && u.y + r > ty && u.y - r < ty + d.h) return false; }
     var near = false;
     for (n = 0; n < W.blds.length; n++) { var b = W.blds[n]; if (b.owner !== o) continue;
@@ -319,6 +370,7 @@
       if (Math.max(gx, gy) <= (d.gap || BUILD_GAP)) { near = true; break; } }
     return near;
   }
+  function nearWater(W, tx, ty, w, h) { for (var j = ty - 1; j <= ty + h; j++) for (var i = tx - 1; i <= tx + w; i++) if (inb(W, i, j) && (W.t[j * W.w + i] === WATER || W.t[j * W.w + i] === OPEN)) return true; return false; }
   function placeBuild(W, o, tx, ty) {
     var p = W.players[o]; if (!p.build || !p.build.ready || !canPlace(W, o, p.build.type, tx, ty)) return null;
     var b = addBuilding(W, o, p.build.type, tx, ty); p.build = null; W.events.push({ t: 'placed', owner: o, id: b.id }); return b;
@@ -390,7 +442,13 @@
     var us = liveUnits(W, ids).filter(function (u) { return u.owner === o; }); if (!us.length) return null;
     var i = Math.floor(x), j = Math.floor(y); if (!inb(W, i, j)) return 'deny';
     var armed = us.some(function (u) { return !!UNITS[u.type].weapon; }), haul = us.some(function (u) { return u.type === 'hauler'; });
-    if (target && target.owner !== o && us.some(function (u) { return UNITS[u.type].sapper; }) && canPlantOn(W, target)) return 'plant';
+    if (target && target.owner !== o && !hostile(W, target.owner, o)) target = null; // союзник — как пустое место: идти туда
+    if (target && us.some(function (u) { return UNITS[u.type].sapper; }) && canPlantOn(W, target)) return 'plant';
+    if (target && us.some(function (u) { return UNITS[u.type].engineer; }) && canCapture(W, o, target)) return 'capture';
+    if (us.some(function (u) { return waterCap(W, u) > 0; })) { // водовоз (и рудовоз с песком): ПКМ по огню — тушить, по насосу/бочкам — налить
+      if (fireAt(W, x, y)) return 'douse';
+      if ((target && target.owner === o && BLDS[target.type].pump) || (!target && depotAt(W, x, y))) return 'fill';
+    }
     if (target && target.owner !== o && armed) return 'attack';
     if (target && target.owner === o && target.type === 'smelter' && haul) return 'return';
     if (!target && W.ore[j * W.w + i] > 0 && haul) return 'harvest';
@@ -401,6 +459,9 @@
   function commandSmart(W, o, ids, x, y, target) {
     var k = smartKind(W, o, ids, x, y, target);
     if (k === 'plant') commandPlant(W, ids, target.id);
+    else if (k === 'capture') commandCapture(W, ids, target.id);
+    else if (k === 'douse') commandDouse(W, ids, fireAt(W, x, y).id);
+    else if (k === 'fill') commandFill(W, ids, target && target.owner === o ? target : depotAt(W, x, y));
     else if (k === 'attack') commandAttack(W, ids, target.id);
     else if (k === 'return') commandReturn(W, ids, target.id);
     else if (k === 'harvest') commandHarvest(W, ids, Math.floor(x), Math.floor(y));
@@ -448,9 +509,10 @@
     for (n = 0; n < W.blds.length; n++) bldStep(W, W.blds[n], dt);
     separate(W, dt);
     if (W.charges.length) chargeStep(W, dt);
+    if (W.fires.length) fireStep(W, dt);
     // смерти
     var dead = false;
-    W.units = W.units.filter(function (u) { if (u.hp > 0) return true; kill(W, u); dead = true; return false; });
+    W.units = W.units.filter(function (u) { if (u.hp > 0) return true; if (u.gone) { delete W.byId[u.id]; return false; } kill(W, u); dead = true; return false; }); // gone — инженер вошёл в здание
     W.blds = W.blds.filter(function (b) { if (b.hp > 0) return true; kill(W, b); dead = true; return false; });
     if (dead) calcPower(W);
     for (n = W.fx.length - 1; n >= 0; n--) { W.fx[n].life -= dt; if (W.fx[n].life <= 0) W.fx.splice(n, 1); }
@@ -463,8 +525,8 @@
     if (e.kind === 'bld') for (var j = 0; j < e.h; j++) for (var i = 0; i < e.w; i++) { var k = (e.ty + j) * W.w + e.tx + i; if (W.occ[k] === e.id) W.occ[k] = 0; }
     var c = center(e), val = e.kind === 'bld' ? Math.max(200, BLDS[e.type].cost) : UNITS[e.type].cost;
     if (!(e.kind === 'bld' && BLDS[e.type].minor)) { W.players[e.owner].lost++; if (e.kind === 'bld' || e.packed) W.players[e.owner].lostB++; } // фургон со свёрнутым зданием — потеря здания
-    var killer = e.hitBy && W.players[1 - e.owner]; if (killer) { killer.kills++; killer.score += Math.round(val / (e.kind === 'bld' ? 4 : 10)); }
-    var ku = e.hitBy && W.byId[e.hitBy]; // ветеранство: 3 победы — звание (+20% урона, подлечился)
+    var ku = e.hitBy && W.byId[e.hitBy], killer = e.hitBy && (ku ? (ku.owner !== e.owner ? W.players[ku.owner] : null) : W.players[1 - e.owner]);
+    if (killer) { killer.kills++; killer.score += Math.round(val / (e.kind === 'bld' ? 4 : 10)); } // ветеранство: 3 победы — звание (+20% урона, подлечился)
     if (ku && ku.kind === 'unit' && ku.owner !== e.owner) { ku.kills = (ku.kills || 0) + 1; if (ku.kills >= 3 && !ku.vet) { ku.vet = 1; ku.hp = Math.min(ku.maxHp, ku.hp + ku.maxHp * 0.2); W.events.push({ t: 'vet', owner: ku.owner, id: ku.id }); } }
     W.fx.push({ t: 'boom', x: c.x, y: c.y, life: 0.7, max: 0.7, big: e.kind === 'bld' || UNITS[e.type].cls === 'veh' });
     W.events.push({ t: 'die', owner: e.owner, kind: e.kind, type: e.type, x: c.x, y: c.y, tag: e.tag || null, id: e.id, packed: e.packed ? e.packed.type : null });
@@ -474,7 +536,9 @@
     if (tg.tag) { var hk = attacker.owner + ':' + tg.tag; W.hits[hk] = (W.hits[hk] || 0) + 1; } // кто по кому стрелял (условие hit кампании)
     if (tg.calm && attacker.owner !== tg.owner) tg.calm = false; // по мирному выстрелили — он больше не мирный
     // договор (W.treaty): здания пулей и снарядом не берутся (только заряд подрывника), но выстрел засчитывается в hits
-    if (!(W.treaty && tg.kind === 'bld')) tg.hp -= d.dmg * MULT[d.weapon][cls] * (0.9 + W.rng() * 0.2) * (attacker.bD || 1) * (attacker.vet ? 1.2 : 1);
+    var amt = d.dmg * MULT[d.weapon][cls] * (0.9 + W.rng() * 0.2) * (attacker.bD || 1) * (attacker.vet ? 1.2 : 1);
+    if (tg.parts) { var ap = center(attacker); hitPart(W, tg, amt, d.weapon, ap.x, ap.y); } // громада: урон — ближайшему к стрелку целому узлу
+    else if (!(W.treaty && tg.kind === 'bld')) tg.hp -= amt;
     tg.hitT = W.time; tg.hitBy = attacker.id;
     var c = center(tg), ox = tg.kind === 'bld' ? (W.rng() - 0.5) * tg.w * 0.6 : 0, oy = tg.kind === 'bld' ? (W.rng() - 0.5) * tg.h * 0.6 : 0;
     var ac = center(attacker);
@@ -504,9 +568,9 @@
   function scan(W, u, radius) {
     var best = null, bd = 1e9;
     if (u.calm) return null; // мирные (сценарные) сами не стреляют, и по ним не стреляют без приказа
-    for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (e.owner === u.owner || e.hp <= 0 || e.calm) continue; var d = Math.hypot(e.x - u.x, e.y - u.y); if (d <= radius && d < bd) { bd = d; best = e; } }
+    for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (!hostile(W, e.owner, u.owner) || e.hp <= 0 || e.calm) continue; var d = e.parts ? distTo(u, e) : Math.hypot(e.x - u.x, e.y - u.y); if (d <= radius && d < bd) { bd = d; best = e; } }
     if (best || W.treaty) return best; // по договору здания сами не обстреливают
-    for (n = 0; n < W.blds.length; n++) { var b = W.blds[n]; if (b.owner === u.owner) continue; var db = distTo(u, b); if (db <= radius && db < bd) { bd = db; best = b; } }
+    for (n = 0; n < W.blds.length; n++) { var b = W.blds[n]; if (!hostile(W, b.owner, u.owner)) continue; var db = distTo(u, b); if (db <= radius && db < bd) { bd = db; best = b; } }
     return best;
   }
   function unitStep(W, u, dt) {
@@ -516,6 +580,9 @@
     if (u.tow) { towStep(W, u, dt); return; }
     if (o.t === 'plant') { plantStep(W, u, dt); return; }
     if (o.t === 'deploy') { deployStep(W, u, dt); return; }
+    if (d.boss) { bossStep(W, u, dt); return; }
+    if (o.t === 'capture') { captureStep(W, u, dt); return; }
+    if (d.water || o.t === 'douse') { douseStep(W, u, dt); return; }
     if (!d.weapon && u.type !== 'hauler') { if ((o.t === 'move' || o.t === 'amove') && !follow(W, u, dt)) u.order = { t: 'idle' }; return; }
     if (u.type === 'hauler') { haulStep(W, u, dt); return; }
     if (o.t === 'attack') {
@@ -557,7 +624,7 @@
       b.cd = (b.cd || 0) - dt;
       if (b.cd <= 0) {
         var c = center(b), best = null, bd = 1e9;
-        for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (e.owner === b.owner || e.hp <= 0) continue; var dd = Math.hypot(e.x - c.x, e.y - c.y) - b.w / 2; if (dd <= d.range && dd < bd) { bd = dd; best = e; } }
+        for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (!hostile(W, e.owner, b.owner) || e.hp <= 0 || e.calm) continue; var dd = Math.hypot(e.x - c.x, e.y - c.y) - b.w / 2 - (e.parts ? UNITS[e.type].r : 0); if (dd <= d.range && dd < bd) { bd = dd; best = e; } }
         if (best) { b.cd = d.cd; b.fireT = W.time; b.aim = Math.atan2(best.y - c.y, best.x - c.x); damage(W, b, best); } else b.cd = 0.25;
       }
     }
@@ -691,7 +758,8 @@
           var dx = b.x - a.x, dy = b.y - a.y, dl = Math.hypot(dx, dy), need = (UNITS[a.type].r + UNITS[b.type].r) * 0.85;
           if (dl >= need) continue;
           if (dl < 1e-4) { dx = Math.cos(a.id); dy = Math.sin(a.id); dl = 1; }
-          var push = Math.min(need - dl, 1.5 * dt + (need - dl) * 0.3), am = a.path.length ? 0.3 : 0.7, bm = b.path.length ? 0.3 : 0.7, s = am + bm;
+          var push = Math.min(need - dl, 1.5 * dt + (need - dl) * 0.3), am = a.parts ? 0 : a.path.length ? 0.3 : 0.7, bm = b.parts ? 0 : b.path.length ? 0.3 : 0.7, s = am + bm;
+          if (s <= 0) continue;
           shove(W, a, -dx / dl * push * am / s, -dy / dl * push * am / s);
           shove(W, b, dx / dl * push * bm / s, dy / dl * push * bm / s);
         }
@@ -714,14 +782,14 @@
       }
     }
     var sm = W.sightMul == null ? 1 : W.sightMul; // погода/ночь кампании урезают обзор
-    W.units.forEach(function (u) { if (u.owner === 0) mark(u.x, u.y, Math.max(1.5, UNITS[u.type].sight * sm)); });
-    W.blds.forEach(function (b) { if (b.owner === 0) mark(b.tx + b.w / 2, b.ty + b.h / 2, Math.max(2, BLDS[b.type].sight * sm) + Math.max(b.w, b.h) / 2); });
+    W.units.forEach(function (u) { if (friendTo0(W, u.owner)) mark(u.x, u.y, Math.max(1.5, UNITS[u.type].sight * sm)); }); // союзник делит обзор
+    W.blds.forEach(function (b) { if (friendTo0(W, b.owner)) mark(b.tx + b.w / 2, b.ty + b.h / 2, Math.max(2, BLDS[b.type].sight * sm) + Math.max(b.w, b.h) / 2); });
     (W.flares || []).forEach(function (f) { mark(f.x, f.y, f.r); });
     // шумные здания соперника (буровые вышки) слышно сквозь туман — видна сама вышка
     W.blds.forEach(function (b) { if (b.owner !== 0 && BLDS[b.type].loud) for (var j = 0; j < b.h; j++) for (var i = 0; i < b.w; i++) v[(b.ty + j) * W.w + b.tx + i] = 2; });
   }
   function visibleTo0(W, e) {
-    if (e.owner === 0) return true;
+    if (e.owner === 0 || friendTo0(W, e.owner)) return true;
     if (e.kind === 'unit') { var i = Math.floor(e.x), j = Math.floor(e.y); return inb(W, i, j) && W.vis[j * W.w + i] === 2; }
     for (var j2 = 0; j2 < e.h; j2++) for (var i2 = 0; i2 < e.w; i2++) if (W.vis[(e.ty + j2) * W.w + e.tx + i2]) return true;
     return false;
@@ -742,12 +810,18 @@
           if (Math.hypot(a.x - h.x, a.y - h.y) <= R) { a.bD = Math.max(a.bD, bd); a.bS = Math.max(a.bS, bs); } }
         if (on) { h.bD = Math.max(h.bD, hd.dmg); }
       }
-      if (hd.ability === 'fix') fixStep(W, h, hd, dt);
+      if (hd.ability === 'fix') { if (W.fires.length) sandStep(W, h, hd, dt); fixStep(W, h, hd, dt); }
     }
     var fl = W.flares; if (fl) for (n = fl.length - 1; n >= 0; n--) { fl[n].t -= dt; if (fl[n].t <= 0) fl.splice(n, 1); }
   }
   // Сава: на месте (без пути) чинит самую побитую свою технику/здание в радиусе field; «Аврал» — всё вокруг быстро.
   function fixable(W, h, e, r) { if (e.owner !== h.owner || e.hp <= 0 || e.hp >= e.maxHp) return false; if (e.kind === 'unit' && UNITS[e.type].cls !== 'veh') return false; var c = center(e), dd = e.kind === 'bld' ? distTo(h, e) : Math.hypot(c.x - h.x, c.y - h.y); return dd <= r; }
+  // Сава у огня: стоя на месте, засыпает песком очаги рядом (douse в секунду), в «Аврал» — все вокруг и быстро
+  function sandStep(W, h, hd, dt) {
+    var on = h.abOn > 0; if (!on && (h.path.length || h.order.t === 'attack')) return;
+    var R = on ? hd.r : hd.field, rate = on ? hd.douseFast : hd.douse;
+    W.fires.forEach(function (f) { if (f.hp > 0 && Math.hypot(f.x - h.x, f.y - h.y) - f.r <= R) { f.hp -= rate * dt; h.sandT = W.time; if (f.hp <= 0) { f.hp = 0; f.by = h.owner; } } });
+  }
   function fixStep(W, h, hd, dt) {
     var list = W.units.concat(W.blds), n;
     if (h.abOn > 0) { for (n = 0; n < list.length; n++) if (fixable(W, h, list[n], hd.r)) { list[n].hp = Math.min(list[n].maxHp, list[n].hp + hd.rate * dt); list[n].fixT = W.time; } return; }
@@ -791,7 +865,7 @@
     if (dist <= 0.9) {
       u.path = []; o.p += dt; u.aim = u.heading = turn(u.heading, Math.atan2(center(tg).y - u.y, center(tg).x - u.x), dt * 8);
       if (o.p >= CHARGE.plant) {
-        var c = center(tg); W.charges.push({ id: W.nextId++, by: u.id, owner: u.owner, target: tg.id, x: c.x, y: c.y, t: CHARGE.timer, max: CHARGE.timer, def: 0 });
+        var c = center(tg); W.charges.push({ id: W.nextId++, by: u.id, owner: u.owner, target: tg.id, fx: u.x, fy: u.y, x: c.x, y: c.y, t: CHARGE.timer, max: CHARGE.timer, def: 0 });
         W.events.push({ t: 'planted', owner: u.owner, victim: tg.owner, type: tg.type, x: c.x, y: c.y }); u.order = { t: 'idle' };
       }
       return;
@@ -811,8 +885,8 @@
       ch.t -= dt;
       if (ch.t <= 0) {
         W.charges.splice(n, 1);
-        var by = W.byId[ch.by]; tg.hp -= CHARGE.dmg; if (by) tg.hitBy = by.id; tg.hitT = W.time;
-        W.units.forEach(function (e) { if (e !== tg && Math.hypot(e.x - ch.x, e.y - ch.y) <= CHARGE.splash) { e.hp -= CHARGE.splashDmg; e.hitT = W.time; } });
+        var by = W.byId[ch.by]; if (tg.parts) hitPart(W, tg, (tg.bs && tg.bs.cfg.charge) || BOSS.charge, 'charge', ch.fx, ch.fy); else tg.hp -= CHARGE.dmg; if (by) tg.hitBy = by.id; tg.hitT = W.time;
+        W.units.forEach(function (e) { if (e !== tg && !e.parts && Math.hypot(e.x - ch.x, e.y - ch.y) <= CHARGE.splash + (tg.parts ? UNITS[tg.type].r : 0)) { e.hp -= CHARGE.splashDmg; e.hitT = W.time; } });
         W.fx.push({ t: 'boom', x: ch.x, y: ch.y, life: 0.9, max: 0.9, big: true });
         W.events.push({ t: 'blast', owner: ch.owner, victim: tg.owner, type: tg.type, x: ch.x, y: ch.y, kill: tg.hp <= 0 });
       }
@@ -870,6 +944,237 @@
     W.units.forEach(function (e) { if (e.x > tx && e.x < tx + b.w && e.y > ty && e.y < ty + b.h) { var np = nearestPassable(W, Math.floor(e.x), Math.floor(e.y), 6); if (np) { e.x = np.i + 0.5; e.y = np.j + 0.5; e.path = []; } } });
     W.events.push({ t: 'deployed', owner: b.owner, id: b.id, type: type });
     return b;
+  }
+
+  // ---------- Пожар и вода (кампания, миссия 7): огонь, водовозы, насосы, бочки ----------
+  // Огонь f = { x, y, r, hp (сила), max, grow, dps, bdps, spread, area, cap }: разгорается сам, жжёт всё в радиусе (громаду — нет);
+  // spread — раз в столько секунд при силе ≥ 85% даёт новый очаг рядом (в пределах area, не больше cap очагов там).
+  function addFire(W, x, y, o) {
+    o = o || {}; var max = o.max || 160;
+    var f = { id: W.nextId++, x: x, y: y, r: o.r || 1.4, hp: o.hp == null ? max : Math.min(max, o.hp), max: max, grow: o.grow == null ? 1.5 : o.grow, dps: o.dps == null ? 14 : o.dps,
+      bdps: o.bdps == null ? 6 : o.bdps, tag: o.tag || null, spread: o.spread || 0, st: o.spread || 0, area: o.area || null, cap: o.cap || 3 };
+    W.fires.push(f); W.events.push({ t: 'fire', id: f.id, x: x, y: y, tag: f.tag }); return f;
+  }
+  function waterCap(W, u) { var d = UNITS[u.type]; return d.water || (u.type === 'hauler' && W.sand ? W.sand : 0); }
+  function fireAt(W, x, y) { var best = null, bd = 1e9; W.fires.forEach(function (f) { var d = Math.hypot(f.x - x, f.y - y); if (f.hp > 0 && d <= f.r + 0.6 && d < bd) { bd = d; best = f; } }); return best; }
+  function nearestFire(W, x, y, r) { var best = null, bd = r == null ? 1e9 : r; W.fires.forEach(function (f) { var d = Math.hypot(f.x - x, f.y - y) - f.r; if (f.hp > 0 && d < bd) { bd = d; best = f; } }); return best; }
+  function depotAt(W, x, y) { for (var n = 0; n < W.depots.length; n++) { var dp = W.depots[n]; if (Math.hypot(dp.x - x, dp.y - y) <= 1.3) return dp; } return null; }
+  function fireStep(W, dt) {
+    for (var n = W.fires.length - 1; n >= 0; n--) {
+      var f = W.fires[n];
+      if (f.hp <= 0) { W.fires.splice(n, 1); W.events.push({ t: 'doused', id: f.id, x: f.x, y: f.y, tag: f.tag, by: f.by == null ? -1 : f.by }); continue; }
+      f.hp = Math.min(f.max, f.hp + f.grow * dt); var k = f.hp / f.max;
+      for (var m = 0; m < W.units.length; m++) { var u = W.units[m]; if (u.parts || u.hp <= 0) continue; if (Math.hypot(u.x - f.x, u.y - f.y) <= f.r) { u.hp -= f.dps * k * dt * (UNITS[u.type].cls === 'veh' ? 0.5 : 1); u.burnT = W.time; } }
+      for (m = 0; m < W.blds.length; m++) { var b = W.blds[m], cx = Math.max(b.tx, Math.min(b.tx + b.w, f.x)), cy = Math.max(b.ty, Math.min(b.ty + b.h, f.y)); if (Math.hypot(cx - f.x, cy - f.y) <= f.r) { b.hp -= f.bdps * k * dt; b.burnT = W.time; } }
+      if (f.spread && k >= 0.85) {
+        f.st -= dt;
+        if (f.st <= 0) {
+          f.st = f.spread; var A = f.area || { x: f.x, y: f.y, r: 3 };
+          var here = W.fires.filter(function (q) { return Math.hypot(q.x - A.x, q.y - A.y) <= A.r; }).length;
+          if (here < f.cap) for (var tr = 0; tr < 6; tr++) {
+            var ang = W.rng() * Math.PI * 2, dd = 1.7 + W.rng() * 1.2, nx = f.x + Math.cos(ang) * dd, ny = f.y + Math.sin(ang) * dd, ci = Math.floor(nx), cj = Math.floor(ny);
+            if (!inb(W, ci, cj) || !walkable(W.t[cj * W.w + ci]) || Math.hypot(nx - A.x, ny - A.y) > A.r) continue;
+            if (W.fires.some(function (q) { return Math.hypot(q.x - nx, q.y - ny) < 1.6; })) continue;
+            addFire(W, ci + 0.5, cj + 0.5, { r: f.r, max: f.max, hp: f.max * 0.35, grow: f.grow, dps: f.dps, bdps: f.bdps, tag: f.tag, spread: f.spread, area: A, cap: f.cap }); break;
+          }
+        }
+      }
+    }
+  }
+  // откуда водовозу налиться: свой/союзный работающий насос или бочки с водой — ближайшее
+  function waterSource(W, u) {
+    var best = null, bd = 1e9;
+    W.blds.forEach(function (b) { if (BLDS[b.type].pump && !hostile(W, b.owner, u.owner) && !(b.setup > 0)) { var d = distTo(u, b); if (d < bd) { bd = d; best = b; } } });
+    W.depots.forEach(function (dp) { if (dp.w > 0 && !(dp.team != null && dp.team !== teamOf(W, u.owner))) { var d = Math.hypot(dp.x - u.x, dp.y - u.y); if (d < bd) { bd = d; best = dp; } } });
+    return best;
+  }
+  function commandDouse(W, ids, fireId) {
+    var f = W.fires.filter(function (q) { return q.id === fireId; })[0]; if (!f) return;
+    var rest = [];
+    liveUnits(W, ids).forEach(function (u) { if (waterCap(W, u)) { u.order = { t: 'douse', fire: f.id, fx: f.x, fy: f.y, s: 'go' }; u.path = []; u.repath = 0; } else rest.push(u.id); });
+    if (rest.length) commandMove(W, rest, f.x, f.y + f.r + 1.5);
+  }
+  function commandFill(W, ids, src) {
+    if (!src) return; var rest = [];
+    liveUnits(W, ids).forEach(function (u) { if (waterCap(W, u)) { u.order = { t: 'douse', s: 'fill', src: src.kind === 'bld' ? src.id : null, dep: src.kind === 'bld' ? null : src }; u.path = []; u.repath = 0; } else rest.push(u.id); });
+    if (rest.length) { var c = src.kind === 'bld' ? center(src) : src; commandMove(W, rest, c.x, c.y + 1.5); }
+  }
+  function goTo(W, u, x, y, dt) { u.repath = (u.repath || 0) - dt; if (!u.path.length || u.repath <= 0) { u.repath = 1; u.path = findPath(W, u.x, u.y, x, y); } follow(W, u, dt); }
+  function douseStep(W, u, dt) {
+    var o = u.order, cap = waterCap(W, u); if (u.water == null) u.water = 0;
+    if (o.t === 'move' || o.t === 'amove') { if (!follow(W, u, dt)) u.order = { t: 'idle' }; return; }
+    if (o.t === 'idle') { // сам: есть вода и огонь рядом — тушить
+      u.scanT -= dt; if (u.scanT > 0) return; u.scanT = 0.6;
+      var nf = u.water > 0 && nearestFire(W, u.x, u.y, H2O.auto); if (nf) u.order = { t: 'douse', fire: nf.id, fx: nf.x, fy: nf.y, s: 'go', auto: true };
+      return;
+    }
+    if (o.t !== 'douse') return;
+    if (o.s !== 'fill' && u.water <= 0) { o.s = 'fill'; o.src = null; o.dep = null; u.path = []; }
+    if (o.s === 'fill') {
+      var src = o.src ? W.byId[o.src] : o.dep;
+      if (src && (src.kind === 'bld' ? !alive(src) : src.w <= 0)) src = null;
+      if (!src) { src = waterSource(W, u); if (!src) { u.order = { t: 'idle' }; u.path = []; return; } if (src.kind === 'bld') { o.src = src.id; o.dep = null; } else { o.dep = src; o.src = null; } }
+      var near = src.kind === 'bld' ? distTo(u, src) <= 1.3 : Math.hypot(src.x - u.x, src.y - u.y) <= 1.5;
+      if (!near) { var sc = src.kind === 'bld' ? center(src) : src; goTo(W, u, sc.x, sc.y, dt); return; }
+      u.path = []; var take = Math.min(H2O.fill * dt, cap - u.water); if (src.kind !== 'bld') { take = Math.min(take, src.w); src.w -= take; }
+      u.water += take; u.fillT = W.time;
+      if (u.water >= cap - 0.01 || (src.kind !== 'bld' && src.w <= 0 && u.water > 0)) {
+        u.water = Math.min(cap, u.water); o.src = null; o.dep = null;
+        var back = o.fire != null && W.fires.some(function (q) { return q.id === o.fire; }) || (o.fx != null && nearestFire(W, o.fx, o.fy, 8));
+        if (back) { o.s = 'go'; u.path = []; } else u.order = { t: 'idle' };
+      }
+      return;
+    }
+    // go / spray: огонь по id, иначе ближайший к прежнему месту, иначе — рядом с водовозом
+    var f = W.fires.filter(function (q) { return q.id === o.fire && q.hp > 0; })[0];
+    if (!f) { f = (o.fx != null && nearestFire(W, o.fx, o.fy, 8)) || nearestFire(W, u.x, u.y, H2O.auto); if (!f) { u.order = { t: 'idle' }; u.path = []; return; } o.fire = f.id; o.fx = f.x; o.fy = f.y; }
+    var dist = Math.hypot(f.x - u.x, f.y - u.y) - f.r;
+    if (dist > H2O.hose) { goTo(W, u, f.x, f.y, dt); if (dist < H2O.hose + 0.4 && !u.path.length) u.path = []; return; }
+    u.path = []; var want = Math.atan2(f.y - u.y, f.x - u.x); u.aim = turn(u.aim, want, dt * 6);
+    var pour = Math.min(H2O.spray * dt, u.water); u.water -= pour; f.hp -= pour * H2O.douse; u.sprayT = W.time;
+    if (f.hp <= 0) { f.hp = 0; f.by = u.owner; }
+  }
+
+  // ---------- Захват зданий инженером (кампания, миссия 7) ----------
+  function canCapture(W, o, b) { return !!b && b.kind === 'bld' && alive(b) && b.owner !== o && hostile(W, o, b.owner) && b.type !== 'hq' && !BLDS[b.type].minor && !(b.setup > 0); }
+  function commandCapture(W, ids, bid) {
+    var b = W.byId[bid]; if (!alive(b)) return; var rest = [];
+    liveUnits(W, ids).forEach(function (u) { if (UNITS[u.type].engineer) { u.order = { t: 'capture', target: bid, p: 0 }; u.path = []; u.repath = 0; } else rest.push(u.id); });
+    if (rest.length) { var c = center(b); commandMove(W, rest, c.x, c.y + b.h / 2 + 1, true); }
+  }
+  // охрана здания: вооружённый немирный юнит хозяина рядом — войти нельзя
+  function guarded(W, b) { return W.units.some(function (e) { return e.hp > 0 && !hostile(W, e.owner, b.owner) && !!UNITS[e.type].weapon && !e.calm && distTo(e, b) <= CAPTURE.guard; }); }
+  function captureStep(W, u, dt) {
+    var o = u.order, b = W.byId[o.target];
+    if (!canCapture(W, u.owner, b)) { u.path = []; u.order = { t: 'idle' }; return; }
+    if (distTo(u, b) <= 0.75) {
+      u.path = [];
+      if (guarded(W, b)) { o.p = 0; if (!o.warned) { o.warned = true; W.events.push({ t: 'guarded', owner: u.owner, id: b.id, type: b.type }); } return; }
+      o.p += dt; if (o.p >= CAPTURE.t) captureNow(W, u, b);
+      return;
+    }
+    var c = center(b); goTo(W, u, c.x, c.y, dt);
+  }
+  function captureNow(W, u, b) {
+    var from = b.owner, gain = 0, c = center(b); u.gone = true; u.hp = 0;
+    setOwner(W, b, u.owner); if (b.tag && !b.tag0) b.tag0 = b.tag;
+    if (b.stock) { gain = b.stock; W.players[u.owner].copper += gain; b.stock = 0; }
+    W.charges = W.charges.filter(function (ch) { return ch.target !== b.id || ch.owner !== u.owner; });
+    W.events.push({ t: 'captured', owner: u.owner, from: from, id: b.id, type: b.type, gain: gain, x: c.x, y: c.y, tag: b.tag || null });
+    return b;
+  }
+
+  // ---------- Громада (кампания, миссия 8): многочастный юнит-босс ----------
+  // u.parts — узлы [{ k, hp, maxHp, at }]; u.hp — сумма узлов. Состояние u.bs: st 'walk' | 'bore' | 'warn' | 'vent', маршрут route
+  // (точки), stun — оглушена паром гейзера. Узел выбирает стрелок своим местом: попадание приходится в ближайший целый узел.
+  function initBoss(u, cfg) {
+    cfg = Object.assign({}, BOSS, cfg || {}); var tot = 0;
+    u.parts = cfg.parts.map(function (p) { tot += p.hp; return { k: p.k, hp: p.hp, maxHp: p.hp, at: p.at, hitT: -9 }; }); u.hp = u.maxHp = tot;
+    u.bs = { cfg: cfg, st: 'walk', t: 0, vent: cfg.ventEvery, route: [], ri: 0, done: false, stun: 0, lureT: 0, lure: 0 };
+    return u;
+  }
+  // настроить громаду миссии: свои прочности узлов и параметры (cfg.parts — { tracks: 4000, … } или массив, как в BOSS)
+  function setBoss(u, cfg) {
+    cfg = Object.assign({}, cfg || {});
+    if (cfg.parts && !Array.isArray(cfg.parts)) { var hp = cfg.parts; cfg.parts = BOSS.parts.map(function (p) { return { k: p.k, hp: hp[p.k] == null ? p.hp : hp[p.k], at: p.at }; }); }
+    var keep = u.bs ? { route: u.bs.route, ri: u.bs.ri } : null; initBoss(u, cfg); if (keep) { u.bs.route = keep.route; u.bs.ri = keep.ri; } return u;
+  }
+  function partAlive(u, k) { return !!u.parts && u.parts.some(function (p) { return p.k === k && p.hp > 0; }); }
+  function partOf(u, k) { for (var n = 0; n < (u.parts || []).length; n++) if (u.parts[n].k === k) return u.parts[n]; return null; }
+  // места узла на карте (у гусениц — два борта)
+  function partPts(u, p) { var c = Math.cos(u.heading), s = Math.sin(u.heading); return p.at.map(function (a) { return { x: u.x + a[0] * c - a[1] * s, y: u.y + a[0] * s + a[1] * c }; }); }
+  // целый узел, ближайший к точке (x,y) — в него придётся попадание оттуда; без точки — первый целый
+  function partToward(u, x, y) {
+    var best = null, bd = 1e9;
+    (u.parts || []).forEach(function (p) { if (p.hp <= 0) return; if (x == null) { if (!best) best = p; return; } partPts(u, p).forEach(function (q) { var d = Math.hypot(q.x - x, q.y - y); if (d < bd) { bd = d; best = p; } }); });
+    return best;
+  }
+  function partDmg(W, u, p, amt) {
+    if (!p || p.hp <= 0) return; p.hp -= amt; p.hitT = W.time;
+    if (p.hp <= 0) {
+      p.hp = 0;
+      if (p.k === 'tracks') u.path = [];
+      if (p.k === 'drill' && u.bs.st === 'bore') u.bs.st = 'walk';
+      if (p.k === 'boiler' && (u.bs.st === 'vent' || u.bs.st === 'warn')) u.bs.st = 'walk';
+      var left = u.parts.filter(function (q) { return q.hp > 0; }).length;
+      W.fx.push({ t: 'boom', x: u.x, y: u.y, life: 0.9, max: 0.9, big: true });
+      W.events.push({ t: 'part', k: p.k, owner: u.owner, id: u.id, tag: u.tag || null, x: u.x, y: u.y, left: left });
+    }
+    var s = 0; u.parts.forEach(function (q) { s += q.hp; }); u.hp = s > 0 ? Math.max(1, s) : 0;
+  }
+  // попадание по громаде из точки (ax, ay): урон — ближайшему оттуда целому узлу
+  function hitPart(W, u, amt, weapon, ax, ay) { var p = partToward(u, ax, ay); if (p) partDmg(W, u, p, amt); return p; }
+  // выброс пара гейзера под громадой: обварены все целые узлы, сама она встаёт (stun секунд)
+  function bossSteam(W, u, dmg, stun) {
+    if (!u.parts || u.hp <= 0) return false; var C = u.bs.cfg;
+    if (W.time - (u.bs.scaldT == null ? -1e9 : u.bs.scaldT) < C.scaldCd) return false; u.bs.scaldT = W.time; // мокрый корпус: следующий выброс скоро не возьмёт
+    u.parts.slice().forEach(function (p) { partDmg(W, u, p, dmg == null ? C.steam : dmg); });
+    u.bs.stun = Math.max(u.bs.stun, stun == null ? C.stun : stun); u.steamT = W.time; u.hitT = W.time;
+    W.events.push({ t: 'bossScald', id: u.id, tag: u.tag || null, x: u.x, y: u.y }); return true;
+  }
+  // здание на пути: впереди по ходу (или уже под корпусом) — чужое (не своей стороны)
+  function bossBlock(W, u) {
+    var r = UNITS[u.type].r, ax = u.x + Math.cos(u.heading) * (r + 0.35), ay = u.y + Math.sin(u.heading) * (r + 0.35), best = null;
+    W.blds.forEach(function (b) { if (best || !hostile(W, b.owner, u.owner)) return;
+      var cx = Math.max(b.tx, Math.min(b.tx + b.w, ax)), cy = Math.max(b.ty, Math.min(b.ty + b.h, ay)); if (Math.hypot(cx - ax, cy - ay) < 0.55 || distTo(u, b) < r - 0.2) best = b; });
+    return best;
+  }
+  function bossAoe(W, u, x, y, r, dmg, bmul) {
+    W.units.forEach(function (e) { if (e === u || e.hp <= 0 || !hostile(W, e.owner, u.owner) || e.parts) return; if (Math.hypot(e.x - x, e.y - y) <= r + UNITS[e.type].r) { e.hp -= dmg * (UNITS[e.type].cls === 'veh' ? 0.7 : 1); e.hitT = W.time; e.hitBy = u.id; } });
+    if (bmul) W.blds.forEach(function (b) { if (!hostile(W, b.owner, u.owner)) return; var cx = Math.max(b.tx, Math.min(b.tx + b.w, x)), cy = Math.max(b.ty, Math.min(b.ty + b.h, y)); if (Math.hypot(cx - x, cy - y) <= r) { b.hp -= dmg * bmul; b.hitT = W.time; b.hitBy = u.id; } });
+  }
+  // куда ползёт: приманка (чужое здание не дальше cfg.lure клеток, шумная буровая вышка — cfg.lureLoud; частокол не в счёт) → точка маршрута → после маршрута — ближайшее чужое здание
+  function bossGoal(W, u) {
+    var B = u.bs, C = B.cfg, best = null, bd = 1e9;
+    W.blds.forEach(function (b) { if (!hostile(W, b.owner, u.owner) || BLDS[b.type].minor) return; var d = distTo(u, b); if (d <= (BLDS[b.type].loud && !(b.setup > 0) ? C.lureLoud : C.lure) && d < bd) { bd = d; best = b; } });
+    if (best) { B.lure = best.id; return center(best); }
+    B.lure = 0;
+    while (B.ri < B.route.length && Math.hypot(B.route[B.ri].x - u.x, B.route[B.ri].y - u.y) < 1.6) { B.ri++; if (B.ri >= B.route.length && !B.done) { B.done = true; W.events.push({ t: 'bossArrived', id: u.id, tag: u.tag || null }); } }
+    if (B.ri < B.route.length) return B.route[B.ri];
+    bd = 1e9; W.blds.forEach(function (b) { if (!hostile(W, b.owner, u.owner)) return; var d = distTo(u, b) - (b.type === 'hq' ? 6 : 0); if (d < bd) { bd = d; best = b; } });
+    return best ? center(best) : null;
+  }
+  function bossStep(W, u, dt) {
+    var B = u.bs, C = B.cfg, d = UNITS[u.type], r = d.r; if (u.hp <= 0) return;
+    var tracks = partAlive(u, 'tracks'), drill = partAlive(u, 'drill'), cabin = partAlive(u, 'cabin'), boiler = partAlive(u, 'boiler');
+    if (B.stun > 0) B.stun -= dt;
+    else if (B.st === 'walk') {
+      if (boiler) B.vent -= dt;
+      var ob = bossBlock(W, u);
+      if (boiler && B.vent <= 0) { B.st = 'warn'; B.t = C.ventWarn; W.events.push({ t: 'bossVentWarn', id: u.id, x: u.x, y: u.y }); }
+      else if (ob && drill) { B.st = 'bore'; B.t = C.bore; W.events.push({ t: 'bossBore', id: u.id, x: u.x, y: u.y, on: ob.type }); }
+      else if (ob) { ob.hp -= C.crush * dt; ob.hitT = W.time; ob.hitBy = u.id; } // бура нет — давит корпусом, стоя
+      else if (tracks) {
+        B.lureT -= dt; if (B.lureT <= 0 || !B.goal) { B.lureT = 1; var g = bossGoal(W, u); if (!g || !B.goal || Math.hypot(g.x - B.goal.x, g.y - B.goal.y) > 0.5) u.path = []; B.goal = g; }
+        if (B.goal) {
+          if (!u.path.length) { u.path = findPath(W, u.x, u.y, B.goal.x, B.goal.y, null, true); if (!u.path.length) u.path = [{ x: B.goal.x, y: B.goal.y }]; }
+          var q = u.path[0], dx = q.x - u.x, dy = q.y - u.y, dl = Math.hypot(dx, dy), sp = d.speed * (u.sm || 1) * (boiler ? 1 : C.cold) * dt;
+          if (dl <= sp) { u.x = q.x; u.y = q.y; u.path.shift(); if (!u.path.length) B.lureT = 0; } else { u.x += dx / dl * sp; u.y += dy / dl * sp; }
+          var la = u.path[Math.min(u.path.length - 1, 5)] || q, lx = la.x - u.x, ly = la.y - u.y; // корпус смотрит вдаль по пути, а не на ближнюю клетку — не рыскает
+          if (Math.hypot(lx, ly) > 0.3) u.heading = turn(u.heading, Math.atan2(ly, lx), dt * 1.2); else if (dl > 0.01) u.heading = turn(u.heading, Math.atan2(dy, dx), dt * 1.2);
+          u.moveT = W.time;
+        }
+      }
+    } else if (B.st === 'bore') {
+      B.t -= dt; var fx = u.x + Math.cos(u.heading) * (r + 0.7), fy = u.y + Math.sin(u.heading) * (r + 0.7);
+      bossAoe(W, u, fx, fy, C.boreR, C.boreDps * dt, 3);
+      if (B.t <= 0 || (B.t < C.bore - 1 && !bossBlock(W, u))) { B.st = 'walk'; B.lureT = 0; }
+    } else if (B.st === 'warn') { B.t -= dt; if (B.t <= 0) { B.st = 'vent'; B.t = C.vent; W.events.push({ t: 'bossVent', id: u.id, x: u.x, y: u.y }); } }
+    else if (B.st === 'vent') { B.t -= dt; bossAoe(W, u, u.x, u.y, C.ventR, C.ventDps * dt, 0); if (B.t <= 0) { B.st = 'walk'; B.vent = C.ventEvery; } }
+    // пушка в кабине: ближайшая цель в радиусе (юнит, иначе здание); кабина разбита или громада оглушена — молчит
+    if (u.cd <= 0 && cabin && !(B.stun > 0)) {
+      var tg = null, bd = d.range;
+      W.units.forEach(function (e) { if (e.hp <= 0 || !hostile(W, e.owner, u.owner) || e.calm) return; var dd = distTo(u, e) - r; if (dd <= bd) { bd = dd; tg = e; } });
+      if (!tg) W.blds.forEach(function (b) { if (!hostile(W, b.owner, u.owner)) return; var dd = distTo(u, b) - r; if (dd <= bd) { bd = dd; tg = b; } });
+      if (tg) { var tc = center(tg); u.aim = Math.atan2(tc.y - u.y, tc.x - u.x); u.cd = d.cd; u.fireT = W.time; damage(W, u, tg); } else u.cd = 0.3;
+    }
+    // под корпусом — не стоять: отжимает в сторону, чужих давит (на ходу)
+    W.units.forEach(function (e) {
+      if (e === u || e.hp <= 0) return; var dx = e.x - u.x, dy = e.y - u.y, dl = Math.hypot(dx, dy), need = r + UNITS[e.type].r * 0.6; if (dl >= need) return;
+      if (dl < 1e-3) { dx = 1; dy = 0; dl = 1; }
+      var nx = u.x + dx / dl * need, ny = u.y + dy / dl * need; if (passable(W, Math.floor(nx), Math.floor(ny))) { e.x = nx; e.y = ny; }
+      if (hostile(W, e.owner, u.owner) && tracks && W.time - (u.moveT || -9) < 0.2) { e.hp -= C.squash * dt; e.hitT = W.time; e.hitBy = u.id; }
+    });
   }
 
   // ---------- ИИ гонки за жилой (кампания): добыча и диверсии вместо штурма ----------
@@ -1018,6 +1323,10 @@
     pickAt: pickAt, boxSelect: boxSelect, sameTypeIn: sameTypeIn, step: step, updateVis: updateVis, visibleTo0: visibleTo0, newAI: newAI, aiStep: aiStep,
     PIT: PIT, SHAKY: SHAKY, CAMP_UNITS: CAMP_UNITS, CHARGE: CHARGE, SETUP: SETUP, RICH: RICH, working: working, hqAlive: hqAlive,
     canPlantOn: canPlantOn, commandPlant: commandPlant, canPack: canPack, pack: pack, packedType: packedType, canDeploy: canDeploy, deploySpot: deploySpot,
-    commandDeploy: commandDeploy, deployNow: deployNow, rigOre: rigOre, newRaceAI: newRaceAI, raceStep: raceStep, raidTarget: raidTarget
+    commandDeploy: commandDeploy, deployNow: deployNow, rigOre: rigOre, newRaceAI: newRaceAI, raceStep: raceStep, raidTarget: raidTarget,
+    CAMP_BLDS: CAMP_BLDS, H2O: H2O, CAPTURE: CAPTURE, BOSS: BOSS, teamOf: teamOf, hostile: hostile, friendTo0: friendTo0, paintOf: paintOf, setOwner: setOwner,
+    addFire: addFire, fireAt: fireAt, nearestFire: nearestFire, depotAt: depotAt, waterSource: waterSource, commandDouse: commandDouse, commandFill: commandFill, nearWater: nearWater,
+    canCapture: canCapture, commandCapture: commandCapture, captureNow: captureNow, guarded: guarded,
+    initBoss: initBoss, setBoss: setBoss, partAlive: partAlive, partOf: partOf, partPts: partPts, partToward: partToward, hitPart: hitPart, bossSteam: bossSteam, passBig: passBig, distTo: distTo, waterCap: waterCap
   };
 })(typeof window !== 'undefined' ? window : globalThis);

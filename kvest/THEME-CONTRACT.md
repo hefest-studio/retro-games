@@ -86,6 +86,18 @@ drawThought(ctx, x, y, icons, t, opts)  // opts.style: 'paper' | 'ink' (маст
 `wall.state.dome`, `gate.state.grille`; `state.still` у мельницы/жернова/передачи — живые части в статичном спрайте (эскизы тушью). Реализация «бумаги» — `js/themes/paper-helpers.js`
 (через `paper._ext`), серого макета — в `grey.js`; `validateTheme` проверяет новые хуки, если они есть.
 
+**Расширение 19.11 (спринт 3, подводные механики).** Модель кадра: `model.water` — `null` на суше, под водой (`scene.water`)
+`{ murk, vis, hero: {x, y}, fade 0..1, air: { left, max, f 0..1, low, pocket, bubbles }, pockets: [{ id, x, w }], sounds: [{ id, x, y, note 0..4, big, harsh, active, age, n, near 0..1, pan −1..1 }], time }`.
+Оболочка зовёт необязательный хук `drawWater(ctx, model.water, t)` после отряда и до мыслей: **муть** (всё, кроме круга `vis` вокруг героини; активные
+карманы воздуха помечаются сквозь муть), **кольца звона** от источников (`age` — секунды с удара; обязательны — это визуальный дубль звука: карточка
+с `note + 1` точками, `near` — толщина, `harsh` — «колючее» кольцо), **шкала воздуха** в `LAYOUT.air` — `n` пузырьков без цифр (`f` — доля, `low` —
+предупреждение, `pocket` — героиня дышит), затемнение `fade` (мягкий возврат). Портрет Таи под водой несёт `ability: 'ear'`; помощник, которого
+вода не пускает, — `allowed: false`, `where: 'water'`. Новые kind: `divebell` (`under`, `down`, `knot`, `ballast`, `rope`), `seabell` (`note`, `ring`,
+`sunk`, `great`, `empty`), `kelp` (`cut`), `airpocket` (`variant` boat | vent | dome, `on`), `buoy` (`bell`, `set`), `arch` (`open`, `chain`, `kelp`),
+`crane` (`knot`, `held`), `ruin` (`variant` wall | house | column, `far`, `door`, `kelp`), `whale` (`near`, `eye`, `hook`, `sing`, `calm`); палитры сцен
+(`scene.pal`): `baypier`, `seabed`, `murk`, `deep`, `foundry`; пиктограммы `ear`, `air`, `divebell`, `seabell`, `buoy`, `buoybell`, `chain`, `kelp`, `belfry`,
+`pier`, `ruin`, `murk`. Реализация «бумаги» — `js/themes/paper-water.js`, серого макета — в `grey.js`; `validateTheme` проверяет `drawWater`, если он есть.
+
 `ctx` — 2D-контекст канвы, масштабированный под логический размер 960×540 (физически — × масштаб HiDPI). Тема **не меняет** состояние игры, только рисует. Анимации — только от `t` (секунды) и `seed`.
 
 ## Правила
