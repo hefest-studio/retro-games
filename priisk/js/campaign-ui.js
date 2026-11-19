@@ -53,6 +53,11 @@
     else if (kind === 'water') { c.fillStyle = pl.waterHi; c.beginPath(); c.moveTo(12, 2); c.quadraticCurveTo(20, 12, 19, 16); c.arc(12, 15, 7, 0.1, Math.PI - 0.1); c.quadraticCurveTo(4, 12, 12, 2); c.fill(); c.fillStyle = pl.panel; c.fillRect(9, 15, 2, 4); }
     else if (kind === 'ally') { c.fillStyle = pl.own[0]; c.beginPath(); c.arc(8, 9, 5, 0, 7); c.fill(); c.fillStyle = pl.own[1]; c.beginPath(); c.arc(16, 9, 5, 0, 7); c.fill(); c.strokeStyle = pl.good; c.lineWidth = 3; c.beginPath(); c.moveTo(4, 19); c.lineTo(20, 19); c.stroke(); }
     else if (kind === 'boss') { c.fillStyle = pl.tread; c.fillRect(2, 5, 17, 3); c.fillRect(2, 17, 17, 3); c.fillStyle = pl.metal; c.fillRect(4, 8, 13, 9); c.fillStyle = pl.metalHi; c.beginPath(); c.moveTo(17, 7); c.lineTo(23, 12.5); c.lineTo(17, 18); c.closePath(); c.fill(); c.fillStyle = pl.glow; c.beginPath(); c.arc(10, 12.5, 2.6, 0, 7); c.fill(); }
+    else if (kind === 'lift') { c.strokeStyle = pl.metalHi; c.lineWidth = 2.5; c.strokeRect(4, 6, 16, 16); c.fillStyle = pl.roofHi; c.fillRect(7, 11, 10, 9); c.strokeStyle = pl.ink; c.lineWidth = 1.5; c.beginPath(); c.moveTo(12, 1); c.lineTo(12, 11); c.moveTo(10, 14); c.lineTo(10, 19); c.moveTo(14, 14); c.lineTo(14, 19); c.stroke(); }
+    else if (kind === 'lamp') { c.fillStyle = pl.warn; c.globalAlpha = 0.35; c.beginPath(); c.arc(12, 10, 9, 0, 7); c.fill(); c.globalAlpha = 1; c.fillStyle = pl.metalHi; c.fillRect(11, 14, 2, 8); c.fillRect(8, 21, 8, 2); c.fillStyle = pl.warn; c.fillRect(8, 5, 8, 9); c.fillStyle = pl.metal; c.fillRect(7, 3, 10, 2); }
+    else if (kind === 'heart') { c.fillStyle = pl.ore; c.beginPath(); c.moveTo(12, 2); c.lineTo(21, 9); c.lineTo(17, 21); c.lineTo(7, 21); c.lineTo(3, 9); c.closePath(); c.fill(); c.fillStyle = pl.oreHi; c.beginPath(); c.moveTo(12, 5); c.lineTo(17, 10); c.lineTo(12, 16); c.lineTo(8, 10); c.closePath(); c.fill(); c.fillStyle = pl.glow; c.fillRect(11, 9, 2, 3); }
+    else if (kind === 'exit') { c.strokeStyle = pl.good; c.lineWidth = 3; c.beginPath(); c.moveTo(12, 21); c.lineTo(12, 5); c.moveTo(5, 11); c.lineTo(12, 4); c.lineTo(19, 11); c.stroke(); }
+    else if (kind === 'blast') { c.fillStyle = pl.roof; c.fillRect(5, 11, 14, 10); c.fillStyle = pl.metalHi; c.fillRect(11, 3, 2, 9); c.fillRect(7, 2, 10, 3); c.fillStyle = pl.bad; c.fillRect(8, 14, 8, 3); }
     else if (kind === 'van') { c.fillStyle = pl.ownDk[0]; c.fillRect(2, 8, 20, 10); c.fillStyle = pl.wall; c.fillRect(4, 10, 16, 6); c.fillStyle = pl.roof; c.beginPath(); c.moveTo(7, 15); c.lineTo(12, 10); c.lineTo(17, 15); c.closePath(); c.fill(); c.fillStyle = pl.tread; c.fillRect(3, 18, 6, 3); c.fillRect(15, 18, 6, 3); }
     c.restore();
   }
@@ -78,7 +83,7 @@
     text(c, label, x + w / 2, y + h / 2 + 5, { size: o.size || 14, weight: 800, align: 'center', color: o.primary ? (on ? pl.panel : pl.ink) : pl.ink });
   }
   function pt(e) { var r = g.canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * g.W / r.width, y: (e.clientY - r.top) * g.H / r.height }; }
-  function inScreens() { return g._sceneName === 'camp' || g._sceneName === 'brief' || g._sceneName === 'result' || g._sceneName === 'edition'; }
+  function inScreens() { return g._sceneName === 'camp' || g._sceneName === 'brief' || g._sceneName === 'result' || g._sceneName === 'edition' || g._sceneName === 'finale'; }
   function hitAt(p) { for (var i = hot.length - 1; i >= 0; i--) { var b = hot[i]; if (p.x >= b.x && p.x < b.x + b.w && p.y >= b.y && p.y < b.y + b.h) return i; } return -1; }
 
   // ---------- карта кампании ----------
@@ -138,6 +143,7 @@
       if (m.id === 'm2' && d.flags.convoy && m.def.flagText) { y += 4; wrap(c, '◆ ' + tx(m.def.flagText.convoy[d.flags.convoy]), cw - 32, 11).forEach(function (ln) { text(c, ln, cx + 16, y, { size: 11, weight: 600, color: pl.warn }); y += 16; }); }
       if (st === 'closed') text(c, g.t('closed'), cx + 16, cy + 372, { size: 12, color: pl.muted, weight: 600 });
       else button(c, cx + 16, cy + 352, cw - 32, 40, '▶ ' + g.t('brief'), function () { openBrief(m); }, { primary: true });
+      if (m.def.finale && rec) button(c, cx + 16, cy + 312, cw - 32, 32, '★ ' + g.t('finaleT'), function () { finaleId = m.id; g.goto('finale'); }, { size: 13 }); // пройденный финал — итог кампании
     } else if (E.stub(P.EDITION) === 'full') {
       lock(c, cx + 24, y - 5, pl, 1.3); text(c, g.t('lockedFull'), cx + 40, y, { size: 14, color: pl.warn }); y += 24;
       wrap(c, g.t('lockedFullSub'), cw - 32, 12).forEach(function (ln) { text(c, ln, cx + 16, y, { size: 12, weight: 600, color: pl.muted }); y += 18; });
@@ -166,7 +172,7 @@
     var ox = x + (maxW - map.w * s) / 2, oy = y;
     for (var j = 0; j < map.h; j++) for (var i = 0; i < map.w; i++) {
       var k = j * map.w + i, t = map.t[k];
-      c.fillStyle = t === L.ROCK ? pl.rock : t === L.WATER ? pl.water : t === L.ICE ? gp.ice : t === L.OPEN ? gp.open : t === L.PIT ? gp.pitHi : t === L.BRIDGE ? pl.roofHi : map.ore[k] ? pl.ore : t === L.SHAKY ? gp.shaky : ((i + j) % 2 ? gp.g1 : gp.g2);
+      c.fillStyle = t === L.ROCK ? (gp.rock || pl.rock) : t === L.WATER ? pl.water : t === L.ICE ? gp.ice : t === L.OPEN ? gp.open : t === L.PIT ? gp.pitHi : t === L.BRIDGE ? pl.roofHi : map.ore[k] ? pl.ore : t === L.SHAKY ? gp.shaky : ((i + j) % 2 ? gp.g1 : gp.g2);
       c.fillRect(ox + i * s, oy + j * s, Math.ceil(s), Math.ceil(s));
     }
     c.strokeStyle = pl.line; c.lineWidth = 2; c.strokeRect(ox - 1, oy - 1, map.w * s + 2, map.h * s + 2);
@@ -177,6 +183,7 @@
       c.fillStyle = 'rgba(0,0,0,0.55)'; c.beginPath(); c.arc(px, py, 13, 0, 7); c.fill();
       icon(c, bm.icon, px - 10, py - 10, 20, pl);
     });
+    Object.keys(def.lifts || {}).forEach(function (id) { ['a', 'b'].forEach(function (e) { var q = C.pointOf(MS, def.lifts[id][e]); c.fillStyle = '#000'; c.fillRect(ox + q.x * s - 5, oy + q.y * s - 5, 10, 10); c.fillStyle = pl.warn; c.fillRect(ox + q.x * s - 3, oy + q.y * s - 3, 6, 6); }); });
     return { x: ox, y: oy, w: map.w * s, h: map.h * s };
   }
   function drawBrief(c) {
@@ -218,15 +225,16 @@
     text(c, r.win ? g.t('resWin') : g.t('resLose'), g.W / 2, 116, { size: 36, weight: 900, align: 'center', color: r.win ? pl.good : pl.bad });
     if (!r.win) text(c, r.reason === 'hq' ? g.t('reasonHq') : tx(r.reason), g.W / 2, 146, { size: 15, weight: 600, align: 'center', color: pl.muted });
     var labels = [g.t('starDone')].concat((def.stars || []).map(function (s) { return tx(s.text); }));
-    labels.forEach(function (lb, i) { var x = g.W / 2 + (i - 1) * 190; star(c, x, 200, 26, !!r.stars[i], pl); text(c, lb, x, 248, { size: 12, weight: 700, align: 'center', color: r.stars[i] ? pl.ink : pl.muted }); });
-    var y = 300, rows = [[g.t('resTime'), fmtTime(r.time)], [g.t('resLost'), r.lostU + ' ' + g.t('resUnits') + (r.lostB ? ' · ' + r.lostB + ' ' + g.t('resBlds') : '')], [g.t('resKills'), String(r.kills)]];
+    labels.forEach(function (lb, i) { var x = g.W / 2 + (i - 1) * 190; star(c, x, 200, 26, !!r.stars[i], pl); wrap(c, lb, 176, 12, 700).slice(0, 2).forEach(function (ln, k) { text(c, ln, x, 248 + k * 15, { size: 12, weight: 700, align: 'center', color: r.stars[i] ? pl.ink : pl.muted }); }); });
+    var y = 304, rows = [[g.t('resTime'), fmtTime(r.time)], [g.t('resLost'), r.lostU + ' ' + g.t('resUnits') + (r.lostB ? ' · ' + r.lostB + ' ' + g.t('resBlds') : '')], [g.t('resKills'), String(r.kills)]];
     if (r.win && r.vets && r.vets.length) rows.push([g.t('resVets'), String(r.vets.length)]);
     rows.forEach(function (rw) { text(c, rw[0], g.W / 2 - 12, y, { size: 14, weight: 600, align: 'right', color: pl.muted }); text(c, rw[1], g.W / 2 + 12, y, { size: 15, weight: 800 }); y += 26; });
     if (r.win && def.flagText) Object.keys(def.flagText).forEach(function (k) { var v = r.flags[k]; if (v && def.flagText[k][v]) { text(c, '◆ ' + tx(def.flagText[k][v]), g.W / 2, y + 8, { size: 14, weight: 700, align: 'center', color: pl.warn }); y += 24; } });
     var next = r.win && P.MISSIONS.filter(function (m) { return m.n === def.n + 1 && E.playable(P.EDITION, m.id); })[0];
     var more = missionList().some(function (m) { return m.n > def.n && !m.def; }), after = E.afterWin(P.EDITION, !!next, more);
     var retry = function () { host.startMission(r.id); }, toMap = function () { g.goto('camp'); };
-    if (r.win && after === 'demo') { button(c, g.W / 2 - 250, 456, 240, 44, g.t('next') + ' ▸', function () { g.goto('edition'); }, { primary: true, size: 16 }); button(c, g.W / 2 + 10, 456, 240, 44, g.t('toMap'), toMap); }
+    if (r.win && def.finale) { button(c, g.W / 2 - 250, 456, 240, 44, g.t('next') + ' ▸', function () { finaleId = def.id; g.goto('finale'); }, { primary: true, size: 16 }); button(c, g.W / 2 + 10, 456, 240, 44, g.t('toMap'), toMap); }
+    else if (r.win && after === 'demo') { button(c, g.W / 2 - 250, 456, 240, 44, g.t('next') + ' ▸', function () { g.goto('edition'); }, { primary: true, size: 16 }); button(c, g.W / 2 + 10, 456, 240, 44, g.t('toMap'), toMap); }
     else if (r.win && next) { button(c, g.W / 2 - 250, 456, 240, 44, g.t('next') + ' ▸', function () { briefId = next.id; g.goto('brief'); }, { primary: true, size: 16 }); button(c, g.W / 2 + 10, 456, 240, 44, g.t('toMap'), toMap); }
     else if (r.win) { button(c, g.W / 2 - 250, 456, 240, 44, g.t('toMap') + ' ▸', toMap, { primary: true, size: 16 }); button(c, g.W / 2 + 10, 456, 240, 44, '↻ ' + g.t('retry'), retry); }
     else { button(c, g.W / 2 - 250, 456, 240, 44, '↻ ' + g.t('retry'), retry, { primary: true, size: 16 }); button(c, g.W / 2 + 10, 456, 240, 44, g.t('toMap'), toMap); }
@@ -248,7 +256,49 @@
       button(c, bx + i * (bw + gap), y0 + ph - 70, bw, 44, k === 'more' ? g.t('more') + ' ↗' : '← ' + g.t('toMap'), fn, { primary: i === 0, size: 15, focus: sel2 === i });
     });
   }
-  var sel2 = 0;
+  var sel2 = 0, finaleId = null;
+
+  // ---------- финал кампании: итог по флагам, звёзды по миссиям, реплики героев (данные — def.finale миссии, см. campaign.js) ----------
+  function drawFinale(c) {
+    var pl = pal(), def = C.byId(finaleId), F = def && C.finale(def, data()), t = g.time || 0; hot = []; g.clear();
+    if (!F) { button(c, g.W / 2 - 120, 260, 240, 44, '← ' + g.t('toMap'), function () { g.goto('camp'); }, { primary: true }); return; }
+    drawPlateau(c, pl); c.fillStyle = pl.pixel ? 'rgba(0,0,0,0.95)' : 'rgba(12,14,18,0.95)'; c.fillRect(0, 0, g.W, g.H); // плато — едва видным фоном
+    text(c, (g.t('finaleT') + ' · ' + g.t('campMap')).toUpperCase(), 30, 30, { size: 12, color: pl.muted });
+    text(c, tx(F.title), 30, 62, { size: 28, weight: 900, color: g.th().accent });
+    var y = 84; wrap(c, tx(F.sub), 900, 14, 600).slice(0, 2).forEach(function (ln) { text(c, ln, 30, y, { size: 14, weight: 600, color: pl.ink }); y += 19; });
+    // слева: решения и звёзды
+    var x = 30, cw = 430; y = 138;
+    text(c, g.t('finaleChoices').toUpperCase(), x, y, { size: 11, color: pl.muted }); y += 8;
+    F.rows.forEach(function (r) {
+      var lines = wrap(c, tx(r.text), cw - 52, 12, 600).slice(0, 3), h = Math.max(34, 12 + lines.length * 15);
+      c.fillStyle = 'rgba(255,255,255,0.04)'; c.fillRect(x, y, cw, h); c.fillStyle = pl.ownDk[0]; c.beginPath(); c.arc(x + 20, y + h / 2, 12, 0, 7); c.fill();
+      text(c, String(r.n), x + 20, y + h / 2 + 5, { size: 13, weight: 900, align: 'center', color: pl.ink });
+      lines.forEach(function (ln, k) { text(c, ln, x + 42, y + 20 + k * 15 - (lines.length > 1 ? 4 : 0) + (lines.length === 1 ? 1 : 0), { size: 12, weight: 600, color: pl.ink }); });
+      y += h + 5;
+    });
+    y += 14; text(c, g.t('starsT').toUpperCase() + ' · ' + F.total + ' / ' + F.max, x, y, { size: 11, color: pl.muted }); y += 12;
+    F.stars.forEach(function (m, i) {
+      var cx2 = x + (i % 5) * 86, cy2 = y + Math.floor(i / 5) * 30;
+      c.fillStyle = 'rgba(255,255,255,0.04)'; c.fillRect(cx2, cy2, 82, 26);
+      text(c, String(m.n), cx2 + 14, cy2 + 18, { size: 12, weight: 900, align: 'center', color: m.done ? pl.ink : pl.muted });
+      for (var k = 0; k < 3; k++) star(c, cx2 + 34 + k * 17, cy2 + 13, 6.5, m.stars[k], pl);
+    });
+    // справа: реплики
+    var qx = 492, qw = 438, qy = 138;
+    text(c, g.t('finaleVoices').toUpperCase(), qx, qy, { size: 11, color: pl.muted }); qy += 8;
+    F.quotes.forEach(function (q) {
+      var lines = wrap(c, tx(q.text), qw - 62, 13, 600).slice(0, 4), h = Math.max(48, 30 + lines.length * 16), col = (WHO[q.who] || WHO.foe).col;
+      if (qy + h > 452) return;
+      c.fillStyle = 'rgba(255,255,255,0.04)'; c.fillRect(qx, qy, qw, h); c.fillStyle = pl.own[col]; c.fillRect(qx, qy, 3, h);
+      portrait(c, q.who, qx + 28, qy + 26, 16);
+      text(c, g.t(q.who), qx + 54, qy + 18, { size: 11, weight: 800, color: pl.own[col] });
+      lines.forEach(function (ln, k) { text(c, ln, qx + 54, qy + 35 + k * 16, { size: 13, weight: 600 }); });
+      qy += h + 6;
+    });
+    if (F.note) { c.globalAlpha = 0.75 + 0.25 * Math.sin(t * 2); text(c, tx(F.note), 30, 478, { size: 13, weight: 800, color: pl.warn }); c.globalAlpha = 1; }
+    button(c, 30, 492, 220, 36, '← ' + g.t('toMap'), function () { g.goto('camp'); }, { primary: true, size: 14, focus: sel2 === 0 });
+    button(c, 260, 492, 160, 36, g.t('toMenu'), function () { g.goto('title'); }, { size: 13, focus: sel2 === 1 });
+  }
 
   // ---------- ввод на экранах ----------
   function sceneKeys(name) {
@@ -267,6 +317,10 @@
         if (a === 'right' || a === 'down') { sel2 = (sel2 + 1) % nb; g.audio.beep(600, 0.03); }
         else if (a === 'left' || a === 'up') { sel2 = (sel2 - 1 + nb) % nb; g.audio.beep(600, 0.03); }
         else if (a === 'start' || a === 'action') { if (hot[sel2]) hot[sel2].fn(); }
+        else if (a === 'pause') g.goto('camp');
+      } else if (name === 'finale') {
+        if (a === 'right' || a === 'down' || a === 'left' || a === 'up') { sel2 = 1 - sel2; g.audio.beep(600, 0.03); }
+        else if (a === 'start' || a === 'action') { if (hot[sel2]) hot[sel2].fn(); else g.goto('camp'); }
         else if (a === 'pause') g.goto('camp');
       } else if (name === 'result') {
         if (a === 'start' || a === 'action') { if (hot[0]) hot[0].fn(); }
@@ -315,6 +369,8 @@
       else if (e.t === 'geyserWarn') { var gz = MS.geys[e.id], gp2 = gz && C.pointOf(MS, gz.def.at); if (gp2 && W.units.some(function (u) { return u.owner === 0 && Math.hypot(u.x - gp2.x, u.y - gp2.y) < (gz.def.r || 2.2) + 1.5; })) host.msg(g.t('msgGeyser'), 'warn'); }
       else if (e.t === 'part') { host.msg(g.t('msgPart_' + e.k) + (e.left ? '' : ' — ' + g.t('msgBossDown')), 'good'); g.audio.beep(140, 0.3, 'sawtooth', 0.1); g.audio.beep(660, 0.1, 'triangle'); }
       else if (e.t === 'scald') { host.msg(g.t('msgScald'), 'good'); g.audio.beep(90, 0.6, 'sawtooth', 0.08); }
+      else if (e.t === 'lamp') { host.msg(g.t('msgLamp')); g.audio.beep(980, 0.05, 'triangle'); }
+      else if (e.t === 'site') { var sd = MS.sites[e.id]; host.msg((sd && sd.def.doneText ? tx(sd.def.doneText) : g.t('msgSite')), 'good'); g.audio.beep(300, 0.06, 'square'); g.audio.beep(520, 0.08, 'triangle'); }
       else if (e.t === 'halt' && MS.groups[e.tag] && MS.groups[e.tag].owner === 0) host.msg(g.t(e.on ? 'msgHalt' : 'msgGo'), e.on ? 'warn' : 'good');
     });
     MS.ui.length = 0;
@@ -331,7 +387,10 @@
     if (cnt && ob.state === 'active' && cnt.t === 'trained') s += ' (' + Math.min(cnt.n, W.players[0].trained[cnt.type] || 0) + '/' + cnt.n + ')';
     if (cnt && ob.state === 'active' && cnt.t === 'time') s += ' · ' + fmtTime(Math.max(0, cnt.gte - W.time)); // обратный отсчёт
     if (cnt && ob.state === 'active' && cnt.t === 'zone' && cnt.who) { var tin = W.units.filter(function (u) { return u.tag === cnt.who && C.inZone(W.mission, cnt.zone, u.x, u.y); }).length; return s + ' (' + Math.min(cnt.n, tin) + '/' + cnt.n + ')'; } // «сколько дошло» по тегу
-    if (cnt && ob.state === 'active' && cnt.t === 'since') { var so = W.mission.byObj[cnt.obj]; if (so && so.state === 'done') s += ' · ' + fmtTime(Math.max(0, cnt.gte - (W.time - so.t))); }
+    if (cnt && ob.state === 'active' && cnt.t === 'since') { var so = W.mission.byObj[cnt.obj]; if (so && so.state === 'done' && cnt.gte - (W.time - so.t) > 0) s += ' · ' + fmtTime(cnt.gte - (W.time - so.t)); } // отсчёт вышел, а цель ещё не выполнена — «00:00» не показываем
+    if (cnt && ob.state === 'active' && cnt.t === 'sites') s += ' (' + Math.min(cnt.gte, cnt.ids ? cnt.ids.filter(function (k) { return W.mission.sites[k] && W.mission.sites[k].done; }).length : W.mission.sitesN) + '/' + cnt.gte + ')';
+    if (cnt && ob.state === 'active' && cnt.t === 'mined') s += ' (' + Math.min(cnt.gte, Math.floor(W.players[0].mined)) + '/' + cnt.gte + ')';
+    if (cnt && ob.state === 'active' && cnt.t === 'pumped') s += ' (' + Math.min(cnt.gte, Math.floor(W.mission.pumped[cnt.zone] || 0)) + '/' + cnt.gte + ')'; // выкачано вышками в зоне
     if (cnt && ob.state === 'active' && cnt.t === 'fires') s += ' · ' + W.fires.filter(function (f) { return f.hp > 0 && (!cnt.tag || [].concat(cnt.tag).indexOf(f.tag) >= 0); }).length;
     if (cnt && ob.state === 'active' && cnt.t === 'owned') s += ' (' + Math.min(cnt.n, W.blds.filter(function (b) { return b.owner === 0 && (b.tag === cnt.tag || b.tag0 === cnt.tag) && (!cnt.type || b.type === cnt.type); }).length) + '/' + cnt.n + ')';
     if (cnt && ob.state === 'active' && cnt.t === 'parts') s += ' (' + (W.mission.partsN[cnt.tag || '*'] || 0) + '/' + cnt.gte + ')';
@@ -342,7 +401,7 @@
   function hintBtn(W) { var ob = W.mission.objs.find(function (o) { return o.state === 'active' && o.def.kind !== 'opt'; }); return ob && ob.def.hint && ob.def.hint.btn; }
   // слои поверх кадра (render.frame вызывает их, если заданы в S)
   function worldOverlay(c, pl, now) {
-    var W = this.W, MS = W.mission;
+    var S0 = this, W = this.W, MS = W.mission;
     W.flares.forEach(function (f) { var k = f.t / f.max; c.strokeStyle = pl.warn; c.lineWidth = 2; c.globalAlpha = 0.25 + 0.5 * k; c.setLineDash([6, 5]); c.beginPath(); c.arc(f.x * T, f.y * T, f.r * T * (0.96 + 0.04 * Math.sin(now * 6)), 0, 7); c.stroke(); c.setLineDash([]); c.fillStyle = pl.warn; c.beginPath(); c.arc(f.x * T, f.y * T, 4 + 2 * Math.sin(now * 10), 0, 7); c.fill(); c.globalAlpha = 1; });
     // предупреждение о провале: мигающие клетки зоны
     MS.warn.forEach(function (wz) {
@@ -364,17 +423,39 @@
         for (var q = 0; q < 7; q++) { var hh = q * 9 + kk * 26, rr = 6 + q * 2.4 + kk * 14; c.beginPath(); c.arc(p.x * T + Math.sin(q * 1.7) * 6, p.y * T - hh, rr, 0, 7); c.fill(); }
         c.globalAlpha = 0.3 * (1 - kk); c.beginPath(); c.arc(p.x * T, p.y * T, r * (0.6 + kk * 0.4), 0, 7); c.fill(); c.globalAlpha = 1; }
     });
-    // подсказка цели: круг (или несколько — развилка), у зоны может быть подпись zone.label {ru,en}
+    // фонари шахты: столб с лампой; зажжённый — тёплый круг света
+    Object.keys(MS.lamps).forEach(function (id) {
+      var lm = MS.lamps[id], k = Math.floor(lm.y) * W.w + Math.floor(lm.x); if (!W.vis[k]) return; var x = lm.x * T, y = lm.y * T;
+      if (lm.on) { c.fillStyle = pl.pixel ? 'rgba(255,255,85,0.10)' : 'rgba(255,190,90,0.10)'; c.beginPath(); c.arc(x, y, lm.r * T, 0, 7); c.fill(); c.fillStyle = pl.pixel ? 'rgba(255,255,85,0.25)' : 'rgba(255,200,110,' + (0.22 + 0.05 * Math.sin(now * 7 + lm.x)).toFixed(3) + ')'; c.beginPath(); c.arc(x, y - 6, 13, 0, 7); c.fill(); }
+      c.fillStyle = pl.metal; c.fillRect(x - 1.5, y - 4, 3, 12); c.fillRect(x - 5, y + 7, 10, 3);
+      c.fillStyle = lm.on ? pl.warn : pl.rockLo; c.fillRect(x - 4, y - 12, 8, 9); c.strokeStyle = pl.metalHi; c.lineWidth = 1; c.strokeRect(x - 4.5, y - 12.5, 9, 10);
+    });
+    // места работ: ящик с зарядом / подрывная машинка, круг, полоса работы, галочка (подпись места не пишем, если тут же подписан круг-подсказка цели)
     var zs = hintZone(W); if (zs && !Array.isArray(zs)) zs = [zs];
+    var hintAt = (zs || []).filter(function (z) { return MS.def.zones[z] && MS.def.zones[z].label; }).map(function (z) { return C.zoneCenter(MS, z); });
+    Object.keys(MS.sites).forEach(function (id) {
+      var st = MS.sites[id], k = Math.floor(st.y) * W.w + Math.floor(st.x); if (!st.on || !W.vis[k]) return; var x = st.x * T, y = st.y * T, need = st.def.time || 5;
+      c.strokeStyle = st.done ? pl.good : pl.warn; c.lineWidth = 2; c.setLineDash(st.done ? [] : [5, 4]); c.globalAlpha = st.done ? 0.7 : 0.6 + 0.3 * Math.sin(now * 4); c.beginPath(); c.arc(x, y, st.r * T, 0, 7); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+      c.fillStyle = 'rgba(0,0,0,0.55)'; c.beginPath(); c.arc(x, y, 12, 0, 7); c.fill(); icon(c, st.def.icon || 'charge', x - 9, y - 9, 18, pl);
+      if (st.done) { c.strokeStyle = pl.good; c.lineWidth = 3; c.beginPath(); c.moveTo(x + 5, y - 13); c.lineTo(x + 9, y - 9); c.lineTo(x + 16, y - 18); c.stroke(); }
+      else if (st.p > 0) { c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(x - 16, y + 14, 32, 5); c.fillStyle = pl.warn; c.fillRect(x - 15, y + 15, 30 * Math.min(1, st.p / need), 3); }
+      if (st.def.label && !st.done && !hintAt.some(function (h) { return Math.hypot(h.x - st.x, h.y - st.y) < 1.6; })) { var sl = tx(st.def.label); c.font = '800 12px ' + pl.font; var sw = c.measureText(sl).width + 12; c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(x - sw / 2, y - st.r * T - 22, sw, 17); R.txt(c, sl, x, y - st.r * T - 9, { color: pl.warn, font: pl.font, size: 12, weight: 800, align: 'center' }); }
+    });
+    // подсказка цели: круг (или несколько — развилка), у зоны может быть подпись zone.label {ru,en}
     (zs || []).forEach(function (z) {
       var zd = MS.def.zones[z], p = C.zoneCenter(MS, z), r = (zd.r || Math.max(zd.w || 3, zd.h || 3) / 2) * T; c.strokeStyle = pl.warn; c.lineWidth = 2; c.globalAlpha = 0.55 + 0.3 * Math.sin(now * 4); c.setLineDash([8, 7]); c.lineDashOffset = -now * 20; c.beginPath(); c.arc(p.x * T, p.y * T, r, 0, 7); c.stroke(); c.setLineDash([]); c.lineDashOffset = 0; c.globalAlpha = 1;
-      if (zd.label) { var lt = tx(zd.label); c.font = '800 13px ' + pl.font; var lw = c.measureText(lt).width + 14; c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(p.x * T - lw / 2, p.y * T - r - 24, lw, 19); R.txt(c, lt, p.x * T, p.y * T - r - 10, { color: pl.warn, font: pl.font, size: 13, weight: 800, align: 'center' }); }
+      if (zd.label) { var lt = tx(zd.label); c.font = '800 13px ' + pl.font; var lw = c.measureText(lt).width + 14, cam = S0.cam || { x: 0, y: 0 };
+        var ly = p.y * T - r - 10; if (ly - 14 < cam.y + 30 && p.y * T + r > cam.y + 60) ly = Math.min(p.y * T + r - 8, cam.y + 46); // подпись не уезжает под кнопки групп — прижимаем к верху экрана
+        var lx = Math.max(cam.x + lw / 2 + 4, Math.min(cam.x + LY.W - lw / 2 - 4, p.x * T));
+        var ob = S0.objBox; if (ob && lx - lw / 2 - cam.x < ob.r && ly - 14 - cam.y < ob.b) { if (p.y * T + r > cam.y + ob.b + 30) ly = Math.max(ly, cam.y + ob.b + 20); else lx = Math.max(lx, cam.x + ob.r + lw / 2 + 4); } // и не поверх блока целей
+        c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(lx - lw / 2, ly - 14, lw, 19); R.txt(c, lt, lx, ly, { color: pl.warn, font: pl.font, size: 13, weight: 800, align: 'center' }); }
     });
   }
   function viewOverlay(c, pl, now) {
     var MS = this.W.mission, VW = LY.W, VH = LY.VIEW_H;
     if (MS.night) {
       if (pl.pixel) { c.fillStyle = 'rgba(0,0,40,0.35)'; c.fillRect(0, 0, VW, VH); c.fillStyle = '#000'; for (var y = 0; y < VH; y += 4) for (var x = (y / 4) % 2 * 2; x < VW; x += 8) c.fillRect(x, y, 2, 2); }
+      else if (this.W.ground === 'mine') { var gr = c.createRadialGradient(VW / 2, VH / 2, VH * 0.25, VW / 2, VH / 2, VW * 0.62); gr.addColorStop(0, 'rgba(10,6,2,0.18)'); gr.addColorStop(1, 'rgba(6,4,2,0.62)'); c.fillStyle = gr; c.fillRect(0, 0, VW, VH); } // шахта: тёплая темнота, гуще к краям
       else { c.fillStyle = 'rgba(8,14,40,0.40)'; c.fillRect(0, 0, VW, VH); }
     }
     if (MS.weather && MS.weather.kind === 'snowstorm') {
@@ -394,9 +475,11 @@
     // цели
     var rows = MS.objs.filter(function (o) { return o.state === 'active' || o.state === 'done'; });
     var done = rows.filter(function (o) { return o.state === 'done'; }); if (done.length > 2) rows = rows.filter(function (o) { return o.state !== 'done' || done.indexOf(o) >= done.length - 2; });
+    S.objBox = null;
     if (rows.length) {
       c.font = '700 13px ' + f; var wMax = 0; rows.forEach(function (o) { wMax = Math.max(wMax, c.measureText(objLabel(W, o)).width); });
       var bx = 8, by = 30, bw = wMax + 48, bh = 22 + rows.length * 20;
+      S.objBox = { r: bx + bw + 14, b: by + bh }; // для сообщений: не писать поверх целей (галочки выполненных торчат правее блока)
       c.fillStyle = 'rgba(0,0,0,0.55)'; c.fillRect(bx, by, bw, bh);
       R.txt(c, g.t('objectives').toUpperCase(), bx + 8, by + 14, { color: pl.muted, font: f, size: 10, weight: 800 });
       rows.forEach(function (o, i) {
@@ -455,20 +538,21 @@
     S.say = null; S.sayQ = []; S.targeting = null; S.stormWas = null; S.lastT = null;
     S.msgY = def.race ? 92 : 44; // сообщения — ниже счётчика гонки
   };
-  UI.detach = function (S) { ['worldOverlay', 'viewOverlay', 'hudOverlay', 'btnAllowed', 'btnHidden', 'noEco', 'idleTitle', 'idleSub', 'say', 'targeting', 'msgY'].forEach(function (k) { delete S[k]; }); };
+  UI.detach = function (S) { ['worldOverlay', 'viewOverlay', 'hudOverlay', 'btnAllowed', 'btnHidden', 'noEco', 'idleTitle', 'idleSub', 'say', 'targeting', 'msgY', 'objBox'].forEach(function (k) { delete S[k]; }); };
   UI.finish = function (W) {
     var res = W.mission.result || C.result(W); lastRes = res;
     UI.data = C.applyResult(C.load(store), res); persist();
     g.goto('result');
   };
   UI.openBrief = function (id) { briefId = id; g.goto('brief'); };
+  UI.openFinale = function (id) { finaleId = id; g.goto('finale'); };
   UI.install = function (game, h) {
     g = game; host = h;
     try { store = global.localStorage; } catch (e) { store = null; }
     UI.store = store; UI.data = C.load(store);
     g.menu.addItem({ key: 'campaign', after: 'play', label: function () { return g.t('campaign'); }, onSelect: function () { var d = data(); sel = Math.max(0, Math.min(d.unlocked, P.MISSIONS.length) - 1); g.goto('camp'); } });
-    var draw = { camp: drawCamp, brief: drawBrief, result: drawResult, edition: drawEdition };
-    ['camp', 'brief', 'result', 'edition'].forEach(function (name) {
+    var draw = { camp: drawCamp, brief: drawBrief, result: drawResult, edition: drawEdition, finale: drawFinale };
+    ['camp', 'brief', 'result', 'edition', 'finale'].forEach(function (name) {
       g.scene(name, { realtime: true, enter: function () { hover = -1; resetArm = 0; sel2 = 0; UI.data = C.load(store); g.audio.beep(520, 0.05); }, update: function () {}, draw: function (c) { draw[name](c); }, press: sceneKeys(name) });
     });
     g.canvas.addEventListener('pointerdown', function (e) { if (!inScreens()) return; var i = hitAt(pt(e)); if (i >= 0) { e.preventDefault(); var b = hot[i]; if (b.node != null && sel !== b.node) { sel = b.node; g.audio.beep(600, 0.03); return; } g.audio.beep(700, 0.03); b.fn(); } });

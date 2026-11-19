@@ -40,7 +40,7 @@
     tide: 'море с приливом и отливом: y — верх воды в прилив, state.low — верх воды в отлив; уровень между ними — scene.phaseMix (0 — прилив, 1 — отлив, движок анимирует); под водой — мокрый песок',
     mapsheet: 'лист карты побережья во весь кадр: море, state.coast — многоугольник суши [[x, y]…], роза ветров',
     trail: 'тропа на карте: state.pts — ломаная [[x, y]…], state.open — открыта (закрытая — пунктир в тумане)',
-    mapnode: 'место на карте: state.icon — пиктограмма места, state.open (закрытое — «?»), state.here — здесь фишка героини, state.lit — огонь зажжён',
+    mapnode: 'место на карте: state.icon — пиктограмма места, state.open (закрытое — «?»), state.here — здесь фишка героини, state.lit — огонь зажжён; хор огней: state.voice — узел-голос, state.note 0..4 (точки ноты), state.ready — огонь готов петь, state.sung — какой по счёту спет (0 — ещё нет); state.far — дальний огонь без своей сцены',
     maptoken: 'фишка героини на карте (x, y — левый верх; низ — точка на тропе), state.dir',
     beacon: 'сигнальный огонь: state.variant hearth (очаг на камнях) | chimney (корзина на трубе) | brazier (жаровня); state.fuel — топливо лежит, state.lit — горит',
     saltpan: 'солеварня: state.variant settle (отстойный бассейн, state.brine — рассол) | boil (црен на печи: state.brine, state.boil — кипит, state.salt — соль осела)',
@@ -69,7 +69,15 @@
     arch: 'подводная арка-ворота затонувшего квартала: state.open — балка поднята; state.chain — к балке привязана цепь от троса колокола; state.kelp — заросла',
     crane: 'поворотная стрела причала с барабаном лебёдки: state.knot — трос запутан на конце стрелы, state.wound — трос выбран (колокол наверху), state.held — барабан держат',
     ruin: 'затонувшая постройка: state.variant wall (обломок стены с окном) | house (фасад со щипцом; state.door — дверной проём) | column (обломок колонны); state.far — дальний силуэт; state.kelp — заросла; state.window === false — без окон',
-    whale: 'Туманный Кит (не враг): огромный силуэт в глубине; state.near — подплыл близко (виден глаз, складки, плавник), иначе далёкая тень в мути; state.eye — глаз открыт; state.hook — в плавнике железный крюк с обрывком цепи; state.sing — поёт (пузыри из дыхала); state.calm — спокоен'
+    whale: 'Туманный Кит (не враг): огромный силуэт в глубине; state.near — подплыл близко (виден глаз, складки, плавник), иначе далёкая тень в мути; state.eye — глаз открыт; state.hook — в плавнике железный крюк с обрывком цепи; state.sing — поёт (пузыри из дыхала); state.calm — спокоен',
+    // --- сны, живая тушь, хор огней (dream.js, chorus.js, главы 5–6) ---
+    inkdraw: 'ожившая тушь — предмет, нарисованный пером прямо в мире: state.shape door | bridge | ladder | boat | lamp (что нарисовано), state.drawn 0..1 — перо ведёт линию (0 — ещё ничего нет), state.live — ожил (контур тушью, внутри тёплая бумага), state.open — дверь открыта, state.lit — фонарь горит',
+    inkspot: 'пустое место для рисунка — бледный лист с пунктиром в тумане сна: state.shape — призрачный силуэт того, чего здесь не хватает; state.used — уже нарисовано (пусто)',
+    inkthought: 'парящая мысль-эскиз мастера (лист слоновой кости с рисунком тушью): state.icon — что на эскизе; покачивается',
+    upfall: 'вода, которая во сне течёт вверх (столб воды из колодца в небо, капли вверх): state.on — течёт (иначе — спокойная лужица)',
+    clang: 'источник лязга и шума — железо, от которого больно Киту: state.variant chain | hammer | shutter | winch, state.on — гремит (ломаные красные кольца, как лязг цепи в главе 4), иначе затихло (обмотано, остановлено)',
+    songline: 'нить мелодии на карте между двумя огнями, спетыми подряд: state.pts — [[x, y], [x, y]], state.i — номер звена, state.done — мелодия сложена',
+    fogbank: 'пелена тумана на весь лист (стена тумана над морем): state.clear — рассеялась (ничего не рисовать), state.thin — редкая'
   };
   var MOODS = ['dawn', 'day', 'dusk', 'night', 'cave', 'indoor'];
   var POSES = ['idle', 'walk', 'reach', 'think', 'happy'];
@@ -93,7 +101,16 @@
   //    муть — туман тушью поверх сцены кроме круга vis вокруг героини; звук — кольца-волны тушью от источника (age — секунды с удара, точки ноты;
   //    near — близость: ближе — жирнее; harsh — лязг железа: ломаные кольца) — визуальный дубль звона для игры без звука и для доступности;
   //    активные карманы в мути помечаются столбиком пузырьков. Без хука оболочка ничего не рисует (механика работает).
-  var HOOKS = ['drawHint', 'drawWalkbook', 'drawHelper', 'drawTrail', 'drawOverview', 'drawWater'];
+  //  drawDream(ctx, dv, t) — сцена-сон (глава 5+, поверх сцены и отряда, до мыслей): dv = { of — id сцены-основы, mirror, up — всё течёт вверх,
+  //    wake — явь, mix 0..1 — переход сон → явь }: «вуаль сна» (холодный туман по краям, пылинки и капли вверх), в яви тает.
+  //  drawChorus(ctx, cv, t) — хор огней (глава 6, в интерфейсе): cv = { n — нот в мелодии, k — спето, notes: [ноты], voices: [{ id, note, lit, order,
+  //    here, ready }], age — секунд с последнего голоса, miss — секунд с ошибки (огни погасли), done } — строка мелодии в LAYOUT.chorus:
+  //    n гнёзд, спетые — цветом ноты с её точками (тот же язык, что колокольчики главы 1); без цифр и слов.
+  //  drawFx(ctx, list, t) — эффекты финальной кат-сцены на весь лист: list = [{ name, k 0..1, age }]; имена: dawn (ночь светлеет к рассвету),
+  //    fogclear (туман уходит), songrings (кольца песни тушью), white (вспышка-переход). Неизвестное имя — пропустить.
+  var HOOKS = ['drawHint', 'drawWalkbook', 'drawHelper', 'drawTrail', 'drawOverview', 'drawWater', 'drawDream', 'drawChorus', 'drawFx'];
+  var FX = ['dawn', 'fogclear', 'songrings', 'white'];
+  var INK_SHAPES = ['door', 'bridge', 'ladder', 'boat', 'lamp'];
   var HELPER_POSES = { dog: ['idle', 'walk', 'reach', 'dig', 'sniff', 'pull', 'hold', 'bark', 'happy', 'think'], gull: ['idle', 'walk', 'reach', 'carry', 'hold', 'happy', 'think'] };
 
   // ---------- пиктограммы (мысли, инвентарь, интерфейс) ----------
@@ -121,7 +138,10 @@
     nest: 'гнездо / птичий базар', burrow: 'лаз, нора', dig: 'рыть', whale: 'кит (силуэт)',
     // подводные механики (themes/icons-ext.js)
     ear: 'прислушаться (звон колоколов)', air: 'воздух (пузыри)', divebell: 'колокол-водолаз', seabell: 'колокол со дна', buoy: 'буёк', buoybell: 'буёк с колокольчиком',
-    chain: 'цепь', kelp: 'водоросли', belfry: 'звонница', pier: 'причал со стрелой', ruin: 'затонувшая улица', murk: 'мутная вода'
+    chain: 'цепь', kelp: 'водоросли', belfry: 'звонница', pier: 'причал со стрелой', ruin: 'затонувшая улица', murk: 'мутная вода',
+    // сны, живая тушь, хор огней (themes/icons-ext.js)
+    quill: 'перо с тушью (нарисовать)', dream: 'сон (луна в тумане)', noise: 'лязг, шум железа', hush: 'тихо (шум унялся)', song: 'песня маяка (пять нот)',
+    ink_door: 'эскиз двери', ink_bridge: 'эскиз моста', ink_ladder: 'эскиз лестницы', ink_boat: 'эскиз лодки', ink_lamp: 'эскиз фонаря', oar: 'весло', beam: 'луч маяка'
   };
 
   // ---------- раскладка интерфейса (логические координаты 960×540; движок по ней попадает кликами, тема — рисует) ----------
@@ -132,6 +152,7 @@
     book: { x: 106, y: 509, r: 20 },
     close: { x: 916, y: 44, r: 24 },
     heroes: { x: 40, y: 40, r: 23, gap: 56 },   // портреты-переключатели героев (главы с помощниками): i-й — в (x + i·gap, y)
+    chorus: { x: 404, y: 30, gap: 38, r: 13 },   // хор огней: строка мелодии — гнёзда нот в ряд, i-е — в (x + i·gap, y); ряд центрируется по числу нот
     air: { x: 399, y: 26, gap: 18, r: 7, n: 10 },   // шкала воздуха под водой: n пузырьков в ряд (без цифр), i-й — в (x + i·gap, y)
     // блокнот: разворот из двух страниц (per шагов на разворот); x0..ch — карточки для тем без своего блокнота
     walk: { prev: { x: 46, y: 280, r: 28 }, next: { x: 914, y: 280, r: 28 }, close: { x: 916, y: 44, r: 24 },
@@ -157,7 +178,9 @@
       telescope: { lens: true, eye: true, aim: true }, shutter: { open: true, rope: true }, mound: { dug: false, mark: true }, crate: { open: true },
       nest: { chick: true, shiny: true }, burrow: { open: true }, bollard: { tied: true }, ropebridge: { taut: true },
       divebell: { under: true, ballast: true }, seabell: { note: 3, ring: 0.6 }, kelp: {}, airpocket: { variant: 'boat', on: true }, buoy: { bell: true, set: true },
-      arch: { open: false, chain: true }, crane: { knot: true }, ruin: { variant: 'house', door: true, kelp: true }, whale: { near: true, eye: true, hook: true, sing: true } };
+      arch: { open: false, chain: true }, crane: { knot: true }, ruin: { variant: 'house', door: true, kelp: true }, whale: { near: true, eye: true, hook: true, sing: true },
+      inkdraw: { shape: 'door', drawn: 0.6, live: false }, inkspot: { shape: 'bridge' }, inkthought: { icon: 'ink_door' }, upfall: { on: true }, clang: { variant: 'chain', on: true },
+      songline: { pts: [[10, 10], [90, 60]], i: 1 }, fogbank: { thin: true } };
     var all = allKinds();
     for (k in all) { objs.push({ id: 'o' + (i++), kind: k, item: 'key', x: x % 900, y: 100 + (i % 5) * 60, w: 50, h: 50, seed: i, state: st[k] || {} }); x += 55; }
     objs.push({ id: 'unknown', kind: 'zzz_unknown_kind', x: 400, y: 200, w: 40, h: 40, state: {} });
@@ -169,6 +192,9 @@
     objs.push({ id: 'dogs', kind: 'npc', x: 700, y: 380, w: 70, h: 60, state: { type: 'dog', pose: 'sleep', hide: true } }, { id: 'crabt', kind: 'npc', x: 780, y: 420, w: 40, h: 30, state: { type: 'crab', tin: true } });
     objs.push({ id: 'rack', kind: 'fence', x: 300, y: 300, w: 120, h: 100, state: { rack: true, weed: 'wet' } }, { id: 'smoke', kind: 'house', x: 400, y: 200, w: 120, h: 140, state: { smoke: true } });
     ['stool', 'logs', 'net', 'panel'].forEach(function (v, j) { objs.push({ id: 'b' + j, kind: 'box', x: 100 + j * 70, y: 420, w: 60, h: 40, state: { variant: v, pic: 'frame', part: j, n: 3 } }); });
+    INK_SHAPES.concat(['zzz']).forEach(function (v, j) { objs.push({ id: 'ink' + j, kind: 'inkdraw', x: 80 + j * 120, y: 200, w: 90, h: 120, state: { shape: v, drawn: 1, live: true, open: j % 2 === 0, lit: true } }, { id: 'inks' + j, kind: 'inkspot', x: 80 + j * 120, y: 330, w: 90, h: 100, state: { shape: v } }); });
+    ['chain', 'hammer', 'shutter', 'winch', 'zzz'].forEach(function (v, j) { objs.push({ id: 'cl' + j, kind: 'clang', x: 100 + j * 90, y: 120, w: 60, h: 60, state: { variant: v, on: j % 2 === 0 } }); });
+    objs.push({ id: 'nodev', kind: 'mapnode', x: 700, y: 100, w: 60, h: 60, state: { icon: 'rocktower', open: true, voice: true, note: 3, ready: true, lit: true, sung: 2, far: true } }, { id: 'moved', kind: 'boat', x: 600, y: 100, w: 80, h: 40, dx: 14, dy: -6, state: { afloat: true } });
     ['I', 'L', 'X', 'cap', 'sink', '?'].forEach(function (v, j) { objs.push({ id: 'p' + j, kind: 'pipe', x: 100 + j * 70, y: 40, w: 60, h: 60, state: { shape: v, rot: j % 4, wet: j % 2 === 0, fixed: j === 2 } }); });
     return {
       id: 'sample', w: 960, h: 540, mood: mood || 'day',
@@ -194,6 +220,10 @@
       pockets: [{ id: 'p', x: 120, w: 56 }], time: 3,
       sounds: [{ id: 'a', x: 200, y: 300, note: 0, active: true, age: 0.5, n: 1, near: 0.9, pan: -0.2 }, { id: 'b', x: 700, y: -10, note: 4, big: true, active: true, age: 1.4, n: 3, near: 0.3, pan: 1 },
         { id: 'c', x: 500, y: 200, note: 9, active: false, age: 99, n: 0 }, { id: 'd', x: 520, y: 240, note: 0, harsh: true, active: true, age: 0.2, n: 2, near: 0.6, pan: 0.4 }] };
+  }
+  function sampleChorus() {
+    return { id: 'song', n: 5, k: 2, done: false, notes: [2, 4], age: 0.4, miss: 1.1, last: 'b',
+      voices: [{ id: 'a', note: 2, lit: true, order: 1, here: false, ready: true }, { id: 'b', note: 4, lit: true, order: 2, here: true, ready: true }, { id: 'c', note: 1, lit: false, order: 0, here: true, ready: false }] };
   }
   // Канва-заглушка: любой метод — пустая функция, градиенты — объект с addColorStop, свойства запоминаются.
   function mockCtx() {
@@ -241,11 +271,14 @@
     if (typeof theme.drawTrail === 'function') { tryit('drawTrail', function () { theme.drawTrail(ctx, { pts: [[100, 450], [200, 440], [320, 452]], rect: [300, 400, 50, 50], age: 1, dur: 4 }, 1); }); tryit('drawTrail пусто', function () { theme.drawTrail(ctx, { pts: [], age: 0 }, 1); }); }
     if (typeof theme.drawOverview === 'function') { tryit('drawOverview', function () { theme.drawOverview(ctx, { marks: [{ rect: [100, 100, 60, 60], hero: 'dog' }, { rect: [400, 200, 40, 80], hero: 'taya', item: 'key' }, { rect: [0, 300, 40, 150], exit: true, icon: 'hut' }, { rect: [1, 1, 1, 1], hero: 'zzz' }], age: 0.8, dur: 5 }, 1); }); tryit('drawOverview пусто', function () { theme.drawOverview(ctx, { marks: [], age: 9 }, 1); }); }
     if (typeof theme.drawWater === 'function') { tryit('drawWater', function () { theme.drawWater(ctx, sampleWater(), 1.2); }); tryit('drawWater пусто', function () { theme.drawWater(ctx, { murk: false, sounds: [], pockets: [] }, 0); }); }
+    if (typeof theme.drawDream === 'function') { tryit('drawDream', function () { theme.drawDream(ctx, { of: 'x', mirror: true, up: true, wake: false, mix: 0.3 }, 1.2); }); tryit('drawDream явь', function () { theme.drawDream(ctx, { of: 'x', wake: true, mix: 1 }, 2); }); tryit('drawDream пусто', function () { theme.drawDream(ctx, null, 0); }); }
+    if (typeof theme.drawChorus === 'function') { tryit('drawChorus', function () { theme.drawChorus(ctx, sampleChorus(), 1.4); }); tryit('drawChorus пусто', function () { theme.drawChorus(ctx, { n: 0, k: 0, notes: [], voices: [] }, 0); }); }
+    if (typeof theme.drawFx === 'function') { tryit('drawFx', function () { theme.drawFx(ctx, FX.concat(['zzz']).map(function (n, i) { return { name: n, k: 0.2 + i * 0.2, age: 1 + i }; }), 1.1); }); tryit('drawFx пусто', function () { theme.drawFx(ctx, [], 0); }); }
     if (typeof theme.drawWalkbook === 'function') tryit('drawWalkbook', function () { theme.drawWalkbook(ctx, { page: 0, pages: 2, per: 2, total: 3, flip: { d: 1, t: 0.9 }, open: 0, time: 1, steps: [{ id: 'a', scene: null, icons: ['gear', 'key'], done: true, current: false, open: true, ink: null }, { id: 'b', scene: 'zzz', icons: ['gear'], done: false, current: true, open: true, ink: [{ i: 'lamp', mark: true }] }] }, LAYOUT, 1); });
     return { ok: errors.length === 0, errors: errors };
   }
 
   K.ThemeAPI = { version: '1.0', KINDS: KINDS, EXT_KINDS: EXT_KINDS, MOODS: MOODS, POSES: POSES, CURSORS: CURSORS, METHODS: METHODS,
-    ICONS: ICONS, LAYOUT: LAYOUT, HOOKS: HOOKS, HELPER_POSES: HELPER_POSES, slotRect: slotRect, allKinds: allKinds, isKind: isKind,
-    sampleScene: sampleScene, sampleUI: sampleUI, sampleWater: sampleWater, mockCtx: mockCtx, validateTheme: validateTheme };
+    ICONS: ICONS, LAYOUT: LAYOUT, HOOKS: HOOKS, FX: FX, INK_SHAPES: INK_SHAPES, HELPER_POSES: HELPER_POSES, slotRect: slotRect, allKinds: allKinds, isKind: isKind,
+    sampleScene: sampleScene, sampleUI: sampleUI, sampleWater: sampleWater, sampleChorus: sampleChorus, mockCtx: mockCtx, validateTheme: validateTheme };
 })(typeof window !== 'undefined' ? window : globalThis);

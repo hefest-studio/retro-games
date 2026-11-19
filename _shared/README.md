@@ -1,4 +1,4 @@
-# Гефест Arcade — фреймворк (v2.3) · engine.js + host.js
+# Гефест Arcade — фреймворк (v2.4) · engine.js + host.js + mouse.js
 
 `engine.js` — vanilla JS, **0 зависимостей**. Расширен из микро-движка (v1) в фреймворк с общими
 системами, которые игры дублировали. Критерии проходимость/играбельность/непресность — встроены.
@@ -14,7 +14,8 @@
   **Перевод страницы:** элементы с `data-en="…"` движок переключает сам (исходная разметка запоминается в `data-ru`), `<html lang>` следует языку —
   так переводятся «← Каталог» (`data-en="← Catalog"`) и подсказки `.foot`. Заголовок/подзаголовок заставки в EN берутся из `strings.en.title/subtitle`,
   даже если в `useStandardScreens({title})` передан русский литерал. Тест: `node _shared/tests/i18n.test.mjs`.
-- **Ссылка «← Каталог» (в каждой игре):** `<a class="back" href="../" data-catalog-back="1" data-en="← Catalog">← Каталог</a>`, стиль `position:fixed` + `z-index` выше canvas и тач-кнопок; видна и в игре (в оболочках в `play` — приглушена `opacity:.6`, но не скрыта). Проверка: `node tools/qa/ux-audit.mjs` (десктоп 1280×720 и iPhone 13 ландшафт).
+- **Ссылка «← Каталог» (в каждой игре):** `<a class="back" href="../" data-catalog-back="1" data-en="← Catalog">← Каталог</a>`, **движок (v2.4) сам ведёт её в каталог текущего языка игры**: RU — `../`, EN (`?lang=en` / сохранённый выбор / клавиша L) — `../en/`, на `file://` — с `index.html`; href и подпись обновляются при каждой смене языка (`g.i18n.applyCatalogLink()`, вызывается из `applyDom`). Движок находит ссылку по атрибуту `data-catalog-back` — id/класс значения не имеют, ссылок может быть несколько. Подпись берётся из `data-en`; если `data-en` нет и внутри нет своей разметки — движок ставит «← Catalog» сам. В оболочках `#lang=en` (язык на один запуск) тоже переключает ссылку. Тесты — `i18n.test.mjs` (блок «каталог»). Вёрстка: стиль `position:fixed` + `z-index` выше canvas и тач-кнопок; видна и в игре (в оболочках в `play` — приглушена `opacity:.6`, но не скрыта). Проверка: `node tools/qa/ux-audit.mjs` (десктоп 1280×720 и iPhone 13 ландшафт).
+- **Игровое время (v2.4):** `g.time` не бывает отрицательным — метка rAF первого кадра может быть раньше `performance.now()` из `start()`, такой `dt` движок обнуляет (раньше `g.time` на первом кадре уходил в минус и `Math.floor(g.time*k) % n` давал кадр спрайта `-1` — падал retro-рендер ЗАСЛОНа). Тест — `input.test.mjs`.
 - **Темы retro/modern/neon:** `modern` — основная (чистый современный дизайн, вместо неона); `retro` — 8-бит/CGA; `neon` — опциональная (вкл. через `useStandardScreens({neon:true})`). Тема меняет палитру/шрифт/эффекты, НЕ логику: `g.th()` → {bg,panel,ink,muted,accent,good,bad,warn,grid,font,pixel,glow}. `g.setTheme()/toggleTheme()`, сохраняется (`arcade.theme`). Рисование (`clear/text/hud/overlay`) учитывает тему.
 - **Звук:** 8-бит SFX `g.audio.beep(f,d,type,vol)`, `toggle()` (сохраняется). Музыка — см. раздел «Звук/музыка» ниже.
 - **Меню:** `useStandardScreens({title,subtitle,lives,neon})` даёт сцены `title` (меню: Играть/Язык/Тема/Звук + показ рекорда), `pause` (Продолжить/Звук/В меню), `win`, `gameover`. Навигация ↑↓+action и клик/тап. Свои пункты — `g.menu.addItem(…)` (раздел «v2.2»). `Arcade.Menu` — переиспользуемый.
@@ -118,7 +119,69 @@ P1.onPress(name => …); // нажатие действия этого игро�
 | `bootKeep: true` | первый вход в title не сбрасывает игру (её мог запустить `?level=`) | saga, saga-2 |
 | `bootAdopt: true` | игра при загрузке уже в `play`/`sub` (`#demo=`/`#scene=`/`#wave=`) — движок сразу следует за ней | neon-yarost |
 
-Тесты v2.2–2.3: `node _shared/tests/i18n.test.mjs` (правило языка), `node _shared/tests/input.test.mjs` (меню, игроки, конфликты, touchOnly, usePlayers), `node _shared/tests/host.test.mjs`.
+## Мышь и тач — `_shared/mouse.js` → `<игра>/js/mouse.js` (v1.0)
+Общий модуль указателя для игр, где мало дпада: стратегии, головоломки с выбором, редакторы. Отдельный файл, **от `engine.js` не зависит**;
+ничего не знает об игре — переводит Pointer Events в жесты в логических координатах canvas (W×H, с учётом CSS-масштаба).
+Вынесен из `porubezhye/js/mouse.js` (поведение сохранено 1:1) с добавлением щипка/зума, `touchDrag`, настраиваемых порогов, `cancel()`.
+
+| Жест | Мышь | Тач | Колбэк |
+|---|---|---|---|
+| выбор | ЛКМ | тап | `onClick(pt, {shift,ctrl,alt,double,touch})` (`double` — двойной клик/тап) |
+| рамка | протяжка ЛКМ (> 6 px) | протяжка пальцем (> 12 px) | `onBoxStart(pt,mods)` → `onBox(box,mods)`… → `onBoxEnd(box,mods)` / `onBoxCancel()`; `m.box` — для отрисовки |
+| приказ | ПКМ | долгий тап (480 мс, вибро) | `onRight(pt, info)` (тач: `{touch:true,long:true}`) |
+| панорама | протяжка СКМ | два пальца; один палец при `touchDrag:'pan'` | `onPan(dx,dy)` — сдвиг указателя: `cam.x -= dx` |
+| прокрутка | колесо (Shift — по горизонтали) | — | `onWheel(dx,dy,pt,mods)` |
+| зум | колесо при `wheelZoom:true` | щипок | `onZoom(k, pt, {source:'wheel'|'pinch'})`, `k > 1` — приблизить, `pt` — якорь |
+| наведение / край | движение без кнопок | — | `onHover(pt)`; `m.edge(margin)` → `{x,y} ∈ {-1,0,1}` для прокрутки краем экрана |
+| UI-зона | любой жест, начатый там, где `hitUI(pt)` = true | то же | `onUi('down'|'move'|'up', pt, {btn,mods,touch})` — мини-карта, панель команд |
+
+```html
+<script src="./js/mouse.js"></script>   <!-- копия _shared/mouse.js; canvas { touch-action: none } -->
+<script>
+  var m = ArcadeMouse.attach(g.canvas, { W: g.W, H: g.H,
+    enabled: function () { return g._sceneName === 'play'; },
+    hitUI: function (pt) { return pt.y >= PANEL_Y; }, onUi: function (phase, pt, info) { /* кнопки, мини-карта */ },
+    onClick: function (pt, info) { select(pt, info.shift, info.double); },
+    onBoxEnd: function (box, mods) { selectIn(ArcadeMouse.normBox(box), mods.shift); },
+    onRight: function (pt) { order(pt); },
+    onPan: function (dx, dy) { cam.x -= dx; cam.y -= dy; },
+    onZoom: function (k, pt) { zoomAt(pt, k); }, wheelZoom: true });
+  // в draw: if (m.box) рисуем рамку; в update: var e = m.edge(12); cam.x += e.x * speed * dt; m.setCursor(hover ? 'select' : 'default');
+</script>
+```
+- **Опции-пороги:** `dragThreshold` 6, `touchDragThreshold` 12, `longPress` 480 мс, `dblTime` 320 мс, `dblDist` 10, `zoomStep` 0.0015 (`k = exp(-dy·zoomStep)`).
+- **Курсоры:** `m.setCursor(name)` — встроенные SVG `default, select, attack, amove, gather, repair, move, build` + системные `pan, deny`; свои — `cursors: { имя: css }`
+  (важнее встроенных), собрать SVG — `ArcadeMouse.svgCursor(body, hx, hy, fallback[, size=24])`.
+- **Состояние:** `m.x, m.y, m.inside, m.box, m.mods, m.pointerType`; `m.busy()` — идёт жест; `m.cancel()` — сорвать жест (пауза, смена сцены); `m.detach()` — снять все подписки.
+- **Подключение/синхронизация:** файл игры `js/mouse.js` — копия общего. `build.sh` обновляет копию только там, где `js/mouse.js` уже несёт метку
+  «Источник — _shared/mouse.js» (собственные модули игр не затираются). Новая игра: скопировать `_shared/mouse.js` в `<игра>/js/mouse.js` и подключить после `engine.js`.
+- **Тесты:** `node _shared/tests/mouse.test.mjs` (43: мышь, тач, щипок, UI-зоны, enabled, масштаб canvas, курсоры, detach, сверка копий в играх).
+- **На модуле:** `porubezhye`. **Ещё на своих модулях:** `priisk` (`priisk/js/mouse.js`, другой API — см. ниже), прототипы `_proto/fabrika/js/pointer.js`, `_proto/rts-c/js/main.js`.
+
+### Перевод `priisk` на общий модуль (что заменить)
+`priisk/js/mouse.js` — тот же `ArcadeMouse`, но с другим контрактом. При переводе файл заменяется копией `_shared/mouse.js`, а в `priisk/js/main.js` (вызов `ArcadeMouse.attach`, ~стр. 108–190) меняется:
+
+| Было (priisk) | Стало (общий модуль) |
+|---|---|
+| `onDown(p, info) → 'capture'`, `onDrag(p)`, `onUp(p)` — захват панели/мини-карты | `hitUI(p)` = `!inView(p) \|\| !!R.groupAt(p.x, p.y)` и `onUi(phase, p, info)`: `down` → тело `onDown`, `move` → `onDrag`, `up` → `onUp`; `info.ctrl` → `info.mods.ctrl` |
+| `onCommand(p, info)` — ПКМ **на нажатии** / долгий тап | `onRight(p, info)` — ПКМ **на отпускании** (долгий тап — как был); `info.touch` есть только у долгого тапа |
+| `onBoxing(r \| null)` — рамка тянется (нормализована) | `onBox(box)` + `onBoxCancel()`; либо читать `m.box` в отрисовке; нормализация — `ArcadeMouse.normBox(box)` |
+| `onBox(r, info)` — рамку отпустили | `onBoxEnd(box, mods)` → `ArcadeMouse.normBox(box)`; `mods` = `{shift,ctrl,alt}` |
+| `onClick(p, info)`, `info.dbl` | `onClick(p, info)`, `info.double` |
+| `onPan(dx, dy)` — сдвиг **камеры** (`cam += d`) | `onPan(dx, dy)` — сдвиг **указателя**: поменять знак (`cam -= d`) |
+| `onWheel(dx, dy)` | без изменений (добавились `pt, mods`) |
+| `mouse.pos` (`{x,y}`) | сам `mouse` (`mouse.x, mouse.y`): `updatePlacing(mouse)` |
+| `mouse.edgeDir()` (опция `edge: 14`) | `mouse.edge(14)` |
+| `cursors: {…}` + `setCursor(kind)`, неизвестное имя → CSS как есть | `cursors: {…}` — так же; неизвестное имя → `default` (все имена priisk уже в словаре; `normal: 'default'` оставить) |
+| `ArcadeMouse.svgCursor(body, hx, hy, fb)` — холст 32×32 | `ArcadeMouse.svgCursor(body, hx, hy, fb, 32)` — размер пятым аргументом |
+| опции `dragThreshold, longPress, dblTime, dblDist` | те же имена; порог тача был `dragThreshold × 2` → `touchDragThreshold: 12` (по умолчанию) |
+| `mouse.cancel()`, `mouse.detach()` | те же |
+| подписки `pointermove/up` на canvas | на `window` (жест не теряется за пределами canvas) — проверить, что HTML-кнопки поверх canvas не ждут этих событий |
+
+После перевода: тесты `priisk/tests/engine.test.mjs` (блок «ArcadeMouse», стр. ~248–300) переписать под новый контракт или заменить ссылкой на `_shared/tests/mouse.test.mjs`;
+браузером проверить рамку, приказ ПКМ, мини-карту (перетаскивание), группы (долгое нажатие ≥ 480 мс = назначить), размещение зданий на таче, панораму двумя пальцами.
+
+Тесты v2.2–2.4: `node _shared/tests/i18n.test.mjs` (правило языка, ссылка «← Каталог»), `node _shared/tests/mouse.test.mjs` (мышь и тач), `node _shared/tests/input.test.mjs` (меню, игроки, конфликты, touchOnly, usePlayers), `node _shared/tests/host.test.mjs`.
 
 ## План игр (ремейки на фреймворке с паритетом фич — retro+modern, i18n, звук; неон→modern)
 Старые версии архивировать как `<game>/legacy.html` ПЕРЕД заменой; каждую новую — отдельным протестированным коммитом; аркада всегда рабочая. Эталон первым: **kaskad** или **hrum** (самые компактные: 628 / 759 строк).

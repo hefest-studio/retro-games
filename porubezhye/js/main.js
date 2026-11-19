@@ -1,5 +1,5 @@
 /* ПОРУБЕЖЬЕ · js/main.js — сборка: движок Arcade (меню/пауза/темы/язык/звук/рекорд) + логика (game.js)
-   + рендер (render.js) + мышь/тач (mouse.js). Здесь — камера, HUD, панель команд, горячие клавиши, отряды. */
+   + рендер (render.js) + мышь/тач (mouse.js — копия общего _shared/mouse.js). Здесь — камера, HUD, панель команд, горячие клавиши, отряды. */
 (function (global) {
   'use strict';
   var P = global.PORUB, R = P.render, T = P.T, MW = P.MW, MH = P.MH, Store = Arcade.Store;

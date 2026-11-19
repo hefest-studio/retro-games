@@ -102,7 +102,7 @@
       vis: new Uint8Array(w * h), units: [], blds: [], byId: Object.create(null), nextId: 1, time: 0,
       rng: mulberry32(seed || 1), fx: [], events: [], winner: -1, visT: 0, sightMul: 1, flares: [], mapRev: 0,
       players: [newPlayer(0), newPlayer(1), newPlayer(2)], ai: null, oreMax: 0, hadHq: [false, false], charges: [], hits: Object.create(null),
-      fires: [], depots: [], team: null, paint: null
+      fires: [], depots: [], team: null, paint: null, lifts: [], lights: [], los: false
     };
     return W;
   }
@@ -450,6 +450,7 @@
       if ((target && target.owner === o && BLDS[target.type].pump) || (!target && depotAt(W, x, y))) return 'fill';
     }
     if (target && target.owner !== o && armed) return 'attack';
+    if (!target && W.lifts.length && liftAt(W, x, y)) return 'lift'; // клеть шахты: ПКМ по площадке — ехать
     if (target && target.owner === o && target.type === 'smelter' && haul) return 'return';
     if (!target && W.ore[j * W.w + i] > 0 && haul) return 'harvest';
     if (target && target.kind === 'bld') return 'deny';
@@ -463,6 +464,7 @@
     else if (k === 'douse') commandDouse(W, ids, fireAt(W, x, y).id);
     else if (k === 'fill') commandFill(W, ids, target && target.owner === o ? target : depotAt(W, x, y));
     else if (k === 'attack') commandAttack(W, ids, target.id);
+    else if (k === 'lift') { var la = liftAt(W, x, y); commandLift(W, ids, la.lift, la.end); }
     else if (k === 'return') commandReturn(W, ids, target.id);
     else if (k === 'harvest') commandHarvest(W, ids, Math.floor(x), Math.floor(y));
     else if (k === 'move') commandMove(W, ids, x, y);
@@ -510,6 +512,7 @@
     separate(W, dt);
     if (W.charges.length) chargeStep(W, dt);
     if (W.fires.length) fireStep(W, dt);
+    if (W.lifts.length) liftStep(W, dt);
     // смерти
     var dead = false;
     W.units = W.units.filter(function (u) { if (u.hp > 0) return true; if (u.gone) { delete W.byId[u.id]; return false; } kill(W, u); dead = true; return false; }); // gone — инженер вошёл в здание
@@ -565,10 +568,17 @@
     }
     return true;
   }
+  // Прямая видимость (W.los — шахта, кампания): сквозь породу не видно и не стреляют. Клетка-цель сама не в счёт (стену видно).
+  function sees(W, x0, y0, x1, y1) {
+    if (!W.los) return true;
+    var dx = x1 - x0, dy = y1 - y0, n = Math.ceil(Math.hypot(dx, dy) * 3), ti = Math.floor(x1), tj = Math.floor(y1);
+    for (var s = 1; s < n; s++) { var i = Math.floor(x0 + dx * s / n), j = Math.floor(y0 + dy * s / n); if ((i !== ti || j !== tj) && W.t[j * W.w + i] === ROCK) return false; }
+    return true;
+  }
   function scan(W, u, radius) {
     var best = null, bd = 1e9;
     if (u.calm) return null; // мирные (сценарные) сами не стреляют, и по ним не стреляют без приказа
-    for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (!hostile(W, e.owner, u.owner) || e.hp <= 0 || e.calm) continue; var d = e.parts ? distTo(u, e) : Math.hypot(e.x - u.x, e.y - u.y); if (d <= radius && d < bd) { bd = d; best = e; } }
+    for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (!hostile(W, e.owner, u.owner) || e.hp <= 0 || e.calm) continue; var d = e.parts ? distTo(u, e) : Math.hypot(e.x - u.x, e.y - u.y); if (d <= radius && d < bd && sees(W, u.x, u.y, e.x, e.y)) { bd = d; best = e; } }
     if (best || W.treaty) return best; // по договору здания сами не обстреливают
     for (n = 0; n < W.blds.length; n++) { var b = W.blds[n]; if (!hostile(W, b.owner, u.owner)) continue; var db = distTo(u, b); if (db <= radius && db < bd) { bd = db; best = b; } }
     return best;
@@ -578,6 +588,7 @@
     u.cd -= dt;
     if (u.trail) trailStep(u);
     if (u.tow) { towStep(W, u, dt); return; }
+    if (o.t === 'lift') { liftWalk(W, u, dt); return; }
     if (o.t === 'plant') { plantStep(W, u, dt); return; }
     if (o.t === 'deploy') { deployStep(W, u, dt); return; }
     if (d.boss) { bossStep(W, u, dt); return; }
@@ -590,7 +601,7 @@
       if (!alive(tg)) { u.path = []; u.order = o.then || { t: 'idle' }; if (u.order.t === 'amove') u.path = findPath(W, u.x, u.y, u.order.x, u.order.y); return; }
       if (o.leash && Math.hypot(u.x - o.leash.x, u.y - o.leash.y) > 8) { u.order = { t: 'move', x: o.leash.x, y: o.leash.y }; u.path = findPath(W, u.x, u.y, o.leash.x, o.leash.y); return; }
       var dist = distTo(u, tg), c = center(tg);
-      if (dist <= d.range) {
+      if (dist <= d.range && sees(W, u.x, u.y, c.x, c.y)) {
         u.path = [];
         var want = Math.atan2(c.y - u.y, c.x - u.x); u.aim = turn(u.aim, want, dt * (d.cls === 'inf' ? 12 : 4));
         if (d.cls === 'inf') u.heading = u.aim;
@@ -624,7 +635,7 @@
       b.cd = (b.cd || 0) - dt;
       if (b.cd <= 0) {
         var c = center(b), best = null, bd = 1e9;
-        for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (!hostile(W, e.owner, b.owner) || e.hp <= 0 || e.calm) continue; var dd = Math.hypot(e.x - c.x, e.y - c.y) - b.w / 2 - (e.parts ? UNITS[e.type].r : 0); if (dd <= d.range && dd < bd) { bd = dd; best = e; } }
+        for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (!hostile(W, e.owner, b.owner) || e.hp <= 0 || e.calm) continue; var dd = Math.hypot(e.x - c.x, e.y - c.y) - b.w / 2 - (e.parts ? UNITS[e.type].r : 0); if (dd <= d.range && dd < bd && sees(W, c.x, c.y, e.x, e.y)) { bd = dd; best = e; } }
         if (best) { b.cd = d.cd; b.fireT = W.time; b.aim = Math.atan2(best.y - c.y, best.x - c.x); damage(W, b, best); } else b.cd = 0.25;
       }
     }
@@ -775,16 +786,17 @@
   function updateVis(W) {
     var v = W.vis, n;
     for (n = 0; n < v.length; n++) if (v[n] === 2) v[n] = 1;
-    function mark(x, y, r) {
-      var r2 = r * r;
+    function mark(x, y, r, through) { // through — сквозь породу (метка Луни)
+      var r2 = r * r, los = W.los && !through;
       for (var j = Math.floor(y - r); j <= Math.ceil(y + r); j++) for (var i = Math.floor(x - r); i <= Math.ceil(x + r); i++) {
-        if (!inb(W, i, j)) continue; var dx = i + 0.5 - x, dy = j + 0.5 - y; if (dx * dx + dy * dy <= r2) v[j * W.w + i] = 2;
+        if (!inb(W, i, j)) continue; var dx = i + 0.5 - x, dy = j + 0.5 - y; if (dx * dx + dy * dy <= r2 && (!los || sees(W, x, y, i + 0.5, j + 0.5))) v[j * W.w + i] = 2;
       }
     }
     var sm = W.sightMul == null ? 1 : W.sightMul; // погода/ночь кампании урезают обзор
     W.units.forEach(function (u) { if (friendTo0(W, u.owner)) mark(u.x, u.y, Math.max(1.5, UNITS[u.type].sight * sm)); }); // союзник делит обзор
     W.blds.forEach(function (b) { if (friendTo0(W, b.owner)) mark(b.tx + b.w / 2, b.ty + b.h / 2, Math.max(2, BLDS[b.type].sight * sm) + Math.max(b.w, b.h) / 2); });
-    (W.flares || []).forEach(function (f) { mark(f.x, f.y, f.r); });
+    (W.flares || []).forEach(function (f) { mark(f.x, f.y, f.r, true); });
+    (W.lights || []).forEach(function (f) { mark(f.x, f.y, f.r); }); // зажжённые фонари шахты светят всегда (темнота их не глушит)
     // шумные здания соперника (буровые вышки) слышно сквозь туман — видна сама вышка
     W.blds.forEach(function (b) { if (b.owner !== 0 && BLDS[b.type].loud) for (var j = 0; j < b.h; j++) for (var i = 0; i < b.w; i++) v[(b.ty + j) * W.w + b.tx + i] = 2; });
   }
@@ -1064,6 +1076,104 @@
     return b;
   }
 
+  // ---------- Клети шахты (кампания, миссия 9; в скирмише нет): переход между ярусами ----------
+  // Ярусы шахты — отдельные области одной карты, пешком между ними не пройти. Клеть lf = { id, a, b (площадки {x,y}), cap (мест),
+  // ride (секунд в пути), wait (секунд посадки), at ('a' | 'b' — где стоит клеть), st: 'idle' | 'load' | 'move', riders }.
+  // Приказ «ехать» (ПКМ по площадке): юниты идут на площадку и ждут. Клеть на месте — посадка wait секунд, уезжают до cap ближайших
+  // к площадке (отряд едет частями: остальные ждут следующего рейса); клеть на другом ярусе — её вызывают: она идёт пустая ride
+  // секунд. В пути ездоков нет на карте (W.units / W.byId) — их не видно и по ним не стреляют; на той стороне они выходят вокруг
+  // площадки. Ждущие на площадке стрелки отстреливаются, не сходя с места.
+  var LIFT = { pad: 1.7, cool: 1.2 };
+  function addLift(W, o) {
+    var lf = { id: o.id || 'lift' + (W.lifts.length + 1), a: { x: o.a.x, y: o.a.y }, b: { x: o.b.x, y: o.b.y }, cap: o.cap || 4, ride: o.ride || 6, wait: o.wait == null ? 3 : o.wait,
+      at: o.at === 'b' ? 'b' : 'a', st: 'idle', t: 0, to: null, riders: [], on: o.on !== false, trips: 0, cool: 0, label: o.label || null };
+    W.lifts.push(lf); return lf;
+  }
+  function liftById(W, id) { for (var n = 0; n < W.lifts.length; n++) if (W.lifts[n].id === id) return W.lifts[n]; return null; }
+  // площадка клети под точкой (x,y): { lift, end } или null (выключенные клети не в счёт)
+  function liftAt(W, x, y) {
+    for (var n = 0; n < W.lifts.length; n++) { var lf = W.lifts[n]; if (!lf.on) continue;
+      if (Math.hypot(lf.a.x - x, lf.a.y - y) <= 1.15) return { lift: lf, end: 'a' }; if (Math.hypot(lf.b.x - x, lf.b.y - y) <= 1.15) return { lift: lf, end: 'b' }; }
+    return null;
+  }
+  function commandLift(W, ids, lf, end) {
+    if (!lf || !lf.on) return false; var pad = lf[end], us = liveUnits(W, ids).filter(function (u) { return !UNITS[u.type].boss && !u.tow && !u.locked; }); if (!us.length) return false;
+    var tiles = spreadTiles(W, pad.x, pad.y, us.length).filter(function (t) { return Math.hypot(t.i + 0.5 - pad.x, t.j + 0.5 - pad.y) <= LIFT.pad - 0.2; });
+    us.sort(function (a, b) { return Math.hypot(a.x - pad.x, a.y - pad.y) - Math.hypot(b.x - pad.x, b.y - pad.y); });
+    us.forEach(function (u, n) { var t = tiles[n % Math.max(1, tiles.length)] || { i: Math.floor(pad.x), j: Math.floor(pad.y) };
+      u.order = { t: 'lift', lift: lf.id, end: end, x: t.i + 0.5, y: t.j + 0.5, fails: 0 }; u.path = findPath(W, u.x, u.y, t.i + 0.5, t.j + 0.5); u.stuck = 0; u.chk = { x: u.x, y: u.y, t: 0 }; });
+    return true;
+  }
+  function liftWalk(W, u, dt) {
+    var o = u.order, lf = liftById(W, o.lift), d = UNITS[u.type];
+    if (!lf || !lf.on) { u.order = { t: 'idle' }; u.path = []; return; }
+    var pad = lf[o.end], dist = Math.hypot(pad.x - u.x, pad.y - u.y);
+    if (u.path.length && follow(W, u, dt)) return;
+    if (dist > LIFT.pad) { if (++o.fails > 6) { u.order = { t: 'idle' }; u.path = []; } else u.path = findPath(W, u.x, u.y, o.x, o.y); return; }
+    o.fails = 0; // ждём клеть: отстреливаемся с места
+    if (d.weapon && u.cd <= 0) { var e = scan(W, u, d.range); if (e && e.kind === 'unit') { var c = center(e); u.aim = Math.atan2(c.y - u.y, c.x - u.x); if (d.cls === 'inf') u.heading = u.aim; u.cd = d.cd; u.fireT = W.time; damage(W, u, e); } else u.cd = 0.3; }
+  }
+  // кто ждёт клеть на площадке end (с приказом «ехать» именно сюда)
+  function liftWaiting(W, lf, end) { var pad = lf[end]; return W.units.filter(function (u) { return u.hp > 0 && u.order.t === 'lift' && u.order.lift === lf.id && u.order.end === end && Math.hypot(u.x - pad.x, u.y - pad.y) <= LIFT.pad; }); }
+  function liftStep(W, dt) {
+    W.lifts.forEach(function (lf) {
+      if (lf.cool > 0) lf.cool -= dt;
+      if (lf.st === 'move') {
+        lf.t -= dt; if (lf.t > 0) return;
+        lf.at = lf.to; lf.to = null; lf.st = 'idle'; lf.cool = LIFT.cool; var pad = lf[lf.at], rs = lf.riders; lf.riders = [];
+        var tiles = spreadTiles(W, pad.x, pad.y, rs.length + 4).filter(function (t) { return !unitOn(W, t.i, t.j); });
+        rs.forEach(function (u, n) { var t = tiles[n] || tiles[tiles.length - 1] || { i: Math.floor(pad.x), j: Math.floor(pad.y) }; u.x = t.i + 0.5; u.y = t.j + 0.5; u.path = []; u.order = { t: 'idle' }; u.post = { x: u.x, y: u.y }; u.chk = { x: u.x, y: u.y, t: 0 }; u.rode = lf.id; W.units.push(u); W.byId[u.id] = u; });
+        if (rs.length) { lf.trips++; W.visT = 0; }
+        W.events.push({ t: 'liftArrive', id: lf.id, end: lf.at, ids: rs.map(function (u) { return u.id; }), owner: rs.length ? rs[0].owner : -1, x: pad.x, y: pad.y });
+        return;
+      }
+      if (!lf.on) { lf.st = 'idle'; return; }
+      var other = lf.at === 'a' ? 'b' : 'a', here = liftWaiting(W, lf, lf.at);
+      if (lf.st === 'idle') {
+        if (lf.cool > 0) return;
+        if (here.length) { lf.st = 'load'; lf.t = lf.wait; W.events.push({ t: 'liftLoad', id: lf.id, end: lf.at, owner: here[0].owner }); }
+        else { var far = liftWaiting(W, lf, other); if (far.length) { lf.st = 'move'; lf.to = other; lf.t = lf.ride; lf.riders = []; W.events.push({ t: 'liftCall', id: lf.id, end: other, owner: far[0].owner }); } }
+        return;
+      }
+      if (lf.st === 'load') {
+        if (!here.length) { lf.st = 'idle'; return; }
+        lf.t -= dt; if (lf.t > 0) return;
+        var pad2 = lf[lf.at]; here.sort(function (a, b) { return Math.hypot(a.x - pad2.x, a.y - pad2.y) - Math.hypot(b.x - pad2.x, b.y - pad2.y); });
+        var go = here.slice(0, lf.cap); go.forEach(function (u) { u.path = []; u.order = { t: 'idle' }; delete W.byId[u.id]; });
+        W.units = W.units.filter(function (u) { return go.indexOf(u) < 0; });
+        lf.riders = go; lf.st = 'move'; lf.to = other; lf.t = lf.ride;
+        W.events.push({ t: 'liftDepart', id: lf.id, end: lf.at, ids: go.map(function (u) { return u.id; }), owner: go[0].owner, left: here.length - go.length, x: pad2.x, y: pad2.y });
+      }
+    });
+  }
+  // все, кто сейчас едет в клетях (их нет в W.units)
+  function riders(W) { var out = []; W.lifts.forEach(function (lf) { lf.riders.forEach(function (u) { out.push(u); }); }); return out; }
+  // Области карты (ярусы): номер связной области проходимых клеток под точкой (0 — непроходимо). Кэш до смены карты/зданий.
+  function regions(W) {
+    var key = W.mapRev + ':' + W.blds.length + ':' + W.nextId; if (W._reg && W._regKey === key) return W._reg;
+    var reg = new Int16Array(W.w * W.h), n = 0;
+    for (var s = 0; s < reg.length; s++) {
+      if (reg[s] || !walkable(W.t[s]) || W.occ[s]) continue; n++; var q = [s]; reg[s] = n;
+      for (var h = 0; h < q.length; h++) { var k = q[h], i = k % W.w, j = (k / W.w) | 0; for (var d = 0; d < 4; d++) { var a = i + DX[d], b = j + DY[d]; if (!inb(W, a, b)) continue; var m = b * W.w + a; if (!reg[m] && walkable(W.t[m]) && !W.occ[m]) { reg[m] = n; q.push(m); } } }
+    }
+    W._reg = reg; W._regKey = key; return reg;
+  }
+  function regionOf(W, x, y) { var i = Math.floor(x), j = Math.floor(y); if (!inb(W, i, j)) return 0; var r = regions(W)[j * W.w + i]; if (r) return r; var np = nearestPassable(W, i, j, 3); return np ? regions(W)[np.j * W.w + np.i] : 0; }
+  // Какой клетью ехать из (x0,y0), чтобы попасть в область точки (x1,y1): { lift, end } — первая пересадка (поиск в ширину по
+  // включённым клетям); null — та же область или пути нет. reach — есть ли путь вообще (пешком и клетями).
+  function liftRoute(W, x0, y0, x1, y1) {
+    var from = regionOf(W, x0, y0), to = regionOf(W, x1, y1); if (!from || !to || from === to) return null;
+    var seen = {}, q = [{ r: from, first: null }]; seen[from] = 1;
+    for (var h = 0; h < q.length; h++) {
+      var cur = q[h]; if (cur.r === to) return cur.first;
+      for (var n = 0; n < W.lifts.length; n++) { var lf = W.lifts[n]; if (!lf.on) continue; var ra = regionOf(W, lf.a.x, lf.a.y), rb = regionOf(W, lf.b.x, lf.b.y);
+        if (ra === cur.r && !seen[rb]) { seen[rb] = 1; q.push({ r: rb, first: cur.first || { lift: lf, end: 'a' } }); }
+        if (rb === cur.r && !seen[ra]) { seen[ra] = 1; q.push({ r: ra, first: cur.first || { lift: lf, end: 'b' } }); } }
+    }
+    return null;
+  }
+  function liftReach(W, x0, y0, x1, y1) { var a = regionOf(W, x0, y0), b = regionOf(W, x1, y1); return !!a && !!b && (a === b || !!liftRoute(W, x0, y0, x1, y1)); }
+
   // ---------- Громада (кампания, миссия 8): многочастный юнит-босс ----------
   // u.parts — узлы [{ k, hp, maxHp, at }]; u.hp — сумма узлов. Состояние u.bs: st 'walk' | 'bore' | 'warn' | 'vent', маршрут route
   // (точки), stun — оглушена паром гейзера. Узел выбирает стрелок своим местом: попадание приходится в ближайший целый узел.
@@ -1327,6 +1437,7 @@
     CAMP_BLDS: CAMP_BLDS, H2O: H2O, CAPTURE: CAPTURE, BOSS: BOSS, teamOf: teamOf, hostile: hostile, friendTo0: friendTo0, paintOf: paintOf, setOwner: setOwner,
     addFire: addFire, fireAt: fireAt, nearestFire: nearestFire, depotAt: depotAt, waterSource: waterSource, commandDouse: commandDouse, commandFill: commandFill, nearWater: nearWater,
     canCapture: canCapture, commandCapture: commandCapture, captureNow: captureNow, guarded: guarded,
+    sees: sees, addLift: addLift, liftById: liftById, liftAt: liftAt, commandLift: commandLift, liftStep: liftStep, liftWaiting: liftWaiting, riders: riders, regionOf: regionOf, liftRoute: liftRoute, liftReach: liftReach, LIFT: LIFT,
     initBoss: initBoss, setBoss: setBoss, partAlive: partAlive, partOf: partOf, partPts: partPts, partToward: partToward, hitPart: hitPart, bossSteam: bossSteam, passBig: passBig, distTo: distTo, waterCap: waterCap
   };
 })(typeof window !== 'undefined' ? window : globalThis);

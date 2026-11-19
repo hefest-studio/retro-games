@@ -22,7 +22,7 @@ function makeEnv(o = {}) {
     localStorage: { _d: Object.assign({}, o.store || {}), getItem(k) { return this._d[k] ?? null; }, setItem(k, v) { this._d[k] = String(v); } },
     addEventListener(ev, fn, opt) { const b = (opt === true || (opt && opt.capture)) ? L.cap : L.bub; (b[ev] = b[ev] || []).push(fn); },
     removeEventListener() {}, setInterval() { return 1; }, clearInterval() {}, setTimeout() { return 0; },
-    requestAnimationFrame() { return 0; }, cancelAnimationFrame() {},
+    requestAnimationFrame(fn) { win._rafFn = fn; return 0; }, cancelAnimationFrame() {},
     performance: { now: () => t },
     matchMedia: (q) => ({ matches: !!o.coarse && /pointer: coarse/.test(q) }),
   };
@@ -54,7 +54,14 @@ function ok(c, m) { if (!c) throw new Error(m || 'ложь'); }
 const BIND = { p1: { left: ['ArrowLeft'], right: ['ArrowRight'], up: ['ArrowUp'], down: ['ArrowDown'], fire: ['Slash', 'Period', 'Space'] },
   p2: { left: ['KeyA'], right: ['KeyD'], up: ['KeyW'], down: ['KeyS'], fire: ['KeyF', 'ShiftLeft'] } };
 
-test('версия движка 2.3.0', () => { eq(makeEnv().A.version, '2.3.0'); });
+test('версия движка 2.4.0', () => { eq(makeEnv().A.version, '2.4.0'); });
+
+test('цикл: метка rAF первого кадра раньше start() — время не уходит в минус', () => {
+  const env = makeEnv(); const g = game(env); // start() при performance.now() = 1000
+  env.win._rafFn(990); eq(g.time, 0, 'кадр с меткой раньше старта');
+  env.win._rafFn(1006); ok(Math.abs(g.time - 0.016) < 1e-9, 'дальше время идёт: ' + g.time);
+  env.win._rafFn(5000); ok(Math.abs(g.time - 0.266) < 1e-9, 'большой разрыв обрезан до 0.25 с: ' + g.time);
+});
 
 // ---------- меню ----------
 test('меню: встроенные ключи title и pause', () => {

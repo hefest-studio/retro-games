@@ -9,6 +9,13 @@
    к последнему карману без потери прогресса), мутная вода (видимость снижена, зоны guide — по звону), колокола-ориентиры
    (scene.water.sounds: звенят сами и по умению Таи «прислушаться»; событие 'ring' с панорамой и высотой тона по расстоянию).
    Модель отдаёт model.water (воздух, муть, кольца звука) — тема рисует хуком drawWater.
+   Сны и живая тушь (dream.js, с главы 5): сцена-сон — вариант сцены «наоборот» с двумя состояниями (сон/явь — scene.phase),
+   модель несёт scene.dream (вуаль сна — хук drawDream); эскиз тушью оживает (puzzles.inks → правила, действие ['ink', id] —
+   перо рисует объект kind inkdraw: state.drawn 0..1, state.live). Хор огней (chorus.js, глава 6) — межсценовая головоломка:
+   голоса в разных сценах поют мелодию по порядку (puzzles.chorus → правила, действие ['voice', …]); модель несёт model.chorus
+   (строка мелодии — хук drawChorus), карта — ноты узлов и нити мелодии. Финальная кат-сцена: шаги ['move', объект, dx, dy, сек]
+   (объект плывёт), ['fx', имя, сек] (эффект на весь лист — хук drawFx: рассвет, туман уходит), ['notes', [ноты], шаг, голос]
+   (мотив по нотам — событие 'note'), ['go', сцена, x].
    Без DOM: ввод — G.down/move/up/look в логических координатах 960×540, время — G.update(dt), отрисовка — G.model()
    (main.js отдаёт модель в window.KvestTheme). Чистая логика правил — KVEST.logic (её же использует поиск в тестах). */
 (function (global) {
@@ -103,6 +110,9 @@
     var HOFF = { taya: 132, dog: 84, gull: 60 }, TRAIL_T = 4.5, OVER_T = 6;
     // подводные механики (water.js): в главах без puzzles.air и без scene.water — всё как раньше
     var WT_ = K.Water || null, AIR = WT_ ? WT_.conf(P) : null, SURF_OUT = 0.8, SURF_IN = 0.7, LISTEN_GAP = 0.65;
+    // сны, живая тушь и хор огней (dream.js, chorus.js): в главах без них — всё как раньше
+    var DR = K.Dream || null, CHO = K.Chorus || null;
+    if (DR) DR.prepare(P); if (CHO) CHO.prepare(P);
     var st, rt;
 
     function fresh() {
@@ -117,7 +127,8 @@
       return { mode: 'scene', hero: { x: 0, y: 0, dir: 1 }, target: null, reach: null, thoughts: {}, cut: null, cutQ: [], pose: 'idle', poseT: 0, npcPose: {},
         ring: {}, mini: null, miniDone: 0, walk: null, sel: null, drag: null, ptr: null, hover: { x: -1, y: -1 }, time: 0, debug: !!opts.debug, hintAfterMini: false,
         pad: rt ? rt.pad : (+opts.pad || 0), phase: { name: null, t0: -99 }, token: null, travel: null, timerSeen: {},
-        pos: {}, hpose: {}, reachY: null, trail: null, overview: null, rings: {}, ringN: {}, listenQ: [], surf: null, airLow: false };
+        pos: {}, hpose: {}, reachY: null, trail: null, overview: null, rings: {}, ringN: {}, listenQ: [], surf: null, airLow: false,
+        ink: {}, chor: {}, moves: {}, fxs: {}, noteQ: [] };
     }
     st = fresh(); rt = freshRt(); rt.pos.taya = rt.hero;
 
@@ -136,6 +147,18 @@
       cut: function (id) { if ((rt.cut && rt.cut.id === id) || rt.cutQ.some(function (c) { return c.id === id; })) return; rt.cutQ.push({ id: id, i: 0, t: 0 }); },
       mini: function (id) { openMini(id); },
       win: function () { emit('win', {}); },
+      // живая тушь: перо рисует объект (флаг ink:<id> ставит правило); хор огней: голос спел ноту (k ≥ 0 — верно, −1 — повтор, −2 — мимо)
+      ink: function (id) { rt.ink[id] = rt.skipping ? rt.time - 9 : rt.time; emit('sfx', { name: 'pen' }); emit('ink', { id: id }); },
+      voice: function (cid, vid, k) {
+        var c = CHO && CHO.get(P, cid), v = c && CHO.voice(c, vid); if (!v) return;
+        var r = rt.chor[cid] || (rt.chor[cid] = {}); r.t = rt.time; r.last = vid; if (k === -2) r.miss = rt.time;
+        rt.ring['v:' + vid] = rt.time;
+        emit('voice', { chorus: cid, voice: vid, note: v.note, k: k, n: c.target.length, ok: k >= 0, miss: k === -2, done: k === c.target.length - 1 });
+      },
+      // финальная кат-сцена: объект плывёт (смещение к (dx, dy) за сек), эффект на весь лист, мотив по нотам
+      move: function (id, dx, dy, sec) { var m = rt.moves[id], cur = m ? moveAt(m) : { dx: 0, dy: 0 }; rt.moves[id] = { x0: cur.dx, y0: cur.dy, x1: +dx || 0, y1: +dy || 0, t0: rt.time, dur: rt.skipping ? 0 : Math.max(0.01, +sec || 1) }; },
+      fx: function (name, sec) { rt.fxs[name] = { t0: rt.time, dur: rt.skipping ? 0 : Math.max(0.01, +sec || 1) }; emit('fx', { name: name }); },
+      notes: function (list, gap, voice) { if (rt.skipping) return; (list || []).forEach(function (n, i) { rt.noteQ.push({ at: rt.time + i * (gap || 0.4), note: n, i: i, n: list.length, voice: voice || null }); }); },
       puzzle: function (id) { pose('happy', 0.9); emit('puzzle', { id: id, solved: solvedCount() }); }
     };
     function cutGuard(r) {
@@ -143,6 +166,9 @@
       return true;
     }
     function changed() { emit('change', {}); }
+    function ease(k) { return k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; }
+    function moveAt(m) { var k = m.dur <= 0 ? 1 : Math.max(0, Math.min(1, (rt.time - m.t0) / m.dur)), e = ease(k); return { dx: m.x0 + (m.x1 - m.x0) * e, dy: m.y0 + (m.y1 - m.y0) * e }; }
+    function noteStep() { while (rt.noteQ.length && rt.noteQ[0].at <= rt.time) { var q = rt.noteQ.shift(); rt.ring['n' + q.note] = rt.time; emit('note', { note: q.note, i: q.i, n: q.n, voice: q.voice }); } }
     function runAutos() {
       autos(P, st, fx, cutGuard);
       if (MULTI) HL.autoRelease(P, st).forEach(function (r) { if (r.hero === active()) { rt.pose = 'idle'; rt.poseT = 0; } emit('sfx', { name: 'release' }); emit('hold', { id: r.id, hero: r.hero, on: false, auto: true }); });
@@ -156,6 +182,7 @@
       st.scene = id; rt.target = null; rt.reach = null; rt.thoughts = {}; rt.sel = null; rt.travel = null;
       placeHero(x != null ? x : SC[id].hero.x); rt.hero.dir = rt.hero.x > 480 ? -1 : 1;
       rt.trail = null; rt.overview = null; placeParty();
+      if (!rt.cut) { rt.fxs = {}; rt.moves = {}; }   // эффекты и смещения кат-сцены живут, пока идёт она сама (и её сцены)
       if (AIR && !(SC[prev] && wet(SC[prev]) && wet(SC[id]))) st.air = AIR.max;   // с суши под воду — с полным воздухом
       rt.listenQ = []; rt.ringN = {}; rt.ringK = {}; rt.rings = {};
       rt.phase = { name: K.Coast ? K.Coast.phaseOf(SC[id], st) : null, t0: -99 };
@@ -512,11 +539,13 @@
           var s = steps[c.i];
           if (s[0] === 'walk') { placeHero(s[1]); continue; }
           if (s[0] === 'npcPose') { rt.npcPose[s[1]] = s[2]; continue; }
-          if (stateStep(s) || s[0] === 'sfx') { apply(P, st, [s], fx); runAutos(); }
+          if (stateStep(s) || s[0] === 'sfx' || s[0] === 'go' || s[0] === 'move' || s[0] === 'fx' || s[0] === 'ink') { rt.skipping = true; try { apply(P, st, [s], fx); runAutos(); } finally { rt.skipping = false; } }
         }
         emit('cut', { id: c.id, end: true, skipped: true }); rt.cut = null; runAutos();
       }
-      rt.thoughts = {}; rt.pose = 'idle'; changed(); emit('save', {});
+      for (var mi in rt.moves) { var mm = rt.moves[mi]; mm.x0 = mm.x1; mm.y0 = mm.y1; mm.dur = 0; }   // пропуск: всё, что плыло и проявлялось, — сразу в конечном виде
+      for (var fi in rt.fxs) rt.fxs[fi].dur = 0;
+      rt.thoughts = {}; rt.pose = 'idle'; rt.noteQ = []; changed(); emit('save', {});
     }
 
     // ---------- карта: фишка идёт по открытым тропам к узлу, затем вход в сцену ----------
@@ -652,7 +681,7 @@
       tap(x, y);
     }
     function drop(item, x, y) {
-      if (rt.mode !== 'scene' || rt.cut) return;
+      if (rt.mode !== 'scene' || rt.cut || rt.cutQ.length || rt.surf) return;   // во время мягкого возврата и кат-сцены предмет не применяется
       if (MULTI && y < LAY.inv.y) { var hb = HL.busy(P, st, active()); if (hb) releaseHold(hb.id); }
       if (y >= LAY.inv.y) { var si = slotAt(x, y), other = st.inv[si]; if (other && other !== item) combine(item, other); return; }
       var h = hsAtTouch(x, y); if (h) approach(h, item);
@@ -670,7 +699,7 @@
       for (var hp in rt.hpose) if (rt.hpose[hp].until <= rt.time) delete rt.hpose[hp];
       if (rt.trail && rt.time - rt.trail.t0 > TRAIL_T) rt.trail = null;
       if (rt.overview && rt.time - rt.overview.t0 > OVER_T) rt.overview = null;
-      partyStep(dt);
+      partyStep(dt); noteStep();
       if (WT_) { ringStep(); airStep(dt); if (rt.surf) { surfStep(); return; } }
       if (rt.cut || rt.cutQ.length) { cutStep(dt); return; }
       if (rt.mode === 'scene') timerStep(dt);
@@ -713,12 +742,20 @@
         if (o.bind) for (k in o.bind) state[k] = Array.isArray(o.bind[k]) ? ok(st, o.bind[k]) : has(st, o.bind[k]);   // список — «и» (поворот крыльев: ветер + парус + нет тормоза)
         if (wv[o.id]) for (k in wv[o.id]) state[k] = wv[o.id][k];
         if (rt.npcPose[o.id]) state.pose = rt.npcPose[o.id];
+        if (DR && o.kind === 'inkdraw') { var iq = DR.inkOfObj(P, s.id, o.id); if (iq) { var is = DR.inkState(!!st.flags[DR.flag(iq.id)], rt.ink[iq.id], rt.time); state.drawn = is.drawn; state.live = is.live; } }
+        if (o.voice && rt.ring['v:' + o.voice] != null) state.ring = Math.max(0, 1 - (rt.time - rt.ring['v:' + o.voice]) / 1.4);   // голос хора звенит
         if (o.kind === 'npc' && o.state && o.state.type === 'bird' && rt.ring.birds != null) { var dtb = rt.time - rt.ring.birds; state.sing = Math.max(0, 1 - Math.abs(dtb - (+o.id.slice(4) - 1) * 0.32) / 0.3); }
-        objs.push({ id: o.id, kind: o.kind, item: o.item, x: o.x, y: o.y, w: o.w, h: o.h, seed: o.seed, state: state });
+        // мотив по нотам (['notes', …]): поёт / звенит тот, у кого та же нота (птица на столбике, колокол, колокольчик) — в том порядке, в каком звучат ноты
+        if (o.state && typeof o.state.note === 'number' && rt.ring['n' + o.state.note] != null) { var dn = rt.time - rt.ring['n' + o.state.note];
+          if (dn >= 0 && dn < 1.4) { if (o.kind === 'npc') state.sing = Math.max(state.sing || 0, 1 - dn / 0.45); else state.ring = Math.max(state.ring || 0, 1 - dn / 1.4); } }
+        var ob ={ id: o.id, kind: o.kind, item: o.item, x: o.x, y: o.y, w: o.w, h: o.h, seed: o.seed, state: state };
+        if (rt.moves[o.id]) { var mv = moveAt(rt.moves[o.id]); if (mv.dx || mv.dy) { ob.dx = mv.dx; ob.dy = mv.dy; } }   // кат-сцена: объект плывёт (тема сдвигает готовый спрайт)
+        objs.push(ob);
       });
+      if (s.map && CHO) objs = CHO.decorate(P, s.map, st, objs);
       var mix = null;
       if (s.phase) { var k = Math.max(0, Math.min(1, (rt.time - rt.phase.t0) / PHASE_T)); mix = ph === s.phase.b ? k : 1 - k; }
-      return { id: s.id, w: s.w, h: s.h, mood: s.mood, pal: s.pal, layers: K.Coast ? K.Coast.layersOf(s, ph) : s.layers, objects: objs, hotspots: visibleHs(),
+      return { id: s.id, w: s.w, h: s.h, mood: s.mood, pal: (s.palPhase && s.palPhase[ph]) || s.pal, dream: DR ? DR.view(s, ph, mix) : null, layers: K.Coast ? K.Coast.layersOf(s, ph) : s.layers, objects: objs, hotspots: visibleHs(),
         walk: walkOf(s, st), hero: s.hero, dark: !!(s.darkUnless && !st.flags[s.darkUnless]), phase: ph, phaseMix: mix, map: !!s.map };
     }
     function thoughtsView() {
@@ -758,6 +795,8 @@
       out.sort(function (u, v) { return (u.active ? 1 : 0) - (v.active ? 1 : 0) || (u.id === 'gull') - (v.id === 'gull'); });   // активный — поверх
       return out;
     }
+    // эффекты кат-сцены на весь лист: k 0..1 — ход эффекта (дошёл до 1 — остаётся, пока сцена та же)
+    function fxView() { var out = []; for (var n in rt.fxs) { var f = rt.fxs[n]; out.push({ name: n, k: f.dur <= 0 ? 1 : Math.max(0, Math.min(1, (rt.time - f.t0) / f.dur)), age: rt.time - f.t0 }); } return out; }
     function model() {
       var mini = rt.mode === 'mini' && rt.mini, w = mini && rt.mini.w;
       var scene = mini ? WT[w.type].scene(w, local(w), rt.time, rt) : sceneView();
@@ -778,6 +817,8 @@
         trail: !mini && rt.trail ? { pts: rt.trail.pts, rect: rt.trail.rect, age: rt.time - rt.trail.t0, dur: TRAIL_T } : null,
         overview: !mini && rt.overview ? { marks: rt.overview.marks, age: rt.time - rt.overview.t0, dur: OVER_T } : null,
         water: !mini && WT_ ? waterView() : null,
+        chorus: !mini && CHO ? CHO.view(P, st, st.scene, rt.chor, rt.time) : null,
+        fx: fxView(),
         thoughts: mini ? [] : thoughtsView(), ui: ui, cursor: { kind: cursorKind(), x: rt.hover.x, y: rt.hover.y, item: rt.sel },
         light: { x: rt.hero.x, y: rt.hero.y - 60, r: st.inv.indexOf('lantern_lit') >= 0 ? 260 : 70 }, time: rt.time };
     }
@@ -817,6 +858,7 @@
       switchHero: switchTo, cycleHero: cycleHero, ability: ability, sniff: sniff, overview: overview, activeHero: active, heroes: function () { return HEROES.slice(); },
       present: presentHere, releaseHold: releaseHold, portraitAt: portraitAt, portraits: portraitList, multi: MULTI,
       air: function () { return AIR ? { left: st.air, max: AIR.max, speed: AIR.speed, pocket: st.pocket, outs: rt.outs || 0 } : null; }, listen: listen, water: waterView, surfacing: function () { return !!rt.surf; },
+      chorus: function () { return CHO ? CHO.view(P, st, st.scene, rt.chor, rt.time) : null; },
       waitTimer: waitTimer, setTimers: function (v) { TIMERS_ON = !!v; return TIMERS_ON; }, mapGo: function (nodeId) { var h = hsById('n_' + nodeId); if (h && sc().map) mapGo(h); return !!h; }
     };
     return api;

@@ -56,6 +56,10 @@
       msgCaptured: 'Занято', msgCapturedOurs: 'Наше здание заняли', msgGuarded: 'Здание под охраной — сначала отгони стрелков', msgDoused: 'Очаг потушен',
       msgVent: 'Громада травит пар — отойди от корпуса!', msgScald: 'Гейзер обварил громаду — стоит в пару!', msgBossDown: 'громада встала навсегда',
       msgPart_tracks: 'Гусеницы сбиты — громада стоит', msgPart_drill: 'Бур сломан — здания ей теперь не по зубам', msgPart_cabin: 'Кабина разбита — пушка молчит', msgPart_boiler: 'Котёл пробит — пара больше нет, ход тише',
+      // миссии 9–10: клети шахты, фонари, места работ; экран финала кампании
+      msgLiftCall: 'Клеть на другом ярусе — вызвана, жди на площадке', msgLiftGo: 'Клеть пошла', msgLiftLeft: 'ждут следующего рейса', msgLiftArrive: 'Клеть пришла — выходим',
+      msgLamp: 'Фонарь зажжён — этот штрек теперь виден', msgSite: 'Готово', liftTip: 'ПКМ по площадке клети — ехать (до 4 за рейс)',
+      finaleT: 'Итог кампании', finaleChoices: 'Что решила артель', finaleVoices: 'Голоса плато',
       // издание (демо / полная, js/edition.js)
       lockedFull: 'В полной версии', lockedFullSub: 'Миссии 2–10 кампании «Медная лихорадка» — в полной версии игры. Скирмиш в демо открыт целиком.',
       demoTitle: 'Продолжение — в полной версии', demoSub: 'Первая заявка отстояна. Метель, обоз Сизых и ещё восемь заданий кампании ждут в полной версии игры.',
@@ -112,6 +116,9 @@
       msgCaptured: 'Taken over', msgCapturedOurs: 'Our building was taken', msgGuarded: 'The building is guarded — drive the riflemen off first', msgDoused: 'Fire put out',
       msgVent: 'The colossus is venting steam — get clear of the hull!', msgScald: 'A geyser scalded the colossus — it stands in steam!', msgBossDown: 'the colossus is down for good',
       msgPart_tracks: 'Tracks knocked out — the colossus is stuck', msgPart_drill: 'Drill broken — it can’t chew through buildings now', msgPart_cabin: 'Cabin wrecked — the gun is silent', msgPart_boiler: 'Boiler holed — no more steam, slower going',
+      msgLiftCall: 'The cage is on the other level — called, wait on the pad', msgLiftGo: 'The cage is moving', msgLiftLeft: 'waiting for the next run', msgLiftArrive: 'The cage is here — everybody out',
+      msgLamp: 'Lamp lit — this drift stays in sight now', msgSite: 'Done', liftTip: 'RMB the cage pad — ride (up to 4 per run)',
+      finaleT: 'Campaign outcome', finaleChoices: 'What the artel decided', finaleVoices: 'Voices of the plateau',
       lockedFull: 'In the full version', lockedFullSub: 'Missions 2–10 of the Copper Fever campaign are in the full game. Skirmish is fully open in the demo.',
       demoTitle: 'The story continues in the full version', demoSub: 'The first claim holds. A snowstorm, a Grey Pass convoy and eight more campaign missions await in the full game.',
       soonTitle: 'New missions — coming soon', soonSub: 'The next campaign missions are in the works. Thank you for holding the plateau!',

@@ -13,7 +13,7 @@ const store = {};
 const sandbox = { console, Math, JSON, setTimeout: () => 0, localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } } };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-const FILES = ['js/music.js', 'js/i18n.js', 'js/edition.js', 'js/stats.js', 'js/theme-api.js', 'js/scenes.js', 'js/widgets.js', 'js/puzzles.js', 'js/coast.js', 'js/helpers.js', 'js/water.js', 'js/chapters/index.js', 'js/game.js', 'js/audio.js', 'js/themes/icons-ext.js', 'js/themes/grey.js', 'js/themes/paper.js', 'js/themes/paper-helpers.js', 'js/themes/paper-water.js', 'js/themes/ink-sketch.js'];
+const FILES = ['js/music.js', 'js/i18n.js', 'js/edition.js', 'js/stats.js', 'js/theme-api.js', 'js/scenes.js', 'js/widgets.js', 'js/puzzles.js', 'js/coast.js', 'js/helpers.js', 'js/water.js', 'js/dream.js', 'js/chorus.js', 'js/chapters/index.js', 'js/game.js', 'js/audio.js', 'js/themes/icons-ext.js', 'js/themes/grey.js', 'js/themes/paper.js', 'js/themes/paper-helpers.js', 'js/themes/paper-water.js', 'js/themes/paper-dream.js', 'js/themes/ink-sketch.js'];
 for (const f of FILES) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const K = sandbox.KVEST, A = K.ThemeAPI, P = K.PUZZLES, LG = K.logic, WT = K.Widgets.types;
 
@@ -946,6 +946,191 @@ test('звук подводных событий: ring / air / airlow / surface 
   K.sfx(g2, 'ring', { note: 1, pan: -0.7, gain: 0.8, cutoff: 1500 }); ok(made >= 8, 'узлы WebAudio'); eq(ac.lastPan.pan.value, -0.7, 'панорама'); K.sfx(g2, 'ring', { harsh: true, pan: 2 }); eq(ac.lastPan.pan.value, 1);
   ['air', 'airlow', 'surface', 'bubbles', 'dive', 'whale', 'clangiron'].forEach(n => { K.sfx(g1, n, {}); K.sfx(g2, n, {}); });
   K.sfx({ audio: { enabled: false, beep: () => { throw new Error('звук выключен'); } } }, 'ring', { note: 1 });
+});
+
+// ---------- спринт 4: сцены-сны, живая тушь, хор огней (межсценовая головоломка), финальная кат-сцена, титры, экран глав ----------
+// Тестовые данные: сны строятся из сцен главы 1 (они уже есть в демо) — содержимое глав 5–6 в публичном дереве не лежит.
+const DR = K.Dream, CHO = K.Chorus, CH1 = CHS.get('ch1'), base = id => CH1.scenes.find(s => s.id === id);
+const SNAP1 = JSON.stringify(CH1.scenes);
+const DZ_SHOP = DR.variant(base('workshop'), { id: 'dz_shop', mirror: true, mood: 'night', pal: 'dream_warm', keep: ['stove', 'bench'], invert: { stove: ['fire'] },
+  wake: 'awake', palWake: 'warm', up: true, only: { dream: ['spot', 'drawn', 'drawnDoor', 'thought'], wake: ['key', 'bellB'] },
+  objects: [{ id: 'thought', kind: 'inkthought', x: 400, y: 250, w: 46, h: 46, state: { icon: 'ink_door' }, show: ['!got_ink'] },
+    { id: 'spot', kind: 'inkspot', x: 14, y: 300, w: 76, h: 152, state: { shape: 'door' }, show: ['!ink:door'] }, { id: 'drawn', kind: 'inkdraw', x: 14, y: 300, w: 76, h: 152, state: { shape: 'door' }, bind: { open: 'doorOpen' } },
+    { id: 'moon', kind: 'lever', x: 600, y: 400, w: 18, h: 50, state: {}, bind: { on: 'awake' } }, { id: 'key', kind: 'item', item: 'key', x: 700, y: 420, w: 30, h: 30, show: ['!got_key'] },
+    { id: 'bellB', kind: 'seabell', x: 480, y: 380, w: 40, h: 46, state: { note: 0 }, voice: 'b' }],
+  hotspots: [{ id: 'thought', rect: [390, 240, 66, 66], cursor: 'take', at: 423, need: ['!got_ink'] }, { id: 'spot', rect: [14, 300, 76, 152], cursor: 'use', at: 100, need: ['!ink:door'] },
+    { id: 'drawnDoor', rect: [14, 300, 76, 152], cursor: 'go', at: 60, to: 'dz_cliff', toX: 900, need: ['ink:door'] }, { id: 'moon', rect: [590, 392, 38, 60], cursor: 'use', at: 609 },
+    { id: 'key', rect: [690, 410, 50, 42], cursor: 'take', at: 715, need: ['!got_key'] }, { id: 'bellB', rect: [470, 370, 60, 66], cursor: 'use', at: 500 }] });
+const DZ_CLIFF = DR.variant(base('cliff'), { id: 'dz_cliff', mirror: true, mood: 'night', pal: 'dream_dusk', keep: [],
+  exits: { toSquare: { to: 'dz_shop', toX: 120 }, toTower: { to: 'dmap', need: ['ink:bridge'] } },
+  walk: [[472, 452], [938, 452]], walkIf: [{ need: ['ink:bridge'], walk: [[22, 452], [938, 452]] }], hero: { x: 900, y: 452 },
+  objects: [{ id: 'thought2', kind: 'inkthought', x: 680, y: 300, w: 46, h: 46, state: { icon: 'ink_bridge' }, show: ['!got_ink2'] },
+    { id: 'spot2', kind: 'inkspot', x: 140, y: 396, w: 326, h: 100, state: { shape: 'bridge' }, show: ['!ink:bridge'] }, { id: 'drawn2', kind: 'inkdraw', x: 140, y: 396, w: 326, h: 100, state: { shape: 'bridge' } },
+    { id: 'bellA', kind: 'seabell', x: 60, y: 380, w: 40, h: 46, state: { note: 2 }, voice: 'a' }, { id: 'bellC', kind: 'seabell', x: 590, y: 380, w: 40, h: 46, state: { note: 1 }, voice: 'c' }],
+  hotspots: [{ id: 'thought2', rect: [670, 290, 66, 66], cursor: 'take', at: 703, need: ['!got_ink2'] }, { id: 'spot2', rect: [140, 360, 326, 120], cursor: 'use', at: 480, need: ['!ink:bridge'] },
+    { id: 'bellA', rect: [50, 370, 60, 66], cursor: 'use', at: 110, need: ['ink:bridge'] }, { id: 'bellC', rect: [580, 370, 60, 66], cursor: 'use', at: 610 }] });
+const DCH = {
+  id: 'ch10', n: 10, title: { ru: 'Проверка снов', en: 'Dream check' },
+  map: { id: 'dmap', start: 'n1', coast: [[0, 0], [960, 0], [960, 300], [0, 360]],
+    nodes: [{ id: 'n1', scene: 'dz_cliff', x: 300, y: 300, icon: 'bridge', toX: 60 }, { id: 'n2', scene: 'dz_shop', x: 600, y: 250, icon: 'hammer', toX: 300 }, { id: 'far', x: 800, y: 150, icon: 'rocktower', lit: 'ch:tri:done' }],
+    trails: [{ a: 'n1', b: 'n2', pts: [[450, 250]] }, { a: 'n2', b: 'far', pts: [] }] },
+  scenes: [DZ_SHOP, DZ_CLIFF],
+  puzzles: { start: { scene: 'dz_shop', flags: {}, inv: [] }, goal: 'won', items: ['ink_door', 'ink_bridge', 'key'],
+    inks: [{ id: 'door', scene: 'dz_shop', hs: 'spot', item: 'ink_door', obj: 'drawn', puzzle: 'p_d1' }, { id: 'bridge', scene: 'dz_cliff', hs: 'spot2', item: 'ink_bridge', obj: 'drawn2', puzzle: 'p_d2' }],
+    chorus: [{ id: 'tri', target: [2, 0, 1], onMiss: [['sfx', 'hush']], onSolve: [['cut', 'fin']], puzzle: 'p_d3',
+      voices: [{ id: 'a', scene: 'dz_cliff', hs: 'bellA', note: 2, need: ['ink:bridge'], node: 'n1' }, { id: 'b', scene: 'dz_shop', hs: 'bellB', note: 0, node: 'n2' }, { id: 'c', scene: 'dz_cliff', hs: 'bellC', note: 1, need: ['inv:key'] }] }],
+    rules: [{ scene: 'dz_shop', hs: 'thought', do: [['give', 'ink_door'], ['set', 'got_ink']] }, { scene: 'dz_cliff', hs: 'thought2', do: [['give', 'ink_bridge'], ['set', 'got_ink2']] },
+      { scene: 'dz_shop', hs: 'moon', do: [['toggle', 'awake']] }, { scene: 'dz_shop', hs: 'key', do: [['give', 'key'], ['set', 'got_key']] },
+      { scene: 'dz_cliff', hs: 'bellC', do: [['think', ['key', 'question']]] }],
+    combos: [], enter: [], autos: [],
+    cuts: { fin: [['fx', 'dawn', 1.0], ['move', 'bellC', 120, -40, 1.0], ['notes', [2, 0, 1], 0.2], ['wait', 1.4], ['fx', 'fogclear', 0.5], ['wait', 0.6], ['win']] },
+    widgets: [],
+    puzzles: [{ id: 'p_d1', scene: 'dz_shop', type: 'ink', hint: ['ink_door', 'quill'] }, { id: 'p_d2', scene: 'dz_cliff', type: 'ink', hint: ['ink_bridge', 'quill'] }, { id: 'p_d3', scene: null, type: 'chorus', hint: ['song'] }] }
+};
+const DC = CHS.register(DCH);
+const dgame = () => { const ev = [], G = K.createGame({ chapter: DC, timers: false, onEvent: (t, d) => ev.push({ t, d }) }); G.start(); return { G, ev }; };
+const dragTo = (G, item, hs) => { const i = G.state().inv.indexOf(item); ok(i >= 0, 'нет предмета ' + item); const r = A.slotRect(i), h = G.hotspot(hs); ok(h, 'нет зоны ' + hs); const x = h.rect[0] + h.rect[2] / 2, y = Math.min(h.rect[1] + h.rect[3] / 2, 470); G.down(r[0] + 20, r[1] + 20); G.move(x, y); G.up(x, y); };
+test('сцена-сон — вариант сцены главы 1 «наоборот»: зеркало, свои выходы, перевёрнутые условия; данные основы не меняются и в код движка не копируются', () => {
+  eq(JSON.stringify(CH1.scenes), SNAP1, 'сцены главы 1 изменились'); ok(DC && DC.scenes.some(s => s.id === 'dz_shop'));
+  const W0 = base('workshop'), st0 = W0.objects.find(o => o.id === 'stove'), st1 = DZ_SHOP.objects.find(o => o.id === 'stove');
+  eq(st1.x, 960 - st0.x - st0.w, 'печь не отражена'); eq(st1.bind.fire, '!' + st0.bind.fire, '«наоборот»: условие не перевёрнуто'); eq(st1.bind.wood, st0.bind.wood, 'перевёрнуто лишнее');
+  eq(DZ_SHOP.walk[0][0], 960 - W0.walk[1][0]); eq(DZ_SHOP.walk[1][0], 960 - W0.walk[0][0]); eq(DZ_SHOP.hero.x, 960 - W0.hero.x);
+  ok(!DZ_SHOP.objects.some(o => o.id === 'master') && !DZ_SHOP.hotspots.some(h => h.id === 'door'), 'лишнее из основы осталось'); ok(DZ_SHOP.hotspots.some(h => h.id === 'stove'));
+  const ex = DZ_CLIFF.hotspots.find(h => h.id === 'toSquare'); eq(ex.to, 'dz_shop'); eq(ex.rect[0], 960 - 40); ok(!DZ_SHOP.hotspots.some(h => h.to && !SCN(DC)[h.to]), 'выход ведёт в сцену главы-основы');
+  eq(DZ_SHOP.dream.of, 'workshop'); ok(DZ_SHOP.dream.mirror && DZ_SHOP.dream.up); eq(DZ_SHOP.phase.flag, 'awake'); eq(DZ_SHOP.mood, 'night'); eq(DZ_SHOP.palPhase.wake, 'warm');
+  eq(JSON.stringify(JSON.parse(JSON.stringify(DZ_SHOP))), JSON.stringify(DZ_SHOP), 'сон не сериализуется');
+  for (const s of [DZ_SHOP, DZ_CLIFF]) { for (const l of s.layers) for (const it of l.items) ok(A.isKind(it.kind), it.kind); for (const o of s.objects) ok(A.isKind(o.kind), o.kind); }
+  eq(DR.flipCond('a'), '!a'); eq(DR.flipCond('!a'), 'a'); const m2 = DR.mirror(DR.mirror(W0)); eq(JSON.stringify(m2.objects), JSON.stringify(W0.objects), 'двойное зеркало ≠ исходная');
+  const src = fs.readFileSync(path.join(ROOT, 'js/dream.js'), 'utf8') + fs.readFileSync(path.join(ROOT, 'js/chorus.js'), 'utf8');
+  for (const s of CH1.scenes.filter(q => !A.ICONS[q.id])) ok(!new RegExp("'" + s.id + "'").test(src), 'в движке снов зашита сцена главы 1: ' + s.id);
+  for (const w of ['stoveLit', 'got_oilcan', 'drawerOpen', 'bridgeDown', 'lighthouse', 'woodpile']) ok(!src.includes(w), 'в движке снов — данные главы 1: ' + w);
+});
+function SCN(ch) { const o = {}; ch.scenes.forEach(s => { o[s.id] = s; }); return o; }
+test('два состояния сна (сон/явь) — тем же механизмом, что прилив: зоны и объекты по состоянию, палитра яви, вуаль сна в модели; «наоборот» — огонь горит, пока флаг снят', () => {
+  const { G } = dgame(); let m = G.model().scene;
+  eq(m.phase, 'dream'); ok(m.dream && !m.dream.wake && m.dream.up && m.dream.mirror && m.dream.mix === 0, JSON.stringify(m.dream)); eq(m.pal, 'dream_warm');
+  ok(G.hotspot('thought') && G.hotspot('spot') && !G.hotspot('key') && !G.hotspot('bellB'), 'зоны сна'); ok(m.objects.some(o => o.id === 'spot') && !m.objects.some(o => o.id === 'key'));
+  eq(m.objects.find(o => o.id === 'stove').state.fire, true, 'во сне печь горит сама');
+  tapHs(G, 'moon'); run(G, 1.0); m = G.model().scene; eq(m.phase, 'wake'); ok(m.dream.wake && m.dream.mix > 0 && m.dream.mix < 1 && !m.dream.up, 'переход: ' + JSON.stringify(m.dream)); eq(m.pal, 'warm', 'палитра яви');
+  run(G, 4); eq(G.model().scene.dream.mix, 1); ok(G.hotspot('key') && G.hotspot('bellB') && !G.hotspot('spot') && !G.hotspot('thought'), 'зоны яви');
+  tapHs(G, 'moon'); run(G, 4); eq(G.model().scene.phase, 'dream'); eq(G.model().scene.dream.mix, 0);
+  eq(K.createGame({ chapter: CH1 }).start().model().scene.dream, null, 'в главе 1 снов нет');
+});
+test('живая тушь: эскиз применяют к пустому месту — перо рисует дверь (drawn 0 → 1), она оживает и ведёт дальше; нарисованный мост держит (полоса ходьбы)', () => {
+  const { G, ev } = dgame();
+  ok(DC.puzzles.rules.some(r => r.ink === 'door' && r.item === 'ink_door'), 'тушь не стала правилом'); eq(DC.puzzles.rules.filter(r => r.ink).length, 2, 'правила туши продублированы');
+  tapHs(G, 'thought'); run(G, 3); ok(G.state().inv.includes('ink_door')); ok(!G.hotspot('drawnDoor'), 'двери ещё нет');
+  eq(G.model().scene.objects.find(o => o.id === 'drawn').state.drawn, 0);
+  dragTo(G, 'ink_door', 'spot'); run(G, 2.0); ok(G.state().flags['ink:door'] && G.state().flags.p_d1, 'не нарисовано'); ok(!G.state().inv.includes('ink_door'), 'эскиз не израсходован');
+  ok(ev.some(e => e.t === 'ink' && e.d.id === 'door') && ev.some(e => e.t === 'sfx' && e.d.name === 'pen'), 'нет события пера');
+  const d1 = G.model().scene.objects.find(o => o.id === 'drawn').state; ok(d1.drawn > 0 && d1.drawn < 1 && !d1.live, 'перо не ведёт линию: ' + JSON.stringify(d1));
+  run(G, DR.INK_T + 0.3); const d2 = G.model().scene.objects.find(o => o.id === 'drawn').state; ok(d2.drawn === 1 && d2.live, 'рисунок не ожил'); ok(!G.model().scene.objects.some(o => o.id === 'spot'), 'пустое место осталось');
+  const G2 = K.createGame({ chapter: DC }); ok(G2.load(G.serialize())); ok(G2.model().scene.objects.find(o => o.id === 'drawn').state.live, 'после загрузки рисунок не живой');
+  tapHs(G, 'drawnDoor'); run(G, 4); eq(G.state().scene, 'dz_cliff', 'нарисованная дверь не ведёт');
+  eq(K.logic.walkOf(DZ_CLIFF, G.state())[0][0], 472, 'моста ещё нет, а полоса длинная'); G.down(60, 300); G.up(60, 300); run(G, 5); ok(G.runtime().hero.x >= 472, 'перешла пропасть без моста');
+  tapHs(G, 'thought2'); run(G, 3); dragTo(G, 'ink_bridge', 'spot2'); run(G, 4); ok(G.state().flags['ink:bridge']);
+  eq(K.logic.walkOf(DZ_CLIFF, G.state())[0][0], 22, 'нарисованный мост не держит'); G.down(200, 300); G.up(200, 300); run(G, 6); ok(Math.abs(G.runtime().hero.x - 200) < 3, 'по мосту не прошла: ' + G.runtime().hero.x);
+  // эскиз не туда — мысль «не то», ничего не тратится
+  const { G: G3 } = dgame(); tapHs(G3, 'thought'); run(G3, 3); dragTo(G3, 'ink_door', 'moon'); run(G3, 3); ok(G3.state().inv.includes('ink_door') && !G3.state().flags['ink:door']);
+});
+test('хор огней — межсценовая головоломка: голоса в разных сценах поют по порядку; неверная нота мягко гасит огни (не тупик); модель, карта (ноты, нити мелодии), события', () => {
+  const C = CHO.get(DC.puzzles, 'tri'); ok(C && DC.puzzles.rules.filter(r => r.chorus === 'tri').length >= 9, 'хор не стал правилами');
+  const { G, ev } = dgame(), F = () => G.state().flags;
+  G.load({ v: 1, ch: 'ch10', scene: 'dz_cliff', flags: { 'ink:door': true, 'ink:bridge': true, got_ink: true, got_ink2: true, got_key: true }, inv: ['key'], heroX: 600 });
+  let cv = G.model().chorus; eq(cv.n, 3); eq(cv.k, 0); eq(cv.voices.length, 3); ok(cv.voices.find(v => v.id === 'c').here && !cv.voices.find(v => v.id === 'b').here);
+  tapHs(G, 'bellC'); run(G, 3); eq(CHO.progress(C, G.state()), 0, 'не та нота первой — а зачлась'); ok(ev.some(e => e.t === 'voice' && e.d.miss && e.d.note === 1), 'нет события «мимо»');
+  tapHs(G, 'bellA'); run(G, 5); eq(CHO.progress(C, G.state()), 1); ok(F()['lit:tri:a'] && F()['ch:tri:1']); cv = G.model().chorus; eq(cv.k, 1); eq(cv.notes.join(), '2'); eq(cv.voices.find(v => v.id === 'a').order, 1);
+  ok(G.model().scene.objects.find(o => o.id === 'bellA').state.ring >= 0, 'колокол голоса не звенит');
+  tapHs(G, 'bellA'); run(G, 3); eq(CHO.progress(C, G.state()), 1, 'повторный звон сбросил мелодию'); ok(ev.filter(e => e.t === 'voice' && e.d.k === -1).length === 1);
+  tapHs(G, 'bellC'); run(G, 5); eq(CHO.progress(C, G.state()), 0, 'неверная нота не погасила огни'); ok(!F()['lit:tri:a'] && !F()['ch:tri:1']); ok(ev.some(e => e.t === 'sfx' && e.d.name === 'hush')); ok(G.model().chorus.miss < 3);
+  // верный порядок: a (сцена-обрыв) → b (сцена-мастерская, только в яви) → c (обрыв)
+  tapHs(G, 'bellA'); run(G, 5); tapHs(G, 'toSquare'); run(G, 5); eq(G.state().scene, 'dz_shop'); ok(!G.hotspot('bellB'), 'голос яви виден во сне');
+  tapHs(G, 'moon'); run(G, 3); tapHs(G, 'bellB'); run(G, 4); eq(CHO.progress(C, G.state()), 2, 'состояние хора не перенеслось между сценами');
+  // карта: узлы-голоса несут ноту и номер, между спетыми подряд — нить мелодии; дальний огонь без сцены — виден, но не зона
+  const mo = CHO.decorate(DC.puzzles, DC.map, G.state(), K.Coast.objects(DC.map, G.state(), 'n1', null));
+  const n1 = mo.find(o => o.id === 'n_n1').state, n2 = mo.find(o => o.id === 'n_n2').state; ok(n1.voice && n1.note === 2 && n1.lit && n1.sung === 1, JSON.stringify(n1)); ok(n2.note === 0 && n2.sung === 2);
+  eq(mo.filter(o => o.kind === 'songline').length, 1, 'нитей мелодии'); ok(mo.find(o => o.id === 'n_far').state.far && !mo.find(o => o.id === 'n_far').state.lit);
+  eq(K.Coast.hotspots(DC.map, G.state()).map(h => h.node).join(), 'n1,n2', 'дальний огонь стал зоной');
+  tapHs(G, 'moon'); run(G, 3); tapHs(G, 'drawnDoor'); run(G, 5); eq(G.state().scene, 'dz_cliff'); tapHs(G, 'bellC'); run(G, 2.4);
+  ok(F()['ch:tri:done'] && F().p_d3, 'мелодия не сложилась'); const done = ev.filter(e => e.t === 'voice' && e.d.ok); eq(done.map(e => e.d.note).join(), '2,2,0,1'); ok(done[done.length - 1].d.done);
+  ok(G.model().chorus.done); run(G, 8); ok(G.won(), 'финал после хора не наступил');
+});
+test('финальная кат-сцена движком: объект плывёт (move), эффекты на весь лист (fx), мотив по нотам (notes), пропуск тапом доводит всё до конца', () => {
+  const mk = () => ({ v: 1, ch: 'ch10', scene: 'dz_cliff', flags: { 'ink:door': true, 'ink:bridge': true, got_ink: true, got_ink2: true, got_key: true, 'ch:tri:1': true, 'ch:tri:2': true, 'lit:tri:a': true, 'lit:tri:b': true }, inv: ['key'], heroX: 600 });
+  const { G, ev } = dgame(); G.load(mk()); tapHs(G, 'bellC'); run(G, 0.9);
+  let m = G.model(); eq(m.mode, 'cut'); const fx = m.fx.find(f => f.name === 'dawn'); ok(fx && fx.k > 0 && fx.k < 1, 'эффект не идёт: ' + JSON.stringify(m.fx));
+  const b = m.scene.objects.find(o => o.id === 'bellC'); ok(b.dx > 0 && b.dx < 120 && b.dy < 0, 'объект не плывёт: ' + b.dx); eq(b.x, 590, 'координаты объекта не должны меняться (спрайт тот же)');
+  run(G, 1.5); m = G.model(); eq(m.scene.objects.find(o => o.id === 'bellC').dx, 120); eq(m.fx.find(f => f.name === 'dawn').k, 1);
+  eq(ev.filter(e => e.t === 'note').map(e => e.d.note).join(), '2,0,1', 'мотив по нотам'); run(G, 3); ok(G.won());
+  const q = dgame(); q.G.load(mk()); tapHs(q.G, 'bellC'); run(q.G, 0.6); q.G.down(480, 200); q.G.up(480, 200); run(q.G, 0.2);
+  ok(q.G.won(), 'пропуск не довёл до финала'); eq(q.G.model().scene.objects.find(o => o.id === 'bellC').dx, 120, 'после пропуска объект не на месте'); ok(q.G.model().fx.every(f => f.k === 1));
+  ok(q.ev.filter(e => e.t === 'note').length < 3, 'после пропуска ноты продолжают звучать');
+});
+test('поиск по главе со снами, тушью и хором: финал достижим, тупиков нет (и по положению); в плане — рисунки тушью, смена сна и яви, голоса хора по порядку', () => {
+  const S = makeSolver(K, DC), E = S.explore(); ok(E.goals.length, 'финал'); eq(E.dead.length, 0, 'тупики');
+  for (const n of E.list) eq(S.positionSafe(n.st).join(), '', 'застрять можно в');
+  const uses = E.plan.filter(a => a.kind === 'use').map(a => a.item).join(); eq(uses, 'ink_door,ink_bridge');
+  ok(E.plan.filter(a => a.hs === 'moon').length >= 2, 'в плане нет смены сна и яви'); eq(E.plan.filter(a => /^bell/.test(a.hs || '')).map(a => a.hs).join(), 'bellA,bellB,bellC');
+  ok(E.list.some(n => !n.st.flags['ch:tri:1'] && n.st.flags.got_key && n.st.flags['ink:bridge']), 'нет состояний «до хора»'); ok(E.list.length < 400, 'перебор раздут: ' + E.list.length);
+});
+if (!process.env.QUICK) test('бот проходит главу со снами: эскизы — перетаскиванием, сон/явь, хор огней по двум сценам, финал', () => {
+  const r = playChapter(K, { chapter: DC }); ok(r.won, 'не прошёл'); eq(r.solved, r.total, 'не решены: ' + r.missing.join(',')); ok(r.drags >= 2);
+  ok(r.events.filter(e => e.t === 'voice' && e.d.ok).length === 3 && !r.events.some(e => e.t === 'voice' && e.d.miss), 'бот ошибался в хоре');
+});
+for (const id of ['grey', 'paper']) test('тема ' + id + ': сон и явь, живая тушь на всех стадиях, пустые места, мысли-эскизы, вода вверх, лязг, хор (строка мелодии, карта), эффекты финала (строгий режим)', () => {
+  CHS.use('ch10'); const ctx = A.mockCtx(), th = K.themes[id]; sandbox.KVEST_STRICT = true;
+  try {
+    ['drawDream', 'drawChorus', 'drawFx'].forEach(h => ok(typeof th[h] === 'function', 'нет хука ' + h));
+    const { G } = dgame();
+    for (const fl of [{}, { awake: true }, { 'ink:door': true, 'ink:bridge': true, doorOpen: true }, { 'ink:door': true, 'ink:bridge': true, 'ch:tri:1': true, 'lit:tri:a': true, 'ch:tri:2': true, 'lit:tri:b': true }])
+      for (const s of DC.scenes) { G.load({ v: 1, ch: 'ch10', scene: s.id, flags: fl, inv: ['key'] }); run(G, 0.3); const m = G.model(); th.drawScene(ctx, m.scene, 1, { debug: true, light: m.light }); if (m.scene.dream) th.drawDream(ctx, m.scene.dream, 1); th.drawChorus(ctx, m.chorus, 1); th.drawFx(ctx, m.fx, 1); th.drawUI(ctx, m.ui, 1); }
+    A.INK_SHAPES.forEach((sh, i) => [0, 0.3, 1].forEach(d => [false, true].forEach(open => th.drawScene(ctx, { id: 'x', w: 960, h: 540, mood: 'night', pal: 'dream', layers: [{ depth: 0, items: [{ kind: 'sky' }, { kind: 'fogbank', state: {} }] }],
+      objects: [{ id: 'a', kind: 'inkdraw', x: 100, y: 200, w: 120, h: 150, state: { shape: sh, drawn: d, live: d === 1, open, lit: open } }, { id: 'b', kind: 'inkspot', x: 300, y: 200, w: 120, h: 150, state: { shape: sh, used: open } },
+        { id: 'c', kind: 'inkthought', x: 500, y: 200, w: 46, h: 46, state: { icon: 'ink_' + sh } }, { id: 'd', kind: 'upfall', x: 600, y: 100, w: 90, h: 340, state: { on: open } },
+        { id: 'e', kind: 'clang', x: 700, y: 200, w: 50, h: 60, seed: i, state: { variant: ['chain', 'hammer', 'shutter', 'winch', 'chain'][i], on: !open } }, { id: 'f', kind: 'boat', x: 400, y: 400, w: 90, h: 40, dx: 20, dy: -4, state: {} }], hotspots: [] }, 1 + d, {}))));
+    for (const k of Object.keys(K.themes.paper._ext ? K.themes.paper._ext.PALS : {}).filter(k => /^dream/.test(k)).slice(0, id === 'paper' ? 99 : 0)) th.drawScene(ctx, Object.assign({}, A.sampleScene('night'), { id: 'p_' + k, pal: k }), 1, {});
+    th.drawFx(ctx, A.FX.map((n, i) => ({ name: n, k: i / 3, age: i })), 2); th.drawChorus(ctx, Object.assign(A.sampleChorus(), { done: true, k: 5, notes: [2, 4, 1, 3, 0] }), 2);
+  } finally { sandbox.KVEST_STRICT = false; CHS.use('ch1'); }
+  ok(ctx.calls > 500);
+});
+test('контракт: kind, пиктограммы, хуки и раскладка спринта 4 описаны в theme-api и в THEME-CONTRACT.md; палитры сна — у «бумаги»', () => {
+  const doc = fs.readFileSync(path.join(ROOT, 'THEME-CONTRACT.md'), 'utf8');
+  for (const k of ['inkdraw', 'inkspot', 'inkthought', 'upfall', 'clang', 'songline', 'fogbank']) { ok(A.EXT_KINDS[k], 'нет kind ' + k); ok(doc.includes('`' + k + '`'), 'kind не описан в контракте: ' + k); }
+  for (const h of ['drawDream', 'drawChorus', 'drawFx']) { ok(A.HOOKS.includes(h), h); ok(doc.includes(h), 'хук не описан в контракте: ' + h); }
+  for (const ic of ['quill', 'dream', 'noise', 'hush', 'song', 'ink_door', 'ink_bridge', 'ink_ladder', 'ink_boat', 'ink_lamp', 'oar', 'beam']) ok(A.ICONS[ic], 'нет пиктограммы ' + ic);
+  ok(A.LAYOUT.chorus && A.LAYOUT.chorus.gap > 2 * A.LAYOUT.chorus.r, 'гнёзда строки мелодии слипаются'); eq(A.INK_SHAPES.join(), 'door,bridge,ladder,boat,lamp');
+  const PL = K.themes.paper._ext.PALS; ok(PL.dream && PL.dream_warm && PL.dream_night && PL.dream_overcast, 'нет палитр сна'); ok(K.themes.paper._ext.INDOOR.dream_warm, 'сон мастерской — интерьер'); ok(PL.dream_warm.wall[0] !== PL.warm.wall[0], 'палитра сна = палитре яви');
+  ok(/живая тушь|Живая тушь/.test(doc) && /сцен[аы]-с(он|ны)/i.test(doc) && /хор огней/i.test(doc), 'контракт не дополнен');
+});
+test('титры: строки — только из словаря i18n (RU/EN); лента идёт снизу вверх и замирает на «спасибо»; после последней главы — «Конец», иначе «скоро»', () => {
+  const CR = K.Credits, keys = CR.keys(); ok(keys.includes('title') && keys.includes('credStudio') && keys.includes('credMusic') && keys.includes('credThanks'), keys.join());
+  for (const k of keys) { ok(K.STR.ru[k] && K.STR.en[k], 'нет строки титров ' + k); ok(!/[а-яё]/i.test(K.STR.en[k]), 'кириллица в EN: ' + k); }
+  ok(/процедурн/.test(K.STR.ru.credMusic) && /procedural/.test(K.STR.en.credMusic), '«музыка: процедурная»'); ok(/Гефест/.test(K.STR.ru.credStudio) && /Hefest/.test(K.STR.en.credStudio));
+  const a = CR.at(0), b = CR.at(6), z = CR.at(60); ok(a.lines.every(l => l.a === 0), 'в начале лист пуст'); ok(b.lines[0].y < a.lines[0].y && b.lines.some(l => l.a > 0.9), 'лента не едет'); ok(!b.done && z.done && z.held);
+  const last = z.lines[z.lines.length - 1]; eq(last.key, 'credThanks'); ok(last.a > 0.95 && last.y > 200 && last.y < 340, 'последняя строка не в середине: ' + last.y); ok(z.dur > 12 && z.dur < 40, 'длина титров ' + z.dur);
+  const e = ED.finale('full', null, 6, true); eq(e.kind, 'end'); eq(e.items.join(), 'toMenu,credits'); ok(K.STR.ru[e.title] && K.STR.en[e.sub]); eq(ED.finale('full', null, 4, false).kind, 'soon'); eq(ED.finale('demo', null, 6, true).kind, 'demo', 'демо не показывает «Конец»');
+  const src = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8'); ok(/g\.scene\('credits'/.test(src) && /lastChapter\(/.test(src), 'в оболочке нет титров');
+});
+test('экран «Главы»: все главы игры по порядку, открытые и закрытые, прогресс каждой и общий процент; в демо главы 2+ — без названий', () => {
+  eq(CHS.TOTAL, 6); eq(CHS.files('full').join(), 'ch1,ch2,ch3,ch4,ch5,ch6');
+  const mem = {}, st = { getItem: k => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } };
+  let sm = CHS.summary(st, 'demo'); eq(sm.rows.length, 6); eq(sm.rows.map(r => r.n).join(), '1,2,3,4,5,6'); ok(sm.rows[0].present && sm.rows[0].unlocked && !sm.rows[0].done); eq(sm.pct, 0); eq(sm.rows[0].total, P.puzzles.length);
+  if (!FULL_BUILD) ok(sm.rows.slice(1).every(r => !r.present && !r.unlocked && r.title === null && r.total === 0), 'в демо видны главы полной версии');
+  const G = K.createGame({ chapter: CH1 }); G.start(); G.skipCut(); tapHs(G, 'stool'); run(G, 3); tapHs(G, 'shelf'); run(G, 3); ok(G.solvedCount() >= 1); st.setItem(CHS.saveKey('ch1'), G.serialize());
+  sm = CHS.summary(st, 'demo'); eq(sm.rows[0].solved, G.solvedCount()); ok(sm.pct >= 0 && sm.pct < 5, 'процент: ' + sm.pct);
+  CHS.setProgress(st, { done: ['ch1'], sel: 'ch1' }); sm = CHS.summary(st, 'demo'); ok(sm.rows[0].done); eq(sm.rows[0].solved, sm.rows[0].total); eq(sm.done, 1);
+  if (!FULL_BUILD) eq(sm.pct, 17, 'одна глава из шести'); st.setItem(CHS.saveKey('ch1'), '{мусор'); eq(CHS.solvedIn(st, CH1), 0, 'битое сохранение');
+  const src = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8'); ok(/g\.scene\('chapters'/.test(src) && /CHS\.summary\(/.test(src) && /chTotal/.test(src), 'в оболочке нет экрана глав');
+  const w = s => [...String(s)].reduce((a, ch) => a + (/[A-ZА-ЯЁMWmw]/.test(ch) ? 11.5 : /[ .,:·'il|!]/.test(ch) ? 4.5 : 9.2), 0);
+  for (const L of ['ru', 'en']) { const S = K.STR[L]; ok(w(S.chapter + ' 6 · ' + 'ММММММММММММММ') + w(S.chLocked) < 600, L + ': строка главы не помещается'); ok(w(S.chTotal + ': 100 %   ·   110 / 110') * 13 / 17 < 560); }
+});
+test('звук спринта 4: перо, тишина, голос огня (нота — из пяти нот, «мимо» — мягко), мотив по нотам (Кит — октавой ниже) — без WebAudio и с ним', () => {
+  const beeps = [], node = () => ({ connect() {}, start() {}, stop() {}, type: '', frequency: { value: 0 }, Q: { value: 0 }, pan: { value: 0 }, gain: { value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} } });
+  const ac = { currentTime: 0, destination: {}, oscs: [], createGain: node, createOscillator: () => { const n = node(); ac.oscs.push(n); return n; }, createBiquadFilter: node, createStereoPanner: node };
+  const g1 = { audio: { enabled: true, beep: f => beeps.push(f) } }, g2 = { audio: { enabled: true, beep: () => {}, _ctx: () => ac } };
+  K.sfx(g1, 'voice', { note: 3, ok: true }); eq(beeps[0], K.NOTES[3]); K.sfx(g1, 'note', { note: 2, i: 0, n: 5, voice: 'whale' }); eq(beeps[1], K.NOTES[2] / 2, 'Кит поёт октавой ниже');
+  K.sfx(g2, 'note', { note: 4, i: 4, n: 5 }); eq(ac.oscs[0].frequency.value, K.NOTES[4], 'нота мотива не из строя');
+  ['pen', 'hush', 'wake', 'dawn'].forEach(n => { K.sfx(g1, n, {}); K.sfx(g2, n, {}); }); K.sfx(g1, 'voice', { miss: true, note: 1 }); K.sfx(g2, 'voice', { note: 0, done: true });
 });
 
 console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed));

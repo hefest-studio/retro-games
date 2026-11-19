@@ -4,8 +4,10 @@
  *
  * Для каждой игры из assets/catalog/games.json проверяет 4 требования:
  *  1. link  — ссылка «← Каталог» видна (в пределах вьюпорта, не перекрыта — elementFromPoint),
- *             ведёт на корень каталога (../); десктоп 1280×720 и телефон (iPhone 13 ландшафт),
- *             на заставке и в игре.
+ *             ведёт в каталог ТЕКУЩЕГО языка игры: RU — корень (../), EN — ../en/ , и подписана на этом
+ *             языке; десктоп 1280×720 и телефон (iPhone 13 ландшафт), на заставке и в игре. EN-ссылка
+ *             проверяется трижды: после L на заставке (deskTitleEn), в игре (deskPlay) и по адресу
+ *             ?lang=en (urlEn); возврат ?lang=ru → снова корень (urlRu).
  *  2. theme — клавиша T реально меняет картинку игры: гистограмма цветов кадра до/после
  *             (L1, 512 корзин) сравнивается с «шумом» анимации (два кадра без переключения):
  *             Δ ≥ 0.08 и Δ > 2·шум + 0.04 (или, при живой анимации: a→b→c с возвратом темы, b далёк
@@ -39,6 +41,7 @@ const BASE = (args.base || 'http://127.0.0.1:8941').replace(/\/$/, '');
 const PHASE = args.phase || 'after';
 const CYR = /[А-Яа-яЁё]/;
 const SHOTS = args.shots ? resolve(String(args.shots)) : null; // --shots <dir>: кадры до/после T (для просмотра глазами)
+const LINK_KEYS = ['deskTitle', 'deskTitleEn', 'deskPlay', 'mobTitle', 'mobPlay', 'urlEn', 'urlRu']; // точки проверки ссылки «← Каталог»
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---------- перехваты в странице ----------
@@ -69,12 +72,14 @@ const PAGE_FN = {
     }
     return [...new Set(out)];
   },
-  link: () => {
+  link: (lang) => { // lang — ожидаемый язык игры: 'ru' → корень каталога, 'en' → /en/
     const cands = [...document.querySelectorAll('a[href]')].filter((a) => /каталог|catalog/i.test(a.textContent));
     if (!cands.length) return { ok: false, why: 'нет ссылки' };
     const res = cands.map((a) => {
       const r = a.getBoundingClientRect(), vw = innerWidth, vh = innerHeight;
-      const href = a.href, root = location.origin + '/';
+      const href = a.href, root = location.origin + '/' + (lang === 'en' ? 'en/' : '');
+      const label = a.textContent.replace(/\s+/g, ' ').trim();
+      const labelOk = lang === 'en' ? /catalog/i.test(label) && !/[А-Яа-яЁё]/.test(label) : /каталог/i.test(label);
       const hrefOk = href === root || href === root + 'index.html';
       const vis = a.checkVisibility ? a.checkVisibility({ opacityProperty: true, visibilityProperty: true }) : true;
       const inVp = r.width > 4 && r.height > 4 && r.left >= -1 && r.top >= -1 && r.right <= vw + 1 && r.bottom <= vh + 1;
@@ -84,12 +89,12 @@ const PAGE_FN = {
         for (const [x, y] of pts) { const e = document.elementFromPoint(x, y); if (!e || !(e === a || a.contains(e))) { covered = e ? (e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (e.className && typeof e.className === 'string' ? '.' + e.className.split(' ')[0] : '')) : 'null'; break; } }
       }
       const op = +getComputedStyle(a).opacity;
-      return { ok: hrefOk && vis && inVp && !covered && op >= 0.3, hrefOk, vis, inVp, covered, op, rect: [r.left, r.top, r.width, r.height].map(Math.round), href };
+      return { ok: hrefOk && labelOk && vis && inVp && !covered && op >= 0.3, hrefOk, labelOk, label, vis, inVp, covered, op, rect: [r.left, r.top, r.width, r.height].map(Math.round), href };
     });
     const good = res.find((x) => x.ok);
     if (good) return { ok: true, rect: good.rect };
     const b = res[0];
-    return { ok: false, why: !b.hrefOk ? 'href ' + b.href : !b.vis ? 'скрыта' : !b.inVp ? 'вне экрана ' + b.rect : b.covered ? 'перекрыта ' + b.covered : 'прозрачна ' + b.op };
+    return { ok: false, why: !b.hrefOk ? 'href ' + b.href + ' (язык ' + (lang || 'ru') + ')' : !b.labelOk ? 'подпись «' + b.label + '» (язык ' + (lang || 'ru') + ')' : !b.vis ? 'скрыта' : !b.inVp ? 'вне экрана ' + b.rect : b.covered ? 'перекрыта ' + b.covered : 'прозрачна ' + b.op };
   },
   bigCanvas: () => {
     let best = null;
@@ -151,13 +156,14 @@ async function auditGame(browser, ana, slug, devices) {
     await page.goto(url, { waitUntil: 'load' }); await sleep(1300);
     const e0 = await page.evaluate(PAGE_FN.engine);
     R.url.defaultLang = e0 ? e0.lang : null;
-    R.link.deskTitle = await page.evaluate(PAGE_FN.link);
+    R.link.deskTitle = await page.evaluate(PAGE_FN.link, 'ru');
     let m = await page.evaluate(PAGE_FN.mark); await sleep(400);
     const ruTitle = await page.evaluate(PAGE_FN.textsSince, m);
     const ruDom = await page.evaluate(PAGE_FN.dom);
     const hRu = await shot(page, ana);
     await press(page, 'KeyL', 500);
     const e1 = await page.evaluate(PAGE_FN.engine);
+    R.link.deskTitleEn = await page.evaluate(PAGE_FN.link, 'en'); // после L ссылка ведёт в /en/ и подписана по-английски
     const hEn = await shot(page, ana);
     m = await page.evaluate(PAGE_FN.mark); await sleep(400);
     const enTitle = await page.evaluate(PAGE_FN.textsSince, m);
@@ -167,7 +173,7 @@ async function auditGame(browser, ana, slug, devices) {
     m = await page.evaluate(PAGE_FN.mark); await sleep(1300);
     const enPlay = await page.evaluate(PAGE_FN.textsSince, m);
     const enDomPlay = await page.evaluate(PAGE_FN.dom);
-    R.link.deskPlay = await page.evaluate(PAGE_FN.link);
+    R.link.deskPlay = await page.evaluate(PAGE_FN.link, 'en');
     // тема
     const a0 = await shot(page, ana); await sleep(300); const a1 = await shot(page, ana, SHOTS && `${slug}-theme-a`);
     const th0 = (await page.evaluate(PAGE_FN.engine) || {}).theme;
@@ -207,12 +213,11 @@ async function auditGame(browser, ana, slug, devices) {
   {
     const { ctx, page } = await newPage(browser, devices, errors);
     await page.goto(url, { waitUntil: 'load' }); await sleep(1200);
-    R.link.mobTitle = await page.evaluate(PAGE_FN.link);
+    R.link.mobTitle = await page.evaluate(PAGE_FN.link, 'ru');
     await startGame(page); await sleep(500);
-    R.link.mobPlay = await page.evaluate(PAGE_FN.link);
+    R.link.mobPlay = await page.evaluate(PAGE_FN.link, 'ru');
     await ctx.close();
   }
-  R.link.ok = ['deskTitle', 'deskPlay', 'mobTitle', 'mobPlay'].every((k) => R.link[k] && R.link[k].ok);
 
   // ---------- ?lang=en: приоритет над сохранённым ru, сохраняется ----------
   {
@@ -224,15 +229,18 @@ async function auditGame(browser, ana, slug, devices) {
     const m = await page.evaluate(PAGE_FN.mark); await sleep(400);
     const tx = await page.evaluate(PAGE_FN.textsSince, m);
     const saved = await page.evaluate(() => localStorage.getItem('arcade.lang'));
+    R.link.urlEn = await page.evaluate(PAGE_FN.link, 'en');
     await page.goto(url, { waitUntil: 'load' }); await sleep(900);
     const e2 = await page.evaluate(PAGE_FN.engine);
     await page.goto(url + '?lang=ru', { waitUntil: 'load' }); await sleep(900);
     const e3 = await page.evaluate(PAGE_FN.engine);
+    R.link.urlRu = await page.evaluate(PAGE_FN.link, 'ru');
     const cyr = tx.filter((s) => CYR.test(s));
     Object.assign(R.url, { en: e && e.lang, saved, keptAfter: e2 && e2.lang, ru: e3 && e3.lang, cyr: cyr.slice(0, 6) });
     R.url.ok = R.url.defaultLang === 'ru' && R.url.en === 'en' && saved === 'en' && R.url.keptAfter === 'en' && R.url.ru === 'ru' && cyr.length === 0;
     await ctx.close();
   }
+  R.link.ok = LINK_KEYS.every((k) => R.link[k] && R.link[k].ok);
   if (errors.forced) R.forcedErrors = errors.forced;
   return R;
 }
@@ -241,7 +249,7 @@ async function auditGame(browser, ana, slug, devices) {
 function mark(ok) { return ok ? '✅' : '❌'; }
 function why(r, k) {
   if (!r) return '';
-  if (k === 'link') return ['deskTitle', 'deskPlay', 'mobTitle', 'mobPlay'].filter((x) => r.link[x] && !r.link[x].ok).map((x) => `${x}: ${r.link[x].why}`).join('; ');
+  if (k === 'link') return LINK_KEYS.filter((x) => r.link[x] && !r.link[x].ok).map((x) => `${x}: ${r.link[x].why}`).join('; ');
   if (k === 'theme') return r.theme.ok ? '' : `Δ=${r.theme.d} шум=${r.theme.noise} ${r.theme.from}→${r.theme.to}`;
   if (k === 'lang') return r.lang.ok ? '' : (!r.lang.toggled ? 'L не переключает; ' : '') + (r.lang.cyrCount ? `кириллица в EN (${r.lang.cyrCount}): ` + r.lang.cyrInEn.slice(0, 4).map((s) => '«' + s.slice(0, 40) + '»').join(', ') : '');
   if (k === 'url') return r.url.ok ? '' : `по умолч.=${r.url.defaultLang}, ?lang=en→${r.url.en}, сохр.=${r.url.saved}, затем=${r.url.keptAfter}, ?lang=ru→${r.url.ru}` + (r.url.cyr && r.url.cyr.length ? ', кириллица: «' + r.url.cyr[0] + '»' : '');

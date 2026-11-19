@@ -9,7 +9,7 @@
 (function (root) {
   'use strict';
   var P = root.PRIISK = root.PRIISK || {};
-  var FILES = P.MISSION_FILES = { demo: ['m1'], full: ['m2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm8'] };
+  var FILES = P.MISSION_FILES = { demo: ['m1'], full: ['m2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm8', 'm9', 'm10'] };
   P.missionFiles = function (build) { return build === 'full' ? FILES.demo.concat(FILES.full) : FILES.demo.slice(); };
   P.missionMissing = [];
   P.onMissionError = function (id) { P.missionMissing.push(id); if (root.console) console.warn('ПРИИСК: нет файла миссии ' + id + ' — заглушка на карте'); };
