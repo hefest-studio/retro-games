@@ -42,7 +42,13 @@
    ветер на старте ({ dir, s, lock }), действие wind — сменить ветер; spawn.talk — пост, который Митяй может уговорить
    (условие talked, событие — группа поста больше не реагирует); условие linked — у игрока есть забой с канатом до Станции; paid — сколько меди пришло по канату на станцию с тегом (торговый пост, spawn.mult — во сколько раз дороже);
    действие seize — забрать у владельца юниты типов types (заводчик берёт технику в счёт долга);
-   cabled — сколько своих приехало по канату; wind — сила ветра (gte/lte). Связка кампаний: def.xcarry = { copper: ['alliance'] } —
+   cabled — сколько своих приехало по канату; wind — сила ветра (gte/lte). «Ночная проверка» и «Ветер с перевала» (С4–С5):
+   условие scouted (сколько чужих зданий разведано — видели хоть раз; type/tag), def.keepHq — снос чужой конторы не кончает
+   миссию победой (разведка, а не разгром), '+' на карте — высота (W.high: ветряк ставится и крутится только там), погода
+   buran — буран (метель, в разгар все идут медленнее: slow), weather.fromNow — цикл метели от момента действия, условие storm
+   (сила метели 0…1), группа stormy — дозор в метель/ночью замечает ближе (notice × обзор); def.holdFire / действие holdFire —
+   свои не открывают огонь сами (только по приказу или в ответ на выстрел); def.campBuild — стройка без конторы (стоянка); def.foeBlind — ночью/в метель
+   и соперник сам замечает цель ближе. Связка кампаний: def.xcarry = { copper: ['alliance'] } —
    флаги ЧУЖОЙ кампании (если она пройдена; читаются из её сохранения) попадают во флаги миссии как 'copper.alliance';
    'copper.done' — сколько миссий Медного Ключа пройдено (0, если не играли). Обязательности нет: без сохранения — флагов нет.
    Прогресс — localStorage 'arcade.priisk.campaign' (Медный Ключ) и 'arcade.priisk.campaign.sizye' (Сизые), через переданное
@@ -59,10 +65,10 @@
   function byId(id) { var all = P.MISSIONS.concat(P.MISSIONS_S); for (var n = 0; n < all.length; n++) if (all[n].id === id) return all[n]; return null; }
 
   // ---------- Карта ----------
-  var TILE = { '#': L.ROCK, '~': L.WATER, '=': L.ICE, '_': L.OPEN, ':': L.BRIDGE, '.': L.GROUND, 'o': L.GROUND, 'O': L.GROUND, ',': L.SHAKY, '^': L.PIT };
+  var TILE = { '#': L.ROCK, '~': L.WATER, '=': L.ICE, '_': L.OPEN, ':': L.BRIDGE, '.': L.GROUND, 'o': L.GROUND, 'O': L.GROUND, ',': L.SHAKY, '^': L.PIT, '+': L.GROUND };
   function parseMap(rows, legend) {
     legend = legend || {};
-    var h = rows.length, w = rows[0].length, t = new Uint8Array(w * h), ore = new Uint16Array(w * h), points = Object.create(null);
+    var h = rows.length, w = rows[0].length, t = new Uint8Array(w * h), ore = new Uint16Array(w * h), high = null, points = Object.create(null);
     for (var j = 0; j < h; j++) {
       if (rows[j].length !== w) throw new Error('карта: строка ' + j + ' длиной ' + rows[j].length + ', ждали ' + w);
       for (var i = 0; i < w; i++) {
@@ -70,9 +76,10 @@
         if (!(ch in TILE)) { (points[ch] = points[ch] || []).push({ i: i, j: j }); base = legend[ch] || '.'; }
         t[k] = TILE[base] == null ? L.GROUND : TILE[base];
         if (base === 'o') ore[k] = 300; else if (base === 'O') ore[k] = 500;
+        if (base === '+') { high = high || new Uint8Array(w * h); high[k] = 1; } // '+' — высота (земля на гребне перевала)
       }
     }
-    return { w: w, h: h, t: t, ore: ore, points: points };
+    return { w: w, h: h, t: t, ore: ore, high: high, points: points };
   }
   function pointOf(MS, at) {
     if (at && typeof at === 'object') return { x: at.x, y: at.y };
@@ -115,11 +122,12 @@
   function build(def, opts) {
     opts = opts || {};
     var map = parseMap(def.map, def.legend), W = L.emptyWorld(map.w, map.h, opts.seed || def.seed || 7);
-    W.t.set(map.t); W.ore.set(map.ore); W.oreMax = 520;
+    W.t.set(map.t); W.ore.set(map.ore); W.oreMax = 520; if (map.high) W.high = map.high; // высоты: ветряки крутятся только там
     var save = opts.save || newSave();
     var MS = W.mission = {
       def: def, id: def.id, points: map.points, objs: [], byObj: Object.create(null), fired: Object.create(null), queue: [], groups: Object.create(null),
       flags: Object.assign({}, def.flags || {}, carried(def, save), xcarried(def, opts.xsave)), talked: Object.create(null), cabled: 0, paid: Object.create(null), spawned: Object.create(null), killed: Object.create(null), heroDead: Object.create(null), heroes: Object.create(null),
+      scouted: Object.create(null), scoutedN: Object.create(null),
       ui: [], allow: Object.create(null), night: false, nightMul: 1, weather: def.weather ? Object.assign({}, def.weather) : null, storm: 0,
       winAt: -1, reason: null, trigT: 0, aiT: 0, vetsUsed: 0, save: save, razed: Object.create(null), warn: [], geys: Object.create(null), creakT: 0,
       pumped: Object.create(null), lamps: Object.create(null), sites: Object.create(null), sitesN: 0, litN: 0, doused: Object.create(null), captured: Object.create(null), partsDown: Object.create(null), partsN: Object.create(null), bossDone: Object.create(null), scalded: Object.create(null)
@@ -129,6 +137,10 @@
     if (def.teams) W.team = def.teams.slice(); if (def.paint) { W.paint = {}; Object.keys(def.paint).forEach(function (k) { W.paint[k] = def.paint[k]; }); }
     Object.keys(def.depots || {}).forEach(function (id) { var dd = def.depots[id], dp = pointOf(MS, dd.at); W.depots.push({ id: id, x: dp.x, y: dp.y, w: dd.w == null ? 400 : dd.w, max: dd.max || dd.w || 400, team: dd.team == null ? null : dd.team, kind: dd.kind || 'water' }); });
     W.los = !!def.los; // шахта: сквозь породу не видно и не стреляют
+    if (def.foeBlind) W.foeBlind = true; // ночью и соперник видит хуже (его автоприцел × обзор)
+    if (def.campBuild) W.campBuild = true; // стоянка без конторы: стройка разрешена (у своих построек)
+    if (def.holdFire) W.holdFire = true; // разведка: свои стреляют только по приказу или в ответ (действие holdFire снимает)
+    if (def.keepHq) W.hqSafe = { 1: true }; // снос чужой конторы — не победа: миссия решает сама (разведка, а не разгром)
     W.sand = def.sand || 0; W.haulCap = def.haulCap || 0; W.rigRate = def.rigRate || 0; W.treaty = !!def.treaty; W.packOn = !!def.player.pack; if (def.plantable) { W.plantable = {}; def.plantable.forEach(function (t) { W.plantable[t] = 1; }); }
     Object.keys(def.lifts || {}).forEach(function (id) { var ld = def.lifts[id]; L.addLift(W, { id: id, a: pointOf(MS, ld.a), b: pointOf(MS, ld.b), cap: ld.cap, ride: ld.ride, wait: ld.wait, at: ld.at, on: ld.on, label: ld.label }); });
     Object.keys(def.lamps || {}).forEach(function (id) { var lm = def.lamps[id], lp = pointOf(MS, lm.at); MS.lamps[id] = { id: id, x: lp.x, y: lp.y, r: lm.r || 4.5, on: false }; if (lm.on) lightLamp(W, MS, MS.lamps[id], true); });
@@ -245,6 +257,8 @@
       case 'liftAt': { var la = L.liftById(W, c.id); return !!la && la.st !== 'move' && la.at === c.end; }
       case 'pumped': return (MS.pumped[c.zone] || 0) >= c.gte; // сколько меди выкачали вышки игрока в зоне (def.pumped — список зон учёта)
       case 'talked': return !!MS.talked[c.tag];
+      case 'scouted': { var sk = (c.owner == null ? 1 : c.owner) + ':' + (c.type || c.tag || '*'); return (MS.scoutedN[sk] || 0) >= (c.gte || 1); } // сколько чужих зданий разведано (видели хоть раз)
+      case 'storm': return (c.gte == null || MS.storm >= c.gte) && (c.lte == null || MS.storm <= c.lte); // сила метели/бурана 0…1
       case 'cabled': return MS.cabled >= (c.gte || 1);
       case 'paid': return (MS.paid[c.tag] || 0) >= (c.gte || 1);
       case 'wind': return !!W.wind && (c.gte == null || W.wind.s >= c.gte) && (c.lte == null || W.wind.s <= c.lte);
@@ -297,7 +311,7 @@
       }
       case 'reveal': { var rp = pointOf(MS, a.at); W.flares.push({ x: rp.x, y: rp.y, r: a.r || 5, t: a.s || 8, max: a.s || 8, owner: 0 }); W.visT = 0; break; }
       case 'objective': setObj(W, MS, a.id, a.state || 'active'); break;
-      case 'weather': MS.weather = a.kind ? Object.assign({}, a) : null; applyWeather(W, MS); break;
+      case 'weather': MS.weather = a.kind ? Object.assign({ t0: a.fromNow ? W.time : 0 }, a) : null; applyWeather(W, MS); break;
       case 'night': MS.night = a.on !== false; MS.nightMul = a.mul || 0.65; applyWeather(W, MS); MS.ui.push({ t: 'night', on: MS.night }); break;
       case 'flag': MS.flags[a.key] = a.value == null ? true : a.value; break;
       case 'copper': W.players[a.owner || 0].copper += a.n; break;
@@ -325,6 +339,7 @@
       case 'site': [].concat(a.id).forEach(function (id) { var st = MS.sites[id]; if (!st) return; if (a.on != null) st.on = !!a.on; if (a.done && !st.done) { st.done = true; MS.sitesN++; } }); break;
       case 'calm': W.units.forEach(function (u) { if (u.tag === a.tag) { u.calm = a.on !== false; if (u.calm && u.order.t === 'attack') { u.order = { t: 'idle' }; u.path = []; } } }); W.units.forEach(function (u) { if (u.order.t === 'attack') { var tg2 = W.byId[u.order.target]; if (tg2 && tg2.tag === a.tag && tg2.calm) { u.order = { t: 'idle' }; u.path = []; } } }); break;
       case 'wind': L.setWind(W, a); break;
+      case 'holdFire': W.holdFire = a.on !== false; break;
       case 'seize': { var sz0 = 0; W.units = W.units.filter(function (u) { if (u.owner === (a.owner || 0) && a.types.indexOf(u.type) >= 0) { delete W.byId[u.id]; sz0++; return false; } return true; }); var pz = W.players[a.owner || 0]; ['inf', 'veh'].forEach(function (q) { pz[q] = pz[q].filter(function (t) { if (a.types.indexOf(t) >= 0) { pz.copper += L.UNITS[t].cost; return false; } return true; }); }); MS.seized = (MS.seized || 0) + sz0; break; } // заводчик забирает технику (и заказанную — медь возвращается)
       case 'allow': (a.build || []).concat(a.units || []).forEach(function (b) { MS.allow[b] = true; }); if (a.repair) { MS.repair = W.repairOn = true; } if (a.pack) W.packOn = true; break;
       default: throw new Error('неизвестное действие ' + a.a);
@@ -341,8 +356,10 @@
   // ---------- Погода и ночь ----------
   function applyWeather(W, MS) {
     var m = 1, wt = MS.weather;
-    if (wt && wt.kind === 'snowstorm') { var ph = 0.5 + 0.5 * Math.cos(2 * Math.PI * W.time / (wt.period || 40)); m = wt.min + (wt.max - wt.min) * ph; }
+    if (wt && (wt.kind === 'snowstorm' || wt.kind === 'buran')) { var ph = 0.5 + 0.5 * Math.cos(2 * Math.PI * ((W.time - (wt.t0 || 0)) / (wt.period || 40))); m = wt.min + (wt.max - wt.min) * ph; }
     MS.storm = wt ? 1 - (m - wt.min) / Math.max(0.01, wt.max - wt.min) : 0;
+    // буран (buran): та же метель, но в самый разгар все идут медленнее (wt.slow — во сколько раз при storm = 1)
+    W.moveMul = wt && wt.kind === 'buran' ? 1 - (1 - (wt.slow || 0.7)) * MS.storm : 1;
     if (MS.night) m = Math.min(m, MS.nightMul);
     W.sightMul = m;
   }
@@ -356,7 +373,8 @@
     // реакция: кого-то из группы обстреляли — или (convoy/notice) враг подошёл вплотную
     var hitter = null;
     mem.forEach(function (u) { if (W.time - u.hitT < 2 && L.alive(W.byId[u.hitBy])) hitter = W.byId[u.hitBy]; });
-    if (!hitter && g.notice) mem.forEach(function (u) { W.units.forEach(function (e) { if (!hitter && foeOf(e) && !e.calm && e.hp > 0 && Math.hypot(e.x - u.x, e.y - u.y) <= g.notice) hitter = e; }); });
+    var nr = g.notice ? g.notice * (g.stormy ? (W.sightMul == null ? 1 : W.sightMul) : 1) : 0; // stormy — в метель и ночью дозор замечает ближе
+    if (!hitter && nr) mem.forEach(function (u) { W.units.forEach(function (e) { if (!hitter && foeOf(e) && !e.calm && e.hp > 0 && Math.hypot(e.x - u.x, e.y - u.y) <= nr) hitter = e; }); });
     if (hitter) {
       if (!g.alerted) { g.alerted = true; MS.ui.push({ t: 'alert', tag: g.tag }); }
       var free = armed.filter(function (u) { return u.order.t !== 'attack' && Math.hypot(u.x - hitter.x, u.y - hitter.y) < 14; }).map(function (u) { return u.id; });
@@ -462,6 +480,11 @@
         if (MS.fired[tr.id] && !tr.repeat) return;
         if (MS.fired[tr.id] && W.time - MS.fired[tr.id] < tr.repeat) return;
         if (cond(W, tr.when)) { MS.fired[tr.id] = W.time || 1e-6; run(W, tr.do); }
+      });
+      W.blds.forEach(function (b) { // разведка: чужое здание хоть раз видно сейчас (vis 2 под ним) — запомнили
+        if (b.owner === 0 || MS.scouted[b.id] || L.friendTo0(W, b.owner)) return; var seen = false;
+        for (var j = 0; j < b.h && !seen; j++) for (var i = 0; i < b.w; i++) if (W.vis[(b.ty + j) * W.w + b.tx + i] === 2) { seen = true; break; }
+        if (!seen) return; MS.scouted[b.id] = b.type; [b.type, b.tag || null, '*'].forEach(function (k) { if (k) { var key = b.owner + ':' + k; MS.scoutedN[key] = (MS.scoutedN[key] || 0) + 1; } }); MS.ui.push({ t: 'scouted', type: b.type, id: b.id });
       });
       if (MS.def.pumped) W.blds.forEach(function (b) { if (b.owner !== 0 || b.type !== 'rig') return; var d = (b.pumped || 0) - (b._pc || 0); if (d <= 0) return; b._pc = b.pumped; var bc = L.center(b); MS.def.pumped.forEach(function (z) { if (inZone(MS, z, bc.x, bc.y)) MS.pumped[z] = (MS.pumped[z] || 0) + d; }); });
       MS.objs.forEach(function (ob) {

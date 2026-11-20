@@ -54,7 +54,7 @@ function ok(c, m) { if (!c) throw new Error(m || 'ложь'); }
 const BIND = { p1: { left: ['ArrowLeft'], right: ['ArrowRight'], up: ['ArrowUp'], down: ['ArrowDown'], fire: ['Slash', 'Period', 'Space'] },
   p2: { left: ['KeyA'], right: ['KeyD'], up: ['KeyW'], down: ['KeyS'], fire: ['KeyF', 'ShiftLeft'] } };
 
-test('версия движка 2.5.0', () => { eq(makeEnv().A.version, '2.5.0'); });
+test('версия движка 2.7.0', () => { eq(makeEnv().A.version, '2.7.0'); });
 
 test('цикл: метка rAF первого кадра раньше start() — время не уходит в минус', () => {
   const env = makeEnv(); const g = game(env); // start() при performance.now() = 1000

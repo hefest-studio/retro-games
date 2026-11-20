@@ -91,6 +91,8 @@
         { a: 'group', tag: 'check', mode: 'attack', target: 'H' },
         { a: 'say', who: 'foe', text: { ru: '— Новенькие на нашем плато? Проверим, крепко ли сидят.', en: '— Newcomers on our plateau? Let’s see how firm they stand.' } }] },
       { id: 'sWon', when: { t: 'obj', id: 'defend' }, do: [
+        // флаг для кампании Сизых («Ночная проверка» — та же ночь их глазами): устояли без потерь построек или нет
+        { a: 'if', when: { t: 'lostB', lte: 0 }, do: [{ a: 'flag', key: 'check', value: 'held' }], else: [{ a: 'flag', key: 'check', value: 'hurt' }] },
         { a: 'say', who: 'varvara', text: { ru: 'Отбились. Не злодеи они — такие же старатели. Но плато мы не отдадим.', en: 'We held. They are no villains — miners like us. But we keep the plateau.' } }] }
     ]
   });

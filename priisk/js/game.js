@@ -127,13 +127,17 @@
   function newWorld(opt) {
     opt = opt || {};
     var seed = opt.seed || 1, W, side = opt.side || P.SKIRMISH_SIDE || null; // side: сторона игрока ('copper' | 'sizye'); без неё — классика
+    // foe: 'sizye' — за Медный Ключ против ИИ Сизых на их механике (ветряки, канатка); без него соседи — на котельных (классика)
+    var foe = side !== 'sizye' && (opt.foe || (opt.side == null ? P.SKIRMISH_FOE : null)) === 'sizye';
     for (var attempt = 0; attempt < 40; attempt++) {
       W = emptyWorld(MAP_W, MAP_H, seed + attempt * 7919);
       genTerrain(W);
       if (side === 'sizye') ridgeNearBase(W, 0); // Сизым нужны гребни для ветряков — у их базы две короткие гряды
+      if (foe && opt.ridges !== false) ridgeNearBase(W, 1); // opt.ridges: false — проверка «гребней мало» (ИИ ищет дальние)
       if (connected(W)) break;
     }
     if (side === 'sizye') setSides(W, ['sizye', 'copper']);
+    else if (foe) setSides(W, ['copper', 'sizye']);
     W.oreMax = 520;
     var startCopper = opt.copper != null ? opt.copper : 2500;
     for (var o = 0; o < 2; o++) {
@@ -143,7 +147,7 @@
       addUnit(W, o, sz ? 'skiff' : 'crawler', ex + 0.5, ey + 0.5);
       for (var r = 0; r < 3; r++) addUnit(W, o, sz ? 'ranger' : 'rifleman', ex + 1.5 + (r % 2), ey + 1.5 + (r >> 1));
     }
-    if (opt.ai !== false) W.ai = newAI(W, 1);
+    if (opt.ai !== false) W.ai = facOf(W, 1) === 'sizye' ? newSzAI(W, 1) : newAI(W, 1);
     updateVis(W);
     return W;
   }
@@ -317,7 +321,7 @@
   function hqAlive(W, o) { if (has(W, o, 'hq')) return true; for (var n = 0; n < W.units.length; n++) { var u = W.units[n]; if (u.owner === o && u.packed && u.packed.type === 'hq' && u.hp > 0) return true; } return false; }
   function count(W, o, type) { var c = 0; W.blds.forEach(function (b) { if (b.owner === o && b.type === type) c++; }); W.units.forEach(function (u) { if (u.owner === o && u.type === type) c++; }); return c; }
   function reqMet(W, o, type) {
-    if (!has(W, o, 'hq') && BLDS[type]) return false;
+    if (!has(W, o, 'hq') && BLDS[type] && !W.campBuild) return false; // W.campBuild — миссия без конторы, но со стоянкой (строить можно)
     var req = BLDS[type] ? BLDS[type].req : [UNITS[type].from];
     for (var n = 0; n < req.length; n++) if (!has(W, o, req[n])) return false;
     return true;
@@ -367,7 +371,7 @@
     if (tx < 1 || ty < 1 || tx + d.w > W.w - 1 || ty + d.h > W.h - 1) return false;
     for (var j = 0; j < d.h; j++) for (var i = 0; i < d.w; i++) { var k = (ty + j) * W.w + tx + i; if (W.t[k] !== GROUND || W.occ[k] || W.ore[k]) return false; }
     if (d.pump && !nearWater(W, tx, ty, d.w, d.h)) return false; // насос — только у воды
-    if (d.wind && ridgeRocks(W, tx, ty, d.w, d.h) < MILL.ridge) return false; // ветряк — только на гребне (у скал)
+    if (d.wind && (ridgeRocks(W, tx, ty, d.w, d.h) < MILL.ridge || !onHigh(W, tx, ty, d.w, d.h))) return false; // ветряк — только на гребне (у скал; в миссии с высотами — на высоте)
     if (d.face && !oreNear(W, tx + d.w / 2, ty + d.h / 2, FACE.r)) return false; // забой — у самой жилы
     for (var n = 0; n < W.units.length; n++) { var u = W.units[n], r = UNITS[u.type].r; if (u.x + r > tx && u.x - r < tx + d.w && u.y + r > ty && u.y - r < ty + d.h) return false; }
     if (d.cable) return cableAnchor(W, o, tx + d.w / 2, ty + d.h / 2); // опора и забой — в пролёте каната от своей опоры/станции/конторы
@@ -513,7 +517,7 @@
     if (W.winner >= 0) return;
     W.time += dt;
     production(W, 0, dt); production(W, 1, dt);
-    if (W.ai) { if (W.ai.race) raceStep(W, dt); else aiStep(W, dt); }
+    if (W.ai) { if (W.ai.race) raceStep(W, dt); else if (W.ai.sz) szAiStep(W, dt); else aiStep(W, dt); }
     heroStep(W, dt);
     for (var n = 0; n < W.units.length; n++) unitStep(W, W.units[n], dt);
     for (n = 0; n < W.blds.length; n++) bldStep(W, W.blds[n], dt);
@@ -530,7 +534,7 @@
     if (dead) calcPower(W);
     for (n = W.fx.length - 1; n >= 0; n--) { W.fx[n].life -= dt; if (W.fx[n].life <= 0) W.fx.splice(n, 1); }
     W.visT -= dt; if (W.visT <= 0) { W.visT = 0.2; updateVis(W); }
-    if (W.hadHq[1] && !hqAlive(W, 1)) W.winner = 0; else if (W.hadHq[0] && !hqAlive(W, 0)) W.winner = 1;
+    if (W.hadHq[1] && !hqAlive(W, 1) && !(W.hqSafe && W.hqSafe[1])) W.winner = 0; else if (W.hadHq[0] && !hqAlive(W, 0)) W.winner = 1; // hqSafe — миссия сама решает, чем кончится снос чужой конторы
     if (W.winner === 0) W.players[0].score += 1000 + Math.max(0, Math.round(1500 - W.time));
   }
   function kill(W, e) {
@@ -562,7 +566,7 @@
   function turn(a, b, max) { var d = Math.atan2(Math.sin(b - a), Math.cos(b - a)); return a + Math.max(-max, Math.min(max, d)); }
   function follow(W, u, dt) {
     if (!u.path.length) return false;
-    var wp = u.path[0], dx = wp.x - u.x, dy = wp.y - u.y, dl = Math.hypot(dx, dy), sp = UNITS[u.type].speed * (u.bS || 1) * (u.sm || 1) * dt;
+    var wp = u.path[0], dx = wp.x - u.x, dy = wp.y - u.y, dl = Math.hypot(dx, dy), sp = UNITS[u.type].speed * (u.bS || 1) * (u.sm || 1) * (W.moveMul || 1) * dt; // W.moveMul — буран кампании
     var last = u.path.length === 1;
     if (dl <= sp || (last && dl < 0.12)) { u.x = wp.x; u.y = wp.y; u.path.shift(); }
     else { u.x += dx / dl * sp; u.y += dy / dl * sp; }
@@ -629,7 +633,10 @@
       u.scanT -= dt;
       if (u.scanT <= 0) {
         u.scanT = 0.5;
-        var e = scan(W, u, o.t === 'amove' ? d.sight : Math.max(d.range + 1, d.sight - 0.5));
+        // W.holdFire (кампания, разведка): свои сами не открывают огонь — только по приказу или в ответ, если по ним стреляли
+        // W.foeBlind (кампания): ночью/в метель и соперник видит хуже — его юниты сами замечают цель ближе (радиус × обзор)
+        var sr = (o.t === 'amove' ? d.sight : Math.max(d.range + 1, d.sight - 0.5)) * (W.foeBlind && !friendTo0(W, u.owner) ? Math.max(0.5, W.sightMul == null ? 1 : W.sightMul) : 1);
+        var e = W.holdFire && friendTo0(W, u.owner) && W.time - u.hitT > 3 ? null : scan(W, u, sr);
         if (e) { u.order = { t: 'attack', target: e.id, then: o.t === 'amove' ? o : null, leash: o.t === 'idle' ? { x: u.x, y: u.y } : null }; u.path = []; u.repath = 0; return; }
       }
     }
@@ -1491,8 +1498,8 @@
   // ---------- ветер ----------
   function ridgeRocks(W, tx, ty, w, h) { var n = 0; for (var j = ty - 1; j <= ty + h; j++) for (var i = tx - 1; i <= tx + w; i++) { if (i >= tx && i < tx + w && j >= ty && j < ty + h) continue; if (!inb(W, i, j) || W.t[j * W.w + i] === ROCK) n++; } return n; }
   // в тени: скалы с наветренной стороны (не меньше двух клеток кольца в секторе ветра)
-  function sheltered(W, b) {
-    if (!W.wind) return false; var cx = b.tx + b.w / 2, cy = b.ty + b.h / 2, wx = Math.cos(W.wind.a), wy = Math.sin(W.wind.a), n = 0;
+  function sheltered(W, b, a) {
+    if (!W.wind && a == null) return false; if (a == null) a = W.wind.a; var cx = b.tx + b.w / 2, cy = b.ty + b.h / 2, wx = Math.cos(a), wy = Math.sin(a), n = 0;
     for (var j = b.ty - 1; j <= b.ty + b.h; j++) for (var i = b.tx - 1; i <= b.tx + b.w; i++) {
       if (i >= b.tx && i < b.tx + b.w && j >= b.ty && j < b.ty + b.h) continue;
       if (inb(W, i, j) && W.t[j * W.w + i] !== ROCK) continue;
@@ -1500,8 +1507,11 @@
     }
     return n >= 2;
   }
+  // высоты (W.high — кампания, «Ветер с перевала»): если в миссии размечены высоты, ветряк крутится только там (хоть одна клетка
+  // ветряка на высоте); в скирмише высот нет — правило не действует
+  function onHigh(W, tx, ty, w, h) { if (!W.high) return true; for (var j = ty; j < ty + h; j++) for (var i = tx; i < tx + w; i++) if (inb(W, i, j) && W.high[j * W.w + i]) return true; return false; }
   function millOut(W, b) {
-    if (ridgeRocks(W, b.tx, b.ty, b.w, b.h) < MILL.ridge) return 0;
+    if (ridgeRocks(W, b.tx, b.ty, b.w, b.h) < MILL.ridge || !onHigh(W, b.tx, b.ty, b.w, b.h)) return 0;
     var s = W.wind ? W.wind.s : 1; return Math.round(MILL.power * s * (sheltered(W, b) ? MILL.shelter : 1));
   }
   function angTo(a, b, max) { var d = Math.atan2(Math.sin(b - a), Math.cos(b - a)); return a + Math.max(-max, Math.min(max, d)); }
@@ -1627,6 +1637,148 @@
   }
   function nearOwnBld(W, u, r) { return W.blds.some(function (b) { return b.owner === u.owner && distTo(u, b) <= r; }); }
 
+
+  // ---------- ИИ Артели Сизого Перевала (скирмиш «Медный Ключ против ИИ-Сизых»: их механика, а не котельные) ----------
+  // Раз в секунду: ветряки — на гребнях с лучшей выработкой (сейчас и в среднем по восьми ветрам: тенистый гребень хуже), Станция
+  // у избы, канат опорами к ближайшей жиле → забой; зимовьё, верфь; второй забой на другой жиле; сбитую опору — заново (канат от
+  // Станции к забою без связи). Гребней у базы мало — тянет опоры к дальнему гребню (от опор можно ставить ветряки); и там нет —
+  // разумный запас: не ставит лишних потребителей и держит медь. Армия: горные стрелки, ветроходы и самострелы (2:1); два
+  // сторожа ходят у канатки, обстреляли опору/забой/ветряк — все свободные туда; волны к конторе соседа — как у ИИ котельных.
+  function newSzAI(W, o) { return { o: o, sz: true, t: 0, nextWave: 540, waveSize: 4, waves: 0, flip: 0, farPy: 0, goal: null, guard: [], bad: [], lastDef: -99 }; }
+  function szNodes(W, o) { return cableNodes(W, o).concat(W.blds.filter(function (b) { return b.owner === o && b.type === 'hq'; })); }
+  // узлы, связанные канатом со Станцией (и сама Станция)
+  function szTermComp(W, o) {
+    var adj = Object.create(null), seen = Object.create(null), q = [];
+    cableLinks(W, o).forEach(function (e) { (adj[e[0].id] = adj[e[0].id] || []).push(e[1]); (adj[e[1].id] = adj[e[1].id] || []).push(e[0]); });
+    W.blds.forEach(function (b) { if (b.owner === o && BLDS[b.type].terminal && b.hp > 0) { seen[b.id] = 1; q.push(b); } });
+    for (var h = 0; h < q.length; h++) (adj[q[h].id] || []).forEach(function (x) { if (!seen[x.id]) { seen[x.id] = 1; q.push(x); } });
+    return q;
+  }
+  // ближайшая к (tx,ty) клетка под опору в пролёте от узлов from (по умолчанию — любых своих узлов и избы)
+  function szPylonToward(W, o, tx, ty, from) {
+    var best = null, bd = 1e9; (from || szNodes(W, o)).forEach(function (n) { var c = center(n);
+      for (var j = Math.floor(c.y - SPAN); j <= c.y + SPAN; j++) for (var i = Math.floor(c.x - SPAN); i <= c.x + SPAN; i++) {
+        if (Math.hypot(i + 0.5 - c.x, j + 0.5 - c.y) > SPAN - 0.3 || !canPlace(W, o, 'pylon', i, j)) continue;
+        var d = Math.hypot(i + 0.5 - tx, j + 0.5 - ty); if (d < bd) { bd = d; best = { i: i, j: j }; } } });
+    return best;
+  }
+  function szSpot(W, o, type, x, y, rmax, pred) {
+    var d = BLDS[type], cx = Math.round(x - d.w / 2), cy = Math.round(y - d.h / 2);
+    for (var r = 0; r <= rmax; r++) for (var j = cy - r; j <= cy + r; j++) for (var i = cx - r; i <= cx + r; i++) {
+      if (Math.max(Math.abs(i - cx), Math.abs(j - cy)) !== r) continue;
+      if (canPlace(W, o, type, i, j) && (!pred || pred(i, j))) return { i: i, j: j };
+    }
+    return null;
+  }
+  // ветряк: выработка сейчас + доля ветров (из восьми), при которых гребень не в тени; ближе к избе — чуть лучше
+  function millScore(W, i, j, hq) {
+    var b = { tx: i, ty: j, w: 2, h: 2 }, open = 0; for (var k = 0; k < 8; k++) if (!sheltered(W, b, k * Math.PI / 4)) open++;
+    return millOut(W, b) + open * 2.2 - Math.hypot(i + 1 - hq.x, j + 1 - hq.y) * 0.25;
+  }
+  function szMillSpot(W, o, hq) {
+    var x0 = W.w, y0 = W.h, x1 = 0, y1 = 0, best = null, bv = -1e9;
+    W.blds.forEach(function (b) { if (b.owner !== o) return; x0 = Math.min(x0, b.tx - 7); y0 = Math.min(y0, b.ty - 7); x1 = Math.max(x1, b.tx + b.w + 6); y1 = Math.max(y1, b.ty + b.h + 6); });
+    for (var j = Math.max(1, y0); j <= Math.min(W.h - 3, y1); j++) for (var i = Math.max(1, x0); i <= Math.min(W.w - 3, x1); i++) {
+      if (!canPlace(W, o, 'mill', i, j)) continue; var v = millScore(W, i, j, hq); if (v > bv) { bv = v; best = { i: i, j: j }; }
+    }
+    return best;
+  }
+  // дальний гребень: ближайшее к избе место 2×2 у скал (не дальше 22 клеток) — туда тянуть опоры
+  function szFarRidge(W, o, hq) {
+    var best = null, bd = 22;
+    for (var j = 1; j < W.h - 2; j++) for (var i = 1; i < W.w - 2; i++) {
+      var d = Math.hypot(i + 1 - hq.x, j + 1 - hq.y); if (d >= bd) continue;
+      var ok = true; for (var b = 0; b < 2 && ok; b++) for (var a = 0; a < 2; a++) { var k = (j + b) * W.w + i + a; if (W.t[k] !== GROUND || W.occ[k] || W.ore[k]) { ok = false; break; } }
+      if (ok && ridgeRocks(W, i, j, 2, 2) >= MILL.ridge && onHigh(W, i, j, 2, 2)) { bd = d; best = { x: i + 1, y: j + 1 }; }
+    }
+    return best;
+  }
+  // жила для забоя: ближайшая к избе клетка меди, не занятая работающим забоем (skip — центры забоев)
+  function szOre(W, o, hq, skip) {
+    var best = null, bd = 1e9;
+    for (var k = 0; k < W.w * W.h; k++) { if (!W.ore[k]) continue; var x = k % W.w + 0.5, y = Math.floor(k / W.w) + 0.5;
+      if (skip.some(function (c) { return Math.hypot(c.x - x, c.y - y) < 3; })) continue; // забои на одной жиле — не теснее 3 клеток
+      var d = Math.hypot(x - hq.x, y - hq.y); if (d < bd) { bd = d; best = { x: x, y: y }; } }
+    return best;
+  }
+  function szAiStep(W, dt, AI) {
+    var A = AI || W.ai, o = A.o, p = W.players[o];
+    A.t -= dt; if (A.t > 0) return; A.t = 1;
+    var hqB = has(W, o, 'hq'); if (!hqB) return; var hq = center(hqB);
+    var mine = W.blds.filter(function (b) { return b.owner === o; }), n = function (t) { return mine.filter(function (b) { return b.type === t; }).length; };
+    var faces = mine.filter(function (b) { return b.type === 'face' && !b.dry; }), linked = faces.filter(function (b) { return b.link; });
+    var surplus = p.pOut - p.pUse;
+    // что ставить
+    var want = null, goal = null, from = null, reserve = 0;
+    function cable() { // забой, если дотянулись до жилы, иначе опора к ней (от узлов, связанных со Станцией)
+      var ore = szOre(W, o, hq, faces.map(center).concat(A.bad)); if (!ore) return;
+      if (szSpot(W, o, 'face', ore.x, ore.y, 4)) { want = 'face'; goal = ore; return; }
+      from = szTermComp(W, o); if (!from.length) from = null;
+      var sp = szPylonToward(W, o, ore.x, ore.y, from), dn = 1e9; (from || szNodes(W, o)).forEach(function (b) { var c = center(b); dn = Math.min(dn, Math.hypot(c.x - ore.x, c.y - ore.y)); });
+      if (!sp || Math.hypot(sp.i + 0.5 - ore.x, sp.j + 0.5 - ore.y) > dn - 1) { A.bad.push(ore); from = null; return; } // опора ближе не подводит — место у жилы занято: другая жила
+      want = 'pylon'; goal = ore;
+    }
+    if (!p.build) {
+      var millSpot = surplus < 8 || !n('mill') ? szMillSpot(W, o, hq) : null;
+      var unlinked = faces.filter(function (b) { return !b.link; })[0];
+      if (!n('mill')) { if (millSpot) want = 'mill'; else if (A.farPy < 6 && szFarRidge(W, o, hq)) { want = 'pylon'; goal = szFarRidge(W, o, hq); A.farPy++; } } // у избы гребня нет — сразу к дальнему
+      else if (!n('station')) want = 'station';
+      else if (unlinked) { want = 'pylon'; goal = center(unlinked); from = szTermComp(W, o); } // сбитая опора: канат от Станции к забою заново
+      else if (surplus < 4 && millSpot) want = 'mill';
+      else if (surplus < 4 && A.farPy < 5 && szFarRidge(W, o, hq)) { want = 'pylon'; goal = szFarRidge(W, o, hq); A.farPy++; } // гребней у базы нет — опоры к дальнему
+      else if (!linked.length || (linked.length < 2 && n('hut')) || (linked.length < 3 && n('sail')) || (linked.length < 4 && W.time > 300) || (linked.length < 5 && W.time > 600 && p.copper > 700)) cable(); // канат к жиле
+      if (!want && !n('hut')) want = 'hut';
+      if (!want && surplus < 8 && millSpot) want = 'mill';
+      if (!want && !n('sail') && linked.length) want = 'sail';
+      if (!want && surplus < 12 && millSpot) want = 'mill';
+      if (want && BLDS[want].power < 0 && surplus + BLDS[want].power < -6 && !szMillSpot(W, o, hq) && n(want)) want = null; // разумный запас: без ветра лишних потребителей не ставим
+      if (want) { A.goal = goal; A.from = from; if (p.copper >= BLDS[want].cost + (n('sail') ? 120 : 0)) startBuild(W, o, want); }
+    } else if (p.build.ready) {
+      var t = p.build.type, g = A.goal, sp = null;
+      if (t === 'mill') sp = szMillSpot(W, o, hq);
+      else if (t === 'pylon') sp = g ? szPylonToward(W, o, g.x, g.y, A.from && A.from.filter(function (b) { return b.hp > 0; }).length ? A.from.filter(function (b) { return b.hp > 0; }) : null) : null;
+      else if (t === 'face') sp = g ? szSpot(W, o, 'face', g.x, g.y, 4) : null;
+      else sp = szSpot(W, o, t, hq.x - (o ? 1 : -1) * 2, hq.y + (o ? 4 : -4), 12, function (i, j) { // у избы, с кольцом свободной земли
+        var d = BLDS[t]; for (var y = j - 1; y <= j + d.h; y++) for (var x = i - 1; x <= i + d.w; x++) if (!inb(W, x, y) || W.occ[y * W.w + x]) return false; return true; });
+      if (!sp || !placeBuild(W, o, sp.i, sp.j)) cancelBuild(W, o);
+    }
+    reserve = p.build ? 0 : 120;
+    // армия
+    var army = W.units.filter(function (u) { return u.owner === o && UNITS[u.type].weapon; }), cap = A.waveSize + 16;
+    var home = army.filter(function (u) { return !u.wave; });
+    var rangers = home.filter(function (u) { return u.type === 'ranger'; }).length, sail = working(W, o, 'sail');
+    if (sail && p.veh.length < 2 && home.length < cap) { var vt = A.flip % 2 ? 'harpoon' : 'skiff'; if (p.copper >= UNITS[vt].cost + reserve && queueUnit(W, o, vt)) A.flip++; }
+    // стрелки — пока нет верфи или их мало; с верфью медь сперва на машины (против брони соседа пехота слаба)
+    if (n('hut') && p.inf.length < 1 && home.length < cap && rangers < (sail ? 6 : 8) && p.copper >= UNITS.ranger.cost + reserve + (sail && !p.veh.length ? 330 : 0)) queueUnit(W, o, 'ranger');
+    // сторожа канатки: двое ходят у забоя (amove), остальные — у избы
+    A.guard = A.guard.filter(function (id) { var u = W.byId[id]; return alive(u) && !u.wave; });
+    while (A.guard.length < 2) { var cand = home.filter(function (u) { return A.guard.indexOf(u.id) < 0 && u.order.t === 'idle'; })[0]; if (!cand) break; A.guard.push(cand.id); }
+    var post = linked.length ? center(linked[(W.time / 40 | 0) % linked.length]) : null;
+    if (post) A.guard.forEach(function (id) { var u = W.byId[id]; if (u.order.t === 'idle' && Math.hypot(u.x - post.x, u.y - post.y) > 4) commandMove(W, [id], post.x + (o ? -2 : 2), post.y + (o ? 2 : -2), true); });
+    // оборона: обстреляли своё — свободные к обидчику, если он у наших зданий (опоры и забои тоже наши)
+    var hit = null; mine.concat(army).forEach(function (e) { if (W.time - e.hitT < 2 && alive(W.byId[e.hitBy]) && W.byId[e.hitBy].owner !== o) hit = W.byId[e.hitBy]; });
+    var raid = W.units.filter(function (e) { return e.owner !== o && e.hp > 0 && UNITS[e.type].weapon && Math.hypot(e.x - hq.x, e.y - hq.y) < 13; });
+    if (raid.length >= 3) { A.lastDef = W.time; var all = home.filter(function (u) { return u.order.t !== 'attack'; }); all.forEach(function (u) { var best = null, bd = 1e9; raid.forEach(function (e) { var d = Math.hypot(e.x - u.x, e.y - u.y); if (d < bd) { bd = d; best = e; } }); if (best) commandAttack(W, [u.id], best.id); }); } // налёт на избу — все, кто дома, в бой
+    if (hit) { var hc = center(hit), nearB = mine.some(function (b) { return distTo({ x: hc.x, y: hc.y }, b) < 10; });
+      if (nearB) { A.lastDef = W.time; var free = home.filter(function (u) { return u.order.t !== 'attack'; }).map(function (u) { return u.id; }); if (free.length) commandAttack(W, free, hit.id); } }
+    // волны
+    var idle = home.filter(function (u) { return u.order.t !== 'attack' && A.guard.indexOf(u.id) < 0; });
+    idle.sort(function (a, b) { return Math.hypot(a.x - hq.x, a.y - hq.y) - Math.hypot(b.x - hq.x, b.y - hq.y); });
+    var keep = Math.min(3, idle.length), go = idle.slice(keep); // трое остаются у избы
+    // ответный удар: волну соседа у наших зданий только что отбили (врагов рядом нет) — идём, пока он не собрал новую; иначе — по часам
+    var calm = !W.units.some(function (e) { return e.owner !== o && e.hp > 0 && UNITS[e.type].weapon && mine.some(function (b) { return distTo(e, b) < 12; }); });
+    var counter = W.time > 360 && W.time - A.lastDef < 25 && W.time - A.lastDef > 6 && calm && go.length >= A.waveSize + 3;
+    if ((W.time >= A.nextWave || counter) && go.length >= A.waveSize) {
+      var tgt = has(W, 1 - o, 'hq') || W.blds.filter(function (b) { return b.owner !== o; })[0];
+      if (tgt) { go.forEach(function (u) { u.wave = true; }); commandMove(W, go.map(function (u) { return u.id; }), tgt.tx + 1, tgt.ty + 1, true); }
+      idle = go; A.waves++; A.nextWave = W.time + 140; A.waveSize = Math.min(14, A.waveSize + 2);
+      W.events.push({ t: 'wave', owner: o, n: idle.length });
+    }
+    army.forEach(function (u) { if (u.wave && u.order.t === 'idle') { var tg = has(W, 1 - o, 'hq'); if (tg) commandMove(W, [u.id], tg.tx + 1, tg.ty + 1, true); } });
+  }
+  // здание, которое выпускает юнитов (барак, мастерская, зимовьё, верфь — любое, у кого есть юниты «from»): ему ставят точку сбора
+  function producer(type) { for (var k in UNITS) if (UNITS[k].from === type) return true; return false; }
+
   P.logic = {
     UNITS: UNITS, BLDS: BLDS, HEROES: HEROES, BUILD_LIST: BUILD_LIST, FORT_LIST: FORT_LIST, REPAIR: REPAIR, repairPrice: repairPrice, setRepair: setRepair, repathBlocked: repathBlocked, trailPoint: trailPoint, UNIT_LIST: UNIT_LIST, GROUND: GROUND, ROCK: ROCK, WATER: WATER, ICE: ICE, OPEN: OPEN, BRIDGE: BRIDGE, MAP_W: MAP_W, MAP_H: MAP_H,
     walkable: walkable, ability: ability, aiSpot: aiSpot, alive: alive, inb: inb,
@@ -1643,6 +1795,7 @@
     addFire: addFire, fireAt: fireAt, nearestFire: nearestFire, depotAt: depotAt, waterSource: waterSource, commandDouse: commandDouse, commandFill: commandFill, nearWater: nearWater,
     canCapture: canCapture, commandCapture: commandCapture, captureNow: captureNow, guarded: guarded,
     sees: sees, addLift: addLift, liftById: liftById, liftAt: liftAt, commandLift: commandLift, liftStep: liftStep, liftWaiting: liftWaiting, riders: riders, regionOf: regionOf, liftRoute: liftRoute, liftReach: liftReach, LIFT: LIFT,
+    newSzAI: newSzAI, szAiStep: szAiStep, szMillSpot: szMillSpot, szFarRidge: szFarRidge, producer: producer, onHigh: onHigh,
     facOf: facOf, sideLists: sideLists, setSides: setSides, ridgeRocks: ridgeRocks, sheltered: sheltered, millOut: millOut, setWind: setWind, cableNodes: cableNodes, cableLinks: cableLinks, cableRoute: cableRoute, cableAnchor: cableAnchor, launchCar: launchCar, oreNear: oreNear,
     SPAN: SPAN, MILL: MILL, FACE: FACE, CAR: CAR, INF_FAC: INF_FAC, SZ_BUILD_LIST: SZ_BUILD_LIST, SZ_UNIT_LIST: SZ_UNIT_LIST, DIRS: DIRS, talkAbility: talkAbility, cableAbility: cableAbility, nearOwnBld: nearOwnBld,
     initBoss: initBoss, setBoss: setBoss, partAlive: partAlive, partOf: partOf, partPts: partPts, partToward: partToward, hitPart: hitPart, bossSteam: bossSteam, passBig: passBig, distTo: distTo, waterCap: waterCap

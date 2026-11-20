@@ -14,12 +14,29 @@
   };
   var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.H, gameId: 'otboynik', strings: OB.STR, theme: 'modern', lives: 1, themes: themes });
   OB.g = g;
+  ArcadeLangX.install(g, OB.STR_X);   // TR / ES / PT поверх RU/EN движка (js/lang-x.js)
   function pal() { return g.themeName === 'retro' ? R.PR : R.PM; }
   g.useStandardScreens({ lives: 1 });
   g.menu.setHint(function () { return [g.t('hint1'), { text: g.t('hint2'), dim: true }]; }, 'title');
 
-  var WAVE_KEY = 'arcade.otboynik.wave';
+  var MT = OB.meta, WAVE_KEY = MT.KEYS.wave, WIN_KEY = MT.KEYS.wins, DECK_KEY = MT.KEYS.deck;
   function bestWave() { return Arcade.Store.getNum(WAVE_KEY, 0); }
+  function wins() { return Arcade.Store.getNum(WIN_KEY, 0); }
+  g.persist(WAVE_KEY, 'max');   // дальность — и в облако площадки (если есть platform.js)
+  g.persist(WIN_KEY, 'max'); g.persist(DECK_KEY, 'last');   // мета-прогрессия (js/meta.js): победы и выбранная колода
+  // ---------- мета-прогрессия: открытые карты и стартовая колода ----------
+  function deckId() { return MT.runOpts(Arcade.Store.get(DECK_KEY, 'bench'), bestWave(), wins()).deck; }
+  function setDeck(id) { g.storeSet(DECK_KEY, id); }
+  function fit(ctx, s, maxW, size, weight, P) { while (size > 9) { ctx.font = R.font(P, size, weight); if (ctx.measureText(s).width <= maxW) break; size--; } return size; }   // длинные строки TR/ES/PT
+  var unlocked = [];   // открытое в последнем забеге — для экранов финала
+  function unlockName(u) { return u.kind === 'card' ? g.t('c_' + u.id) : g.t('deck') + ' «' + g.t('dk_' + u.id) + '»'; }
+  function deckDesc(id) { var d = MT.deck(id); return d.starter.length ? g.t('dd_start').replace('{x}', d.starter.map(function (c) { return g.t('c_' + c); }).join(' + ')) : g.t('dd_bench'); }
+  function nextText() {
+    var n = MT.next(bestWave(), wins()); if (!n) return g.t('allOpen');
+    return g.t('nextUnlock') + ': ' + (n.kind === 'card' ? g.t('c_' + n.id) : g.t('dk_' + n.id)) + ' — ' + (n.wins ? g.t('needWin') : g.t('needWave').replace('{n}', n.need));
+  }
+  g.menu.addItem({ key: 'deck', scene: 'title', after: 'play', label: function () { return g.t('deck') + ': ' + g.t('dk_' + deckId()); },
+    onSelect: function () { setDeck(MT.cycle(deckId(), bestWave(), wins(), 1)); } });
 
   // ---------- игра ----------
   var game = null, toasts = [], shakeT = 0;
@@ -36,13 +53,27 @@
     else if (type === 'waveClear') toast(g.t('waveClear') + ' · ' + g.t('bonus') + ' +' + d.bonus, P.good, 240, 160, true);
     else if (type === 'split') toast('×2', P.accent2, d.x, d.y - 26, true);
     else if (type === 'bossHit') g.particles.spawn(d.x, d.y, { color: P.brass, count: 6, speed: 110, life: 0.4, size: 3 });
+    else if (type === 'revive' || type === 'repair') { toast(g.t(type === 'revive' ? 'revived' : 'repaired'), P.good, 240, 600, true); g.particles.spawn(240, 700, { color: P.door, count: 16, speed: 90, life: 0.6, size: 3 }); }
+    else if (type === 'waveStart' && d.wave > 1) g.adBreak();   // межстраничная — между волнами, сразу после выбора карты игроком (частоту режет адаптер)
     else if (type === 'bossDie') { g.particles.spawn(d.x, d.y, { color: P.coal, count: 80, speed: 240, life: 1.2, size: 4 }); shakeT = 1; }
     sync();
     if (type === 'win') { finish(); g.win(); }
     else if (type === 'gameover') { finish(); g.gameover(); }
   }
-  function finish() { sync(); var S = game.state(), w = Math.min(S.waveReached, L.WAVES + 1); if (w > bestWave()) Arcade.Store.set(WAVE_KEY, String(w)); }
-  function newGame() { game = OB.Game({ seed: Math.floor(Math.random() * 1e9), onEvent: onEvent }).start(); OB.current = game; toasts = []; shakeT = 0; sync(); }
+  function finish() {
+    sync(); var S = game.state(), w = Math.min(S.waveReached, L.WAVES + 1), b0 = bestWave(), w0 = wins();
+    if (w > b0) g.storeSet(WAVE_KEY, w);
+    if (S.phase === 'won') g.storeSet(WIN_KEY, w0 + 1);
+    unlocked = MT.gained(b0, w0, bestWave(), wins());
+  }
+  // Реклама за награду (только на площадках с рекламой): «ещё один шанс» раз за партию — ворота до половины;
+  // бонус в меню паузы — ремонт ворот +6 (раз за партию, если ворота повреждены).
+  g.useRewardedContinue({ revive: function () { if (game) game.revive(); releaseAll(); } });
+  g.useRewardedBonus({ key: 'rwRepair', scene: 'pause', label: function () { return g.t('rwRepair'); },
+    available: function () { var S = game && game.state(); return !!S && S.hp < S.hpMax && S.phase !== 'over' && S.phase !== 'won'; },
+    grant: function () { if (game) game.repair(6); } });
+  function newGame() { var mo = MT.runOpts(deckId(), bestWave(), wins()); unlocked = [];
+    game = OB.Game({ seed: Math.floor(Math.random() * 1e9), onEvent: onEvent, pool: mo.pool, starter: mo.starter }).start(); OB.current = game; toasts = []; shakeT = 0; sync(); }
   function inPlay() { return game && g._sceneName === 'play'; }
   function releaseAll() { if (game) { game.setFlip('L', false); game.setFlip('R', false); } held = {}; touches = {}; }
 
@@ -114,15 +145,20 @@
   }
   var title = g.scenes.title, menu = title._menu;
   title.update = function (dt) { demoTick(dt); };
+  title.press = function (a) { var it = menu.current(); if (it && it.key === 'deck' && (a === 'left' || a === 'right')) { setDeck(MT.cycle(deckId(), bestWave(), wins(), a === 'left' ? -1 : 1)); this.audio.beep(600, 0.03); } };
   title.draw = function (ctx) {
     var P = pal(), th = this.th(), W = this.W;
     R.draw(this, ctx, demo.state(), P, { bare: true });
     ctx.fillStyle = P.retro ? 'rgba(0,0,0,.45)' : 'rgba(24,14,6,.45)'; ctx.fillRect(0, 0, W, this.H);
-    var pw = 380, ph = 330, px = (W - pw) / 2, py = 150;
+    var pw = 400, ph = 380, px = (W - pw) / 2, py = 140;
     R.panel(ctx, px, py, pw, ph, P, P.accent2);
     R.txt(ctx, this.t('title'), W / 2, py + 66, { size: this.i18n.lang === 'en' ? 40 : 50, align: 'center', color: P.accent2, weight: 900 }, P);
-    R.txt(ctx, this.t('subtitle'), W / 2, py + 92, { size: 12, align: 'center', color: th.muted, weight: 600, shadow: false }, P);
-    menu.draw(this, W / 2, py + 140, 32);
+    R.txt(ctx, this.t('subtitle'), W / 2, py + 92, { size: fit(ctx, this.t('subtitle'), pw - 24, 12, 600, P), align: 'center', color: th.muted, weight: 600, shadow: false }, P);
+    menu.draw(this, W / 2, py + 132, 30);
+    var pl = MT.pool(bestWave());
+    var dd = deckDesc(deckId()), nt = g.t('cards') + ': ' + pl.length + '/' + MT.CARDS.length + ' · ' + nextText();
+    R.txt(ctx, dd, W / 2, py + ph - 62, { size: fit(ctx, dd, pw - 24, 12, 700, P), align: 'center', color: P.accent2, weight: 700, shadow: false }, P);
+    R.txt(ctx, nt, W / 2, py + ph - 42, { size: fit(ctx, nt, pw - 24, 11, 600, P), align: 'center', color: th.muted, weight: 600, shadow: false }, P);
     var bw = bestWave();
     if (this.state.best || bw) R.txt(ctx, this.t('best') + ': ' + (this.state.best | 0) + (bw ? ' · ' + this.t('reach') + ': ' + (bw > L.WAVES ? this.t('boss') : this.t('bestWave') + ' ' + bw) : ''), W / 2, py + ph - 18, { size: 12, align: 'center', color: th.muted, weight: 600, shadow: false }, P);
     this.menu._drawHint('title');
@@ -132,6 +168,10 @@
     baseClear.call(this, c);
     if (this._sceneName === 'win' || this._sceneName === 'gameover') R.draw(this, this.ctx, game ? game.state() : demo.state(), pal(), { bare: true });
   };
+  // экраны финала: что открылось в этом забеге
+  ['win', 'gameover'].forEach(function (n) { var sc = g.scenes[n], dr = sc.draw; sc.draw = function (ctx) { dr.call(this, ctx); if (!unlocked.length) return; var P = pal();
+    var s = g.t('newUnlock') + ': ' + unlocked.map(unlockName).join(', ');
+    R.txt(ctx, s, this.W / 2, this.H / 2 + 52, { size: fit(ctx, s, this.W - 24, 14, 800, P), align: 'center', color: P.accent2, weight: 800 }, P); }; });
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
 
   // ---------- игровая сцена ----------

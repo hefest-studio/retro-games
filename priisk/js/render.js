@@ -55,6 +55,10 @@
       else if (pal.mine) { if (r > 0.8) { c.fillStyle = 'rgba(0,0,0,0.22)'; c.fillRect(x + r * 14, y + (1 - r) * 60, 3, 2); } else if (r < 0.1) { c.fillStyle = 'rgba(255,255,255,0.05)'; c.fillRect(x + 9, y + 13, 4, 2); } }
       else if (r > 0.82) { c.fillStyle = 'rgba(255,255,255,0.06)'; c.beginPath(); c.arc(x + r * T, y + (1 - r) * T, 2, 0, 7); c.fill(); }
       else if (r < 0.12) { c.strokeStyle = 'rgba(40,50,35,0.22)'; c.lineWidth = 1; c.beginPath(); c.moveTo(x + 8, y + 15); c.lineTo(x + 6, y + 9); c.moveTo(x + 10, y + 15); c.lineTo(x + 11, y + 8); c.moveTo(x + 12, y + 15); c.lineTo(x + 15, y + 10); c.stroke(); }
+      if (W.high && W.high[k]) { // высота (кампания): светлее, с насечками склона — здесь ветряки ловят ветер
+        c.fillStyle = pal.pixel ? '#aaaaaa' : 'rgba(236,240,250,0.22)'; c.fillRect(x, y, T, T);
+        c.fillStyle = pal.pixel ? '#555555' : 'rgba(70,64,96,0.30)'; if ((i + j) % 2 === 0) { c.fillRect(x + 4, y + 6, 6, 2); c.fillRect(x + 12, y + 15, 6, 2); } else c.fillRect(x + 8, y + 10, 6, 2);
+      }
     }
     for (j = 0; j < W.h; j++) for (i = 0; i < W.w; i++) {
       k = j * W.w + i; x = i * T; y = j * T; r = hash(i + 7, j + 3);
@@ -829,7 +833,7 @@
       else if (e.type === 'colossus') extra = e.parts.map(function (cp) { return t('part_' + cp.k) + ' ' + (cp.hp > 0 ? Math.ceil(cp.hp / cp.maxHp * 100) + '%' : '✕'); }).join(' · ');
       else if (e.type === 'store') extra = e.stock ? t('storeTip') + ' · ' + e.stock : t('storeEmpty');
       else if (e.type === 'pump') extra = t('pumpTip');
-      else if (e.type === 'mill') extra = e.pw > 0 ? t('steamS') + ' +' + e.pw + (L.sheltered(W, e) ? ' · ' + t('millShade') : '') : t('millDead');
+      else if (e.type === 'mill') extra = e.pw > 0 ? t('steamS') + ' +' + e.pw + (L.sheltered(W, e) ? ' · ' + t('millShade') : '') : t(L.onHigh(W, e.tx, e.ty, e.w, e.h) ? 'millDead' : 'millLow');
       else if (e.type === 'face') extra = e.dry ? t('rigDry') : t('stock') + ' ' + Math.floor(e.stock || 0) + ' / ' + L.FACE.stock + (e.link === false ? ' · ' + t('noLink') : '');
       else if (e.type === 'pylon') extra = t('pylonTip');
       else if (e.type === 'rig') extra = e.dry ? t('rigDry') : '+' + (W.rigRate || L.BLDS.rig.rate) + ' ' + t('perSec') + ' · ' + t('rigLeft') + ' ' + L.rigOre(W, e);

@@ -17,7 +17,7 @@
     { n: 7, ru: 'Чужая беда', en: 'Another’s Trouble' }, { n: 8, ru: 'Паровая громада', en: 'Steam Colossus' },
     { n: 9, ru: 'Штольни', en: 'The Adits' }, { n: 10, ru: 'Сердце плато', en: 'Heart of the Plateau' }];
   var NODES = [[95, 432], [178, 352], [268, 404], [350, 322], [452, 362], [528, 280], [446, 204], [334, 218], [250, 142], [400, 112]];
-  // «Долг перевала» (Артель Сизого Перевала): путь с перевала на северо-востоке вниз, на плато; миссии 4–9 — заготовки «в работе»
+  // «Долг перевала» (Артель Сизого Перевала): путь с перевала на северо-востоке вниз, на плато; миссии 6–9 — заготовки «в работе»
   var LATER_S = [
     { n: 1, ru: 'Пустой рудник', en: 'The Empty Mine' }, { n: 2, ru: 'Долговая расписка', en: 'The Promissory Note' },
     { n: 3, ru: 'Тропа на плато', en: 'Trail to the Plateau' }, { n: 4, ru: 'Ночная проверка', en: 'The Night Probe' },
@@ -231,16 +231,17 @@
     // правая колонка: цели, звёзды, отряд
     var x = 540; y = 100;
     text(c, g.t('objectives').toUpperCase(), x, y, { size: 12, color: pl.muted }); y += 10;
-    def.objectives.filter(function (o) { return !o.secret; }).forEach(function (o, i) { // secret — цель ветки развилки: в брифинге не показываем
-      c.fillStyle = 'rgba(255,255,255,0.04)'; c.fillRect(x, y, 390, 28);
-      icon(c, o.icon, x + 6, y + 3, 22, pl);
-      text(c, (o.kind === 'opt' ? '◇ ' : (i + 1) + '. ') + tx(o.text), x + 38, y + 19, { size: 13, weight: 700, color: o.kind === 'opt' ? pl.warn : pl.ink });
-      y += 31;
+    var objs = def.objectives.filter(function (o) { return !o.secret; }), tight = objs.length > 7; // много целей — строки плотнее, чтобы отряд и кнопки не налезали
+    objs.forEach(function (o, i) { // secret — цель ветки развилки: в брифинге не показываем
+      c.fillStyle = 'rgba(255,255,255,0.04)'; c.fillRect(x, y, 390, tight ? 20 : 28);
+      icon(c, o.icon, x + 8, y + (tight ? 2 : 3), tight ? 16 : 22, pl);
+      text(c, (o.kind === 'opt' ? '◇ ' : (i + 1) + '. ') + tx(o.text), x + 38, y + (tight ? 15 : 19), { size: tight ? 12 : 13, weight: 700, color: o.kind === 'opt' ? pl.warn : pl.ink });
+      y += tight ? 22 : 31;
     });
     y += 12; text(c, g.t('starsT').toUpperCase(), x, y, { size: 12, color: pl.muted }); y += 22;
     var rec = d.missions[def.id], stars = [{ icon: 'flag', text: { ru: g.t('starDone'), en: g.t('starDone') } }].concat(def.stars || []);
-    stars.forEach(function (s, i) { star(c, x + 10, y - 4, 8, !!(rec && rec.stars[i]), pl); icon(c, s.icon, x + 26, y - 15, 18, pl); text(c, tx(s.text), x + 52, y, { size: 12, weight: 600 }); y += 22; });
-    y += 10; text(c, g.t('heroesT').toUpperCase(), x, y, { size: 12, color: pl.muted }); y += 24;
+    stars.forEach(function (s, i) { star(c, x + 10, y - 4, 8, !!(rec && rec.stars[i]), pl); icon(c, s.icon, x + 26, y - 15, 18, pl); text(c, tx(s.text), x + 52, y, { size: 12, weight: 600 }); y += tight ? 20 : 22; });
+    y += tight ? 4 : 10; text(c, g.t('heroesT').toUpperCase(), x, y, { size: 12, color: pl.muted }); y += tight ? 22 : 24;
     var hx = x;
     (def.heroes || []).forEach(function (h) {
       portrait(c, h, hx + 14, y - 4, 14);
@@ -421,6 +422,7 @@
       else if (e.t === 'talked') { host.msg(g.t('msgTalked'), 'good'); g.audio.beep(660, 0.08, 'triangle'); g.audio.beep(880, 0.1, 'triangle'); }
       else if (e.t === 'talkFail') { host.msg(g.t('msgTalkFail'), 'bad'); g.audio.beep(200, 0.1, 'square'); }
       else if (e.t === 'carFall') host.msg(g.t('msgCarFall'), 'bad');
+      else if (e.t === 'scouted' && MS.def.scoutMsg) { host.msg(g.t('msgScouted') + ': ' + g.t(e.type), 'good'); g.audio.beep(760, 0.05, 'triangle'); }
       else if (e.t === 'wind') host.msg(g.t('msgWindShift') + ' · ' + g.t('steamS') + ' ' + Math.round(W.wind.s * 100) + '%', 'warn');
       else if (e.t === 'halt' && MS.groups[e.tag] && MS.groups[e.tag].owner === 0) host.msg(g.t(e.on ? 'msgHalt' : 'msgGo'), e.on ? 'warn' : 'good');
     });
@@ -445,6 +447,8 @@
     if (cnt && ob.state === 'active' && cnt.t === 'pumped') s += ' (' + Math.min(cnt.gte, Math.floor(W.mission.pumped[cnt.zone] || 0)) + '/' + cnt.gte + ')'; // выкачано вышками в зоне
     if (cnt && ob.state === 'active' && cnt.t === 'fires') s += ' · ' + W.fires.filter(function (f) { return f.hp > 0 && (!cnt.tag || [].concat(cnt.tag).indexOf(f.tag) >= 0); }).length;
     if (cnt && ob.state === 'active' && cnt.t === 'owned') s += ' (' + Math.min(cnt.n, W.blds.filter(function (b) { return b.owner === 0 && (b.tag === cnt.tag || b.tag0 === cnt.tag) && (!cnt.type || b.type === cnt.type); }).length) + '/' + cnt.n + ')';
+    if (cnt && ob.state === 'active' && cnt.t === 'scouted') s += ' (' + Math.min(cnt.gte, W.mission.scoutedN[(cnt.owner == null ? 1 : cnt.owner) + ':' + (cnt.type || cnt.tag || '*')] || 0) + '/' + cnt.gte + ')'; // разведано зданий
+    if (cnt && ob.state === 'active' && cnt.t === 'builtIn') s += ' (' + Math.min(cnt.n || 1, W.blds.filter(function (b) { var bc = L.center(b); return b.owner === 0 && (!cnt.type || [].concat(cnt.type).indexOf(b.type) >= 0) && C.inZone(W.mission, cnt.zone, bc.x, bc.y); }).length) + '/' + (cnt.n || 1) + ')';
     if (cnt && ob.state === 'active' && cnt.t === 'parts') s += ' (' + (W.mission.partsN[cnt.tag || '*'] || 0) + '/' + cnt.gte + ')';
     if (cnt && ob.state === 'active' && cnt.t === 'zone') { var own = W.units.filter(function (u) { return u.owner === 0; }), inside = own.filter(function (u) { return C.inZone(W.mission, cnt.zone, u.x, u.y); }).length, need = cnt.all ? own.length : cnt.n; s += ' (' + Math.min(need, inside) + '/' + need + ')'; }
     return s;
@@ -510,8 +514,8 @@
       else if (this.W.ground === 'mine') { var gr = c.createRadialGradient(VW / 2, VH / 2, VH * 0.25, VW / 2, VH / 2, VW * 0.62); gr.addColorStop(0, 'rgba(10,6,2,0.18)'); gr.addColorStop(1, 'rgba(6,4,2,0.62)'); c.fillStyle = gr; c.fillRect(0, 0, VW, VH); } // шахта: тёплая темнота, гуще к краям
       else { c.fillStyle = 'rgba(8,14,40,0.40)'; c.fillRect(0, 0, VW, VH); }
     }
-    if (MS.weather && MS.weather.kind === 'snowstorm') {
-      var s = MS.storm, n = Math.round(70 + 230 * s);
+    if (MS.weather && (MS.weather.kind === 'snowstorm' || MS.weather.kind === 'buran')) { // буран — гуще и злее метели
+      var bz = MS.weather.kind === 'buran', s = Math.min(1, MS.storm * (bz ? 1.25 : 1)), n = Math.round((bz ? 110 : 70) + (bz ? 300 : 230) * s);
       c.fillStyle = pl.pixel ? 'rgba(255,255,255,' + (0.04 + 0.12 * s).toFixed(3) + ')' : 'rgba(232,238,245,' + (0.06 + 0.24 * s).toFixed(3) + ')'; c.fillRect(0, 0, VW, VH);
       c.fillStyle = '#ffffff';
       for (var i = 0; i < n; i++) {
@@ -608,12 +612,18 @@
     if (qs) side = qs[1]; P.SKIRMISH_SIDE = side;
     g.menu.addItem({ key: 'side', after: 'play', label: function () { return g.t('side') + ': ' + g.t(P.SKIRMISH_SIDE === 'sizye' ? 'sideSizye' : 'sideCopper'); },
       onSelect: function () { P.SKIRMISH_SIDE = P.SKIRMISH_SIDE === 'sizye' ? 'copper' : 'sizye'; try { global.localStorage.setItem('arcade.priisk.side', P.SKIRMISH_SIDE); } catch (e) {} g.audio.beep(P.SKIRMISH_SIDE === 'sizye' ? 520 : 660, 0.05); } });
+    // противник в скирмише за Медный Ключ: Сизые на котельных (классика) или на своей механике — ветряки и канатка (ИИ Сизых). ?foe=sizye|classic
+    var foe = 'classic', qf = /[?&]foe=(sizye|classic)\b/.exec(global.location ? global.location.search : '');
+    try { foe = global.localStorage.getItem('arcade.priisk.foe') === 'sizye' ? 'sizye' : 'classic'; } catch (e) {}
+    if (qf) foe = qf[1]; P.SKIRMISH_FOE = foe;
+    g.menu.addItem({ key: 'foe', after: 'side', label: function () { return g.t('foe') + ': ' + g.t(P.SKIRMISH_SIDE === 'sizye' ? 'sideCopper' : P.SKIRMISH_FOE === 'sizye' ? 'foeSizye' : 'foeClassic'); },
+      onSelect: function () { if (P.SKIRMISH_SIDE === 'sizye') { g.audio.beep(200, 0.05); return; } P.SKIRMISH_FOE = P.SKIRMISH_FOE === 'sizye' ? 'classic' : 'sizye'; try { global.localStorage.setItem('arcade.priisk.foe', P.SKIRMISH_FOE); } catch (e) {} g.audio.beep(P.SKIRMISH_FOE === 'sizye' ? 520 : 660, 0.05); } });
     // клавиши героев Сизых: Q — Корней, E — Митяй, R — Агафья (у Медного Ключа Q/E/R ловит main.js)
     global.addEventListener('keydown', function (e) {
       var hk = AB_KEYS[e.code], S = host.S; if (!hk || e.ctrlKey || e.metaKey || e.altKey || g._sceneName !== 'play' || !S.W || !S.W.mission || !S.W.mission.heroes[hk]) return;
       UI.useAbility(S, hk); e.preventDefault();
     });
-    g.menu.addItem({ key: 'campaign', after: 'side', label: function () { return g.t('campaign'); }, onSelect: function () { var d = data(); sel = Math.max(0, Math.min(d.unlocked, C.list(camp).length || 1) - 1); g.goto('camp'); } });
+    g.menu.addItem({ key: 'campaign', after: 'foe', label: function () { return g.t('campaign'); }, onSelect: function () { var d = data(); sel = Math.max(0, Math.min(d.unlocked, C.list(camp).length || 1) - 1); g.goto('camp'); } });
     var draw = { camp: drawCamp, brief: drawBrief, result: drawResult, edition: drawEdition, finale: drawFinale };
     ['camp', 'brief', 'result', 'edition', 'finale'].forEach(function (name) {
       g.scene(name, { realtime: true, enter: function () { hover = -1; resetArm = 0; sel2 = 0; UI.data = C.load(store, camp); g.audio.beep(520, 0.05); }, update: function () {}, draw: function (c) { draw[name](c); }, press: sceneKeys(name) });
