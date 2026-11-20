@@ -14,6 +14,25 @@
   Z.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
 
+  // ---------- Мета-прогрессия: выбор открытого сектора и звёзды (js/meta.js); прогресс — и в облако площадки ----------
+  var M = Z.meta, prog = M.Progress({ get: function (k) { return Arcade.Store.get(k, null); }, set: function (k, v) { g.storeSet(k, v); } });
+  for (var lv = 1; lv <= M.LEVELS; lv++) g.persist(M.key(lv), 'max');
+  var START_KEY = 'arcade.zaslon.start'; g.persist(START_KEY, 'last');
+  function startLv() { var v = parseInt(Arcade.Store.get(START_KEY, '1'), 10) || 1; return prog.unlocked(v) ? v : prog.maxUnlocked(); }
+  function setStart(v) { g.storeSet(START_KEY, v); }
+  var runStart = 1;
+  function onClearStars(d) {
+    var r = M.stars({ level: d.sector, lost: d.lost, base: d.base }), before = prog.maxUnlocked(), isNew = prog.record(d.sector, r.n), after = prog.maxUnlocked();
+    if (after > before) setStart(after);
+    return { n: r.n, isNew: isNew, opened: after > before ? after : 0 };
+  }
+  // Реклама за награду (только на площадках с рекламой): «ещё один шанс» раз за партию — корабль и/или заслон до 50%;
+  // бонус в паузе — починка заслона +25% (раз за партию, если поврежден). Межстраничная — при выходе из мастерской («В бой →»).
+  g.useRewardedContinue({ revive: function () { if (game) { game.reviveAd(); sync(); } } });
+  g.useRewardedBonus({ key: 'rwRepair', scene: 'pause', label: function () { return g.t('rwRepair'); },
+    available: function () { var s = game && game.state(); return !!s && !s.over && s.base < C.BASE_MAX; },
+    grant: function () { if (game) { game.repairAd(); sync(); } } });
+
   function rnd() { return g.themeName === 'retro' ? Z.classic : Z.modern; }
   var game = null, toasts = [], playSince = 0;
 
@@ -57,7 +76,12 @@
     var S = game && game.state(), P = rnd().P;
     if (S) {
       if (type === 'capsule') toast(g.t('w_' + d.type) + (d.bonus ? ' +' + d.bonus : ' · ' + g.t('lvl') + ' ' + d.lv), P.wpn[d.type], S.player.x, S.player.y - 36);
-      else if (type === 'clear') toast(g.t('bonus') + ' +' + d.bonus + ' · +' + d.scrap + ' ' + g.t('scrap'), P.good, C.W / 2, 330);
+      else if (type === 'clear') { toast(g.t('bonus') + ' +' + d.bonus + ' · +' + d.scrap + ' ' + g.t('scrap'), P.good, C.W / 2, 330);
+        var st = onClearStars(d); toast(M.starStr(st.n) + (st.isNew ? '  ' + g.t('starNew') : ''), P.accent, C.W / 2, 362);
+        if (st.opened) toast(g.t('opened').replace('{n}', st.opened), P.cyan, C.W / 2, 392); }
+      else if (type === 'sector' && d.sector > runStart) g.adBreak();   // игрок нажал «В бой →» в мастерской — естественная пауза
+      else if (type === 'revive') toast(g.t('revived'), P.accent, C.W / 2, 380);
+      else if (type === 'repair') toast(g.t('base') + ' +25%', P.cyan, C.W / 2, C.BREACH_Y - 26);
       else if (type === 'buy') toast(g.t('bought') + ': ' + g.t('s_' + d.key), P.good, C.W / 2, 560);
       else if (type === 'deny') toast(g.t('noScrap'), P.bad, C.W / 2, 560);
     }
@@ -67,7 +91,8 @@
   }
 
   function newGame() {
-    game = Z.Game({ lives: 3, diff: diff, onEvent: onEvent });
+    runStart = startLv();
+    game = Z.Game({ lives: 3, diff: diff, onEvent: onEvent, startSector: runStart });
     game.start(); Z.current = game; toasts = []; sync();
   }
   function doBomb() { if (g._sceneName === 'play' && game && g.time - playSince > 0.15) game.bomb(); }
@@ -82,6 +107,10 @@
   g.clear = function (c) { baseClear.call(this, c); rnd().bg(this.ctx, this, this.time * 40, 1); };
 
   var title = g.scenes.title, menu = g.menu.get('title');
+  // пункт «Сектор N ★★☆»: выбор/тап — следующий открытый, ← → — по кругу
+  g.menu.addItem({ key: 'level', scene: 'title', after: 'play', label: function () { var n = startLv(); return g.t('lvPick') + ' ' + n + '  ' + M.starStr(prog.get(n)); },
+    onSelect: function () { setStart(prog.next(startLv(), 1)); } });
+  title.press = function (a) { var it = menu && menu.current(); if (it && it.key === 'level' && (a === 'left' || a === 'right')) { setStart(prog.next(startLv(), a === 'left' ? -1 : 1)); this.audio.beep(600, 0.03); } };
   title.draw = function (ctx) {
     var r = rnd(), P = r.P, retro = P.pixel, W = this.W, H = this.H, t = this.time;
     r.bg(ctx, this, t * 50, 1 + ((t / 9) | 0) % 5);
@@ -91,15 +120,15 @@
     // «заслон» под заголовком — светящаяся полоса
     Z.ui.barrier(ctx, W / 2 - 120, py + 80, 240, 1, t, P);
     Z.ui.txt(this, this.t('subtitle'), W / 2, py + 108, { size: 12, align: 'center', color: P.muted, weight: 600 }, P);
-    menu.draw(this, W / 2, py + 152, 32);
+    menu.draw(this, W / 2, py + 148, 28);
     // ряд врагов
     var kinds = ['mite', 'dart', 'weaver', 'carrier', 'hulk'];
     for (var i = 0; i < kinds.length; i++) {
-      var x = W / 2 + (i - 2) * 66, y = py + 300 + Math.sin(t * 2 + i) * 4;
+      var x = W / 2 + (i - 2) * 66, y = py + 314 + Math.sin(t * 2 + i) * 4;
       r.icon(ctx, kinds[i], x, y, this);
-      Z.ui.txt(this, this.t('e_' + kinds[i]), x, py + 340, { size: 11, align: 'center', color: P.muted, weight: 700 }, P);
+      Z.ui.txt(this, this.t('e_' + kinds[i]), x, py + 350, { size: 11, align: 'center', color: P.muted, weight: 700 }, P);
     }
-    if (this.state.best) Z.ui.txt(this, this.t('best') + ': ' + this.state.best, W / 2, py + ph - 18, { size: 12, align: 'center', color: P.muted, weight: 600 }, P);
+    if (this.state.best) Z.ui.txt(this, this.t('best') + ': ' + this.state.best, W / 2, py + ph - 12, { size: 12, align: 'center', color: P.muted, weight: 600 }, P);
     // корабль под панелью
     r.ship(ctx, W / 2, 548 + Math.sin(t * 1.5) * 4, this, { modules: 2, shield: true });
     Z.ui.txt(this, this.t('hint1'), W / 2, H - 34, { size: 11, align: 'center', color: P.muted, weight: 600 }, P);

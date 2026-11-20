@@ -15,6 +15,30 @@
   CH.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
 
+  // ---------- Мета-прогрессия: выбор открытого уровня и звёзды (js/meta.js); прогресс — и в облако площадки ----------
+  var M = CH.meta, prog = M.Progress({ get: function (k) { return Arcade.Store.get(k, null); }, set: function (k, v) { g.storeSet(k, v); } });
+  for (var lv = 1; lv <= M.LEVELS; lv++) g.persist(M.key(lv), 'max');
+  var START_KEY = 'arcade.chaynik.start'; g.persist(START_KEY, 'last');
+  function startLv() { var v = parseInt(Arcade.Store.get(START_KEY, '1'), 10) || 1; return prog.unlocked(v) ? v : prog.maxUnlocked(); }
+  function setStart(v) { g.storeSet(START_KEY, v); }
+  var lastStars = null;   // { level, n, c, isNew, opened } — итог уровня для баннера «уровень пройден»
+  function onClearStars(d) {
+    var r = M.stars({ level: d.level, time: d.time, lost: d.nb ? 0 : 1 }), before = prog.maxUnlocked(), isNew = prog.record(d.level, r.n), after = prog.maxUnlocked();
+    lastStars = { level: d.level, n: r.n, c: r.c, isNew: isNew, opened: after > before ? after : 0 };
+    if (lastStars.opened) setStart(after);
+    return lastStars;
+  }
+  // Межстраничная реклама между уровнями — только по нажатию игрока (Яндекс 4.4): adGate 1 — уровень пройден и реклама готова,
+  // 2 — баннер доигран, ждём «Пробел / тап — дальше», 3 — идёт показ.
+  var adGate = 0;
+  function adGo() { if (adGate !== 2) return false; adGate = 3; g.adBreak().then(function () { adGate = 0; }); return true; }
+  // Реклама за награду (только на площадках с рекламой): «ещё один шанс» — 1 жизнь с отметки, счёт сохраняется (раз за партию);
+  // бонус в паузе — +1 жизнь (раз за партию, если жизней меньше 5).
+  g.useRewardedContinue({ revive: function () { if (game) { game.reviveAd(); sync(); } } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { var s = game && game.state(); return !!s && s.phase !== 'over' && s.lives < L.K.MAX_LIVES; },
+    grant: function () { if (game) { game.addLife(); sync(); } } });
+
   var game = null, banner = null, cam = { x: 0, y: 0 }, playSince = 0, padFire = false, padBoil = false, shake = 0;
   function S() { return game.state(); }
   function sync() { if (!game) return; var s = S(); g.state.score = s.score; g.state.lives = Math.max(0, s.lives); g.state.level = s.level; }
@@ -79,8 +103,13 @@
       case 'pz_puff': pzPuff(); break;
       case 'pz_blow': pzBlow(+d.k); break;
       case 'clear':
-        var lines = [g.t('tTime') + ': ' + d.time.toFixed(1) + ' s   ' + g.t('tBonus') + ' +' + d.tb + (d.nb ? '   ' + g.t('tNoDeath') + ' +' + d.nb : ''), g.t('tTotal') + ' +' + (d.tb + d.nb + 1000)];
-        showBanner(g.t('clear'), lvName(d.level), 3.1, lines); break;
+        var st = onClearStars(d);
+        var lines = [g.t('tTime') + ': ' + d.time.toFixed(1) + ' s   ' + g.t('tBonus') + ' +' + d.tb + (d.nb ? '   ' + g.t('tNoDeath') + ' +' + d.nb : ''), g.t('tTotal') + ' +' + (d.tb + d.nb + 1000),
+          M.starStr(st.n) + (st.isNew ? '  ' + g.t('starNew') : '') + (st.opened ? '  ' + g.t('opened').replace('{n}', st.opened) : '')];
+        showBanner(g.t('clear'), lvName(d.level), 3.1, lines);
+        if (d.level < LVL.COUNT && g.adReady()) adGate = 1;
+        break;
+      case 'revive': cam.snap = true; showBanner(g.t('revived'), '', 1.4); break;
       case 'gameover': sync(); g.state.lives = 0; break;
       case 'win': sync(); break;
     }
@@ -90,7 +119,7 @@
   function pzPuff() { var s = S().pz.s, P = R.PZ, D = CH.puzzle.D[s.f], x = P.X + s.x * P.CELL + 16, y = P.Y + s.y * P.CELL + 12; FX.add(x + D[0] * 14, y + D[1] * 14, { n: 10, sp: 160, a: Math.atan2(D[1], D[0]), spread: 0.5, c: '#ffffff', r: 4, puff: true, g: 0, life: 0.5 }); }
   function pzBlow(k) { var B = L.PB, P = R.PZ, x = P.X + (k % B.w) * P.CELL + 16, y = P.Y + Math.floor(k / B.w) * P.CELL + 16; FX.add(x, y, { n: 10, sp: 140, c: '#c98a4a', r: 2, g: 0, life: 0.5 }); }
 
-  function newGame() { game = CH.Game({ seed: (Date.now() & 0xffff) + 1, onEvent: onEvent }); FX.clear(); banner = null; game.start(); CH.current = game; sync(); }
+  function newGame() { lastStars = null; adGate = 0; game = CH.Game({ seed: (Date.now() & 0xffff) + 1, level: startLv(), onEvent: onEvent }); FX.clear(); banner = null; game.start(); CH.current = game; sync(); }
   function inPlay() { return g._sceneName === 'play' && game && g.time - playSince > 0.15; }
 
   // ---------- стандартные экраны ----------
@@ -131,6 +160,10 @@
 
   // ---------- титул ----------
   var title = g.scenes.title, menu = g.menu.get('title');
+  // пункт «Уровень N ★★☆»: выбор/тап — следующий открытый, ← → — по кругу
+  g.menu.addItem({ key: 'level', scene: 'title', after: 'play', label: function () { var n = startLv(); return g.t('lvPick') + ' ' + n + '  ' + M.starStr(prog.get(n)); },
+    onSelect: function () { setStart(prog.next(startLv(), 1)); } });
+  title.press = function (a) { var it = menu.current && menu.current(); if (it && it.key === 'level' && (a === 'left' || a === 'right')) { setStart(prog.next(startLv(), a === 'left' ? -1 : 1)); this.audio.beep(600, 0.03); } };
   title.draw = function (ctx) {
     var rt = retro(), t = this.time, th = this.th(); R.setRetro(rt);
     // кухня: кафель, стол, окно
@@ -182,7 +215,7 @@
   g.scene('play', {
     realtime: true,
     enter: function (d) { if (!(d && d.resume) || !game) newGame(); else if (game) g.setMusic(track(S().level)); playSince = g.time; },
-    press: function (a) { if (a === 'pause') this.pause(); },
+    press: function (a) { if ((a === 'action' || a === 'start') && adGo()) return; if (a === 'pause') this.pause(); },
     update: function (dt) {
       if (!game) return;
       if (banner) { banner.a -= dt; if (banner.a <= 0) banner = null; }
@@ -191,6 +224,9 @@
       var jump = live && (this.input.pressed('action') || !!cd.KeyZ);
       var fire = live && (!!(cd.KeyX || cd.KeyJ || cd.KeyF || cd.ControlLeft || cd.ControlRight) || padFire);
       var boil = live && (!!(cd.KeyC || cd.KeyK || cd.ShiftLeft || cd.ShiftRight) || padBoil);
+      var s0 = S();
+      if (adGate === 1 && s0.phase === 'clear' && s0.phaseT >= 2.6) adGate = 2;
+      if (adGate >= 2) { if (s0.phase !== 'clear') adGate = 0; else { FX.step(dt); return; } }   // ждём нажатия / идёт показ
       game.setInput({ x: dir.x, y: dir.y, jump: jump, fire: fire, boil: boil });
       var n = Math.max(1, Math.min(4, Math.round(Math.min(dt, 0.066) / STEP)));
       for (var k = 0; k < n; k++) game.update(STEP);
@@ -202,8 +238,12 @@
       if (s.phase === 'over' && s.phaseT >= 0) { toOver(); return; }
       if (s.phase === 'won' && g._sceneName === 'play') { if (!this._wonT) this._wonT = g.time; if (g.time - this._wonT > 0.4) { this._wonT = 0; g.win(); } }
     },
-    draw: function (ctx) { if (!game) { this.clear(); return; } drawPlay(ctx); }
+    draw: function (ctx) {
+      if (!game) { this.clear(); return; } drawPlay(ctx);
+      if (adGate === 2 && Math.floor(this.time * 2) % 2 === 0) this.text(this.t('nextLevel'), VW / 2, VH - 24, { size: 15, align: 'center', color: this.th().accent, weight: 800 });
+    }
   });
+  g.canvas.addEventListener('pointerdown', function () { if (g._sceneName === 'play') adGo(); });
 
   // ---------- клавиши и тач-кнопки ----------
   addEventListener('keydown', function (e) {
@@ -233,6 +273,7 @@
     var padFixed = pad && getComputedStyle(pad).position === 'fixed';
     var padH = pad && !padFixed && getComputedStyle(pad).display !== 'none' ? pad.offsetHeight + 16 : 0;
     var w = Math.min(1120, (wrap && wrap.clientWidth) || g.W, (innerHeight - padH - 64) * g.W / g.H);
+    if (padFixed) w = Math.min(w, innerWidth - 2 * 158);   // телефон лёжа: кнопки по бокам не закрывают поле
     w = Math.max(240, Math.floor(w)); c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
   }
   var lastLang = null, lastTheme = null;

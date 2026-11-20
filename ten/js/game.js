@@ -671,6 +671,10 @@
       state: function () { return S; },
       nextAct: nextAct,
       restartScene: function () { if (S.phase === 'over' || S.phase === 'won') return; S.lives--; S.deaths++; if (S.lives <= 0) { S.phase = 'over'; S.over = true; ev('gameover', { score: S.score }); } else loadScene(); },
+      // реклама за награду «ещё один шанс» (после «конец игры»): 1 жизнь, та же сцена, счёт сохраняется (бесплатное продолжение обнуляет счёт)
+      reviveAd: function () { if (!S.over) return false; S.over = false; S.lives = 1; loadScene(); ev('revive'); return true; },
+      // бонус за рекламу в паузе: +1 жизнь (до 5)
+      addLife: function () { if (S.over || S.lives >= 5) return false; S.lives++; ev('life'); return true; },
       continueGame: function () { if (!S.over) return; S.over = false; S.lives = K.LIVES; S.score = 0; S.lifeAt = 20000; S.continues++; S.charge = Math.max(S.charge, K.CHARGE0); loadScene(); ev('continue'); },
       // тестовые хуки
       _go: function (a, s) { S.act = a; S.scene = s; loadScene(); },

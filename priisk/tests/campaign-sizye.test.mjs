@@ -285,8 +285,8 @@ test('действия и условия Сизых: wind, talked, cabled, linke
 // ---------- издание и реестр ----------
 test('реестр: s1–s3 — только в полной версии (файлов в публичном дереве нет); демо — кампания Сизых под замком', () => {
   ['s1', 's2', 's3'].forEach(id => { ok(P.MISSION_FILES.full.includes(id), id); ok(!P.MISSION_FILES.demo.includes(id)); ok(!fs.existsSync(path.join(ROOT, 'js/missions/' + id + '.js')), 'файл ' + id + ' в публичном дереве'); ok(!P.Edition.playable('demo', id)); });
-  ['s4', 's5'].forEach(id => { ok(P.MISSION_FILES.full.includes(id), id + ' в реестре full'); ok(!fs.existsSync(path.join(ROOT, 'js/missions/' + id + '.js')), 'файл ' + id + ' в публичном дереве'); ok(!P.Edition.playable('demo', id)); });
-  ok(!P.MISSION_FILES.full.some(id => /^s[6-9]$/.test(id)), 's6–s9 ещё не готовы — в реестре их нет');
+  ['s4', 's5', 's6', 's7'].forEach(id => { ok(P.MISSION_FILES.full.includes(id), id + ' в реестре full'); ok(!fs.existsSync(path.join(ROOT, 'js/missions/' + id + '.js')), 'файл ' + id + ' в публичном дереве'); ok(!P.Edition.playable('demo', id)); });
+  ok(!P.MISSION_FILES.full.some(id => /^s[89]$/.test(id)), 's8–s9 ещё не готовы — в реестре их нет');
   const src = fs.readFileSync(path.join(ROOT, 'js/campaign-ui.js'), 'utf8');
   ok(/LATER_S = \[/.test(src) && ['Ночная проверка', 'Ветер с перевала', 'Горящий рудник', 'Заводчик', 'Канатка над пропастью', 'Последний перевал'].every(t => src.includes(t)), 'заготовки s4–s9 на карте');
   ok(/lockedFullSubS/.test(src) && STR.ru.lockedFullSubS.includes('скирмиш'), 'текст замка кампании Сизых');

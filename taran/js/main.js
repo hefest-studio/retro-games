@@ -20,9 +20,25 @@
 
   // ---------- Хранение ----------
   function sget(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-  function sset(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
+  // запись — и в облако площадки (g.storeSet; ключи объявлены g.persist ниже): чемпионат, рекорды кругов и настройки
+  // переживают смену устройства. Удаление (законченный чемпионат) — пустая строка, её load() не принимает.
+  function sset(k, v) { if (v == null) { g.storeSet(k, ''); try { localStorage.removeItem(k); } catch (e) {} } else g.storeSet(k, v); }
+  ['arcade.taran.champ1', 'arcade.taran.champ2', 'arcade.taran.laps', 'arcade.taran.opts'].forEach(function (k) { g.persist(k, 'last'); });
+
+  // ---------- Мета: «Трасса дня» — одна трасса на всех в сутки (серверное время площадки, UTC+3), рекорд дня в облако ----------
+  // Значение arcade.taran.daily = день·10⁶ + (999999 − лучший круг в сотых): слияние облака режимом max — свежий день важнее,
+  // внутри дня — меньшее время. Без площадки — часы устройства.
+  var DM = T.dailyMeta, DAILY_KEY = DM.KEY; g.persist(DAILY_KEY, 'max');
+  function today() { return DM.day(g.serverTime()); }
+  function dailyTrack(day) { return DM.track(day, L.TRACKS.length); }
+  function dailyBest(day) { return DM.decode(Arcade.Store.get(DAILY_KEY, '0'), day); }
+  function dailySubmit(day, lap) {
+    if (!(lap > 0)) return false; var cur = dailyBest(day);
+    if (cur && Math.round(lap * 100) >= Math.round(cur * 100)) return false; g.storeSet(DAILY_KEY, String(DM.encode(day, lap))); return true;
+  }
+  T.daily = { today: today, track: dailyTrack, best: dailyBest, submit: dailySubmit, KEY: DAILY_KEY };
   var opt = { mode: 'champ', team: 'coop', ctrl: g.input.touchOnly ? 'arcade' : 'tank', track: 0 };
-  try { var o0 = JSON.parse(sget('arcade.taran.opts') || 'null'); if (o0) { if (o0.mode === 'time' || o0.mode === 'champ') opt.mode = o0.mode; if (o0.team === 'duel' || o0.team === 'coop') opt.team = o0.team; if (o0.ctrl === 'tank' || o0.ctrl === 'arcade') opt.ctrl = o0.ctrl; if (o0.track >= 0 && o0.track < L.TRACKS.length) opt.track = o0.track | 0; } } catch (e) {}
+  try { var o0 = JSON.parse(sget('arcade.taran.opts') || 'null'); if (o0) { if (o0.mode === 'time' || o0.mode === 'champ' || o0.mode === 'daily') opt.mode = o0.mode; if (o0.team === 'duel' || o0.team === 'coop') opt.team = o0.team; if (o0.ctrl === 'tank' || o0.ctrl === 'arcade') opt.ctrl = o0.ctrl; if (o0.track >= 0 && o0.track < L.TRACKS.length) opt.track = o0.track | 0; } } catch (e) {}
   function saveOpt() { sset('arcade.taran.opts', JSON.stringify(opt)); }
   var laps = {}; try { laps = JSON.parse(sget('arcade.taran.laps') || '{}') || {}; } catch (e) { laps = {}; }
   function lapRecord(id) { return laps[id] || 0; }
@@ -34,7 +50,7 @@
   g.useStandardScreens({ lives: 1 });
   g.usePlayers({
     bind: L.BIND, actions: ['fire', 'rocket', 'drop', 'nitro'], pad: pad, touch: { L: 'left', R: 'right', U: 'up', D: 'down' },
-    hint: { ru: [T.STR.ru.hint1, T.STR.ru.hint2], en: [T.STR.en.hint1, T.STR.en.hint2] }
+    hint: { ru: [T.STR.ru.hint1, T.STR.ru.hint2], en: [T.STR.en.hint1, T.STR.en.hint2], tr: [T.STR.tr.hint1, T.STR.tr.hint2], es: [T.STR.es.hint1, T.STR.es.hint2], pt: [T.STR.pt.hint1, T.STR.pt.hint2] }
   });
   g.input.bindDpad(pad);
 
@@ -50,11 +66,13 @@
   var nP = function () { return g.input.playerCount; };
   function playLabel() {
     if (opt.mode === 'time') return g.t('play') + ' · ' + g.t('m_time');
+    if (opt.mode === 'daily') { var dd = today(), b = dailyBest(dd); return g.t('play') + ' · ' + g.t('tr_' + L.TRACKS[dailyTrack(dd)].id) + ' · ' + (b ? T.ui.fmtT(b) : g.t('noRec')); }
     var sv = savedChamp(nP());
     return sv ? g.t('contChamp') + ' · ' + g.t('lg_' + sv.league) + ', ' + g.t('race') + ' ' + (sv.race + 1) + '/4' : g.t('play');
   }
   g.menu.addItem({ key: 'play', index: 0, label: playLabel, onSelect: startPlay });
-  g.menu.addItem({ key: 'mode', after: 'players', label: function () { return g.t('mode') + ': ' + g.t(opt.mode === 'time' ? 'm_time' : 'm_champ'); }, onSelect: function () { opt.mode = opt.mode === 'time' ? 'champ' : 'time'; saveOpt(); } });
+  g.menu.addItem({ key: 'mode', after: 'players', label: function () { return g.t('mode') + ': ' + g.t(opt.mode === 'time' ? 'm_time' : opt.mode === 'daily' ? 'm_daily' : 'm_champ'); },
+    onSelect: function () { opt.mode = opt.mode === 'champ' ? 'time' : opt.mode === 'time' ? 'daily' : 'champ'; saveOpt(); } });
   g.menu.addItem({ key: 'ctrl', after: 'mode', label: function () { return g.t('ctrl') + ': ' + g.t(opt.ctrl === 'arcade' ? 'c_arcade' : 'c_tank'); }, onSelect: function () { opt.ctrl = opt.ctrl === 'arcade' ? 'tank' : 'arcade'; saveOpt(); } });
   var extra = {
     team: { key: 'team', label: function () { return g.t('team') + ': ' + g.t(opt.team === 'duel' ? 't_duel' : 't_coop'); }, onSelect: function () { opt.team = opt.team === 'duel' ? 'coop' : 'duel'; saveOpt(); } },
@@ -72,12 +90,13 @@
   }
 
   // ---------- Запуск ----------
+  var dailyDay = 0, pendingGarage = false;
   var raceOpts = null, kind = 'champ', game = null, toasts = [], shakeT = 0, R = null, seed = 1;
   var TT_CFG = { body: 1, up: { armor: 3, tires: 3, engine: 3, weapon: 1 }, rear: 'oil' };
   function startPlay() {
-    if (opt.mode === 'time') {
-      kind = 'time';
-      raceOpts = { track: opt.track, players: nP(), humans: [TT_CFG, TT_CFG], rivals: [], mode: 'time', laps: L.LAPS };
+    if (opt.mode === 'time' || opt.mode === 'daily') {
+      kind = 'time'; dailyDay = opt.mode === 'daily' ? today() : 0;
+      raceOpts = { track: dailyDay ? dailyTrack(dailyDay) : opt.track, players: nP(), humans: [TT_CFG, TT_CFG], rivals: [], mode: 'time', laps: L.LAPS };
       g.goto('play'); return;
     }
     var sv = savedChamp(nP());
@@ -121,11 +140,19 @@
 
   // ---------- Итоги ----------
   var resMenu = new Arcade.Menu([{ key: 'next', label: '', onSelect: resultsNext }]);
+  var lostChamp = null;
   function resultsNext() {
-    if (kind === 'time') { g.goto('title'); return; }
-    if (R.sum.champion || R.sum.lost) { g.state.score = champ.total; var won = R.sum.champion; champ = null; if (won) g.win(); else g.gameover(); return; }
-    openGarage(0);
+    if (kind === 'time') { g.goto('title'); g.adBreak(); return; }
+    if (R.sum.champion || R.sum.lost) { g.state.score = champ.total; var won = R.sum.champion; lostChamp = won ? null : champ; champ = null; if (won) g.win(); else g.gameover(); return; }
+    openGarage(0); g.adBreak();   // межстраничная — по нажатию «Дальше» между заездами (естественная пауза, Яндекс 4.4)
   }
+  // Реклама за награду (только на площадках с рекламой): чемпионат проигран (лига не взята за все попытки) → «ещё одна попытка лиги»
+  // (раз за партию) — чемпионат восстанавливается с той же лиги и гаражом; бонус в паузе заезда чемпионата — ремонт и +1 ракета.
+  g.useRewardedContinue({ revive: function () {
+    if (!lostChamp) return; champ = lostChamp; lostChamp = null; champ.done = null; champ.tries = L.MAX_TRIES; champ.race = 0; champ.pts = {}; saveChamp(); pendingGarage = true; } });
+  g.useRewardedBonus({ key: 'rwFix', scene: 'pause', label: function () { return g.t('rwFix'); },
+    available: function () { if (kind !== 'champ' || !game) return false; var S = game.state(); return S.phase !== 'done' && S.cars.some(function (c) { return c.human >= 0 && (c.hp < c.st.hp || c.rockets < c.st.rockets); }); },
+    grant: function () { if (!game) return; game.state().cars.forEach(function (c) { if (c.human >= 0) { c.hp = c.st.hp; c.rockets++; } }); } });
   g.scene('results', {
     realtime: true, _menu: resMenu,
     draw: function (ctx) { var P = pal(); T.ui.render(this, ctx, game.state(), P, { bare: true }); T.ui.results(this, ctx, game.state(), P, R); resMenu.items[0]._y = L.H - 26 - 18 + 6; }
@@ -136,7 +163,11 @@
     var newRec = false;
     S.cars.forEach(function (c) { if (c.human >= 0 && c.bestLap && (!laps[S.track.id] || c.bestLap < laps[S.track.id])) { laps[S.track.id] = Math.round(c.bestLap * 100) / 100; newRec = true; } });
     if (newRec) sset('arcade.taran.laps', JSON.stringify(laps));
-    if (kind === 'time') { R = { kind: 'time', record: laps[S.track.id] || 0, newRec: newRec }; g.goto('results'); return; }
+    if (kind === 'time') {
+      var dly = null;
+      if (dailyDay) { var bl = 0; S.cars.forEach(function (c) { if (c.human >= 0 && c.bestLap && (!bl || c.bestLap < bl)) bl = c.bestLap; }); var nb = dailySubmit(dailyDay, bl); dly = { best: dailyBest(dailyDay), newBest: nb }; }
+      R = { kind: 'time', record: laps[S.track.id] || 0, newRec: newRec, daily: dly }; g.goto('results'); return;
+    }
     R = { kind: 'champ', sum: C.applyRace(champ, res), champ: champ };
     g.state.score = champ.total; g.saveBest(); saveChamp();
     g.goto('results');
@@ -205,7 +236,7 @@
   var NAMES = ['left', 'right', 'up', 'down', 'fire', 'rocket', 'drop', 'nitro'];
   g.scene('play', {
     realtime: true,
-    enter: function (d) { if (!(d && d.resume) || !game) newRace(); },
+    enter: function (d) { if (pendingGarage) { pendingGarage = false; openGarage(0); return; } if (!(d && d.resume) || !game) newRace(); },
     press: function (a) { if (a === 'pause') this.pause(); },
     update: function (dt) {
       if (!game) return;

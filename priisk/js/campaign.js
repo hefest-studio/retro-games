@@ -51,6 +51,10 @@
    и соперник сам замечает цель ближе. Связка кампаний: def.xcarry = { copper: ['alliance'] } —
    флаги ЧУЖОЙ кампании (если она пройдена; читаются из её сохранения) попадают во флаги миссии как 'copper.alliance';
    'copper.done' — сколько миссий Медного Ключа пройдено (0, если не играли). Обязательности нет: без сохранения — флагов нет.
+   «Горящий рудник» и «Заводчик» (С6–С7): def.ferry = true | { r, cap, gap, speed, walk, home } — автолюльки с людьми (spawn.fare — горняки
+   сами идут к ближнему узлу канатки и уезжают на Станцию; сгорела опора впереди — люлька срывается), условие ferried (сколько
+   довезли, tag), действие ferry (вкл/выкл); fire.drift — пожар идёт по ветру (новые очаги — с подветренной стороны, ветер
+   повернул — повернул и огонь); despawn.zone — убрать только тех, кто дошёл до зоны (наёмники ушли с карты).
    Прогресс — localStorage 'arcade.priisk.campaign' (Медный Ключ) и 'arcade.priisk.campaign.sizye' (Сизые), через переданное
    хранилище, с try/catch. Экспорт: PRIISK.campaign. */
 (function (root) {
@@ -127,7 +131,7 @@
     var MS = W.mission = {
       def: def, id: def.id, points: map.points, objs: [], byObj: Object.create(null), fired: Object.create(null), queue: [], groups: Object.create(null),
       flags: Object.assign({}, def.flags || {}, carried(def, save), xcarried(def, opts.xsave)), talked: Object.create(null), cabled: 0, paid: Object.create(null), spawned: Object.create(null), killed: Object.create(null), heroDead: Object.create(null), heroes: Object.create(null),
-      scouted: Object.create(null), scoutedN: Object.create(null),
+      scouted: Object.create(null), scoutedN: Object.create(null), ferried: Object.create(null),
       ui: [], allow: Object.create(null), night: false, nightMul: 1, weather: def.weather ? Object.assign({}, def.weather) : null, storm: 0,
       winAt: -1, reason: null, trigT: 0, aiT: 0, vetsUsed: 0, save: save, razed: Object.create(null), warn: [], geys: Object.create(null), creakT: 0,
       pumped: Object.create(null), lamps: Object.create(null), sites: Object.create(null), sitesN: 0, litN: 0, doused: Object.create(null), captured: Object.create(null), partsDown: Object.create(null), partsN: Object.create(null), bossDone: Object.create(null), scalded: Object.create(null)
@@ -139,6 +143,7 @@
     W.los = !!def.los; // шахта: сквозь породу не видно и не стреляют
     if (def.foeBlind) W.foeBlind = true; // ночью и соперник видит хуже (его автоприцел × обзор)
     if (def.campBuild) W.campBuild = true; // стоянка без конторы: стройка разрешена (у своих построек)
+    if (def.ferry) { W.ferry = def.ferry === true ? true : Object.assign({}, def.ferry); if (W.ferry.home) W.ferry.home = pointOf(MS, W.ferry.home); } // автолюльки: горняки (spawn.fare) уезжают по канату сами; home — точка, куда уходят со Станции
     if (def.holdFire) W.holdFire = true; // разведка: свои стреляют только по приказу или в ответ (действие holdFire снимает)
     if (def.keepHq) W.hqSafe = { 1: true }; // снос чужой конторы — не победа: миссия решает сама (разведка, а не разгром)
     W.sand = def.sand || 0; W.haulCap = def.haulCap || 0; W.rigRate = def.rigRate || 0; W.treaty = !!def.treaty; W.packOn = !!def.player.pack; if (def.plantable) { W.plantable = {}; def.plantable.forEach(function (t) { W.plantable[t] = 1; }); }
@@ -165,7 +170,7 @@
           if (L.HEROES[s.type] && owner === 0) { MS.heroes[s.type] = u.id; var hs = save.roster && save.roster.heroes && save.roster.heroes[s.type]; if (hs && hs.wounded) { u.hp = Math.round(u.maxHp * 0.6); u.wounded = true; } }
           if (s.vets && owner === 0) { var k = vets.findIndex(function (v) { return v.type === s.type; }); if (k >= 0) { var v = vets.splice(k, 1)[0]; u.vet = v.vet || 1; u.kills = v.kills || 3; MS.vetsUsed++; } }
           if (s.heading != null) u.heading = u.aim = s.heading;
-          if (s.locked) u.locked = true; if (s.speed) u.sm = s.speed; if (s.hp) u.hp = u.maxHp = s.hp; if (s.calm) u.calm = true; if (s.water != null) u.water = s.water; if (s.talk) u.talk = true;
+          if (s.locked) u.locked = true; if (s.speed) u.sm = s.speed; if (s.hp) u.hp = u.maxHp = s.hp; if (s.calm) u.calm = true; if (s.water != null) u.water = s.water; if (s.talk) u.talk = true; if (s.fare) u.fare = true;
         });
       });
     }
@@ -233,7 +238,7 @@
       case 'mined': return W.players[o].mined >= c.gte;
       case 'copper': return W.players[o].copper >= c.gte;
       case 'gone': return (MS.spawned[c.tag] || 0) > 0 && !everyone(W).some(function (u) { return u.tag === c.tag && (!c.type || u.type === c.type); });
-      case 'killed': return (MS.killed[c.tag + (c.type ? ':' + c.type : '')] || 0) >= (c.gte || 1);
+      case 'killed': return [].concat(c.tag).reduce(function (s, t) { return s + (MS.killed[t + (c.type ? ':' + c.type : '')] || 0); }, 0) >= (c.gte || 1); // tag — тег или список тегов (сумма)
       case 'heroDead': return !!MS.heroDead[c.hero];
       case 'hit': return (W.hits[(c.by == null ? 0 : c.by) + ':' + c.tag] || 0) >= (c.gte || 1); // по тегу стрелял владелец by
       case 'razed': return (MS.razed[o + ':' + (c.type || '*')] || 0) >= (c.gte || 1);      // снесено зданий владельца owner
@@ -260,6 +265,7 @@
       case 'scouted': { var sk = (c.owner == null ? 1 : c.owner) + ':' + (c.type || c.tag || '*'); return (MS.scoutedN[sk] || 0) >= (c.gte || 1); } // сколько чужих зданий разведано (видели хоть раз)
       case 'storm': return (c.gte == null || MS.storm >= c.gte) && (c.lte == null || MS.storm <= c.lte); // сила метели/бурана 0…1
       case 'cabled': return MS.cabled >= (c.gte || 1);
+      case 'ferried': return [].concat(c.tag || '*').reduce(function (s, t) { return s + (MS.ferried[t] || 0); }, 0) >= (c.gte || 1); // сколько горняков с тегом довезли люльками до Станции
       case 'paid': return (MS.paid[c.tag] || 0) >= (c.gte || 1);
       case 'wind': return !!W.wind && (c.gte == null || W.wind.s >= c.gte) && (c.lte == null || W.wind.s <= c.lte);
       case 'linked': return W.blds.some(function (b) { return b.owner === o && L.BLDS[b.type].face && L.cableRoute(W, b, function (x) { return !!L.BLDS[x.type].terminal; }).length > 0; });
@@ -290,12 +296,12 @@
       case 'msg': MS.ui.push({ t: 'msg', text: a.text, col: a.col }); break;
       case 'spawn': {
         var p = pointOf(MS, a.at), tiles = spreadAround(W, p.x, p.y, a.n || 1), o = a.owner == null ? 1 : a.owner;
-        tiles.forEach(function (tl) { var u = L.addUnit(W, o, a.type, tl.i + 0.5, tl.j + 0.5); u.post = { x: u.x, y: u.y }; if (a.tag) { u.tag = a.tag; MS.spawned[a.tag] = (MS.spawned[a.tag] || 0) + 1; } if (a.heading != null) u.heading = u.aim = a.heading; if (a.speed) u.sm = a.speed; if (a.hp) u.hp = u.maxHp = a.hp; if (a.locked) u.locked = true; if (a.calm) u.calm = true; if (a.talk) u.talk = true; });
+        tiles.forEach(function (tl) { var u = L.addUnit(W, o, a.type, tl.i + 0.5, tl.j + 0.5); u.post = { x: u.x, y: u.y }; if (a.tag) { u.tag = a.tag; MS.spawned[a.tag] = (MS.spawned[a.tag] || 0) + 1; } if (a.heading != null) u.heading = u.aim = a.heading; if (a.speed) u.sm = a.speed; if (a.hp) u.hp = u.maxHp = a.hp; if (a.locked) u.locked = true; if (a.calm) u.calm = true; if (a.talk) u.talk = true; if (a.fare) u.fare = true; if (a.water != null) u.water = a.water; });
         break;
       }
       case 'train': makeTrain(W, MS, a); break;
       case 'group': setGroup(W, MS, Object.assign({}, a, { a: undefined })); break;
-      case 'despawn': W.units = W.units.filter(function (u) { if (u.tag === a.tag && (!a.type || u.type === a.type)) { delete W.byId[u.id]; return false; } return true; }); break;
+      case 'despawn': W.units = W.units.filter(function (u) { if (u.tag === a.tag && (!a.type || u.type === a.type) && (!a.zone || inZone(MS, a.zone, u.x, u.y)) && !u.riding) { delete W.byId[u.id]; return false; } return true; }); break;
       case 'tiles': {
         var to = TCH[a.to], from = a.from != null ? TCH[a.from] : null;
         var hitSet = a.dmg ? Object.create(null) : null;
@@ -329,7 +335,7 @@
       case 'fire': { var fat = a.at; // at — точка или список точек (тогда — случайная из тех, где ещё не горит)
         if (Array.isArray(fat)) { var freeAt = fat.filter(function (k) { var q = pointOf(MS, k); return !W.fires.some(function (f) { return f.hp > 0 && Math.hypot(f.x - q.x, f.y - q.y) < 1.2; }); }); if (!freeAt.length) break; fat = freeAt[Math.floor(W.rng() * freeAt.length) % freeAt.length]; }
         var fp = pointOf(MS, fat); var area = a.area ? Object.assign({ r: 3 }, pointOf(MS, a.area.at || fat), { r: a.area.r || 3 }) : null;
-        L.addFire(W, fp.x + (a.dx || 0), fp.y + (a.dy || 0), { r: a.r, max: a.max, hp: a.hp, grow: a.grow, dps: a.dps, bdps: a.bdps, tag: a.tag, spread: a.spread, area: area, cap: a.cap }); break; }
+        L.addFire(W, fp.x + (a.dx || 0), fp.y + (a.dy || 0), { r: a.r, max: a.max, hp: a.hp, grow: a.grow, dps: a.dps, bdps: a.bdps, tag: a.tag, spread: a.spread, area: area, cap: a.cap, drift: a.drift }); break; }
       case 'douse': W.fires.forEach(function (f) { if (!a.tag || f.tag === a.tag) f.hp = 0; }); break;
       case 'depot': W.depots.forEach(function (dp) { if (dp.id === a.id) { if (a.w != null) dp.w = a.w; if (a.team !== undefined) dp.team = a.team; } }); break;
       case 'boss': { var rt = a.route ? a.route.map(function (k) { return pointOf(MS, k); }) : null; W.units.forEach(function (u) { if (u.tag === a.tag && u.bs) { if (a.cfg) L.setBoss(u, a.cfg); if (rt) { u.bs.route = rt; u.bs.ri = 0; u.bs.done = false; u.bs.goal = null; u.path = []; } } }); break; }
@@ -340,6 +346,7 @@
       case 'calm': W.units.forEach(function (u) { if (u.tag === a.tag) { u.calm = a.on !== false; if (u.calm && u.order.t === 'attack') { u.order = { t: 'idle' }; u.path = []; } } }); W.units.forEach(function (u) { if (u.order.t === 'attack') { var tg2 = W.byId[u.order.target]; if (tg2 && tg2.tag === a.tag && tg2.calm) { u.order = { t: 'idle' }; u.path = []; } } }); break;
       case 'wind': L.setWind(W, a); break;
       case 'holdFire': W.holdFire = a.on !== false; break;
+      case 'ferry': W.ferry = a.on === false ? false : a.cfg ? Object.assign({}, a.cfg) : (W.ferry || true); break; // включить/выключить автолюльки
       case 'seize': { var sz0 = 0; W.units = W.units.filter(function (u) { if (u.owner === (a.owner || 0) && a.types.indexOf(u.type) >= 0) { delete W.byId[u.id]; sz0++; return false; } return true; }); var pz = W.players[a.owner || 0]; ['inf', 'veh'].forEach(function (q) { pz[q] = pz[q].filter(function (t) { if (a.types.indexOf(t) >= 0) { pz.copper += L.UNITS[t].cost; return false; } return true; }); }); MS.seized = (MS.seized || 0) + sz0; break; } // заводчик забирает технику (и заказанную — медь возвращается)
       case 'allow': (a.build || []).concat(a.units || []).forEach(function (b) { MS.allow[b] = true; }); if (a.repair) { MS.repair = W.repairOn = true; } if (a.pack) W.packOn = true; break;
       default: throw new Error('неизвестное действие ' + a.a);
@@ -462,7 +469,8 @@
       if (ev.t === 'bossScald') { MS.scalded[ev.tag || '-'] = (MS.scalded[ev.tag || '-'] || 0) + 1; MS.scalded['*'] = (MS.scalded['*'] || 0) + 1; MS.ui.push({ t: 'scald' }); }
       if (ev.t === 'talked' && ev.owner === 0) { MS.talked[ev.tag] = true; if (MS.groups[ev.tag]) MS.groups[ev.tag].talked = true; MS.ui.push({ t: 'talked', tag: ev.tag }); }
       if (ev.t === 'talkFail' && ev.owner === 0) MS.ui.push({ t: 'talkFail', tag: ev.tag });
-      if (ev.t === 'cableIn' && ev.owner === 0) MS.cabled++;
+      if (ev.t === 'cableIn' && ev.owner === 0) { if (ev.fare) { MS.ferried[ev.tag || '-'] = (MS.ferried[ev.tag || '-'] || 0) + 1; MS.ferried['*'] = (MS.ferried['*'] || 0) + 1; } else MS.cabled++; }
+      if (ev.t === 'ferry' && L.friendTo0(W, ev.owner)) MS.ui.push({ t: 'ferry', n: ev.n });
       if (ev.t === 'copper' && ev.cable && ev.owner === 0 && ev.tag) MS.paid[ev.tag] = (MS.paid[ev.tag] || 0) + ev.n; // медь, пришедшая по канату на станцию с тегом
       if (ev.t === 'carFall' && ev.owner === 0) MS.ui.push({ t: 'carFall' });
       if (ev.t === 'windShift' && L.facOf(W, 0) === 'sizye') MS.ui.push({ t: 'wind' });

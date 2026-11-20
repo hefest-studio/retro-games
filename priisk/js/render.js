@@ -117,7 +117,7 @@
   // ветряки и опоры канатной дороги. Цвета дерева/сланца/парусины — свои для каждой темы.
   var SZ = { modern: { wood: '#7d8590', woodHi: '#a3aab3', woodLo: '#4c535c', slate: '#46505e', slateHi: '#5e6a7a', cloth: '#d9cdea', rope: '#2b2630', snow: '#e8eef3' },
     retro: { wood: '#aaaaaa', woodHi: '#ffffff', woodLo: '#555555', slate: '#0000aa', slateHi: '#5555ff', cloth: '#ffffff', rope: '#000000', snow: '#ffffff' } };
-  var SZ_TYPES = { mill: 1, pylon: 1, hut: 1, station: 1, face: 1, sail: 1, ranger: 1, skiff: 1, harpoon: 1, korney: 1, agafya: 1, mityay: 1 };
+  var SZ_TYPES = { mill: 1, pylon: 1, hut: 1, station: 1, face: 1, sail: 1, ranger: 1, skiff: 1, harpoon: 1, korney: 1, agafya: 1, mityay: 1, folk: 1 };
   function szPal(pal) { return SZ[pal.pixel ? 'retro' : 'modern']; }
   function logs(c, x, y, w, h, z, n) { for (var k = 0; k < n; k++) { c.fillStyle = k % 2 ? z.wood : z.woodHi; c.fillRect(x, y + k * h / n, w, h / n - 1); c.fillStyle = z.woodLo; c.fillRect(x, y + (k + 1) * h / n - 1, w, 1); } }
   function shingles(c, x, y, w, h, z, own) { c.fillStyle = z.slate; c.fillRect(x, y, w, h); c.fillStyle = z.slateHi; for (var r = 0; r < h; r += 5) for (var q = (r / 5) % 2 * 4; q < w; q += 8) c.fillRect(x + q, y + r, 6, 2); c.fillStyle = own; c.fillRect(x, y + h / 2 - 1, w, 2); }
@@ -212,6 +212,16 @@
       c.strokeStyle = z.rope; c.lineWidth = 1; c.beginPath(); c.moveTo(6, -10); c.lineTo(now - u.fireT < 0.2 ? 6 : 0, 0); c.lineTo(6, 10); c.stroke();
       c.fillStyle = pal.metalHi; c.fillRect(-2, -1, 16, 2); c.restore();
       c.fillStyle = own; c.fillRect(-9, -2, 4, 4);
+      return;
+    }
+    if (t === 'folk') { // горняк посёлка (С6): без ружья, в серой робе, шахтёрская лампа; ждёт люльку — лампа мигает
+      c.rotate(u.heading);
+      c.fillStyle = z.rope; c.beginPath(); c.arc(0, 0, 5.4, 0, 7); c.fill();
+      c.fillStyle = pal.metal; c.beginPath(); c.arc(0, 0, 4.4, 0, 7); c.fill();
+      c.fillStyle = z.snow; c.beginPath(); c.arc(-0.5, 0, 2.3, 0, 7); c.fill();
+      c.fillStyle = z.woodHi; c.fillRect(-1, -6, 2, 3);                                     // кирка за спиной
+      var lit = !u.fare || Math.sin(now * 6 + u.id) > -0.3; c.fillStyle = lit ? pal.glow : z.woodLo; c.fillRect(3, 2, 3, 3); // лампа
+      if (u.burnT && now - u.burnT < 0.4) { c.strokeStyle = pal.bad || '#c33'; c.lineWidth = 1.5; c.beginPath(); c.arc(0, 0, 7, 0, 7); c.stroke(); }
       return;
     }
     // пехота и герои Сизых: башлык/капюшон, полушубок, кушак сирени

@@ -12,9 +12,8 @@ sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/game.js'), 'utf8'), sandbox, { filename: 'game.js' });
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/i18n.js'), 'utf8'), sandbox, { filename: 'i18n.js' });
-vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/i18n-x.js'), 'utf8'), sandbox, { filename: 'i18n-x.js' });
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/meta.js'), 'utf8'), sandbox, { filename: 'meta.js' });
-const { checkLangX } = await import('./lang-x.check.mjs');
+const { checkLangs } = await import('./langs.check.mjs');
 const K = sandbox.KLADKA, L = K.logic;
 const { playKladka, mulberry32 } = await import('./bot.mjs');
 
@@ -304,13 +303,16 @@ test('нормы PAR достижимы: «человеческий» бот у�
   let fast = 0; for (const s of [1, 2, 3, 4, 5, 6]) { let t = null; const r = playKladka(K, s, { startLevel: 1, levels: 1 }); t = r.levelTime[1]; if (t != null && t <= M.PAR[0]) fast++; }
   ok(fast >= 1 && fast <= 5, 'быстрых ' + fast + '/6 — норма слишком строгая/мягкая');
 });
-test('страница: meta.js, lang-x.js, i18n-x.js подключены; main.js — g.persist звёзд и пункт «Уровень»', () => {
+test('страница: meta.js подключён (lang-x.js/i18n-x.js — нет); main.js — g.persist звёзд, пункт «Уровень», площадка (v2.8)', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'), main = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
   const src = [...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]);
-  ok(src.indexOf('js/meta.js') > src.indexOf('js/game.js') && src.indexOf('js/i18n-x.js') > src.indexOf('js/lang-x.js') && src.indexOf('js/lang-x.js') < src.indexOf('js/main.js'), src.join(','));
-  ok(/g\.persist\(M\.key\(lv\), 'max'\)/.test(main) && /key: 'level'/.test(main) && /ArcadeLangX\.install/.test(main));
+  ok(src.indexOf('js/meta.js') > src.indexOf('js/game.js') && src.indexOf('js/lang-x.js') < 0 && src.indexOf('js/i18n-x.js') < 0, src.join(','));
+  ok(/g\.persist\(M\.key\(lv\), 'max'\)/.test(main) && /key: 'level'/.test(main) && !/ArcadeLangX/.test(main));
+  ok(/leaderboard: 'kladka'/.test(main) && /g\.useLeaderboard\(\{ boards: \[\{ id: LB/.test(main) && /g\.useNoAds\(\{ scene: \['title', 'pause'\], after: 'end' \}\)/.test(main) && /g\.useOwnGames\(\)/.test(main)
+    && /g\.useShortcut\(\)/.test(main) && /g\.useReview\(/.test(main) && /g\.onCloud\(/.test(main), 'площадка: лидеры, без рекламы, свои игры, ярлык, оценка, облако');
+  ok(/g\.scenes\.pause\.press = function \(a\) \{ if \(a === 'pause'\) this\.goto\('play', \{ resume: true \}\)/.test(main), 'P на паузе — в игру');
 });
-await checkLangX({ ROOT, test, ok, eq, STR: K.STR, STRX: K.STR_X, title: 'MASONRY' });
+await checkLangs({ ROOT, test, ok, eq, STR: K.STR, title: 'MASONRY' });
 
 console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed));
 process.exit(failed ? 1 : 0);

@@ -16,7 +16,7 @@ const ROOT = path.resolve(HERE, '..');
 const sandbox = { console, Math };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-for (const f of ['js/game.js', 'js/i18n.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
+for (const f of ['js/game.js', 'js/i18n.js', 'js/meta.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const G = sandbox.GORNILO, L = G.logic;
 const { playGornilo, mulberry32 } = await import('./bot.mjs');
 
@@ -331,7 +331,7 @@ test('страница: фавикон студии, «← Каталог», can
   ok(/class="back"[^>]*href="\.\.\/"/.test(html), 'ссылка в каталог');
   ok(/<canvas id="c" width="640" height="512"/.test(html), 'canvas');
   const order = [...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]);
-  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/modern.js', 'js/classic.js', 'js/render.js', 'js/ui.js', 'js/main.js']);
+  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/modern.js', 'js/classic.js', 'js/render.js', 'js/ui.js', 'js/meta.js', 'js/main.js']);
   ok(/data-stick="move"/.test(html) && /data-stick="aim"/.test(html) && /data-pause/.test(html), 'тач-стики');
   eq(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js не копия _shared');
 });
@@ -349,6 +349,31 @@ test('правило имён: в папке игры нет чужих назв
 });
 
 // ---------- Проходимость и баланс: «человеческий» бот ----------
+test('мета: звёзды круга (пройден / без потерь / быстрее нормы), открытие кругов, сохранение', () => {
+  const M=G.meta, mem={}, P=M.Progress({ get:k=>(k in mem?mem[k]:null), set:(k,v)=>{mem[k]=v;} });
+  if (M.LEVELS!==L.MAX_STAGE) throw new Error('кругов '+M.LEVELS);
+  if (M.stars({level:1,time:200,lost:0}).n!==3 || M.stars({level:1,time:999,lost:0}).n!==2 || M.stars({level:3,time:999,lost:4}).n!==1) throw new Error('звёзды');
+  if (P.maxUnlocked()!==1 || !P.record(1,2) || P.maxUnlocked()!==2 || mem['arcade.gornilo.stars.1']!=='2' || P.record(1,1)) throw new Error('открытие/запись');
+});
+test('круг: старт с выбранного, clear несёт потери и время круга', () => {
+  const ev=[]; const g=G.Game({ rng:L.mulberry32(1), seed:1, stage:2, onEvent:(t,d)=>ev.push([t,d]) }).start(), S=g.state();
+  if (S.stage!==2) throw new Error('stage '+S.stage);
+  S.heroes[0].inv=0; g._kill(S.heroes[0],'t'); g.update(0.5);
+  S.boss={ dead:true, deadT:0.01, parts:[] }; S.phase='play'; for (let i=0;i<10;i++) g.update(0.02);
+  const c=ev.find(e=>e[0]==='clear'); if (!c) throw new Error('нет clear'); if (c[1].lost!==1 || !(c[1].time>0) || c[1].stage!==2) throw new Error(JSON.stringify(c[1]));
+});
+test('реклама за награду: reviveAd только после «конец игры» (продолжения кончились) — 1 жизнь; addLifeAd до 5', () => {
+  const g=G.Game({ rng:L.mulberry32(2), seed:2, continues:0 }).start(), S=g.state(), h=S.heroes[0];
+  if (g.reviveAd()) throw new Error('не во время игры');
+  h.lives=1; h.inv=0; g._kill(h,'t'); for (let i=0;i<30;i++) g.update(0.05);
+  if (S.phase!=='over') throw new Error('фаза '+S.phase);
+  if (!g.reviveAd() || S.phase!=='play' || h.lives!==1 || !h.alive || h.out) throw new Error('возврат');
+  h.lives=4; if (!g.addLifeAd() || h.lives!==5 || g.addLifeAd()) throw new Error('addLifeAd');
+});
+test('i18n: RU/EN/TR/ES/PT — одинаковые ключи, {n}, EN-название FORGEPIT в нерусских', () => {
+  const ru=Object.keys(G.STR.ru).sort().join(',');
+  for (const l of ['en','tr','es','pt']) { if (Object.keys(G.STR[l]).sort().join(',')!==ru) throw new Error('ключи '+l); if (G.STR[l].title!=='FORGEPIT' || !G.STR[l].opened.includes('{n}')) throw new Error(l); }
+});
 if (process.env.QUICK){ console.log(`\n${passed} прошло, ${failed} упало (без бота)`); process.exit(failed ? 1 : 0); }
 // Исполнимость в настоящей физике: неуязвимый бот проходит каждый круг (8 комнат по своей ветке + босс).
 const EXE = []; for (let s = 1; s <= 3; s++) EXE.push(playGornilo(G, s, { startStage: s, stages: 1, invuln: true }));

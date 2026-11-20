@@ -23,7 +23,7 @@
     // прочее
     // гонка
     R_SLOPE: 900, R_LEAN: 60, R_BRAKE: 320, R_BOOST: 300, R_DRAG: 0.0008, R_MAX: 500,
-    HP: 3, INV: 1.3, LIVES: 3, CONT: 2, EXTRA: 25000, MAG_R: 120, MAG_PULL: 3200
+    HP: 3, INV: 1.3, LIVES: 3, MAX_LIVES: 5, CONT: 2, EXTRA: 25000, MAG_R: 120, MAG_PULL: 3200
   };
   var EN = {
     beetle: { w: 22, h: 12, hp: 2, pts: 100 }, pea: { w: 14, h: 14, hp: 1, pts: 150 }, fly: { w: 16, h: 12, hp: 1, pts: 120 },
@@ -799,6 +799,10 @@
       // продолжение после «конец игры»: тот же уровень, 3 жизни, счёт с нуля
       continueGame: function () { if (!S || S.phase !== 'over' || S.cont <= 0) return false; S.cont--; S.lives = K.LIVES; S.score = 0; S.nextLife = K.EXTRA; S.overGame = false; loadLevel(S.level); emit('continue', { left: S.cont }); return true; },
       restartLevel: function () { if (!S) return; S.lives--; if (S.lives <= 0) { S.phase = 'over'; S.overGame = true; emit('gameover', { score: S.score, cont: S.cont }); return; } loadLevel(S.level); },
+      // реклама за награду «ещё один шанс»: после «конец игры» — 1 жизнь, тот же уровень с отметки, счёт сохраняется
+      reviveAd: function () { if (!S || S.phase !== 'over') return false; S.lives = 1; S.overGame = false; respawn(); emit('revive', { level: S.level }); return true; },
+      // бонус за рекламу в паузе: +1 жизнь (не больше MAX_LIVES)
+      addLife: function () { if (!S || S.lives >= K.MAX_LIVES || S.phase === 'over') return false; S.lives++; emit('life'); return true; },
       puzzleReset: function () { if (S && S.kind === 'puzzle' && S.phase === 'play') { initPuzzle(); emit('pzReset'); } },
       snapshot: function () { return JSON.stringify(S); },
       restore: function (s) { S = JSON.parse(s); LV = LVL.build(S.level); },

@@ -6,7 +6,7 @@
    features.GamesAPI.getAllGames, adv.showBannerAdv/hideBannerAdv — формы ответов как в документации (ссылки — _shared/PLATFORMS.md).
    Управление: window.__sdkMock = { lang, rewarded: 'ok'|'skip'|'error', fullscreen: 'ok'|'error', cloud: {...}, adMs,
      auth (true — игрок вошёл; по умолчанию true), flags: {...}, serverTime, canReview, shortcut, purchases: [{ productID, purchaseToken }],
-     catalog: [...], buy: 'ok'|'cancel', noPayments, lb: { <board>: [{ score, name, id }] }, games: [...] } — до загрузки.
+     catalog: [...], buy: 'ok'|'cancel', noPayments, lb: { <board>: [{ score, name, id }] }, games: [...], appId (environment.app.id) } — до загрузки.
    Журнал вызовов: window.__sdkLog (массив строк); ysdk._fire('game_api_pause') — имитация события площадки. */
 (function (w) {
   'use strict';
@@ -32,7 +32,7 @@
     consumePurchase: function (t) { log.push('consume:' + t); var i = purchases.findIndex(function (p) { return p.purchaseToken === t; }); if (i >= 0) purchases.splice(i, 1); return Promise.resolve(); }
   };
   var ysdk = {
-    environment: { i18n: { lang: M.lang || 'ru' } },
+    environment: { i18n: { lang: M.lang || 'ru' }, app: { id: M.appId || '100000' } },
     features: { LoadingAPI: { ready: function () { log.push('ready'); } }, GameplayAPI: { start: function () { log.push('start'); }, stop: function () { log.push('stop'); } },
       GamesAPI: { getAllGames: function () { log.push('getAllGames'); return Promise.resolve({ games: M.games || [{ appID: '100001', title: 'Отбойник', url: 'https://yandex.ru/games/app/100001', coverURL: 'https://avatars/c', iconURL: 'https://avatars/i' }], developerURL: 'https://yandex.ru/games/developer/1' }); },
         getGameByID: function (id) { return Promise.resolve({ isAvailable: true, game: { appID: String(id), title: 'X', url: 'https://yandex.ru/games/app/' + id } }); } } },
@@ -54,7 +54,7 @@
     feedback: { canReview: function () { return Promise.resolve(M.canReview === false ? { value: false, reason: 'GAME_RATED' } : reviewed ? { value: false, reason: 'REVIEW_WAS_REQUESTED' } : { value: true }); },
       requestReview: function () { log.push('requestReview'); reviewed = true; return new Promise(function (r) { T(function () { r({ feedbackSent: true }); }); }); } },
     shortcut: { canShowPrompt: function () { return Promise.resolve({ canShow: M.shortcut !== false }); },
-      showPrompt: function () { log.push('showPrompt'); return Promise.resolve({ outcome: 'accepted' }); } },
+      showPrompt: function () { log.push('showPrompt'); M.shortcut = false; return Promise.resolve({ outcome: 'accepted' }); } },   // ярлык добавлен — больше не предлагается
     adv: {
       showFullscreenAdv: function (o) { var c = (o && o.callbacks) || {}; log.push('fullscreen');
         if (M.fullscreen === 'error') { T(function () { c.onError && c.onError(new Error('mock')); }); return; }

@@ -10,9 +10,8 @@
     modern: Object.assign({}, TH.modern, { bg: '#120e0d', panel: '#1a1412', ink: '#f4ece4', muted: '#a8968a', accent: '#ff8a3d', grid: '#2c211c' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#fc9838', muted: '#a49484' })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.H, gameId: 'kladka', strings: K.STR, theme: 'modern', lives: 3, themes: themes });
-  K.g = g;
-  ArcadeLangX.install(g, K.STR_X);   // TR / ES / PT поверх RU/EN движка (js/lang-x.js)
+  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.H, gameId: 'kladka', strings: K.STR, theme: 'modern', lives: 3, themes: themes, leaderboard: 'kladka' });
+  K.g = g;   // языки RU/EN/TR/ES/PT — таблицы js/i18n.js (движок v2.8 берёт языки из ключей strings)
 
   // ---------- Мета-прогрессия: выбор открытого уровня и звёзды (js/meta.js), прогресс — и в облако площадки ----------
   var M = K.meta, prog = M.Progress({ get: function (k) { return Arcade.Store.get(k, null); }, set: function (k, v) { g.storeSet(k, v); } });
@@ -20,6 +19,14 @@
   var START_KEY = 'arcade.kladka.start'; g.persist(START_KEY, 'last');
   function startLv() { var v = parseInt(Arcade.Store.get(START_KEY, '1'), 10) || 1; return prog.unlocked(v) ? v : prog.maxUnlocked(); }
   function setStart(v) { g.storeSet(START_KEY, v); }
+  // ---------- Площадка (движок v2.8): таблица лидеров «общий счёт», «Без рекламы», свои игры, ярлык, оценка ----------
+  // Таблица kladka — лучший счёт партии: новый рекорд уходит сам из g.saveBest (createGame({ leaderboard: 'kladka' })), рекорд из облака —
+  // после слияния. В консоли площадки: Яндекс — лидерборд с техническим именем «kladka», GamePush — числовое поле игрока «kladka».
+  var LB = 'kladka';
+  function lbBest() { if (g.state.best > 0) g.leaderboard.submit(g.state.best, { board: LB }); }
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' }); g.useOwnGames(); g.useShortcut();
+  g.useReview({ minSessions: 3, gap: 3, success: function (sc) { return sc === 'win' || this._newBest || (lastStars && lastStars.n === 3); } });   // победа, рекорд или уровень на 3 звезды
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд/звёзды с другого устройства — рекорд в таблицу
   var lastStars = null;   // { level, n, c, isNew, opened } — итог уровня для плашки на экране «кладка разобрана»
   function starStr(n) { return '★★★'.slice(0, n) + '☆☆☆'.slice(0, 3 - n); }
   function fmt(s, n) { return String(s).replace('{n}', n); }
@@ -97,6 +104,8 @@
 
   // ---------- Стандартные экраны + фон кладки на всех экранах ----------
   g.useStandardScreens({ lives: 3 });
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'level' });
+  g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };   // P / Esc на паузе — назад в игру
   var baseClear = Object.getPrototypeOf(g).clear;
   g.clear = function (c) { baseClear.call(this, c); rnd().bg(this.ctx, this); };
 
@@ -125,7 +134,8 @@
     var th = this.th(), r = rnd(), P = r.P, retro = P.pixel, W = this.W, H = this.H;
     r.draw(ctx, demo.state(), this, { bare: true });
     ctx.fillStyle = retro ? 'rgba(0,0,0,.72)' : 'rgba(14,10,9,.72)'; ctx.fillRect(0, 0, W, H);
-    var pw = 380, ph = 370, px = (W - pw) / 2, py = 130;
+    var n = menu.items.length, lh = n > 5 ? 26 : 30, extra = Math.max(0, (n - 1) * lh - 120);   // много пунктов (площадка) — панель выше
+    var pw = 380, ph = 370 + extra, px = (W - pw) / 2, py = Math.max(40, 130 - extra / 2);
     if (retro) {
       ctx.fillStyle = '#000'; ctx.fillRect(px, py, pw, ph);
       ctx.fillStyle = P.hudLine; ctx.fillRect(px, py, pw, 4); ctx.fillRect(px, py + ph - 4, pw, 4); ctx.fillRect(px, py, 4, ph); ctx.fillRect(px + pw - 4, py, 4, ph);
@@ -134,7 +144,7 @@
       K.ui.roundRect(ctx, px, py, pw, ph, 18); ctx.fill(); ctx.restore();
       ctx.strokeStyle = '#3a2a22'; ctx.lineWidth = 1; K.ui.roundRect(ctx, px + 0.5, py + 0.5, pw - 1, ph - 1, 18); ctx.stroke();
     }
-    K.ui.txt(this, this.t('title'), W / 2, py + 66, { size: 50, align: 'center', color: P.accent, weight: 900 }, P);
+    K.ui.txt(this, this.t('title'), W / 2, py + 66, { size: fitK(this.t('title'), pw - 24, 50, 900, P), align: 'center', color: P.accent, weight: 900 }, P);
     // «кладка» под заголовком: ряд кирпичиков вперевязку
     for (var row = 0; row < 2; row++) for (var i = 0; i < 7 - row; i++) {
       var bx = W / 2 - 98 + row * 14 + i * 28, by = py + 80 + row * 10, col = P.tones[(i + row * 3) % 6];
@@ -142,7 +152,7 @@
       if (retro) ctx.fillRect(bx, by, 26, 8); else { K.ui.roundRect(ctx, bx, by, 26, 8, 2); ctx.fill(); }
     }
     K.ui.txt(this, this.t('subtitle'), W / 2, py + 126, { size: fitK(this.t('subtitle'), pw - 20, 13, 600, P), align: 'center', color: th.muted, weight: 600 }, P);
-    menu.draw(this, W / 2, py + 162, 30);
+    menu.draw(this, W / 2, py + 162, lh);
     var sl = startLv();
     var info = this.t('lv_' + L.LEVELS[sl - 1].name) + ' · ★ ' + prog.total() + '/' + (M.LEVELS * 3) + ' · ' + this.t('unlockedLv') + ': ' + prog.maxUnlocked() + '/' + M.LEVELS;
     K.ui.txt(this, info, W / 2, py + ph - 36, { size: fitK(info, pw - 20, 12, 700, P), align: 'center', color: P.accent, weight: 700 }, P);

@@ -527,6 +527,7 @@
     if (W.lifts.length) liftStep(W, dt);
     if (W.wind) windStep(W, dt);
     if (W.cars.length) carStep(W, dt);
+    if (W.ferry) ferryStep(W, dt);
     // смерти
     var dead = false;
     W.units = W.units.filter(function (u) { if (u.hp > 0) return true; if (u.gone) { delete W.byId[u.id]; return false; } kill(W, u); dead = true; return false; }); // gone — инженер вошёл в здание
@@ -985,10 +986,11 @@
   // ---------- Пожар и вода (кампания, миссия 7): огонь, водовозы, насосы, бочки ----------
   // Огонь f = { x, y, r, hp (сила), max, grow, dps, bdps, spread, area, cap }: разгорается сам, жжёт всё в радиусе (громаду — нет);
   // spread — раз в столько секунд при силе ≥ 85% даёт новый очаг рядом (в пределах area, не больше cap очагов там).
+  // drift — пожар идёт по ветру (Сизый Перевал, С6): очаги ложатся с подветренной стороны; ветер повернул — повернул и огонь.
   function addFire(W, x, y, o) {
     o = o || {}; var max = o.max || 160;
     var f = { id: W.nextId++, x: x, y: y, r: o.r || 1.4, hp: o.hp == null ? max : Math.min(max, o.hp), max: max, grow: o.grow == null ? 1.5 : o.grow, dps: o.dps == null ? 14 : o.dps,
-      bdps: o.bdps == null ? 6 : o.bdps, tag: o.tag || null, spread: o.spread || 0, st: o.spread || 0, area: o.area || null, cap: o.cap || 3 };
+      bdps: o.bdps == null ? 6 : o.bdps, tag: o.tag || null, spread: o.spread || 0, st: o.spread || 0, area: o.area || null, cap: o.cap || 3, drift: o.drift || 0 };
     W.fires.push(f); W.events.push({ t: 'fire', id: f.id, x: x, y: y, tag: f.tag }); return f;
   }
   function waterCap(W, u) { var d = UNITS[u.type]; return d.water || (u.type === 'hauler' && W.sand ? W.sand : 0); }
@@ -1007,11 +1009,13 @@
         if (f.st <= 0) {
           f.st = f.spread; var A = f.area || { x: f.x, y: f.y, r: 3 };
           var here = W.fires.filter(function (q) { return Math.hypot(q.x - A.x, q.y - A.y) <= A.r; }).length;
+          // f.drift (0…1) — ветер гонит пламя: новый очаг ложится по ветру (W.wind.a — откуда дует), drift = 1 — строго по ветру
+          var dw = f.drift && W.wind ? W.wind.a + Math.PI : null;
           if (here < f.cap) for (var tr = 0; tr < 6; tr++) {
-            var ang = W.rng() * Math.PI * 2, dd = 1.7 + W.rng() * 1.2, nx = f.x + Math.cos(ang) * dd, ny = f.y + Math.sin(ang) * dd, ci = Math.floor(nx), cj = Math.floor(ny);
+            var ang = dw == null ? W.rng() * Math.PI * 2 : dw + (W.rng() - 0.5) * Math.PI * 2 * (1 - f.drift) * (tr < 3 ? 1 : 1.6), dd = 1.7 + W.rng() * 1.2, nx = f.x + Math.cos(ang) * dd, ny = f.y + Math.sin(ang) * dd, ci = Math.floor(nx), cj = Math.floor(ny);
             if (!inb(W, ci, cj) || !walkable(W.t[cj * W.w + ci]) || Math.hypot(nx - A.x, ny - A.y) > A.r) continue;
             if (W.fires.some(function (q) { return Math.hypot(q.x - nx, q.y - ny) < 1.6; })) continue;
-            addFire(W, ci + 0.5, cj + 0.5, { r: f.r, max: f.max, hp: f.max * 0.35, grow: f.grow, dps: f.dps, bdps: f.bdps, tag: f.tag, spread: f.spread, area: A, cap: f.cap }); break;
+            addFire(W, ci + 0.5, cj + 0.5, { r: f.r, max: f.max, hp: f.max * 0.35, grow: f.grow, dps: f.dps, bdps: f.bdps, tag: f.tag, spread: f.spread, area: A, cap: f.cap, drift: f.drift }); break;
           }
         }
       }
@@ -1462,7 +1466,9 @@
     harpoon: { hp: 330, speed: 2.2, range: 6.2, dmg: 46, cd: 2.0,  weapon: 'shell', cost: 640, time: 12,  sight: 6.5, r: 0.48, cls: 'veh', from: 'sail' },
     korney:  { hp: 320, speed: 1.9, range: 3.8, dmg: 13, cd: 0.8,  weapon: 'gun',   cost: 0,   time: 0,   sight: 6,   r: 0.35, cls: 'inf', hero: true },
     agafya:  { hp: 160, speed: 2.0, range: 3.6, dmg: 7,  cd: 0.9,  weapon: 'gun',   cost: 0,   time: 0,   sight: 6,   r: 0.31, cls: 'inf', hero: true },
-    mityay:  { hp: 110, speed: 2.5, range: 3.4, dmg: 5,  cd: 1.0,  weapon: 'gun',   cost: 0,   time: 0,   sight: 8.5, r: 0.28, cls: 'inf', hero: true }
+    mityay:  { hp: 110, speed: 2.5, range: 3.4, dmg: 5,  cd: 1.0,  weapon: 'gun',   cost: 0,   time: 0,   sight: 8.5, r: 0.28, cls: 'inf', hero: true },
+    // горняки посёлка (кампания «Долг перевала», С6): без оружия, сами идут к ближней опоре канатки и уезжают люльками (u.fare)
+    folk:    { hp: 48,  speed: 1.5, range: 0,   dmg: 0,  cd: 0,    weapon: null,    cost: 0,   time: 0,   sight: 3.5, r: 0.28, cls: 'inf' }
   });
   Object.assign(HEROES, {
     korney: { ability: 'cry', cd: 30, dur: 8, aura: 4.5, dmg: 1.2, spd: 1.0, cryDmg: 1.5, crySpd: 1.15, guard: 7 },
@@ -1610,14 +1616,62 @@
   }
   function cableRide(W, u, dt) {
     var o = u.order; if (o.delay > 0) { o.delay -= dt; return; }
-    var go = HEROES.agafya.speed * dt;
+    // автолюлька (o.ids — узлы маршрута): опора впереди сгорела или снесена — люлька срывается вместе с людьми
+    if (o.ids) for (var m = Math.max(0, o.k - 2); m < o.ids.length; m++) if (!alive(W.byId[o.ids[m]])) {
+      u.riding = false; u.hp = 0; u.fell = true; W.fx.push({ t: 'boom', x: u.x, y: u.y, life: 0.5, max: 0.5, big: false });
+      W.events.push({ t: 'carFall', owner: u.owner, x: u.x, y: u.y, n: 0, fare: true, tag: u.tag || null }); return;
+    }
+    var go = (o.speed || HEROES.agafya.speed) * dt;
     while (go > 0 && o.k < o.pts.length) { var p = o.pts[o.k], dx = p.x - u.x, dy = p.y - u.y, dl = Math.hypot(dx, dy); if (dl > 0.01) u.heading = u.aim = Math.atan2(dy, dx); if (dl <= go) { u.x = p.x; u.y = p.y; o.k++; go -= dl; } else { u.x += dx / dl * go; u.y += dy / dl * go; go = 0; } }
     if (o.k >= o.pts.length) {
       var sp = nearestPassable(W, Math.floor(u.x), Math.floor(u.y), 6, true) || nearestPassable(W, Math.floor(u.x), Math.floor(u.y), 6);
       if (sp) { u.x = sp.i + 0.5; u.y = sp.j + 0.5; }
-      u.riding = false; u.order = { t: 'idle' }; u.post = { x: u.x, y: u.y }; W.events.push({ t: 'cableIn', owner: u.owner, id: u.id });
+      u.riding = false; u.order = { t: 'idle' }; u.post = { x: u.x, y: u.y }; W.events.push({ t: 'cableIn', owner: u.owner, id: u.id, fare: !!u.fare, tag: u.tag || null });
+      if (u.fare) { // довезли — больше не садится; W.ferry.home — куда спасённые уходят со Станции (в стан, подальше от огня)
+        u.fare = false; u.saved = true; var hm = W.ferry && W.ferry.home;
+        if (hm) { var hs = nearestPassable(W, Math.floor(hm.x + (W.rng() - 0.5) * 3), Math.floor(hm.y + (W.rng() - 0.5) * 3), 4) || { i: Math.floor(hm.x), j: Math.floor(hm.y) }; u.order = { t: 'move', x: hs.i + 0.5, y: hs.j + 0.5 }; u.path = findPath(W, u.x, u.y, hs.i + 0.5, hs.j + 0.5); }
+      }
     }
   }
+  // Автолюльки с людьми (W.ferry, кампания С6): горняки (u.fare) сами идут к ближнему своему узлу канатки (опора, забой — не
+  // Станция) не дальше walk клеток, у которого есть канат до Станции; узел раз в gap секунд сажает до cap ждущих (в радиусе r)
+  // и везёт их по канату (speed клеток в секунду). Сгорела или снесена опора впереди — люлька срывается (cableRide). Узла рядом
+  // нет — ждут на месте (игрок тянет к ним опоры).
+  var FERRY = { r: 2.4, cap: 3, gap: 2.5, speed: 2.6, walk: 9, home: null };
+  function ferryCfg(W) { return W.ferry === true ? FERRY : Object.assign({}, FERRY, W.ferry); }
+  function ferryStep(W, dt) {
+    var F = ferryCfg(W), routes = Object.create(null);
+    function route(b) { if (!(b.id in routes)) routes[b.id] = cableRoute(W, b, function (x) { return !!BLDS[x.type].terminal; }); return routes[b.id]; }
+    var nodes = W.blds.filter(function (b) { return b.hp > 0 && BLDS[b.type].cable && !BLDS[b.type].terminal && !(b.setup > 0); });
+    W.units.forEach(function (u) {
+      if (!u.fare || u.hp <= 0 || u.riding) return;
+      u.fareT = (u.fareT || 0) - dt; if (u.fareT > 0) return; u.fareT = 1;
+      // ближние узлы (по прямой не дальше walk); идут только к тому, до кого есть короткий путь не через огонь (люди в пламя не пойдут)
+      var cand = nodes.filter(function (b) { return friendTo(W, b.owner, u.owner) && distTo(u, b) < F.walk; }).sort(function (p, q) { return distTo(u, p) - distTo(u, q); }).slice(0, 3);
+      var best = null, bd = 1e9, bpath = null;
+      for (var n = 0; n < cand.length && !best; n++) {
+        var b = cand[n], d = distTo(u, b); if (!route(b).length) continue;
+        if (d <= F.r - 0.4) { best = b; bd = d; break; }
+        var c0 = center(b), sp0 = nearestPassable(W, Math.floor(c0.x), Math.floor(c0.y) + 1, 3) || { i: Math.floor(c0.x), j: Math.floor(c0.y) };
+        var pth = findPath(W, u.x, u.y, sp0.i + 0.5, sp0.j + 0.5), end = pth.length ? pth[pth.length - 1] : { x: u.x, y: u.y }, len = 0, px = u.x, py = u.y, hot = false;
+        pth.forEach(function (q) { var sl = Math.hypot(q.x - px, q.y - py), ns = Math.max(1, Math.ceil(sl / 0.5)); for (var si = 1; si <= ns && !hot; si++) { var sx = px + (q.x - px) * si / ns, sy = py + (q.y - py) * si / ns; hot = W.fires.some(function (f) { return f.hp > f.max * 0.15 && Math.hypot(f.x - sx, f.y - sy) <= f.r + 0.3; }); } len += sl; px = q.x; py = q.y; });
+        if (distTo({ x: end.x, y: end.y }, b) <= F.r - 0.3 && len <= F.walk * 1.6 && !hot) { best = b; bd = d; bpath = pth; }
+      }
+      u.board = best ? best.id : 0;
+      if (!best) { if (u.order.t === 'move' && u.toNode) { u.order = { t: 'idle' }; u.path = []; u.toNode = 0; } return; }
+      if (bd <= F.r - 0.4) { if (u.order.t === 'move') { u.order = { t: 'idle' }; u.path = []; } u.toNode = 0; return; }
+      if (u.toNode !== best.id || u.order.t !== 'move') { var e0 = bpath[bpath.length - 1]; u.order = { t: 'move', x: e0.x, y: e0.y }; u.path = bpath; u.toNode = best.id; }
+    });
+    nodes.forEach(function (b) {
+      b.ferryT = (b.ferryT || 0) - dt; if (b.ferryT > 0) return; b.ferryT = 0.5;
+      var wait = W.units.filter(function (u) { return u.fare && u.hp > 0 && !u.riding && u.board === b.id && distTo(u, b) <= F.r; });
+      if (!wait.length) return; var rt = route(b); if (!rt.length) return;
+      var nodesR = [b].concat(rt), pts = nodesR.map(center), ids = nodesR.map(function (x) { return x.id; });
+      wait.slice(0, F.cap).forEach(function (u, i) { u.order = { t: 'cable', pts: [{ x: u.x, y: u.y }].concat(pts), ids: ids, k: 1, delay: i * 0.4, speed: F.speed }; u.path = []; u.riding = true; u.toNode = 0; });
+      b.ferryT = F.gap; W.events.push({ t: 'ferry', owner: b.owner, id: b.id, n: Math.min(F.cap, wait.length), x: center(b).x, y: center(b).y });
+    });
+  }
+  function friendTo(W, a, b) { return !hostile(W, a, b); }
   // Митяй, «Уговор»: стоит у поста (юниты с тегом и u.talk) time секунд — пост пропускает (мирный); обстрелян/ушёл — сорвалось
   function talkAbility(W, u, hd) {
     var best = null, bd = hd.r;
@@ -1797,7 +1851,7 @@
     sees: sees, addLift: addLift, liftById: liftById, liftAt: liftAt, commandLift: commandLift, liftStep: liftStep, liftWaiting: liftWaiting, riders: riders, regionOf: regionOf, liftRoute: liftRoute, liftReach: liftReach, LIFT: LIFT,
     newSzAI: newSzAI, szAiStep: szAiStep, szMillSpot: szMillSpot, szFarRidge: szFarRidge, producer: producer, onHigh: onHigh,
     facOf: facOf, sideLists: sideLists, setSides: setSides, ridgeRocks: ridgeRocks, sheltered: sheltered, millOut: millOut, setWind: setWind, cableNodes: cableNodes, cableLinks: cableLinks, cableRoute: cableRoute, cableAnchor: cableAnchor, launchCar: launchCar, oreNear: oreNear,
-    SPAN: SPAN, MILL: MILL, FACE: FACE, CAR: CAR, INF_FAC: INF_FAC, SZ_BUILD_LIST: SZ_BUILD_LIST, SZ_UNIT_LIST: SZ_UNIT_LIST, DIRS: DIRS, talkAbility: talkAbility, cableAbility: cableAbility, nearOwnBld: nearOwnBld,
+    SPAN: SPAN, MILL: MILL, FACE: FACE, CAR: CAR, INF_FAC: INF_FAC, SZ_BUILD_LIST: SZ_BUILD_LIST, SZ_UNIT_LIST: SZ_UNIT_LIST, DIRS: DIRS, talkAbility: talkAbility, cableAbility: cableAbility, FERRY: FERRY, ferryStep: ferryStep, ferryCfg: ferryCfg, nearOwnBld: nearOwnBld,
     initBoss: initBoss, setBoss: setBoss, partAlive: partAlive, partOf: partOf, partPts: partPts, partToward: partToward, hitPart: hitPart, bossSteam: bossSteam, passBig: passBig, distTo: distTo, waterCap: waterCap
   };
 })(typeof window !== 'undefined' ? window : globalThis);

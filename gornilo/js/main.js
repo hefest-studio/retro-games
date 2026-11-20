@@ -19,8 +19,30 @@
   g.useStandardScreens({ lives: 3 });
   g.usePlayers({
     bind: L.BIND, actions: ['aimL', 'aimR', 'aimU', 'aimD'], pad: pad,
-    hint: { ru: [GR.STR.ru.hint1, GR.STR.ru.hint2], en: [GR.STR.en.hint1, GR.STR.en.hint2] }
+    hint: { ru: [GR.STR.ru.hint1, GR.STR.ru.hint2], en: [GR.STR.en.hint1, GR.STR.en.hint2], tr: [GR.STR.tr.hint1, GR.STR.tr.hint2], es: [GR.STR.es.hint1, GR.STR.es.hint2], pt: [GR.STR.pt.hint1, GR.STR.pt.hint2] }
   });
+
+  // ---------- Мета-прогрессия: выбор открытого круга и звёзды (js/meta.js); прогресс — и в облако площадки ----------
+  var M = GR.meta, prog = M.Progress({ get: function (k) { return Arcade.Store.get(k, null); }, set: function (k, v) { g.storeSet(k, v); } });
+  for (var lv = 1; lv <= M.LEVELS; lv++) g.persist(M.key(lv), 'max');
+  var START_KEY = 'arcade.gornilo.start'; g.persist(START_KEY, 'last');
+  function startLv() { var v = parseInt(Arcade.Store.get(START_KEY, '1'), 10) || 1; return prog.unlocked(v) ? v : prog.maxUnlocked(); }
+  function setStart(v) { g.storeSet(START_KEY, v); }
+  function onClearStars(d) {
+    var r = M.stars({ level: d.stage, time: d.time, lost: d.lost }), before = prog.maxUnlocked(), isNew = prog.record(d.stage, r.n), after = prog.maxUnlocked();
+    if (after > before) setStart(after);
+    return { n: r.n, isNew: isNew, opened: after > before ? after : 0 };
+  }
+  // Межстраничная реклама — между кругами, по нажатию игрока (Яндекс 4.4): adGate 1 — круг пройден и реклама готова,
+  // 2 — ждём «огонь / тап — дальше», 3 — идёт показ.
+  var adGate = 0;
+  function adGo() { if (adGate !== 2) return false; adGate = 3; g.adBreak().then(function () { adGate = 0; }); return true; }
+  // Реклама за награду (только на площадках с рекламой): «ещё один шанс» после исчерпанных продолжений (раз за партию) —
+  // все снова в бой с 1 жизнью в той же комнате; бонус в паузе — +1 жизнь (раз за партию, до 5).
+  g.useRewardedContinue({ revive: function () { if (game) { game.reviveAd(); sync(); } } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { var S = game && game.state(); return !!S && S.phase === 'play' && S.heroes.some(function (h) { return !h.out && h.lives < 5; }); },
+    grant: function () { if (game) game.addLifeAd(); } });
 
   // ---------- Тач: два виртуальных стика (И1) ----------
   var stick = { move: [0, 0], aim: [0, 0] };
@@ -36,7 +58,7 @@
     el.addEventListener('pointerdown', function (e) {
       e.preventDefault(); id = e.pointerId; try { el.setPointerCapture(id); } catch (x) {}
       setV(e);
-      if (which === 'aim' && game && game.state().phase === 'cont' && g._sceneName === 'play') game.cont();
+      if (which === 'aim' && game && g._sceneName === 'play') { if (adGo()) return; if (game.state().phase === 'cont') game.cont(); }
     });
     el.addEventListener('pointermove', function (e) { if (e.pointerId === id) { e.preventDefault(); setV(e); } });
     el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end); el.addEventListener('lostpointercapture', end);
@@ -66,6 +88,10 @@
     else if (type === 'roomClear') toast('+' + d.bonus, P.good, L.W / 2, 170, false);
     else if (type === 'coreOpen') toast(g.t('coreOpen'), P.core, d.x, d.y - 60, true);
     else if (type === 'continue') toast(g.t('continued'), P.warn, L.W / 2, 240, true);
+    else if (type === 'revive') toast(g.t('revived'), P.warn, L.W / 2, 240, true);
+    else if (type === 'clear') { var st = onClearStars(d); toast(M.starStr(st.n) + (st.isNew ? '  ' + g.t('starNew') : ''), P.accent, L.W / 2, 300, true);
+      if (st.opened) toast(g.t('opened').replace('{n}', st.opened), P.good, L.W / 2, 330, false);
+      if (d.stage < S.maxStage && g.adReady()) adGate = 1; }
     if (type === 'heroDie' || type === 'partDie' || type === 'slam' || (type === 'kill' && d.type === 'roller')) shakeT = Math.max(shakeT, 0.25);
     if (type === 'boom' && d.r > 40) shakeT = Math.max(shakeT, 0.12);
     if (type === 'bossDie') shakeT = 1.4;
@@ -74,11 +100,12 @@
     else if (type === 'gameover') { sync(); g.gameover(); }
   }
   function newGame(o) {
-    game = GR.Game(Object.assign({ players: g.input.playerCount, onEvent: onEvent, seed: Math.floor(Math.random() * 1e6) }, o || {}));
+    adGate = 0;
+    game = GR.Game(Object.assign({ players: g.input.playerCount, onEvent: onEvent, seed: Math.floor(Math.random() * 1e6), stage: startLv() }, o || {}));
     GR.current = game; toasts = []; shakeT = 0; game.start(); sync();
   }
   [0, 1].forEach(function (pi) {
-    g.input.player(pi).onPress(function () { if (game && game.state().phase === 'cont') game.cont(); });
+    g.input.player(pi).onPress(function () { if (adGo()) return; if (game && game.state().phase === 'cont') game.cont(); });
   });
 
   // ---------- Титул: арена с толпой заготовок ----------
@@ -97,6 +124,10 @@
     return S;
   }
   var title = g.scenes.title, menu = title._menu;
+  // пункт «Круг N ★★☆»: выбор/тап — следующий открытый, ← → — по кругу
+  g.menu.addItem({ key: 'level', scene: 'title', after: 'players', label: function () { var n = startLv(); return g.t('lvPick') + ' ' + n + '  ' + M.starStr(prog.get(n)); },
+    onSelect: function () { setStart(prog.next(startLv(), 1)); } });
+  title.press = function (a) { var it = menu.current(); if (it && it.key === 'level' && (a === 'left' || a === 'right')) { setStart(prog.next(startLv(), a === 'left' ? -1 : 1)); this.audio.beep(600, 0.03); } };
   title.update = function (dt) { demoT += Math.min(dt, 0.05); };
   title.draw = function (ctx) {
     var th = this.th(), P = pal(), W = this.W, H = this.H;
@@ -106,7 +137,7 @@
     GR.ui.panel(ctx, px, py, pw, ph, P, P.accent);
     GR.ui.txt(this, this.t('title'), W / 2, py + 70, { size: 58, align: 'center', color: P.accent, weight: 900 }, P);
     GR.ui.txt(this, this.t('subtitle'), W / 2, py + 96, { size: 11, align: 'center', color: th.muted, weight: 600, shadow: false }, P);
-    menu.draw(this, W / 2, py + 150, 30);
+    menu.draw(this, W / 2, py + 142, 28);
     if (this.state.best) GR.ui.txt(this, this.t('best') + ': ' + this.state.best, W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600, shadow: false }, P);
     this.menu._drawHint('title');
   };
@@ -123,6 +154,7 @@
     realtime: true,
     enter: function (d) { if (!(d && d.resume) || !game) newGame(); },
     press: function (a) {
+      if ((a === 'action' || a === 'start') && adGo()) return;
       if (a === 'pause') this.pause();
       else if ((a === 'start' || a === 'action') && game && game.state().phase === 'cont') game.cont();
     },
@@ -137,15 +169,22 @@
         }
         if (pi < game.state().heroes.length) { game.setMove(pi, mx, my); game.setAim(pi, ax, ay); }
       }
+      var S0 = game.state();
+      if (adGate === 1 && S0.phase === 'clear' && S0.phaseT <= 1.0) adGate = 2;
+      if (adGate >= 2) { if (S0.phase !== 'clear') adGate = 0; else return; }   // ждём нажатия / идёт показ
       game.update(Math.min(dt, 0.05));
       if (shakeT > 0) shakeT -= dt;
       for (var i = 0; i < toasts.length; i++) toasts[i].t -= dt;
       toasts = toasts.filter(function (o) { return o.t > 0; });
       sync();
     },
-    draw: function (ctx) { if (game) GR.ui.render(this, ctx, game.state(), pal(), { toasts: toasts, shake: shakeT > 0 ? 5 * Math.min(1, shakeT * 3) : 0 }); else this.clear(); }
+    draw: function (ctx) {
+      if (game) GR.ui.render(this, ctx, game.state(), pal(), { toasts: toasts, shake: shakeT > 0 ? 5 * Math.min(1, shakeT * 3) : 0 }); else this.clear();
+      if (adGate === 2 && Math.floor(this.time * 2) % 2 === 0) GR.ui.txt(this, this.t('nextLevel'), L.W / 2, L.SCREEN_H - 40, { size: 16, align: 'center', color: pal().accent, weight: 800 }, pal());
+    }
   });
 
+  g.canvas.addEventListener('pointerdown', function () { if (g._sceneName === 'play') adGo(); });
   g.start('title');
   GR.app = { g: g, game: function () { return game; }, newGame: newGame, stick: stick };   // для отладки/автотестов в браузере
 })(typeof window !== 'undefined' ? window : globalThis);

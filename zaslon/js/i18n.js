@@ -1,4 +1,4 @@
-/* ЗАСЛОН · i18n (RU/EN). ZASLON.STR — таблицы для Arcade.createGame({strings}).
+/* ЗАСЛОН · i18n (RU/EN + TR/ES/PT — движок v2.8 берёт языки из ключей strings; на старом движке игра идёт на RU/EN). ZASLON.STR — таблицы для Arcade.createGame({strings}).
    Ключи движка (play/language/…) + строки игры. Рендеры берут текст только через g.t(). */
 (function (global) {
   'use strict';
@@ -24,13 +24,14 @@
       hint1: 'Стрелки/WASD — полёт · Пробел — огонь · B/X — бомба',
       hint2: 'Капсула меняет оружие — лови нужное. Лом — в мастерскую.',
       back: 'Каталог',
+      lvPick: 'Сектор', starNew: 'новый рекорд!', opened: 'открыт сектор {n}', revived: 'Ещё один шанс!', rwRepair: 'Реклама: заслон +25%',
       foot: '<b>ЗАСЛОН</b> · стрелки / WASD — полёт, Пробел / ● — огонь (удержание), B / X / ✹ — мега-бомба, P — пауза · L язык, T тема, M звук.'
     },
     en: {
       play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
       score: 'Score', level: 'Sector', best: 'Best', win: 'THE LINE HELD!', gameover: 'GAME OVER',
       pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
-      title: 'ZASLON', subtitle: 'Let nothing past the bottom edge · 5 sectors',
+      title: 'SPARKWARD', subtitle: 'Let nothing past the bottom edge · 5 sectors',
       sector: 'SECTOR', ready: 'GET READY!', warn: 'WARNING: LARGE TARGET', cleared: 'SECTOR CLEARED', final: 'FINAL SECTOR CLEARED!',
       baseDown: 'THE LINE IS BROKEN!', base: 'BARRIER', shield: 'Shield', scrap: 'Scrap', bombs: 'Bombs', lives: 'Ships',
       w_spark: 'Spark', w_ray: 'Ray', w_shot: 'Scatter', lvl: 'lv',
@@ -46,7 +47,77 @@
       hint1: 'Arrows/WASD — fly · Space — fire · B/X — bomb',
       hint2: 'Capsules cycle weapons — catch yours. Scrap buys upgrades.',
       back: 'Catalog',
-      foot: '<b>ZASLON</b> · arrows / WASD — fly, Space / ● — fire (hold), B / X / ✹ — mega bomb, P — pause · L language, T theme, M sound.'
+      lvPick: 'Sector', starNew: 'new best!', opened: 'sector {n} unlocked', revived: 'One more chance!', rwRepair: 'Watch ad: barrier +25%',
+      foot: '<b>SPARKWARD</b> · arrows / WASD — fly, Space / ● — fire (hold), B / X / ✹ — mega bomb, P — pause · L language, T theme, M sound.'
+    },
+    tr: {
+      play: 'Oyna', language: 'Dil', theme: 'Tema', sound: 'Ses', on: 'açık', off: 'kapalı',
+      score: 'Puan', level: 'Sektör', best: 'Rekor', win: 'HAT DAYANDI!', gameover: 'OYUN BİTTİ',
+      pause: 'DURAKLATILDI', resume: 'Devam', menu: 'Menü', tapstart: 'boşluk / dokun',
+      title: 'SPARKWARD', subtitle: 'Hiçbir şeyi alt kenardan geçirme · 5 sektör',
+      sector: 'SEKTÖR', ready: 'HAZIR OL!', warn: 'DİKKAT: BÜYÜK HEDEF', cleared: 'SEKTÖR TEMİZ', final: 'SON SEKTÖR TEMİZ!',
+      baseDown: 'HAT YARILDI!', base: 'BARİYER', shield: 'Kalkan', scrap: 'Hurda', bombs: 'Bomba', lives: 'Gemi',
+      w_spark: 'Kıvılcım', w_ray: 'Işın', w_shot: 'Saçma', lvl: 'sv',
+      b_millstone: 'DEĞİRMEN TAŞI', b_pincer: 'KISKAÇ', b_hive: 'KOVAN', b_pendulum: 'SARKAÇ', b_forge: 'OCAK',
+      e_mite: 'Kene', e_dart: 'Kırlangıç', e_weaver: 'Dokumacı', e_hulk: 'Koç', e_carrier: 'Taşıyıcı',
+      shop: 'ATÖLYE', shopHint: '↑↓ seç · Boşluk/Enter satın al · satıra dokun',
+      s_weapon: 'Silahı güçlendir', s_module: 'Yan modül', s_shield: 'Kalkan kapasitesi +1', s_bomb: 'Mega bomba +1',
+      s_repair: 'Bariyeri onar +%25', s_life: 'Gemi +1', s_next: 'Savaşa →',
+      d_weapon: 'mevcut silah bir seviye yukarı', d_module: 'yan top, kendi ateş eder (en fazla 2)', d_shield: 'gemi kaybetmeden daha çok darbe',
+      d_bomb: 'mermileri ve küçükleri temizler', d_repair: 'alttaki bariyerin dayanıklılığı', d_life: 'yedek gemi (en fazla 5)', d_next: 'sonraki sektör',
+      maxed: 'maks.', bought: 'Alındı', noScrap: 'hurda yetmiyor', bonus: 'Bonus',
+      capUp: 'SEVİYE', capSw: 'SİLAH',
+      hint1: 'Oklar/WASD — uç · Boşluk — ateş · B/X — bomba',
+      hint2: 'Kapsüller silahı değiştirir — istediğini yakala. Hurdayla geliştir.',
+      back: 'Katalog',
+      lvPick: 'Sektör', starNew: 'yeni rekor!', opened: 'sektör {n} açıldı', revived: 'Bir şans daha!', rwRepair: 'Reklam: bariyer +%25',
+      foot: '<b>SPARKWARD</b> · oklar / WASD — uç, Boşluk / ● — ateş (basılı tut), B / X / ✹ — mega bomba, P — duraklat · L dil, T tema, M ses.'
+    },
+    es: {
+      play: 'Jugar', language: 'Idioma', theme: 'Tema', sound: 'Sonido', on: 'sí', off: 'no',
+      score: 'Puntos', level: 'Sector', best: 'Récord', win: '¡LA LÍNEA RESISTIÓ!', gameover: 'FIN DE LA PARTIDA',
+      pause: 'PAUSA', resume: 'Continuar', menu: 'Menú', tapstart: 'espacio / toque',
+      title: 'SPARKWARD', subtitle: 'Que nada cruce el borde inferior · 5 sectores',
+      sector: 'SECTOR', ready: '¡PREPÁRATE!', warn: 'ATENCIÓN: OBJETIVO GRANDE', cleared: 'SECTOR DESPEJADO', final: '¡ÚLTIMO SECTOR DESPEJADO!',
+      baseDown: '¡LA LÍNEA HA CAÍDO!', base: 'BARRERA', shield: 'Escudo', scrap: 'Chatarra', bombs: 'Bombas', lives: 'Naves',
+      w_spark: 'Chispa', w_ray: 'Rayo', w_shot: 'Metralla', lvl: 'nv',
+      b_millstone: 'MUELA', b_pincer: 'PINZA', b_hive: 'COLMENA', b_pendulum: 'PÉNDULO', b_forge: 'FRAGUA',
+      e_mite: 'Ácaro', e_dart: 'Vencejo', e_weaver: 'Tejedor', e_hulk: 'Ariete', e_carrier: 'Portador',
+      shop: 'TALLER', shopHint: '↑↓ elegir · Espacio/Enter comprar · toca una fila',
+      s_weapon: 'Mejorar arma', s_module: 'Módulo lateral', s_shield: 'Capacidad de escudo +1', s_bomb: 'Megabomba +1',
+      s_repair: 'Reparar barrera +25%', s_life: 'Nave +1', s_next: 'A la batalla →',
+      d_weapon: 'el arma actual sube un nivel', d_module: 'cañón lateral, dispara solo (máx. 2)', d_shield: 'más impactos antes de perder la nave',
+      d_bomb: 'limpia balas y enemigos pequeños', d_repair: 'resistencia de la barrera inferior', d_life: 'nave de reserva (máx. 5)', d_next: 'siguiente sector',
+      maxed: 'máx.', bought: 'Comprado', noScrap: 'falta chatarra', bonus: 'Bono',
+      capUp: 'NIVEL', capSw: 'ARMA',
+      hint1: 'Flechas/WASD — volar · Espacio — disparar · B/X — bomba',
+      hint2: 'Las cápsulas cambian el arma — atrapa la tuya. La chatarra compra mejoras.',
+      back: 'Catálogo',
+      lvPick: 'Sector', starNew: '¡nuevo récord!', opened: 'sector {n} desbloqueado', revived: '¡Otra oportunidad!', rwRepair: 'Anuncio: barrera +25%',
+      foot: '<b>SPARKWARD</b> · flechas / WASD — volar, Espacio / ● — disparar (mantener), B / X / ✹ — megabomba, P — pausa · L idioma, T tema, M sonido.'
+    },
+    pt: {
+      play: 'Jogar', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'lig.', off: 'desl.',
+      score: 'Pontos', level: 'Setor', best: 'Recorde', win: 'A LINHA RESISTIU!', gameover: 'FIM DE JOGO',
+      pause: 'PAUSA', resume: 'Continuar', menu: 'Menu', tapstart: 'espaço / toque',
+      title: 'SPARKWARD', subtitle: 'Não deixe nada passar da borda de baixo · 5 setores',
+      sector: 'SETOR', ready: 'PREPARE-SE!', warn: 'ATENÇÃO: ALVO GRANDE', cleared: 'SETOR LIMPO', final: 'ÚLTIMO SETOR LIMPO!',
+      baseDown: 'A LINHA CAIU!', base: 'BARREIRA', shield: 'Escudo', scrap: 'Sucata', bombs: 'Bombas', lives: 'Naves',
+      w_spark: 'Faísca', w_ray: 'Raio', w_shot: 'Chumbo', lvl: 'nv',
+      b_millstone: 'MÓ', b_pincer: 'PINÇA', b_hive: 'COLMEIA', b_pendulum: 'PÊNDULO', b_forge: 'FORJA',
+      e_mite: 'Ácaro', e_dart: 'Andorinhão', e_weaver: 'Tecelão', e_hulk: 'Aríete', e_carrier: 'Carregador',
+      shop: 'OFICINA', shopHint: '↑↓ escolher · Espaço/Enter comprar · toque numa linha',
+      s_weapon: 'Melhorar arma', s_module: 'Módulo lateral', s_shield: 'Capacidade do escudo +1', s_bomb: 'Megabomba +1',
+      s_repair: 'Consertar barreira +25%', s_life: 'Nave +1', s_next: 'Para a batalha →',
+      d_weapon: 'a arma atual sobe um nível', d_module: 'canhão lateral, atira sozinho (máx. 2)', d_shield: 'mais impactos antes de perder a nave',
+      d_bomb: 'limpa balas e inimigos pequenos', d_repair: 'resistência da barreira de baixo', d_life: 'nave reserva (máx. 5)', d_next: 'próximo setor',
+      maxed: 'máx.', bought: 'Comprado', noScrap: 'falta sucata', bonus: 'Bônus',
+      capUp: 'NÍVEL', capSw: 'ARMA',
+      hint1: 'Setas/WASD — voar · Espaço — atirar · B/X — bomba',
+      hint2: 'Cápsulas trocam a arma — pegue a sua. Sucata compra melhorias.',
+      back: 'Catálogo',
+      lvPick: 'Setor', starNew: 'novo recorde!', opened: 'setor {n} liberado', revived: 'Mais uma chance!', rwRepair: 'Anúncio: barreira +25%',
+      foot: '<b>SPARKWARD</b> · setas / WASD — voar, Espaço / ● — atirar (segure), B / X / ✹ — megabomba, P — pausa · L idioma, T tema, M som.'
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

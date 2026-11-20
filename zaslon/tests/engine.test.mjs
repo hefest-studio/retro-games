@@ -10,7 +10,7 @@ const ROOT = path.resolve(HERE, '..');
 const sandbox = { console, Math, Array };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/game.js'), 'utf8'), sandbox, { filename: 'game.js' });
+for (const f of ['js/game.js', 'js/meta.js', 'js/i18n.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const Z = sandbox.ZASLON;
 const C = Z.consts;
 
@@ -217,6 +217,31 @@ test('3 потери корабля — конец игры', () => {
   eq(S.lives,0); run(g, 2.5); ok(has(ev,'gameover'),'нет gameover'); ok(S.over && !S.won);
 });
 
+test('мета: звёзды сектора (пройден / без потери корабля / заслон ≥ 75%), открытие, сохранение', () => {
+  const M=Z.meta, mem={}, P=M.Progress({ get:k=>(k in mem?mem[k]:null), set:(k,v)=>{mem[k]=v;} });
+  eq(M.LEVELS, C.SECTORS); eq(M.stars({level:1,lost:0,base:80}).n,3); eq(M.stars({level:1,lost:1,base:80}).n,2); eq(M.stars({level:1,lost:2,base:40}).n,1);
+  eq(P.maxUnlocked(),1); ok(P.record(1,2)); eq(P.maxUnlocked(),2); eq(mem['arcade.zaslon.stars.1'],'2'); ok(!P.record(1,1)); eq(M.Progress({get:k=>mem[k]??null,set(){}}).get(1),2);
+});
+test('событие clear несёт потери корабля в секторе и прочность заслона', () => {
+  const { g, S, ev }=ready(3); S.player.shield=0; g._hitPlayer('t'); S.player.alive=true; S.player.inv=0; g._clear(); const d=ev.find(e=>e[0]==='clear')[1];
+  eq(d.lost,1); eq(d.base,100); eq(d.sector,1);
+  S.player.alive=true; g._startSector(2); eq(S.secLost,0,'сброс счётчика в новом секторе');
+});
+test('старт с открытого сектора: сектор N и набор растёт с номером', () => {
+  const g=Z.Game({rng:mulberry32(2), startSector:4}); g.start(); const S=g.state();
+  eq(S.sector,4); ok(S.player.lv.spark>=2 && S.player.modules>=1 && S.player.bombs>=3 && S.scrap>0, JSON.stringify({lv:S.player.lv,m:S.player.modules,b:S.player.bombs,s:S.scrap}));
+  const g1=Z.Game({rng:mulberry32(2)}); g1.start(); eq(g1.state().player.lv.spark,1,'с 1-го сектора — как раньше');
+});
+test('реклама за награду: reviveAd после gameover (корабли или заслон), repairAd +25% до 100', () => {
+  const { g, S }=ready(4); ok(!g.reviveAd(),'не во время игры'); S.lives=1; S.player.shield=0; hold(g); g._hitPlayer('t'); run(g,2.5); ok(S.over,'конец игры');
+  ok(g.reviveAd()); ok(!S.over && S.lives===1 && S.player.alive && S.player.inv>0, 'вернулись');
+  S.base=0; S.overT=0.01; run(g,0.1); ok(S.over,'заслон прорван'); ok(g.reviveAd()); eq(S.base,50); run(g,1); ok(!S.over,'игра идёт');
+  S.base=90; ok(g.repairAd()); eq(S.base,100); ok(!g.repairAd(),'полный — нельзя');
+});
+test('i18n: RU/EN/TR/ES/PT — одинаковые ключи, {n} сохранён, EN-название SPARKWARD в нерусских', () => {
+  const ru=Object.keys(Z.STR.ru).sort().join(',');
+  for (const l of ['en','tr','es','pt']) { eq(Object.keys(Z.STR[l]).sort().join(','), ru, l); eq(Z.STR[l].title,'SPARKWARD',l); ok(Z.STR[l].opened.includes('{n}'), l); }
+});
 test('детерминизм: один сид — одна партия', () => {
   const play = s => { const g=Z.Game({rng:mulberry32(s)}); g.start(); g.setFire(true); for(let i=0;i<60*40;i++){ g.setDir(Math.sin(i/50)>0?1:-1,0); g.update(1/60);} const S=g.state(); return [S.score,S.scrap,S.base,S.lives,S.sector].join(); };
   eq(play(7), play(7));

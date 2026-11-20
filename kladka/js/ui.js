@@ -17,7 +17,7 @@
   }
   var lastLang = null, lastTheme = null;
   function sync(g) {
-    var lang = g.lang ? g.lang() : g.i18n.lang, theme = g.themeName;   // g.lang() — с TR/ES/PT (js/lang-x.js)
+    var lang = g.i18n.lang, theme = g.themeName;   // любой язык таблиц игры (движок v2.8)
     if (lang !== lastLang) {
       lastLang = lang; document.documentElement.lang = lang;
       var b = $('backLink'); if (b) b.innerHTML = '&larr; ' + g.t('back');

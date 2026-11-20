@@ -9,9 +9,11 @@
   // ---------- DOM ----------
   function fit(g) {
     var c = g.canvas, pad = document.querySelector('.pad');
-    var padH = pad && getComputedStyle(pad).display !== 'none' ? pad.offsetHeight + 16 : 0;
-    var availW = Math.min(innerWidth - 16, 960), availH = innerHeight - padH - 70;
-    var w = Math.max(280, Math.floor(Math.min(availW, availH * g.W / g.H)));
+    var padFixed = pad && getComputedStyle(pad).position === 'fixed';
+    var padH = pad && !padFixed && getComputedStyle(pad).display !== 'none' ? pad.offsetHeight + 16 : 0;
+    var availW = Math.min(innerWidth - 16, 960), availH = innerHeight - padH - (padFixed ? 40 : 70);
+    if (padFixed) availW = Math.min(availW, innerWidth - 2 * 150);   // телефон лёжа: стики по бокам не закрывают арену
+    var w = Math.max(200, Math.floor(Math.min(availW, availH * g.W / g.H)));
     c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
   }
   var lastLang = null, lastTheme = null;

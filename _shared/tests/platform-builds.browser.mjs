@@ -9,6 +9,11 @@
    AudioContext не играет, награда ровно одна, игра продолжается; второй раз за партию экрана нет; пропуск ролика — без награды;
    скрытая вкладка → пауза; потеря фокуса (blur) → пауза и тишина, focus → звук (v2.7, Яндекс 1.3); адаптер 1.2 — лидерборд, флаги,
    серверное время, покупки, свои игры через мок-SDK; контекстное меню и выделение подавлены; облачное сохранение; канвас нарисован.
+   v2.8 / 1.3 (если игра подключила): «Лидеры» — пункт меню, отправка в каждую именованную таблицу игры, окно (GamePush) или сцена
+   «Лидеры» (Яндекс); «Без рекламы» (мок-покупка) — пункты в меню и паузе с ценой из каталога, после покупки межстраничной нет и пунктов
+   нет, при следующем запуске покупка восстановлена; «Наши игры» и ярлык — пункты меню. Языки RU/EN/TR/ES/PT (язык площадки в моке):
+   язык до первого экрана меню, <html lang>, пункт «Язык: XX», телефон портрет/ландшафт — без прокрутки и без строк, вылезающих
+   за холст (проба fillText+measureText на сценах меню/паузы/финалов), 0 ошибок.
    Телефон (портрет 390×844 и ландшафт 844×390) и планшет (768×1024, 1024×768), тач: нет прокрутки страницы, canvas целиком в окне.
    Сборки *-16x9 (--aspect 16:9): 1280×720, 1920×1080, 1024×768 — canvas внутри сцены 16:9, без искажений и прокрутки.
    Один браузер на все сборки, закрывается в конце. */
@@ -58,6 +63,15 @@ async function openPage(browser, base, platform, ctxOpts, errors, external, mock
     window.__sdkMock = m; window.__sdkLog = [];
     // журнал сцен с первого кадра: какая сцена и какой язык были на первом экране меню
     window.__firstMenu = null;
+    // проба «строка вылезла за холст»: fillText на главном canvas (не фон 16:9) — ширина по measureText с учётом выравнивания и масштаба
+    window.__overflow = [];
+    const ft = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = function (s, x, y, mw) {
+      try { const c = this.canvas, g = window.Arcade && window.Arcade.last; if (g && c === g.canvas && /^(title|pause|win|gameover|continue|leaders|games)$/.test(g._sceneName || '')) {
+        const w = this.measureText(String(s)).width, al = this.textAlign, t = this.getTransform(); let l = al === 'center' ? x - w / 2 : (al === 'right' || al === 'end') ? x - w : x;
+        const L = t.a * l + t.e, R = t.a * (l + w) + t.e; if (String(s).trim() && (L < -2 || R > c.width + 2)) window.__overflow.push(g._sceneName + ': «' + s + '» ' + Math.round(L) + '…' + Math.round(R) + ' / ' + c.width); } } catch (e) {}
+      return ft.call(this, s, x, y, mw);
+    };
     const t = setInterval(() => { const g = window.Arcade && window.Arcade.last; if (g && g._sceneName && g._sceneName !== 'loading') { window.__firstMenu = { scene: g._sceneName, lang: g.i18n.lang, inited: !!(window.Platform && window.Platform.inited) }; clearInterval(t); } }, 1);
   }, mock);
   await page.goto(base); await wait(700);
@@ -71,6 +85,8 @@ const layoutProbe = () => {
     stage: window.ArcadeAspect ? window.ArcadeAspect.stage() : null, scene: window.Arcade && window.Arcade.last && window.Arcade.last._sceneName };
 };
 
+const LANGS = ['ru', 'en', 'tr', 'es', 'pt'];
+const MOCK_LB = { score: [], kaskad: [{ id: 'a', name: 'Ая', score: 900 }], kaskadDaily: [{ id: 'b', name: 'Бо', score: 40 }], otboynikWave: [{ id: 'a', name: 'Ая', score: 7 }], kladka: [{ id: 'c', name: 'Ви', score: 5000 }] };
 const browser = await chromium.launch();
 try {
   for (const b of builds) {
@@ -80,7 +96,7 @@ try {
     const errors = [], external = [];
     try {
       // ---------- десктоп: SDK, язык, реклама, пауза ----------
-      const { ctx, page } = await openPage(browser, base, platform, { viewport: { width: 1280, height: 720 } }, errors, external, { adMs: 150, lang: 'en' });
+      const { ctx, page } = await openPage(browser, base, platform, { viewport: { width: 1280, height: 720 } }, errors, external, { adMs: 150, lang: 'en', lb: MOCK_LB });
       const st = () => page.evaluate(() => ({ name: Platform.name, inited: Platform.inited, sdk: !!Platform.sdk, errors: Platform.errors, log: window.__sdkLog.slice(), title: document.title, lang: Arcade.last.i18n.lang, scene: Arcade.last._sceneName,
         links: [...document.querySelectorAll('a[href]')].filter(a => getComputedStyle(a).display !== 'none' && !/^#/.test(a.getAttribute('href'))).map(a => a.getAttribute('href')) }));
       const s0 = await st();
@@ -130,12 +146,42 @@ try {
       // v1.2: лидерборд, флаги, серверное время, покупки, свои игры — методы SDK (мок) доступны через адаптер; движок 2.7
       const v12 = await page.evaluate(async () => ({ ver: Arcade.version, pf: Platform.version, lb: Platform.leaderboard.available, top: Array.isArray((await Platform.leaderboard.top()).entries),
         flags: Object.keys(await Arcade.last.flags.ready).length, st: Platform.serverTime(), pay: Platform.payments.available, games: (await Platform.games.list()).games.length }));
-      ok(v12.ver === '2.7.0' && v12.pf === '1.2.0' && v12.lb && v12.top && v12.flags >= 5 && v12.st > 0 && v12.pay && v12.games >= 1, 'v1.2: ' + JSON.stringify(v12));
+      ok(v12.ver === '2.8.0' && v12.pf === '1.3.0' && v12.lb && v12.top && v12.flags >= 5 && v12.st > 0 && v12.pay && v12.games >= 1, 'v1.2: ' + JSON.stringify(v12));
       await page.evaluate(() => Arcade.last.goto('play', { resume: true })); await wait(100);
       await page.keyboard.press('KeyP'); await wait(200);
       const s2 = await st(); ok(s2.log.lastIndexOf('stop') > s2.log.lastIndexOf('start'), 'P → нет gameplayStop: ' + s2.log.slice(-4).join(','));
       await page.evaluate(() => Platform.save('probe', { v: 1 })); await wait(1700);
       const s3 = await st(); ok(s3.log.includes(platform === 'yandex' ? 'setData' : 'sync'), 'облачное сохранение: ' + s3.log.join(','));
+      // ---------- v2.8: лидеры (именованные таблицы), «Без рекламы» (мок-покупка), свои игры, ярлык ----------
+      const v28 = await page.evaluate(async () => {
+        const g = Arcade.last, r = { lb: null, shop: null }; g.goto('title'); await new Promise(x => setTimeout(x, 60)); g.goto('title');
+        r.title = g.menu.items('title');
+        if (g._lbUi) {
+          const boards = g._lbUi.boards.map(b => b.id), sent = [];
+          for (const b of boards) { sent.push(await g.leaderboard.submit(123, { board: b })); await new Promise(x => setTimeout(x, 1150)); }
+          const tops = []; for (const b of boards) tops.push((await g.leaderboard.top({ board: b })).entries.length);
+          const it = g.scenes.title._menu.items.find(x => x.key === 'lb'); it.onSelect.call(g); await new Promise(x => setTimeout(x, 80));
+          r.lb = { boards, sent, tops, scene: g._sceneName, native: g.leaderboard.native(), log: window.__sdkLog.filter(x => /^(setScore|getEntries|lbOpen|lbFetch)/.test(x)) };
+          if (g._sceneName === 'leaders') { g.scenes.leaders.draw.call(g, g.ctx); g.current.press.call(g, 'pause'); }
+          r.lb.back = g._sceneName;
+        }
+        if (g._shop) {
+          g.goto('title'); await new Promise(x => setTimeout(x, 50)); g.goto('title');
+          const ti = g.scenes.title._menu.items.find(x => x.key === 'noads'); g.scenes.title._menu.items[0].onSelect.call(g); g.pause();
+          const pi = g.scenes.pause._menu.items.find(x => x.key === 'noads');
+          r.shop = { title: ti && ti.label(), pause: pi && pi.label(), before: g.adReady() };
+          pi.onSelect.call(g); await new Promise(x => setTimeout(x, 300)); g.goto('pause'); const pa = g.menu.items('pause'); g.goto('title');
+          Object.assign(r.shop, { noAds: g.noAds(), after: g.adReady(), ab: await g.adBreak(), left: g.menu.items('title').includes('noads') || pa.includes('noads'), log: window.__sdkLog.filter(x => /^purchase/.test(x)) });
+        }
+        return r;
+      });
+      if (v28.lb) {
+        ok(v28.title.includes('lb'), 'нет пункта «Лидеры»: ' + v28.title.join(','));
+        ok(v28.lb.sent.every(Boolean), 'отправка в таблицы: ' + JSON.stringify(v28.lb));
+        if (platform === 'yandex') ok(v28.lb.boards.every(b => v28.lb.log.includes('setScore:' + b + ':123')) && v28.lb.scene === 'leaders' && !v28.lb.native && v28.lb.back === 'title' && v28.lb.tops.every(n => n >= 1), 'Яндекс: таблицы/сцена «Лидеры»: ' + JSON.stringify(v28.lb));
+        else ok(v28.lb.native && v28.lb.log.includes('lbOpen') && v28.lb.scene === 'title', 'GamePush: окно лидеров: ' + JSON.stringify(v28.lb));
+      }
+      if (v28.shop) ok(/· 49/.test(v28.shop.title) && /· 49/.test(v28.shop.pause) && v28.shop.noAds && !v28.shop.after && !v28.shop.ab && !v28.shop.left && v28.shop.log.includes('purchase:no_ads'), '«Без рекламы»: ' + JSON.stringify(v28.shop));
       const drawn = await page.evaluate(() => { const c = document.querySelector('canvas:not(#arcade-aspect-bg)'), x = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < x.length; i += 4 * 97) if (x[i] + x[i + 1] + x[i + 2] > 40) n++; return n; });
       ok(drawn > 20, 'канвас пуст');
       if (!aspect) for (const [w, h] of [[1280, 720], [1920, 1080], [1366, 768]]) {   // десктоп: без прокрутки, canvas целиком в окне (Яндекс 1.10, 1.6.2.1)
@@ -153,6 +199,31 @@ try {
         }
       }
       await ctx.close();
+      // ---------- «Без рекламы» восстанавливается при следующем запуске (необработанная покупка в SDK) ----------
+      let restored = null;
+      { const R = await openPage(browser, base, platform, { viewport: { width: 1280, height: 720 } }, errors, external, { adMs: 50, lang: 'ru', lb: MOCK_LB, purchases: platform === 'yandex' ? [{ productID: 'no_ads', purchaseToken: 'old1' }] : [{ productId: 501 }] });
+        await wait(300); restored = await R.page.evaluate(() => { const g = Arcade.last; return { shop: !!g._shop, noAds: g.noAds(), ad: g.adReady(), items: g.menu.items('title'), games: g.menu.items('title').includes('games'), sc: g.menu.items('title').includes('shortcut') }; });
+        if (restored.shop) ok(restored.noAds && !restored.ad && !restored.items.includes('noads'), 'покупка не восстановлена при запуске: ' + JSON.stringify(restored));
+        await R.ctx.close(); }
+      // ---------- языки RU/EN/TR/ES/PT: телефон портрет и ландшафт ----------
+      const langRes = [];
+      for (const lang of LANGS) for (const [w, h] of [[390, 844], [844, 390]]) {
+        const P = await openPage(browser, base, platform, { viewport: { width: w, height: h }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, errors, external, { adMs: 30, lang, lb: MOCK_LB });
+        const r = await P.page.evaluate(async () => { const g = Arcade.last, out = { fm: window.__firstMenu, html: document.documentElement.lang, lang: g.i18n.lang, title: document.title };
+          const m = g.menu.get('title'); out.label = m.items[m.indexOf('lang')].label(); out.playLbl = m.items[0].label();
+          g.scenes.title._menu.items[0].onSelect.call(g); await new Promise(x => setTimeout(x, 200)); g.pause(); await new Promise(x => setTimeout(x, 100));
+          if (g._lbUi) { g.goto('leaders', { board: g._lbUi.boards[0].id }); await new Promise(x => setTimeout(x, 150)); }
+          g.goto('gameover'); await new Promise(x => setTimeout(x, 100)); g.goto('title'); await new Promise(x => setTimeout(x, 100));
+          out.over = window.__overflow.slice(0, 5); return out; });
+        const L = await P.page.evaluate(layoutProbe);
+        ok(r.fm && r.fm.lang === lang && r.lang === lang && r.html === lang, `${lang}: язык до меню/<html lang>: ` + JSON.stringify(r));
+        ok(new RegExp(': ' + lang.toUpperCase() + '$').test(r.label), `${lang}: пункт «Язык»: ` + r.label);
+        if (names && names.en && lang !== 'ru') ok(r.title === names.en, `${lang}: <title> — EN-название: ` + r.title);
+        ok(!r.over.length, `${lang} ${w}×${h}: строки вылезают за холст: ` + r.over.join(' | '));
+        ok(L.sh <= L.ih + 1 && L.sw <= L.iw + 1, `${lang} ${w}×${h}: прокрутка ` + JSON.stringify(L));
+        if (w === 390) langRes.push(lang + ':' + r.playLbl);
+        await P.ctx.close();
+      }
       // ---------- телефон и планшет: портрет и ландшафт ----------
       const phones = [];
       for (const [w, h] of [[390, 844], [844, 390], [768, 1024], [1024, 768]]) {   // телефон портрет/ландшафт, планшет портрет/ландшафт
@@ -171,7 +242,7 @@ try {
       }
       ok(!external.length, 'внешние запросы: ' + external.join(', '));
       ok(!errors.length, errors.join(' | '));
-      passed++; console.log('ok   ' + b + ` (SDK: ${s3.log.filter((x, i, a) => a.indexOf(x) === i).join(',')}; ${phones.join('; ')})`);
+      passed++; console.log('ok   ' + b + ` (SDK: ${s3.log.filter((x, i, a) => a.indexOf(x) === i).join(',')}; ${phones.join('; ')}; v2.8: лидеры ${v28.lb ? v28.lb.boards.join('+') : '—'}, без рекламы ${v28.shop ? 'да' : '—'}, восстановлено ${restored && restored.shop ? restored.noAds : '—'}, свои игры ${restored && restored.games ? 'да' : 'нет'}, ярлык ${restored && restored.sc ? 'да' : 'нет'}; языки ${langRes.join(' ')})`);
     } catch (e) { failed++; console.log('FAIL ' + b + ' — ' + e.message + (errors.length ? ' | ' + errors.join(' | ') : '')); }
     srv.close();
   }

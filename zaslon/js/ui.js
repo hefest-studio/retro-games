@@ -9,8 +9,8 @@
   // Canvas вписывается и по ширине, и по высоте окна (портрет 3:4).
   function fit(g) {
     var c = g.canvas, wrap = c.parentElement;
-    var pad = document.querySelector('.pad'), padH = pad && getComputedStyle(pad).display !== 'none' ? pad.offsetHeight + 16 : 0;
-    var availH = innerHeight - padH - 64;
+    var pad = document.querySelector('.pad'), padFixed = pad && getComputedStyle(pad).position === 'fixed', padH = pad && !padFixed && getComputedStyle(pad).display !== 'none' ? pad.offsetHeight + 16 : 0;
+    var availH = innerHeight - padH - (padFixed ? 40 : 64);   // телефон лёжа: кнопки по бокам, поле — на всю высоту
     var w = Math.min(480, (wrap && wrap.clientWidth) || g.W, availH * g.W / g.H);
     w = Math.max(220, Math.floor(w));
     c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';

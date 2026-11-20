@@ -13,12 +13,13 @@
     for (var i = 0; i < P.MISSIONS.length; i++) if (P.MISSIONS[i].id === def.id) { P.MISSIONS[i] = def; return def; }
     P.MISSIONS.push(def); P.MISSIONS.sort(function (a, b) { return (a.n || 0) - (b.n || 0); }); return def;
   };
-  P.missionFiles = function (build) { return build === 'full' ? FILES.demo.concat(FILES.full) : FILES.demo.slice(); };
+  // 'platform' — издание «для площадок» (arcade-full/platform): грузит все файлы, доступ решает js/edition.js (покупка)
+  P.missionFiles = function (build) { return build === 'full' || build === 'platform' ? FILES.demo.concat(FILES.full) : FILES.demo.slice(); };
   P.missionMissing = [];
   P.onMissionError = function (id) { P.missionMissing.push(id); if (root.console) console.warn('ПОРУБЕЖЬЕ: нет файла миссии ' + id); };
   var doc = root.document;
   if (!doc || !doc.write || doc.readyState !== 'loading') return;
-  P.missionFiles(P.Edition ? P.Edition.BUILD : 'demo').forEach(function (id) {
+  P.missionFiles(P.Edition && P.Edition.BUILD).forEach(function (id) {
     if (!/^[a-z0-9-]+$/.test(id)) return;
     doc.write('<script src="./js/missions/' + id + '.js" onerror="PORUB.onMissionError(\'' + id + '\')"><\/script>');
   });

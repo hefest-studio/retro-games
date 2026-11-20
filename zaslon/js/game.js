@@ -156,7 +156,7 @@
     }
 
     function startSector(n) {
-      S.sector = n; S.phase = 'intro'; S.phaseT = 2.0; S.waveIdx = 0; S.waveCount = params().waves;
+      S.sector = n; S.secLost = 0; S.phase = 'intro'; S.phaseT = 2.0; S.waveIdx = 0; S.waveCount = params().waves;
       S.waveT = 0.4; S.spawnQ = []; S.enemies = []; S.eb = []; S.boss = null; S.caps = [];
       setBanner('sector', 2.0, n);
       emit('sector', { sector: n });
@@ -217,7 +217,7 @@
         emit('shieldHit', { x: p.x, y: p.y, left: p.shield });
         return true;
       }
-      p.alive = false; S.lives--; p.ray = null;
+      p.alive = false; S.lives--; S.secLost = (S.secLost || 0) + 1; p.ray = null;
       if (p.lv[p.weapon] > 1) p.lv[p.weapon]--;
       S.booms.push({ x: p.x, y: p.y, t: 0, life: 0.9, r: 60 });
       emit('die', { x: p.x, y: p.y, src: src || '' });
@@ -405,7 +405,7 @@
       var bonus = Math.round(S.base) * 10 + S.sector * 500, sb = Math.floor(S.base / 5);
       S.score += bonus; S.scrap += sb;
       setBanner(S.sector >= SECTORS ? 'final' : 'cleared', 2.6);
-      emit('clear', { sector: S.sector, bonus: bonus, scrap: sb });
+      emit('clear', { sector: S.sector, bonus: bonus, scrap: sb, lost: S.secLost || 0, base: Math.round(S.base) });
     }
 
     // ---------- Мастерская ----------
@@ -601,7 +601,10 @@
       p.x = W / 2; p.y = 560; p.alive = true; p.inv = 1.2; p.respawnT = 0; p.cd = 0; p.modCd = 0;
       p.shMax = SHIELD_BASE; p.shield = SHIELD_BASE; p.regenT = SHIELD_REGEN; p.weapon = 'spark';
       p.lv = { spark: 1, ray: 1, shot: 1 }; p.modules = 0; p.bombs = 2;
-      startSector(opts.startSector || 1);
+      // старт с открытого сектора (мета-прогрессия): набор растёт с номером — ур. оружия, модули, бомбы, как после мастерских
+      var st = Math.max(1, Math.min(SECTORS, opts.startSector || 1));
+      if (st > 1) { p.lv.spark = Math.min(3, 1 + Math.floor(st / 2)); p.modules = Math.min(MODULES_MAX, st - 1 >> 1); p.bombs = Math.min(BOMBS_MAX, 2 + (st >> 1)); S.scrap += 40 * (st - 1); }
+      startSector(st);
       emit('start', {});
       return api;
     }
@@ -615,6 +618,17 @@
       shopItems: shopItems, shopMove: shopMove, shopConfirm: shopConfirm, buy: buy, leaveShop: leaveShop,
       shopSelect: function (i) { if (S.phase === 'shop' && i >= 0 && i < SHOP.length) S.shop.sel = i; },
       price: nextPrice,
+      // реклама за награду «ещё один шанс» (после gameover): корабль +1 (если кончились), заслон до 50% (если прорван), пули врагов сняты
+      reviveAd: function () {
+        if (!S.over || S.won) return false;
+        var p = S.player; S.over = false; S.overT = 0;
+        if (S.base <= 0) S.base = BASE_MAX / 2;
+        if (S.lives <= 0) S.lives = 1;
+        p.alive = true; p.x = W / 2; p.y = 570; p.inv = 2.4; p.respawnT = 0; p.shield = p.shMax; p.regenT = SHIELD_REGEN; S.eb = [];
+        emit('revive', {}); setBanner('ready', 1.0); return true;
+      },
+      // бонус за рекламу в паузе: починка заслона +25% (раз за партию, если повреждён)
+      repairAd: function () { if (S.over || S.base >= BASE_MAX) return false; S.base = Math.min(BASE_MAX, S.base + REPAIR); emit('repair', {}); return true; },
       isOver: function () { return S.over; },
       state: function () { return S; },
       params: params,

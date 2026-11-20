@@ -17,6 +17,25 @@
   var game = null, toasts = [], banner = null, tip = null, tipsShown = {}, playSince = 0, cam = { x: null, y: null }, pending = null;
   var held = {}, pad = {};
   function S() { return game.state(); }
+  // ---------- Мета-прогрессия: выбор открытого акта и звёзды (js/meta.js); прогресс — и в облако площадки ----------
+  var M = TEN.meta, prog = M.Progress({ get: function (k) { return Arcade.Store.get(k, null); }, set: function (k, v) { g.storeSet(k, v); } });
+  for (var lv = 1; lv <= M.LEVELS; lv++) g.persist(M.key(lv), 'max');
+  var START_KEY = 'arcade.ten.start'; g.persist(START_KEY, 'last');
+  function startLv() { var v = parseInt(Arcade.Store.get(START_KEY, '1'), 10) || 1; return prog.unlocked(v) ? v : prog.maxUnlocked(); }
+  function setStart(v) { g.storeSet(START_KEY, v); }
+  var actRec = { act: 0, deaths0: 0, used: 0 };   // для звёзд акта: смерти на начало акта, худшая доля таймера среди сцен
+  function actBegin() { var s = S(); if (actRec.act === s.act) return; actRec = { act: s.act, deaths0: s.deaths, used: 0 }; }   // повторная загрузка сцены 1 (смерть, «ещё шанс») акт не сбрасывает
+  function onActClear(act) {
+    var s = S(), r = M.stars({ level: act, lost: s.deaths - actRec.deaths0, time: actRec.used }), before = prog.maxUnlocked(), isNew = prog.record(act, r.n), after = prog.maxUnlocked();
+    if (after > before) setStart(after);
+    return { n: r.n, isNew: isNew, opened: after > before ? after : 0 };
+  }
+  // Реклама за награду (только на площадках с рекламой): «ещё один шанс» — 1 жизнь в той же сцене, счёт сохраняется (раз за партию);
+  // бонус в паузе — +1 жизнь (раз за партию, до 5). Межстраничная — при выходе из кат-сцены между актами (действие игрока).
+  g.useRewardedContinue({ revive: function () { if (game) { game.reviveAd(); sync(); } } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { var s = game && game.state(); return !!s && !s.over && s.lives < 5; },
+    grant: function () { if (game) { game.addLife(); sync(); } } });
   function sync() { if (!game) return; var s = S(); g.state.score = s.score; g.state.lives = Math.max(0, s.lives); g.state.level = s.act; }
   function retro() { return g.themeName === 'retro'; }
   function col(m, r) { return retro() ? r : m; }
@@ -33,7 +52,9 @@
     TEN.sfx(g, type, d);
     var s = game ? S() : null, P = s && s.hero;
     switch (type) {
+      case 'revive': showBanner(g.t('revived'), '', 1.4); break;
       case 'scene':
+        if (d.scene === 1) actBegin();
         toasts = []; FX.clear(); cam.x = null; tip = null;
         if (d.scene === 4) showBanner(g.t('boss'), g.t('act') + ' ' + d.act + ' · ' + g.t('a' + d.act), 2.2);
         else showBanner(g.t('act') + ' ' + d.act + ' · ' + g.t('a' + d.act), g.t('scene') + ' ' + d.scene + ' / 3', 2.2);
@@ -67,6 +88,8 @@
       case 'bossBump': cam.shake = 0.3; break;
       case 'bossDown': FX.add(d.x, d.y, { n: 40, sp: 240, c: col('#ff9a3a', E.R), r: 3, life: 0.9 }); showBanner(g.t('bossDown'), '', 2); break;
       case 'clear':
+        if (!d.boss && s && s.LV && s.LV.time) actRec.used = Math.max(actRec.used, d.time / s.LV.time);
+        if (d.boss) { var st = onActClear(d.act); showBanner(g.t('bossDown'), M.starStr(st.n) + (st.isNew ? '  ' + g.t('starNew') : '') + (st.opened ? '  · ' + g.t('opened').replace('{n}', st.opened) : ''), 2.2); }
         if (!d.boss) showBanner(g.t('clear'), g.t('act') + ' ' + d.act + ' · ' + g.t('scene') + ' ' + d.scene, 2.1, [g.t('tTime') + ': ' + Math.round(d.time) + ' ' + (g.i18n.lang === 'ru' ? 'с' : 's') + '   ' + g.t('tBonus') + ': +' + d.bonus]);
         break;
       case 'life': if (P) toast(g.t('life'), col('#ff8aa0', E.R), P.x, P.y - 46, true); break;
@@ -77,7 +100,7 @@
     }
     sync();
   }
-  function newGame() { game = TEN.Game({ onEvent: onEvent }); toasts = []; banner = null; tip = null; FX.clear(); cam = { x: null, y: null }; pending = null; game.start(); TEN.current = game; sync(); }
+  function newGame() { actRec = { act: 0, deaths0: 0, used: 0 }; game = TEN.Game({ onEvent: onEvent, act: startLv() }); toasts = []; banner = null; tip = null; FX.clear(); cam = { x: null, y: null }; pending = null; game.start(); TEN.current = game; sync(); }
   function inPlay() { return g._sceneName === 'play' && game && g.time - playSince > 0.15; }
 
   // ---------- Стандартные экраны ----------
@@ -103,6 +126,10 @@
 
   // ---------- Титул ----------
   var title = g.scenes.title, menu = g.menu.get('title');
+  // пункт «Акт N ★★☆»: выбор/тап — следующий открытый, ← → — по кругу
+  g.menu.addItem({ key: 'level', scene: 'title', after: 'play', label: function () { var n = startLv(); return g.t('lvPick') + ' ' + n + '  ' + M.starStr(prog.get(n)); },
+    onSelect: function () { setStart(prog.next(startLv(), 1)); } });
+  title.press = function (a) { var it = menu && menu.current(); if (it && it.key === 'level' && (a === 'left' || a === 'right')) { setStart(prog.next(startLv(), a === 'left' ? -1 : 1)); this.audio.beep(600, 0.03); } };
   title.draw = function (ctx) {
     var rt = retro(), Wc = this.W, Hc = this.H, th = this.th(), time = this.time;
     var bg = R.bgLayers(1, rt);
@@ -144,15 +171,17 @@
   function cutDone() {
     var idx = cut.idx;
     if (idx === 6) { g.win(); return; }
-    if (idx > 0 && game && S().phase === 'cut') game.nextAct();
+    var between = idx > 0 && game && S().phase === 'cut';
+    if (between) game.nextAct();
     g.goto('play', { resume: true });
+    if (between) g.adBreak();   // межстраничная — между актами, по нажатию игрока (Яндекс 4.4)
   }
   g.scene('cut', {
     realtime: true,
     enter: function (d) { cut = { idx: d.idx || 0, i: 0, ch: 0 }; },
     update: function (dt) { cut.ch += dt * 42; },
     press: function (a) {
-      var panels = TEN.STORY[cut.idx], P = panels[cut.i], txt = P[g.i18n.lang] || P.ru;
+      var panels = TEN.STORY[cut.idx], P = panels[cut.i], txt = P[g.i18n.lang] || P.en || P.ru;
       if (a === 'pause') { cutDone(); return; }
       if (a !== 'action' && a !== 'start' && a !== 'right') return;
       if (cut.ch < txt.length) { cut.ch = txt.length; return; }
@@ -160,7 +189,7 @@
       if (cut.i >= panels.length) cutDone();
     },
     draw: function (ctx) {
-      var rt = retro(), th = this.th(), panels = TEN.STORY[cut.idx], P = panels[Math.min(cut.i, panels.length - 1)], txt = P[g.i18n.lang] || P.ru;
+      var rt = retro(), th = this.th(), panels = TEN.STORY[cut.idx], P = panels[Math.min(cut.i, panels.length - 1)], txt = P[g.i18n.lang] || P.en || P.ru;
       this.clear(rt ? '#000' : '#0a0d12');
       var px = 40, py = 22, pw = VW - 80, ph = 236;
       ctx.save(); ctx.translate(px, py); ctx.beginPath(); ctx.rect(0, 0, pw, ph); ctx.clip();
@@ -186,7 +215,7 @@
     realtime: true,
     enter: function (d) {
       playSince = g.time;
-      if (!(d && d.resume) || !game) { newGame(); this.goto('cut', { idx: 0 }); }
+      if (!(d && d.resume) || !game) { newGame(); this.goto('cut', { idx: S().act - 1 }); }   // с 1-го акта — вступление, с N-го — сцена после акта N−1
     },
     press: function (a) {
       if (a === 'pause') { this.pause ? this.pause() : this.goto('pause'); return; }
