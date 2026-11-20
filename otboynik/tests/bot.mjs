@@ -19,7 +19,7 @@ export function playOtboynik(G, seed, opts = {}){
   const [r0, r1] = opts.react || [0.15, 0.25];
   const miss = opts.miss != null ? opts.miss : 0.12;
   const ev = { kills: 0, gate: 0, drains: 0, tilts: 0, locks: 0, cleared: [], cards: [] };
-  const game = G.Game({ rng: mulberry32(seed), seed, startWave: opts.startWave || 1,
+  const game = G.Game({ rng: mulberry32(seed), seed, startWave: opts.startWave || 1, pool: opts.pool, starter: opts.starter,
     onEvent: (t, d) => {
       if (t === 'kill') ev.kills++; else if (t === 'gate') ev.gate += d.dmg; else if (t === 'drain') ev.drains++;
       else if (t === 'tilt') ev.tilts++; else if (t === 'tiltLock') ev.locks++;

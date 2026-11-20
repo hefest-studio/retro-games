@@ -1,4 +1,4 @@
-# Гефест Arcade — фреймворк (v2.6) · engine.js + host.js + mouse.js + platform.js + aspect.js
+# Гефест Arcade — фреймворк (v2.7) · engine.js + host.js + mouse.js + platform.js + aspect.js
 
 `engine.js` — vanilla JS, **0 зависимостей**. Расширен из микро-движка (v1) в фреймворк с общими
 системами, которые игры дублировали. Критерии проходимость/играбельность/непресность — встроены.
@@ -119,6 +119,22 @@ P1.onPress(name => …); // нажатие действия этого игро�
 | `soundFromEngine: true` | при старте игра следует звуку движка (кроме `?mute=`) | saga, saga-2 |
 | `bootKeep: true` | первый вход в title не сбрасывает игру (её мог запустить `?level=`) | saga, saga-2 |
 | `bootAdopt: true` | игра при загрузке уже в `play`/`sub` (`#demo=`/`#scene=`/`#wave=`) — движок сразу следует за ней | neon-yarost |
+
+## v2.7: потеря фокуса, лидерборд, флаги, покупки «Без рекламы», серверное время (через `platform.js` 1.2)
+Без `platform.js` всё безопасно и игра работает как раньше: лидерборд недоступен, флаги = значения игры, покупки → `false`, время — часы устройства.
+| API | Что делает |
+|---|---|
+| (автоматически, с площадкой) | `blur` окна / `pagehide` → AudioContext спит, `play` → пауза; `focus` / `pageshow` → звук снова разрешён (Яндекс 1.3: «любая потеря фокуса»). Без площадки — только скрытая вкладка, как раньше |
+| `createGame({ leaderboard: 'score' })`, `g.leaderboard` | `available()`, `submit(score)` → `Promise<bool>`, `top({ limit })` → `{ entries:[{ rank, score, name, me }], me }`, `me()`, `open()`; с `leaderboard` в опциях новый рекорд из `g.saveBest()` уходит сам |
+| `createGame({ flags: { difficulty: 'normal' } })`, `g.flags` | `get(key, def)` — строка (удалённое значение площадки важнее), `num(key, def)`, `all()`, `ready` — Promise. Служебные: `ad_interstitial_gap` (с), `ad_breaks`, `ad_sticky`, `rewarded_continue`, `rewarded_bonus` (`'0'` — выкл.) |
+| `createGame({ products: { id: { consumable, grant() } } })` / `g.useProducts(map)` | объявить товары **до старта** — при каждом запуске проверяются необработанные покупки (Яндекс 1.13.1): расходуемые → `grant()` → consume |
+| `g.useNoAds({ scene: 'title' })`, `g.purchase('no_ads')`, `g.noAds()`, `g.owned(id)`, `g.products()` | «Без рекламы»: пункт меню с ценой из SDK; после покупки (или если найдена при старте) межстраничная и стики не показываются, ролики за награду остаются по желанию игрока |
+| `createGame({ sticky: true })` | игра сама показывает стики-баннер (по умолчанию нет: сначала проверить, что он не закрывает кнопки); скрывается при «Без рекламы» и `ad_sticky=0` |
+| `g.serverTime()`, `g.daily(key, { tz: 3 })` | серверное время площадки; ежедневная награда `{ ready, day, trusted, claim() }` — отметка в облаке (`g.persist`) |
+| `g.requestReview()`, `g.addShortcut()` | окно оценки (раз за сессию) и ярлыка; игра на паузе на время окна |
+| `g.ownGames()`, `g.openGame(game)` | свои игры через SDK (Яндекс 8.4.1: только каталог Яндекс Игр; GamePush — коллекции) |
+Встроенная строка `noads` (RU «Без рекламы» / EN «No ads»). Тесты — `platform.test.mjs` (блоки v1.2/v2.7), `platform-builds.browser.mjs` (blur, методы 1.2).
+Подробно — `_shared/PLATFORMS.md`.
 
 ## v2.6: реклама за награду, межстраничная по действию игрока, старт после SDK
 Всё ниже работает **только при подключённом `platform.js` с рекламой** (сборки под Яндекс/GamePush). На сайте и без SDK (блокировщик, офлайн)

@@ -7,7 +7,8 @@
    ДО первого экрана меню, <title> — название на этом языке; ссылок наружу нет; Enter → игра (gameplayStart), P → пауза (stop);
    полноэкранная — частота по адаптеру; ролик за награду через движок: «ещё один шанс» на gameover — во время показа цикл стоит и
    AudioContext не играет, награда ровно одна, игра продолжается; второй раз за партию экрана нет; пропуск ролика — без награды;
-   скрытая вкладка → пауза; контекстное меню и выделение подавлены; облачное сохранение; канвас нарисован.
+   скрытая вкладка → пауза; потеря фокуса (blur) → пауза и тишина, focus → звук (v2.7, Яндекс 1.3); адаптер 1.2 — лидерборд, флаги,
+   серверное время, покупки, свои игры через мок-SDK; контекстное меню и выделение подавлены; облачное сохранение; канвас нарисован.
    Телефон (портрет 390×844 и ландшафт 844×390) и планшет (768×1024, 1024×768), тач: нет прокрутки страницы, canvas целиком в окне.
    Сборки *-16x9 (--aspect 16:9): 1280×720, 1920×1080, 1024×768 — canvas внутри сцены 16:9, без искажений и прокрутки.
    Один браузер на все сборки, закрывается в конце. */
@@ -121,6 +122,15 @@ try {
       const hid = await page.evaluate(async () => { const g = Arcade.last; g.goto('title'); g.scenes.title._menu.items[0].onSelect.call(g); Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
         document.dispatchEvent(new Event('visibilitychange')); const s = g._sceneName; Object.defineProperty(document, 'hidden', { configurable: true, get: () => false }); document.dispatchEvent(new Event('visibilitychange')); return s; });
       ok(hid === 'pause', 'скрытая вкладка → не пауза: ' + hid);
+      // v2.7 / Яндекс 1.3: любая потеря фокуса (blur окна — клик по странице площадки вокруг iframe, другое окно) → тишина и пауза; focus → звук можно вернуть
+      const bl = await page.evaluate(async () => { const g = Arcade.last; g.goto('play', { resume: true }); g.audio.unlocked = true; const ac = g.audio._ctx(); try { await ac.resume(); } catch (e) {}
+        window.dispatchEvent(new Event('blur')); await new Promise(r => setTimeout(r, 80)); const s = { scene: g._sceneName, ac: ac && ac.state, away: g.audio._away() };
+        window.dispatchEvent(new Event('focus')); await new Promise(r => setTimeout(r, 80)); return { s, away: g.audio._away() }; });
+      ok(bl.s.scene === 'pause' && bl.s.ac !== 'running' && bl.s.away && !bl.away, 'blur → пауза и тишина, focus → звук снова разрешён: ' + JSON.stringify(bl));
+      // v1.2: лидерборд, флаги, серверное время, покупки, свои игры — методы SDK (мок) доступны через адаптер; движок 2.7
+      const v12 = await page.evaluate(async () => ({ ver: Arcade.version, pf: Platform.version, lb: Platform.leaderboard.available, top: Array.isArray((await Platform.leaderboard.top()).entries),
+        flags: Object.keys(await Arcade.last.flags.ready).length, st: Platform.serverTime(), pay: Platform.payments.available, games: (await Platform.games.list()).games.length }));
+      ok(v12.ver === '2.7.0' && v12.pf === '1.2.0' && v12.lb && v12.top && v12.flags >= 5 && v12.st > 0 && v12.pay && v12.games >= 1, 'v1.2: ' + JSON.stringify(v12));
       await page.evaluate(() => Arcade.last.goto('play', { resume: true })); await wait(100);
       await page.keyboard.press('KeyP'); await wait(200);
       const s2 = await st(); ok(s2.log.lastIndexOf('stop') > s2.log.lastIndexOf('start'), 'P → нет gameplayStop: ' + s2.log.slice(-4).join(','));

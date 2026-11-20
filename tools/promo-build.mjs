@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 /* tools/promo-build.mjs — промо-материалы игры для каталогов площадок (Яндекс Игры, GamePush) из реального геймплея.
    Запуск:  node tools/promo-build.mjs <slug> [--langs ru,en] [--no-video] [--port 8401] [--out promo/<slug>]
+            node tools/promo-build.mjs <slug> --check   — только проверка текстов promo.json (длины, дубли, запрещённые слова), без браузера и без записи
+   Запрещённые слова (tools/lib/banned-words.mjs): в названиях — «demo/демо», «trial», «бета», «free/бесплатно», «best/лучший», «top/топ»
+            (Яндекс 1.15, 8.2.2) → ошибка; в описаниях и подписях — слова 1.15 → ошибка, 8.2.2 → предупреждение.
    Нужно:   promo/<slug>/promo.json — названия по языкам, тексты, теги, категории, подписи к скриншотам, палитра;
             promo/<slug>/shots.mjs   — сценарии скриншотов (как довести игру до нужного кадра), см. promo/kaskad/shots.mjs;
             promo/<slug>/art.js      — (необяз.) рисунок иконки и обложки: window.PromoArt = { icon(ctx,S,P), cover(ctx,W,H,P,o) };
@@ -28,9 +31,10 @@ import http from 'node:http';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { scanPromo, HINT as BANNED_HINT } from './lib/banned-words.mjs';
 const require = createRequire(import.meta.url);
-let chromium;
-try { ({ chromium } = require('playwright')); } catch { ({ chromium } = require('/opt/npm-tools/node_modules/playwright')); }
+let chromium = null; // Playwright грузится только для сборки (в режиме --check и в тестах checkTexts не нужен)
+function loadChromium() { if (chromium) return chromium; try { ({ chromium } = require('playwright')); } catch { ({ chromium } = require('/opt/npm-tools/node_modules/playwright')); } return chromium; }
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Промо-материалы весят десятки МБ и нужны только площадкам — живут в приватном репо arcade-full (решение 20.11).
@@ -54,12 +58,14 @@ export function checkTexts(P) {
     const fields = ['short', 'seo', 'about', 'howto', 'gp_short', 'gp_full'].map((k) => T[k]).filter(Boolean); // 5.11: поля не дублируются
     if (new Set(fields).size !== fields.length) out.push(lang + ': одинаковые тексты в разных полях (Яндекс 5.11)');
     if (/(.)\1{4,}/.test(fields.join(' '))) out.push(lang + ': повтор символов (Яндекс 5.11)');
-    if (/\b(free|best|top)\b|бесплатн|лучш/i.test(T.name || '')) out.push(lang + ': запрещённые слова в названии');
     if ((P.tags && P.tags[lang] || []).length > 20) out.push(lang + ': тегов > 20');
   }
   const cats = P.categories && P.categories.yandex; if (cats) for (const l of Object.keys(cats)) if (cats[l].length > 2) out.push('категорий Яндекса > 2');
+  const bw = scanPromo(P); // запрещённые слова (Яндекс 1.15, 8.2.2): ошибки — в список проблем, предупреждения — checkWords()
+  if (bw.errors.length) { out.push('запрещённые слова — ' + BANNED_HINT); bw.errors.forEach((e) => out.push('  слово: ' + e)); }
   return out;
 }
+export function checkWords(P) { return scanPromo(P); }
 
 function listingMd(P, lang) {
   const T = P.texts[lang], n = P.names[lang], d = (P.display && P.display[lang]) || n, other = lang === 'ru' ? 'en' : 'ru';
@@ -159,10 +165,11 @@ export async function buildPromo(slug, opts = {}) {
   const P = JSON.parse(fs.readFileSync(path.join(dir, 'promo.json'), 'utf8'));
   const langs = opts.langs || Object.keys(P.names);
   const problems = checkTexts(P); if (problems.length) die('тексты promo.json:\n  ' + problems.join('\n  '));
+  const wordWarn = scanPromo(P).warnings;
   const shotsMod = await import(pathToFileURL(path.join(dir, 'shots.mjs')).href);
   const artFiles = [path.join(ROOT, 'tools/promo/art-default.js')].concat(fs.existsSync(path.join(dir, 'art.js')) ? [path.join(dir, 'art.js')] : []);
   const port = opts.port || 8401, base = `http://127.0.0.1:${port}/`;
-  const srv = await startServer(port), browser = await chromium.launch(), report = { slug, built: new Date().toISOString(), files: [], checks: [], langs };
+  const srv = await startServer(port), browser = await loadChromium().launch(), report = { slug, built: new Date().toISOString(), files: [], checks: wordWarn.map((w) => 'проверить слово: ' + w), langs };
   const add = (f, extra) => { const rel = path.relative(ROOT, f), sz = fs.statSync(f).size, dim = /\.png$/.test(f) ? pngSize(f) : null; report.files.push(Object.assign({ file: rel, bytes: sz, size: dim && dim.join('×') }, extra || {})); console.log('  ' + rel + (dim ? ' ' + dim.join('×') : '') + ' ' + Math.round(sz / 1024) + ' КБ' + (extra && extra.share ? ` · геймплей ${Math.round(extra.share * 100)}% кадра` : '')); };
   try {
     // 1) компоновщик
@@ -232,9 +239,15 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     else if (a[i] === '--no-video') opts.video = false;
     else if (a[i] === '--port') opts.port = +a[++i];
     else if (a[i] === '--out') opts.out = a[++i];
+    else if (a[i] === '--check') opts.check = true;
     else slug = a[i];
   }
   if (!slug || !/^[a-z0-9-]+$/.test(slug) || !fs.existsSync(path.join(PROMO_DIR, slug, 'promo.json'))) die('использование: node tools/promo-build.mjs <slug> [--langs ru,en] [--no-video] [--port 8401] [--out dir] (нужен promo/<slug>/promo.json и shots.mjs)');
+  if (opts.check) { // только проверка текстов — ничего не пишет
+    const P = JSON.parse(fs.readFileSync(path.join(PROMO_DIR, slug, 'promo.json'), 'utf8')), probs = checkTexts(P), warn = scanPromo(P).warnings;
+    warn.forEach((w) => console.log('  ! проверить слово: ' + w)); probs.forEach((p) => console.log('  ✗ ' + p));
+    console.log((probs.length ? 'FAIL' : 'OK  ') + ' promo/' + slug + '/promo.json: ошибок ' + probs.length + ', предупреждений ' + warn.length); process.exit(probs.length ? 1 : 0);
+  }
   console.log('промо ' + slug + ':');
   const r = await buildPromo(slug, opts);
   r.checks.forEach((c) => console.log('  ! ' + c));

@@ -17,6 +17,7 @@
       pw_wide: 'РАЗМАХ', pw_narrow: 'ТЕСНОТА', pw_triple: 'ТРОЙНЯ', pw_glue: 'СМОЛА', pw_cutter: 'РЕЗАК', pw_chill: 'ОСТУДА', pw_life: 'ЗАПАС',
       hint: 'Мышь / ← → — мастерок · Пробел — пуск и резак · P — пауза',
       nextLevel: 'Пробел / тап — дальше', revived: 'ЕЩЁ ОДНО ЯДРО', rwLife: 'Реклама: +1 ядро',
+      lvPick: 'Уровень', unlockedLv: 'Открыто', st_clear: 'Кладка разобрана', st_safe: 'Без потери ядра', st_fast: 'Быстрее {n} с', opened: 'ОТКРЫТ УРОВЕНЬ {n}',
       foot: '<b>КЛАДКА</b> · мышь, палец или ← → / A D — мастерок · Пробел / клик / тап — пуск ядра и резак · P — пауза · L язык, T тема, M звук.'
     },
     en: {
@@ -32,6 +33,7 @@
       pw_wide: 'SPAN', pw_narrow: 'PINCH', pw_triple: 'TRIPLET', pw_glue: 'RESIN', pw_cutter: 'CUTTER', pw_chill: 'CHILL', pw_life: 'SPARE',
       hint: 'Mouse / ← → — trowel · Space — launch & cutter · P — pause',
       nextLevel: 'Space / tap — continue', revived: 'ONE MORE CORE', rwLife: 'Watch ad: +1 core',
+      lvPick: 'Level', unlockedLv: 'Unlocked', st_clear: 'Wall torn down', st_safe: 'No core lost', st_fast: 'Under {n} s', opened: 'LEVEL {n} UNLOCKED',
       foot: '<b>MASONRY</b> · mouse, finger or ← → / A D — trowel · Space / click / tap — launch the core & fire the cutter · P — pause · L language, T theme, M sound.'
     }
   };

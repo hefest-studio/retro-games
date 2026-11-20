@@ -63,6 +63,9 @@ test('глобальный API: Platform и ArcadePlatform.create, все мет
   const P = makeWin().win.Platform;
   ['init', 'ready', 'gameplayStart', 'gameplayStop', 'showRewarded', 'showInterstitial', 'save', 'load', 'peek', 'flush', 'lang', 'langFor', 'pauseHook'].forEach(k => ok(typeof P[k] === 'function', k));
   ok(typeof P.allowExternalLinks === 'boolean' && P.leaderboard && P.leaderboard.available === false, 'allowExternalLinks / leaderboard');
+  ['submit', 'top', 'me', 'open'].forEach(k => ok(typeof P.leaderboard[k] === 'function', 'leaderboard.' + k));
+  ok(typeof P.flags.get === 'function' && typeof P.serverTime === 'function' && typeof P.review.request === 'function' && typeof P.shortcut.add === 'function', 'v1.2: flags/serverTime/review/shortcut');
+  ok(typeof P.payments.purchase === 'function' && typeof P.games.list === 'function' && typeof P.sticky.show === 'function' && P.version === '1.2.0', 'v1.2: payments/games/sticky, версия');
 });
 
 // ---------- web ----------
@@ -159,20 +162,21 @@ test('GamePush: награда только при успехе; сохране�
 });
 
 // ---------- связка с движком ----------
-function engineEnv({ platform = null, search = '', mock = {}, metas = {}, store = {} } = {}) {
+function engineEnv({ platform = null, search = '', mock = {}, metas = {}, store = {}, opts = {} } = {}) {
   const links = [el('a', { href: '../', 'data-catalog-back': '1', 'data-en': '← Catalog' }), el('a', { href: 'https://example.org/' }), el('a', { href: '#top' })];
   const w = makeWin({ search, mock, metas, links, store, noPlatform: !platform }); const win = w.win;
   let raf = null; const ac = { state: 'running', calls: [], suspend() { this.calls.push('suspend'); }, resume() { this.calls.push('resume'); }, createOscillator() { return { connect() {}, start() {}, stop() {}, frequency: {}, type: '' }; }, createGain() { return { connect() {}, gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} } }; }, destination: {} };
-  Object.assign(win, { addEventListener() {}, removeEventListener() {}, setInterval() { return 1; }, clearInterval() {}, requestAnimationFrame(f) { raf = f; return 1; }, cancelAnimationFrame() {}, performance: { now: () => 0 }, AudioContext: function () { return ac; } });
+  const ls = {}; win.__fire = (ev) => (ls[ev] || []).forEach(f => f({ type: ev }));
+  Object.assign(win, { addEventListener(ev, f) { (ls[ev] = ls[ev] || []).push(f); }, removeEventListener() {}, setInterval() { return 1; }, clearInterval() {}, requestAnimationFrame(f) { raf = f; return 1; }, cancelAnimationFrame() {}, performance: { now: () => 0 }, AudioContext: function () { return ac; } });
   const canvas = { width: 100, height: 100, style: {}, addEventListener() {}, getContext: () => ({ imageSmoothingEnabled: true, save() {}, restore() {}, fillRect() {}, fillText() {}, beginPath() {}, arc() {}, fill() {} }) };
   win.document.querySelector = ((q0) => (q) => q === '#c' ? canvas : q0(q))(win.document.querySelector.bind(win.document));
   if (platform) win.Platform = w.mk({ platform, config: { saveDelay: 10 } });
   vm.runInContext(ENGINE, win, { filename: 'engine.js' });
-  const g = win.Arcade.createGame({ canvas: '#c', width: 100, height: 100, gameId: 'tst', strings: { ru: { play: 'Играть' }, en: { play: 'Play' } } });
+  const g = win.Arcade.createGame(Object.assign({ canvas: '#c', width: 100, height: 100, gameId: 'tst', strings: { ru: { play: 'Играть' }, en: { play: 'Play' } } }, opts));
   return { w, win, g, links, ac, frame: (t) => raf && raf(t), log: w.log };
 }
-test('движок без platform.js: как раньше (g.platform = null, ссылки на месте, версия 2.6.0, реклама за награду недоступна)', () => {
-  const e = engineEnv(); ok(e.g.platform === null); ok(!e.links.some(a => a.style.display === 'none')); eq(e.win.Arcade.version, '2.6.0');
+test('движок без platform.js: как раньше (g.platform = null, ссылки на месте, версия 2.7.0, реклама за награду недоступна)', () => {
+  const e = engineEnv(); ok(e.g.platform === null); ok(!e.links.some(a => a.style.display === 'none')); eq(e.win.Arcade.version, '2.7.0');
   ok(!e.g.canRewarded() && !e.g.adReady(), 'без площадки рекламы нет');
 });
 test('движок + web: ссылки не прячутся, язык — по правилу движка', async () => {
@@ -251,6 +255,127 @@ test('v2.6: g.adBreak — частота по адаптеру (Яндекс 60 
   g.persist('arcade.x.wave', 'max'); eq(e2.w.store['arcade.x.wave'], '7', 'облако больше — взяли облачное'); g.storeSet('arcade.x.wave', 9); eq(e2.w.store['arcade.pf.ls.arcade.x.wave'], '"9"');
   g.start('play'); await sleep(5); const p = g.adBreak(); await sleep(5); ok(g._adPause, 'пауза на время рекламы'); eq(await p, true); ok(!g._adPause);
   eq(await g.adBreak(), false, 'вторая подряд — нет');
+});
+
+// ---------- v1.2: лидерборды, флаги, серверное время, оценка, ярлык, покупки, свои игры, стики ----------
+test('v1.2 web: заглушки — лидерборд недоступен, флаги = значения игры, времени площадки нет, оценки/ярлыка/покупок/игр нет; сеть не трогается', async () => {
+  const w = makeWin(), P = w.mk(); await P.init(); eq(w.loads, []);
+  ok(!P.leaderboard.available); eq(await P.leaderboard.submit(100), false); eq(await P.leaderboard.top(), { entries: [], me: null }); eq(await P.leaderboard.me(), null); eq(P.leaderboard.open(), false);
+  eq(await P.flags.get({ difficulty: 'normal', gap: 90 }), { difficulty: 'normal', gap: '90' }, 'флаги — строки'); eq(P.flags.peek('difficulty'), 'normal');
+  eq(P.serverTime(), null); ok(Math.abs(P.now() - Date.now()) < 1000, 'now — часы устройства');
+  eq(await P.review.request(), false); eq(await P.shortcut.add(), false);
+  ok(!P.payments.available); await P.payments.setup({ no_ads: {} }); eq(await P.payments.purchase('no_ads'), false); eq(await P.payments.catalog(), []); ok(!P.payments.owned('no_ads'));
+  eq(await P.games.list(), { games: [], developerURL: null }); eq(P.games.open({ url: 'https://yandex.ru/games/app/1' }), false); eq(await P.sticky.show(), false);
+});
+test('v1.2 Яндекс: лидерборд — setScore только вошедшему, частые вызовы склеиваются (≤ 1 раза в с, уходит наибольший); top/me; нет записи — null', async () => {
+  const w = makeWin({ mock: { lb: { score: [{ id: 'a', name: 'Ая', score: 900 }, { id: 'b', name: 'Бо', score: 50 }] } } }), P = w.mk({ platform: 'yandex' });
+  ok(!P.leaderboard.available, 'до init — недоступен'); await P.init(); ok(P.leaderboard.available);
+  eq(await P.leaderboard.me(), null, 'записи игрока нет → null');
+  const r = await Promise.all([P.leaderboard.submit(100), P.leaderboard.submit(300.4), P.leaderboard.submit(200)]); eq(r, [true, true, true]);
+  eq(w.log.filter(x => x.startsWith('setScore')), ['setScore:score:300'], 'один вызов с наибольшим (округлённым) счётом');
+  const t0 = Date.now(); await P.leaderboard.submit(400); ok(Date.now() - t0 >= 900, 'второй вызов — не раньше чем через ~1 с'); eq(w.log.filter(x => x.startsWith('setScore')).length, 2);
+  const top = await P.leaderboard.top({ limit: 5 }); eq(top.entries.map(e => [e.rank, e.score, e.name, e.me]), [[1, 900, 'Ая', false], [2, 400, 'Я', true], [3, 50, 'Бо', false]]); eq(top.me, { rank: 2, score: 400 });
+  eq(await P.leaderboard.me(), { rank: 2, score: 400, name: 'Я' });
+  const w2 = makeWin({ mock: { auth: false } }), P2 = w2.mk({ platform: 'yandex' }); await P2.init(); eq(await P2.leaderboard.submit(5), false, 'не вошёл — false'); ok(!w2.log.some(x => x.startsWith('setScore')), 'setScore не вызывался');
+  eq((await P2.leaderboard.top()).entries.length, 0, 'чтение без входа работает');
+  eq(await P.leaderboard.top({ board: 'nope' }), { entries: [], me: null }, 'нет таблицы (404) — пусто, без исключения'); ok(P.errors.length, 'ошибка записана');
+});
+test('v1.2 GamePush: лидерборд — поле игрока score + sync (меньший счёт не отправляется); fetch/fetchPlayerRating; open — окно площадки', async () => {
+  const w = makeWin({ metas: GP_META }), P = w.mk({ platform: 'gamepush' }); await P.init(); ok(P.leaderboard.available);
+  eq(await P.leaderboard.submit(700), true); ok(w.log.includes('set:score:700') && w.log.includes('sync'));
+  w.log.length = 0; await P.leaderboard.submit(600); ok(!w.log.some(x => x.startsWith('set:score')), 'меньший — не отправляем');
+  const top = await P.leaderboard.top({ limit: 10 }); eq(top.entries.map(e => [e.rank, e.score, e.me]), [[1, 900, false], [2, 700, true], [3, 500, false]]); eq(top.me, { rank: 2, score: 700 });
+  eq(await P.leaderboard.me(), { rank: 2, score: 700, name: 'Я' }); ok(P.leaderboard.open() && w.log.includes('lbOpen'));
+});
+test('v1.2 флаги: Яндекс getFlags({ defaultFlags }) — удалённое важнее; GamePush variables по ключам игры; peek/all', async () => {
+  const w = makeWin({ mock: { flags: { difficulty: 'hard', ad_breaks: '0' } } }), P = w.mk({ platform: 'yandex' });
+  eq(P.flags.peek('difficulty', 'x'), 'x', 'до get — значение по умолчанию вызова');
+  eq(await P.flags.get({ difficulty: 'normal', lives: 3 }), { difficulty: 'hard', lives: '3', ad_breaks: '0' }); ok(w.log.includes('getFlags'));
+  eq(P.flags.peek('difficulty'), 'hard'); eq(P.flags.all().lives, '3');
+  const w2 = makeWin({ metas: GP_META, mock: { vars: { difficulty: 'easy', unknown: 'x' } } }), P2 = w2.mk({ platform: 'gamepush' });
+  eq(await P2.flags.get({ difficulty: 'normal', lives: '3' }), { difficulty: 'easy', lives: '3' }); ok(w2.log.includes('varsFetch'));
+});
+test('v1.2 серверное время: Яндекс serverTime() → мс; GamePush serverTime ISO → мс; до init — null', async () => {
+  const P = makeWin({ mock: { serverTime: 1767312000000 } }).mk({ platform: 'yandex' }); eq(P.serverTime(), null); await P.init(); eq(P.serverTime(), 1767312000000); eq(P.now(), 1767312000000);
+  const P2 = makeWin({ metas: GP_META, mock: { serverTime: '2026-03-01T10:00:00.000Z' } }).mk({ platform: 'gamepush' }); await P2.init(); eq(P2.serverTime(), Date.parse('2026-03-01T10:00:00.000Z'));
+});
+test('v1.2 оценка и ярлык: Яндекс canReview → requestReview (раз за сессию, игра на паузе на время окна); shortcut canShowPrompt → showPrompt; GamePush app.*', async () => {
+  const w = makeWin({ mock: { adMs: 20 } }), P = w.mk({ platform: 'yandex' }); await P.init(); const ev = []; P.pauseHook(r => ev.push('p:' + r), r => ev.push('r:' + r));
+  eq(await P.review.canRequest(), true); const pr = P.review.request(); await sleep(5); ok(P.paused, 'пауза на время окна оценки'); eq(await pr, true); eq(ev, ['p:dialog', 'r:dialog']);
+  eq(await P.review.request(), false, 'второй раз за сессию — нет'); eq(w.log.filter(x => x === 'requestReview').length, 1);
+  eq(await P.shortcut.add(), true); ok(w.log.includes('showPrompt'));
+  const P3 = makeWin({ mock: { canReview: false, shortcut: false } }).mk({ platform: 'yandex' }); await P3.init(); eq(await P3.review.request(), false, 'GAME_RATED'); eq(await P3.shortcut.add(), false, 'canShow:false');
+  const w2 = makeWin({ metas: GP_META }), P2 = w2.mk({ platform: 'gamepush' }); await P2.init(); eq(await P2.review.request(), true); eq(await P2.shortcut.add(), true); ok(w2.log.includes('requestReview') && w2.log.includes('addShortcut'));
+});
+test('v1.2 покупки Яндекс: при старте getPurchases — расходуемые: обработчик → consumePurchase, постоянные (no_ads) → owned без consume; каталог с ценой из SDK; покупка/отмена; пауза на время окна', async () => {
+  const w = makeWin({ mock: { adMs: 15, purchases: [{ productID: 'no_ads', purchaseToken: 'p1' }, { productID: 'coins100', purchaseToken: 'p2' }] } }), P = w.mk({ platform: 'yandex' });
+  const got = []; P.payments.onPurchase(id => { got.push(id); });
+  await P.init(); ok(P.payments.available); ok(!w.log.includes('getPurchases'), 'без setup покупки не трогаем');
+  await P.payments.setup({ no_ads: {}, coins100: { consumable: true } }); ok(w.log.includes('getPurchases'), 'проверка необработанных (1.13.1)');
+  eq(got, ['no_ads', 'coins100']); ok(P.payments.owned('no_ads')); ok(w.log.includes('consume:p2') && !w.log.includes('consume:p1'), w.log.join(','));
+  const cat = await P.payments.catalog(); eq(cat.map(c => [c.id, c.price, c.currency]), [['no_ads', '49 YAN', 'YAN'], ['coins100', '10 YAN', 'YAN']]); eq(cat[0].currencyImage, '/yan-small.png');
+  const ev = []; P.pauseHook(r => ev.push('p:' + r), r => ev.push('r:' + r));
+  got.length = 0; const b = P.payments.purchase('coins100'); await sleep(5); ok(P.paused, 'пауза на время окна покупки'); eq(await b, true); eq(got, ['coins100']); ok(w.log.some(x => /^consume:t\d/.test(x)), 'расходуемая — consume после начисления'); eq(ev, ['p:dialog', 'r:dialog']);
+  eq(await P.payments.purchase('no_ads'), true, 'уже куплено — true без окна'); eq(w.log.filter(x => x === 'purchase:no_ads').length, 0);
+  w.win.__sdkMock.buy = 'cancel'; got.length = 0; eq(await P.payments.purchase('coins100'), false, 'отмена'); eq(got, []);
+  const P2 = makeWin({ mock: { noPayments: true } }).mk({ platform: 'yandex' }); await P2.init(); ok(!P2.payments.available); eq(await P2.payments.purchase('no_ads'), false);
+});
+test('v1.2 покупки GamePush: purchases при старте → consume расходуемых; purchase({ tag }) → owned; каталог', async () => {
+  const w = makeWin({ metas: GP_META, mock: { adMs: 10, purchases: [{ productId: 502 }] } }), P = w.mk({ platform: 'gamepush' }); const got = []; P.payments.onPurchase(id => got.push(id));
+  await P.payments.setup({ no_ads: {}, coins100: { consumable: true } }); eq(got, ['coins100']); ok(w.log.includes('consume:coins100'));
+  eq((await P.payments.catalog()).map(c => [c.id, c.price]), [['no_ads', '49 ян'], ['coins100', '10 ян']]);
+  ok(!P.payments.owned('no_ads')); eq(await P.payments.purchase('no_ads'), true); ok(P.payments.owned('no_ads') && w.log.includes('purchase:no_ads') && !w.log.includes('consume:no_ads'));
+});
+test('v1.2 свои игры (8.4.1) и стики-баннер: Яндекс GamesAPI.getAllGames, открытие — только адреса Яндекс Игр; GamePush коллекции; sticky show/hide; setInterstitialGap — не ниже минимума', async () => {
+  const w = makeWin(), opened = []; w.win.open = (u, t) => { opened.push([u, t]); return {}; }; const P = w.mk({ platform: 'yandex' }); await P.init(); ok(P.games.available);
+  const l = await P.games.list(); eq(l.games[0], { id: '100001', title: 'Отбойник', url: 'https://yandex.ru/games/app/100001', icon: 'https://avatars/i', cover: 'https://avatars/c' }); eq(l.developerURL, 'https://yandex.ru/games/developer/1');
+  ok(P.games.open(l.games[0])); eq(opened, [['https://yandex.ru/games/app/100001', '_blank']]); eq(P.games.open({ url: 'https://example.org/x' }), false, 'чужой адрес — нет');
+  eq(await P.sticky.show(), true); ok(P.sticky.showing && w.log.includes('stickyShow')); eq(await P.sticky.hide(), true); ok(!P.sticky.showing && w.log.includes('stickyHide'));
+  eq(P.setInterstitialGap(120), 120); eq(P.setInterstitialGap(5), 30, 'Яндекс — не чаще 30 с'); eq(P.setInterstitialGap('x'), 30, 'мусор — без изменений');
+  const w2 = makeWin({ metas: GP_META }), P2 = w2.mk({ platform: 'gamepush' }); await P2.init(); eq((await P2.games.list()).games[0].title, 'Отбойник'); ok(P2.games.open() && w2.log.includes('gcOpen'));
+  await P2.sticky.show(); ok(w2.log.includes('stickyShow')); eq(P2.setInterstitialGap(60), 180, 'GamePush — не чаще 3 мин');
+});
+test('v2.7 движок + площадка: потеря фокуса (blur, pagehide) → звук спит и пауза в игре; focus → звук возвращается; без площадки blur не трогает звук', async () => {
+  const e = engineEnv({ platform: 'yandex' }), g = e.g; g.useStandardScreens({}); g.scene('play', { update() {}, draw() {} });
+  await e.win.Platform.init(); g.audio.unlocked = true; g.audio._ctx(); g.start('play'); await sleep(5); eq(g._sceneName, 'play');
+  e.ac.calls.length = 0; e.win.__fire('blur'); eq(g._sceneName, 'pause', 'blur → пауза'); ok(e.ac.calls.includes('suspend'), 'blur → звук спит'); ok(g.audio._away());
+  e.ac.calls.length = 0; g.audio.unlock && g.audio.unlock(); e.win.__fire('focus'); ok(e.ac.calls.includes('resume'), 'focus → звук'); ok(!g.audio._away()); eq(g._sceneName, 'pause', 'игра ждёт «Продолжить»');
+  g.goto('play', { resume: true }); e.ac.calls.length = 0; e.win.__fire('pagehide'); eq(g._sceneName, 'pause'); ok(e.ac.calls.includes('suspend'), 'pagehide → тишина'); e.win.__fire('pageshow'); ok(!g.audio._blur);
+  g.goto('title'); e.win.__fire('blur'); eq(g._sceneName, 'title', 'вне игры сцена не меняется'); e.win.__fire('focus');
+  const n = engineEnv(), g2 = n.g; g2.useStandardScreens({}); g2.scene('play', { update() {}, draw() {} }); g2.audio.unlocked = true; g2.audio._ctx(); g2.start('play'); n.ac.calls.length = 0;
+  n.win.__fire('blur'); eq(g2._sceneName, 'play', 'без площадки — как раньше'); ok(!n.ac.calls.includes('suspend'));
+});
+test('v2.7 движок: g.flags — значения игры + удалённые (Яндекс getFlags); ad_breaks=0 выключает межстраничную, ad_interstitial_gap → интервал адаптера, rewarded_continue=0 — без «ещё шанса»', async () => {
+  const e = engineEnv({ platform: 'yandex', mock: { flags: { difficulty: 'hard', ad_breaks: '0', ad_interstitial_gap: '150', rewarded_continue: '0' } }, opts: { flags: { difficulty: 'normal', speed: 1.5 } } }), g = e.g;
+  eq(g.flags.get('difficulty'), 'normal', 'до ответа — значение игры'); eq(g.flags.num('speed'), 1.5);
+  g.useStandardScreens({}); g.useRewardedContinue({ revive() {} }); g.scene('play', { draw() {} }); await e.win.Platform.init(); const f = await g.flags.ready;
+  eq(f.difficulty, 'hard'); eq(g.flags.get('difficulty'), 'hard'); eq(e.win.Platform.config.interstitialGap, 150); ok(!g.adReady(), 'ad_breaks=0'); ok(g.canRewarded(), 'ролики за награду не трогаем');
+  g.start('play'); await sleep(5); g.gameover(); eq(g._sceneName, 'gameover', 'rewarded_continue=0');
+  const n = engineEnv({ opts: { flags: { difficulty: 'easy' } } }); eq(await n.g.flags.ready, Object.assign({}, n.g.flags.defaults)); eq(n.g.flags.get('difficulty'), 'easy', 'без площадки — значение игры');
+});
+test('v2.7 движок: «Без рекламы» — необработанная покупка при старте → межстраничной и стики нет, rewarded остаётся; покупка из меню (цена из SDK) → пункт исчезает, стики скрыт', async () => {
+  const e = engineEnv({ platform: 'yandex', mock: { adMs: 10, purchases: [{ productID: 'no_ads', purchaseToken: 'p1' }] } }), g = e.g; g.useStandardScreens({}); g.useNoAds(); g.scene('play', { draw() {} });
+  await e.win.Platform.init(); await g.flags.ready; await sleep(20);
+  ok(g.noAds() && g.owned('no_ads'), 'куплено ранее'); ok(!g.adReady(), 'межстраничной нет'); ok(g.canRewarded(), 'rewarded — по желанию игрока'); ok(!e.log.includes('stickyShow') && e.log.includes('stickyHide'), 'стики не показывали и скрыли (на случай показа площадкой)');
+  ok(!g.menu.items('title').includes('noads'), 'пункт покупки скрыт');
+  const e2 = engineEnv({ platform: 'yandex', mock: { adMs: 10 }, opts: { sticky: true } }), g2 = e2.g; g2.useStandardScreens({}); g2.useNoAds(); g2.scene('play', { draw() {} });
+  await e2.win.Platform.init(); await g2.flags.ready; await sleep(20); g2.goto('title'); await sleep(10); g2.goto('title');
+  ok(e2.log.includes('stickyShow'), 'стики показан'); ok(g2.adReady(), 'межстраничная есть'); const items = g2.menu.items('title'); ok(items.includes('noads'), JSON.stringify(items));
+  const it = g2.scenes.title._menu.items.find(x => x.key === 'noads'); ok(/Без рекламы · 49 YAN/.test(it.label()), it.label());
+  it.onSelect.call(g2); await sleep(40); ok(g2.noAds(), 'куплено'); ok(e2.log.includes('stickyHide'), 'стики скрыт'); ok(!g2.adReady()); eq(await g2.adBreak(), false); g2.goto('title'); ok(!g2.menu.items('title').includes('noads'), 'пункт убран');
+  const e3 = engineEnv({ platform: 'yandex', mock: { adMs: 10 } }); e3.g.useStandardScreens({}); await e3.win.Platform.init(); await e3.g.flags.ready; await sleep(20); ok(!e3.log.includes('stickyShow'), 'без opts.sticky игра стики не показывает');
+  const n = engineEnv(); eq(await n.g.purchase('no_ads'), false, 'без площадки — false'); ok(!n.g.noAds());
+});
+test('v2.7 движок: расходуемый товар (useProducts + grant) при старте; g.leaderboard автоотправка рекорда; g.daily по серверному времени; g.requestReview/addShortcut/ownGames', async () => {
+  let coins = 0; const e = engineEnv({ platform: 'yandex', mock: { purchases: [{ productID: 'coins100', purchaseToken: 'c1' }], serverTime: Date.UTC(2026, 0, 10, 12) }, opts: { leaderboard: 'score', products: { coins100: { consumable: true, grant() { coins += 100; } } } } }), g = e.g;
+  g.useStandardScreens({}); await e.win.Platform.init(); await g.flags.ready; await sleep(10); eq(coins, 100); ok(e.log.includes('consume:c1'));
+  ok(g.leaderboard.available()); g.state.score = 321; g.saveBest(); await sleep(1300); ok(e.log.includes('setScore:score:321'), e.log.join(','));
+  const top = await g.leaderboard.top(); eq(top.me && top.me.score, 321);
+  const d = g.daily('gift'); ok(d.ready && d.trusted); ok(d.claim()); ok(!d.claim(), 'второй раз в тот же день'); ok(!g.daily('gift').ready);
+  eq(e.w.store['arcade.daily.tst.gift'], String(Math.floor((Date.UTC(2026, 0, 10, 12) + 3 * 3600000) / 86400000)));
+  e.win.__sdkMock.serverTime = Date.UTC(2026, 0, 11, 22); ok(g.daily('gift').ready, 'новый день (UTC+3)');
+  eq(await g.requestReview(), true); eq(await g.addShortcut(), true); eq((await g.ownGames()).games.length, 1);
+  const n = engineEnv(); ok(!n.g.leaderboard.available()); eq(await n.g.leaderboard.submit(5), false); eq(await n.g.requestReview(), false); ok(!n.g.daily('x').trusted && n.g.daily('x').ready);
 });
 
 for (const [name, fn] of queue) { try { await fn(); passed++; console.log('ok   ' + name); } catch (e) { failed++; console.log('FAIL ' + name + ' — ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' | ') : e)); } }

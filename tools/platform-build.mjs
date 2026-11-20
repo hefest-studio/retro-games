@@ -17,6 +17,9 @@
       и «выноски» долгого тапа; <title> = название игры на языке (promo/<slug>/promo.json → names.ru/en, EN — через data-en);
    4) проверяет: нет внешних URL в HTML/CSS/JS (кроме пространства имён SVG и адреса SDK в адаптере), пути — латиница без
       пробелов (Яндекс 1.7, 1.22), распакованный размер ≤ 100 МБ (Яндекс 1.21); при нарушении — код возврата 1.
+   5) (yandex, gamepush) запрещённые слова в видимом тексте собранной игры — tools/lib/banned-words.mjs: «демо/demo», «trial version»,
+      «бета», «в разработке» и т. п. (Яндекс 1.15, частая причина отказа) → ошибка сборки с файлом, строкой и фразой; намёки
+      («полная версия», «скоро», Steam) → предупреждения. Ложное срабатывание — исключение в EXCEPTIONS того же модуля.
    Ключи и ID проектов — НЕ в репо: --config <файл вне репо> { "gamepush": { "projectId", "publicToken", "saveField" } }
    или переменные окружения GP_PROJECT_ID, GP_PUBLIC_TOKEN, GP_SAVE_FIELD; без них — плейсхолдеры (игра запустится
    без SDK GamePush: локальные сохранения, без рекламы) и предупреждение.
@@ -25,8 +28,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { scanBuild, HINT as BANNED_HINT } from './lib/banned-words.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// промо (названия по языкам) живёт в приватном arcade-full/promo (как в tools/promo-build.mjs); старое место promo/ в репо — запасное
+const PROMO_DIRS = [process.env.PROMO_DIR, path.join(ROOT, '..', 'arcade-full', 'promo'), path.join(ROOT, 'promo')].filter(Boolean).map((d) => path.resolve(d));
 const PLATFORMS = ['yandex', 'gamepush', 'web'];
 const LIMIT = 100 * 1024 * 1024; // Яндекс Игры, п. 1.21: распакованная игра ≤ 100 МБ
 const SKIP_DIRS = new Set(['tests', 'node_modules', '.git']);
@@ -70,7 +76,7 @@ export function build(slug, platform, outDir, opts = {}) {
   fs.copyFileSync(path.join(ROOT, '_shared/platform.js'), path.join(dst, 'js/platform.js')); if (!files.includes('js/platform.js')) files.push('js/platform.js');
   if (aspect) { fs.copyFileSync(path.join(ROOT, '_shared/aspect.js'), path.join(dst, 'js/aspect.js')); if (!files.includes('js/aspect.js')) files.push('js/aspect.js'); }
   // названия по языкам (Яндекс 5.1.3: внутри языка одно название везде) — из promo/<slug>/promo.json, если есть
-  let names = null; try { names = JSON.parse(fs.readFileSync(path.join(ROOT, 'promo', slug, 'promo.json'), 'utf8')).names || null; } catch (e) { names = null; }
+  let names = null; for (const d of PROMO_DIRS) { try { names = JSON.parse(fs.readFileSync(path.join(d, slug, 'promo.json'), 'utf8')).names || null; break; } catch (e) { names = null; } }
 
   // 2) index.html: площадка, SDK, ключи; 3) без ссылок наружу
   let html = html0;
@@ -116,6 +122,13 @@ export function build(slug, platform, outDir, opts = {}) {
     if (/\bsrc=["']\.\.\//.test(txt)) errors.push(f + ': ресурс за пределами игры (src="../")');
   }
   if (bytes > LIMIT) errors.push('размер ' + (bytes / 1048576).toFixed(1) + ' МБ > 100 МБ');
+  // 5) запрещённые слова (Яндекс 1.15; GamePush-площадки модерируют так же) — только для сборок под площадки
+  let banned = null;
+  if (platform !== 'web') {
+    banned = scanBuild(dst);
+    if (banned.errors.length) { errors.push('запрещённые слова: ' + banned.errors.length + ' — ' + BANNED_HINT); banned.errors.forEach((e) => errors.push('  слово: ' + e)); }
+    banned.warnings.forEach((w) => warnings.push('проверить слово: ' + w));
+  }
   let zipBytes = null;
   if (!opts.noZip && !errors.length) {
     try { execFileSync('zip', ['-q', '-r', '-X', zip, '.'], { cwd: dst }); zipBytes = fs.statSync(zip).size; }

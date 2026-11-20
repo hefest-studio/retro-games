@@ -12,6 +12,9 @@ sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/game.js'), 'utf8'), sandbox, { filename: 'game.js' });
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/i18n.js'), 'utf8'), sandbox, { filename: 'i18n.js' });
+vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/i18n-x.js'), 'utf8'), sandbox, { filename: 'i18n-x.js' });
+vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/meta.js'), 'utf8'), sandbox, { filename: 'meta.js' });
+const { checkLangX } = await import('./lang-x.check.mjs');
 const K = sandbox.KLADKA, L = K.logic;
 const { playKladka, mulberry32 } = await import('./bot.mjs');
 
@@ -263,6 +266,51 @@ test('реклама за награду: revive после потери пос�
   const w = K.Game({ rng: mulberry32(4) }).start(); w._S.over = true; w._S.won = true; eq(w.revive(), false, 'после победы — нет');
   const g2 = K.Game({ rng: mulberry32(5), lives: L.MAX_LIVES - 1 }).start(); ok(g2.addLife()); eq(g2._S.lives, L.MAX_LIVES); eq(g2.addLife(), false, 'не выше максимума');
 });
+
+// ---------- мета-прогрессия: выбор уровня и звёзды ----------
+const M = K.meta;
+function memStore(init){ const m = new Map(Object.entries(init || {})); return { m, get: k => m.has(k) ? m.get(k) : null, set: (k, v) => m.set(k, String(v)) }; }
+test('звёзды: 3 условия — разобрана / без потери ядра / быстрее нормы PAR уровня', () => {
+  eq(M.PAR.length, 10); eq(M.stars({ level: 1, time: 30, lost: 0 }).n, 3);
+  eq(M.stars({ level: 1, time: 30, lost: 1 }).n, 2); eq(M.stars({ level: 1, time: M.PAR[0] + 1, lost: 0 }).n, 2);
+  eq(M.stars({ level: 10, time: 999, lost: 4 }).n, 1, 'пройден — хотя бы одна'); eq(JSON.stringify(M.stars({ level: 3, time: 10, lost: 2 }).c), '[true,false,true]');
+});
+test('логика: событие clear несёт время и потери ядер ИМЕННО этого уровня; на новом уровне счётчики с нуля', () => {
+  let clr = null; const game = K.Game({ rng: mulberry32(8), lives: 3, onEvent: (t, d) => { if (t === 'clear') clr = d; } }).start(); const S = game._S;
+  for (let i = 0; i < 120; i++) game.update(1 / 60);           // 2 с на уровне
+  S.balls = []; game.update(1 / 60); eq(S.lvlLost, 1, 'потеря ядра'); eq(S.phase, 'dead');
+  for (let i = 0; i < 90; i++) game.update(1 / 60); eq(S.phase, 'play');
+  S.left = 0; S.boss = null; game.update(1 / 60);
+  ok(clr && clr.level === 1 && clr.lost === 1, 'clear: ' + JSON.stringify(clr)); ok(clr.time > 3 && clr.time < 4, 'время уровня ' + clr.time);
+  for (let i = 0; i < 130; i++) game.update(1 / 60); eq(S.level, 2); eq(S.lvlLost, 0); ok(S.lvlT < 0.2, 'время уровня 2 с нуля');
+  eq(K.Game({ level: 4 }).start().state().level, 4, 'старт с выбранного уровня');
+});
+test('выбор уровня: открыт 1-й; следующий — после прохождения предыдущего; переключение по кругу только среди открытых', () => {
+  const st = memStore(), P = M.Progress(st);
+  eq(P.maxUnlocked(), 1); ok(P.unlocked(1) && !P.unlocked(2)); eq(P.next(1, 1), 1);
+  ok(P.record(1, 2)); ok(P.unlocked(2) && !P.unlocked(3)); eq(P.maxUnlocked(), 2); eq(P.next(2, 1), 1); eq(P.next(1, -1), 2);
+  ok(!P.record(1, 1), 'хуже — не записывается'); eq(P.get(1), 2); ok(P.record(1, 3)); eq(P.total(), 3);
+  ok(!P.record(11, 3) && !P.record(0, 3), 'вне диапазона');
+});
+test('прогресс сохраняется и восстанавливается: новая сессия читает те же ключи; облачное слияние max не теряет звёзды двух устройств', () => {
+  const st = memStore(); const P = M.Progress(st); P.record(1, 3); P.record(2, 1); P.record(3, 2);
+  const again = M.Progress(memStore(Object.fromEntries(st.m))); eq(again.total(), 6); eq(again.maxUnlocked(), 4); eq(again.get(2), 1);
+  ok([...st.m.keys()].every(k => k.startsWith(M.PREFIX) && /^\d$/.test(st.m.get(k))), 'числа по ключу на уровень (g.persist max)');
+  const dev2 = memStore({ [M.key(2)]: '3', [M.key(4)]: '1' }), merged = {};
+  for (const k of new Set([...st.m.keys(), ...dev2.m.keys()])) merged[k] = String(Math.max(parseFloat(st.get(k)) || 0, parseFloat(dev2.get(k)) || 0));
+  const P3 = M.Progress(memStore(merged)); eq(P3.get(2), 3); eq(P3.total(), 9); eq(P3.maxUnlocked(), 5);
+});
+test('нормы PAR достижимы: «человеческий» бот укладывается в норму на 1-м уровне хотя бы в части партий', () => {
+  let fast = 0; for (const s of [1, 2, 3, 4, 5, 6]) { let t = null; const r = playKladka(K, s, { startLevel: 1, levels: 1 }); t = r.levelTime[1]; if (t != null && t <= M.PAR[0]) fast++; }
+  ok(fast >= 1 && fast <= 5, 'быстрых ' + fast + '/6 — норма слишком строгая/мягкая');
+});
+test('страница: meta.js, lang-x.js, i18n-x.js подключены; main.js — g.persist звёзд и пункт «Уровень»', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'), main = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
+  const src = [...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]);
+  ok(src.indexOf('js/meta.js') > src.indexOf('js/game.js') && src.indexOf('js/i18n-x.js') > src.indexOf('js/lang-x.js') && src.indexOf('js/lang-x.js') < src.indexOf('js/main.js'), src.join(','));
+  ok(/g\.persist\(M\.key\(lv\), 'max'\)/.test(main) && /key: 'level'/.test(main) && /ArcadeLangX\.install/.test(main));
+});
+await checkLangX({ ROOT, test, ok, eq, STR: K.STR, STRX: K.STR_X, title: 'MASONRY' });
 
 console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed));
 process.exit(failed ? 1 : 0);

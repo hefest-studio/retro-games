@@ -1,6 +1,8 @@
 /* ОТБОЙНИК · логика без DOM: поле-пинбол, физика шара с подшагами, флипперы, заводные механизмы-враги волнами,
    здания-бамперы из карт, тилт, босс. Работает и в браузере, и в Node (тесты/бот).
-   OB.Game(opts) → объект игры; opts: { seed, rng, onEvent(type,data), maxV, startWave, hp }.
+   OB.Game(opts) → объект игры; opts: { seed, rng, onEvent(type,data), maxV, startWave, hp, pool, starter }.
+   pool — id построек, которые могут выпасть в раздаче (мета-прогрессия, js/meta.js; без pool — все), ремонт и флипперы — всегда;
+   starter — постройки, стоящие на столе с начала забега (стартовая колода).
    Координаты — логические пиксели поля 480×760, ось Y вниз. */
 (function (global) {
   'use strict';
@@ -107,9 +109,11 @@
     function owned(id) { for (var i = 0; i < S.buildings.length; i++) if (S.buildings[i].type === id) return S.buildings[i]; return null; }
 
     // ----- карты -----
+    var allow = opts.pool ? opts.pool.concat(opts.starter || []) : null;
     function offerCards() {
       var pool = [];
       BUILD_IDS.forEach(function (id) {
+        if (allow && allow.indexOf(id) < 0) return;   // карта ещё не открыта (мета-прогрессия)
         var o = owned(id);
         if (!o && freeSlots().length) pool.push({ id: id, kind: 'build', lvl: 1, w: 3 });
         else if (o && o.lvl < MAX_LVL) pool.push({ id: id, kind: 'up', lvl: o.lvl + 1, w: 2 });
@@ -431,7 +435,15 @@
       else emit('tilt', { n: Math.ceil(S.tiltMeter) });
       return true;
     }
-    function start() { offerCards(); return api; }
+    // стартовая колода: постройки ур. 1 на местах в центре стола (до первой раздачи)
+    function placeStarter() {
+      (opts.starter || []).forEach(function (id) {
+        if (!BUILD[id] || owned(id)) return; var k = [4, 1, 3, 5, 0, 2].filter(slotFree)[0]; if (k == null) return;
+        var sp = SLOTS[k], b = { type: id, lvl: 1, slot: k, x: sp.x, y: sp.y, r: BUILD[id].r || 0, flash: 0, cd: 0, id: S.nextId++ };
+        if (BUILD[id].seg) Object.assign(b, springSeg(b)); S.buildings.push(b);
+      });
+    }
+    function start() { placeStarter(); offerCards(); return api; }
     // Реклама за награду (движок v2.6, только по досмотру ролика): «ещё один шанс» — ворота чинятся до половины, механизмы
     // у ворот оглушены на 2 с, волна продолжается; бонус — ремонт ворот (+6, как карта «Ремонт»).
     function revive() {

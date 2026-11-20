@@ -15,9 +15,10 @@ const ROOT = path.resolve(HERE, '..');
 const sandbox = { console, Math };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-for (const f of ['js/game.js', 'js/i18n.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
+for (const f of ['js/game.js', 'js/i18n.js', 'js/meta.js', 'js/i18n-x.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const G = sandbox.OTBOYNIK, L = G.logic;
 const { playOtboynik, mulberry32 } = await import('./bot.mjs');
+const { checkLangX } = await import('./lang-x.check.mjs');
 
 let passed = 0, failed = 0;
 function test(name, fn){ try { fn(); passed++; console.log('ok   ' + name); } catch (e) { failed++; console.log('FAIL ' + name + ' — ' + e.message); } }
@@ -261,7 +262,7 @@ test('страница: фавикон студии, «← Каталог» (RU/
   ok(html.includes(fs.readFileSync(path.join(ROOT, '..', 'roy', 'index.html'), 'utf8').match(/<link rel="icon"[^>]+>/)[0]), 'фавикон не как у студии');
   ok(/<a class="back"[^>]*href="\.\.\/"[^>]*data-catalog-back="1"[^>]*data-en="← Catalog"/.test(html), 'ссылка в каталог');
   ok(/<canvas id="c" width="480" height="760"/.test(html), 'canvas');
-  eq([...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]), ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/render.js', 'js/main.js']);
+  eq([...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]), ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/meta.js', 'js/lang-x.js', 'js/i18n-x.js', 'js/audio.js', 'js/render.js', 'js/main.js']);
   ok(/id="bTilt"/.test(html) && /id="bPause"/.test(html), 'тач-кнопки');
   eq(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js не копия _shared');
   ok(!/(src|href)="https?:\/\/(?!arcade\.hefest\.ru)/.test(html), 'внешние ссылки');
@@ -290,6 +291,35 @@ test('реклама за награду: revive после поражения �
   S.hp = S.hpMax - 2; ok(T.game.repair(6)); eq(S.hp, S.hpMax, 'не выше максимума'); eq(T.game.repair(6), false, 'целые ворота — бонус не нужен');
 });
 
+// ---------- мета-прогрессия: открытые карты и стартовая колода ----------
+const MT = G.meta;
+function memStore(init){ const m = new Map(Object.entries(init || {})); return { m, get: k => m.has(k) ? m.get(k) : null, set: (k, v) => m.set(k, String(v)) }; }
+test('мета: карты открываются дальностью (горн и стенка сразу, колокольня 2, магнит 4, делитель 6); колоды — 3/5/7/9 и «Мастер» за победу', () => {
+  eq(MT.pool(0).join(','), 'forge,spring'); eq(MT.pool(2).join(','), 'forge,spring,bell'); eq(MT.pool(11).length, 5);
+  eq(MT.decks(0, 0).join(','), 'bench'); eq(MT.decks(5, 0).join(','), 'bench,forge,bell'); eq(MT.decks(11, 0).indexOf('master'), -1); ok(MT.decks(1, 1).indexOf('master') >= 0, 'мастер за победу');
+  eq(MT.runOpts('magnet', 3, 0).deck, 'bench', 'закрытая колода → верстак'); eq(MT.runOpts('forge', 3, 0).starter.join(','), 'forge');
+  eq(JSON.stringify(MT.next(0, 0)), JSON.stringify({ kind: 'card', id: 'bell', need: 2 })); eq(MT.next(3, 0).id, 'magnet'); eq(MT.next(11, 0).id, 'master'); eq(MT.next(11, 1), null);
+  eq(MT.gained(1, 0, 5, 0).map(u => u.id).join(','), 'bell,magnet,forge,bell'); eq(MT.gained(11, 0, 11, 1).map(u => u.kind + ':' + u.id).join(','), 'deck:master');
+  eq(MT.cycle('bench', 5, 0, 1), 'forge'); eq(MT.cycle('bench', 5, 0, -1), 'bell');
+});
+test('мета: в раздаче только открытые карты (ремонт и флипперы — всегда); стартовая колода ставит постройки на стол до 1-й раздачи', () => {
+  for (let s = 1; s <= 30; s++) { const g2 = G.Game({ seed: s, pool: ['forge', 'spring'] }).start();
+    g2.state().offer.forEach(c => ok(['forge', 'spring', 'repair', 'flip'].indexOf(c.id) >= 0, 'закрытая карта ' + c.id)); }
+  const m = G.Game({ seed: 4, pool: MT.pool(11), starter: ['forge', 'bell'] }).start(), S = m.state();
+  eq(S.buildings.map(b => b.type + '@' + b.slot).join(','), 'forge@4,bell@1'); eq(S.phase, 'cards');
+  ok(!S.offer.some(c => c.kind === 'build' && (c.id === 'forge' || c.id === 'bell')), 'стартовые не предлагаются как новая постройка');
+  const sp = G.Game({ seed: 2, starter: ['spring'] }).start().state().buildings[0]; ok(sp.seg && sp.a && sp.b, 'стенка — отрезок');
+});
+test('мета: прогресс сохраняется и восстанавливается (дальность/победы — max, колода — last); слияние двух устройств не теряет открытия', () => {
+  const a = memStore({ [MT.KEYS.wave]: '4', [MT.KEYS.wins]: '0', [MT.KEYS.deck]: 'forge' }), b = memStore({ [MT.KEYS.wave]: '9', [MT.KEYS.wins]: '1' });
+  const merged = {}; for (const k of [MT.KEYS.wave, MT.KEYS.wins]) merged[k] = String(Math.max(parseFloat(a.get(k)) || 0, parseFloat(b.get(k)) || 0));
+  merged[MT.KEYS.deck] = a.get(MT.KEYS.deck);
+  const st = memStore(merged), best = +st.get(MT.KEYS.wave), w = +st.get(MT.KEYS.wins);
+  eq(MT.runOpts(st.get(MT.KEYS.deck), best, w).deck, 'forge'); ok(MT.decks(best, w).indexOf('master') >= 0 && MT.decks(best, w).indexOf('splitter') >= 0, 'всё открытое с двух устройств');
+  const main = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
+  ok(/g\.persist\(WIN_KEY, 'max'\)/.test(main) && /g\.persist\(DECK_KEY, 'last'\)/.test(main) && /g\.persist\(WAVE_KEY, 'max'\)/.test(main), 'облако');
+});
+await checkLangX({ ROOT, test, ok, eq, STR: G.STR, STRX: G.STR_X, title: 'BUMPERWRIGHT' });
 if (process.env.QUICK){ console.log(`\n${passed} прошло, ${failed} упало (без бота)`); process.exit(failed ? 1 : 0); }
 const N = 20, RUNS = []; for (let s = 1; s <= N; s++) RUNS.push(playOtboynik(G, s));
 test('бот (реакция 150–250 мс, зевает 12%) проходит не меньше 3 волн в ≥ 85% из ' + N + ' партий; Копра побеждает иногда (1…60%); без зависаний', () => {
@@ -298,6 +328,9 @@ test('бот (реакция 150–250 мс, зевает 12%) проходит 
   console.log('     волн отбито 0..' + (L.WAVES + 1) + ': ' + dist.join(',') + '; ≥3 волн: ' + n3 + '/' + N + '; побед ' + won + '; среднее время ' + (RUNS.reduce((a, r) => a + r.time, 0) / N / 60).toFixed(1) + ' мин; сливов ' + (RUNS.reduce((a, r) => a + r.drains, 0) / N).toFixed(1));
   ok(n3 >= 0.85 * N, 'слишком сложно: ' + n3); ok(!RUNS.some(r => r.stuck), 'зависание');
   ok(won <= 0.6 * N, 'слишком легко: побед ' + won); ok(won >= 1, 'Копра никто не одолел');
+});
+test('мета: новичок (открыты только горн и стенка) — бот всё равно проходит ≥ 3 волн в ≥ 80% партий', () => {
+  let n3 = 0; for (let s = 1; s <= 10; s++) if (playOtboynik(G, s, { pool: MT.pool(0) }).passed >= 3) n3++; ok(n3 >= 8, 'новичку слишком сложно: ' + n3 + '/10');
 });
 test('бот без флипперов (только пуск) ворота не удерживает — флипперы решают', () => {
   const r = playOtboynik(G, 3, { miss: 1 }); ok(r.passed <= 2, 'и без флипперов прошёл ' + r.passed);

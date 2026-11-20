@@ -23,20 +23,25 @@ a.back{position:relative;align-self:flex-start;margin:6px 0 0 10px;z-index:60;co
   .pad{display:grid;position:fixed;right:max(8px,env(safe-area-inset-right));bottom:10px;margin:0;width:184px;grid-template-columns:repeat(3,1fr)}
 }
 </style></head><body>
-<a class="back" href="../" data-catalog-back="1" data-en="&larr; Catalog">&larr; Каталог</a>
+<a class="back" href="../" data-catalog-back="1" data-en="&larr; Catalog" data-tr="&larr; Katalog" data-es="&larr; Catálogo" data-pt="&larr; Catálogo">&larr; Каталог</a>
 <div class="wrap"><canvas id="c" width="420" height="640"></canvas></div>
 <div class="pad">
   <button data-d="L">◀</button><button data-d="D">▼</button><button data-d="R">▶</button>
   <button data-d="U">⟳</button><button data-d="A">⬇</button><button data-pause="1" aria-label="Пауза">II</button>
 </div>
-<div class="foot" data-en="&lt;b&gt;CASCADE&lt;/b&gt; on the Hefest Arcade framework · ◀▶ move, ▼ soft drop, ⟳ rotate, ⬇ hard drop, C — hold, P — pause · L language, T theme, M sound."><b>КАСКАД</b> на фреймворке Гефест Arcade · ◀▶ ход, ▼ мягкий сброс, ⟳ поворот, ⬇ жёсткий сброс, C — холд, P — пауза · L язык, T тема, M звук.</div>
+<div class="foot" data-en="&lt;b&gt;CASCADE&lt;/b&gt; on the Hefest Arcade framework · ◀▶ move, ▼ soft drop, ⟳ rotate, ⬇ hard drop, C — hold, P — pause · L language, T theme, M sound." data-tr="&lt;b&gt;CASCADE&lt;/b&gt; · ◀▶ hareket, ▼ yavaş indir, ⟳ döndür, ⬇ hızlı bırak, C — yedek, P — duraklat · L dil, T tema, M ses." data-es="&lt;b&gt;CASCADE&lt;/b&gt; · ◀▶ mover, ▼ bajar, ⟳ girar, ⬇ soltar, C — reserva, P — pausa · L idioma, T tema, M sonido." data-pt="&lt;b&gt;CASCADE&lt;/b&gt; · ◀▶ mover, ▼ descer, ⟳ girar, ⬇ soltar, C — reserva, P — pausa · L idioma, T tema, M som."><b>КАСКАД</b> на фреймворке Гефест Arcade · ◀▶ ход, ▼ мягкий сброс, ⟳ поворот, ⬇ жёсткий сброс, C — холд, P — пауза · L язык, T тема, M звук.</div>
 <script src="./engine.js"></script>
 <script src="./js/music.js"></script>
 <script src="./js/game.js"></script>
+<script src="./js/daily.js"></script>
+<script src="./js/lang-x.js"></script>
+<script src="./js/i18n-x.js"></script>
 <script>
 const STR = {
-  ru:{ play:'Играть', language:'Язык', theme:'Тема', sound:'Звук', on:'вкл', off:'выкл', score:'Счёт', level:'Ур.', lines:'Линии', best:'Рекорд', next:'След', hold:'Холд', win:'ПОБЕДА!', gameover:'ИГРА ОКОНЧЕНА', pause:'ПАУЗА', resume:'Продолжить', menu:'В меню', tapstart:'пробел / тап', title:'КАСКАД', subtitle:'Складывай линии · цель — 40' },
-  en:{ play:'Play', language:'Language', theme:'Theme', sound:'Sound', on:'on', off:'off', score:'Score', level:'Lvl', lines:'Lines', best:'Best', next:'Next', hold:'Hold', win:'YOU WIN!', gameover:'GAME OVER', pause:'PAUSE', resume:'Resume', menu:'Menu', tapstart:'space / tap', title:'CASCADE', subtitle:'Clear lines · goal 40' },
+  ru:{ play:'Играть', language:'Язык', theme:'Тема', sound:'Звук', on:'вкл', off:'выкл', score:'Счёт', level:'Ур.', lines:'Линии', best:'Рекорд', next:'След', hold:'Холд', win:'ПОБЕДА!', gameover:'ИГРА ОКОНЧЕНА', pause:'ПАУЗА', resume:'Продолжить', menu:'В меню', tapstart:'пробел / тап', title:'КАСКАД', subtitle:'Складывай линии · цель — 40',
+    daily:'Испытание дня', dailyBest:'Рекорд дня', dailyNew:'Новый рекорд дня!', streak:'Серия дней', dayTag:'ДЕНЬ', lb:'Лидеры', rwRows:'Реклама: −2 нижних ряда' },
+  en:{ play:'Play', language:'Language', theme:'Theme', sound:'Sound', on:'on', off:'off', score:'Score', level:'Lvl', lines:'Lines', best:'Best', next:'Next', hold:'Hold', win:'YOU WIN!', gameover:'GAME OVER', pause:'PAUSE', resume:'Resume', menu:'Menu', tapstart:'space / tap', title:'CASCADE', subtitle:'Clear lines · goal 40',
+    daily:'Daily challenge', dailyBest:'Daily best', dailyNew:'New daily best!', streak:'Day streak', dayTag:'DAY', lb:'Leaderboard', rwRows:'Watch ad: clear 2 bottom rows' },
 };
 // Палитра фигур по теме (I O T S Z J L -> id 1..7)
 const PAL = {
@@ -45,6 +50,7 @@ const PAL = {
   neon:   [null,'#39e7ff','#ffe14d','#ff2f9c','#49ffb0','#ff5d6c','#6a8cff','#ff9f1c'],
 };
 const g = Arcade.createGame({ canvas:'#c', width:420, height:640, gameId:'kaskad', strings:STR, theme:'modern' });
+ArcadeLangX.install(g, TT.STR_X);   // TR / ES / PT поверх RU/EN движка (js/lang-x.js)
 g.input.bindDpad(document.querySelector('.pad'));
 // Поле вписывается и по ширине, и по высоте окна (масштаб по min): без обрезки и прокрутки.
 // Телефон лёжа (LAND): поле по высоте экрана, тач-кнопки — в боковых полях, «← Каталог» — в левом верхнем углу.
@@ -60,8 +66,9 @@ function pcol(id){ return (PAL[g.themeName]||PAL.modern)[id] || g.th().accent; }
 
 const CELL=28, BX=14, BY=28, BW=10, BH=20;
 let stack=null;
+let daily=null, lastDaily=null;   // daily — испытание дня текущей партии (null — обычная партия); lastDaily — итог для экрана финала
 function newStack(){
-  return TT.Game({ hi: g.state.best, onEvent:(type)=>{
+  return TT.Game({ hi: g.state.best, rng: daily ? daily.rng() : undefined, onEvent:(type)=>{
     if(type==='move'||type==='rotate') g.audio.beep(420,0.03,'square',0.05);
     else if(type==='lock') g.audio.beep(180,0.05,'square',0.06);
     else if(type==='clear') g.audio.beep(900,0.12,'triangle');
@@ -93,6 +100,36 @@ function drawMini(ctx,type,ox,oy){
 }
 
 g.useStandardScreens({ title:'КАСКАД', subtitle:STR.ru.subtitle, lives:0 });
+// ---------- Испытание дня (мета-прогрессия: возвраты) ----------
+// Одинаковая последовательность фигур на день (сид = дата), рекорд дня и серия дней — в облако площадки (g.persist 'max').
+// День — по серверному времени площадки (Platform.serverTime(), адаптер 1.2): UTC+3, один день для всех; без него — местная дата.
+const STORE={ get:k=>Arcade.Store.get(k,null), set:(k,v)=>g.storeSet(k,v) };
+g.persist(TT.daily.KEY_BEST,'max'); g.persist(TT.daily.KEY_STREAK,'max');
+function srvTime(){ try{ const P=g.platform, t=P && typeof P.serverTime==='function' ? P.serverTime() : null; return (typeof t==='number' && isFinite(t) && t>1e12) ? t : null; } catch(e){ return null; } }
+function today(){ const t=srvTime(); return TT.daily.Daily(STORE, t ? TT.daily.dateKey(t,3) : TT.daily.dateKey(Date.now())); }
+// лидерборды — через адаптер площадки (Platform.leaderboard 1.2: submit(score,{board}), open({board})), если он есть и таблица доступна;
+// без него — тихо пропускаем. Таблицы в консоли площадки: kaskad (рекорд) и kaskadDaily (испытания дня).
+function lb(){ const P=g.platform && g.platform.leaderboard; if(!P || typeof P.submit!=='function') return null;
+  const av=g.leaderboard && typeof g.leaderboard.available==='function' ? g.leaderboard.available() : P.available; return av ? P : null; }
+function lbSubmit(board,score){ try{ const L=lb(); if(L && score>0){ const r=L.submit(score|0,{ board }); if(r && r.catch) r.catch(()=>{}); } } catch(e){} }
+function startRun(isDaily){ daily=isDaily ? today() : null; g.state.score=0; g.state.level=1; g._contUsed=false; (g._bonuses||[]).forEach(b=>{ b.used=false; }); g.goto('play'); }
+g.menu.addItem({ key:'daily', scene:'title', after:'play', label:()=>g.t('daily')+' · '+today().label, onSelect:()=>startRun(true) });
+{ const tm=g.menu.get('title'); tm.items[tm.indexOf('play')].onSelect=()=>startRun(false); }   // «Играть» — обычная партия
+function addLbItem(){ const L=lb(); if(L && typeof L.open==='function' && g.menu.items('title').indexOf('lb')<0)
+  g.menu.addItem({ key:'lb', scene:'title', after:'daily', label:()=>g.t('lb'), onSelect:()=>{ try{ L.open({ board:'kaskadDaily' }); } catch(e){} } }); }
+if(g.platform && g.platform.init) g.platform.init().then(addLbItem,()=>{});
+g.menu.setHint(()=>{ const d=today(), b=d.best(), s=d.streak();
+  return [ g.t('dailyBest')+' '+d.label+': '+(b||'—'), { text: s ? g.t('streak')+': '+s : '', dim:true } ]; }, 'title');
+// финал партии (после экрана «ещё шанс», если он был): рекорд дня, серия, лидерборды
+function finishRun(){ lastDaily=null;
+  if(daily){ const r=daily.submit(g.state.score); lastDaily={ label:daily.label, best:r.best, isNew:r.isNew, streak:r.streak }; lbSubmit('kaskadDaily', g.state.score); }
+  lbSubmit('kaskad', g.state.best); daily=null; }
+['win','gameover'].forEach(n=>{ const sc=g.scenes[n], en=sc.enter, dr=sc.draw;
+  sc.enter=function(d){ en.call(this,d); finishRun(); };
+  sc.draw=function(ctx){ dr.call(this,ctx); if(!lastDaily) return; const th=this.th();
+    this.text(lastDaily.isNew ? g.t('dailyNew') : g.t('dailyBest')+' '+lastDaily.label+': '+lastDaily.best, this.W/2, this.H/2+48, { size:15, align:'center', color:lastDaily.isNew ? th.good : th.ink, weight:800 });
+    if(lastDaily.streak) this.text(g.t('streak')+': '+lastDaily.streak, this.W/2, this.H/2+72, { size:13, align:'center', color:th.muted, weight:600 }); };
+});
 g.scene('play', { realtime:true,
   enter(d){ if(!(d&&d.resume)){ stack=newStack(); stack.start(); } else if(stack){ stack.pause(false); } },
   press(a){ if(!stack) return;
@@ -147,13 +184,14 @@ g.scene('play', { realtime:true,
     this.text(this.t('level','Ур.'), PX, BY+298, {size:12, color:th.muted, weight:700});
     this.text(String(s?s.level:0), PX, BY+318, {size:16});
     if(g.state.best){ this.text(this.t('best','Рекорд'), PX, BY+352, {size:12, color:th.muted, weight:700}); this.text(String(g.state.best), PX, BY+372, {size:14, color:th.accent}); }
+    if(daily){ this.text(this.t('dayTag'), PX, BY+406, {size:12, color:th.warn, weight:800}); this.text(daily.label, PX, BY+426, {size:16, color:th.warn}); }
   },
 });
 // холд — отдельной клавишей/кнопкой (движок не маппит C)
 // Реклама за награду (только на площадках с рекламой; на сайте пунктов нет): «ещё один шанс» раз за партию
 // и бонус в меню паузы — убрать 2 нижних ряда (если стакан не пуст). Награда — только по досмотру ролика.
 g.useRewardedContinue({ revive(){ if(stack) stack.revive(); } });
-g.useRewardedBonus({ key:'rwRows', scene:'pause', label:{ ru:'Реклама: −2 нижних ряда', en:'Watch ad: clear 2 bottom rows' },
+g.useRewardedBonus({ key:'rwRows', scene:'pause', label:()=>g.t('rwRows'),
   available(){ return !!stack && stack.filledRows()>=3; }, grant(){ if(stack) stack.clearBottom(2); } });
 // пауза с тач-кнопки
 (function(){ const pb=document.querySelector('[data-pause]'); if(!pb) return; const h=e=>{ e.preventDefault(); if(g._sceneName==='play') g.pause(); else if(g._sceneName==='pause') g.goto('play',{resume:true}); };

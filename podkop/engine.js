@@ -4,7 +4,7 @@
  * настройки: язык/тема/звук), сцены, сетка, частицы, HUD, счёт+рекорд (localStorage по игре).
  * Встроены критерии: проходимость (win/lose+финал, difficulty), играбельность (отклик, фидбек),
  * непресность (нарастание). Игры самодостаточны: build.sh копирует файл в игру. API — README.
- * (c) Студия «Гефест». v2.6.0 (v2.6: реклама за награду g.rewarded() + «продолжить за рекламу» g.useRewardedContinue() и бонус g.useRewardedBonus() — только при площадке с рекламой; межстраничная реклама — по действию игрока при выходе с финала и g.adBreak() в паузах между уровнями; старт меню после инициализации площадки (язык SDK до меню, ready() — когда можно играть); автопауза при скрытой вкладке; без контекстного меню/выделения; g.persist()/g.storeSet() — ключи в облако; v2.5: необязательная связка с площадкой — window.Platform из _shared/platform.js: пауза и звук на время рекламы, язык площадки, рекорд в облако, gameplayStart/Stop по сценам, реклама в паузах win/gameover, скрытие внешних ссылок; без platform.js — всё как раньше; v2.4: ссылка «← Каталог» a[data-catalog-back] ведёт в каталог текущего языка — ../ или ../en/, dt первого кадра не отрицательный; v2.3: единое правило языка ?lang= → arcade.lang → ru, перевод DOM по data-en; v2.2: g.menu, g.input.player(i), g.usePlayers, touchOnly)
+ * (c) Студия «Гефест». v2.7.0 (v2.7: с площадкой — тишина и пауза при любой потере фокуса (blur/pagehide, Яндекс 1.3); g.leaderboard, g.flags (удалённая конфигурация: частота/места рекламы, сложность), g.purchase()/g.useNoAds() — после покупки «Без рекламы» межстраничная и стики не показываются, g.serverTime()/g.daily(), g.requestReview(), g.addShortcut(), g.ownGames() — через platform.js 1.2; v2.6: реклама за награду g.rewarded() + «продолжить за рекламу» g.useRewardedContinue() и бонус g.useRewardedBonus() — только при площадке с рекламой; межстраничная реклама — по действию игрока при выходе с финала и g.adBreak() в паузах между уровнями; старт меню после инициализации площадки (язык SDK до меню, ready() — когда можно играть); автопауза при скрытой вкладке; без контекстного меню/выделения; g.persist()/g.storeSet() — ключи в облако; v2.5: необязательная связка с площадкой — window.Platform из _shared/platform.js: пауза и звук на время рекламы, язык площадки, рекорд в облако, gameplayStart/Stop по сценам, реклама в паузах win/gameover, скрытие внешних ссылок; без platform.js — всё как раньше; v2.4: ссылка «← Каталог» a[data-catalog-back] ведёт в каталог текущего языка — ../ или ../en/, dt первого кадра не отрицательный; v2.3: единое правило языка ?lang= → arcade.lang → ru, перевод DOM по data-en; v2.2: g.menu, g.input.player(i), g.usePlayers, touchOnly)
  */
 (function (global) {
   'use strict';
@@ -38,8 +38,8 @@
   }
   // Встроенные строки движка (v2.6) — если в таблицах игры ключа нет: экраны рекламы за награду, загрузка.
   var DEF_STR = {
-    ru: { loading: 'Загрузка…', rw_title: 'ЕЩЁ ОДИН ШАНС?', rw_continue: 'Реклама: продолжить', rw_no: 'Нет, завершить', rw_fail: 'Реклама недоступна', rw_hint: 'один раз за партию', rw_got: 'Бонус получен!' },
-    en: { loading: 'Loading…', rw_title: 'ONE MORE CHANCE?', rw_continue: 'Watch ad: continue', rw_no: 'No, finish', rw_fail: 'Ad not available', rw_hint: 'once per run', rw_got: 'Bonus received!' }
+    ru: { loading: 'Загрузка…', rw_title: 'ЕЩЁ ОДИН ШАНС?', rw_continue: 'Реклама: продолжить', rw_no: 'Нет, завершить', rw_fail: 'Реклама недоступна', rw_hint: 'один раз за партию', rw_got: 'Бонус получен!', noads: 'Без рекламы' },
+    en: { loading: 'Loading…', rw_title: 'ONE MORE CHANCE?', rw_continue: 'Watch ad: continue', rw_no: 'No, finish', rw_fail: 'Ad not available', rw_hint: 'once per run', rw_got: 'Bonus received!', noads: 'No ads' }
   };
   I18n.prototype.t = function (key, fallback) {
     var tb = this.tables[this.lang] || {};
@@ -235,16 +235,18 @@
     if (w && typeof w.addEventListener === 'function') {
       var unlock = function () {
         self.unlocked = true; var ac = self._ctx();
-        if (ac && ac.state === 'suspended' && !self._hidden) { try { ac.resume(); } catch (e) {} }
+        if (ac && ac.state === 'suspended' && !self._away()) { try { ac.resume(); } catch (e) {} }
         self.music._sync();
       };
       ['pointerdown', 'keydown', 'touchstart', 'mousedown'].forEach(function (ev) { w.addEventListener(ev, unlock, true); });
       if (doc && doc.addEventListener) doc.addEventListener('visibilitychange', function () { // вкладка скрыта — звук спит
         self._hidden = doc.hidden; var ac = self.ac; if (!ac) return;
-        try { if (doc.hidden) ac.suspend(); else if (self.unlocked) ac.resume(); } catch (e) {}
+        try { if (doc.hidden) ac.suspend(); else if (self.unlocked && !self._away()) ac.resume(); } catch (e) {}
       });
     }
   }
+  // звук «в стороне»: вкладка скрыта (_hidden) или — с площадкой — окно без фокуса / страница уходит (_blur, v2.7)
+  Audio.prototype._away = function () { return !!(this._hidden || this._blur); };
   Audio.prototype._ctx = function () { if (this.ac) return this.ac; if (!this.unlocked) return null; try { this.ac = new (global.AudioContext || global.webkitAudioContext)(); } catch (e) { this.ac = null; } return this.ac; };
   Audio.prototype.beep = function (f, d, type, vol) {
     if (!this.enabled) return; var ac = this._ctx(); if (!ac) return;
@@ -335,7 +337,7 @@
   };
   Music.prototype._begin = function () {
     var ac = this.audio._ctx(); if (!ac) return; var self = this;
-    try { if (ac.state === 'suspended' && !this.audio._hidden) ac.resume(); } catch (e) {}
+    try { if (ac.state === 'suspended' && !this.audio._away()) ac.resume(); } catch (e) {}
     this.bus = ac.createGain(); this.bus.gain.value = this.volume; this.bus.connect(ac.destination);
     this.next = ac.currentTime + 0.06; this.playing = true; this.stats.started++;
     this.timer = setInterval(function () { self._tick(); }, 25); this._tick();
@@ -516,6 +518,7 @@
     this.autoPause = opts.autoPause !== false; // с площадкой: скрытая вкладка в play → пауза
     this.adBreaks = opts.adBreaks !== false; // реклама площадки в логических паузах (win/gameover), если подключён platform.js
     var PF = global.Platform; this.platform = PF && typeof PF.init === 'function' && typeof PF.pauseHook === 'function' ? PF : null;
+    this._initExtras(opts);
     if (this.platform) this._bindPlatform(this.platform);
   }
   // ---------- Площадка (v2.5): window.Platform из _shared/platform.js (подключается сборкой под площадку ДО engine.js) ----------
@@ -524,7 +527,7 @@
   Engine.prototype._bindPlatform = function (PF) {
     var self = this;
     PF.pauseHook(function () { self._pfPause = true; var ac = self.audio.ac; if (ac) { try { ac.suspend(); } catch (e) {} } },
-      function () { self._pfPause = false; self._last = performance.now(); var a = self.audio, ac = a.ac; if (ac && a.unlocked && !a._hidden) { try { ac.resume(); } catch (e) {} } });
+      function () { self._pfPause = false; self._last = performance.now(); var a = self.audio, ac = a.ac; if (ac && a.unlocked && !a._away()) { try { ac.resume(); } catch (e) {} } });
     this._applyPlatformLinks();
     if (doc && doc.readyState === 'loading' && doc.addEventListener) doc.addEventListener('DOMContentLoaded', function () { self._applyPlatformLinks(); });
     PF.init().then(function () {
@@ -533,10 +536,21 @@
       self._applyPlatformLinks();
       var b = parseFloat(PF.peek('best.' + self.gameId)) || 0;
       if (b > self.state.best) { self.state.best = b; Store.set('arcade.best.' + self.gameId, String(b)); }
-      self._pfInited = true; self._mergePersist();
-    }, function () { self._pfInited = true; });
+      self._pfInited = true; self._mergePersist(); self._afterPlatform();
+    }, function () { self._pfInited = true; self._afterPlatform(); });
     // Площадки (Яндекс 1.6.1.8 / 1.6.2.7, GamePush): долгий тап и ПКМ не открывают меню и не выделяют текст.
     if (doc && doc.addEventListener) ['contextmenu', 'selectstart', 'dragstart'].forEach(function (ev) { doc.addEventListener(ev, function (e) { var t = e.target; if (t && /^(INPUT|TEXTAREA)$/.test(t.tagName || '')) return; e.preventDefault(); }); });
+    // v2.7 — Яндекс 1.3 (с 18.08.2026 «звук останавливается при любой потере фокуса, а не только при сворачивании»): окно без
+    // фокуса (blur: клик в адресную строку, по странице площадки вокруг iframe, другое окно поверх) и уход со страницы (pagehide) —
+    // тишина (AudioContext спит) и пауза, если идёт игра; focus / pageshow — звук возвращается (если вкладка видна и нет другой
+    // паузы), игра ждёт «Продолжить». Без площадки — как раньше: звук спит только при скрытой вкладке (visibilitychange).
+    if (typeof global.addEventListener === 'function') {
+      var away = function () { var a = self.audio, ac = a.ac; a._blur = true; if (ac) { try { ac.suspend(); } catch (e) {} }
+        if (self.autoPause !== false && self._sceneName === 'play' && self.scenes.pause && !self._adPause && !self._pfPause) self.pause(); };
+      var back = function () { var a = self.audio, ac = a.ac; a._blur = false; if (ac && a.unlocked && !a._away() && !self._pfPause && !self._adPause) { try { ac.resume(); } catch (e) {} } };
+      global.addEventListener('blur', away); global.addEventListener('pagehide', away);
+      global.addEventListener('focus', back); global.addEventListener('pageshow', back);
+    }
   };
   // Ключи localStorage игры, которые зеркалятся в облако площадки (v2.6): g.persist(key, 'max'|'last'); запись — g.storeSet(key, v).
   // При старте с площадкой: 'max' — берётся большее из локального и облачного, 'last' — облачное, если есть.
@@ -550,6 +564,107 @@
       if (v !== l) Store.set(k, v); if (v !== String(c)) PF.save('ls.' + k, v);
     });
   };
+
+  // ---------- v2.7: лидерборд, флаги, покупки, серверное время, оценка, ярлык, свои игры (через platform.js 1.2) ----------
+  // Всё безопасно без площадки: лидерборд недоступен, флаги = значения игры, покупки → false, время — часы устройства.
+  var FLAG_DEFAULTS = { ad_interstitial_gap: '', ad_breaks: '1', ad_sticky: '1', rewarded_continue: '1', rewarded_bonus: '1' };
+  function strMap(o) { var r = {}; Object.keys(o || {}).forEach(function (k) { if (o[k] != null) r[k] = String(o[k]); }); return r; }
+  Engine.prototype._initExtras = function (opts) {
+    var self = this, flags = strMap(Object.assign({}, FLAG_DEFAULTS, opts.flags || {})), readyRes;
+    // g.flags.get(key, def) — строка (удалённое значение площадки важнее значения игры); g.flags.num(key, def); g.flags.all();
+    // g.flags.ready — Promise (после ответа площадки; без площадки — сразу). Служебные флаги рекламы — FLAG_DEFAULTS.
+    this.flags = { defaults: Object.assign({}, flags), ready: new Promise(function (r) { readyRes = r; }),
+      get: function (k, d) { return Object.prototype.hasOwnProperty.call(flags, k) ? flags[k] : (d === undefined ? null : d); },
+      num: function (k, d) { var v = parseFloat(this.get(k)); return isFinite(v) ? v : d; },
+      all: function () { return Object.assign({}, flags); }, _set: function (f) { Object.keys(f || {}).forEach(function (k) { flags[k] = String(f[k]); }); }, _done: function () { readyRes(this.all()); } };
+    if (!this.platform) this.flags._done();
+    // g.leaderboard — таблица лидеров площадки: available(), submit(score) → Promise<bool>, top({ limit }) → Promise<{ entries, me }>,
+    // me() → Promise<{ rank, score }|null>, open() → bool. opts.leaderboard: 'score' — имя таблицы (Яндекс: «техническое имя»)
+    // и автоотправка нового рекорда из g.saveBest().
+    var board = typeof opts.leaderboard === 'string' ? opts.leaderboard : 'score';
+    this.leaderboard = { board: board, auto: !!opts.leaderboard,
+      available: function () { var P = self.platform; return !!(P && P.leaderboard && P.leaderboard.available); },
+      submit: function (score) { var P = self.platform; return P && P.leaderboard && P.leaderboard.submit ? P.leaderboard.submit(score == null ? self.state.best : score, { board: board }) : Promise.resolve(false); },
+      top: function (o) { var P = self.platform; return P && P.leaderboard && P.leaderboard.top ? P.leaderboard.top(Object.assign({ board: board }, o || {})) : Promise.resolve({ entries: [], me: null }); },
+      me: function () { var P = self.platform; return P && P.leaderboard && P.leaderboard.me ? P.leaderboard.me({ board: board }) : Promise.resolve(null); },
+      open: function () { var P = self.platform; return !!(P && P.leaderboard && P.leaderboard.open && P.leaderboard.open({ board: board })); } };
+    this._products = {}; this._noAds = false; this._stickyOpt = opts.sticky === true;
+    if (opts.products) this.useProducts(opts.products);
+  };
+  Engine.prototype._afterPlatform = function () {
+    var self = this, P = this.platform; if (!P) return;
+    var go = P.flags && P.flags.get ? P.flags.get(this.flags.defaults) : Promise.resolve({});
+    var fl = go.then(function (f) { self.flags._set(f); var gap = parseFloat(self.flags.get('ad_interstitial_gap')); if (isFinite(gap) && P.setInterstitialGap) P.setInterstitialGap(gap); }, function () {})
+      .then(function () { self.flags._done(); self._syncBonuses(); });
+    if (P.payments && P.payments.onPurchase) P.payments.onPurchase(function (id) { return self._granted(id); });
+    // стики — только когда известно, куплено ли «Без рекламы» (проверка покупок при старте) и что говорят флаги
+    var pay = Object.keys(this._products).length && P.payments ? P.payments.setup(this._products).then(null, function () {}) : Promise.resolve();
+    Promise.all([fl, pay]).then(function () { self._syncSticky(); self._syncBonuses(); });
+  };
+  // Покупки: g.useProducts({ no_ads: {}, coins100: { consumable: true, grant() { … } } }) — объявить товары ДО старта (тогда при каждом
+  // запуске проверяются необработанные покупки, Яндекс 1.13.1); g.purchase(id) → Promise<bool>; g.owned(id); g.noAds().
+  // «no_ads» — постоянная покупка «Без рекламы»: межстраничная (g.adBreak, реклама на финалах) и стики-баннер больше не показываются;
+  // ролики за награду остаются — их игрок запускает сам. g.products() → Promise<каталог> (цена и валюта — из SDK, 1.13.2).
+  Engine.prototype.useProducts = function (map) {
+    var self = this; Object.keys(map || {}).forEach(function (id) { self._products[id] = Object.assign({ consumable: false }, self._products[id] || {}, map[id] || {}); });
+    if (this._pfInited && this.platform && this.platform.payments) this.platform.payments.setup(this._products);
+    return this;
+  };
+  Engine.prototype._granted = function (id) {
+    var p = this._products[id];
+    if (id === 'no_ads') { this._noAds = true; this._syncSticky(); }
+    if (p && typeof p.grant === 'function') { try { return p.grant.call(this, id) !== false; } catch (e) { return false; } }
+    this._syncBonuses(); return true;
+  };
+  Engine.prototype.purchase = function (id) {
+    var P = this.platform, self = this; if (!P || !P.payments || !P.payments.purchase) return Promise.resolve(false);
+    if (!this._products[id]) this.useProducts((function () { var m = {}; m[id] = {}; return m; })());
+    return P.payments.purchase(id).then(function (ok) { if (ok && id === 'no_ads') self._noAds = true; self._syncSticky(); self._syncBonuses(); return !!ok; }, function () { return false; });
+  };
+  Engine.prototype.owned = function (id) { var P = this.platform; return id === 'no_ads' ? this._noAds : !!(P && P.payments && P.payments.owned && P.payments.owned(id)); };
+  Engine.prototype.noAds = function () { return !!this._noAds; };
+  Engine.prototype.products = function () { var P = this.platform; return P && P.payments && P.payments.catalog ? P.payments.catalog() : Promise.resolve([]); };
+  // g.useNoAds({ scene: 'title' }) — пункт меню «Без рекламы · <цена из SDK>» (виден, если покупки подключены, товар no_ads есть
+  // в каталоге и ещё не куплен). Объявляет товар no_ads.
+  Engine.prototype.useNoAds = function (cfg) {
+    cfg = Object.assign({ scene: 'title', key: 'noads' }, cfg || {}); var self = this; this.useProducts({ no_ads: {} });
+    this._shop = { cfg: cfg, price: null, item: { key: cfg.key, label: function () { return (cfg.label ? (cfg.label[self.i18n.lang] || cfg.label.ru) : self.t('noads')) + (self._shop.price ? ' · ' + self._shop.price : ''); },
+      onSelect: function () { self.purchase('no_ads').then(function (ok) { if (ok) self.audio.beep(1000, 0.15, 'triangle'); }); } } };
+    return this;
+  };
+  Engine.prototype._syncShop = function () {
+    var s = this._shop, P = this.platform, self = this; if (!s) return; var m = this.menu.get(s.cfg.scene); if (!m) return;
+    var avail = !!(P && P.payments && P.payments.available && !this._noAds);
+    if (avail && s.price == null && !s.loading) { s.loading = true; this.products().then(function (l) { s.loading = false; var p = (l || []).filter(function (x) { return x.id === 'no_ads'; })[0]; s.price = p ? (p.price || '') : false; self._syncShop(); }); }
+    var want = avail && s.price !== false && s.price != null, has = m.indexOf(s.cfg.key) >= 0;
+    if (want && !has) m.add(s.item, s.cfg.scene === 'pause' ? { before: 'menu' } : { after: 'play' }); else if (!want && has) m.remove(s.cfg.key);
+  };
+  // Стики-баннер. Показ из игры — только если игра попросила (opts.sticky: true; сначала проверить, что баннер не закрывает кнопки),
+  // есть реклама, не куплено «Без рекламы» и флаг ad_sticky не '0'. Куплено «Без рекламы» или ad_sticky = '0' — баннер скрывается
+  // в любом случае (на Яндексе по умолчанию баннером управляет площадка; скрыть из игры можно, если в Консоли включено
+  // «Использовать API для показа стики-баннера» — включить, если продаётся «Без рекламы»).
+  Engine.prototype._syncSticky = function () {
+    var P = this.platform; if (!P || !P.sticky || !P.inited) return;
+    var off = this._noAds || this.flags.get('ad_sticky') === '0';
+    if (off) { if (!this._stickyHidden && P.hasAds) { this._stickyHidden = true; this._stickyAsked = false; P.sticky.hide(); } return; }
+    if (this._stickyOpt && P.hasAds && !P.sticky.showing && !this._stickyAsked) { this._stickyAsked = true; P.sticky.show(); }
+  };
+  // Серверное время (Яндекс serverTime, GamePush serverTime) — для ежедневной награды; без площадки — часы устройства.
+  Engine.prototype.serverTime = function () { var P = this.platform; return (P && P.now) ? P.now() : Date.now(); };
+  // g.daily(key, { tz: 3 }) → { ready, day, trusted, claim() → bool }: раз в календарный день (по умолчанию — день по UTC+3);
+  // отметка — ключ arcade.daily.<gameId>.<key> (в облако площадки, g.persist max).
+  Engine.prototype.daily = function (key, o) {
+    o = o || {}; var self = this, k = 'arcade.daily.' + this.gameId + '.' + (key || 'reward'), tz = o.tz == null ? 3 : o.tz, P = this.platform;
+    if (!(this._persist && this._persist[k])) this.persist(k, 'max');
+    var day = Math.floor((this.serverTime() + tz * 3600000) / 86400000), last = Store.getNum(k, -1);
+    return { day: day, ready: day > last, trusted: !!(P && P.serverTime && P.serverTime()), claim: function () { if (day <= Store.getNum(k, -1)) return false; self.storeSet(k, day); return true; } };
+  };
+  // Оценка игры и ярлык (окна площадки; игра на паузе). Запрос оценки — раз за сессию, лучше после победы/рекорда, не в игре.
+  Engine.prototype.requestReview = function () { var P = this.platform; return P && P.review ? P.review.request() : Promise.resolve(false); };
+  Engine.prototype.addShortcut = function () { var P = this.platform; return P && P.shortcut ? P.shortcut.add() : Promise.resolve(false); };
+  // Свои игры — только через SDK (Яндекс 8.4.1): g.ownGames() → Promise<{ games:[{ id, title, url, icon }] }>, g.openGame(game) → bool
+  Engine.prototype.ownGames = function () { var P = this.platform; return P && P.games ? P.games.list() : Promise.resolve({ games: [], developerURL: null }); };
+  Engine.prototype.openGame = function (g) { var P = this.platform; return !!(P && P.games && P.games.open(g)); };
   // ---------- Реклама (v2.6) ----------
   // g.canRewarded() — показ ролика за награду возможен (есть площадка с рекламой, SDK поднят, другой показ не идёт).
   // g.rewarded({ reward(), done(ok) }) → Promise<bool>: reward() вызывается ровно один раз и ТОЛЬКО при досмотре;
@@ -565,10 +680,10 @@
   };
   Engine.prototype._adHold = function (on) { // своя причина паузы на время показа: цикл стоит, AudioContext спит
     this._adPause = !!on; var a = this.audio, ac = a.ac; this._last = performance.now();
-    if (!ac) return; try { if (on) ac.suspend(); else if (!this._pfPause && a.unlocked && !a._hidden) ac.resume(); } catch (e) {}
+    if (!ac) return; try { if (on) ac.suspend(); else if (!this._pfPause && a.unlocked && !a._away()) ac.resume(); } catch (e) {}
   };
   // Межстраничная реклама в естественной паузе (между уровнями, выход с финала). → Promise<bool>. Частоту ограничивает адаптер.
-  Engine.prototype.adReady = function () { var P = this.platform; return !!(P && this.adBreaks && P.hasAds && P.inited && !this._rwBusy && (!P.interstitialReady || P.interstitialReady())); };
+  Engine.prototype.adReady = function () { var P = this.platform; return !!(P && this.adBreaks && !this._noAds && this.flags.get('ad_breaks') !== '0' && P.hasAds && P.inited && !this._rwBusy && (!P.interstitialReady || P.interstitialReady())); };
   Engine.prototype.adBreak = function () {
     if (!this.adReady()) return Promise.resolve(false); var self = this; this._adHold(true);
     return Promise.resolve().then(function () { return self.platform.showInterstitial(); }).then(function (ok) { return !!ok; }, function () { return false; })
@@ -612,10 +727,11 @@
   };
   Engine.prototype._syncBonuses = function () {
     var self = this; (this._bonuses || []).forEach(function (b) {
-      var m = self.menu.get(b.scene), want = self.canRewarded() && !(b.once && b.used) && (!b.available || b.available.call(self));
+      var m = self.menu.get(b.scene), want = self.canRewarded() && self.flags.get('rewarded_bonus') !== '0' && !(b.once && b.used) && (!b.available || b.available.call(self));
       if (!m) return; var has = m.indexOf(b.key) >= 0;
       if (want && !has) m.add(b.item, b.scene === 'pause' ? { before: 'menu' } : { after: 'play' }); else if (!want && has) m.remove(b.key);
     });
+    if (this._shop) this._syncShop();
   };
   Engine.prototype._applyPlatformLinks = function () {
     var PF = this.platform; if (!PF || PF.allowExternalLinks !== false || !doc || !doc.querySelectorAll) return;
@@ -629,10 +745,10 @@
   Engine.prototype.setTheme = function (name) { this.themeName = name; Store.set('arcade.theme', name); this._applyPixel(); };
   Engine.prototype.toggleTheme = function () { var order = ['modern', 'retro']; if (this.themesMap.neon && this._allowNeon) order.push('neon'); this.setTheme(order[(order.indexOf(this.themeName) + 1) % order.length]); return this.themeName; };
   Engine.prototype.loadBest = function () { return Store.getNum('arcade.best.' + this.gameId, 0); };
-  Engine.prototype.saveBest = function () { if (this.state.score > this.state.best) { this.state.best = this.state.score; Store.set('arcade.best.' + this.gameId, String(this.state.best)); if (this.platform) this.platform.save('best.' + this.gameId, this.state.best); } };
+  Engine.prototype.saveBest = function () { if (this.state.score > this.state.best) { this.state.best = this.state.score; Store.set('arcade.best.' + this.gameId, String(this.state.best)); if (this.platform) this.platform.save('best.' + this.gameId, this.state.best); if (this.leaderboard.auto) this.leaderboard.submit(this.state.best); } };
 
   Engine.prototype.scene = function (name, def) { this.scenes[name] = def; return this; };
-  Engine.prototype.goto = function (name, data) { this.current = this.scenes[name]; this._sceneName = name; this._acc = 0; if (name === 'play') this.input._armedAt = now(); if (this.platform) { if (name === 'play') this.platform.gameplayStart(); else this.platform.gameplayStop(); } this._musicScene(name, data || {}); if (this.current && this.current.enter) this.current.enter.call(this, data || {}); if (this._bonuses) this._syncBonuses(); };
+  Engine.prototype.goto = function (name, data) { this.current = this.scenes[name]; this._sceneName = name; this._acc = 0; if (name === 'play') this.input._armedAt = now(); if (this.platform) { if (name === 'play') this.platform.gameplayStart(); else this.platform.gameplayStop(); } this._musicScene(name, data || {}); if (this.current && this.current.enter) this.current.enter.call(this, data || {}); if (this._bonuses || this._shop) this._syncBonuses(); };
   // Музыка следует за сценой (если musicAuto): play — играет (resume — с того же места, иначе с начала),
   // pause — пауза, title/win/gameover и прочие — стоп (на win/gameover звучит SFX движка, музыка не мешает).
   Engine.prototype._musicScene = function (name, data) {
@@ -764,7 +880,7 @@
     return this.players;
   };
   Engine.prototype.win = function () { this.goto('win'); };
-  Engine.prototype.gameover = function () { var c = this._cont; if (c && !this._contUsed && this.scenes['continue'] && this.canRewarded() && (!c.available || c.available.call(this))) { this.goto('continue'); return; } this.goto('gameover'); };
+  Engine.prototype.gameover = function () { var c = this._cont; if (c && !this._contUsed && this.flags.get('rewarded_continue') !== '0' && this.scenes['continue'] && this.canRewarded() && (!c.available || c.available.call(this))) { this.goto('continue'); return; } this.goto('gameover'); };
   Engine.prototype.pause = function () { this.goto('pause'); };
   Engine.prototype.nextLevel = function () { this.state.level++; };
   Engine.prototype.difficulty = function (base, step, max) { var v = base + (this.state.level - 1) * step; return max == null ? v : (step >= 0 ? Math.min(v, max) : Math.max(v, max)); };
@@ -777,7 +893,7 @@
 
   // Arcade.tracks[gameId] = track — так js/music.js игры регистрирует свою мелодию до createGame.
   var Arcade = (global.Arcade && global.Arcade.tracks) ? global.Arcade : {};
-  Object.assign(Arcade, { createGame: function (o) { var e = new Engine(o); Arcade.last = e; return e; }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, version: '2.6.0', catalogRoot: catalogRoot });
+  Object.assign(Arcade, { createGame: function (o) { var e = new Engine(o); Arcade.last = e; return e; }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, version: '2.7.0', catalogRoot: catalogRoot });
   Arcade.tracks = Arcade.tracks || {};
   if (typeof module !== 'undefined' && module.exports) module.exports = Arcade;
   global.Arcade = Arcade;

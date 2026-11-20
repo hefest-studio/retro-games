@@ -12,6 +12,37 @@
   };
   var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.H, gameId: 'kladka', strings: K.STR, theme: 'modern', lives: 3, themes: themes });
   K.g = g;
+  ArcadeLangX.install(g, K.STR_X);   // TR / ES / PT поверх RU/EN движка (js/lang-x.js)
+
+  // ---------- Мета-прогрессия: выбор открытого уровня и звёзды (js/meta.js), прогресс — и в облако площадки ----------
+  var M = K.meta, prog = M.Progress({ get: function (k) { return Arcade.Store.get(k, null); }, set: function (k, v) { g.storeSet(k, v); } });
+  for (var lv = 1; lv <= M.LEVELS; lv++) g.persist(M.key(lv), 'max');
+  var START_KEY = 'arcade.kladka.start'; g.persist(START_KEY, 'last');
+  function startLv() { var v = parseInt(Arcade.Store.get(START_KEY, '1'), 10) || 1; return prog.unlocked(v) ? v : prog.maxUnlocked(); }
+  function setStart(v) { g.storeSet(START_KEY, v); }
+  var lastStars = null;   // { level, n, c, isNew, opened } — итог уровня для плашки на экране «кладка разобрана»
+  function starStr(n) { return '★★★'.slice(0, n) + '☆☆☆'.slice(0, 3 - n); }
+  function fmt(s, n) { return String(s).replace('{n}', n); }
+  function fitK(s, maxW, size, weight, P) { var f = P.font || g.th().font; while (size > 8) { g.ctx.font = weight + ' ' + size + 'px ' + f; if (g.ctx.measureText(s).width <= maxW) break; size--; } return size; }   // длинные строки TR/ES/PT
+  function onClearStars(d) {
+    var r = M.stars(d), before = prog.maxUnlocked(), isNew = prog.record(d.level, r.n), after = prog.maxUnlocked();
+    lastStars = { level: d.level, n: r.n, c: r.c, isNew: isNew, opened: after > before ? after : 0 };
+    if (lastStars.opened) setStart(after);   // открыли новый уровень — следующая партия по умолчанию с него
+  }
+  // звезда-фигура (не символ шрифта: одинаково в обеих темах)
+  function drawStar(ctx, x, y, r, on, P) {
+    ctx.beginPath();
+    for (var i = 0; i < 10; i++) { var a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+    ctx.closePath(); ctx.fillStyle = on ? (P.pixel ? '#fcd838' : '#ffc94a') : (P.pixel ? '#3a3040' : 'rgba(255,255,255,.12)'); ctx.fill();
+    if (!on) { ctx.strokeStyle = P.muted; ctx.lineWidth = 1; ctx.stroke(); }
+  }
+  function drawLevelStars(ctx, P) {
+    var x0 = L.W / 2, y = 500;
+    for (var i = 0; i < 3; i++) drawStar(ctx, x0 + (i - 1) * 30, y, 11, lastStars.c[i], P);
+    var lines = [g.t('st_clear'), g.t('st_safe'), fmt(g.t('st_fast'), M.PAR[lastStars.level - 1])];
+    for (var j = 0; j < 3; j++) K.ui.txt(g, (lastStars.c[j] ? '✓ ' : '✗ ') + lines[j], x0, y + 30 + j * 16, { size: 12, align: 'center', color: lastStars.c[j] ? P.good : P.muted, weight: 700 }, P);
+    if (lastStars.opened) K.ui.txt(g, fmt(g.t('opened'), lastStars.opened), x0, y + 84, { size: 13, align: 'center', color: P.accent, weight: 900 }, P);
+  }
   g.input.bindDpad(document.querySelector('.pad'));
   K.ui.init(g);
 
@@ -44,6 +75,7 @@
     K.sfx(g, type, d); fx(type, d);
     if (type === 'power' && game) { var S = game.state(); toast(g.t('pw_' + d.kind), rnd().P.pw[d.kind], S.paddle.x, L.PADDLE_Y - 16); }
     if (type === 'revive') toast(g.t('revived'), rnd().P.accent, L.W / 2, 380);
+    if (type === 'clear') onClearStars(d);
     if (type === 'clear' && g.adReady()) adGate = 1;   // межстраничная реклама между уровнями — только по нажатию игрока (Яндекс 4.4)
     sync();
     if (type === 'win') g.win();
@@ -51,7 +83,8 @@
   }
 
   function newGame() {
-    game = K.Game({ lives: 3, level: 1, difficulty: diff, onEvent: onEvent });
+    lastStars = null;
+    game = K.Game({ lives: 3, level: startLv(), difficulty: diff, onEvent: onEvent });
     game.start(); K.current = game; toasts = []; wasDraft = false; adGate = 0; sync();
   }
   // Пауза между уровнями с рекламой: «КЛАДКА РАЗОБРАНА» доигрывает 2 с, затем ждёт нажатия игрока → полноэкранная реклама → уровень.
@@ -83,12 +116,16 @@
   }
 
   var title = g.scenes.title, menu = title._menu;
+  // пункт «Уровень N ★★☆»: выбор/тап — следующий открытый, ← → — по кругу
+  g.menu.addItem({ key: 'level', scene: 'title', after: 'play', label: function () { var n = startLv(); return g.t('lvPick') + ' ' + n + '  ' + starStr(prog.get(n)); },
+    onSelect: function () { setStart(prog.next(startLv(), 1)); } });
+  title.press = function (a) { var it = menu.current(); if (it && it.key === 'level' && (a === 'left' || a === 'right')) { setStart(prog.next(startLv(), a === 'left' ? -1 : 1)); this.audio.beep(600, 0.03); } };
   title.update = function (dt) { demoStep(Math.min(dt, 0.05)); };
   title.draw = function (ctx) {
     var th = this.th(), r = rnd(), P = r.P, retro = P.pixel, W = this.W, H = this.H;
     r.draw(ctx, demo.state(), this, { bare: true });
     ctx.fillStyle = retro ? 'rgba(0,0,0,.72)' : 'rgba(14,10,9,.72)'; ctx.fillRect(0, 0, W, H);
-    var pw = 380, ph = 330, px = (W - pw) / 2, py = 150;
+    var pw = 380, ph = 370, px = (W - pw) / 2, py = 130;
     if (retro) {
       ctx.fillStyle = '#000'; ctx.fillRect(px, py, pw, ph);
       ctx.fillStyle = P.hudLine; ctx.fillRect(px, py, pw, 4); ctx.fillRect(px, py + ph - 4, pw, 4); ctx.fillRect(px, py, 4, ph); ctx.fillRect(px + pw - 4, py, 4, ph);
@@ -104,10 +141,13 @@
       ctx.fillStyle = col;
       if (retro) ctx.fillRect(bx, by, 26, 8); else { K.ui.roundRect(ctx, bx, by, 26, 8, 2); ctx.fill(); }
     }
-    K.ui.txt(this, this.t('subtitle'), W / 2, py + 126, { size: 13, align: 'center', color: th.muted, weight: 600 }, P);
-    menu.draw(this, W / 2, py + 170, 32);
+    K.ui.txt(this, this.t('subtitle'), W / 2, py + 126, { size: fitK(this.t('subtitle'), pw - 20, 13, 600, P), align: 'center', color: th.muted, weight: 600 }, P);
+    menu.draw(this, W / 2, py + 162, 30);
+    var sl = startLv();
+    var info = this.t('lv_' + L.LEVELS[sl - 1].name) + ' · ★ ' + prog.total() + '/' + (M.LEVELS * 3) + ' · ' + this.t('unlockedLv') + ': ' + prog.maxUnlocked() + '/' + M.LEVELS;
+    K.ui.txt(this, info, W / 2, py + ph - 36, { size: fitK(info, pw - 20, 12, 700, P), align: 'center', color: P.accent, weight: 700 }, P);
     if (this.state.best) K.ui.txt(this, this.t('best') + ': ' + this.state.best, W / 2, py + ph - 16, { size: 12, align: 'center', color: th.muted, weight: 600 }, P);
-    K.ui.txt(this, this.t('hint'), W / 2, H - 22, { size: 11, align: 'center', color: th.muted, weight: 600 }, P);
+    K.ui.txt(this, this.t('hint'), W / 2, H - 22, { size: fitK(this.t('hint'), W - 24, 11, 600, P), align: 'center', color: th.muted, weight: 600 }, P);
   };
 
   // ---------- Игровая сцена ----------
@@ -134,7 +174,7 @@
       toasts = toasts.filter(function (o) { return o.t > 0; });
       sync();
     },
-    draw: function (ctx) { if (game) { rnd().draw(ctx, game.state(), this, { toasts: toasts }); if (adGate === 2 && Math.floor(this.time * 2) % 2 === 0) K.ui.txt(this, this.t('nextLevel'), L.W / 2, 440, { size: 15, align: 'center', color: rnd().P.accent, weight: 800 }, rnd().P); } else this.clear(); }
+    draw: function (ctx) { if (game) { rnd().draw(ctx, game.state(), this, { toasts: toasts }); if (lastStars && game.state().phase === 'clear' && lastStars.level === game.state().level) drawLevelStars(ctx, rnd().P); if (adGate === 2 && Math.floor(this.time * 2) % 2 === 0) K.ui.txt(this, this.t('nextLevel'), L.W / 2, 440, { size: 15, align: 'center', color: rnd().P.accent, weight: 800 }, rnd().P); } else this.clear(); }
   });
 
   // ---------- Мышь и палец ----------

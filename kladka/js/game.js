@@ -210,7 +210,8 @@
       paddle: { x: W / 2, w: PW_BASE, stun: 0, hitT: 0 },
       balls: [], bricks: [], grid: [], left: 0, caps: [], bolts: [], sparks: [], boss: null,
       pow: { wide: 0, narrow: 0, glue: 0, cutter: 0, chill: 0 },
-      speed: 0, prm: null, sinceTouch: 0, sinceBreak: 0, draft: false, banner: 0, name: '', boltCd: 0, served: false, clearBonus: 0
+      speed: 0, prm: null, sinceTouch: 0, sinceBreak: 0, draft: false, banner: 0, name: '', boltCd: 0, served: false, clearBonus: 0,
+      lvlT: 0, lvlLost: 0   // время и потери ядер на текущем уровне — для звёзд (js/meta.js)
     };
     var dirX = 0, target = null, fireHeld = false;
 
@@ -224,7 +225,7 @@
       for (var i = 0; i < S.bricks.length; i++) { var b = S.bricks[i]; S.grid[b.r * COLS + b.c] = b; if (!b.iron) S.left++; }
       S.caps = []; S.bolts = []; S.sparks = [];
       S.boss = L.boss ? { x: W / 2, y: FY0, w: 104, h: 62, hp: S.prm.bossHp, max: S.prm.bossHp, vx: 50, fireT: 2.6, mouth: 0, flash: 0, hitCd: 0, aim: W / 2 } : null;
-      S.banner = 1.8; S.sinceBreak = 0; S.draft = false; resetPowers(); serve();
+      S.banner = 1.8; S.sinceBreak = 0; S.draft = false; S.lvlT = 0; S.lvlLost = 0; resetPowers(); serve();
     }
     function resetPowers() { for (var k in S.pow) S.pow[k] = 0; S.paddle.stun = 0; }
     function serve() {
@@ -477,11 +478,11 @@
       if (S.boss ? S.boss.hp <= 0 : S.left <= 0) {
         S.phase = 'clear'; S.phaseT = 2.0; S.clearBonus = 300 * S.level; addScore(S.clearBonus);
         S.caps = []; S.sparks = []; S.bolts = [];
-        ev('clear', { level: S.level, bonus: S.clearBonus });
+        ev('clear', { level: S.level, bonus: S.clearBonus, time: S.lvlT, lost: S.lvlLost });
         return;
       }
       if (!S.balls.length) {
-        S.lives--; resetPowers(); S.caps = []; S.sparks = []; S.bolts = [];
+        S.lives--; S.lvlLost++; resetPowers(); S.caps = []; S.sparks = []; S.bolts = [];
         ev('lose', { lives: S.lives, x: P.x });
         if (S.lives <= 0) { S.over = true; S.phase = 'over'; ev('gameover', { score: S.score }); }
         else { S.phase = 'dead'; S.phaseT = 1.1; }
@@ -492,7 +493,7 @@
       start: function () { loadLevel(); ev('level', { level: S.level }); return api; },
       update: function (dt) {
         if (S.over) return;
-        S.time += dt;
+        S.time += dt; if (S.phase === 'play' || S.phase === 'dead') S.lvlT += dt;
         if (S.phase === 'play') stepPlay(dt);
         else if (S.phase === 'dead') { S.phaseT -= dt; if (S.phaseT <= 0) { S.phase = 'play'; serve(); ev('respawn'); } }
         else if (S.phase === 'clear') {
