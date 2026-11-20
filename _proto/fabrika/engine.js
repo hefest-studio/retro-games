@@ -4,7 +4,7 @@
  * настройки: язык/тема/звук), сцены, сетка, частицы, HUD, счёт+рекорд (localStorage по игре).
  * Встроены критерии: проходимость (win/lose+финал, difficulty), играбельность (отклик, фидбек),
  * непресность (нарастание). Игры самодостаточны: build.sh копирует файл в игру. API — README.
- * (c) Студия «Гефест». v2.3.0 (единое правило языка ?lang= → arcade.lang → ru, перевод DOM по data-en; v2.2: g.menu, g.input.player(i), g.usePlayers, touchOnly)
+ * (c) Студия «Гефест». v2.5.0 (v2.5: необязательная связка с площадкой — window.Platform из _shared/platform.js: пауза и звук на время рекламы, язык площадки, рекорд в облако, gameplayStart/Stop по сценам, реклама в паузах win/gameover, скрытие внешних ссылок; без platform.js — всё как раньше; v2.4: ссылка «← Каталог» a[data-catalog-back] ведёт в каталог текущего языка — ../ или ../en/, dt первого кадра не отрицательный; v2.3: единое правило языка ?lang= → arcade.lang → ru, перевод DOM по data-en; v2.2: g.menu, g.input.player(i), g.usePlayers, touchOnly)
  */
 (function (global) {
   'use strict';
@@ -53,8 +53,36 @@
         var v = el.getAttribute(lang === 'en' ? 'data-en' : 'data-ru'); if (v != null && el.innerHTML !== v) el.innerHTML = v;
       }
     } catch (e) {}
+    this.applyCatalogLink();
   };
-  I18n.resolve = resolveLang; I18n.urlLang = urlLang;
+  // Ссылка «← Каталог» (v2.4): a[data-catalog-back] ведёт в каталог ТЕКУЩЕГО языка — RU: ../ , EN: ../en/
+  // (на file:// — с index.html, иначе браузер покажет листинг папки). Исходный адрес запоминается в
+  // data-catalog-root. Подпись: если у ссылки нет data-en и внутри нет своей разметки — движок ставит
+  // «← Catalog» сам (обычный путь — data-en в разметке, см. applyDom).
+  I18n.prototype.applyCatalogLink = function () {
+    if (!doc || !doc.querySelectorAll) return; var en = this.lang === 'en';
+    try {
+      var file = !!(global.location && global.location.protocol === 'file:');
+      var ls = doc.querySelectorAll('a[data-catalog-back]');
+      for (var i = 0; i < ls.length; i++) {
+        var a = ls[i], root = a.getAttribute('data-catalog-root');
+        if (root == null) { root = catalogRoot(a.getAttribute('href')); a.setAttribute('data-catalog-root', root); }
+        var href = root + (en ? 'en/' : '') + (file ? 'index.html' : '');
+        if (a.getAttribute('href') !== href) a.setAttribute('href', href);
+        a.setAttribute('hreflang', en ? 'en' : 'ru');
+        if (a.getAttribute('data-en') == null && !/<[a-z]/i.test(a.innerHTML || '')) {
+          if (a.getAttribute('data-ru') == null) a.setAttribute('data-ru', a.innerHTML);
+          a.setAttribute('data-en', '\u2190 Catalog'); if (en) a.innerHTML = '\u2190 Catalog';
+        }
+      }
+    } catch (e) {}
+  };
+  // '../', '../index.html', '../en/', '../en/index.html' → '../' (корень каталога относительно игры)
+  function catalogRoot(href) {
+    var h = String(href == null ? '../' : href).replace(/[?#].*$/, '').replace(/index\.html$/i, '').replace(/(^|\/)en\/$/i, '$1');
+    return h || '../';
+  }
+  I18n.resolve = resolveLang; I18n.urlLang = urlLang; I18n.catalogRoot = catalogRoot;
 
   // ---------- Темы (retro / modern). modern — основная (вместо неона). ----------
   var THEMES = {
@@ -464,6 +492,7 @@
     this.menu = new MenuApi(this);
     this.musicAuto = opts.musicAuto !== false; // музыка по сценам: play — звучит, pause — пауза, прочие — стоп
     this.i18n = new I18n(opts.strings, opts.lang);
+    if (doc && doc.readyState === 'loading' && doc.addEventListener) { var i18n = this.i18n; doc.addEventListener('DOMContentLoaded', function () { i18n.applyDom(); }); } // движок подключён в <head>
     this.themeName = Store.get('arcade.theme', opts.theme || 'modern'); // modern по умолчанию
     this.themesMap = Object.assign({}, THEMES, opts.themes || {});
     this.step = opts.step || 1 / 60; this.scenes = Object.create(null); this.current = null;
@@ -477,17 +506,43 @@
     if (preset) this.audio.setMusic(preset);
     this.canvas.addEventListener('click', function (e) { self._click(e); });
     this.canvas.addEventListener('touchstart', function (e) { if (self.current && self.current._menu) { e.preventDefault(); self._click(e.changedTouches[0]); } }, { passive: false });
+    this.adBreaks = opts.adBreaks !== false; // реклама площадки в логических паузах (win/gameover), если подключён platform.js
+    var PF = global.Platform; this.platform = PF && typeof PF.init === 'function' && typeof PF.pauseHook === 'function' ? PF : null;
+    if (this.platform) this._bindPlatform(this.platform);
   }
+  // ---------- Площадка (v2.5): window.Platform из _shared/platform.js (подключается сборкой под площадку ДО engine.js) ----------
+  // Пауза площадки (реклама, окно покупки, вкладка) — цикл стоит, звук выключен; язык площадки — если адрес не задал ?lang;
+  // рекорд — max(локальный, облачный); ссылки наружу прячутся при Platform.allowExternalLinks === false. См. _shared/PLATFORMS.md.
+  Engine.prototype._bindPlatform = function (PF) {
+    var self = this;
+    PF.pauseHook(function () { self._pfPause = true; var ac = self.audio.ac; if (ac) { try { ac.suspend(); } catch (e) {} } },
+      function () { self._pfPause = false; self._last = performance.now(); var a = self.audio, ac = a.ac; if (ac && a.unlocked && !a._hidden) { try { ac.resume(); } catch (e) {} } });
+    this._applyPlatformLinks();
+    if (doc && doc.readyState === 'loading' && doc.addEventListener) doc.addEventListener('DOMContentLoaded', function () { self._applyPlatformLinks(); });
+    PF.init().then(function () {
+      var tb = self.i18n.tables || {}, l = !urlLang() && PF.langFor ? PF.langFor(Object.keys(tb).filter(function (k) { return LANGS[k]; })) : null;
+      if (l && l !== self.i18n.lang && tb[l]) self.i18n.set(l);
+      self._applyPlatformLinks();
+      var b = parseFloat(PF.peek('best.' + self.gameId)) || 0;
+      if (b > self.state.best) { self.state.best = b; Store.set('arcade.best.' + self.gameId, String(b)); }
+    }, function () {});
+  };
+  Engine.prototype._applyPlatformLinks = function () {
+    var PF = this.platform; if (!PF || PF.allowExternalLinks !== false || !doc || !doc.querySelectorAll) return;
+    try { var ls = doc.querySelectorAll('a[href]'); for (var i = 0; i < ls.length; i++) { var a = ls[i], h = a.getAttribute('href') || '';
+      if (/^(#|javascript:)/i.test(h)) continue; a.style.display = 'none'; a.setAttribute('aria-hidden', 'true'); a.setAttribute('tabindex', '-1'); a.setAttribute('data-platform-hidden', '1'); } } catch (e) {}
+  };
+  Engine.prototype._adBreak = function () { if (this.platform && this.adBreaks) { try { this.platform.showInterstitial(); } catch (e) {} } };
   Engine.prototype.th = function () { return this.themesMap[this.themeName] || THEMES.modern; };
   Engine.prototype.t = function (k, f) { return this.i18n.t(k, f); };
   Engine.prototype._applyPixel = function () { this.ctx.imageSmoothingEnabled = !this.th().pixel; };
   Engine.prototype.setTheme = function (name) { this.themeName = name; Store.set('arcade.theme', name); this._applyPixel(); };
   Engine.prototype.toggleTheme = function () { var order = ['modern', 'retro']; if (this.themesMap.neon && this._allowNeon) order.push('neon'); this.setTheme(order[(order.indexOf(this.themeName) + 1) % order.length]); return this.themeName; };
   Engine.prototype.loadBest = function () { return Store.getNum('arcade.best.' + this.gameId, 0); };
-  Engine.prototype.saveBest = function () { if (this.state.score > this.state.best) { this.state.best = this.state.score; Store.set('arcade.best.' + this.gameId, String(this.state.best)); } };
+  Engine.prototype.saveBest = function () { if (this.state.score > this.state.best) { this.state.best = this.state.score; Store.set('arcade.best.' + this.gameId, String(this.state.best)); if (this.platform) this.platform.save('best.' + this.gameId, this.state.best); } };
 
   Engine.prototype.scene = function (name, def) { this.scenes[name] = def; return this; };
-  Engine.prototype.goto = function (name, data) { this.current = this.scenes[name]; this._sceneName = name; this._acc = 0; if (name === 'play') this.input._armedAt = now(); this._musicScene(name, data || {}); if (this.current && this.current.enter) this.current.enter.call(this, data || {}); };
+  Engine.prototype.goto = function (name, data) { this.current = this.scenes[name]; this._sceneName = name; this._acc = 0; if (name === 'play') this.input._armedAt = now(); if (this.platform) { if (name === 'play') this.platform.gameplayStart(); else this.platform.gameplayStop(); } this._musicScene(name, data || {}); if (this.current && this.current.enter) this.current.enter.call(this, data || {}); };
   // Музыка следует за сценой (если musicAuto): play — играет (resume — с того же места, иначе с начала),
   // pause — пауза, title/win/gameover и прочие — стоп (на win/gameover звучит SFX движка, музыка не мешает).
   Engine.prototype._musicScene = function (name, data) {
@@ -513,10 +568,11 @@
       if (a === 'theme') self.toggleTheme();
       if (sc && sc.press) sc.press.call(self, a);
     });
-    this.goto(name || 'title'); this.running = true; this._last = performance.now();
+    this.goto(name || 'title'); this.running = true; this._last = performance.now(); if (this.platform) this.platform.ready();
     var loop = function (t) {
       self._raf = requestAnimationFrame(loop);
-      var dt = (t - self._last) / 1000; self._last = t; if (dt > 0.25) dt = 0.25;
+      if (self._pfPause) { self._last = t; return; } // пауза площадки (реклама и т.п.): кадр стоит
+      var dt = (t - self._last) / 1000; self._last = t; if (dt > 0.25) dt = 0.25; else if (dt < 0) dt = 0; // метка rAF первого кадра бывает раньше performance.now() из start() — без отрицательного времени (иначе g.time < 0 и кадры спрайтов с индексом -1)
       self.time += dt; self.particles.update(dt);
       var sc = self.current; if (!sc) return;
       if (sc.realtime) { if (sc.update) sc.update.call(self, dt); }
@@ -570,8 +626,8 @@
     ]);
     this.scene('pause', { realtime: true, _menu: pauseMenu, draw: function () { if (this.scenes.play && this.scenes.play.draw) this.scenes.play.draw.call(this, this.ctx); this.overlay(this.t('pause', 'ПАУЗА'), '', this.th().warn); pauseMenu.draw(this, this.W / 2, this.H / 2 + 20, 28); this.menu._drawHint('pause'); } });
     this.menu._register('pause', pauseMenu);
-    this.scene('win', { realtime: true, enter: function () { this.saveBest(); this.audio.beep(1200, 0.2, 'triangle'); }, draw: function () { this.clear(); this.overlay(this.t('win', 'ПОБЕДА!'), this.t('score', 'Счёт') + ': ' + (this.state.score | 0) + (this.state.best ? '   ' + this.t('best', 'Рекорд') + ': ' + this.state.best : ''), this.th().good); this.text(this.t('tapstart', 'пробел / тап'), this.W / 2, this.H - 24, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); }, press: function () { this.goto('title'); } });
-    this.scene('gameover', { realtime: true, enter: function () { this.saveBest(); this.audio.beep(140, 0.3, 'sawtooth'); }, draw: function () { this.clear(); this.overlay(this.t('gameover', 'КОНЕЦ ИГРЫ'), this.t('score', 'Счёт') + ': ' + (this.state.score | 0) + (this.state.best ? '   ' + this.t('best', 'Рекорд') + ': ' + this.state.best : ''), this.th().bad); this.text(this.t('tapstart', 'пробел / тап'), this.W / 2, this.H - 24, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); }, press: function () { this.goto('title'); } });
+    this.scene('win', { realtime: true, enter: function () { this.saveBest(); this.audio.beep(1200, 0.2, 'triangle'); this._adBreak(); }, draw: function () { this.clear(); this.overlay(this.t('win', 'ПОБЕДА!'), this.t('score', 'Счёт') + ': ' + (this.state.score | 0) + (this.state.best ? '   ' + this.t('best', 'Рекорд') + ': ' + this.state.best : ''), this.th().good); this.text(this.t('tapstart', 'пробел / тап'), this.W / 2, this.H - 24, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); }, press: function () { this.goto('title'); } });
+    this.scene('gameover', { realtime: true, enter: function () { this.saveBest(); this.audio.beep(140, 0.3, 'sawtooth'); this._adBreak(); }, draw: function () { this.clear(); this.overlay(this.t('gameover', 'КОНЕЦ ИГРЫ'), this.t('score', 'Счёт') + ': ' + (this.state.score | 0) + (this.state.best ? '   ' + this.t('best', 'Рекорд') + ': ' + this.state.best : ''), this.th().bad); this.text(this.t('tapstart', 'пробел / тап'), this.W / 2, this.H - 24, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); }, press: function () { this.goto('title'); } });
     return this;
   };
   // Локальный кооп «1–2 игрока за одной клавиатурой» поверх g.input.setPlayers (cfg — те же поля + hint, pad):
@@ -622,7 +678,7 @@
 
   // Arcade.tracks[gameId] = track — так js/music.js игры регистрирует свою мелодию до createGame.
   var Arcade = (global.Arcade && global.Arcade.tracks) ? global.Arcade : {};
-  Object.assign(Arcade, { createGame: function (o) { return new Engine(o); }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, version: '2.3.0' });
+  Object.assign(Arcade, { createGame: function (o) { return new Engine(o); }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, version: '2.5.0', catalogRoot: catalogRoot });
   Arcade.tracks = Arcade.tracks || {};
   if (typeof module !== 'undefined' && module.exports) module.exports = Arcade;
   global.Arcade = Arcade;

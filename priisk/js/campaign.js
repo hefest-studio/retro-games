@@ -37,15 +37,26 @@
    накрыл обвал; группа mode 'escort' — идёт за героем/тегом (g.follow), сама ездит клетями; def.finale — данные экрана финала
    кампании (рисует campaign-ui). Условия site, sites (сколько сделано), lit (сколько фонарей горит), rode (клеть возила своих),
    liftAt (где стоит клеть), pumped (сколько выкачали вышки игрока в зоне из def.pumped).
-   Прогресс — localStorage 'arcade.priisk.campaign' (через переданное хранилище, с try/catch). Экспорт: PRIISK.campaign. */
+   Кампания Сизого Перевала («Долг перевала»): миссия с def.camp = 'sizye' регистрируется в P.MISSIONS_S (P.MISSIONS — только
+   Медный Ключ, как раньше); def.side = 'sizye' — игрок за Сизых (ветряки, канатка, своя палитра — L.setSides); def.wind —
+   ветер на старте ({ dir, s, lock }), действие wind — сменить ветер; spawn.talk — пост, который Митяй может уговорить
+   (условие talked, событие — группа поста больше не реагирует); условие linked — у игрока есть забой с канатом до Станции; paid — сколько меди пришло по канату на станцию с тегом (торговый пост, spawn.mult — во сколько раз дороже);
+   действие seize — забрать у владельца юниты типов types (заводчик берёт технику в счёт долга);
+   cabled — сколько своих приехало по канату; wind — сила ветра (gte/lte). Связка кампаний: def.xcarry = { copper: ['alliance'] } —
+   флаги ЧУЖОЙ кампании (если она пройдена; читаются из её сохранения) попадают во флаги миссии как 'copper.alliance';
+   'copper.done' — сколько миссий Медного Ключа пройдено (0, если не играли). Обязательности нет: без сохранения — флагов нет.
+   Прогресс — localStorage 'arcade.priisk.campaign' (Медный Ключ) и 'arcade.priisk.campaign.sizye' (Сизые), через переданное
+   хранилище, с try/catch. Экспорт: PRIISK.campaign. */
 (function (root) {
   'use strict';
   var P = root.PRIISK = root.PRIISK || {};
   var L = P.logic;
-  var KEY = 'arcade.priisk.campaign';
-  P.MISSIONS = P.MISSIONS || [];
-  function register(def) { for (var n = 0; n < P.MISSIONS.length; n++) if (P.MISSIONS[n].id === def.id) { P.MISSIONS[n] = def; return def; } P.MISSIONS.push(def); P.MISSIONS.sort(function (a, b) { return a.n - b.n; }); return def; }
-  function byId(id) { for (var n = 0; n < P.MISSIONS.length; n++) if (P.MISSIONS[n].id === id) return P.MISSIONS[n]; return null; }
+  var KEY = 'arcade.priisk.campaign', KEYS = { copper: KEY, sizye: KEY + '.sizye' }, CAMPS = ['copper', 'sizye'];
+  P.MISSIONS = P.MISSIONS || []; P.MISSIONS_S = P.MISSIONS_S || [];
+  function campOf(def) { return def && def.camp === 'sizye' ? 'sizye' : 'copper'; }
+  function list(camp) { return camp === 'sizye' ? P.MISSIONS_S : P.MISSIONS; }
+  function register(def) { var ls = list(campOf(def)); for (var n = 0; n < ls.length; n++) if (ls[n].id === def.id) { ls[n] = def; return def; } ls.push(def); ls.sort(function (a, b) { return a.n - b.n; }); return def; }
+  function byId(id) { var all = P.MISSIONS.concat(P.MISSIONS_S); for (var n = 0; n < all.length; n++) if (all[n].id === id) return all[n]; return null; }
 
   // ---------- Карта ----------
   var TILE = { '#': L.ROCK, '~': L.WATER, '=': L.ICE, '_': L.OPEN, ':': L.BRIDGE, '.': L.GROUND, 'o': L.GROUND, 'O': L.GROUND, ',': L.SHAKY, '^': L.PIT };
@@ -108,11 +119,13 @@
     var save = opts.save || newSave();
     var MS = W.mission = {
       def: def, id: def.id, points: map.points, objs: [], byObj: Object.create(null), fired: Object.create(null), queue: [], groups: Object.create(null),
-      flags: Object.assign({}, def.flags || {}, carried(def, save)), spawned: Object.create(null), killed: Object.create(null), heroDead: Object.create(null), heroes: Object.create(null),
+      flags: Object.assign({}, def.flags || {}, carried(def, save), xcarried(def, opts.xsave)), talked: Object.create(null), cabled: 0, paid: Object.create(null), spawned: Object.create(null), killed: Object.create(null), heroDead: Object.create(null), heroes: Object.create(null),
       ui: [], allow: Object.create(null), night: false, nightMul: 1, weather: def.weather ? Object.assign({}, def.weather) : null, storm: 0,
       winAt: -1, reason: null, trigT: 0, aiT: 0, vetsUsed: 0, save: save, razed: Object.create(null), warn: [], geys: Object.create(null), creakT: 0,
       pumped: Object.create(null), lamps: Object.create(null), sites: Object.create(null), sitesN: 0, litN: 0, doused: Object.create(null), captured: Object.create(null), partsDown: Object.create(null), partsN: Object.create(null), bossDone: Object.create(null), scalded: Object.create(null)
     };
+    if (def.side === 'sizye') L.setSides(W, ['sizye', 'copper']); // игрок за Сизых: своя механика и сирень, Медный Ключ — латунь
+    if (def.wind) L.setWind(W, Object.assign({ now: true }, def.wind));
     if (def.teams) W.team = def.teams.slice(); if (def.paint) { W.paint = {}; Object.keys(def.paint).forEach(function (k) { W.paint[k] = def.paint[k]; }); }
     Object.keys(def.depots || {}).forEach(function (id) { var dd = def.depots[id], dp = pointOf(MS, dd.at); W.depots.push({ id: id, x: dp.x, y: dp.y, w: dd.w == null ? 400 : dd.w, max: dd.max || dd.w || 400, team: dd.team == null ? null : dd.team, kind: dd.kind || 'water' }); });
     W.los = !!def.los; // шахта: сквозь породу не видно и не стреляют
@@ -132,7 +145,7 @@
         if (s.when && !cond(W, s.when)) return; // стартовые силы по флагам прошлых миссий (например, обоз из миссии 2)
         var owner = s.owner == null ? owner0 : s.owner;
         if (s.type === 'train') { makeTrain(W, MS, Object.assign({ owner: owner }, s)); return; }
-        if (L.BLDS[s.type]) { var c = MS.points[s.at][0]; var b = L.addBuilding(W, owner, s.type, c.i, c.j, s.noFree); if (s.tag) b.tag = s.tag; if (s.hpFrac) b.hp = Math.round(b.maxHp * s.hpFrac); if (s.stock != null) b.stock = s.stock; return; }
+        if (L.BLDS[s.type]) { var c = MS.points[s.at][0]; var b = L.addBuilding(W, owner, s.type, c.i, c.j, s.noFree); if (s.tag) b.tag = s.tag; if (s.hpFrac) b.hp = Math.round(b.maxHp * s.hpFrac); if (s.stock != null) b.stock = s.stock; if (s.mult) b.mult = s.mult; return; }
         var p = pointOf(MS, s.at), tiles = spreadAround(W, p.x, p.y, s.n || 1);
         tiles.forEach(function (tl) {
           var u = L.addUnit(W, owner, s.type, tl.i + 0.5, tl.j + 0.5); u.post = { x: u.x, y: u.y };
@@ -140,7 +153,7 @@
           if (L.HEROES[s.type] && owner === 0) { MS.heroes[s.type] = u.id; var hs = save.roster && save.roster.heroes && save.roster.heroes[s.type]; if (hs && hs.wounded) { u.hp = Math.round(u.maxHp * 0.6); u.wounded = true; } }
           if (s.vets && owner === 0) { var k = vets.findIndex(function (v) { return v.type === s.type; }); if (k >= 0) { var v = vets.splice(k, 1)[0]; u.vet = v.vet || 1; u.kills = v.kills || 3; MS.vetsUsed++; } }
           if (s.heading != null) u.heading = u.aim = s.heading;
-          if (s.locked) u.locked = true; if (s.speed) u.sm = s.speed; if (s.hp) u.hp = u.maxHp = s.hp; if (s.calm) u.calm = true; if (s.water != null) u.water = s.water;
+          if (s.locked) u.locked = true; if (s.speed) u.sm = s.speed; if (s.hp) u.hp = u.maxHp = s.hp; if (s.calm) u.calm = true; if (s.water != null) u.water = s.water; if (s.talk) u.talk = true;
         });
       });
     }
@@ -157,6 +170,16 @@
     return W;
   }
   // флаги прошлых миссий: def.carry = ['convoy'] — взять из сохранения кампании (если есть), иначе остаётся def.flags
+  // флаги чужой кампании: def.xcarry = { copper: ['alliance'] } → 'copper.alliance'; 'copper.done' — сколько её миссий пройдено.
+  // xsave — сохранение той кампании (если не передано — читаем из C.store, его ставит campaign-ui); нет — флагов нет
+  function xcarried(def, xsave) {
+    var out = {}; Object.keys(def.xcarry || {}).forEach(function (camp) {
+      var sv = xsave && xsave[camp] !== undefined ? xsave[camp] : (P.campaign.store !== undefined ? load(P.campaign.store, camp) : null); if (!sv) return;
+      out[camp + '.done'] = Object.keys(sv.missions || {}).length;
+      def.xcarry[camp].forEach(function (k) { if (sv.flags && sv.flags[k] != null) out[camp + '.' + k] = sv.flags[k]; });
+    });
+    return out;
+  }
   function carried(def, save) { var out = {}; (def.carry || []).forEach(function (k) { if (save && save.flags && save.flags[k] != null) out[k] = save.flags[k]; }); return out; }
   // Поезд: тягач в точке at + wagons вагонов позади (против heading), след тягача заранее проложен по ним.
   // o: { owner, at, tag, wagons, heading, speed, locked, hp, wagonHp }
@@ -221,6 +244,11 @@
       case 'rode': { var rl = L.liftById(W, c.id); return !!rl && rl.trips >= (c.gte || 1); }
       case 'liftAt': { var la = L.liftById(W, c.id); return !!la && la.st !== 'move' && la.at === c.end; }
       case 'pumped': return (MS.pumped[c.zone] || 0) >= c.gte; // сколько меди выкачали вышки игрока в зоне (def.pumped — список зон учёта)
+      case 'talked': return !!MS.talked[c.tag];
+      case 'cabled': return MS.cabled >= (c.gte || 1);
+      case 'paid': return (MS.paid[c.tag] || 0) >= (c.gte || 1);
+      case 'wind': return !!W.wind && (c.gte == null || W.wind.s >= c.gte) && (c.lte == null || W.wind.s <= c.lte);
+      case 'linked': return W.blds.some(function (b) { return b.owner === o && L.BLDS[b.type].face && L.cableRoute(W, b, function (x) { return !!L.BLDS[x.type].terminal; }).length > 0; });
       case 'lostB': return pl.lostB <= (c.lte || 0);
       case 'lostU': return pl.lost - pl.lostB <= (c.lte || 0);
       case 'all': return c.of.every(function (x) { return cond(W, x); });
@@ -248,7 +276,7 @@
       case 'msg': MS.ui.push({ t: 'msg', text: a.text, col: a.col }); break;
       case 'spawn': {
         var p = pointOf(MS, a.at), tiles = spreadAround(W, p.x, p.y, a.n || 1), o = a.owner == null ? 1 : a.owner;
-        tiles.forEach(function (tl) { var u = L.addUnit(W, o, a.type, tl.i + 0.5, tl.j + 0.5); u.post = { x: u.x, y: u.y }; if (a.tag) { u.tag = a.tag; MS.spawned[a.tag] = (MS.spawned[a.tag] || 0) + 1; } if (a.heading != null) u.heading = u.aim = a.heading; if (a.speed) u.sm = a.speed; if (a.hp) u.hp = u.maxHp = a.hp; if (a.locked) u.locked = true; if (a.calm) u.calm = true; });
+        tiles.forEach(function (tl) { var u = L.addUnit(W, o, a.type, tl.i + 0.5, tl.j + 0.5); u.post = { x: u.x, y: u.y }; if (a.tag) { u.tag = a.tag; MS.spawned[a.tag] = (MS.spawned[a.tag] || 0) + 1; } if (a.heading != null) u.heading = u.aim = a.heading; if (a.speed) u.sm = a.speed; if (a.hp) u.hp = u.maxHp = a.hp; if (a.locked) u.locked = true; if (a.calm) u.calm = true; if (a.talk) u.talk = true; });
         break;
       }
       case 'train': makeTrain(W, MS, a); break;
@@ -296,6 +324,8 @@
       case 'lamp': [].concat(a.id).forEach(function (id) { if (MS.lamps[id]) lightLamp(W, MS, MS.lamps[id], true); }); break;
       case 'site': [].concat(a.id).forEach(function (id) { var st = MS.sites[id]; if (!st) return; if (a.on != null) st.on = !!a.on; if (a.done && !st.done) { st.done = true; MS.sitesN++; } }); break;
       case 'calm': W.units.forEach(function (u) { if (u.tag === a.tag) { u.calm = a.on !== false; if (u.calm && u.order.t === 'attack') { u.order = { t: 'idle' }; u.path = []; } } }); W.units.forEach(function (u) { if (u.order.t === 'attack') { var tg2 = W.byId[u.order.target]; if (tg2 && tg2.tag === a.tag && tg2.calm) { u.order = { t: 'idle' }; u.path = []; } } }); break;
+      case 'wind': L.setWind(W, a); break;
+      case 'seize': { var sz0 = 0; W.units = W.units.filter(function (u) { if (u.owner === (a.owner || 0) && a.types.indexOf(u.type) >= 0) { delete W.byId[u.id]; sz0++; return false; } return true; }); var pz = W.players[a.owner || 0]; ['inf', 'veh'].forEach(function (q) { pz[q] = pz[q].filter(function (t) { if (a.types.indexOf(t) >= 0) { pz.copper += L.UNITS[t].cost; return false; } return true; }); }); MS.seized = (MS.seized || 0) + sz0; break; } // заводчик забирает технику (и заказанную — медь возвращается)
       case 'allow': (a.build || []).concat(a.units || []).forEach(function (b) { MS.allow[b] = true; }); if (a.repair) { MS.repair = W.repairOn = true; } if (a.pack) W.packOn = true; break;
       default: throw new Error('неизвестное действие ' + a.a);
     }
@@ -319,6 +349,7 @@
 
   // ---------- Сценарный ИИ групп ----------
   function groupStep(W, MS, g) {
+    if (g.talked) return; // пост уговорили — стоит мирно
     var mem = W.units.filter(function (u) { return u.tag === g.tag && u.owner === g.owner; });
     if (!mem.length) return;
     var armed = mem.filter(function (u) { return !!L.UNITS[u.type].weapon && !u.calm; }), foeOf = function (e) { return L.hostile(W, e.owner, g.owner); };
@@ -411,6 +442,12 @@
       if (ev.t === 'captured' && ev.owner === 0) { MS.captured[ev.type] = (MS.captured[ev.type] || 0) + 1; MS.captured['*'] = (MS.captured['*'] || 0) + 1; }
       if (ev.t === 'part') { MS.partsDown[(ev.tag || '-') + ':' + ev.k] = true; MS.partsDown['*:' + ev.k] = true; MS.partsN[ev.tag || '-'] = (MS.partsN[ev.tag || '-'] || 0) + 1; MS.partsN['*'] = (MS.partsN['*'] || 0) + 1; MS.ui.push({ t: 'part', k: ev.k, left: ev.left }); }
       if (ev.t === 'bossScald') { MS.scalded[ev.tag || '-'] = (MS.scalded[ev.tag || '-'] || 0) + 1; MS.scalded['*'] = (MS.scalded['*'] || 0) + 1; MS.ui.push({ t: 'scald' }); }
+      if (ev.t === 'talked' && ev.owner === 0) { MS.talked[ev.tag] = true; if (MS.groups[ev.tag]) MS.groups[ev.tag].talked = true; MS.ui.push({ t: 'talked', tag: ev.tag }); }
+      if (ev.t === 'talkFail' && ev.owner === 0) MS.ui.push({ t: 'talkFail', tag: ev.tag });
+      if (ev.t === 'cableIn' && ev.owner === 0) MS.cabled++;
+      if (ev.t === 'copper' && ev.cable && ev.owner === 0 && ev.tag) MS.paid[ev.tag] = (MS.paid[ev.tag] || 0) + ev.n; // медь, пришедшая по канату на станцию с тегом
+      if (ev.t === 'carFall' && ev.owner === 0) MS.ui.push({ t: 'carFall' });
+      if (ev.t === 'windShift' && L.facOf(W, 0) === 'sizye') MS.ui.push({ t: 'wind' });
       if (ev.t === 'bossArrived') { MS.bossDone[ev.tag || '-'] = true; MS.bossDone['*'] = true; }
       var bt = ev.kind === 'bld' ? ev.type : ev.packed; // здание (или фургон со свёрнутым зданием) снесено
       if (ev.t === 'die' && bt) { MS.razed[ev.owner + ':' + bt] = (MS.razed[ev.owner + ':' + bt] || 0) + 1; MS.razed[ev.owner + ':*'] = (MS.razed[ev.owner + ':*'] || 0) + 1; }
@@ -504,17 +541,17 @@
   }
 
   // ---------- Прогресс кампании ----------
-  function newSave() { return { v: 1, unlocked: 1, missions: {}, flags: {}, roster: { heroes: {}, vets: [] } }; }
-  function load(store) {
-    var s = null;
-    try { var raw = store && store.getItem(KEY); if (raw) s = JSON.parse(raw); } catch (e) { s = null; }
-    if (!s || typeof s !== 'object' || s.v !== 1) return newSave();
-    var d = newSave(); d.unlocked = Math.max(1, s.unlocked | 0); d.missions = s.missions || {}; d.flags = s.flags || {};
+  function newSave(camp) { var d = { v: 1, unlocked: 1, missions: {}, flags: {}, roster: { heroes: {}, vets: [] } }; if (camp === 'sizye') d.camp = 'sizye'; return d; }
+  function load(store, camp) {
+    var s = null; camp = camp === 'sizye' ? 'sizye' : 'copper';
+    try { var raw = store && store.getItem(KEYS[camp]); if (raw) s = JSON.parse(raw); } catch (e) { s = null; }
+    if (!s || typeof s !== 'object' || s.v !== 1) return newSave(camp);
+    var d = newSave(camp); d.unlocked = Math.max(1, s.unlocked | 0); d.missions = s.missions || {}; d.flags = s.flags || {};
     d.roster = { heroes: (s.roster && s.roster.heroes) || {}, vets: (s.roster && Array.isArray(s.roster.vets)) ? s.roster.vets : [] };
     return d;
   }
-  function save(store, data) { try { store && store.setItem(KEY, JSON.stringify(data)); return true; } catch (e) { return false; } }
-  function reset(store) { try { store && store.removeItem(KEY); } catch (e) {} return newSave(); }
+  function save(store, data) { try { store && store.setItem(KEYS[data && data.camp === 'sizye' ? 'sizye' : 'copper'], JSON.stringify(data)); return true; } catch (e) { return false; } }
+  function reset(store, camp) { try { store && store.removeItem(KEYS[camp === 'sizye' ? 'sizye' : 'copper']); } catch (e) {} return newSave(camp); }
   // Победа: звёзды (лучшие), время, флаги, герои и ветераны → в сохранение; открывается следующая миссия.
   function applyResult(data, res) {
     if (!res.win) return data;
@@ -535,12 +572,12 @@
   function finale(def, data) {
     var f = def && def.finale; if (!f) return null; var flags = (data && data.flags) || {}, total = 0, max = 0;
     var rows = (f.rows || []).map(function (r) { var m = byId(r.mission), v = flags[r.key], t = (r.text && r.text[v]) || (m && m.flagText && m.flagText[r.key] && m.flagText[r.key][v]); return t ? { n: m.n, title: m.title, text: t, key: r.key, value: v } : null; }).filter(Boolean);
-    var stars = P.MISSIONS.map(function (m) { var rec = data && data.missions && data.missions[m.id], st = [0, 1, 2].map(function (k) { return !!(rec && rec.stars && rec.stars[k]); }); st.forEach(function (x) { max++; if (x) total++; }); return { n: m.n, id: m.id, stars: st, done: !!rec }; });
+    var stars = list(campOf(def)).map(function (m) { var rec = data && data.missions && data.missions[m.id], st = [0, 1, 2].map(function (k) { return !!(rec && rec.stars && rec.stars[k]); }); st.forEach(function (x) { max++; if (x) total++; }); return { n: m.n, id: m.id, stars: st, done: !!rec }; });
     return { title: pick(f.title, flags), sub: pick(f.sub, flags), rows: rows, stars: stars, total: total, max: max,
       quotes: (f.quotes || []).filter(function (q) { return flagsMatch(q.when, flags); }).slice(0, f.maxQuotes || 4), note: pick(f.note, flags), ending: flags[f.key || 'ending'] || null };
   }
 
-  P.campaign = { finale: finale, KEY: KEY, register: register, byId: byId, parseMap: parseMap, build: build, step: step, tick: tick, cond: cond, act: act, run: run,
+  P.campaign = { finale: finale, KEY: KEY, KEYS: KEYS, CAMPS: CAMPS, campOf: campOf, list: list, xcarried: xcarried, register: register, byId: byId, parseMap: parseMap, build: build, step: step, tick: tick, cond: cond, act: act, run: run,
     result: result, newSave: newSave, load: load, save: save, reset: reset, applyResult: applyResult, pointOf: pointOf, inZone: inZone, zoneCenter: zoneCenter,
     zoneCells: zoneCells, txt: txt, everyone: everyone, makeTrain: makeTrain, hazards: hazards, allowed: function (W, type) { return !W.mission || !!W.mission.allow[type]; } };
 })(typeof window !== 'undefined' ? window : globalThis);

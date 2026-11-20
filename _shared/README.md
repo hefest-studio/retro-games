@@ -1,4 +1,4 @@
-# Гефест Arcade — фреймворк (v2.4) · engine.js + host.js + mouse.js
+# Гефест Arcade — фреймворк (v2.5) · engine.js + host.js + mouse.js + platform.js
 
 `engine.js` — vanilla JS, **0 зависимостей**. Расширен из микро-движка (v1) в фреймворк с общими
 системами, которые игры дублировали. Критерии проходимость/играбельность/непресность — встроены.
@@ -21,6 +21,7 @@
 - **Меню:** `useStandardScreens({title,subtitle,lives,neon})` даёт сцены `title` (меню: Играть/Язык/Тема/Звук + показ рекорда), `pause` (Продолжить/Звук/В меню), `win`, `gameover`. Навигация ↑↓+action и клик/тап. Свои пункты — `g.menu.addItem(…)` (раздел «v2.2»). `Arcade.Menu` — переиспользуемый.
 - **Счёт/рекорд:** `g.state{score,lives,level,best}`; `g.saveBest()` (вызывается на win/gameover) пишет `arcade.best.<gameId>`. Хук под рейтинг/звёзды — поверх best.
 - **Проходимость/сложность:** `g.win()/gameover()/nextLevel()`, `g.difficulty(base,step,max)`.
+- **Площадки (v2.5):** необязательный `_shared/platform.js` (Яндекс Игры / GamePush / свой сайт) — подключается только в сборках под площадку (`tools/platform-build.mjs`) ДО `engine.js`; движок сам связывается с `window.Platform`: пауза и звук на время рекламы, язык площадки, рекорд в облако, `gameplayStart/Stop` по сценам, реклама в паузах `win`/`gameover` (`adBreaks:false` — выключить), скрытие внешних ссылок. Без `platform.js` — всё как раньше. Подробно — `_shared/PLATFORMS.md`, тест — `platform.test.mjs`.
 - **Утилиты:** `Arcade.Grid`, `g.particles`, `g.fit(maxCssWidth)`, `Arcade.loadSprites`, `Arcade.Store`.
 
 ## Старт
@@ -156,9 +157,9 @@ P1.onPress(name => …); // нажатие действия этого игро�
 - **Подключение/синхронизация:** файл игры `js/mouse.js` — копия общего. `build.sh` обновляет копию только там, где `js/mouse.js` уже несёт метку
   «Источник — _shared/mouse.js» (собственные модули игр не затираются). Новая игра: скопировать `_shared/mouse.js` в `<игра>/js/mouse.js` и подключить после `engine.js`.
 - **Тесты:** `node _shared/tests/mouse.test.mjs` (43: мышь, тач, щипок, UI-зоны, enabled, масштаб canvas, курсоры, detach, сверка копий в играх).
-- **На модуле:** `porubezhye`. **Ещё на своих модулях:** `priisk` (`priisk/js/mouse.js`, другой API — см. ниже), прототипы `_proto/fabrika/js/pointer.js`, `_proto/rts-c/js/main.js`.
+- **На модуле:** `porubezhye`, `priisk` (с 11.2026, перевод — ниже). **Ещё на своих модулях:** прототипы `_proto/fabrika/js/pointer.js`, `_proto/rts-c/js/main.js`.
 
-### Перевод `priisk` на общий модуль (что заменить)
+### Перевод `priisk` на общий модуль — выполнен (11.2026; таблица — для истории и для переноса других игр)
 `priisk/js/mouse.js` — тот же `ArcadeMouse`, но с другим контрактом. При переводе файл заменяется копией `_shared/mouse.js`, а в `priisk/js/main.js` (вызов `ArcadeMouse.attach`, ~стр. 108–190) меняется:
 
 | Было (priisk) | Стало (общий модуль) |
@@ -178,6 +179,9 @@ P1.onPress(name => …); // нажатие действия этого игро�
 | `mouse.cancel()`, `mouse.detach()` | те же |
 | подписки `pointermove/up` на canvas | на `window` (жест не теряется за пределами canvas) — проверить, что HTML-кнопки поверх canvas не ждут этих событий |
 
+Как сделано в `priisk/js/main.js`: `hitUI` = `!inView(p) || R.groupAt(…)`; в `onUi` ЛКМ/тап — бывший `onDown` (кнопки групп с Ctrl/долгим
+нажатием, мини-карта с перетаскиванием, панель), ПКМ (`btn 2`) — приказ на отпускании (назначить группу / отмена в панели / приказ по
+мини-карте), СКМ (`btn 1`) над панелью — панорама (как было); `P.mouse.cursor` — имя курсора (`'lift'`, `'attack'`…), сам модуль хранит CSS.
 После перевода: тесты `priisk/tests/engine.test.mjs` (блок «ArcadeMouse», стр. ~248–300) переписать под новый контракт или заменить ссылкой на `_shared/tests/mouse.test.mjs`;
 браузером проверить рамку, приказ ПКМ, мини-карту (перетаскивание), группы (долгое нажатие ≥ 480 мс = назначить), размещение зданий на таче, панораму двумя пальцами.
 

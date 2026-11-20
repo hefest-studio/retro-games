@@ -1,0 +1,27 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ПОЛУУСТАВ · Ученик переписчика внутри рукописи — HTML5</title>
+<meta name="description" content="ПОЛУУСТАВ — оригинальный атмосферный пазл-платформер студии «Гефест» без слов, целиком нарисованный тушью: ученик переписчика идёт по семи страницам старой рукописи. Ящики, верёвки, рычаги и противовесы, вода и течение, капканы, бревна и пилы мельницы; песок сушит разлитую тушь, перо дорисовывает мосты, наброски твердеют в свете лампады. Смерть — клякса и мгновенный возврат к отметке. Темы retro/modern, RU/EN, офлайн.">
+<meta name="theme-color" content="#efe3c6">
+<link rel="canonical" href="https://arcade.hefest.ru/poluustav/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="./css/style.css">
+</head><body>
+<a class="back" id="back" href="../" data-catalog-back="1" data-en="← Catalog">← Каталог</a>
+<div class="wrap"><canvas id="c" width="960" height="540" aria-label="ПОЛУУСТАВ"></canvas></div>
+<div class="pad">
+  <div class="cross"><button data-d="L" aria-label="Влево">◀</button><button data-d="R" aria-label="Вправо">▶</button></div>
+  <button class="mini" id="bPause" aria-label="Пауза">II</button>
+  <button class="act" id="bAct" aria-label="Действие">✋</button>
+  <button class="jump" id="bJump" aria-label="Прыжок">▲</button>
+</div>
+<div class="foot" id="foot">ПОЛУУСТАВ · ◀▶ — идти · ▲ / пробел — прыжок · E — действие · P — пауза · T — тема · L — язык · M — звук.</div>
+<script src="./engine.js"></script>
+<script src="./js/music.js"></script>
+<script src="./js/i18n.js"></script>
+<script src="./js/levels.js"></script>
+<script src="./js/game.js"></script>
+<script src="./js/audio.js"></script>
+<script src="./js/render.js"></script>
+<script src="./js/main.js"></script>
+</body></html>

@@ -107,11 +107,132 @@
   }
 
   // ---------- здания ----------
+
+  // ---------- Артель Сизого Перевала: свой облик (не перекраска Медного Ключа) ----------
+  // Медный Ключ — латунь, железо, пар; Сизые — серое выветренное дерево, сланцевые кровли, канаты и парусина цвета сирени,
+  // ветряки и опоры канатной дороги. Цвета дерева/сланца/парусины — свои для каждой темы.
+  var SZ = { modern: { wood: '#7d8590', woodHi: '#a3aab3', woodLo: '#4c535c', slate: '#46505e', slateHi: '#5e6a7a', cloth: '#d9cdea', rope: '#2b2630', snow: '#e8eef3' },
+    retro: { wood: '#aaaaaa', woodHi: '#ffffff', woodLo: '#555555', slate: '#0000aa', slateHi: '#5555ff', cloth: '#ffffff', rope: '#000000', snow: '#ffffff' } };
+  var SZ_TYPES = { mill: 1, pylon: 1, hut: 1, station: 1, face: 1, sail: 1, ranger: 1, skiff: 1, harpoon: 1, korney: 1, agafya: 1, mityay: 1 };
+  function szPal(pal) { return SZ[pal.pixel ? 'retro' : 'modern']; }
+  function logs(c, x, y, w, h, z, n) { for (var k = 0; k < n; k++) { c.fillStyle = k % 2 ? z.wood : z.woodHi; c.fillRect(x, y + k * h / n, w, h / n - 1); c.fillStyle = z.woodLo; c.fillRect(x, y + (k + 1) * h / n - 1, w, 1); } }
+  function shingles(c, x, y, w, h, z, own) { c.fillStyle = z.slate; c.fillRect(x, y, w, h); c.fillStyle = z.slateHi; for (var r = 0; r < h; r += 5) for (var q = (r / 5) % 2 * 4; q < w; q += 8) c.fillRect(x + q, y + r, 6, 2); c.fillStyle = own; c.fillRect(x, y + h / 2 - 1, w, 2); }
+  function drawSzBld(c, b, pal, now, ghost, x, y, w, h, own, dk, box) {
+    var z = szPal(pal), px = pal.pixel;
+    if (b.type === 'hq') { // изба-контора: сруб, высокая шатровая кровля из сланца, флюгер и знамя-полотнище
+      logs(c, x + 3, y + 4, w - 7, h - 8, z, 9);
+      c.fillStyle = z.slate; c.beginPath(); c.moveTo(x + 6, y + 8); c.lineTo(x + w / 2, y + h * 0.18); c.lineTo(x + w - 7, y + 8); c.lineTo(x + w - 7, y + h - 18); c.lineTo(x + w / 2, y + h * 0.82 - 10); c.lineTo(x + 6, y + h - 18); c.closePath(); c.fill();
+      c.strokeStyle = z.slateHi; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x + 6, y + 8); c.lineTo(x + w - 7, y + h - 18); c.moveTo(x + w - 7, y + 8); c.lineTo(x + 6, y + h - 18); c.stroke();
+      box(x + w / 2 - 6, y + h - 16, 12, 12, z.woodLo, 1); c.fillStyle = own; c.fillRect(x + w / 2 - 1, y + h - 16, 2, 12);
+      c.fillStyle = z.woodLo; c.fillRect(x + 6, y + 3, 2, 26); c.fillStyle = own; c.beginPath(); c.moveTo(x + 8, y + 4); c.lineTo(x + 24, y + 8); c.lineTo(x + 8, y + 13); c.closePath(); c.fill(); // знамя
+      var va = ghost ? 0 : (P.S && P.S.W && P.S.W.wind ? P.S.W.wind.a : 0); c.save(); c.translate(x + w / 2, y + h * 0.4); c.rotate(va); c.strokeStyle = z.rope; c.lineWidth = 2; c.beginPath(); c.moveTo(-7, 0); c.lineTo(7, 0); c.stroke(); c.fillStyle = own; c.beginPath(); c.moveTo(-8, 0); c.lineTo(-3, -4); c.lineTo(-3, 4); c.closePath(); c.fill(); c.restore();
+      c.strokeStyle = own; c.lineWidth = 2; c.strokeRect(x + 3, y + 3, w - 7, h - 7);
+    } else if (b.type === 'mill') { // ветряк: каменное основание, четыре крыла (два — под парусиной); крутится по силе ветра
+      c.fillStyle = z.woodLo; c.beginPath(); for (var k = 0; k < 6; k++) { var a6 = k / 6 * Math.PI * 2; c.lineTo(x + w / 2 + Math.cos(a6) * 15, y + h / 2 + Math.sin(a6) * 15); } c.closePath(); c.fill();
+      c.fillStyle = z.wood; c.beginPath(); c.arc(x + w / 2, y + h / 2, 10, 0, 7); c.fill();
+      var rot = ghost ? 0.5 : now * (0.3 + (b.pw || 0) / 9) + b.id;
+      c.save(); c.translate(x + w / 2, y + h / 2); c.rotate(rot);
+      for (var bl = 0; bl < 4; bl++) { c.rotate(Math.PI / 2); c.fillStyle = z.rope; c.fillRect(-1.2, 2, 2.4, 22); if (bl % 2 === 0) { c.fillStyle = z.cloth; c.fillRect(1.2, 8, 6, 15); c.fillStyle = own; c.fillRect(1.2, 8, 6, 2); } else { c.strokeStyle = z.woodHi; c.lineWidth = 1; c.strokeRect(1.5, 8.5, 5, 14); } }
+      c.restore(); c.fillStyle = own; c.beginPath(); c.arc(x + w / 2, y + h / 2, 3.5, 0, 7); c.fill();
+      if (!ghost && b.pw === 0) { c.fillStyle = pal.bad; c.font = '900 12px ' + pal.font; c.textAlign = 'center'; c.fillText('∅', x + w - 6, y + 12); c.textAlign = 'left'; }
+    } else if (b.type === 'pylon') { // опора канатки: А-образная рама из бруса, сверху ролик
+      c.strokeStyle = z.woodLo; c.lineWidth = 3; c.beginPath(); c.moveTo(x + 3, y + h - 2); c.lineTo(x + w / 2, y + 4); c.lineTo(x + w - 3, y + h - 2); c.stroke();
+      c.strokeStyle = z.wood; c.lineWidth = 2; c.beginPath(); c.moveTo(x + 6, y + h - 8); c.lineTo(x + w - 6, y + h - 8); c.moveTo(x + 3, y + h - 2); c.lineTo(x + w / 2, y + 4); c.stroke();
+      c.fillStyle = own; c.beginPath(); c.arc(x + w / 2, y + 5, 3.5, 0, 7); c.fill(); c.fillStyle = z.rope; c.fillRect(x + w / 2 - 1, y + 4, 2, 2);
+    } else if (b.type === 'hut') { // зимовьё: сруб под дерновой кровлей в снегу, труба с тонким дымом
+      logs(c, x + 3, y + 6, w - 7, h - 10, z, 6);
+      box(x + 5, y + 4, w - 11, h - 18, z.snow, 4); c.fillStyle = z.woodLo; c.fillRect(x + 5, y + 4 + (h - 18) / 2, w - 11, 2);
+      box(x + w - 14, y + 6, 6, 6, z.slate, 1); box(x + 8, y + h - 11, 9, 7, z.woodLo, 1); c.fillStyle = own; c.fillRect(x + 20, y + h - 9, w - 28, 3);
+      if (!ghost && hash(b.id, (now * 2) | 0) < 0.25) puff(b.tx + b.w - 0.45, b.ty + 0.25, 0.5);
+    } else if (b.type === 'station') { // приёмная станция канатки: навес, большое колесо (вращается), лотки с медью
+      box(x + 2, y + 3, w - 5, h - 7, z.woodLo, 3); shingles(c, x + 4, y + 5, w * 0.55, h - 12, z, own);
+      var wx = x + w * 0.78, wy = y + h / 2 - 1; c.strokeStyle = z.rope; c.lineWidth = 3; c.beginPath(); c.arc(wx, wy, 13, 0, 7); c.stroke();
+      c.save(); c.translate(wx, wy); c.rotate(ghost ? 0 : now * 1.2); c.strokeStyle = z.woodHi; c.lineWidth = 2; for (var sp = 0; sp < 6; sp++) { c.rotate(Math.PI / 3); c.beginPath(); c.moveTo(0, 0); c.lineTo(12, 0); c.stroke(); } c.restore();
+      c.fillStyle = own; c.beginPath(); c.arc(wx, wy, 3, 0, 7); c.fill();
+      c.fillStyle = pal.ore; c.fillRect(x + 8, y + h - 9, 10, 4); c.fillRect(x + 22, y + h - 9, 10, 4);
+    } else if (b.type === 'face') { // забой: тёмный зев штольни в бревенчатой раме, вагонетка и куча руды (сколько накоплено)
+      box(x + 2, y + 2, w - 5, h - 5, pal.rockLo, 4);
+      c.fillStyle = '#0d0c0b'; c.beginPath(); c.moveTo(x + 10, y + h - 6); c.lineTo(x + 10, y + 16); c.quadraticCurveTo(x + w / 2, y + 4, x + w - 11, y + 16); c.lineTo(x + w - 11, y + h - 6); c.closePath(); c.fill();
+      c.strokeStyle = z.wood; c.lineWidth = 3; c.beginPath(); c.moveTo(x + 9, y + h - 5); c.lineTo(x + 9, y + 14); c.lineTo(x + w - 10, y + 14); c.lineTo(x + w - 10, y + h - 5); c.stroke();
+      var st = ghost ? 0.6 : Math.min(1, (b.stock || 0) / L.FACE.stock); c.fillStyle = pal.ore; c.beginPath(); c.ellipse(x + w / 2, y + h - 8, 4 + 10 * st, 2 + 3 * st, 0, 0, 7); c.fill();
+      c.fillStyle = own; c.fillRect(x + 4, y + 4, 6, 6);
+      if (!ghost && b.link === false) { c.fillStyle = pal.warn; c.font = '900 14px ' + pal.font; c.textAlign = 'center'; c.fillText('!', x + w - 7, y + 14); c.textAlign = 'left'; }
+    } else if (b.type === 'sail') { // верфь ветроходов: стапель, недостроенный корпус, мачта со свёрнутым парусом
+      box(x + 2, y + 2, w - 5, h - 5, z.woodLo, 5);
+      c.strokeStyle = z.wood; c.lineWidth = 2; for (var r2 = 0; r2 < 5; r2++) { c.beginPath(); c.moveTo(x + 8 + r2 * 13, y + 8); c.lineTo(x + 8 + r2 * 13, y + h - 8); c.stroke(); }
+      c.fillStyle = z.wood; c.beginPath(); c.moveTo(x + 14, y + h / 2 - 7); c.lineTo(x + w - 12, y + h / 2); c.lineTo(x + 14, y + h / 2 + 7); c.closePath(); c.fill();
+      c.fillStyle = z.cloth; c.fillRect(x + 22, y + h / 2 - 14, 20, 5); c.fillStyle = own; c.fillRect(x + 22, y + h / 2 - 14, 20, 2);
+      shingles(c, x + 6, y + h - 16, w - 13, 10, z, own);
+    }
+  }
+  // канатная дорога: пролёты между опорами/станциями/забоями (провисший канат) и люльки с медью
+  function drawCables(c, W, pal, now) {
+    var z = szPal(pal);
+    [0, 1, 2].forEach(function (o) {
+      if (L.facOf(W, o) !== 'sizye') return;
+      L.cableLinks(W, o).forEach(function (pr) {
+        if (!L.visibleTo0(W, pr[0]) && !L.visibleTo0(W, pr[1])) return;
+        var a = L.center(pr[0]), b = L.center(pr[1]), ax = a.x * T, ay = a.y * T - (pr[0].type === 'pylon' ? 8 : 4), bx = b.x * T, by = b.y * T - (pr[1].type === 'pylon' ? 8 : 4), mx = (ax + bx) / 2, my = (ay + by) / 2 + Math.hypot(bx - ax, by - ay) * 0.08;
+        c.strokeStyle = 'rgba(0,0,0,0.25)'; c.lineWidth = 2; c.beginPath(); c.moveTo(ax + 3, ay + 9); c.quadraticCurveTo(mx + 3, my + 12, bx + 3, by + 9); c.stroke(); // тень каната
+        c.strokeStyle = z.rope; c.lineWidth = 1.6; c.beginPath(); c.moveTo(ax, ay); c.quadraticCurveTo(mx, my, bx, by); c.stroke();
+        c.strokeStyle = pal.own[W.paint && W.paint[o] != null ? W.paint[o] : o]; c.lineWidth = 0.8; c.globalAlpha = 0.6; c.beginPath(); c.moveTo(ax, ay - 2); c.quadraticCurveTo(mx, my - 2, bx, by - 2); c.stroke(); c.globalAlpha = 1;
+      });
+    });
+    W.cars.forEach(function (car) {
+      var k = Math.floor(car.y) * W.w + Math.floor(car.x); if (car.owner !== 0 && W.vis[k] !== 2) return;
+      var x = car.x * T, y = car.y * T - 6 + Math.sin(now * 5 + car.id) * 0.8;
+      c.strokeStyle = z.rope; c.lineWidth = 1; c.beginPath(); c.moveTo(x, y - 5); c.lineTo(x, y); c.stroke();
+      c.fillStyle = z.woodLo; c.fillRect(x - 5, y, 10, 6); c.fillStyle = pal.ore; c.fillRect(x - 4, y - 1, 8, 2); c.fillStyle = pal.oreHi; c.fillRect(x - 2, y - 2, 3, 1);
+    });
+  }
+  function drawSzUnit(c, u, pal, now, own, dk) {
+    var z = szPal(pal), t = u.type;
+    if (u.riding) { c.strokeStyle = z.rope; c.lineWidth = 1; c.beginPath(); c.moveTo(0, -14); c.lineTo(0, -6); c.stroke(); c.fillStyle = z.woodLo; c.fillRect(-7, -1, 14, 7); } // люлька
+    if (t === 'skiff') { // ветроход: узкий корпус на трёх колёсах, мачта и треугольный парус сирени
+      c.rotate(u.heading);
+      c.fillStyle = pal.tread; c.fillRect(-9, -7, 5, 3); c.fillRect(-9, 4, 5, 3); c.fillRect(7, -1.5, 4, 3);
+      c.fillStyle = z.woodLo; c.strokeStyle = z.rope; c.lineWidth = 1.2; c.beginPath(); c.moveTo(12, 0); c.lineTo(4, -5); c.lineTo(-10, -4); c.lineTo(-10, 4); c.lineTo(4, 5); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle = z.wood; c.fillRect(-7, -2.5, 12, 5);
+      c.fillStyle = z.cloth; c.beginPath(); c.moveTo(1, 0); c.lineTo(-8, -10 - Math.sin(now * 3 + u.id) * 0.6); c.lineTo(-8, 0); c.closePath(); c.fill();
+      c.fillStyle = own; c.beginPath(); c.moveTo(1, 0); c.lineTo(-8, -10); c.lineTo(-6, -5); c.closePath(); c.fill();
+      c.fillStyle = z.rope; c.fillRect(0, -1, 2, 2); c.save(); c.rotate((u.aim || u.heading) - u.heading); c.fillStyle = pal.metal; c.fillRect(4, -1, 9, 2); c.restore();
+      if (now - u.fireT < 0.1) { c.fillStyle = pal.glow; c.fillRect(13, -2, 4, 4); }
+      return;
+    }
+    if (t === 'harpoon') { // самострел: телега с огромным луком и лебёдкой
+      c.rotate(u.heading);
+      c.fillStyle = pal.tread; c.fillRect(-10, -9, 7, 3); c.fillRect(-10, 6, 7, 3); c.fillRect(3, -9, 7, 3); c.fillRect(3, 6, 7, 3);
+      c.fillStyle = z.rope; c.fillRect(-12, -7, 24, 14); c.fillStyle = z.woodLo; c.fillRect(-11, -6, 22, 12); c.fillStyle = z.wood; c.fillRect(-9, -4, 18, 8);
+      c.save(); c.rotate((u.aim || u.heading) - u.heading);
+      c.strokeStyle = z.woodHi; c.lineWidth = 2.5; c.beginPath(); c.moveTo(6, -10); c.quadraticCurveTo(12, 0, 6, 10); c.stroke();
+      c.strokeStyle = z.rope; c.lineWidth = 1; c.beginPath(); c.moveTo(6, -10); c.lineTo(now - u.fireT < 0.2 ? 6 : 0, 0); c.lineTo(6, 10); c.stroke();
+      c.fillStyle = pal.metalHi; c.fillRect(-2, -1, 16, 2); c.restore();
+      c.fillStyle = own; c.fillRect(-9, -2, 4, 4);
+      return;
+    }
+    // пехота и герои Сизых: башлык/капюшон, полушубок, кушак сирени
+    var hero = t !== 'ranger', R0 = hero ? 6.8 : 5.6;
+    if (t === 'korney' && u.abOn > 0) { c.strokeStyle = own; c.globalAlpha = 0.35 + 0.25 * Math.sin(now * 8); c.lineWidth = 2; c.beginPath(); c.arc(0, 0, L.HEROES.korney.aura * 1.6 * T, 0, 7); c.stroke(); c.globalAlpha = 1; }
+    if (t === 'mityay' && u.talking) { c.strokeStyle = pal.good; c.lineWidth = 2; c.beginPath(); c.arc(0, 0, 11, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, u.talking.t / u.talking.need)); c.stroke(); }
+    c.rotate(u.aim != null ? u.aim : u.heading);
+    c.fillStyle = pal.metal; c.fillRect(2, -1, t === 'ranger' ? 11 : t === 'mityay' ? 6 : 9, 2); // ружьё (у Митяя — обрез)
+    if (now - u.fireT < 0.08) { c.fillStyle = pal.glow; c.fillRect(12, -2, 4, 4); }
+    c.fillStyle = z.rope; c.beginPath(); c.arc(0, 0, R0 + 1, 0, 7); c.fill();          // тёмный контур — видно и на снегу
+    c.fillStyle = z.woodLo; c.beginPath(); c.arc(0, 0, R0, 0, 7); c.fill();           // полушубок
+    c.fillStyle = z.wood; c.beginPath(); c.arc(0, 0, R0 - 1.6, 0, 7); c.fill();
+    c.fillStyle = own; c.fillRect(-R0 + 1, -1, R0 * 2 - 2, 2.2);                        // кушак
+    c.fillStyle = z.snow; c.beginPath(); c.arc(-1, 0, hero ? 3.2 : 2.6, 0, 7); c.fill(); // башлык
+    if (t === 'korney') { c.fillStyle = dk; c.beginPath(); c.arc(-2, 0, R0 + 1, Math.PI * 0.55, Math.PI * 1.45); c.fill(); }     // плащ
+    if (t === 'agafya') { c.strokeStyle = z.rope; c.lineWidth = 1.6; c.beginPath(); c.arc(-3, 4, 3, 0, 7); c.stroke(); c.fillStyle = pal.metalHi; c.fillRect(-7, -6, 3, 3); } // бухта каната, крюк
+    if (t === 'mityay') { c.fillStyle = pal.roofHi; c.fillRect(-6, 3, 4, 4); }                 // сумка посыльного
+    if (hero) { c.strokeStyle = own; c.lineWidth = 1.5; c.beginPath(); c.arc(0, 0, R0 + 2, 0, 7); c.stroke(); }
+  }
   function drawBld(c, b, pal, now, ghost) {
     var pi = b.pi != null ? b.pi : b.owner, x = b.tx * T, y = b.ty * T, w = b.w * T, h = b.h * T, own = pal.own[pi], dk = pal.ownDk[pi], px = pal.pixel;
     function box(xx, yy, ww, hh, col, rad) { c.fillStyle = col; if (px || !rad) c.fillRect(xx, yy, ww, hh); else { roundRect(c, xx, yy, ww, hh, rad); c.fill(); } }
     box(x + 2, y + 3, w - 3, h - 3, 'rgba(0,0,0,0.28)', 4); // тень
-    if (b.type === 'hq') {
+    if (SZ_TYPES[b.type] || (b.type === 'hq' && b.look === 'sizye')) drawSzBld(c, b, pal, now, ghost, x, y, w, h, own, dk, box);
+    else if (b.type === 'hq') {
       box(x + 2, y + 2, w - 5, h - 5, pal.wall, 4);
       box(x + 5, y + 5, w - 11, h - 22, pal.roof, 3);                      // двускатная крыша сверху
       c.fillStyle = pal.roofHi; c.fillRect(x + 5, y + 5 + (h - 22) / 2 - 1, w - 11, 3);
@@ -220,6 +341,7 @@
     if (u.type === 'colossus') { drawColossus(c, u, pal, now, own, dk); return; }
     c.save(); c.translate(x, y);
     c.fillStyle = 'rgba(0,0,0,0.25)'; c.beginPath(); c.ellipse(1.5, 2.5, L.UNITS[u.type].r * T, L.UNITS[u.type].r * T * 0.7, 0, 0, 7); c.fill();
+    if (SZ_TYPES[u.type]) { drawSzUnit(c, u, pal, now, own, dk); c.restore(); return; }
     if (u.type === 'sava') { // механик: ящик с инструментом за спиной, ключ в руке
       var sd = L.HEROES.sava;
       if (u.abOn > 0 && u.id) { c.strokeStyle = pal.good; c.globalAlpha = 0.3 + 0.25 * Math.sin(now * 8); c.lineWidth = 2; c.setLineDash([3, 4]); c.beginPath(); c.arc(0, 0, sd.r * T, 0, 7); c.stroke(); c.setLineDash([]); c.globalAlpha = 1; }
@@ -497,6 +619,7 @@
     // точки сбора выбранного здания
     S.sel.forEach(function (id) { var b = W.byId[id]; if (b && b.kind === 'bld' && b.rally && b.owner === 0) { var cx = (b.tx + b.w / 2) * T, cy = (b.ty + b.h) * T; c.strokeStyle = pal.own[0]; c.setLineDash([4, 4]); c.beginPath(); c.moveTo(cx, cy); c.lineTo(b.rally.x * T, b.rally.y * T); c.stroke(); c.setLineDash([]); c.fillStyle = pal.own[0]; c.fillRect(b.rally.x * T - 1, b.rally.y * T - 12, 2, 12); c.fillRect(b.rally.x * T, b.rally.y * T - 12, 7, 5); } });
     W.blds.forEach(function (b) { if (b.tx + b.w < i0 || b.tx > i1 + 1 || b.ty + b.h < j0 || b.ty > j1 + 1) return; if (L.visibleTo0(W, b)) drawBld(c, b, pal, now); });
+    if (W.fac) drawCables(c, W, pal, now); // канатная дорога Сизых
     // приказы: метки клика
     S.marks.forEach(function (m) { var k = m.life / 0.6, col = m.kind === 'attack' ? pal.bad : m.kind === 'harvest' || m.kind === 'return' ? pal.oreHi : pal.good; c.strokeStyle = col; c.lineWidth = 2; c.beginPath(); c.arc(m.x * T, m.y * T, 4 + (1 - k) * 10, 0, 7); c.globalAlpha = k; c.stroke(); c.globalAlpha = 1; });
     W.units.forEach(function (u) { if (u.x < i0 - 2 || u.x > i1 + 3 || u.y < j0 - 2 || u.y > j1 + 3) return; if (L.visibleTo0(W, u)) { drawUnit(c, u, pal, now);
@@ -616,7 +739,22 @@
     return out;
   }
   var BTNS = buttons(L.BUILD_LIST, L.UNIT_LIST);
-  function setButtons(bl, ul) { var nb = buttons(bl || L.BUILD_LIST, ul || L.UNIT_LIST); BTNS.length = 0; nb.forEach(function (b) { BTNS.push(b); }); return BTNS; }
+  // Сторона Сизых (W.fac[0] === 'sizye', мир — P.S.W): свои кнопки (ветряк, опора, зимовьё…); в миссии — только открытые ею и укрепления
+  function setButtons(bl, ul) {
+    var W = P.S && P.S.W;
+    if (W && L.facOf(W, 0) === 'sizye') {
+      var sl = L.sideLists('sizye'), al = W.mission && W.mission.allow, has = al && Object.keys(al).length;
+      bl = sl.b.concat(L.FORT_LIST).filter(function (k) { return has ? al[k] : sl.b.indexOf(k) >= 0; });
+      ul = sl.u.filter(function (k) { return has ? al[k] : true; });
+    }
+    var nb = buttons(bl || L.BUILD_LIST, ul || L.UNIT_LIST); BTNS.length = 0; nb.forEach(function (b) { BTNS.push(b); }); return BTNS;
+  }
+  // ветер Сизых: стрелка «куда дует» и сила
+  function windGauge(c, W, x, y, pal) {
+    var w = W.wind, a = w.a + Math.PI; c.save(); c.translate(x, y); c.strokeStyle = pal.line; c.lineWidth = 1; c.beginPath(); c.arc(0, 0, 9, 0, 7); c.stroke();
+    c.rotate(a); c.strokeStyle = pal.own[1]; c.lineWidth = 2; c.beginPath(); c.moveTo(-7, 0); c.lineTo(7, 0); c.lineTo(3, -3); c.moveTo(7, 0); c.lineTo(3, 3); c.stroke(); c.restore();
+    txt(c, Math.round(w.s * 100) + '%', x + 13, y + 5, { color: w.s < 0.55 ? pal.warn : pal.ink, font: pal.font, size: 11, weight: 700 });
+  }
   // Кнопки групп 1…9 — полоска сверху справа, левее часов (слева вверху — ссылка «← Каталог»):
   // клик — выбрать, Ctrl+клик / ПКМ / долгий тап — назначить
   var GRP = { x: 548, y: 4, w: 30, h: 20, gap: 3 };
@@ -650,9 +788,9 @@
     c.save(); c.translate(x, y);
     if (kind === 'bld') {
       var d = L.BLDS[type], s = 30 / (Math.max(d.w, d.h) * T); c.scale(s, s);
-      drawBld(c, { tx: 0, ty: 0, w: d.w, h: d.h, type: type, owner: 0, id: 0 }, pal, 0, true);
+      drawBld(c, { tx: 0, ty: 0, w: d.w, h: d.h, type: type, owner: 0, id: 0, pi: SZ_TYPES[type] ? 1 : 0 }, pal, 0, true);
     } else {
-      c.scale(1.25, 1.25); drawUnit(c, { x: 12 / T, y: 12 / T, heading: -Math.PI / 4, aim: -Math.PI / 4, type: type, owner: 0, fireT: -9, path: [], order: {}, carry: 120, id: 0 }, pal, 0);
+      c.scale(1.25, 1.25); drawUnit(c, { x: 12 / T, y: 12 / T, heading: -Math.PI / 4, aim: -Math.PI / 4, type: type, owner: 0, pi: SZ_TYPES[type] ? 1 : 0, fireT: -9, path: [], order: {}, carry: 120, id: 0 }, pal, 0);
     }
     c.restore();
   }
@@ -667,8 +805,9 @@
     txt(c, t('copper'), ix, VH + 20, { color: pal.muted, font: f, size: 12, weight: 600 });
     txt(c, String(Math.floor(pl.copper)), ix + 58, VH + 21, { color: pal.oreHi, font: f, size: 17, weight: 800 });
     var low = pl.pOut < pl.pUse;
-    txt(c, t('steam'), ix + 140, VH + 20, { color: pal.muted, font: f, size: 12, weight: 600 });
-    txt(c, pl.pUse + ' / ' + pl.pOut, ix + 175, VH + 21, { color: low ? pal.bad : pal.good, font: f, size: 14, weight: 800 });
+    var szw = L.facOf(W, 0) === 'sizye'; txt(c, t(szw ? 'steamS' : 'steam'), ix + 140, VH + 20, { color: pal.muted, font: f, size: 12, weight: 600 });
+    if (szw && W.wind) windGauge(c, W, ix + 262, VH + 15, pal);
+    txt(c, pl.pUse + ' / ' + pl.pOut, ix + (szw ? 186 : 175), VH + 21, { color: low ? pal.bad : pal.good, font: f, size: 14, weight: 800 });
     c.fillStyle = pal.line; c.fillRect(ix, VH + 28, 288, 5);
     c.fillStyle = low ? pal.bad : pal.good; c.fillRect(ix, VH + 28, 288 * Math.min(1, pl.pUse / Math.max(1, pl.pOut)), 5);
     }
@@ -676,7 +815,7 @@
     var sel = []; S.sel.forEach(function (id) { if (W.byId[id]) sel.push(W.byId[id]); });
     var y0 = VH + 50;
     if (sel.length === 1) {
-      var e = sel[0], fr = L.friendTo0(W, e.owner), nm = t(e.type) + (e.owner !== 0 ? ' · ' + t(fr ? 'ally' : 'foe') : '');
+      var e = sel[0], fr = L.friendTo0(W, e.owner), nm = t(e.type === 'hq' && e.look === 'sizye' ? 'hqS' : e.type) + (e.owner !== 0 ? ' · ' + t(fr ? 'ally' : 'foe') : '');
       txt(c, nm, ix, y0, { color: e.owner === 0 ? pal.ink : pal.own[e.pi != null ? e.pi : e.owner], font: f, size: 14, weight: 800 });
       hpBar(c, ix, y0 + 8, 200, e.hp / e.maxHp, pal);
       txt(c, Math.ceil(e.hp) + ' / ' + e.maxHp, ix + 208, y0 + 13, { color: pal.muted, font: f, size: 11, weight: 600 });
@@ -690,9 +829,12 @@
       else if (e.type === 'colossus') extra = e.parts.map(function (cp) { return t('part_' + cp.k) + ' ' + (cp.hp > 0 ? Math.ceil(cp.hp / cp.maxHp * 100) + '%' : '✕'); }).join(' · ');
       else if (e.type === 'store') extra = e.stock ? t('storeTip') + ' · ' + e.stock : t('storeEmpty');
       else if (e.type === 'pump') extra = t('pumpTip');
+      else if (e.type === 'mill') extra = e.pw > 0 ? t('steamS') + ' +' + e.pw + (L.sheltered(W, e) ? ' · ' + t('millShade') : '') : t('millDead');
+      else if (e.type === 'face') extra = e.dry ? t('rigDry') : t('stock') + ' ' + Math.floor(e.stock || 0) + ' / ' + L.FACE.stock + (e.link === false ? ' · ' + t('noLink') : '');
+      else if (e.type === 'pylon') extra = t('pylonTip');
       else if (e.type === 'rig') extra = e.dry ? t('rigDry') : '+' + (W.rigRate || L.BLDS.rig.rate) + ' ' + t('perSec') + ' · ' + t('rigLeft') + ' ' + L.rigOre(W, e);
       else if (e.kind === 'unit') { var ud = L.UNITS[e.type]; extra = e.locked ? t('scripted') : '⚔ ' + ud.dmg + '  ⌖ ' + ud.range + '  ⇢ ' + ud.speed; }
-      else { var bd = L.BLDS[e.type]; extra = bd.weapon ? '⚔ ' + bd.dmg + '  ⌖ ' + bd.range : bd.power ? t('steam') + ' ' + (bd.power > 0 ? '+' : '') + bd.power : ''; }
+      else { var bd = L.BLDS[e.type]; extra = bd.weapon ? '⚔ ' + bd.dmg + '  ⌖ ' + bd.range : bd.power ? t(L.facOf(W, 0) === 'sizye' ? 'steamS' : 'steam') + ' ' + (bd.power > 0 ? '+' : '') + bd.power : ''; }
       if (e.repair) extra = t('repairing') + ' · ' + extra;
       if (e.setup > 0) extra = t('setup') + ' · ' + Math.ceil(e.setup) + ' ' + t('sec');
       txt(c, extra, ix, y0 + 32, { color: e.repair ? pal.good : pal.muted, font: f, size: 12, weight: 600 });
@@ -707,8 +849,9 @@
       var counts = {}; sel.forEach(function (e) { counts[e.type] = (counts[e.type] || 0) + 1; });
       var xx = ix; Object.keys(counts).forEach(function (k) { drawIcon(c, 'unit', k, xx, y0 + 8, pal); txt(c, '×' + counts[k], xx + 32, y0 + 30, { color: pal.ink, font: f, size: 13 }); xx += 70; });
     } else {
-      txt(c, S.idleTitle || t('me'), ix, y0, { color: pal.own[0], font: f, size: 14, weight: 800 });
-      txt(c, S.idleSub != null ? S.idleSub : t('hint1').split('.')[0], ix, y0 + 22, { color: pal.muted, font: f, size: 11, weight: 600 });
+      var szi = L.facOf(W, 0) === 'sizye';
+      txt(c, S.idleTitle || t(szi ? 'sideSizye' : 'me'), ix, y0, { color: pal.own[szi ? 1 : 0], font: f, size: 14, weight: 800 });
+      txt(c, S.idleSub != null ? S.idleSub : t(szi ? 'hint1S' : 'hint1').split('.')[0], ix, y0 + 22, { color: pal.muted, font: f, size: 11, weight: 600 });
     }
     // кнопки
     BTNS.forEach(function (b) {
@@ -719,7 +862,7 @@
       c.strokeStyle = pal.line; c.lineWidth = 1; c.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
       var prog = 0, ready = false, qn = 0;
       if (b.kind === 'bld' && pl.build && pl.build.type === b.type) { prog = pl.build.p; ready = pl.build.ready; }
-      if (b.kind === 'unit') { var q = d.from === 'bunk' ? pl.inf : pl.veh; qn = q.filter(function (x) { return x === b.type; }).length; if (q[0] === b.type) prog = d.from === 'bunk' ? pl.infP : pl.vehP; }
+      if (b.kind === 'unit') { var inf = !!L.INF_FAC[d.from], q = inf ? pl.inf : pl.veh; qn = q.filter(function (x) { return x === b.type; }).length; if (q[0] === b.type) prog = inf ? pl.infP : pl.vehP; }
       if (prog > 0) { c.fillStyle = 'rgba(95,207,128,0.22)'; c.fillRect(b.x + 1, b.y + 1, (b.w - 2) * prog, b.h - 2); }
       c.globalAlpha = can ? 1 : 0.35;
       var lb = t(b.type), ls = 12; c.font = '700 12px ' + f;
@@ -741,6 +884,6 @@
   }
   function buttonAt(x, y, S) { for (var n = 0; n < BTNS.length; n++) { var b = BTNS[n]; if (S && S.btnHidden && S.btnHidden(b)) continue; if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) return b; } return null; }
 
-  P.render = { MINE: MINE, drawLifts: drawLifts, drawColossus: drawColossus, drawParts: drawParts, frame: frame, packBtn: packBtn, HEAT: HEAT, LAYOUT: LAYOUT, PAL: PAL, SNOW: SNOW, TILE: T, buttonAt: buttonAt, BTNS: BTNS, setButtons: setButtons, groupAt: groupAt, groupRect: groupRect, repairBtn: repairBtn, fitMinimap: fitMinimap, drawIcon: drawIcon, drawBld: drawBld, drawUnit: drawUnit, txt: txt, roundRect: roundRect, groundPal: groundPal,
+  P.render = { MINE: MINE, drawLifts: drawLifts, drawColossus: drawColossus, drawParts: drawParts, frame: frame, packBtn: packBtn, HEAT: HEAT, LAYOUT: LAYOUT, PAL: PAL, SNOW: SNOW, TILE: T, buttonAt: buttonAt, BTNS: BTNS, setButtons: setButtons, groupAt: groupAt, groupRect: groupRect, repairBtn: repairBtn, fitMinimap: fitMinimap, drawIcon: drawIcon, drawBld: drawBld, drawUnit: drawUnit, drawCables: drawCables, SZ: SZ, SZ_TYPES: SZ_TYPES, windGauge: windGauge, txt: txt, roundRect: roundRect, groundPal: groundPal,
     resetCache: function () { cache.key = ''; mm.t = -1; puffs.length = 0; } };
 })(window);

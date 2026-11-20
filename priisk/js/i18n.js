@@ -125,4 +125,37 @@
       more: 'Learn more', demoTag: 'demo'
     }
   };
+  // Артель Сизого Перевала: вторая сторона (ветряки, канатная дорога, лёгкая техника) и её кампания «Долг перевала»
+  Object.assign(P.STR.ru, {
+    hqS: 'Изба-контора', mill: 'Ветряк', pylon: 'Опора', hut: 'Зимовьё', station: 'Станция', face: 'Забой', sail: 'Верфь',
+    ranger: 'Горный стрелок', skiff: 'Ветроход', harpoon: 'Самострел', agafya: 'Агафья Ветрова', mityay: 'Митяй',
+    steamS: 'Ветер', millShade: 'в тени скал', millDead: 'Не на гребне — крылья стоят', stock: 'в забое', noLink: 'нет каната до Станции',
+    pylonTip: 'Пролёт каната — до 7 клеток (над скалой и водой)', abRage: 'Ярость', abCable: 'Канат', abTalk: 'Уговор',
+    msgWindShift: 'Ветер меняется', msgCarFall: 'Опора сбита — люлька сорвалась', msgFaceDry: 'Забой выработан — ставь новый у жилы',
+    msgTalked: 'Пост уговорили — пропустят', msgTalkFail: 'Уговор сорвался', msgNoNode: 'Агафье нужна опора или станция рядом',
+    msgNoLink: 'Туда канат не протянут', tipCable: 'Канат: ЛКМ — у опоры, куда ехать (Esc — отмена)', msgNoPost: 'Митяю не с кем говорить — подойди к посту',
+    msgRidge: 'Ветряк ставится только на гребне — у скал', msgCableIn: 'Приехали по канату', abNear: 'рядом',
+    side: 'Сторона', sideCopper: 'Медный Ключ', sideSizye: 'Сизый Перевал',
+    campMapS: 'ДОЛГ ПЕРЕВАЛА', campSubS: 'Кампания Артели Сизого Перевала', campTabC: 'Медный Ключ', campTabS: 'Сизый Перевал',
+    lockedFullSubS: 'Кампания Артели Сизого Перевала — в полной версии. В демо за Сизых можно сыграть скирмиш.',
+    workS: 'В работе', workSubS: 'Эта миссия «Долга перевала» ещё в работе — появится в следующих обновлениях.',
+    xflag: 'Помнят «Медную лихорадку»', foeVoiceC: 'Дозорный Медного Ключа', postVoice: 'Постовой',
+    hint1S: 'Снеси Контору Медного Ключа. Ветряки — только на гребнях, медь возит канатка'
+  });
+  Object.assign(P.STR.en, {
+    hqS: 'Lodge Hall', mill: 'Windmill', pylon: 'Pylon', hut: 'Winter Hut', station: 'Terminal', face: 'Adit', sail: 'Sail Yard',
+    ranger: 'Ridge Rifle', skiff: 'Windrunner', harpoon: 'Bolt Cart', agafya: 'Agafya Vetrova', mityay: 'Mityay',
+    steamS: 'Wind', millShade: 'in the lee of rocks', millDead: 'Not on a ridge — sails idle', stock: 'in the adit', noLink: 'no cable to a Terminal',
+    pylonTip: 'Cable span — up to 7 tiles (over rock and water)', abRage: 'Fury', abCable: 'Cable', abTalk: 'Parley',
+    msgWindShift: 'The wind is shifting', msgCarFall: 'Pylon down — a car fell', msgFaceDry: 'Adit worked out — build a new one by the lode',
+    msgTalked: 'The post agreed — they will let us pass', msgTalkFail: 'The parley broke off', msgNoNode: 'Agafya needs a pylon or terminal nearby',
+    msgNoLink: 'No cable runs there', tipCable: 'Cable: click near the pylon to ride to (Esc — cancel)', msgNoPost: 'Mityay has nobody to talk to — get close to a post',
+    msgRidge: 'Windmills go only on a ridge — next to rocks', msgCableIn: 'Arrived by cable', abNear: 'near',
+    side: 'Side', sideCopper: 'Copper Spring', sideSizye: 'Grey Pass',
+    campMapS: 'DEBT OF THE PASS', campSubS: 'Grey Pass Artel campaign', campTabC: 'Copper Spring', campTabS: 'Grey Pass',
+    lockedFullSubS: 'The Grey Pass Artel campaign is in the full version. In the demo you can play skirmish as the Grey Pass.',
+    workS: 'In the works', workSubS: 'This Debt of the Pass mission is still in the works — coming in a later update.',
+    xflag: 'They remember Copper Fever', foeVoiceC: 'Copper Spring sentry', postVoice: 'Post guard',
+    hint1S: 'Raze the Copper Spring Lodge. Windmills only on ridges, the cableway carries copper'
+  });
 })(typeof window !== 'undefined' ? window : globalThis);

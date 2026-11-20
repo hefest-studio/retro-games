@@ -1,0 +1,24 @@
+/* ПОЛУУСТАВ · стили страницы. Канва 960×540 вписывается и по ширине, и по высоте экрана (телефон в ландшафте);
+   тач-кнопки — только на сенсорных устройствах (или узком экране), поверх канвы по углам. */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { margin: 0; background: #2a1d12; color: #efe3c6; font-family: Georgia, "Times New Roman", serif;
+  display: flex; flex-direction: column; align-items: center; min-height: 100dvh; user-select: none; overflow-x: hidden; }
+.wrap { position: relative; width: min(96vw, 980px, calc((100dvh - 64px) * 16 / 9)); margin-top: 30px; }
+canvas { width: 100%; display: block; border: 1px solid #5a4028; border-radius: 4px; background: #efe3c6; touch-action: none; box-shadow: 0 10px 40px rgba(0,0,0,.45); }
+.pad { display: none; }
+.pad button { width: 60px; height: 60px; background: rgba(239,227,198,.55); border: 1.5px solid rgba(59,40,23,.7); border-radius: 50%;
+  color: #3b2817; font-size: 22px; font-weight: 800; touch-action: none; }
+.pad button:active { background: rgba(180,68,43,.55); }
+.foot { color: #b9a582; font-size: 12px; margin: 10px 14px 18px; text-align: center; max-width: 960px; line-height: 1.5; }
+a.back { position: fixed; left: 10px; top: 7px; color: #efe3c6; font-size: 13px; font-weight: 700; text-decoration: none; z-index: 20;
+  background: rgba(42,29,18,.78); padding: 3px 9px; border-radius: 8px; font-family: Inter, system-ui, sans-serif; }
+a.back:hover { color: #e09a6b; }
+@media (hover: none) and (pointer: coarse), (max-width: 760px) {
+  .pad { display: block; }
+  .pad .cross { position: fixed; left: max(12px, env(safe-area-inset-left)); bottom: 14px; display: flex; gap: 12px; z-index: 10; }
+  .pad .act { position: fixed; right: calc(max(12px, env(safe-area-inset-right)) + 84px); bottom: 14px; z-index: 10; }
+  .pad .jump { position: fixed; right: max(12px, env(safe-area-inset-right)); bottom: 30px; width: 72px; height: 72px; font-size: 26px; z-index: 10; }
+  .pad .mini { position: fixed; right: max(12px, env(safe-area-inset-right)); top: 8px; width: 44px; height: 36px; border-radius: 10px; font-size: 15px; z-index: 10; }
+  .foot { display: none; }
+  .wrap { width: min(96vw, 980px, calc((100dvh - 40px) * 16 / 9)); margin-top: 34px; }
+}
