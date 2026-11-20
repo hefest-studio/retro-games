@@ -97,6 +97,11 @@
       b.push({ l1: t('no'), kind: 'plain', fn: closeDlg });
     } else if (d.type === 'prdone') {
       b.push({ l1: t('ok'), kind: 'buy', fn: function () { closeDlg(); if (!reviewAsked && S.prestiges >= 2 && g.platform) { reviewAsked = true; g.requestReview(); } else maybeAd(); } });
+    } else if (d.type === 'wharf') {
+      b.push({ l1: t('wh_go'), kind: 'gold', fn: function () { closeDlg(); setView(1); } });
+      b.push({ l1: t('later'), kind: 'plain', fn: closeDlg });
+    } else if (d.type === 'event') {
+      b.push({ l1: t('ok'), kind: 'gold', fn: closeDlg });
     }
     return b;
   }
@@ -106,7 +111,16 @@
     sfx('unlock'); g.particles.spawn(W / 2, SCENE_Y + R.BOILER.y, { color: P().brass, count: 40, speed: 220, life: 1.1, size: 4 });
     g.leaderboard.submit(S.marksEver, { board: 'mednitsa' }); save(true);
     openDlg({ type: 'prdone', gain: gain });
+    if (S.wharfNew) { delete S.wharfNew; openDlg({ type: 'wharf' }); save(true); }
   }
+  // мастерская на экране: 0 — Медная мастерская (горн), 1 — Речная верфь (когда открыта)
+  function setView(v) {
+    v = v === 1 && E.wharfOpen(S) ? 1 : 0; if (S.view === v) return;
+    S.view = v; if (v) S.wharfSeen = true; ui.scroll.ws = 0; ui.scroll.goals = 0; ui.sel = 0; fx.puffs = []; sfx('whistle');
+  }
+  function toggleView() { if (E.wharfOpen(S)) setView(S.view ? 0 : 1); else sfx('no'); }
+  function claimEvent() { var n = E.claimEvent(S); if (n) { sfx('unlock'); toast(t('ev_done') + ' · ' + fill(t('ev_rw'), { n: fmt(n) }), P().brass); save(true); } else sfx('no'); return n; }
+  var evInfo = { on: false, id: '', left: 0 };
 
   // ---------- действия ----------
   function tapBoiler(x, y) {
@@ -148,6 +162,8 @@
   var ownedT = 0;
   function tick(dt) {
     var now = g.serverTime();
+    evInfo = E.eventSync(S, now);   // ярмарка (флаги event_*): множитель и особый заказ
+    if (evInfo.on && S.evSeen !== evInfo.id && g._sceneName === 'play') { S.evSeen = evInfo.id; sfx('whistle'); toast(fill(t('ev_pill'), { x: E.cfg.event.mult }) + ' · ' + t('ev_s'), P().fair); }   // без окна: не мешает (окно — по плашке)
     if (S.lastSeen && now - S.lastSeen > 2500) {   // кадры стояли (вкладка скрыта, пауза, реклама, игра закрыта)
       var r = E.offline(S, now);
       if (r.sec > 0) { if (r.gain > 0) openDlg({ type: 'offline', r: r }); }
@@ -170,7 +186,7 @@
   // ---------- рисование ----------
   var low = null;
   function drawScene(ctx) {
-    var pal = P(), st = { lv: S.lv, ids: IDS, pressure: fx.pressure, squash: fx.squash, boost: S.boostLeft > 0, puffs: fx.puffs, chest: S.chestLive > 0 ? chestPos() : null };
+    var pal = P(), v0 = S.view === 1 ? 10 : 0, st = { view: S.view, lv: S.lv.slice(v0, v0 + 10), ids: IDS.slice(v0, v0 + 10), pressure: fx.pressure, squash: fx.squash, boost: S.boostLeft > 0, puffs: fx.puffs, chest: S.chestLive > 0 ? chestPos() : null };
     if (pal.pixel && typeof document !== 'undefined') {   // крупный пиксель: сцена в буфер 240×176 и ×2 без сглаживания
       if (!low) { low = document.createElement('canvas'); low.width = R.SW / 2; low.height = R.SH / 2; }
       var c = low.getContext('2d'); c.setTransform(0.5, 0, 0, 0.5, 0, 0); c.imageSmoothingEnabled = false; R.scene(c, st, fx.time, pal);
@@ -201,10 +217,12 @@
     var d = E.daily(S, g.serverTime());
     slots.push({ id: 'gift', l1: d.ready ? t('giftReady') : t('gift'), l2: d.ready ? d.streak + '/7' : fmtT(giftLeft()), kind: d.ready ? 'gold' : 'plain', fn: gift, on: true, pulse: d.ready });
     slots.push({ id: 'mode', l1: t('mode'), l2: ui.mode === 'max' ? 'MAX' : '×' + ui.mode, kind: 'plain', fn: cycleMode, on: true });
+    if (E.wharfOpen(S)) slots.push({ id: 'view', l1: t('sw_' + (S.view ? 0 : 1)), l2: t('wk_' + (S.view ? 0 : 1)), kind: 'gold', fn: toggleView, on: true, pulse: S.view === 0 && !S.wharfSeen });
+    else if (S.prestiges > 0) slots.push({ id: 'view', l1: t('wk_1'), l2: fill(t('wh_lock2'), { n: S.prestiges, x: E.cfg.wharf.unlock }), kind: 'plain', fn: function () { sfx('no'); toast(fill(t('pr_wh'), { n: S.prestiges, x: E.cfg.wharf.unlock }), P().muted); }, on: false });
     var gap = 8, bw = (W - 16 - gap * (slots.length - 1)) / slots.length;
     slots.forEach(function (s, i) {
       var x = 8 + i * (bw + gap), yy = y + (s.pulse ? Math.sin(fx.time * 6) * 1.5 : 0);
-      R.button(g, ctx, x, yy, bw, h, s.l1, s.l2, pal, { kind: s.kind === 'plain' ? 'buy' : s.kind, on: s.on, size: 12, c2: s.kind === 'ad' ? pal.ad : pal.brassHi, c2off: pal.dim });
+      R.button(g, ctx, x, yy, bw, h, s.l1, s.l2, pal, { kind: s.kind === 'plain' ? 'buy' : s.kind, on: s.on, size: slots.length > 3 ? 11 : 12, c2: s.kind === 'ad' ? pal.ad : pal.brassHi, c2off: pal.dim });
       hit(x, y, bw, h, s.fn, s.id);
     });
   }
@@ -224,12 +242,16 @@
   function rows() {
     var out = [], pal = P();
     if (ui.tab === 'ws') {
-      for (var i = 0; i < E.N; i++) { if (!E.unlocked(S, i)) break; out.push(wsRow(i)); }
+      var L = E.wsOf(S.view);
+      for (var j = 0; j < L.length; j++) { var i = L[j]; if (!E.unlocked(S, i)) break; out.push(wsRow(i)); }
+      if (!out.length) out.push({ h: ROW, draw: function (ctx, y) { rowBox(ctx, y, ROW, false, pal); R.machine(ctx, IDS[9], 41, y + 35, 40, fx.time, true, pal);
+        g.text(fill(t('wh_need'), { ws: wsName(9) }), 76, y + 40, { size: 13, color: pal.brass, weight: 800, font: pal.font, maxWidth: W - 100, minSize: 8 }); }, act: function () { setView(0); } });
     } else if (ui.tab === 'up') {
       E.upsVisible(S).forEach(function (u) { out.push(upRow(u)); });
       if (!out.length) out.push({ h: ROW, draw: function (ctx, y) { g.text(t('noUps'), W / 2, y + 38, { size: 13, align: 'center', color: pal.muted, weight: 700, font: pal.font, maxWidth: W - 40 }); }, act: null });
     } else if (ui.tab === 'goals') {
-      E.activeGoals(S, 3).forEach(function (a) { out.push(goalRow(a)); });
+      if (evInfo.on && S.ev && !S.ev.done) out.push(eventRow());
+      E.activeGoals(S, 3, S.view).forEach(function (a) { out.push(goalRow(a)); });
     } else out.push(prRow());
     if (ui.tab === 'pr' && g.platform && g.platform.payments && g.platform.payments.available && !S.starter) out.push(starterRow());
     return out;
@@ -290,13 +312,27 @@
       hit(W - 150, y + 9, 134, 50, function () { if (a.done) claimGoal(a.goal.id); else sfx('no'); }, 'goal_' + a.goal.id);
     } };
   }
+  function eventRow() {
+    var pal = P();
+    return { h: ROW, act: claimEvent, draw: function (ctx, y, hot) {
+      var ev = S.ev, done = E.eventReady(S); rowBox(ctx, y, ROW, hot, pal);
+      R.panel(ctx, 8, y + 3, 5, ROW - 6, pal, { r: 2, fill: pal.fair, line: false });
+      ctx.fillStyle = done ? pal.good : pal.copperLo; R.rr(ctx, 16, y + 13, 42, 42, pal.pixel ? 0 : 21); ctx.fill(); R.mark(ctx, 37, y + 34, 13, pal);
+      g.text(fill(t('ev_goal'), { n: fmt(ev.need) }), 70, y + 28, { size: 13, color: pal.fair, weight: 800, font: pal.font, maxWidth: 250, minSize: 8 });
+      R.bar(ctx, 70, y + 38, 180, 6, ev.got / ev.need, pal, done ? pal.good : pal.fair);
+      g.text(fmt(Math.min(ev.got, ev.need)) + ' / ' + fmt(ev.need) + ' · ' + fmtT(evInfo.left), 70, y + 58, { size: 11, color: pal.muted, weight: 700, font: pal.font, maxWidth: 180, minSize: 8 });
+      R.button(g, ctx, W - 150, y + 9, 134, 50, t('take'), fill(t('ev_rw'), { n: fmt(E.eventMarks(S)) }), pal, { on: done, hot: hot, size: 12, kind: done ? 'gold' : 'buy', c2off: pal.dim });
+      hit(W - 150, y + 9, 134, 50, function () { if (E.eventReady(S)) claimEvent(); else sfx('no'); }, 'event');
+    } };
+  }
   function prRow() {
-    var pal = P(), h = 196;
+    var pal = P(), h = E.wharfOpen(S) ? 196 : 218;
     return { h: h, act: function () { if (E.canPrestige(S)) openDlg({ type: 'prconf' }); else sfx('no'); }, draw: function (ctx, y, hot) {
       rowBox(ctx, y, h, hot, pal); var pc = Math.round(E.cfg.prestige.bonus * 100);
       R.mark(ctx, 44, y + 40, 20, pal);
       g.text(fill(t('pr_now'), { n: S.marks, p: Math.round(S.marks * pc) }), 76, y + 46, { size: 14, color: pal.brass, weight: 900, font: pal.font, maxWidth: W - 100, minSize: 9 });
       [t('pr_1'), t('pr_2'), fill(t('pr_3'), { p: pc })].forEach(function (s, k) { g.text(s, 24, y + 82 + k * 18, { size: 13, color: pal.muted, weight: 600, font: pal.font, maxWidth: W - 48, minSize: 8 }); });
+      if (!E.wharfOpen(S)) g.text(fill(t('pr_wh'), { n: S.prestiges, x: E.cfg.wharf.unlock }), 24, y + 200, { size: 12, color: pal.teal, weight: 800, font: pal.font, maxWidth: W - 48, minSize: 8 });
       var gain = E.prestigeGain(S), can = E.canPrestige(S);
       var l2 = can ? '+' + gain : fill(t('pr_need'), { n: fmt(E.earnForGain(S)), x: E.cfg.prestige.minGain });
       R.button(g, ctx, 24, y + 134, W - 48, 50, can ? fill(t('pr_gain'), { n: gain }) : t('tab_pr'), l2, pal, { on: can, hot: hot, kind: 'gold', size: 14, c2off: pal.muted });
@@ -350,6 +386,12 @@
     } else if (d.type === 'prconf') {
       title = t('pr_t'); lines.push(fill(t('pr_conf'), { n: E.prestigeGain(S) })); lines.push({ s: t('pr_1') + ' ' + t('pr_2'), c: pal.muted });
       R.mark(ctx, W / 2, cy - 10, 36, pal);
+    } else if (d.type === 'wharf') {
+      title = t('wh_t'); lines.push(t('wh_b')); lines.push({ s: fill(t('wh_s'), { ws: wsName(9) }), c: pal.muted });
+      R.machine(ctx, 'wheel', W / 2 - 50, cy - 10, 80, fx.time, true, pal); R.machine(ctx, 'tug', W / 2 + 50, cy - 6, 80, fx.time, true, pal);
+    } else if (d.type === 'event') {
+      title = t('ev_t'); lines.push(fill(t('ev_b'), { x: E.cfg.event.mult })); lines.push({ s: t('ev_s'), c: pal.fair });
+      R.mark(ctx, W / 2, cy - 10, 36, pal); R.coin(ctx, W / 2 - 60, cy, 18, pal); R.coin(ctx, W / 2 + 60, cy, 18, pal);
     } else if (d.type === 'prdone') {
       title = fill(t('pr_done'), { n: d.gain }); lines.push(fill(t('pr_now'), { n: S.marks, p: Math.round(S.marks * E.cfg.prestige.bonus * 100) }));
       R.mark(ctx, W / 2, cy - 10, 40, pal);
@@ -378,13 +420,20 @@
     ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
     drawScene(ctx);
     if (S.boostLeft > 0) { R.panel(ctx, R.BOILER.x - 44, SCENE_Y + R.BOILER.y + 70, 88, 22, pal, { r: 11, fill: pal.adBg, line: pal.ad }); g.text('×2 ' + fmtT(S.boostLeft), R.BOILER.x, SCENE_Y + R.BOILER.y + 86, { size: 12, align: 'center', color: pal.ad, weight: 900, font: pal.font }); }
+    if (evInfo.on && withUi) {   // ярмарка: плашка слева от котла (тап — окно ярмарки)
+      var ex = 12, ey = SCENE_Y + 288; R.panel(ctx, ex, ey, 128, 42, pal, { r: 12, fill: pal.panel, line: pal.fair });
+      g.text(fill(t('ev_pill'), { x: E.cfg.event.mult }), ex + 64, ey + 18, { size: 13, align: 'center', color: pal.fair, weight: 900, font: pal.font, maxWidth: 116, minSize: 8 });
+      g.text(fmtT(evInfo.left), ex + 64, ey + 35, { size: 11, align: 'center', color: pal.muted, weight: 700, font: pal.font, maxWidth: 116 });
+      hit(ex, ey, 128, 42, function () { openDlg({ type: 'event' }); }, 'evpill');
+    }
     if (S.taps < 15 && withUi && !ui.dlg) { var bob = Math.sin(fx.time * 5) * 4; g.text(t('tapHere'), R.BOILER.x, SCENE_Y + R.BOILER.y - 84 + bob, { size: 16, align: 'center', color: pal.glow, weight: 900, font: pal.font }); }
     ctx.fillStyle = pal.bg; ctx.fillRect(0, SCENE_Y + R.SH, W, H - SCENE_Y - R.SH);
     drawHud(ctx, pal);
     if (!withUi) return;
     drawBar(ctx, pal); drawTabs(ctx, pal); drawList(ctx, pal); drawFloats(ctx, pal); drawDlg(ctx, pal);
   }
-  M.debug = { rows: function () { return curRows; }, hits: function () { return ui.hits; }, ui: ui, fx: fx, tick: tick, openDlg: openDlg, save: save, setState: function (s) { S = E.normalize(s); }, maybeAd: maybeAd, catchChest: catchChest, boost: boost };
+  M.debug = { rows: function () { return curRows; }, hits: function () { return ui.hits; }, ui: ui, fx: fx, tick: tick, openDlg: openDlg, save: save, setState: function (s) { S = E.normalize(s); }, maybeAd: maybeAd, catchChest: catchChest, boost: boost,
+    setView: setView, toggleView: toggleView, claimEvent: claimEvent, event: function () { return evInfo; }, doPrestige: doPrestige };
 
   // ---------- ввод: палец / мышь ----------
   var ptr = null;
@@ -418,6 +467,7 @@
     if (g._sceneName !== 'play') return;
     var k = { Digit1: 'ws', Digit2: 'up', Digit3: 'goals', Digit4: 'pr' }[e.code]; if (k && !ui.dlg) { setTab(k); return; }
     if (e.code === 'KeyB' && !ui.dlg) cycleMode();
+    if (e.code === 'KeyV' && !ui.dlg) toggleView();
   });
   function scrollToSel() { var y = 0; for (var i = 0; i < ui.sel; i++) y += curRows[i].h; var h = curRows[ui.sel] ? curRows[ui.sel].h : ROW, sc = ui.scroll[ui.tab]; if (y < sc) ui.scroll[ui.tab] = y; else if (y + h > sc + LIST_H) ui.scroll[ui.tab] = y + h - LIST_H; }
 

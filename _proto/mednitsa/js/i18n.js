@@ -28,7 +28,12 @@
       adfail: 'Реклама сейчас недоступна', st_t: 'Набор мастера', st_b: 'Весь доход ×2 навсегда + 30 мин дохода', st_done: 'Набор мастера получен', st_own: 'Набор мастера: доход ×2',
       marks: 'Клейма', tapHere: 'Стучи по котлу!', lbBoard: 'Клейма мастера',
       hint1: 'Тап по котлу — медь · цеха работают сами', hint2: 'Пробел — удар · ← → вкладки · ↑ ↓ Enter — покупка',
-      foot: '<b>МЕДНИЦА</b> · тап / клик / Пробел — удар по котлу · ← → вкладки · ↑ ↓ и Enter — покупка · 1–4 вкладки · B — сколько брать · P пауза · L язык · T тема · M звук.'
+      ws_pump: 'Ручной насос', ws_wheel: 'Водяное колесо', ws_sluice: 'Шлюз', ws_crane: 'Паровой кран', ws_dredge: 'Землечерпалка', ws_tug: 'Буксир', ws_dock: 'Сухой док', ws_paddle: 'Колёсный пароход', ws_turbine: 'Паровая турбина', ws_tide: 'Приливная машина',
+      up_seals: 'Просмолённые сальники', up_blades: 'Бронзовые лопасти', up_hull: 'Клёпаная обшивка', up_bell: 'Судовой колокол', up_moor: 'Причальный сарай', up_keeper: 'Смотритель шлюза', up_ferry: 'Паромная линия', up_regatta: 'Речная регата', up_tidal: 'Приливная грамота',
+      wk_0: 'Медная мастерская', wk_1: 'Речная верфь', sw_1: 'Верфь ›', sw_0: '‹ Горн', wh_lock2: 'переплавок {n}/{x}',
+      ev_t: 'ЯРМАРКА ВЫХОДНОГО ДНЯ', ev_b: 'Весь доход ×{x} до конца ярмарки', ev_s: 'Ярмарочный заказ — за клейма мастера', ev_pill: 'Ярмарка ×{x}', ev_goal: 'Ярмарочный заказ: {n} меди', ev_rw: '+{n} клейм', ev_done: 'Ярмарочный заказ выполнен',
+      wh_t: 'РЕЧНАЯ ВЕРФЬ', wh_b: 'Открыта вторая мастерская: пар и вода', wh_s: 'Её цеха строятся после «{ws}»', wh_go: 'На верфь', later: 'Позже', wh_need: 'Построй «{ws}», чтобы запустить верфь', pr_wh: 'Речная верфь — после {x} переплавок ({n}/{x})',
+      foot: '<b>МЕДНИЦА</b> · тап / клик / Пробел — удар по котлу · ← → вкладки · ↑ ↓ и Enter — покупка · 1–4 вкладки · B — сколько брать · V — мастерская · P пауза · L язык · T тема · M звук.'
     },
     en: {
       title: 'BOILERWRIGHT', subtitle: 'Steam workshop · idle clicker',
@@ -54,7 +59,12 @@
       adfail: 'Ad is not available right now', st_t: "Master's Kit", st_b: 'All income ×2 forever + 30 min of income', st_done: "Master's Kit received", st_own: "Master's Kit: income ×2",
       marks: 'Marks', tapHere: 'Tap the boiler!', lbBoard: 'Master marks',
       hint1: 'Tap the boiler for copper · shops work on their own', hint2: 'Space — tap · ← → tabs · ↑ ↓ Enter — buy',
-      foot: '<b>BOILERWRIGHT</b> · tap / click / Space — strike the boiler · ← → tabs · ↑ ↓ and Enter — buy · 1–4 tabs · B — buy amount · P pause · L language · T theme · M sound.'
+      ws_pump: 'Hand Pump', ws_wheel: 'Water Wheel', ws_sluice: 'Sluice Gate', ws_crane: 'Steam Crane', ws_dredge: 'Dredger', ws_tug: 'Tugboat', ws_dock: 'Dry Dock', ws_paddle: 'Paddle Steamer', ws_turbine: 'Steam Turbine', ws_tide: 'Tide Engine',
+      up_seals: 'Tarred Seals', up_blades: 'Bronze Paddles', up_hull: 'Riveted Hull', up_bell: 'Ship\'s Bell', up_moor: 'Mooring Shed', up_keeper: 'Lock Keeper', up_ferry: 'Ferry Line', up_regatta: 'River Regatta', up_tidal: 'Tide Charter',
+      wk_0: 'Copper Workshop', wk_1: 'River Wharf', sw_1: 'Wharf ›', sw_0: '‹ Forge', wh_lock2: 'remelts {n}/{x}',
+      ev_t: 'WEEKEND FAIR', ev_b: 'All income ×{x} until the fair ends', ev_s: 'The fair order pays in master marks', ev_pill: 'Fair ×{x}', ev_goal: 'Fair order: earn {n} copper', ev_rw: '+{n} marks', ev_done: 'Fair order complete',
+      wh_t: 'RIVER WHARF', wh_b: 'A second workshop is open: steam and water', wh_s: 'Its shops come after the {ws}', wh_go: 'To the wharf', later: 'Later', wh_need: 'Build the {ws} to start the wharf', pr_wh: 'River Wharf opens after {x} remelts ({n}/{x})',
+      foot: '<b>BOILERWRIGHT</b> · tap / click / Space — strike the boiler · ← → tabs · ↑ ↓ and Enter — buy · 1–4 tabs · B — buy amount · V — workshop · P pause · L language · T theme · M sound.'
     },
     tr: {
       title: 'BOILERWRIGHT', subtitle: 'Buhar atölyesi · tıklama oyunu',
@@ -80,7 +90,12 @@
       adfail: 'Reklam şu an yok', st_t: 'Usta Seti', st_b: 'Tüm gelir sonsuza dek ×2 + 30 dk gelir', st_done: 'Usta Seti alındı', st_own: 'Usta Seti: gelir ×2',
       marks: 'Mühürler', tapHere: 'Kazana vur!', lbBoard: 'Usta mühürleri',
       hint1: 'Kazana dokun, bakır kazan · atölyeler kendi çalışır', hint2: 'Boşluk — vuruş · ← → sekmeler · ↑ ↓ Enter — al',
-      foot: '<b>BOILERWRIGHT</b> · dokun / tıkla / Boşluk — kazana vur · ← → sekmeler · ↑ ↓ ve Enter — al · P duraklat · L dil · T tema · M ses.'
+      ws_pump: 'El Pompası', ws_wheel: 'Su Çarkı', ws_sluice: 'Savak', ws_crane: 'Buhar Vinci', ws_dredge: 'Tarama Gemisi', ws_tug: 'Römorkör', ws_dock: 'Kuru Havuz', ws_paddle: 'Çarklı Vapur', ws_turbine: 'Buhar Türbini', ws_tide: 'Gelgit Makinesi',
+      up_seals: 'Katranlı Contalar', up_blades: 'Bronz Kanatlar', up_hull: 'Perçinli Gövde', up_bell: 'Gemi Çanı', up_moor: 'Bağlama Barınağı', up_keeper: 'Savak Bekçisi', up_ferry: 'Feribot Hattı', up_regatta: 'Nehir Yarışı', up_tidal: 'Gelgit Beratı',
+      wk_0: 'Bakır Atölyesi', wk_1: 'Nehir Tersanesi', sw_1: 'Tersane ›', sw_0: '‹ Ocak', wh_lock2: 'eritme {n}/{x}',
+      ev_t: 'HAFTA SONU PANAYIRI', ev_b: 'Panayır bitene kadar tüm gelir ×{x}', ev_s: 'Panayır siparişi usta mührü kazandırır', ev_pill: 'Panayır ×{x}', ev_goal: 'Panayır siparişi: {n} bakır kazan', ev_rw: '+{n} mühür', ev_done: 'Panayır siparişi tamam',
+      wh_t: 'NEHİR TERSANESİ', wh_b: 'İkinci atölye açıldı: buhar ve su', wh_s: 'Atölyeleri {ws} sonrası gelir', wh_go: 'Tersaneye', later: 'Sonra', wh_need: 'Tersaneyi başlatmak için {ws} kur', pr_wh: 'Nehir Tersanesi {x} eritmeden sonra açılır ({n}/{x})',
+      foot: '<b>BOILERWRIGHT</b> · dokun / tıkla / Boşluk — kazana vur · ← → sekmeler · ↑ ↓ ve Enter — al · V — atölye · P duraklat · L dil · T tema · M ses.'
     },
     es: {
       title: 'BOILERWRIGHT', subtitle: 'Taller de vapor · juego de clics',
@@ -106,7 +121,12 @@
       adfail: 'El anuncio no está disponible', st_t: 'Kit del maestro', st_b: 'Ingresos ×2 para siempre + 30 min de ingresos', st_done: 'Kit del maestro recibido', st_own: 'Kit del maestro: ingresos ×2',
       marks: 'Sellos', tapHere: '¡Golpea la caldera!', lbBoard: 'Sellos de maestro',
       hint1: 'Toca la caldera para ganar cobre · los talleres trabajan solos', hint2: 'Espacio — golpe · ← → pestañas · ↑ ↓ Enter — comprar',
-      foot: '<b>BOILERWRIGHT</b> · toca / clic / Espacio — golpe · ← → pestañas · ↑ ↓ y Enter — comprar · P pausa · L idioma · T tema · M sonido.'
+      ws_pump: 'Bomba manual', ws_wheel: 'Rueda hidráulica', ws_sluice: 'Compuerta', ws_crane: 'Grúa de vapor', ws_dredge: 'Draga', ws_tug: 'Remolcador', ws_dock: 'Dique seco', ws_paddle: 'Vapor de ruedas', ws_turbine: 'Turbina de vapor', ws_tide: 'Máquina de mareas',
+      up_seals: 'Juntas alquitranadas', up_blades: 'Palas de bronce', up_hull: 'Casco remachado', up_bell: 'Campana de barco', up_moor: 'Cobertizo de amarre', up_keeper: 'Guarda de esclusa', up_ferry: 'Línea de ferri', up_regatta: 'Regata fluvial', up_tidal: 'Carta de mareas',
+      wk_0: 'Taller de cobre', wk_1: 'Astillero fluvial', sw_1: 'Astillero ›', sw_0: '‹ Fragua', wh_lock2: 'refundiciones {n}/{x}',
+      ev_t: 'FERIA DE FIN DE SEMANA', ev_b: 'Todos los ingresos ×{x} hasta el fin de la feria', ev_s: 'El pedido de feria paga sellos de maestro', ev_pill: 'Feria ×{x}', ev_goal: 'Pedido de feria: gana {n} de cobre', ev_rw: '+{n} sellos', ev_done: 'Pedido de feria completado',
+      wh_t: 'ASTILLERO FLUVIAL', wh_b: 'Se abrió un segundo taller: vapor y agua', wh_s: 'Sus talleres llegan tras: {ws}', wh_go: 'Al astillero', later: 'Luego', wh_need: 'Construye: {ws} para abrir el astillero', pr_wh: 'El astillero fluvial abre tras {x} refundiciones ({n}/{x})',
+      foot: '<b>BOILERWRIGHT</b> · toca / clic / Espacio — golpe · ← → pestañas · ↑ ↓ y Enter — comprar · V — taller · P pausa · L idioma · T tema · M sonido.'
     },
     pt: {
       title: 'BOILERWRIGHT', subtitle: 'Oficina a vapor · jogo de cliques',
@@ -132,7 +152,12 @@
       adfail: 'Anúncio indisponível agora', st_t: 'Kit do mestre', st_b: 'Renda ×2 para sempre + 30 min de renda', st_done: 'Kit do mestre recebido', st_own: 'Kit do mestre: renda ×2',
       marks: 'Selos', tapHere: 'Bata na caldeira!', lbBoard: 'Selos de mestre',
       hint1: 'Toque na caldeira para ganhar cobre · as oficinas trabalham sozinhas', hint2: 'Espaço — golpe · ← → abas · ↑ ↓ Enter — comprar',
-      foot: '<b>BOILERWRIGHT</b> · toque / clique / Espaço — golpe · ← → abas · ↑ ↓ e Enter — comprar · P pausa · L idioma · T tema · M som.'
+      ws_pump: 'Bomba manual', ws_wheel: 'Roda d\'água', ws_sluice: 'Comporta', ws_crane: 'Guindaste a vapor', ws_dredge: 'Draga', ws_tug: 'Rebocador', ws_dock: 'Doca seca', ws_paddle: 'Vapor de rodas', ws_turbine: 'Turbina a vapor', ws_tide: 'Máquina das marés',
+      up_seals: 'Vedações alcatroadas', up_blades: 'Pás de bronze', up_hull: 'Casco rebitado', up_bell: 'Sino do navio', up_moor: 'Galpão de atracação', up_keeper: 'Guarda da eclusa', up_ferry: 'Linha de balsa', up_regatta: 'Regata fluvial', up_tidal: 'Carta das marés',
+      wk_0: 'Oficina de cobre', wk_1: 'Estaleiro fluvial', sw_1: 'Estaleiro ›', sw_0: '‹ Forja', wh_lock2: 'refundições {n}/{x}',
+      ev_t: 'FEIRA DE FIM DE SEMANA', ev_b: 'Toda a renda ×{x} até o fim da feira', ev_s: 'O pedido da feira paga selos de mestre', ev_pill: 'Feira ×{x}', ev_goal: 'Pedido da feira: ganhe {n} de cobre', ev_rw: '+{n} selos', ev_done: 'Pedido da feira concluído',
+      wh_t: 'ESTALEIRO FLUVIAL', wh_b: 'Uma segunda oficina abriu: vapor e água', wh_s: 'Suas oficinas vêm após: {ws}', wh_go: 'Ao estaleiro', later: 'Depois', wh_need: 'Construa: {ws} para abrir o estaleiro', pr_wh: 'O estaleiro fluvial abre após {x} refundições ({n}/{x})',
+      foot: '<b>BOILERWRIGHT</b> · toque / clique / Espaço — golpe · ← → abas · ↑ ↓ e Enter — comprar · V — oficina · P pausa · L idioma · T tema · M som.'
     }
   };
   // подстановка {k} → v

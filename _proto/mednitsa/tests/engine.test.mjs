@@ -1,12 +1,13 @@
 /* МЕДНИЦА · tests/engine.test.mjs — автотесты без браузера (Node, без зависимостей).
    Запуск: node _proto/mednitsa/tests/engine.test.mjs   (QUICK=1 — без долгих симуляций)
    Экономика, симулятор баланса (кривая и «стены»), офлайн-доход и защита от перевода часов, ежедневный подарок,
-   сохранение/облако, флаги площадки, переплавка, заказы, посылка, строки RU/EN/TR/ES/PT, правило имён. */
+   сохранение/облако (+ миграция v1 → v2 без верфи), флаги площадки, переплавка, заказы, посылка, Речная верфь (вторая мастерская),
+   «Ярмарка выходного дня» (флаги event_*), строки RU/EN/TR/ES/PT, правило имён, симулятор 30 дней. */
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
-import { loadEcon, simulate, cheapestWait } from './bot.mjs';
+import { loadEcon, simulate, cheapestWait, longPlan, dayReport } from './bot.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url)), ROOT = path.resolve(HERE, '..');
 const sb = { console, Math, JSON }; sb.window = sb; sb.globalThis = sb; vm.createContext(sb);
@@ -22,13 +23,15 @@ function near(a, b, eps, m) { if (Math.abs(a - b) > eps * Math.max(1, Math.abs(b
 const T0 = 1767225600000;   // 01.01.2026 00:00 UTC
 
 // ---------- конфиг ----------
-test('конфиг: 10 цехов, цена и окупаемость первого уровня растут от цеха к цеху', () => {
-  eq(CFG.WS.length, 10);
-  for (let i = 1; i < 10; i++) { const a = CFG.WS[i - 1], b = CFG.WS[i]; ok(b.c0 > a.c0 * 5, 'цена ' + b.id); ok(b.c0 / b.inc > a.c0 / a.inc, 'окупаемость ' + b.id); ok(b.g >= a.g && b.g > 1.05 && b.g < 1.3, 'рост ' + b.id); }
+test('конфиг: 10 цехов горна + 10 цехов верфи, цена и окупаемость первого уровня растут от цеха к цеху', () => {
+  eq(CFG.WS.length, 20); eq(CFG.WS.filter(w => w.wk === 1).length, 10); ok(CFG.WS.slice(0, 10).every(w => w.wk === 0) && CFG.WS.slice(10).every(w => w.wk === 1), 'порядок: горн, потом верфь');
+  for (let i = 1; i < 20; i++) { const a = CFG.WS[i - 1], b = CFG.WS[i]; ok(b.c0 > a.c0 * 5, 'цена ' + b.id); ok(b.c0 / b.inc > a.c0 / a.inc, 'окупаемость ' + b.id); ok(b.g >= a.g && b.g > 1.05 && b.g < 1.3, 'рост ' + b.id); }
   const ids = new Set(CFG.UPS.map(u => u.id)); eq(ids.size, CFG.UPS.length, 'id чертежей уникальны');
-  CFG.UPS.forEach(u => { ok(u.need.ws >= 0 && u.need.ws < 10 && u.cost > 0 && u.x > 0, u.id); });
-  const gids = new Set(CFG.GOALS.map(g => g.id)); eq(gids.size, CFG.GOALS.length, 'id заказов уникальны');
-  CFG.GOALS.forEach(g => ok(['lv', 'taps', 'earn', 'ups', 'chest', 'prestige', 'all', 'boost'].includes(g.type) && g.n > 0 && g.rw > 0, g.id));
+  CFG.UPS.forEach(u => { ok(u.need.ws >= 0 && u.need.ws < 20 && u.cost > 0 && u.x > 0, u.id); });
+  const all = CFG.GOALS.concat(CFG.GOALS2), gids = new Set(all.map(g => g.id)); eq(gids.size, all.length, 'id заказов уникальны (горн + верфь)');
+  all.forEach(g => ok(['lv', 'taps', 'earn', 'ups', 'chest', 'prestige', 'all', 'boost'].includes(g.type) && g.n > 0 && g.rw > 0, g.id));
+  CFG.GOALS2.forEach(g => ok(g.wk === 1 && (g.type !== 'lv' || g.ws >= 10), 'заказ верфи ' + g.id));
+  ok(CFG.wharf.unlock >= 3 && CFG.event.mult > 1, 'верфь и ярмарка в конфиге');
 });
 
 // ---------- экономика ----------
@@ -134,7 +137,7 @@ test('переплавка: ∛-формула, минимум ' + CFG.prestige.
   const s = E.newState(); s.lifeEarned = CFG.prestige.div / 8 * 0.99; ok(!E.canPrestige(s));
   s.lifeEarned = CFG.prestige.div / 8 * 1.01; eq(E.prestigeGain(s), 5); ok(E.canPrestige(s));
   s.lv = [50, 40, 30, 10, 0, 0, 0, 0, 0, 0]; s.ups = { pipes0: 1 }; s.copper = 1e6; s.goals = { g1: 1 };
-  eq(E.prestige(s), 5); eq(s.marks, 5); eq(s.copper, 0); eq(s.lv.join(), '0,0,0,0,0,0,0,0,0,0'); eq(Object.keys(s.ups).length, 0); ok(s.goals.g1); eq(s.prestiges, 1);
+  eq(E.prestige(s), 5); eq(s.marks, 5); eq(s.copper, 0); eq(s.lv.join(), Array(20).fill(0).join()); eq(Object.keys(s.ups).length, 0); ok(s.goals.g1); eq(s.prestiges, 1);
   eq(E.prestigeGain(s), 0, 'за то же заработанное — больше нет'); s.lifeEarned *= 8; eq(E.prestigeGain(s), 5, '×8 заработка → удвоение клейм');
   ok(E.earnForGain(Object.assign(E.newState(), { lifeEarned: 0 })) > 0);
 });
@@ -157,8 +160,77 @@ test('сохранение: в облако — не чаще раза в 15 с 
 });
 test('миграция: старое/неполное сохранение дополняется, мусор отбрасывается', () => {
   const s = E.normalize({ lv: [3, '2', -1], copper: 'x', marks: 2 });
-  eq(s.lv.length, 10); eq(s.lv[1], 2); eq(s.lv[2], 0); eq(s.copper, 0); eq(s.marks, 2); eq(typeof s.ups, 'object'); eq(s.chestT, CFG.chest.first);
+  eq(s.lv.length, 20); eq(s.lv[1], 2); eq(s.lv[2], 0); eq(s.copper, 0); eq(s.marks, 2); eq(typeof s.ups, 'object'); eq(s.chestT, CFG.chest.first);
   eq(E.normalize(null).copper, 0); eq(M.save.parse('{"a":1}'), null, 'без lv — не сохранение');
+});
+
+
+// ---------- Речная верфь (вторая мастерская) ----------
+const N1 = CFG.wharf.unlock;
+test('верфь: закрыта до ' + N1 + '-й переплавки; открывается переплавкой навсегда (wharfNew — окно в игре)', () => {
+  const s = E.newState(); s.lv[9] = 5; ok(!E.wharfOpen(s)); ok(!E.unlocked(s, 10), 'первый цех верфи закрыт'); eq(E.activeGoals(s, 3, 1).length, 0, 'заказов верфи нет');
+  s.prestiges = N1 - 1; s.lifeEarned = 1e30; eq(E.prestige(s) > 0, true); eq(s.prestiges, N1); ok(s.wharf && s.wharfNew && E.wharfOpen(s), 'открыта');
+  delete s.wharfNew; s.lifeEarned *= 1e3; E.prestige(s); ok(!s.wharfNew, 'окно — один раз'); ok(E.wharfOpen(s));
+});
+test('верфь: первый цех — после «Сердца Горна» в текущем забеге; дальше — по цепочке; переплавка сбрасывает и верфь', () => {
+  const s = E.newState(); s.wharf = true; ok(!E.unlocked(s, 10), 'без сердца горна'); s.lv[9] = 1; ok(E.unlocked(s, 10)); ok(!E.unlocked(s, 11));
+  s.copper = 1e40; const r = E.buy(s, 10, 1); ok(r && r.first, 'купили насос'); ok(E.unlocked(s, 11)); eq(E.wkOf(10), 1); eq(E.wsOf(1).join(), '10,11,12,13,14,15,16,17,18,19');
+  s.lifeEarned = 1e30; E.prestige(s); eq(s.lv.slice(10).join(), '0,0,0,0,0,0,0,0,0,0'); ok(s.wharf, 'верфь остаётся открытой');
+});
+test('верфь: доход цехов верфи — с общими множителями (клейма, «Набор мастера», «всё ×»); чертежи верфи видны по её цехам', () => {
+  const s = E.newState(); s.wharf = true; s.lv[9] = 1; s.lv[10] = 10; const a = E.wsIncome(s, 10) * E.allMult(s);
+  near(a, 10 * CFG.WS[10].inc * 2, 1e-9, 'этап 10'); s.marks = 20; near(E.wsIncome(s, 10) * E.allMult(s), a * 2, 1e-9, '+100% от клейм');
+  ok(E.upsVisible(s).some(u => u.id === 'seals10') && E.upsVisible(s).some(u => u.id === 'bell'), 'сальники и колокол');
+  s.ups.ferry = 1; near(E.allMult(s), 2 * 3, 1e-9, 'паромная линия ×3');
+});
+test('верфь: заказы — свой список (видно 3, когда верфь открыта), «все цеха» считает только цеха своей мастерской', () => {
+  const s = E.newState(); s.wharf = true; let a = E.activeGoals(s, 3, 1); eq(a.length, 3); eq(a[0].goal.id, 'r1'); ok(!a[0].done);
+  s.lv[9] = 1; s.lv[10] = 1; ok(E.activeGoals(s, 3, 1)[0].done); ok(E.claimGoal(s, 'r1') > 0); eq(E.activeGoals(s, 3, 1)[0].goal.id, 'r2');
+  for (let i = 0; i < 10; i++) s.lv[i] = 60; s.lv[10] = 3;
+  eq(E.goalProgress(s, { type: 'all', n: 50 }), 60, 'горн: все ≥ 60 (верфь не мешает)'); eq(E.goalProgress(s, { type: 'all', wk: 1, n: 50 }), 0, 'верфь: следующий цех (колесо, ур. 0) тоже считается'); for (let i = 10; i < 20; i++) s.lv[i] = 7; s.lv[13] = 4; eq(E.goalProgress(s, { type: 'all', wk: 1, n: 50 }), 4);
+  ok(E.goalAt(CFG.GOALS2.length + 2, 1).id.startsWith('rx'), 'бесконечные заказы верфи'); eq(E.goalsReady(s, 1) >= 0, true);
+});
+test('миграция v1 → v2: старое сохранение без верфи (10 уровней) — уровни верфи 0, верфь открыта, если переплавок уже ≥ ' + N1, () => {
+  const old = { v: 1, copper: 5e9, runEarned: 1, lifeEarned: 1e15, marks: 300, marksEver: 300, prestiges: N1 + 2, lv: [50, 40, 30, 20, 10, 5, 3, 2, 1, 1], ups: { pipes0: 1 }, goals: { g1: 1 }, taps: 999, giftDay: 1, giftStreak: 2, lastSeen: T0, view: 1 };
+  const io = mem(); io.set(M.save.KEY, JSON.stringify(old)); const s = E.normalize(M.save.Saver(io, null).pick());
+  eq(s.v, CFG.version); eq(s.lv.length, 20); eq(s.lv.slice(0, 10).join(), '50,40,30,20,10,5,3,2,1,1'); eq(s.lv.slice(10).join(), '0,0,0,0,0,0,0,0,0,0');
+  ok(s.wharf && E.wharfOpen(s), 'верфь открыта'); eq(s.view, 1); eq(s.copper, 5e9); eq(s.marks, 300); ok(s.goals.g1 && s.ups.pipes0, 'заказы и чертежи на месте'); eq(s.marksBonus, 0); eq(s.ev, null);
+  ok(E.unlocked(s, 10), 'насос доступен (сердце горна построено)');
+  const young = E.normalize({ v: 1, lv: [5, 1, 0, 0, 0, 0, 0, 0, 0, 0], prestiges: 2, view: 1 }); ok(!young.wharf && !E.wharfOpen(young)); eq(young.view, 0, 'вид верфи без верфи → горн');
+  // записали v2 и прочитали снова — без потерь
+  const sv = M.save.Saver(io, null); s.lv[12] = 7; sv.write(s, T0 + 1); const back = E.normalize(sv.pick()); eq(back.lv[12], 7); eq(back.lv.length, 20); ok(back.wharf);
+});
+test('офлайн с верфью: доход цехов верфи идёт и офлайн (50%, предел; «Причальный сарай» — 12 ч)', () => {
+  const s = E.newState(); s.wharf = true; s.lv[9] = 1; s.lv[10] = 20; s.lastSeen = T0; const inc = E.baseIncome(s); ok(inc > E.wsIncome(s, 10), 'включает верфь');
+  let r = E.offline(s, T0 + 3600e3); near(r.gain, inc * 0.5 * 3600, 1e-9);
+  s.ups.moor = 1; r = E.offline(s, T0 + 3600e3 + 20 * 3600e3); near(r.sec, 12 * 3600, 1e-9); ok(r.capped);
+});
+
+// ---------- «Ярмарка выходного дня» (флаги event_*) ----------
+const SAT = Date.UTC(2026, 10, 21, 12), FRI = Date.UTC(2026, 10, 20, 12), SUN_LATE = Date.UTC(2026, 10, 22, 20, 30), MON = Date.UTC(2026, 10, 22, 21, 30);
+test('ярмарка: по умолчанию — сб и вс по UTC+3 (граница — полночь МСК), event_mode=off/on, event_mult — флагами без перевыпуска', () => {
+  ok(E.eventInfo(SAT).on, 'суббота'); ok(!E.eventInfo(FRI).on, 'пятница'); ok(E.eventInfo(SUN_LATE).on, 'вс 23:30 МСК'); ok(!E.eventInfo(MON).on, 'пн 00:30 МСК');
+  eq(E.eventInfo(SAT).id, E.eventInfo(SUN_LATE).id, 'одни выходные — одна ярмарка'); near(E.eventInfo(SUN_LATE).left, 1800, 1e-6, 'до конца — 30 мин');
+  const off = X.Econ(X.applyFlags(CFG, k => ({ event_mode: 'OFF' })[k])); ok(!off.eventInfo(SAT).on, 'выключена флагом');
+  const on = X.Econ(X.applyFlags(CFG, k => ({ event_mode: 'on', event_id: 'nov', event_mult: '3' })[k])); const i = on.eventInfo(FRI); ok(i.on, 'включена сейчас'); ok(/nov/.test(i.id)); eq(on.cfg.event.mult, 3);
+  eq(X.applyFlags(CFG, () => '').event.mode, 'weekend', 'пустой флаг — значение конфига'); eq(CFG.event.mode, 'weekend', 'конфиг не тронут');
+});
+test('ярмарка: множитель дохода только пока идёт; особый заказ — заработать N минут дохода, награда — клейма «сверху» (переплавку не уменьшают)', () => {
+  const E3 = X.Econ(CFG), s = E3.newState(); s.lv[0] = 20; s.lv[1] = 10; s.marksEver = 1000; s.marks = 1000; s.lifeEarned = 5e16;
+  E3.eventSync(s, FRI); const base = E3.income(s); E3.eventSync(s, SAT); near(E3.income(s), base * CFG.event.mult, 1e-9, '×' + CFG.event.mult);
+  ok(s.ev && s.ev.need > 0 && !s.ev.done); near(s.ev.need, Math.max(1000, E3.baseIncome(s) / CFG.event.mult * CFG.event.orderMin * 60), 1e-9, 'цель — от дохода без ярмарки');
+  const pg = E3.prestigeGain(s); ok(!E3.eventReady(s)); eq(E3.claimEvent(s), 0, 'не выполнен');
+  E3.eventSync(s, FRI); E3.earn(s, s.ev.need * 2); ok(!(s.ev.got > 0), 'в будни прогресс не идёт');
+  E3.eventSync(s, SAT); E3.advance(s, CFG.event.orderMin * 60 / CFG.event.mult + 5); ok(E3.eventReady(s), 'выполнен за ~' + (CFG.event.orderMin / CFG.event.mult) + ' мин игры при ×' + CFG.event.mult);
+  const g = E3.claimEvent(s); eq(g, Math.max(CFG.event.marksMin, Math.round(1000 * CFG.event.marksPct))); eq(s.marks, 1000 + g); eq(s.marksEver, 1000, 'marksEver не тронут'); eq(E3.prestigeGain(s), pg, 'будущая переплавка та же');
+  eq(E3.claimEvent(s), 0, 'дважды нельзя'); E3.eventSync(s, SUN_LATE); eq(E3.claimEvent(s), 0, 'в воскресенье — тот же заказ');
+  E3.eventSync(s, SAT + 7 * 86400e3); ok(s.ev && !s.ev.done && s.ev.got === 0, 'следующие выходные — новый заказ');
+  const fresh = E3.normalize(JSON.parse(JSON.stringify(s))); eq(fresh.ev.id, s.ev.id, 'заказ ярмарки сохраняется');
+});
+test('ярмарка: офлайн-доход в выходные — тоже ×' + CFG.event.mult + ' (множитель на момент возврата)', () => {
+  const E3 = X.Econ(CFG), s = E3.newState(); s.lv[0] = 10; s.lastSeen = FRI; E3.eventSync(s, FRI); const inc = E3.baseIncome(s);
+  E3.eventSync(s, FRI + 1800e3); const r1 = E3.offline(s, FRI + 1800e3); near(r1.gain, inc * 0.5 * 1800, 1e-9);
+  s.lastSeen = SAT - 1800e3; E3.eventSync(s, SAT); const r2 = E3.offline(s, SAT); near(r2.gain, inc * CFG.event.mult * 0.5 * 1800, 1e-9);
 });
 
 // ---------- флаги ----------
@@ -218,13 +290,23 @@ test('баланс, первая сессия: переплавка доступ
 test('баланс, медленный игрок (1 удар/с): тоже без «стены» в первые 30 мин', () => {
   const r = simulate({ tps: 1, prestige: false, plan: [{ on: 30 * 60 }] }); eq(r.log.walls.length, 0, JSON.stringify(r.log.walls.slice(0, 3)));
 });
-const plan = [{ on: 40 * 60 }, { off: 4 * 3600 }]; for (let d = 0; d < 14; d++) plan.push({ on: 600 }, { off: 5 * 3600 }, { on: 600 }, { off: 5 * 3600 }, { on: 600 }, { off: 14 * 3600 - 1800 });
-const days = simulate({ tps: 3, plan });
-test('баланс, 14 дней (3 сессии × 10 мин в день): все 10 цехов — со 2-го по 7-й день, переплавка хотя бы раз в 4 дня, без «взрыва» чисел', () => {
-  ok(days.log.unlock[9] != null, '10-й цех не открыт'); ok(days.log.unlock[6] > 40 * 60, '7-й — не в первый день');
-  const pr = days.log.prestige.map(p => Math.floor(p.at / 86400)); ok(pr.length >= 6, 'переплавок ' + pr.length);
+const days = simulate({ tps: 3, plan: longPlan(30) }), DR = dayReport(days, 30), dayOf = (t) => Math.floor(t / 86400) + 1;
+test('баланс, 14 дней (3 сессии × 10 мин в день): все 10 цехов горна — со 2-го по 7-й день, переплавка хотя бы раз в 4 дня, без «взрыва» чисел', () => {
+  ok(days.log.unlock[9] != null && dayOf(days.log.unlockAt[9]) <= 7, '10-й цех не открыт к 7-му дню'); ok(days.log.unlock[6] > 40 * 60, '7-й — не в первый день');
+  const pr = days.log.prestige.map(p => Math.floor(p.at / 86400)); ok(pr.filter(x => x < 14).length >= 6, 'переплавок ' + pr.length);
   for (let d = 1; d + 4 <= 14; d += 4) ok(pr.some(x => x >= d && x < d + 4), 'нет переплавки в дни ' + (d + 1) + '–' + (d + 4));
-  ok(days.s.marks < 1e7 && isFinite(E.income(days.s)), 'клейм ' + days.s.marks);
+  ok(DR[13].marks < 1e7 && isFinite(DR[13].income), 'клейм на 14-й день ' + DR[13].marks);
+});
+test('баланс, дни 10–30 (верфь): цеха верфи открываются постепенно — 1-й на 6–10-й день, 5-й к 20-му, ≥ 7 к 30-му, но не все 10 раньше 25-го', () => {
+  const U = (i) => days.log.unlockAt && days.log.unlockAt[i] != null ? dayOf(days.log.unlockAt[i]) : 99;
+  ok(U(10) >= 6 && U(10) <= 10, '1-й цех верфи: день ' + U(10)); ok(U(14) <= 20, '5-й: день ' + U(14)); ok(U(16) <= 30, '7-й: день ' + U(16)); ok(U(19) > 25, '10-й: день ' + U(19));
+  for (let i = 11; i < 20; i++) ok(U(i) >= U(i - 1), 'порядок ' + i);
+});
+test('баланс, дни 10–30: новые цели каждый день (заказы, цеха, чертежи, переплавки, ярмарка) — не больше 2 дней-«стен», переплавка не реже раза в 4 дня', () => {
+  const late = DR.filter(r => r.day >= 10); const walls = late.filter(r => r.news === 0).map(r => r.day); ok(walls.length <= 2, 'дни без новой цели: ' + walls.join(','));
+  const pr = days.log.prestige.map(p => dayOf(p.at)); for (let d = 10; d + 3 <= 30; d += 4) ok(pr.some(x => x >= d && x < d + 4), 'нет переплавки в дни ' + d + '–' + (d + 3));
+  ok(days.log.events.length >= 3, 'заказов ярмарки: ' + days.log.events.length);
+  ok(isFinite(E.income(days.s)) && days.s.marks < 1e12, 'клейм к 30-му дню ' + days.s.marks);
 });
 test('бот: cheapestWait — 0, если что-то уже по карману', () => { const s = E.newState(); s.copper = 1e3; eq(cheapestWait(E, s), 0); });
 

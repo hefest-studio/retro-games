@@ -211,7 +211,7 @@ test('партия ИИ против ИИ заканчивается побед�
 test('страница: порядок скриптов, ссылка на каталог, engine.js — копия _shared', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const order = [...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(), 'engine.js,js/music.js,js/i18n.js,js/edition.js,js/missions/index.js,js/game.js,js/render.js,js/mouse.js,js/main.js');
+  eq(order.join(), 'engine.js,js/music.js,js/i18n.js,js/edition.js,js/missions/index.js,js/game.js,js/scenario.js,js/campaign.js,js/render.js,js/mouse.js,js/campaign-ui.js,js/main.js');
   ok(/class="back"[^>]*href="\.\.\/"/.test(html), '«← Каталог» должен вести на ../');
   ok(/class="back"[^>]*data-en="← Catalog"/.test(html), 'нет «← Каталог»');
   ok(/rel="icon"/.test(html), 'нет фавикона');
@@ -233,6 +233,7 @@ test('издание: флаг сборки PORUB_EDITION = demo, ?demo / ?editi
   ok(/полной верси/.test(S.ru.campFull) && /full version/.test(S.en.campFull) && /полной верси/.test(S.ru.demoTitle) && /full version/.test(S.en.demoTitle), 'тексты');
   for (const k of ['campaign', 'campFull', 'campSoon', 'demoTitle', 'demoSub', 'soonTitle', 'soonSub', 'toMenu', 'more']) { ok(S.ru[k] && S.en[k], k); ok(!/[а-яё]/i.test(S.en[k]), 'кириллица в EN: ' + k); }
   eq(JSON.stringify(sb.PORUB.MISSION_FILES.demo), '[]'); eq(JSON.stringify(sb.PORUB.missionFiles('demo')), '[]'); eq(sb.PORUB.MISSIONS.length, 0);
+  ok(sb.PORUB.missionFiles('full').length >= 3, 'в полной сборке — файлы кампании'); eq(JSON.stringify(sb.PORUB.missionFiles('platform')), JSON.stringify(sb.PORUB.missionFiles('full')), 'издание площадок без флага — как full');
   sb.PORUB.registerMission({ id: 'x2', n: 2 }); sb.PORUB.registerMission({ id: 'x1', n: 1 }); eq(sb.PORUB.MISSIONS.map(m => m.id).join(), 'x1,x2', 'реестр');
   if (!FULLBUILD) eq(fs.readdirSync(path.join(ROOT, 'js/missions')).join(), 'index.js', 'в публичном дереве нет файлов миссий');
   const main = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8'); ok(/key: 'campaign'/.test(main) && /g\.scene\('edition'/.test(main), 'нет пункта «Кампания» / экрана издания');

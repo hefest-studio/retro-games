@@ -13,13 +13,15 @@
       copper: '#cf7a36', copperHi: '#f0a560', wood2: '#8a5a33', woodHi: '#b07a48', cloth: '#3f6f93', clothHi: '#6b9cc0', skin: '#e2b48a', fur: '#6b4a2e', iron: '#5b5f66',
       moss: '#6f9a3a', mossHi: '#9cc25a', bark: '#5a3d24', barkHi: '#7c5636', lichen: '#c3c98e', eye: '#ffb43c', cap: '#b8432f', capDot: '#f2e6cf',
       amber: '#f0a020', amberHi: '#ffd36b', resin: '#7a4a10', resinHi: '#d8a040', myc: 'rgba(36,52,28,0.42)', mycLine: 'rgba(232,226,196,0.30)',
-      sel: '#5fd38a', enemy: '#ff5d5d', hpGood: '#5fd38a', hpMid: '#ffc04a', hpBad: '#ff5d5d', panel: 'rgba(20,24,30,0.92)', line: '#2c3442', ink: '#eef2f8', muted: '#9aa4b5', accent: '#e8913a' },
+      sel: '#5fd38a', enemy: '#ff5d5d', hpGood: '#5fd38a', hpMid: '#ffc04a', hpBad: '#ff5d5d', panel: 'rgba(20,24,30,0.92)', line: '#2c3442', ink: '#eef2f8', muted: '#9aa4b5', accent: '#e8913a',
+      snow: ['#dfe7ec', '#d6e0e7', '#e6edf1'], snowLo: '#b9c8d3', ice: '#a9cfe0', iceHi: '#e2f3fa', plank: '#8a6238', plankHi: '#b4864f', cranberry: '#a8323a', brass: '#c9a24a', frost: 'rgba(200,225,245,' },
     retro: { grass: ['#2e5a2a', '#2e5a2a', '#346430', '#2e5a2a'], heath: ['#5c5428', '#5c5428'], wood: '#123218', pine: ['#1a4a22', '#226a2a', '#1a4a22'], birch: '#e8e8d0', trunk: '#5a3818',
       water: '#183a68', waterHi: '#4a78b8', shore: '#4a5a28', rock: '#787070', rockHi: '#b0a898', fog: '#000000',
       copper: '#e07828', copperHi: '#ffb060', wood2: '#8c5420', woodHi: '#b87838', cloth: '#3870b0', clothHi: '#70a8e0', skin: '#f0b888', fur: '#704818', iron: '#606068',
       moss: '#68a830', mossHi: '#a8d850', bark: '#603818', barkHi: '#905828', lichen: '#d0d090', eye: '#ffc030', cap: '#c83020', capDot: '#f8f0d8',
       amber: '#f8a000', amberHi: '#ffe070', resin: '#784808', resinHi: '#e0a030', myc: 'rgba(24,40,16,0.5)', mycLine: 'rgba(240,232,200,0.35)',
-      sel: '#58f858', enemy: '#f83838', hpGood: '#58f858', hpMid: '#f8d838', hpBad: '#f83838', panel: 'rgba(16,12,20,0.95)', line: '#3a2e40', ink: '#f3e9da', muted: '#8a7f6e', accent: '#ea6a12' }
+      sel: '#58f858', enemy: '#f83838', hpGood: '#58f858', hpMid: '#f8d838', hpBad: '#f83838', panel: 'rgba(16,12,20,0.95)', line: '#3a2e40', ink: '#f3e9da', muted: '#8a7f6e', accent: '#ea6a12',
+      snow: ['#e8e8f0', '#d8d8e8', '#e8e8f0'], snowLo: '#a8b0c8', ice: '#88c0e8', iceHi: '#e0f8ff', plank: '#905828', plankHi: '#c08848', cranberry: '#b82838', brass: '#d8b040', frost: 'rgba(208,232,255,' }
   };
   R.PAL = PAL;
   R.pal = function (theme) { return PAL[theme] || PAL.modern; };
@@ -49,22 +51,26 @@
 
   // ---------- Земля (пререндер на всю карту, кэш по теме) ----------
   R.terrain = function (game, theme) {
-    var key = theme + ':' + game.seedKey; game._terrCache = game._terrCache || {};
+    var key = theme + ':' + game.seedKey + ':' + (game.terrRev || 0), MW = game.MW, MH = game.MH; game._terrCache = game._terrCache || {};
     if (game._terrCache[key]) return game._terrCache[key];
+    for (var ok in game._terrCache) if (ok.indexOf(theme + ':') === 0) delete game._terrCache[ok]; // старая версия карты (разлив, мост)
     var cv = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(MW * T, MH * T) : Object.assign(document.createElement('canvas'), { width: MW * T, height: MH * T });
     var c = cv.getContext('2d'), p = R.pal(theme), ret = theme === 'retro';
     for (var y = 0; y < MH; y++) for (var x = 0; x < MW; x++) {
       var t = game.terr[y * MW + x], h = hash(x, y), X = x * T, Y = y * T;
-      var base = t === TR.HEATH ? p.heath[(h * 2) | 0] : p.grass[(h * 4) | 0];
-      c.fillStyle = t === TR.WATER ? p.water : base; c.fillRect(X, Y, T, T);
+      var base = t === TR.HEATH ? p.heath[(h * 2) | 0] : t === TR.SNOW ? p.snow[(h * 3) | 0] : t === TR.ICE ? p.ice : p.grass[(h * 4) | 0];
+      c.fillStyle = t === TR.WATER || t === TR.BRIDGE ? p.water : base; c.fillRect(X, Y, T, T);
+      if (t === TR.SNOW) { c.fillStyle = p.snowLo; for (var sk = 0; sk < 3; sk++) { var sx0 = hash(x * 5 + sk, y * 7), sy0 = hash(x * 3, y * 9 + sk); c.fillRect(X + ((sx0 * (T - 6)) | 0), Y + ((sy0 * (T - 4)) | 0), ret ? 6 : 5, ret ? 3 : 2); } }
+      if (t === TR.ICE) { c.fillStyle = p.iceHi; if (h > 0.3) c.fillRect(X + ((h * 14) | 0), Y + 6 + ((h * 13) | 0), ret ? 12 : 11, 2);
+        c.strokeStyle = ret ? '#5890c0' : 'rgba(70,120,150,0.45)'; c.lineWidth = 1; if (h > 0.6) { c.beginPath(); c.moveTo(X + 3, Y + h * T); c.lineTo(X + T / 2, Y + T / 2); c.lineTo(X + T - 4, Y + (1 - h) * T); c.stroke(); } }
       if (t === TR.GRASS || t === TR.HEATH || t === TR.WOOD) { // травинки/вереск
         for (var k = 0; k < 4; k++) { var hx = hash(x * 7 + k, y * 3), hy = hash(x * 5, y * 11 + k);
           c.fillStyle = t === TR.HEATH ? (ret ? '#a07858' : 'rgba(176,128,96,0.45)') : (ret ? '#3c7034' : 'rgba(110,150,90,0.35)');
           c.fillRect(X + ((hx * (T - 4)) | 0), Y + ((hy * (T - 4)) | 0), ret ? 3 : 2, ret ? 3 : 2); }
       }
-      if (t === TR.WATER) {
+      if (t === TR.WATER || t === TR.BRIDGE) {
         // берег там, где рядом суша
-        var land = function (dx, dy) { var xx = x + dx, yy = y + dy; return xx >= 0 && yy >= 0 && xx < MW && yy < MH && game.terr[yy * MW + xx] !== TR.WATER; };
+        var land = function (dx, dy) { var xx = x + dx, yy = y + dy; if (!(xx >= 0 && yy >= 0 && xx < MW && yy < MH)) return false; var q = game.terr[yy * MW + xx]; return q !== TR.WATER && q !== TR.BRIDGE && q !== TR.ICE; };
         c.fillStyle = p.shore; if (land(0, -1)) c.fillRect(X, Y, T, 4); if (land(0, 1)) c.fillRect(X, Y + T - 4, T, 4); if (land(-1, 0)) c.fillRect(X, Y, 4, T); if (land(1, 0)) c.fillRect(X + T - 4, Y, 4, T);
         c.fillStyle = p.waterHi; if (h > 0.55) c.fillRect(X + 6 + ((h * 10) | 0), Y + 10 + ((h * 9) | 0), ret ? 9 : 10, 2);
       }
@@ -75,31 +81,33 @@
       if (t2 === TR.ROCK) { shadow(c, cx + 2, cy + 8, 13, 5, ret); oval(c, cx, cy + 2, 13, 10, p.rock, ret); oval(c, cx - 3, cy - 2, 7, 5, p.rockHi, ret); oval(c, cx + 6, cy + 4, 4, 3, p.rockHi, ret); }
       if (t2 === TR.WOOD) {
         c.fillStyle = p.wood; c.fillRect(x2 * T, y2 * T, T, T);
+        var snowy = game.snowyWood;
         var n = 2 + ((h2 * 2) | 0);
         for (var i = 0; i < n; i++) { var ox = (hash(x2 * 3 + i, y2) - 0.5) * 18, oy = (hash(x2, y2 * 3 + i) - 0.5) * 16, s = 0.8 + hash(x2 + i, y2 + i) * 0.5;
           if (hash(x2 * 13 + i, y2 * 7) > 0.86) { // берёза
             c.fillStyle = p.birch; c.fillRect(cx + ox - 2, cy + oy - 6, 4, 18); c.fillStyle = '#222'; c.fillRect(cx + ox - 2, cy + oy, 3, 1); c.fillRect(cx + ox, cy + oy + 6, 2, 1);
             oval(c, cx + ox, cy + oy - 10, 9 * s, 8 * s, ret ? '#78a830' : '#7aa64a', ret);
-          } else pine(c, cx + ox, cy + oy + 10, s, p, ret, h2);
+          } else pine(c, cx + ox, cy + oy + 10, s, p, ret, h2, snowy);
         }
       }
     }
     game._terrCache[key] = cv; return cv;
   };
-  function pine(c, x, y, s, p, ret, h) {
+  function pine(c, x, y, s, p, ret, h, snowy) {
     shadow(c, x + 4, y + 2, 9 * s, 3 * s, ret);
     c.fillStyle = p.trunk; c.fillRect(x - 2, y - 6 * s, 4, 6 * s);
-    var cols = p.pine; for (var i = 0; i < 3; i++) { var w = (12 - i * 3) * s, yy = y - 6 * s - i * 7 * s; tri(c, x, yy - 12 * s, x - w, yy, x + w, yy, cols[i], ret); }
+    var cols = p.pine; for (var i = 0; i < 3; i++) { var w = (12 - i * 3) * s, yy = y - 6 * s - i * 7 * s; tri(c, x, yy - 12 * s, x - w, yy, x + w, yy, cols[i], ret);
+      if (snowy) tri(c, x, yy - 12 * s, x - w * 0.55, yy - 5 * s, x + w * 0.55, yy - 5 * s, p.snow[0], ret); }
     if (!ret) { c.fillStyle = 'rgba(255,255,255,0.06)'; c.beginPath(); c.moveTo(x, y - 32 * s); c.lineTo(x + 6 * s, y - 14 * s); c.lineTo(x, y - 16 * s); c.fill(); }
   }
 
   // ---------- Мини-карта: фон (пререндер) ----------
   R.miniBase = function (game, theme, w, h) {
-    var key = 'mini:' + theme + ':' + w; game._terrCache = game._terrCache || {};
+    var MW = game.MW, MH = game.MH, key = 'mini:' + theme + ':' + w + ':' + (game.terrRev || 0); game._terrCache = game._terrCache || {};
     if (game._terrCache[key]) return game._terrCache[key];
     var cv = Object.assign(document.createElement('canvas'), { width: MW, height: MH }), c = cv.getContext('2d'), p = R.pal(theme), img = c.createImageData(MW, MH);
     var hex = function (s) { var n = parseInt(s.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
-    var cols = [hex(p.grass[0]), hex(p.wood), hex(p.water), hex(p.rock), hex(p.heath[0])];
+    var cols = [hex(p.grass[0]), hex(p.wood), hex(p.water), hex(p.rock), hex(p.heath[0]), hex(p.snow[0]), hex(p.ice), hex(p.plank)];
     for (var i = 0; i < MW * MH; i++) { var cc = cols[game.terr[i]]; img.data[i * 4] = cc[0]; img.data[i * 4 + 1] = cc[1]; img.data[i * 4 + 2] = cc[2]; img.data[i * 4 + 3] = 255; }
     c.putImageData(img, 0, 0); game._terrCache[key] = cv; return cv;
   };
@@ -120,7 +128,22 @@
       box(c, -4, -16, 10, 5, p.fur, ret, 2); box(c, -4, -12, 10, 2, p.woodHi, ret);                      // меховая шапка с отворотом
       if (D === 'shooter') { line(c, -2, 0, 14, -6, p.wood2, 3); line(c, 6, -3, 16, -7, p.iron, 2); }    // пищаль
       else if (u.work) { c.save(); c.translate(5, -2); c.rotate(Math.sin(u.anim * 10) * 0.9 - 0.5); line(c, 0, 0, 0, -11, p.wood2, 2); box(c, -3, -13, 7, 4, p.iron, ret); c.restore(); }
-      if (u.carry) oval(c, -7, -4, 4, 4, u.carry.type === 'amber' ? p.amber : p.resinHi, ret);
+      if (u.carry) { if (u.carry.type === 'timber') { box(c, -12, -6, 10, 4, p.plankHi, ret, 2); box(c, -12, -2, 10, 3, p.trunk, ret, 1); } else oval(c, -7, -4, 4, 4, u.carry.type === 'amber' ? p.amber : p.resinHi, ret); }
+    } else if (D === 'yarina') { // воевода: клюквенный плащ, кольчужная шапка-шишак с бармицей, древко со знаменем
+      box(c, -5, 2 + bob * 0.3, 4, 7, p.fur, ret); box(c, 1, 2 - bob * 0.3, 4, 7, p.fur, ret);
+      tri(c, -2, -10, -11, 8, 7, 8, p.cranberry, ret);                                                  // плащ
+      oval(c, 0, -1, 7, 8, p.iron, ret); box(c, -6, -2, 12, 2, p.brass, ret);                            // кольчуга, пояс
+      oval(c, 1, -10, 5, 5, p.skin, ret);
+      tri(c, 1, -21, -5, -12, 7, -12, p.iron, ret); box(c, -5, -12, 12, 2, p.brass, ret);              // шишак
+      line(c, 9, 6, 9, -26, p.wood2, 2); box(c, 9, -26, 11, 8, p.copper, ret); tri(c, 20, -26, 20, -18, 24, -22, p.copper, ret); // знамя
+    } else if (D === 'tikhon') { // изобретатель: кожаный фартук, латунные очки на шапке, заплечный котелок с трубкой
+      box(c, -5, 2 + bob * 0.3, 4, 6, p.fur, ret); box(c, 1, 2 - bob * 0.3, 4, 6, p.fur, ret);
+      box(c, -11, -9, 6, 12, p.brass, ret, 2); box(c, -10, -14, 2, 5, p.iron, ret);                       // котелок за спиной
+      oval(c, 0, -1, 7, 8, ret ? '#706040' : '#6d6046', ret); box(c, -4, -3, 8, 9, p.wood2, ret, 2);       // кафтан, фартук
+      oval(c, 1, -10, 5, 5, p.skin, ret); box(c, -4, -16, 10, 4, p.fur, ret, 2);
+      oval(c, -1, -14, 2, 2, p.iceHi, ret); oval(c, 3, -14, 2, 2, p.iceHi, ret); box(c, -3, -15, 8, 1, p.brass, ret);  // очки
+      if (u.work) { c.save(); c.translate(5, -2); c.rotate(Math.sin(u.anim * 12) * 0.8 - 0.4); line(c, 0, 0, 0, -10, p.iron, 2); box(c, -2, -12, 5, 3, p.brass, ret); c.restore(); }
+      if (u.carry) oval(c, 7, -4, 4, 4, u.carry.type === 'amber' ? p.amber : u.carry.type === 'timber' ? p.plankHi : p.resinHi, ret);
     } else if (D === 'walker') {
       var st = u.moving ? Math.sin(u.anim * 7) * 4 : 0;
       line(c, -6, 4, -8 + st, 15, p.iron, 4); line(c, 6, 4, 8 - st, 15, p.iron, 4);                    // ноги
@@ -138,7 +161,7 @@
       line(c, -8, 0, 6, 0, ret ? '#402008' : 'rgba(40,24,10,0.7)', 1);
       oval(c, 8, 0, 4, 4, p.bark, ret); box(c, 9, -3, 2, 2, p.eye, ret); box(c, 9, 1, 2, 2, p.eye, ret);  // голова, янтарные глаза
       if (u.work) { line(c, 11, -2, 14, -4 + Math.sin(u.anim * 14) * 2, p.bark, 2); line(c, 11, 2, 14, 4 - Math.sin(u.anim * 14) * 2, p.bark, 2); }
-      if (u.carry) oval(c, -3, -7, 4, 4, u.carry.type === 'amber' ? p.amber : p.resinHi, ret);
+      if (u.carry) oval(c, -3, -7, 4, 4, u.carry.type === 'amber' ? p.amber : u.carry.type === 'timber' ? p.plankHi : p.resinHi, ret);
     } else if (D === 'stinger') {
       var hop = u.moving ? Math.abs(Math.sin(u.anim * 9)) * -4 : 0;
       c.translate(0, hop);
@@ -200,6 +223,12 @@
         for (var sm = 0; sm < 4; sm++) { var ph = (t * 0.5 + sm / 4) % 1; oval(c, X + S - 17 + ph * 10, Y - 12 - ph * 28, 4 + ph * 7, 4 + ph * 7, 'rgba(200,200,200,' + (0.45 - ph * 0.4) + ')', ret); }
         oval(c, cx, cy + 14, 6, 5, ret ? '#ffc040' : '#ffcf7a', ret);
         break;
+      case 'span': { // пролёт моста: сваи и настил из плах с перилами; в стройке — сваи и леса над водой
+        var pl2 = b.done ? 1 : k;
+        for (var pi = 0; pi < 4; pi++) { var px = X + 6 + (pi % 2) * (S - 16), py = Y + 4 + ((pi / 2) | 0) * (S - 12); box(c, px, py, 6, 10, p.trunk, ret, 2); }
+        if (pl2 > 0.15) { var nPl = Math.max(1, Math.round(8 * Math.min(1, pl2))); for (var pk = 0; pk < nPl; pk++) box(c, X + 2, Y + 2 + pk * (S - 4) / 8, S - 4, (S - 4) / 8 - 1, pk % 2 ? p.plank : p.plankHi, ret, 1); }
+        if (b.done) { box(c, X + 1, Y, 3, S, p.wood2, ret); box(c, X + S - 4, Y, 3, S, p.wood2, ret); for (var rp = 0; rp < 3; rp++) { box(c, X, Y + rp * S / 2 - 2, 5, 6, p.trunk, ret); box(c, X + S - 5, Y + rp * S / 2 - 2, 5, 6, p.trunk, ret); } }
+        break; }
       case 'stump':
         if (!b.done && !b.planted) { sprout(c, cx, cy, 0.3, p, ret); break; }
         var gs = b.done ? 1 : 0.35 + 0.65 * k;
@@ -252,7 +281,15 @@
     oval(c, x - 6, y - 8, 6, 3, p.mossHi, ret); oval(c, x + 6, y - 11, 6, 3, p.mossHi, ret);
   }
   R.node = function (c, n, p, ret, t) {
-    var X = n.tx * T, Y = n.ty * T, cx = X + n.s * T / 2, cy = Y + n.s * T / 2, f = Math.max(0.35, n.amt / P.consts.NODE_AMT[n.type]);
+    var X = n.tx * T, Y = n.ty * T, cx = X + n.s * T / 2, cy = Y + n.s * T / 2, f = Math.max(0.35, n.amt / (n.amt0 || P.consts.NODE_AMT[n.type]));
+    if (n.type === 'timber') { // сухостой: поваленные стволы под снегом и пень
+      var nl = Math.max(1, Math.ceil(f * 3));
+      shadow(c, cx + 3, cy + 10, 15, 5, ret);
+      for (var lg = 0; lg < nl; lg++) { var ly = cy + 6 - lg * 6, lx = cx - 12 + (lg % 2) * 3; box(c, lx, ly - 3, 24, 6, p.trunk, ret, 3); oval(c, lx + 24, ly, 3, 3, p.woodHi, ret); oval(c, lx + 24, ly, 1.5, 1.5, p.wood2, ret); }
+      box(c, cx - 10, cy + 3 - nl * 6, 20, 3, p.snow[0], ret, 2);
+      box(c, cx + 8, cy - 16, 6, 14, p.trunk, ret); oval(c, cx + 11, cy - 16, 4, 2, p.snow[0], ret);
+      return;
+    }
     if (n.type === 'amber') {
       shadow(c, cx + 3, cy + 10, 14, 5, ret);
       oval(c, cx, cy + 6, 14, 7, p.rock, ret);
@@ -270,7 +307,7 @@
   // ---------- Мир целиком ----------
   // v: {x, y, w, h, sx, sy} — камера в мире и прямоугольник вида на экране
   R.world = function (c, game, v, theme, st) {
-    var p = R.pal(theme), ret = theme === 'retro', t = st.t, pl = 0;
+    var p = R.pal(theme), ret = theme === 'retro', t = st.t, pl = 0, MW = game.MW, MH = game.MH;
     c.save(); c.beginPath(); c.rect(v.sx, v.sy, v.w, v.h); c.clip();
     c.translate(v.sx - Math.round(v.x), v.sy - Math.round(v.y));
     c.imageSmoothingEnabled = !ret;
@@ -286,6 +323,7 @@
         else { if (h > 0.4) { c.strokeStyle = p.mycLine; c.lineWidth = 1; c.beginPath(); c.moveTo(x * T, y * T + h * T); c.quadraticCurveTo(x * T + T / 2, y * T + (1 - h) * T, x * T + T, y * T + T * hash(x + 1, y)); c.stroke(); }
           c.fillStyle = p.mycLine; c.fillRect(x * T + ((h * 97 % 1) * 28 | 0), y * T + ((h * 53 % 1) * 28 | 0), 2, 2); }
       } }
+    if (st.under) st.under(c, p, ret);   // кампания: зоны-подсказки, знамёна (в координатах мира)
     // выделение (под сущностями)
     st.sel.forEach(function (e) { if (e.dead) return; var rr = e.kind === 'u' ? e.r + 3 : e.s * T * 0.6; c.strokeStyle = e.owner === pl ? p.sel : (e.owner < 0 ? '#e8d890' : p.enemy); c.lineWidth = 2;
       if (ret) c.strokeRect(e.x - rr, e.y - rr * 0.6 + (e.kind === 'u' ? e.r * 0.5 : 0), rr * 2, rr * 1.2);
@@ -298,7 +336,8 @@
       if (e.kind === 'u' && e.owner !== pl && !game.visibleTo(e, pl)) continue;
       if (e.kind !== 'u' && !game.visibleTo(e, pl)) continue;
       list.push(e); }
-    list.sort(function (a, b) { return (a.kind === 'u' ? a.y : (a.ty + a.s) * T - 6) - (b.kind === 'u' ? b.y : (b.ty + b.s) * T - 6); });
+    var depth = function (e) { return e.kind === 'u' ? e.y : e.type === 'span' ? -1e9 + e.ty : (e.ty + e.s) * T - 6; }; // настил моста — под всеми
+    list.sort(function (a, b) { return depth(a) - depth(b); });
     list.forEach(function (e) { if (e.kind === 'n') R.node(c, e, p, ret, t); else if (e.kind === 'b') R.building(c, e, p, ret, t, game); else R.unit(c, e, p, ret, t, game.races[e.owner]); });
     // выстрелы
     game.shots.forEach(function (s) { if (s.owner !== pl && game.tileVis(pl, Math.floor(s.x1 / T), Math.floor(s.y1 / T)) < 2) return; var k = s.t / s.dur;
@@ -321,6 +360,7 @@
       if (e.kind === 'b' && e.done && e.queue.length && e.owner === pl) { var q0 = e.queue[0], ut = game.race(e.owner).units[q0.type]; box(c, bx, by + 5, w, 3, 'rgba(0,0,0,0.6)', true); box(c, bx, by + 5, w * q0.t / ut.time, 3, p.accent, true); } });
     // точка сбора выбранного здания
     st.sel.forEach(function (e) { if (e.kind === 'b' && e.rally && e.owner === pl) { c.setLineDash([5, 5]); line(c, e.x, e.y, e.rally.x, e.rally.y, 'rgba(120,230,150,0.7)', 1.5); c.setLineDash([]); line(c, e.rally.x, e.rally.y, e.rally.x, e.rally.y - 18, p.iron, 2); tri(c, e.rally.x + 1, e.rally.y - 18, e.rally.x + 1, e.rally.y - 10, e.rally.x + 11, e.rally.y - 14, p.sel, false); } });
+    if (st.over) st.over(c, p, ret);
     // туман войны
     if (!game.fogOff) R.fog(c, game, v, theme, x0, y0, x1, y1);
     // призрак здания при установке
@@ -331,7 +371,7 @@
     c.restore();
   };
   R.fog = function (c, game, v, theme, x0, y0, x1, y1) {
-    var ret = theme === 'retro', p = R.pal(theme);
+    var ret = theme === 'retro', p = R.pal(theme), MW = game.MW, MH = game.MH;
     var fc = game._fogCv || (game._fogCv = Object.assign(document.createElement('canvas'), { width: MW, height: MH })), fx = fc.getContext('2d');
     var img = game._fogImg || (game._fogImg = fx.createImageData(MW, MH)), V = game.vis[0], d = img.data, col = parseInt(p.fog.slice(1), 16);
     for (var i = 0; i < MW * MH; i++) { var a = V[i] === 2 ? 0 : (V[i] === 1 ? 130 : 255); d[i * 4] = col >> 16 & 255; d[i * 4 + 1] = col >> 8 & 255; d[i * 4 + 2] = col & 255; d[i * 4 + 3] = a; }
@@ -344,13 +384,13 @@
 
   // ---------- Мини-карта ----------
   R.minimap = function (c, game, r, theme, cam, view, pings, t) {
-    var p = R.pal(theme), ret = theme === 'retro', k = r.w / (MW * T);
+    var p = R.pal(theme), ret = theme === 'retro', MW = game.MW, MH = game.MH, k = r.w / (MW * T);
     c.save(); c.imageSmoothingEnabled = false;
     c.drawImage(R.miniBase(game, theme, r.w), r.x, r.y, r.w, r.h);
     var sx = r.w / MW, sy = r.h / MH;
     for (var q = 0; q < 2; q++) if (game.race(q).grow) { c.fillStyle = 'rgba(30,48,22,0.6)'; for (var i = 0; i < MW * MH; i++) if (game.myc[q][i] && (q === 0 || game.vis[0][i] === 2)) c.fillRect(r.x + (i % MW) * sx, r.y + ((i / MW) | 0) * sy, sx, sy); }
     game.ents.forEach(function (e) { if (e.dead || !game.visibleTo(e, 0)) return;
-      var col = e.kind === 'n' ? (e.type === 'amber' ? p.amber : p.resinHi) : (e.owner === 0 ? p.sel : p.enemy), s = e.kind === 'u' ? 3 : e.s * sx;
+      var col = e.kind === 'n' ? (e.type === 'amber' ? p.amber : e.type === 'timber' ? p.plankHi : p.resinHi) : (e.owner === 0 ? p.sel : p.enemy), s = e.kind === 'u' ? 3 : e.s * sx;
       c.fillStyle = col; if (e.kind === 'u') c.fillRect(r.x + e.x * k - 1.5, r.y + e.y * k - 1.5, 3, 3); else c.fillRect(r.x + e.tx * sx, r.y + e.ty * sy, s, s); });
     if (!game.fogOff) { var fc = game._fogCv; if (fc) { c.globalAlpha = 0.85; c.imageSmoothingEnabled = !ret; c.drawImage(fc, r.x, r.y, r.w, r.h); c.globalAlpha = 1; } }
     pings.forEach(function (pg) { var a = (t - pg.t); if (a > 3) return; var rr = 4 + (a % 1) * 14; c.strokeStyle = p.enemy; c.lineWidth = 2; c.strokeRect(r.x + pg.x * k - rr, r.y + pg.y * k - rr, rr * 2, rr * 2); });
