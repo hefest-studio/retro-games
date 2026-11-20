@@ -71,7 +71,7 @@
       dmg *= DF.dmg; p.sdl = K.SDELAY; p.inv = K.INV_HIT; p.hitT = 0.25;
       var a = Math.min(p.shield, dmg); p.shield -= a; dmg -= a;
       if (dmg > 0) { p.armor -= dmg; emit('hit', p.x, p.y, 1); } else emit('shieldHit', p.x, p.y);
-      if (p.armor <= 0) { p.armor = 0; S.shots.length = 0; S.phase = 'dead'; S.endT = 1.6; S.ok = false; emit('die', p.x, p.y); }
+      if (p.armor <= 0) { p.armor = 0; S.shots.length = 0; S.prev = S.phase; S.phase = 'dead'; S.endT = 1.6; S.ok = false; emit('die', p.x, p.y); }
     }
     function fireAt(x, y, tx, ty, spd, r) { var a = Math.atan2(ty - y, tx - x); S.eb.push({ x: x, y: y, vx: Math.cos(a) * spd * DF.bspd, vy: Math.sin(a) * spd * DF.bspd, r: r || 4.5 }); }
     function fireAng(x, y, a, spd, r) { S.eb.push({ x: x, y: y, vx: Math.cos(a) * spd * DF.bspd, vy: Math.sin(a) * spd * DF.bspd, r: r || 4.5 }); }
@@ -373,7 +373,16 @@
         p.gun = own[(own.indexOf(p.gun) + 1) % own.length]; p.fireT = 0.1; emit('gun', p.gun); return true;
       },
       state: function () { return S; },
-      result: function () { return { ok: S.phase === 'done', money: S.phase === 'done' ? Math.round(S.money) : 0, earnedRaw: Math.round(S.money), armor: S.P.armor, mega: S.P.mega, cells: S.P.cells, gun: S.P.gun, kills: S.kills, gkills: S.gkills }; },
+      // «Ещё один шанс» за рекламу (площадки): сбитое крыло — снова в бой с бронёй 50, щитом и неуязвимостью; задание продолжается
+      reviveAd: function () {
+        var p = S.P; if (S.phase === 'done') return false;
+        if (S.phase === 'dead' || S.phase === 'fail') S.phase = S.prev || 'play';
+        p.armor = Math.max(p.armor, 50); p.shield = p.scap; p.inv = 2.5; S.eb.length = 0; S.revived = (S.revived || 0) + 1;
+        emit('revive', p.x, p.y); return true;
+      },
+      // бонус за рекламу в паузе: +1 мега-бомба (до максимума)
+      addMega: function () { var p = S.P; if (p.mega >= D.SPECIAL.mega.max) return false; p.mega++; emit('megaGet', p.x, p.y); return true; },
+      result: function () { return { revived: S.revived || 0, ok: S.phase === 'done', money: S.phase === 'done' ? Math.round(S.money) : 0, earnedRaw: Math.round(S.money), armor: S.P.armor, mega: S.P.mega, cells: S.P.cells, gun: S.P.gun, kills: S.kills, gkills: S.gkills }; },
       _spawnBoss: spawnBoss, _hurt: hurt
     };
     return api;

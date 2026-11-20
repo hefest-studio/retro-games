@@ -16,8 +16,18 @@
 
   // ---------- сохранение ----------
   function loadSave() { try { var s = localStorage.getItem(SAVE); var o = s ? JSON.parse(s) : null; return o && P.LEVELS[o.z] ? o : null; } catch (e) { return null; } }
-  function writeSave(o) { try { localStorage.setItem(SAVE, JSON.stringify(o)); } catch (e) {} }
-  function clearSave() { try { localStorage.removeItem(SAVE); } catch (e) {} }
+  function writeSave(o) { g.storeSet(SAVE, JSON.stringify(o)); }   // localStorage сразу + облако площадки
+  function clearSave() { try { localStorage.removeItem(SAVE); } catch (e) {} if (g.platform) g.storeSet(SAVE, ''); }
+  // ---------- облако и мета-прогрессия: выбор страницы, звёзды (js/meta.js) ----------
+  var Store = Arcade.Store, M = P.meta, REACHED = 'arcade.poluustav.reached', START_KEY = 'arcade.poluustav.start';
+  var prog = M.Progress({ get: function (k) { return Store.get(k, null); }, set: function (k, v) { g.storeSet(k, v); } });
+  g.persist(SAVE, 'last'); g.persist(REACHED, 'max'); g.persist(START_KEY, 'last'); g.persist('arcade.best.poluustav', 'max');
+  for (var lv = 1; lv <= M.LEVELS; lv++) g.persist(M.key(lv), 'max');
+  function reached() { return Math.min(M.LEVELS, Math.max(Store.getNum(REACHED, 1), prog.maxUnlocked())); }
+  function startLv() { var v = parseInt(Store.get(START_KEY, '1'), 10) || 1; return v >= 1 && v <= reached() ? v : 1; }
+  function nextStart(dir) { var m = reached(), n = startLv() + (dir || 1); if (n > m) n = 1; if (n < 1) n = m; g.storeSet(START_KEY, n); }
+  var pg = { z: -1, base: 0, skip: false, turned: false, startZ: 0 };   // текущая страница: кляксы на входе, перелистнута ли за рекламу
+  function recordPage(z, S) { var r = M.stars({ blots: S.deaths - pg.base, skipped: pg.skip }); if (r.n && prog.record(z + 1, r.n)) pg.note = { text: M.starStr(r.n) + '  ' + g.t('starNew'), t: 2.4 }; else if (r.n) pg.note = { text: M.starStr(r.n), t: 1.8 }; }
   function debugStart() {
     var m = /[#&?]z=(\d+)/.exec(location.hash + location.search); if (!m) return null;
     var z = Math.min(P.LEVELS.length - 1, +m[1]), c = /[#&?]cp=(\d+)/.exec(location.hash + location.search), cp = c ? Math.min(P.LEVELS[z].cps.length - 1, +c[1]) : 0;
@@ -32,8 +42,16 @@
     var S = game && game.state();
     if (type === 'checkpoint' && S) { var sv = game.saveData(); sv.deaths = S.deaths; sv.played = S.played; writeSave(sv); }
     if (type === 'death') blot = { x: d.x, y: d.y, t: 0, seed: (Math.random() * 1e6) | 0 };
-    if (type === 'zone') { music(d.z); if (S) S._enterT = 1; RD.cam.z = -1; }
+    if (type === 'page') { pg.skip = !!d.skip; pg.turned = true; }
+    if (type === 'zone') { music(d.z); if (S) S._enterT = 1; RD.cam.z = -1;
+      if (S && d.z !== pg.z) {
+        if (pg.z >= 0 && d.z === pg.z + 1) recordPage(pg.z, S);
+        if (pg.turned && d.z > pg.startZ) g.adBreak();   // межстраничная — на перелистывании (игрок сам дошёл до края страницы); частоту режет адаптер
+        pg.z = d.z; pg.base = S.deaths; pg.skip = false; pg.turned = false;
+        if (d.z + 1 > Store.getNum(REACHED, 1)) g.storeSet(REACHED, d.z + 1);
+      } }
     if (type === 'win') {
+      if (S) recordPage(S.z, S);
       clearSave(); var s2 = game.state();
       g.state.score = Math.max(100, Math.round(7000 - s2.deaths * 40 - s2.played / 2)); g.state.level = 7;
       setTimeout(function () { if (g._sceneName === 'play') g.win(); }, 1600); music(7);
@@ -43,6 +61,7 @@
     game = P.Game({ onEvent: onEvent, save: save || null }); P.current = game; game.start();
     var S = game.state(); if (save) { S.deaths = save.deaths || 0; S.played = save.played || 0; }
     RD.cam.z = -1; blot = null; S._enterT = 1;
+    pg = { z: S.z, base: S.deaths, skip: false, turned: false, startZ: S.z };
     g.state.score = 0; g.state.level = S.z + 1;
   }
 
@@ -56,7 +75,15 @@
     var m = g.menu.get('title'); if (m) m.sel = 0;
   }
   g.menu.addItem({ key: 'restart', scene: 'pause', before: 'menu', label: function () { return g.t('restart'); }, onSelect: function () { if (game) game.restartCp(); this.goto('play', { resume: true }); } });
+  // пункт «Страница N ★★☆» — с какой страницы начинать «Новую рукопись»: выбор/тап — следующая открытая, ← → — по кругу
+  g.menu.addItem({ key: 'page', after: 'play', label: function () { var n = startLv(); return g.t('pagePick') + ' ' + n + '/7  ' + M.starStr(prog.get(n)); }, onSelect: function () { nextStart(1); } });
+  // Реклама за награду (только площадки с рекламой): бонус в паузе — перелистнуть страницу без решения (раз за партию; звёзд за неё нет).
+  // Поражения в игре нет (клякса — сразу у отметки), поэтому «ещё один шанс» движка здесь не появляется сам — экран нужен только для единого API.
+  g.useRewardedContinue({ revive: function () { if (game) game.restartCp(); } });
+  g.useRewardedBonus({ key: 'rwSkip', scene: 'pause', label: function () { return g.t('rwSkip'); },
+    available: function () { return !!game && game.canSkip(); }, grant: function () { if (game) game.skipPage(); } });
   var title = g.scenes.title, menu = title._menu, oldEnter = title.enter;
+  title.press = function (a) { var it = menu && menu.current(); if (it && it.key === 'page' && (a === 'left' || a === 'right')) { nextStart(a === 'left' ? -1 : 1); this.audio.beep(600, 0.03); } };
   title.enter = function (d) { if (oldEnter) oldEnter.call(this, d); refreshMenu(); P.stopAmbience(); };
   // живой фон заставки: первая страница, ученик идёт сам
   var demo = P.Game({ zone: 0 }).start(), demoT = 0;
@@ -77,7 +104,7 @@
       g.text(g.t('title'), W / 2 + 16, py + 62, { size: 46, align: 'center', color: pal.ink, weight: 700, font: th.font });
       g.text(g.t('subtitle'), W / 2, py + 92, { size: 15, align: 'center', color: th.muted, weight: 400, font: th.font });
       menu.draw(g, W / 2, py + 136, 30);
-      if (g.state.best) g.text(g.t('best') + ': ' + g.state.best, W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600 });
+      g.text(g.t('starsHint') + ' · ' + prog.total() + '/' + (M.LEVELS * 3) + (g.state.best ? '   ' + g.t('best') + ': ' + g.state.best : ''), W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600, maxWidth: pw - 30 });
       c.save(); c.globalAlpha = 0.9; c.drawImage(RD.paperTex(retro ? 'retro' : 'modern'), 40, H - 48, W - 80, 28, 40, H - 48, W - 80, 28); c.restore();
       g.text(g.t('hint'), W / 2, H - 29, { size: 12, align: 'center', color: pal.ink, weight: 600 });
     } });
@@ -89,8 +116,8 @@
     realtime: true,
     enter: function (d) {
       if (d && d.resume) return;
-      var sv = P._resume || debugStart(); P._resume = null;
-      if (!sv) clearSave();
+      var sv = P._resume || debugStart(); P._resume = null; g.resetRun();   // «раз за партию» — и для «Продолжить»
+      if (!sv) { clearSave(); if (startLv() > 1) sv = { z: startLv() - 1, cp: 0, snap: null }; }
       newGame(sv);
     },
     press: function (a) { if (a === 'pause') this.pause(); },
@@ -114,6 +141,7 @@
     draw: function (ctx) {
       if (!game) { this.clear(); return; }
       RD.draw(ctx, game.state(), g, { game: game, dt: lastDt, walk: walk, blot: blot });
+      if (pg.note && pg.note.t > 0) { pg.note.t -= lastDt; var th = this.th(); g.text(pg.note.text, W / 2, 46, { size: 22, align: 'center', color: th.accent, weight: 700, font: th.font, maxWidth: W - 40 }); }
     }
   });
   // пауза: лист бумаги поверх страницы
@@ -165,6 +193,7 @@
 
   // подпись под канвой — по языку
   var lastLang = null;
+  g.onCloud(function () { refreshMenu(); });
   function syncDom() { if (lastLang === g.i18n.lang) return; lastLang = g.i18n.lang; var f = document.getElementById('foot'); if (f) f.textContent = g.t('foot') + ' ' + g.t('hint') + '.'; }
   syncDom(); setInterval(syncDom, 250);
 

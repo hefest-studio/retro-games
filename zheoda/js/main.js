@@ -22,8 +22,17 @@
   function rnd() { return g.themeName === 'retro' ? Z.classic : Z.modern; }
   var game = null, toasts = [], lastToast = {};
   var Store = Arcade.Store, REACHED = 'arcade.zheoda.reached';
-  var episode = 1;
   function reached() { return Store.getNum ? Store.getNum(REACHED, 1) : +(Store.get(REACHED, '1')) || 1; }
+  // ---------- мета-прогрессия: выбор открытой пещеры, звёзды (js/meta.js); прогресс — и в облако площадки ----------
+  var M = Z.meta, prog = M.Progress({ get: function (k) { return Store.get(k, null); }, set: function (k, v) { g.storeSet(k, v); } });
+  for (var lv = 1; lv <= M.LEVELS; lv++) g.persist(M.key(lv), 'max');
+  g.persist(REACHED, 'max');
+  var START_KEY = 'arcade.zheoda.start'; g.persist(START_KEY, 'last');
+  function maxOpen() { return Math.min(M.LEVELS, Math.max(prog.maxUnlocked(), reached())); }   // reached — прогресс карты до волны 3
+  function startLv() { var v = parseInt(Store.get(START_KEY, '1'), 10) || 1; return v >= 1 && v <= maxOpen() ? v : 1; }
+  function setStart(v) { g.storeSet(START_KEY, v); }
+  function nextStart(dir) { var m = maxOpen(), n = startLv() + (dir || 1); if (n > m) n = 1; if (n < 1) n = m; setStart(n); }
+  var lvRec = { deaths: 0 }, runStart = 1;
 
   function diff(level, base, step, max) {
     var keep = g.state.level; g.state.level = level;
@@ -68,23 +77,37 @@
     else if (type === 'bossHit' && S && S.boss && S.boss.hp === Math.floor(S.boss.max / 2) - 1) toast(g.t('enrage'), P.bad, W / 2, OY + 120, true);
     else if (type === 'bossDie') toast('+' + L.SCORE.boss, P.accent, W / 2, OY + 120, true);
     else if (type === 'level' || type === 'hub') toasts = [];
-    if (type === 'hub' && d.open > reached()) Store.set(REACHED, String(d.open));
+    if (type === 'level') { if (!lvRec.retry) { lvRec = { deaths: 0 }; if (d.level !== runStart) g.adBreak(); } lvRec.retry = false; }   // вход в пещеру с карты — по действию игрока
+    if (type === 'die') { lvRec.deaths++; lvRec.retry = true; }
+    if (type === 'revive') { lvRec.retry = false; toast(g.t('revived'), P.accent, W / 2, OY + 120, true); }
+    if (type === 'clear' && S) {
+      var st = M.stars({ deaths: lvRec.deaths, found: S.secretsFound, secrets: S.secrets.length }), isNew = prog.record(d.level, st.n);
+      toast(M.starStr(st.n) + (isNew ? '  ' + g.t('starNew') : ''), P.accent, W / 2, OY + 150, true);
+    }
+    if (type === 'hub' && d.open > reached()) { g.storeSet(REACHED, d.open); if (d.open <= M.LEVELS) setStart(d.open); }
     sync();
     if (type === 'win') g.win();
     else if (type === 'gameover') g.gameover();
   }
 
   function newGame() {
-    var start = episode === 2 && reached() >= 9 ? 9 : 1;
+    var start = runStart = startLv(); lvRec = { deaths: 0 };
     game = Z.Game({ lives: 3, level: start, difficulty: diff, onEvent: onEvent, rng: Math.random });
     game.start(); Z.current = game; toasts = []; sync();
   }
 
   // ---------- Стандартные экраны ----------
-  g.menu.addItem({ key: 'episode', after: 'play',
-    label: function () { return g.t('episode') + ': ' + episode + (reached() >= 9 ? '' : ' (2 — ' + g.t('hubLocked') + ')'); },
-    onSelect: function () { if (reached() >= 9) { episode = episode === 1 ? 2 : 1; g.audio.beep(700, 0.04); } else g.audio.beep(180, 0.06); } });
+  // пункт «Пещера N · Имя ★★☆» (заменил «Эпизод»): выбор/тап — следующая открытая, ← → — по кругу
+  g.menu.addItem({ key: 'level', after: 'play',
+    label: function () { var n = startLv(); return g.t('lvPick') + ' ' + n + ' · ' + g.t('lv_' + L.LEVELS[n - 1].name) + '  ' + M.starStr(prog.get(n)); },
+    onSelect: function () { nextStart(1); g.audio.beep(700, 0.04); } });
   g.useStandardScreens({ lives: 3 });
+  // Реклама за награду (только площадки с рекламой): «ещё один шанс» раз за партию — 2 жизни, пещера заново;
+  // бонус в паузе — +1 жизнь (раз за партию). Межстраничная — по входу в следующую пещеру с карты и на финалах (по нажатию).
+  g.useRewardedContinue({ revive: function () { if (game) { game.reviveAd(); sync(); } } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { var s = game && game.state(); return !!s && !s.over && s.lives < 5; },
+    grant: function () { if (game) { game.addLife(); sync(); } } });
   g.menu.setHint(function () { return [{ text: g.t('hint'), dim: true }]; }, 'title');
   UI.init(g);
   var baseClear = Object.getPrototypeOf(g).clear;
@@ -95,6 +118,7 @@
   var DS = demo.state();
   DS.banner = 0;
   var menu = g.scenes.title._menu, title = g.scenes.title;
+  title.press = function (a) { var it = menu && menu.current(); if (it && it.key === 'level' && (a === 'left' || a === 'right')) { nextStart(a === 'left' ? -1 : 1); this.audio.beep(600, 0.03); } };
   title.update = function (dt) {
     DS.time += dt;
     var span = Math.max(0, DS.cols - L.VIEW_W);
@@ -115,7 +139,8 @@
     // героиня у меню
     R.hero(ctx, px0 + 70, py0 + 190, { w: L.PW, h: L.PH, vx: 0, ground: true, gs: 1, face: 1 }, this.time, DS);
     menu.draw(this, W / 2, py0 + 134, 30);
-    if (this.state.best) UI.txt(this, this.t('best') + ': ' + this.state.best, W / 2, py0 + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600 }, P);
+    UI.txt(this, this.t('starsHint') + ' · ' + prog.total() + '/' + (M.LEVELS * 3), W / 2, py0 + ph - 62, { size: 11, align: 'center', color: th.muted, weight: 600 }, P);
+    if (this.state.best) UI.txt(this, this.t('best') + ': ' + this.state.best, W / 2, py0 + ph - 44, { size: 12, align: 'center', color: th.muted, weight: 600 }, P);
     this.menu._drawHint('title');
   };
 
@@ -178,5 +203,5 @@
   cv.addEventListener('touchstart', function (e) { if (game && game.state().phase === 'hub' && g._sceneName === 'play') { e.preventDefault(); hubTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY); } }, { passive: false });
 
   g.start('title');
-  Z.app = { g: g, game: function () { return game; }, demo: demo };   // для отладки/автотестов в браузере
+  Z.app = { g: g, prog: prog, setStart: setStart, game: function () { return game; }, demo: demo };   // для отладки/автотестов в браузере
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -4,7 +4,9 @@
    против игрока-Сизых — строит, добывает, шлёт волну; Сизые-бот добывают медь канаткой), точка сбора у любого здания, что
    выпускает юнитов (зимовьё, верфь), ИИ Сизых на их механике (Медный Ключ против ИИ-Сизых: 3 сида против ИИ Медного Ключа и
    3 против бота-игрока, партия 10–20 мин; без гребней у избы — опоры к дальнему гребню), две кампании — два сохранения,
-   связка кампаний (флаги чужой кампании), реестр (s1–s5 — только полная версия), демо: кампания Сизых — под замком.
+   связка кампаний (флаги чужой кампании), общий движок С8–С9 на мини-картах (пассажирские люльки под обстрелом, ветер и порыв,
+   обрыв пролёта и сращивание Агафьей, build, routed), механизм эпилога обеих кампаний (camp 'both', def.unlock, своё сохранение),
+   реестр (s1–s9 и e1 — только полная версия), демо: кампания Сизых — под замком.
    Запуск: node priisk/tests/campaign-sizye.test.mjs */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -282,11 +284,85 @@ test('действия и условия Сизых: wind, talked, cabled, linke
   ok(C.cond(W, { t: 'talked', tag: 'p' }) && C.cond(W, { t: 'cabled', gte: 1 }));
 });
 
+// ---------- общий движок С8–С9 и эпилога (мини-карты; содержание миссий — только в полной версии) ----------
+// мини-канатка: Станция k справа, опоры c/b/a к пропасти ('^'), горняки F слева, стрелок соперника E у каната
+const CABLE_MAP = [
+  '##########################',
+  '#..........^^^^..........#',
+  '#.F......a.^^^^.b.....k..#',
+  '#..........^^^^..........#',
+  '#.......E..^^^^..........#',
+  '#..........^^^^..........#',
+  '##########################'];
+function cableDef(extra) {
+  return tiny(Object.assign({ id: 'sc', camp: 'sizye', side: 'sizye', map: CABLE_MAP, wind: { dir: 'W', s: 0.8, lock: true }, ropeFix: { r: 2.3, rate: 20, time: 6 },
+    ferry: { walk: 9, cap: 2, gap: 2, speed: 2, exposed: true, armor: 0.6, sway: { from: 0.95, k: 1.5, min: 0.25, stop: 1.35 } },
+    player: { copper: 0, start: [{ type: 'station', at: 'k', tag: 'term' }, { type: 'pylon', at: 'b', tag: 'pb' }, { type: 'pylon', at: 'a', tag: 'pa' },
+      { type: 'folk', at: 'F', n: 4, tag: 'fk', calm: true, fare: true, locked: true }, { type: 'agafya', at: 'k' }] },
+    enemy: { start: [] }, objectives: [{ id: 'go', icon: 'van', text: 'т', done: { t: 'ferried', tag: 'fk', gte: 99 } }], triggers: [] }, extra || {}));
+}
+const tick = (W, n, dt = 0.1, each) => { let ev = []; for (let i = 0; i < n; i++) { C.tick(W, dt); ev = ev.concat(W.events.filter(e => e.t === 'carFall' || e.t === 'cut' || e.t === 'spliced')); if (each) each(i); W.events.length = 0; W.mission.ui.length = 0; } return ev; };
+test('С8 движок: пассажирские люльки (ferry.exposed) — стрелок с земли сбивает люльку, люди падают; без exposed и в скирмише — неуязвимы', () => {
+  const mk = exposed => { const W = C.build(cableDef(exposed ? {} : { ferry: { walk: 9, cap: 2, gap: 2, speed: 2 } }));
+    for (let n = 0; n < 4; n++) { const e = L.addUnit(W, 1, 'rifleman', 8.5 + n * 0.6, 3.6 + (n % 2) * 0.6); e.post = { x: e.x, y: e.y }; }
+    W.units.filter(u => u.type === 'agafya').forEach(u => { u.x = 23.5; u.y = 5.5; }); W.blds.forEach(b => { b.hp = b.maxHp = 1e6; }); // опоры не снести — считаем люльки
+    const ev = tick(W, 500); return { shot: ev.filter(e => e.shot).length, fer: W.mission.ferried.fk || 0, dead: W.mission.killed.fk || 0 }; };
+  const a = mk(true), b = mk(false);
+  ok(a.shot >= 1 && a.dead === a.shot && a.fer + a.dead === 4, 'открытые: ' + JSON.stringify(a)); ok(b.shot === 0 && b.dead === 0 && b.fer === 4, 'закрытые: ' + JSON.stringify(b));
+  const W = L.newWorld({ seed: 3, side: 'sizye', ai: false }); ok(!W.ferry && !L.carExposed(W, { riding: true, fare: true }), 'скирмиш не задет');
+});
+test('С8 движок: ветер раскачивает люльки (sway) — медленнее и с размахом; в порыв (stop) люльки от опор не отходят', () => {
+  const ride = s => { const W = C.build(cableDef()); C.act(W, { a: 'wind', s, now: true }); let t = -1, sw = 0; tick(W, 900, 0.1, () => { W.units.forEach(u => { if (u.riding) sw = Math.max(sw, u.sway || 0); }); if (t < 0 && (W.mission.ferried.fk || 0) >= 4) t = W.time; }); return { t, sw, n: W.mission.ferried.fk || 0 }; };
+  const calm = ride(0.8), windy = ride(1.25), gust = ride(1.5);
+  ok(calm.t > 0 && windy.t > calm.t + 3 && windy.sw > calm.sw, 'ветер: ' + JSON.stringify([calm, windy])); eq(gust.n, 0, 'в порыв уехали');
+});
+test('С8 движок: обрыв пролёта (cut) — предупреждение warn, люльки висят и не отправляются, Агафья у опоры сращивает (spliced) и чинит; снесли опору — падают', () => {
+  const W = C.build(cableDef()), pa = W.blds.find(b => b.tag === 'pa'), ag = W.units.find(u => u.type === 'agafya');
+  ag.x = 23.5; ag.y = 5.5; for (let i = 0; i < 200 && !W.units.some(u => u.riding); i++) tick(W, 1); ok(W.units.some(u => u.riding), 'не поехали');
+  C.act(W, { a: 'cut', tag: 'pa', warn: 2 }); ok(C.cond(W, { t: 'cut', tag: 'pa' }) && !pa.cut);
+  const ev = tick(W, 30); ok(pa.cut && ev.some(e => e.t === 'cut') && !ev.some(e => e.t === 'carFall'), 'обрыв: висят, а не падают');
+  ok(!C.cond(W, { t: 'routed', tag: 'pa' }) && C.cond(W, { t: 'routed', tag: 'pb' }), 'routed');
+  const fer = W.mission.ferried.fk || 0, hang = W.units.filter(u => u.riding); tick(W, 60);
+  ok(!W.units.some(u => u.riding && !hang.includes(u)), 'отправились через оборванную'); ok(hang.every(u => !u.riding || u.order.hang), 'не висят');
+  ok((W.mission.ferried.fk || 0) - fer <= hang.length, 'уехали лишние');
+  const c = L.center(pa); ag.x = c.x + 1.2; ag.y = c.y + 0.5; ag.path = []; ag.order = { t: 'idle' }; pa.hp = 120;
+  tick(W, 40); ok(pa.cut, 'срастила быстрее time'); const ev2 = tick(W, 40); ok(!pa.cut && ev2.some(e => e.t === 'spliced') && C.cond(W, { t: 'spliced', tag: 'pa' }), 'не срастила');
+  tick(W, 40); ok(pa.hp >= 190, 'не чинит: ' + pa.hp);
+  const W2 = C.build(cableDef()); for (let i = 0; i < 200 && !W2.units.some(u => u.riding); i++) tick(W2, 1); W2.blds.find(b => b.tag === 'pb').hp = 0; const ev3 = tick(W2, 5); ok(ev3.some(e => e.t === 'carFall' && e.fare), 'снесли опору — не упали');
+  const W3 = L.newWorld({ seed: 3, side: 'sizye', ai: false }); ok(!W3.ropeFix, 'скирмиш: Агафья опоры не чинит');
+});
+test('С8–эпилог движок: действие build ставит здание сценарием (setup — «вырастает»), на занятое место не ставит', () => {
+  const W = C.build(cableDef({ player: { copper: 0, start: [{ type: 'station', at: 'k' }] } }));
+  C.act(W, { a: 'build', type: 'hut', at: 'F', owner: 0, tag: 'h1', setup: 5 }); const h = W.blds.find(b => b.tag === 'h1'); ok(h && h.setup === 5 && h.owner === 0);
+  C.act(W, { a: 'build', type: 'hut', at: 'F', owner: 2, tag: 'h2' }); ok(!W.blds.some(b => b.tag === 'h2'), 'на занятое');
+  tick(W, 60); eq(h.setup, 0, 'не вырос');
+});
+test('эпилог обеих кампаний: camp «both» — свой список и сохранение; открывается, когда пройдены финалы обеих и флаги совпали с def.unlock', () => {
+  const fin = (id, camp, n) => C.register(tiny({ id, n, camp, finale: { key: 'ending', title: 'т', sub: 'т' } }));
+  const ep = tiny({ id: 'ex', n: 1, camp: 'both', unlock: { copper: { alliance: 'helped' }, sizye: { ending: ['shut', 'truce'] } }, xcarry: { copper: ['alliance'], sizye: ['ending'] }, finale: { camps: ['copper', 'sizye'], title: 'т', sub: 'т', rows: [] } });
+  const before = { m: P.MISSIONS.slice(), s: P.MISSIONS_S.slice(), b: P.MISSIONS_B.slice() };
+  try {
+    const fc = fin('xc', 'copper', 50), fs2 = fin('xs', 'sizye', 50); C.register(ep);
+    eq(C.campOf(ep), 'both'); ok(P.MISSIONS_B.includes(ep) && !P.MISSIONS.includes(ep) && !P.MISSIONS_S.includes(ep)); eq(C.epilogue(), ep); eq(C.byId('ex'), ep);
+    const cs = C.newSave(), ss = C.newSave('sizye'); cs.flags.alliance = 'helped'; ss.flags.ending = 'shut';
+    ok(!C.epilogueState(ep, { copper: cs, sizye: ss }).open, 'финалы не пройдены');
+    cs.missions.xc = { stars: [true] }; ok(!C.epilogueState(ep, { copper: cs, sizye: ss }).open, 'пройдена одна'); ok(C.epilogueState(ep, { copper: cs, sizye: ss }).camps.sizye.match);
+    ss.missions.xs = { stars: [true] }; const st = C.epilogueState(ep, { copper: cs, sizye: ss }); ok(st.open && !st.done, 'обе — открыт');
+    ss.flags.ending = 'lode'; ok(!C.epilogueState(ep, { copper: cs, sizye: ss }).open, 'несовместимый выбор'); ss.flags.ending = 'truce'; ok(C.epilogueState(ep, { copper: cs, sizye: ss }).open, 'список значений');
+    const store = memStore(); C.save(store, cs); C.save(store, ss); const b = C.applyResult(C.newSave('both'), { id: 'ex', win: true, time: 60, stars: [true, false, true], flags: { 'sizye.ending': 'truce' }, heroes: {}, vets: [] }); C.save(store, b);
+    ok(store.m.has(C.KEYS.both) && C.load(store, 'both').missions.ex && C.load(store, 'both').camp === 'both', 'своё сохранение');
+    P.campaign.store = store; try { ok(C.epilogueState(ep).open && C.epilogueState(ep).done, 'из хранилища'); const W = C.build(ep); eq(W.mission.flags['copper.alliance'], 'helped'); eq(W.mission.flags['sizye.ending'], 'truce');
+      const F = C.finale(ep, C.load(store, 'both')); eq(F.totals.map(x => x.camp), ['copper', 'sizye']); ok(F.totals.every(x => x.max > 0)); } finally { delete P.campaign.store; }
+    C.reset(store, 'both'); ok(!store.m.has(C.KEYS.both) && store.m.has(C.KEYS.copper), 'сброс эпилога не трогает кампании');
+  } finally { P.MISSIONS.length = 0; before.m.forEach(m => P.MISSIONS.push(m)); P.MISSIONS_S.length = 0; before.s.forEach(m => P.MISSIONS_S.push(m)); P.MISSIONS_B.length = 0; before.b.forEach(m => P.MISSIONS_B.push(m)); }
+  ok(!C.epilogue(), 'в демо эпилога нет (файл — только в полной версии)');
+});
+
 // ---------- издание и реестр ----------
-test('реестр: s1–s3 — только в полной версии (файлов в публичном дереве нет); демо — кампания Сизых под замком', () => {
+test('реестр: s1–s9 и эпилог e1 — только в полной версии (файлов в публичном дереве нет); демо — кампания Сизых под замком', () => {
   ['s1', 's2', 's3'].forEach(id => { ok(P.MISSION_FILES.full.includes(id), id); ok(!P.MISSION_FILES.demo.includes(id)); ok(!fs.existsSync(path.join(ROOT, 'js/missions/' + id + '.js')), 'файл ' + id + ' в публичном дереве'); ok(!P.Edition.playable('demo', id)); });
-  ['s4', 's5', 's6', 's7'].forEach(id => { ok(P.MISSION_FILES.full.includes(id), id + ' в реестре full'); ok(!fs.existsSync(path.join(ROOT, 'js/missions/' + id + '.js')), 'файл ' + id + ' в публичном дереве'); ok(!P.Edition.playable('demo', id)); });
-  ok(!P.MISSION_FILES.full.some(id => /^s[89]$/.test(id)), 's8–s9 ещё не готовы — в реестре их нет');
+  ['s4', 's5', 's6', 's7', 's8', 's9', 'e1'].forEach(id => { ok(P.MISSION_FILES.full.includes(id), id + ' в реестре full'); ok(!fs.existsSync(path.join(ROOT, 'js/missions/' + id + '.js')), 'файл ' + id + ' в публичном дереве'); ok(!P.Edition.playable('demo', id)); });
+  ok(!P.MISSION_FILES.demo.some(id => /^(s|e)\d/.test(id)), 'в демо — ни Сизых, ни эпилога');
   const src = fs.readFileSync(path.join(ROOT, 'js/campaign-ui.js'), 'utf8');
   ok(/LATER_S = \[/.test(src) && ['Ночная проверка', 'Ветер с перевала', 'Горящий рудник', 'Заводчик', 'Канатка над пропастью', 'Последний перевал'].every(t => src.includes(t)), 'заготовки s4–s9 на карте');
   ok(/lockedFullSubS/.test(src) && STR.ru.lockedFullSubS.includes('скирмиш'), 'текст замка кампании Сизых');

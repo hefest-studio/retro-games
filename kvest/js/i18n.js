@@ -1,5 +1,5 @@
 /* МАЯЧНИЦА · i18n (RU/EN) — вся оболочка: меню, пауза, настройки, экраны финала и демо, подсказки управления, кнопки страницы,
-   экран «поверните устройство», отладка/статистика. В самой игре текста нет (мысли-пиктограммы, жесты).
+   экран «поверните устройство», отладка/статистика; quit — «Выход» (только в обёртке Steam-издания, K.Edition.quit). В самой игре текста нет (мысли-пиктограммы, жесты).
    Язык: сохранённый выбор игрока (arcade.lang, общий для аркады) → иначе язык системы (navigator.language: ru/be/uk/kk → RU,
    остальные → EN); переключатель — пункт «Язык» в меню и клавиша L.
    TITLE_EN — рабочее EN-название (пока транслит; финальное название подбирается отдельно — заменить здесь одной константой). */
@@ -20,7 +20,7 @@
       demoTitle: 'Продолжение — в полной версии', demoSub: 'Огни вдоль побережья гаснут один за другим. Что будет дальше — в полной версии игры.',
       soonTitle: 'Глава {n} — скоро', soonSub: 'Новая глава уже в работе. Спасибо, что дошли так далеко!',
       chapter: 'Глава', next: 'Следующая глава', nextTitle: 'Дальше — новая глава', nextSub: 'Путь продолжается вдоль побережья.',
-      toMenu: 'Вернуться в меню', more: 'Узнать больше', buy: 'Открыть все главы',
+      toMenu: 'Вернуться в меню', more: 'Узнать больше', buy: 'Открыть все главы', quit: 'Выход',
       chapters: 'Главы', chLocked: 'закрыта', chDone: 'пройдена', chNew: 'не начата', chFull: 'в полной версии', chBack: 'Назад',
       chTotal: 'Пройдено всего', chHint: '↑ ↓ — выбрать · Enter / тап — играть главу · Esc — назад',
       endTitle: 'Конец', endSub: 'Туман ушёл вместе с песней. Лодки дома, огни побережья горят.',
@@ -45,7 +45,7 @@
       demoTitle: 'The story continues in the full version', demoSub: 'Lights along the coast keep going out one by one. Find out what happens next in the full game.',
       soonTitle: 'Chapter {n} — coming soon', soonSub: 'The next chapter is in the works. Thank you for coming this far!',
       chapter: 'Chapter', next: 'Next chapter', nextTitle: 'On to the next chapter', nextSub: 'The journey goes on along the coast.',
-      toMenu: 'Back to main menu', more: 'Learn more', buy: 'Unlock all chapters',
+      toMenu: 'Back to main menu', more: 'Learn more', buy: 'Unlock all chapters', quit: 'Quit',
       chapters: 'Chapters', chLocked: 'locked', chDone: 'completed', chNew: 'not started', chFull: 'in the full version', chBack: 'Back',
       chTotal: 'Total progress', chHint: '↑ ↓ — choose · Enter / tap — play chapter · Esc — back',
       endTitle: 'The End', endSub: 'The fog has left with the song. The boats are home, the coastal lights are burning.',

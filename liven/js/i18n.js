@@ -1,4 +1,4 @@
-/* ЛИВЕНЬ · i18n (RU/EN). LIVEN.STR — таблицы для Arcade.createGame({strings}).
+/* ЛИВЕНЬ · i18n (RU/EN/TR/ES/PT — движок v2.8 берёт языки из ключей strings; название: RU — ЛИВЕНЬ, EN/TR/ES/PT — RIVETFALL). LIVEN.STR — таблицы для Arcade.createGame({strings}).
    Ключи play/language/theme/... нужны стандартным экранам движка; остальные — игре. Имена этапов, боссов и перезвонов — в stages.js/patterns.js. */
 (function (global) {
   'use strict';
@@ -11,6 +11,8 @@
       pause: 'ПАУЗА', resume: 'Продолжить', menu: 'В меню', tapstart: 'пробел / тап',
       title: 'ЛИВЕНЬ', subtitle: 'Искра-челнок мастерской «Гефест» сквозь ливень заклёпок Звонарей',
       sub2: 'Пулевой ад · 5 этапов · 27 перезвонов · фокус, грейз, искры-множитель',
+      lvPick: 'Этап', starNew: 'новый рекорд звёзд!', opened: 'открыт этап {n}', revived: 'Ещё один шанс!', rwBomb: 'Реклама: +1 разряд',
+      bFocus: 'ФОКУС', bBomb: 'РАЗРЯД', starsHint: '★ пройти · ★ без потерь · ★ все перезвоны',
       back: 'Каталог', diff: 'Сложность', form: 'Форма',
       d_easy: 'Лёгкий', d_normal: 'Норма', d_hard: 'Трудный',
       f_fan: 'Веер', f_blade: 'Клинок',
@@ -30,8 +32,10 @@
       score: 'Score', level: 'Stage', best: 'Best', lives: 'Lives', bombs: 'Discharges',
       win: 'THE TOCSIN FALLS SILENT!', gameover: 'THE SHUTTLE IS OUT',
       pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
-      title: 'LIVEN', subtitle: 'A Hefest workshop spark-shuttle through the Ringers\' rivet rain',
+      title: 'RIVETFALL', subtitle: 'A Hefest workshop spark-shuttle through the Ringers\' rivet rain',
       sub2: 'Bullet hell · 5 stages · 27 peals · focus, graze, spark multiplier',
+      lvPick: 'Stage', starNew: 'new star record!', opened: 'stage {n} unlocked', revived: 'One more chance!', rwBomb: 'Watch ad: +1 discharge',
+      bFocus: 'FOCUS', bBomb: 'DISCHARGE', starsHint: '★ clear · ★ no losses · ★ all peals',
       back: 'Catalog', diff: 'Difficulty', form: 'Form',
       d_easy: 'Easy', d_normal: 'Normal', d_hard: 'Hard',
       f_fan: 'Fan', f_blade: 'Blade',
@@ -44,7 +48,77 @@
       hintKeys: 'Arrows/WASD — fly\nShift/Z — focus · X/Space — discharge\nP pause · T theme · L language · M sound',
       hintTouch: 'Finger — fly (relative)\nFOCUS and DISCHARGE — buttons below\nSecond finger — discharge',
       endLine: 'Graze {g} · Max multiplier ×{c} · Peals endured {k}',
-      foot: '<b>LIVEN</b> · arrows / WASD — fly · Shift or Z — focus (slower, dense fire, visible hitbox dot) · X or Space — discharge · auto-fire · finger — relative movement · P / Esc — pause · L language, T theme, M sound.'
+      foot: '<b>RIVETFALL</b> · arrows / WASD — fly · Shift or Z — focus (slower, dense fire, visible hitbox dot) · X or Space — discharge · auto-fire · finger — relative movement · P / Esc — pause · L language, T theme, M sound.'
     }
+  };
+
+  LV.STR.tr = {
+    play: 'Oyna', language: 'Dil', theme: 'Tema', sound: 'Ses', on: 'açık', off: 'kapalı',
+    score: 'Puan', level: 'Bölüm', best: 'Rekor', lives: 'Can', bombs: 'Deşarj',
+    win: 'TEHLİKE ÇANI SUSTU!', gameover: 'MEKİK SÖNDÜ',
+    pause: 'DURAKLATILDI', resume: 'Devam', menu: 'Menü', tapstart: 'boşluk / dokun',
+    title: 'RIVETFALL', subtitle: 'Hefest atölyesinin kıvılcım mekiği, Zilcilerin perçin yağmurunda',
+    sub2: 'Mermi cehennemi · 5 bölüm · 27 çınlama · odak, sıyırma, kıvılcım çarpanı',
+    lvPick: 'Bölüm', starNew: 'yeni yıldız rekoru!', opened: '{n}. bölüm açıldı', revived: 'Bir şans daha!', rwBomb: 'Reklam: +1 deşarj',
+    bFocus: 'ODAK', bBomb: 'DEŞARJ', starsHint: '★ geç · ★ kayıpsız · ★ tüm çınlamalar',
+    back: 'Katalog', diff: 'Zorluk', form: 'Biçim',
+    d_easy: 'Kolay', d_normal: 'Normal', d_hard: 'Zor',
+    f_fan: 'Yelpaze', f_blade: 'Bıçak',
+    fdesc_fan: 'geniş ateş', fdesc_blade: 'dar ve güçlü',
+    graze: 'Sıyırma', mult: 'Çarpan', sparks: 'Kıvılcım', stage: 'Bölüm', conts: 'Devam',
+    bonus: 'Bonus', card: 'Çınlama', lost: '—', cardGet: 'ÇINLAMAYA DAYANDIN!', cardFail: 'Geçildi, bonus yok', cardTime: 'Süre doldu',
+    warning: 'DİKKAT', midboss: 'Zilcinin yardımcısı', bossCome: 'Zilci',
+    clear: 'BÖLÜM GEÇİLDİ', clearSub: 'bonus', extend: '+CAN', bombName: 'Deşarj!',
+    contQ: 'DEVAM?', contHint: 'Boşluk / dokun — evet · X — hayır', contLeft: 'Kalan devam hakkı',
+    hintKeys: 'Oklar/WASD — uç\nShift/Z — odak · X/Boşluk — deşarj\nP duraklat · T tema · L dil · M ses',
+    hintTouch: 'Parmak — uç (göreli)\nODAK ve DEŞARJ — alttaki düğmeler\nİkinci parmak — deşarj',
+    endLine: 'Sıyırma {g} · Maks. çarpan ×{c} · Dayanılan çınlama {k}',
+    foot: '<b>RIVETFALL</b> · oklar / WASD — uç · Shift veya Z — odak (yavaş, yoğun ateş, isabet noktası görünür) · X veya Boşluk — deşarj · otomatik ateş · parmak — göreli hareket · P / Esc — duraklat · L dil, T tema, M ses.'
+  };
+  LV.STR.es = {
+    play: 'Jugar', language: 'Idioma', theme: 'Tema', sound: 'Sonido', on: 'sí', off: 'no',
+    score: 'Puntos', level: 'Fase', best: 'Récord', lives: 'Vidas', bombs: 'Descargas',
+    win: '¡EL REBATO CALLÓ!', gameover: 'LA LANZADERA SE APAGÓ',
+    pause: 'PAUSA', resume: 'Seguir', menu: 'Menú', tapstart: 'espacio / toca',
+    title: 'RIVETFALL', subtitle: 'La lanzadera-chispa del taller Hefest bajo la lluvia de remaches',
+    sub2: 'Bullet hell · 5 fases · 27 repiques · foco, roce, multiplicador',
+    lvPick: 'Fase', starNew: '¡nuevo récord de estrellas!', opened: 'fase {n} abierta', revived: '¡Otra oportunidad!', rwBomb: 'Anuncio: +1 descarga',
+    bFocus: 'FOCO', bBomb: 'DESCARGA', starsHint: '★ superar · ★ sin bajas · ★ todos los repiques',
+    back: 'Catálogo', diff: 'Dificultad', form: 'Forma',
+    d_easy: 'Fácil', d_normal: 'Normal', d_hard: 'Difícil',
+    f_fan: 'Abanico', f_blade: 'Hoja',
+    fdesc_fan: 'fuego amplio', fdesc_blade: 'estrecho y fuerte',
+    graze: 'Roce', mult: 'Multiplicador', sparks: 'Chispas', stage: 'Fase', conts: 'Continuaciones',
+    bonus: 'Bonus', card: 'Repique', lost: '—', cardGet: '¡REPIQUE RESISTIDO!', cardFail: 'Superado sin bonus', cardTime: 'Se acabó el tiempo',
+    warning: 'ATENCIÓN', midboss: 'ayudante del Campanero', bossCome: 'Campanero',
+    clear: 'FASE SUPERADA', clearSub: 'bonus', extend: '+VIDA', bombName: '¡Descarga!',
+    contQ: '¿CONTINUAR?', contHint: 'Espacio / toca — sí · X — no', contLeft: 'Continuaciones',
+    hintKeys: 'Flechas/WASD — volar\nShift/Z — foco · X/Espacio — descarga\nP pausa · T tema · L idioma · M sonido',
+    hintTouch: 'Dedo — volar (relativo)\nFOCO y DESCARGA — botones abajo\nSegundo dedo — descarga',
+    endLine: 'Roce {g} · Multiplicador máx. ×{c} · Repiques resistidos {k}',
+    foot: '<b>RIVETFALL</b> · flechas / WASD — volar · Shift o Z — foco (más lento, fuego denso, punto de impacto visible) · X o Espacio — descarga · disparo automático · dedo — movimiento relativo · P / Esc — pausa · L idioma, T tema, M sonido.'
+  };
+  LV.STR.pt = {
+    play: 'Jogar', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'lig.', off: 'desl.',
+    score: 'Pontos', level: 'Fase', best: 'Recorde', lives: 'Vidas', bombs: 'Descargas',
+    win: 'O REBATE SE CALOU!', gameover: 'A LANÇADEIRA APAGOU',
+    pause: 'PAUSA', resume: 'Continuar', menu: 'Menu', tapstart: 'espaço / toque',
+    title: 'RIVETFALL', subtitle: 'A lançadeira-faísca da oficina Hefest sob a chuva de rebites',
+    sub2: 'Bullet hell · 5 fases · 27 repiques · foco, raspão, multiplicador',
+    lvPick: 'Fase', starNew: 'novo recorde de estrelas!', opened: 'fase {n} liberada', revived: 'Mais uma chance!', rwBomb: 'Anúncio: +1 descarga',
+    bFocus: 'FOCO', bBomb: 'DESCARGA', starsHint: '★ concluir · ★ sem perdas · ★ todos os repiques',
+    back: 'Catálogo', diff: 'Dificuldade', form: 'Forma',
+    d_easy: 'Fácil', d_normal: 'Normal', d_hard: 'Difícil',
+    f_fan: 'Leque', f_blade: 'Lâmina',
+    fdesc_fan: 'tiro amplo', fdesc_blade: 'estreito e forte',
+    graze: 'Raspão', mult: 'Multiplicador', sparks: 'Faíscas', stage: 'Fase', conts: 'Continuações',
+    bonus: 'Bônus', card: 'Repique', lost: '—', cardGet: 'REPIQUE SUPORTADO!', cardFail: 'Passou sem bônus', cardTime: 'Tempo esgotado',
+    warning: 'ATENÇÃO', midboss: 'ajudante do Sineiro', bossCome: 'Sineiro',
+    clear: 'FASE CONCLUÍDA', clearSub: 'bônus', extend: '+VIDA', bombName: 'Descarga!',
+    contQ: 'CONTINUAR?', contHint: 'Espaço / toque — sim · X — não', contLeft: 'Continuações',
+    hintKeys: 'Setas/WASD — voar\nShift/Z — foco · X/Espaço — descarga\nP pausa · T tema · L idioma · M som',
+    hintTouch: 'Dedo — voar (relativo)\nFOCO e DESCARGA — botões abaixo\nSegundo dedo — descarga',
+    endLine: 'Raspão {g} · Multiplicador máx. ×{c} · Repiques suportados {k}',
+    foot: '<b>RIVETFALL</b> · setas / WASD — voar · Shift ou Z — foco (mais lento, tiro denso, ponto de impacto visível) · X ou Espaço — descarga · tiro automático · dedo — movimento relativo · P / Esc — pausa · L idioma, T tema, M som.'
   };
 })(typeof window !== 'undefined' ? window : globalThis);

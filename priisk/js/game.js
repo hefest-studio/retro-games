@@ -550,15 +550,17 @@
     W.events.push({ t: 'die', owner: e.owner, kind: e.kind, type: e.type, x: c.x, y: c.y, tag: e.tag || null, id: e.id, packed: e.packed ? e.packed.type : null });
   }
   function damage(W, attacker, tg) {
-    if (tg.riding) return; // едущих в люльке над пропастью не достать
+    if (tg.riding && !carExposed(W, tg)) return; // едущих в люльке над пропастью не достать (кроме открытых пассажирских люлек С8)
     var d = UNITS[attacker.type] || BLDS[attacker.type], cls = tg.kind === 'bld' ? 'bld' : UNITS[tg.type].cls;
     if (tg.tag) { var hk = attacker.owner + ':' + tg.tag; W.hits[hk] = (W.hits[hk] || 0) + 1; } // кто по кому стрелял (условие hit кампании)
-    if (tg.calm && attacker.owner !== tg.owner) tg.calm = false; // по мирному выстрелили — он больше не мирный
+    if (tg.calm && attacker.owner !== tg.owner && !tg.riding) tg.calm = false; // по мирному выстрелили — он больше не мирный (в люльке — остаётся пассажиром)
     // договор (W.treaty): здания пулей и снарядом не берутся (только заряд подрывника), но выстрел засчитывается в hits
     var amt = d.dmg * MULT[d.weapon][cls] * (0.9 + W.rng() * 0.2) * (attacker.bD || 1) * (attacker.vet ? 1.2 : 1);
+    if (tg.riding) amt *= ferryCfg(W).armor; // пассажирская люлька: доски бортов держат часть пуль
     if (tg.parts) { var ap = center(attacker); hitPart(W, tg, amt, d.weapon, ap.x, ap.y); } // громада: урон — ближайшему к стрелку целому узлу
     else if (!(W.treaty && tg.kind === 'bld')) tg.hp -= amt;
     tg.hitT = W.time; tg.hitBy = attacker.id;
+    if (tg.riding && tg.hp <= 0 && !tg.fell) { tg.fell = true; W.events.push({ t: 'carFall', owner: tg.owner, x: tg.x, y: tg.y, n: 0, fare: true, tag: tg.tag || null, shot: true }); } // люльку сбили выстрелом
     var c = center(tg), ox = tg.kind === 'bld' ? (W.rng() - 0.5) * tg.w * 0.6 : 0, oy = tg.kind === 'bld' ? (W.rng() - 0.5) * tg.h * 0.6 : 0;
     var ac = center(attacker);
     W.fx.push({ t: d.weapon === 'gun' ? 'tracer' : 'shell', x0: ac.x, y0: ac.y, x: c.x + ox, y: c.y + oy, life: d.weapon === 'gun' ? 0.09 : 0.22, max: d.weapon === 'gun' ? 0.09 : 0.22 });
@@ -594,7 +596,7 @@
   function scan(W, u, radius) {
     var best = null, bd = 1e9;
     if (u.calm) return null; // мирные (сценарные) сами не стреляют, и по ним не стреляют без приказа
-    for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (!hostile(W, e.owner, u.owner) || e.hp <= 0 || e.calm || e.riding) continue; var d = e.parts ? distTo(u, e) : Math.hypot(e.x - u.x, e.y - u.y); if (d <= radius && d < bd && sees(W, u.x, u.y, e.x, e.y)) { bd = d; best = e; } }
+    for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (!hostile(W, e.owner, u.owner) || e.hp <= 0 || ((e.calm || e.riding) && !carExposed(W, e))) continue; var d = e.parts ? distTo(u, e) : Math.hypot(e.x - u.x, e.y - u.y); if (d <= radius && d < bd && sees(W, u.x, u.y, e.x, e.y)) { bd = d; best = e; } }
     if (best || W.treaty) return best; // по договору здания сами не обстреливают
     for (n = 0; n < W.blds.length; n++) { var b = W.blds[n]; if (!hostile(W, b.owner, u.owner)) continue; var db = distTo(u, b); if (db <= radius && db < bd) { bd = db; best = b; } }
     return best;
@@ -617,6 +619,8 @@
       var tg = W.byId[o.target];
       if (!alive(tg)) { u.path = []; u.order = o.then || { t: 'idle' }; if (u.order.t === 'amove') u.path = findPath(W, u.x, u.y, u.order.x, u.order.y); return; }
       if (o.leash && Math.hypot(u.x - o.leash.x, u.y - o.leash.y) > 8) { u.order = { t: 'move', x: o.leash.x, y: o.leash.y }; u.path = findPath(W, u.x, u.y, o.leash.x, o.leash.y); return; }
+      // С8: стрелки, что бьют по зданию (опоре), переводят огонь на открытую пассажирскую люльку в пределах выстрела
+      if (tg.kind === 'bld' && W.ferry && W.ferry.exposed) { u.carT = (u.carT || 0) - dt; if (u.carT <= 0) { u.carT = 0.5; var cr = carInRange(W, u, d.range); if (cr) { u.order = { t: 'attack', target: cr.id, then: o.then, leash: o.leash }; return; } } }
       var dist = distTo(u, tg), c = center(tg);
       if (dist <= d.range && sees(W, u.x, u.y, c.x, c.y)) {
         u.path = [];
@@ -649,6 +653,7 @@
   // ---------- Здания в бою: вышки стреляют, ремонт за медь ----------
   function bldStep(W, b, dt) {
     var d = BLDS[b.type];
+    if (b.cutAt && W.time >= b.cutAt) { b.cutAt = 0; b.cut = true; b.cutP = 0; var cc = center(b); W.events.push({ t: 'cut', owner: b.owner, id: b.id, x: cc.x, y: cc.y, tag: b.tag || null }); } // обрыв пролёта (С8): канат на опоре лопнул
     if (b.setup > 0) { b.setup -= dt; if (b.setup <= 0) { b.setup = 0; calcPower(W); W.events.push({ t: 'setupDone', owner: b.owner, id: b.id }); } return; }
     if (d.rate) rigStep(W, b, d, dt);
     if (d.face) faceStep(W, b, d, dt);
@@ -656,7 +661,7 @@
       b.cd = (b.cd || 0) - dt;
       if (b.cd <= 0) {
         var c = center(b), best = null, bd = 1e9;
-        for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (!hostile(W, e.owner, b.owner) || e.hp <= 0 || e.calm) continue; var dd = Math.hypot(e.x - c.x, e.y - c.y) - b.w / 2 - (e.parts ? UNITS[e.type].r : 0); if (dd <= d.range && dd < bd && sees(W, c.x, c.y, e.x, e.y)) { bd = dd; best = e; } }
+        for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (!hostile(W, e.owner, b.owner) || e.hp <= 0 || ((e.calm || e.riding) && !carExposed(W, e))) continue; var dd = Math.hypot(e.x - c.x, e.y - c.y) - b.w / 2 - (e.parts ? UNITS[e.type].r : 0); if (dd <= d.range && dd < bd && sees(W, c.x, c.y, e.x, e.y)) { bd = dd; best = e; } }
         if (best) { b.cd = d.cd; b.fireT = W.time; b.aim = Math.atan2(best.y - c.y, best.x - c.x); damage(W, b, best); } else b.cd = 0.25;
       }
     }
@@ -846,6 +851,7 @@
         if (on) { h.bD = Math.max(h.bD, hd.dmg); }
       }
       if (hd.ability === 'fix') { if (W.fires.length) sandStep(W, h, hd, dt); fixStep(W, h, hd, dt); }
+      if (hd.ability === 'cable' && W.ropeFix) ropeStep(W, h, dt);
     }
     var fl = W.flares; if (fl) for (n = fl.length - 1; n >= 0; n--) { fl[n].t -= dt; if (fl[n].t <= 0) fl.splice(n, 1); }
   }
@@ -864,6 +870,16 @@
     var best = null, bf = 2;
     for (n = 0; n < list.length; n++) { var e = list[n]; if (!fixable(W, h, e, hd.field)) continue; var f = e.hp / e.maxHp; if (f < bf) { bf = f; best = e; } }
     if (best) { best.hp = Math.min(best.maxHp, best.hp + hd.fieldRate * dt); best.fixT = W.time; h.fixing = best.id; } else h.fixing = 0;
+  }
+  // Агафья на канатке (W.ropeFix = { r, rate, time } — С8): стоя на месте (может отстреливаться), чинит самую побитую свою опору /
+  // станцию / забой рядом (rate в секунду), а лопнувший канат на опоре (b.cut) сращивает за time секунд — событие spliced.
+  function ropeStep(W, h, dt) {
+    var F = W.ropeFix, r = F.r || 2.4; h.splicing = 0; if (h.path.length || h.riding) return;
+    var best = null, bf = 2;
+    W.blds.forEach(function (b) { if (b.owner !== h.owner || !BLDS[b.type].cable || b.hp <= 0 || distTo(h, b) > r) return; var f = b.cut ? -1 : b.hp / b.maxHp; if (f < 1 && f < bf) { bf = f; best = b; } });
+    if (!best) return; h.splicing = best.id; best.fixT = W.time;
+    if (best.cut) { best.cutP = (best.cutP || 0) + dt; if (best.cutP >= (F.time || 8)) { best.cut = false; best.cutP = 0; var bc = center(best); W.events.push({ t: 'spliced', owner: h.owner, id: best.id, x: bc.x, y: bc.y, tag: best.tag || null }); } }
+    else best.hp = Math.min(best.maxHp, best.hp + (F.rate || 20) * dt);
   }
   // Активная способность героя: 'ok' | 'cd' (перезарядка) | 'far' (метка слишком далеко) | null (не герой/мёртв).
   function ability(W, u, x, y) {
@@ -1540,7 +1556,10 @@
     W.windT = 0; W.events.push({ t: 'windShift', scripted: true });
   }
   // ---------- канатная дорога ----------
-  function cableNodes(W, o) { return W.blds.filter(function (b) { return b.owner === o && b.hp > 0 && BLDS[b.type].cable && !(b.setup > 0); }); }
+  function cableNodes(W, o) { return W.blds.filter(function (b) { return b.owner === o && b.hp > 0 && BLDS[b.type].cable && !(b.setup > 0) && !b.cut; }); }
+  function nodeDown(W, id) { return !alive(W.byId[id]); } // узел маршрута люльки снесён — люлька падает
+  // канат сорвало с ролика на опоре (b.cut, С8): люлька, чей пролёт упирается в эту опору, встаёт и висит, пока Агафья не срастит
+  function cutAhead(W, ids, k) { var a = W.byId[ids[k - 1]], b = k >= 2 ? W.byId[ids[k - 2]] : null; return !!((a && a.cut) || (b && b.cut)); }
   function linked(a, b) { var ca = center(a), cb = center(b); return Math.hypot(ca.x - cb.x, ca.y - cb.y) <= SPAN; }
   // пролёты канатки владельца: [[a, b], …] — минимальное остовное дерево по узлам в пределах пролёта (канат не путается в
   // паутину: каждый узел висит на ближайших), по нему и рисуем, и возим
@@ -1590,9 +1609,9 @@
   function carStep(W, dt) {
     for (var n = W.cars.length - 1; n >= 0; n--) {
       var car = W.cars[n], broken = false;
-      for (var m = Math.max(0, car.k - 1); m < car.ids.length; m++) if (!alive(W.byId[car.ids[m]])) { broken = true; break; }
+      for (var m = Math.max(0, car.k - 1); m < car.ids.length; m++) if (nodeDown(W, car.ids[m])) { broken = true; break; }
       if (broken) { W.cars.splice(n, 1); W.fx.push({ t: 'boom', x: car.x, y: car.y, life: 0.5, max: 0.5, big: false }); W.events.push({ t: 'carFall', owner: car.owner, x: car.x, y: car.y, n: car.n }); continue; }
-      var go = CAR.speed * dt;
+      var go = cutAhead(W, car.ids, car.k + 1) ? 0 : CAR.speed * dt; // у люльки с медью pts = узлы (без точки старта): следующий узел — ids[k]
       while (go > 0 && car.k < car.pts.length) { var p = car.pts[car.k], dx = p.x - car.x, dy = p.y - car.y, dl = Math.hypot(dx, dy); if (dl <= go) { car.x = p.x; car.y = p.y; car.k++; go -= dl; } else { car.x += dx / dl * go; car.y += dy / dl * go; go = 0; } }
       if (car.k >= car.pts.length) {
         var term = W.byId[car.ids[car.ids.length - 1]], got = Math.round(car.n * (term && term.mult || 1)); // торговый пост (b.mult) платит дороже
@@ -1617,16 +1636,19 @@
   function cableRide(W, u, dt) {
     var o = u.order; if (o.delay > 0) { o.delay -= dt; return; }
     // автолюлька (o.ids — узлы маршрута): опора впереди сгорела или снесена — люлька срывается вместе с людьми
-    if (o.ids) for (var m = Math.max(0, o.k - 2); m < o.ids.length; m++) if (!alive(W.byId[o.ids[m]])) {
+    if (o.ids) for (var m = Math.max(0, o.k - 2); m < o.ids.length; m++) if (nodeDown(W, o.ids[m])) {
       u.riding = false; u.hp = 0; u.fell = true; W.fx.push({ t: 'boom', x: u.x, y: u.y, life: 0.5, max: 0.5, big: false });
       W.events.push({ t: 'carFall', owner: u.owner, x: u.x, y: u.y, n: 0, fare: true, tag: u.tag || null }); return;
     }
-    var go = (o.speed || HEROES.agafya.speed) * dt;
+    // ветер раскачивает пассажирские люльки (W.ferry.sway, С8): сильнее sway.from — едут медленнее (до sway.min), u.sway — размах для рисования
+    var sw = o.ids && W.ferry && W.wind ? ferryCfg(W).sway : null, mul = 1;
+    if (sw) { var ws = W.wind.s; mul = ws <= sw.from ? 1 : Math.max(sw.min || 0.25, 1 - (ws - sw.from) * (sw.k || 1.5)); u.sway = Math.max(0, Math.min(1, (ws - sw.from + 0.45) / 0.9)); }
+    var go = o.ids && o.k <= o.ids.length && cutAhead(W, o.ids, o.k) ? 0 : (o.speed || HEROES.agafya.speed) * mul * dt; o.hang = go === 0 && !!o.ids;
     while (go > 0 && o.k < o.pts.length) { var p = o.pts[o.k], dx = p.x - u.x, dy = p.y - u.y, dl = Math.hypot(dx, dy); if (dl > 0.01) u.heading = u.aim = Math.atan2(dy, dx); if (dl <= go) { u.x = p.x; u.y = p.y; o.k++; go -= dl; } else { u.x += dx / dl * go; u.y += dy / dl * go; go = 0; } }
     if (o.k >= o.pts.length) {
       var sp = nearestPassable(W, Math.floor(u.x), Math.floor(u.y), 6, true) || nearestPassable(W, Math.floor(u.x), Math.floor(u.y), 6);
       if (sp) { u.x = sp.i + 0.5; u.y = sp.j + 0.5; }
-      u.riding = false; u.order = { t: 'idle' }; u.post = { x: u.x, y: u.y }; W.events.push({ t: 'cableIn', owner: u.owner, id: u.id, fare: !!u.fare, tag: u.tag || null });
+      u.riding = false; u.sway = 0; u.order = { t: 'idle' }; u.post = { x: u.x, y: u.y }; W.events.push({ t: 'cableIn', owner: u.owner, id: u.id, fare: !!u.fare, tag: u.tag || null });
       if (u.fare) { // довезли — больше не садится; W.ferry.home — куда спасённые уходят со Станции (в стан, подальше от огня)
         u.fare = false; u.saved = true; var hm = W.ferry && W.ferry.home;
         if (hm) { var hs = nearestPassable(W, Math.floor(hm.x + (W.rng() - 0.5) * 3), Math.floor(hm.y + (W.rng() - 0.5) * 3), 4) || { i: Math.floor(hm.x), j: Math.floor(hm.y) }; u.order = { t: 'move', x: hs.i + 0.5, y: hs.j + 0.5 }; u.path = findPath(W, u.x, u.y, hs.i + 0.5, hs.j + 0.5); }
@@ -1637,8 +1659,14 @@
   // Станция) не дальше walk клеток, у которого есть канат до Станции; узел раз в gap секунд сажает до cap ждущих (в радиусе r)
   // и везёт их по канату (speed клеток в секунду). Сгорела или снесена опора впереди — люлька срывается (cableRide). Узла рядом
   // нет — ждут на месте (игрок тянет к ним опоры).
-  var FERRY = { r: 2.4, cap: 3, gap: 2.5, speed: 2.6, walk: 9, home: null };
+  // С8 «Канатка над пропастью»: exposed — пассажирские люльки открыты для огня с земли (armor — доля урона, что проходит сквозь
+  // борта; сбитая люлька падает — событие carFall с shot), sway = { from, k, min, stop } — ветер сильнее from замедляет люльки
+  // (до min), при stop и выше люльки от опор не отходят (ждут затишья); узел с b.cutAt (канат вот-вот сорвёт) люлек не отправляет,
+  // сорвало (b.cut) — люльки на его пролётах висят (o.hang), снесли опору — падают.
+  var FERRY = { r: 2.4, cap: 3, gap: 2.5, speed: 2.6, walk: 9, home: null, exposed: false, armor: 1, sway: null };
   function ferryCfg(W) { return W.ferry === true ? FERRY : Object.assign({}, FERRY, W.ferry); }
+  function carExposed(W, e) { return !!(e.riding && e.fare && W.ferry && ferryCfg(W).exposed); }
+  function carInRange(W, u, r) { var best = null, bd = r; for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (e.hp > 0 && carExposed(W, e) && hostile(W, e.owner, u.owner)) { var dd = Math.hypot(e.x - u.x, e.y - u.y); if (dd <= bd) { bd = dd; best = e; } } } return best; }
   function ferryStep(W, dt) {
     var F = ferryCfg(W), routes = Object.create(null);
     function route(b) { if (!(b.id in routes)) routes[b.id] = cableRoute(W, b, function (x) { return !!BLDS[x.type].terminal; }); return routes[b.id]; }
@@ -1666,6 +1694,8 @@
       b.ferryT = (b.ferryT || 0) - dt; if (b.ferryT > 0) return; b.ferryT = 0.5;
       var wait = W.units.filter(function (u) { return u.fare && u.hp > 0 && !u.riding && u.board === b.id && distTo(u, b) <= F.r; });
       if (!wait.length) return; var rt = route(b); if (!rt.length) return;
+      if (F.sway && W.wind && W.wind.s >= (F.sway.stop || 9)) return; // порыв: люльки ждут у опоры
+      if ([b].concat(rt).some(function (x) { return x.cutAt > 0; })) return; // канат на маршруте трещит — не отправлять
       var nodesR = [b].concat(rt), pts = nodesR.map(center), ids = nodesR.map(function (x) { return x.id; });
       wait.slice(0, F.cap).forEach(function (u, i) { u.order = { t: 'cable', pts: [{ x: u.x, y: u.y }].concat(pts), ids: ids, k: 1, delay: i * 0.4, speed: F.speed }; u.path = []; u.riding = true; u.toNode = 0; });
       b.ferryT = F.gap; W.events.push({ t: 'ferry', owner: b.owner, id: b.id, n: Math.min(F.cap, wait.length), x: center(b).x, y: center(b).y });
@@ -1851,7 +1881,7 @@
     sees: sees, addLift: addLift, liftById: liftById, liftAt: liftAt, commandLift: commandLift, liftStep: liftStep, liftWaiting: liftWaiting, riders: riders, regionOf: regionOf, liftRoute: liftRoute, liftReach: liftReach, LIFT: LIFT,
     newSzAI: newSzAI, szAiStep: szAiStep, szMillSpot: szMillSpot, szFarRidge: szFarRidge, producer: producer, onHigh: onHigh,
     facOf: facOf, sideLists: sideLists, setSides: setSides, ridgeRocks: ridgeRocks, sheltered: sheltered, millOut: millOut, setWind: setWind, cableNodes: cableNodes, cableLinks: cableLinks, cableRoute: cableRoute, cableAnchor: cableAnchor, launchCar: launchCar, oreNear: oreNear,
-    SPAN: SPAN, MILL: MILL, FACE: FACE, CAR: CAR, INF_FAC: INF_FAC, SZ_BUILD_LIST: SZ_BUILD_LIST, SZ_UNIT_LIST: SZ_UNIT_LIST, DIRS: DIRS, talkAbility: talkAbility, cableAbility: cableAbility, FERRY: FERRY, ferryStep: ferryStep, ferryCfg: ferryCfg, nearOwnBld: nearOwnBld,
+    SPAN: SPAN, MILL: MILL, FACE: FACE, CAR: CAR, INF_FAC: INF_FAC, SZ_BUILD_LIST: SZ_BUILD_LIST, SZ_UNIT_LIST: SZ_UNIT_LIST, DIRS: DIRS, talkAbility: talkAbility, cableAbility: cableAbility, FERRY: FERRY, ferryStep: ferryStep, ferryCfg: ferryCfg, carExposed: carExposed, ropeStep: ropeStep, nearOwnBld: nearOwnBld,
     initBoss: initBoss, setBoss: setBoss, partAlive: partAlive, partOf: partOf, partPts: partPts, partToward: partToward, hitPart: hitPart, bossSteam: bossSteam, passBig: passBig, distTo: distTo, waterCap: waterCap
   };
 })(typeof window !== 'undefined' ? window : globalThis);

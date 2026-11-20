@@ -10,7 +10,7 @@ const ROOT = path.resolve(HERE, '..');
 const sandbox = { console, Math };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-for (const f of ['js/music.js', 'js/i18n.js', 'js/patterns.js', 'js/stages.js', 'js/game.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
+for (const f of ['js/music.js', 'js/i18n.js', 'js/patterns.js', 'js/stages.js', 'js/names.js', 'js/meta.js', 'js/game.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const LV = sandbox.LIVEN, L = LV.logic, K = L.K;
 const { playLiven, reachCheck, mulberry32 } = await import('./bot.mjs');
 
@@ -191,11 +191,40 @@ test('правило имён: в папке игры нет чужих назв
   ok(!BAD.test('Звонарь') && !BAD.test('перезвон') && !BAD.test('CONTRACT.md') && !BAD.test('Гефест') && !BAD.test('spellcheck') && !BAD.test('потихоньку'), 'стоп-лист без ложных срабатываний на наши слова');
 });
 
+// ---------- волна 3: мета-прогрессия, реклама за награду, языки ----------
+test('мета: звёзды этапа (пройден / без потерь / все перезвоны), открытие следующего, выбор по кругу, рекорд звёзд не падает', () => {
+  const M = LV.meta, mem = {}, P = M.Progress({ get: k => (k in mem ? mem[k] : null), set: (k, v) => { mem[k] = v; } });
+  eq(M.stars({ deaths: 0, caps: 4, cards: 4 }).n, 3); eq(M.stars({ deaths: 1, caps: 4, cards: 4 }).n, 2); eq(M.stars({ deaths: 2, caps: 1, cards: 4 }).n, 1);
+  eq(M.stars({ deaths: 0, caps: 0, cards: 0 }).n, 2, 'без перезвонов третьей звезды нет');
+  ok(P.unlocked(1) && !P.unlocked(2)); eq(P.maxUnlocked(), 1); eq(P.next(1, 1), 1);
+  ok(P.record(1, 2)); ok(P.unlocked(2)); eq(P.maxUnlocked(), 2); eq(P.next(2, 1), 1); eq(P.next(1, -1), 2);
+  ok(!P.record(1, 1), 'хуже — не пишется'); eq(P.get(1), 2); ok(P.record(1, 3)); eq(P.total(), 3);
+  eq(mem['arcade.liven.stars.1'], '3'); eq(M.starStr(2), '★★☆'); ok(!P.record(9, 3));
+});
+test('мета: партия с выбранного этапа (opts.stage) начинается с него', () => {
+  const { S, ev } = mk({ stage: 3 }); eq(S.stage, 3); ok(ev.some(e => e.t === 'stage' && e.a === 3));
+});
+test('реклама: reviveAd после конца партии — снова play, 2 жизни, полные разряды; addBomb до K.BOMBS+2', () => {
+  const { game, S, ev } = mk(); S.lives = 0; S.phase = 'over'; S.over = true; S.bombs = 0;
+  ok(game.reviveAd()); eq(S.phase, 'play'); eq(S.over, false); eq(S.lives, 2); eq(S.bombs, K.BOMBS); ok(ev.some(e => e.t === 'revive'));
+  run(game, 1); eq(S.phase, 'play');
+  S.bombs = K.BOMBS; ok(game.addBomb()); ok(game.addBomb()); ok(!game.addBomb()); eq(S.bombs, K.BOMBS + 2);
+  S.won = true; ok(!game.reviveAd(), 'после победы — нет');
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ЛИВЕНЬ, EN/TR/ES/PT RIVETFALL; имена этапов и перезвонов переведены', () => {
+  const ks = Object.keys(LV.STR.en).sort().join(',');
+  eq(Object.keys(LV.STR).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(LV.STR[l]).sort().join(','), ks, l);
+  eq(LV.STR.ru.title, 'ЛИВЕНЬ'); for (const l of ['en', 'tr', 'es', 'pt']) { eq(LV.STR[l].title, 'RIVETFALL', l); ok(LV.STR[l].foot.includes('RIVETFALL'), l); ok(LV.STR[l].opened.includes('{n}'), l); }
+  for (const l of ['tr', 'es', 'pt']) { LV.STAGES.forEach(st => ok(st.n[l], 'этап ' + st.n.en + ' ' + l)); CARDS.forEach(({ c }) => ok(c.n[l], 'перезвон ' + c.n.en + ' ' + l)); for (const id in LV.BOSSES) ok(LV.BOSSES[id].n[l], id + ' ' + l); }
+  eq(LV.nm({ ru: 'а', en: 'b' }, 'tr'), 'b');
+});
 // ---------- партии бота (QUICK=1 — пропустить) ----------
 if (process.env.QUICK){ console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed) + ' (без бота)'); process.exit(failed ? 1 : 0); }
 // «Человеческий» бот (tests/bot.mjs): реакция 150–250 мс, не видит только что вылетевшие пули, прогноз по прямой с ошибкой ±4 px,
 // 5% решений пропускает, разряд жмёт не всегда; продолжений не берёт.
 const N = 30;
+
 test('баланс: на Лёгком бот проходит этап 1 почти всегда (≥ 90% из 30 партий)', () => {
   const R = []; for (let s = 1; s <= N; s++) R.push(playLiven(LV, s, { diff: 'easy', stages: 1 }));
   const n = R.filter(r => r.cleared >= 1).length, deaths = R.reduce((a, r) => a + r.deaths, 0);

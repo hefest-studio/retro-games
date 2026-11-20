@@ -10,8 +10,9 @@
   // ---------- DOM ----------
   function fit(g) {
     var c = g.canvas, wrap = c.parentElement;
-    var pad = document.querySelector('.pad'), padH = pad && getComputedStyle(pad).display !== 'none' ? pad.offsetHeight + 20 : 0;
-    var availH = innerHeight - padH - 70;
+    var pad = document.querySelector('.pad'), padH = pad && getComputedStyle(pad).display !== 'none' && getComputedStyle(pad).position !== 'fixed' ? pad.offsetHeight + 20 : 0;
+    var foot = $('foot'), footH = foot && getComputedStyle(foot).display !== 'none' ? foot.offsetHeight + 20 : 0;
+    var availH = innerHeight - padH - footH - (wrap ? wrap.offsetTop : 32) - 4;
     var w = Math.min(960, (wrap && wrap.clientWidth) || g.W, availH * g.W / g.H);
     w = Math.max(280, Math.floor(w));
     c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
@@ -24,6 +25,7 @@
       var b = $('backLink'); if (b) b.innerHTML = '&larr; ' + g.t('back');
       var f = $('foot'); if (f) f.innerHTML = g.t('foot');   // строки — наши, из i18n.js
       var pb = $('bPause'); if (pb) pb.title = g.t('pause');
+      fit(g);
     }
     if (theme !== lastTheme) { lastTheme = theme; document.body.setAttribute('data-theme', theme); }
   }
@@ -34,7 +36,9 @@
     ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
     ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   }
-  function txt(g, s, x, y, o, P) { o = o || {}; if (P.font) o.font = P.font; g.text(s, x, y, o); }
+  function txt(g, s, x, y, o, P) { o = o || {}; if (P.font) o.font = P.font;
+    if (!o.maxWidth) { var al = o.align || 'left', mw = al === 'center' ? Math.min(x, g.W - x) * 2 - 8 : al === 'right' ? x - 4 : g.W - x - 4; if (mw > 20) { o.maxWidth = mw; o.minSize = o.minSize || 7; } }   // длинные TR/ES/PT не вылезают
+    g.text(s, x, y, o); }
   function up(P, s) { return P.pixel ? String(s).toUpperCase() : String(s); }
   function panel(ctx, x, y, w, h, P, border) {
     if (P.pixel) {

@@ -276,6 +276,18 @@ test('правило имён: в папке игры нет чужих назв
   ok(!BAD.test('callFox()') && !BAD.test('Искра') && !BAD.test('Бураш') && !BAD.test('ледник') && !BAD.test('CONTRACT.md') && !BAD.test('Гефест') && !BAD.test('доисторический'), 'стоп-лист без ложных срабатываний на наши слова');
 });
 
+// ---------- волна 3: реклама за награду, языки ----------
+test('реклама: reviveAd после последней жизни — 2 жизни, снова play с костра/старта; addLife до 9', () => {
+  const { game, S, ev } = mk('1-1'); S.lives = 1; game._die('hurt'); eq(S.phase, 'over');
+  ok(game.reviveAd()); eq(S.lives, 2); eq(S.phase, 'play'); ok(ev.some(e => e.t === 'revive'));
+  S.lives = 8; ok(game.addLife()); ok(!game.addLife()); eq(S.lives, 9);
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ЛЕДНИК, EN/TR/ES/PT RIMETRAIL; плейсхолдеры на месте', () => {
+  const ks = Object.keys(LD.STR.en).sort().join(','); eq(Object.keys(LD.STR).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(LD.STR[l]).sort().join(','), ks, l);
+  eq(LD.STR.ru.title, 'ЛЕДНИК');
+  for (const l of ['en', 'tr', 'es', 'pt']) { eq(LD.STR[l].title, 'RIMETRAIL', l); ok(LD.STR[l].foot.includes('RIMETRAIL'), l); ok(LD.STR[l].needMore.includes('{n}'), l); }
+});
 // ---------- графы уровней и бот (QUICK=1 — пропустить) ----------
 if (process.env.QUICK){ console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed) + ' (без графов и бота)'); process.exit(failed ? 1 : 0); }
 const NAV = {};

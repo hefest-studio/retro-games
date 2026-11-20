@@ -9,9 +9,9 @@
 (function (root) {
   'use strict';
   var P = root.PRIISK = root.PRIISK || {};
-  // s1–s7 — кампания Артели Сизого Перевала «Долг перевала» (только полная версия); s8–s9 — ещё в работе (файлов нет, на карте —
-  // заготовки-карточки «в работе» из campaign-ui.js; новая миссия = файл в arcade-full + её id здесь)
-  var FILES = P.MISSION_FILES = { demo: ['m1'], full: ['m2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm8', 'm9', 'm10', 's1', 's2', 's3', 's4', 's5', 's6', 's7'] };
+  // s1–s9 — кампания Артели Сизого Перевала «Долг перевала» (только полная версия); e1 — эпилог обеих кампаний (camp 'both':
+  // открывается, когда пройдены финалы обеих и выбор в них совместим; на карте — отметка). Новая миссия = файл в arcade-full + id здесь
+  var FILES = P.MISSION_FILES = { demo: ['m1'], full: ['m2', 'm3', 'm4', 'm5', 'm6', 'm7', 'm8', 'm9', 'm10', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 'e1'] };
   // 'platform' — издание «для площадок» (arcade-full/platform): грузит все файлы, доступ к миссиям решает js/edition.js (покупка)
   P.missionFiles = function (build) { return build === 'full' || build === 'platform' ? FILES.demo.concat(FILES.full) : FILES.demo.slice(); };
   P.missionMissing = [];

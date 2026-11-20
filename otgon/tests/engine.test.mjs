@@ -10,7 +10,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
 const box = { console, Math, JSON, Array, Object };
 box.window = box; box.globalThis = box; vm.createContext(box);
-for (const f of ['js/game.js', 'js/i18n.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), box, { filename: f });
+for (const f of ['js/game.js', 'js/meta.js', 'js/i18n.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), box, { filename: f });
 const O = box.OTGON, L = O.logic, K = L.K, LEGS = L.LEGS;
 
 let passed = 0, failed = 0;
@@ -282,7 +282,7 @@ test('страница: фавикон студии, «← Каталог» с d
   ok(/<link rel="icon"[^>]+data:image\/svg\+xml/.test(html), 'фавикон');
   ok(/class="back"[^>]*href="\.\.\/"[^>]*data-en="← Catalog"/.test(html), 'ссылка в каталог');
   ok(/<canvas id="c" width="960" height="540"/.test(html), 'canvas');
-  eq([...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]), ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/render.js', 'js/main.js']);
+  eq([...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]), ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/meta.js', 'js/audio.js', 'js/render.js', 'js/main.js']);
   ['U', 'D', 'L', 'R'].forEach(d => ok(html.includes('data-d="' + d + '"'), 'кнопка ' + d));
   ['bPause', 'bWhistle', 'bStaff', 'bRun'].forEach(id => ok(html.includes('id="' + id + '"'), id));
   eq(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js не копия _shared');
@@ -308,6 +308,24 @@ test('правило имён: в папке игры нет чужих назв
 });
 
 // ---------- Проходимость: «человеческий» бот ----------
+// ---------- волна 3: звёзды участков, реклама за награду, языки ----------
+test('мета: звёзды участка (дошли / без потерь / всё стадо цело), 6 участков, открытие по порядку', () => {
+  const M = O.meta, mem = {}, G = M.Progress({ get: k => (k in mem ? mem[k] : null), set: (k, v) => { mem[k] = v; } });
+  eq(M.LEVELS, LEGS.length); eq(M.stars({ lost: 0, alive: 10, total: 10 }).n, 3); eq(M.stars({ lost: 0, alive: 8, total: 10 }).n, 2); eq(M.stars({ lost: 2, alive: 6, total: 10 }).n, 1);
+  ok(!G.unlocked(2)); ok(G.record(1, 1)); ok(G.unlocked(2)); ok(!G.record(1, 1)); eq(mem['arcade.otgon.stars.1'], '1');
+});
+test('реклама: returnOne — последний отбившийся снова в стаде рядом с подпаском; reviveAd после «стадо разбрелось» — двое, путь продолжается', () => {
+  const ev = []; const g = O.Game({ onEvent: (t, d) => ev.push(t) }).start(), S = g.state();
+  ok(!g.canReturn()); const c = g.alive()[0]; c.st = 'gone'; S.gone.push({ id: c.id, why: 'test', lv: 0, mark: c.mark });
+  ok(g.canReturn()); ok(g.returnOne()); eq(c.st, 'ok'); eq(S.gone.length, 0); ok(ev.includes('back'));
+  g.alive().forEach(q => { q.st = 'gone'; S.gone.push({ id: q.id, why: 'test', lv: 0, mark: q.mark }); }); S.phase = 'alone';
+  ok(g.reviveAd()); eq(S.phase, 'play'); eq(g.alive().length, 2); g.update(0.05); eq(S.phase, 'play');
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ОТГОН, EN/TR/ES/PT WINDSHANKS', () => {
+  const ks = Object.keys(O.STR.en).sort().join(','); eq(Object.keys(O.STR).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(O.STR[l]).sort().join(','), ks, l);
+  eq(O.STR.ru.title, 'ОТГОН'); for (const l of ['en', 'tr', 'es', 'pt']) eq(O.STR[l].title, 'WINDSHANKS', l);
+});
 if (process.env.QUICK){ console.log(`\n${passed} прошло, ${failed} упало (без бота)`); process.exit(failed ? 1 : 0); }
 const RUNS = [1, 2, 3, 4, 5, 6].map(sd => playOtgon(O, sd, { maxT: 3600, branch: sd % 2 ? 'down' : 'up' }));
 test('бот (реакция 150–250 мс, только ход/бег, свист и посох) доводит до летнего пастбища не меньше 2/3 стада во всех 6 партиях, без зависаний', () => {
