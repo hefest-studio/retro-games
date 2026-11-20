@@ -128,7 +128,7 @@
   // Артель Сизого Перевала: вторая сторона (ветряки, канатная дорога, лёгкая техника) и её кампания «Долг перевала»
   Object.assign(P.STR.ru, {
     hqS: 'Изба-контора', mill: 'Ветряк', pylon: 'Опора', hut: 'Зимовьё', station: 'Станция', face: 'Забой', sail: 'Верфь',
-    ranger: 'Горный стрелок', skiff: 'Ветроход', harpoon: 'Самострел', agafya: 'Агафья Ветрова', mityay: 'Митяй',
+    ranger: 'Горный стрелок', skiff: 'Ветроход', harpoon: 'Самострел', agafya: 'Агафья Ветрова', mityay: 'Митяй', folk: 'Горняки посёлка',
     steamS: 'Ветер', millShade: 'в тени скал', millDead: 'Не на гребне — крылья стоят', stock: 'в забое', noLink: 'нет каната до Станции',
     pylonTip: 'Пролёт каната — до 7 клеток (над скалой и водой)', abRage: 'Ярость', abCable: 'Канат', abTalk: 'Уговор',
     msgWindShift: 'Ветер меняется', msgCarFall: 'Опора сбита — люлька сорвалась', msgFaceDry: 'Забой выработан — ставь новый у жилы',
@@ -145,7 +145,7 @@
   });
   Object.assign(P.STR.en, {
     hqS: 'Lodge Hall', mill: 'Windmill', pylon: 'Pylon', hut: 'Winter Hut', station: 'Terminal', face: 'Adit', sail: 'Sail Yard',
-    ranger: 'Ridge Rifle', skiff: 'Windrunner', harpoon: 'Bolt Cart', agafya: 'Agafya Vetrova', mityay: 'Mityay',
+    ranger: 'Ridge Rifle', skiff: 'Windrunner', harpoon: 'Bolt Cart', agafya: 'Agafya Vetrova', mityay: 'Mityay', folk: 'Village Miners',
     steamS: 'Wind', millShade: 'in the lee of rocks', millDead: 'Not on a ridge — sails idle', stock: 'in the adit', noLink: 'no cable to a Terminal',
     pylonTip: 'Cable span — up to 7 tiles (over rock and water)', abRage: 'Fury', abCable: 'Cable', abTalk: 'Parley',
     msgWindShift: 'The wind is shifting', msgCarFall: 'Pylon down — a car fell', msgFaceDry: 'Adit worked out — build a new one by the lode',

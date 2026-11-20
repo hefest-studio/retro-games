@@ -65,7 +65,7 @@ test('глобальный API: Platform и ArcadePlatform.create, все мет
   ok(typeof P.allowExternalLinks === 'boolean' && P.leaderboard && P.leaderboard.available === false, 'allowExternalLinks / leaderboard');
   ['submit', 'top', 'me', 'open'].forEach(k => ok(typeof P.leaderboard[k] === 'function', 'leaderboard.' + k));
   ok(typeof P.flags.get === 'function' && typeof P.serverTime === 'function' && typeof P.review.request === 'function' && typeof P.shortcut.add === 'function', 'v1.2: flags/serverTime/review/shortcut');
-  ok(typeof P.payments.purchase === 'function' && typeof P.games.list === 'function' && typeof P.sticky.show === 'function' && P.version === '1.2.0', 'v1.2: payments/games/sticky, версия');
+  ok(typeof P.payments.purchase === 'function' && typeof P.games.list === 'function' && typeof P.sticky.show === 'function' && P.version === '1.3.0', 'v1.2: payments/games/sticky, версия');
 });
 
 // ---------- web ----------
@@ -175,8 +175,8 @@ function engineEnv({ platform = null, search = '', mock = {}, metas = {}, store 
   const g = win.Arcade.createGame(Object.assign({ canvas: '#c', width: 100, height: 100, gameId: 'tst', strings: { ru: { play: 'Играть' }, en: { play: 'Play' } } }, opts));
   return { w, win, g, links, ac, frame: (t) => raf && raf(t), log: w.log };
 }
-test('движок без platform.js: как раньше (g.platform = null, ссылки на месте, версия 2.7.0, реклама за награду недоступна)', () => {
-  const e = engineEnv(); ok(e.g.platform === null); ok(!e.links.some(a => a.style.display === 'none')); eq(e.win.Arcade.version, '2.7.0');
+test('движок без platform.js: как раньше (g.platform = null, ссылки на месте, версия 2.8.0, реклама за награду недоступна)', () => {
+  const e = engineEnv(); ok(e.g.platform === null); ok(!e.links.some(a => a.style.display === 'none')); eq(e.win.Arcade.version, '2.8.0');
   ok(!e.g.canRewarded() && !e.g.adReady(), 'без площадки рекламы нет');
 });
 test('движок + web: ссылки не прячутся, язык — по правилу движка', async () => {
@@ -378,6 +378,90 @@ test('v2.7 движок: расходуемый товар (useProducts + grant)
   const n = engineEnv(); ok(!n.g.leaderboard.available()); eq(await n.g.leaderboard.submit(5), false); eq(await n.g.requestReview(), false); ok(!n.g.daily('x').trusted && n.g.daily('x').ready);
 });
 
+// ---------- v2.8 (движок) / 1.3 (адаптер) ----------
+const ML = { ru: { play: 'Играть' }, en: { play: 'Play' }, tr: { play: 'Oyna' }, es: { play: 'Jugar' }, pt: { play: 'Jogar' } };
+test('v2.8 язык площадки — любой язык таблиц игры (tr/es/pt), иначе en (ru/be/uk/kk/uz → ru); ?lang= важнее; меню — уже на языке', async () => {
+  for (const [lang, want] of [['tr', 'tr'], ['es', 'es'], ['pt', 'pt'], ['de', 'en'], ['uk', 'ru']]) {
+    const e = engineEnv({ platform: 'yandex', mock: { lang }, opts: { strings: JSON.parse(JSON.stringify(ML)) } }); e.g.useStandardScreens({}); e.g.start('title');
+    await e.win.Platform.init(); await sleep(5); eq(e.g.i18n.lang, want, lang); eq(e.g._sceneName, 'title');
+  }
+  const r = engineEnv({ platform: 'yandex', mock: { lang: 'tr' } }); await r.win.Platform.init(); await sleep(0); eq(r.g.i18n.lang, 'en', 'игра RU/EN: tr → en');
+  const u = engineEnv({ platform: 'gamepush', metas: GP_META, mock: { lang: 'pt' }, search: '?lang=es', opts: { strings: JSON.parse(JSON.stringify(ML)) } }); await u.win.Platform.init(); await sleep(0); eq(u.g.i18n.lang, 'es', '?lang важнее');
+});
+test('v2.8 лидеры: именованные таблицы submit(score, { board }) / submit(score, "имя"), top/me по таблице; Яндекс — своя сцена «Лидеры» (пункт меню после init, переключение таблиц ← →, назад); GamePush — окно площадки', async () => {
+  const lb = { kaskad: [{ id: 'a', name: 'Ая', score: 900 }], kaskadDaily: [{ id: 'b', name: 'Бо', score: 50 }] };
+  const e = engineEnv({ platform: 'yandex', mock: { lb } }), g = e.g; g.useStandardScreens({}); g.useLeaderboard({ boards: ['kaskad', { id: 'kaskadDaily', label: { ru: 'Испытание', en: 'Daily' } }] }); g.scene('play', { draw() {} });
+  g.start('title'); ok(!g.menu.items('title').includes('lb'), 'до init пункта нет'); await e.win.Platform.init(); await sleep(5); g.goto('title');
+  eq(g.menu.items('title').slice(0, 2), ['play', 'lb']);
+  eq(await g.leaderboard.submit(500, { board: 'kaskad' }), true); await sleep(1150); eq(await g.leaderboard.submit(70, 'kaskadDaily'), true);
+  ok(e.log.includes('setScore:kaskad:500') && e.log.includes('setScore:kaskadDaily:70'), e.log.join(','));
+  eq((await g.leaderboard.top({ board: 'kaskad' })).entries.map(x => x.score), [900, 500]); eq((await g.leaderboard.me('kaskadDaily')).score, 70);
+  ok(!g.leaderboard.native(), 'у Яндекса окна нет'); const it = g.scenes.title._menu.items.find(x => x.key === 'lb'); it.onSelect.call(g); eq(g._sceneName, 'leaders');
+  await sleep(10); ok(e.log.includes('getEntries:kaskad'), 'загружена таблица kaskad'); g.scenes.leaders.draw.call(g);
+  g.current.press.call(g, 'right'); await sleep(10); ok(e.log.includes('getEntries:kaskadDaily'), 'вторая таблица');
+  const n = e.log.filter(x => x === 'getEntries:kaskad').length; g.current.press.call(g, 'left'); await sleep(5); eq(e.log.filter(x => x === 'getEntries:kaskad').length, n, 'кеш 60 с');
+  eq(g.menu.items('leaders'), ['b_kaskad', 'b_kaskadDaily', 'back']); g.current._menu.sel = 2; g._selectMenu(); eq(g._sceneName, 'title', '«Назад»');
+  g.goto('leaders', { board: 'kaskadDaily', back: 'title' }); g.current.press.call(g, 'pause'); eq(g._sceneName, 'title', 'P/Esc — назад');
+  const p = engineEnv({ platform: 'gamepush', metas: GP_META }), pg = p.g; pg.useStandardScreens({}); pg.useLeaderboard({ boards: ['kladka'] }); await p.win.Platform.init(); await sleep(5); pg.goto('title');
+  ok(pg.leaderboard.native()); ok(pg.leaderboard.open({ board: 'kladka' }) && p.log.includes('lbOpen'), 'GamePush — окно площадки'); eq(pg._sceneName, 'title');
+  await pg.leaderboard.submit(321, { board: 'kladka' }); ok(p.log.includes('set') && p.log.includes('sync'), p.log.join(','));
+  const w = engineEnv({ platform: 'web' }); w.g.useStandardScreens({}); w.g.useLeaderboard({}); await w.win.Platform.init(); await sleep(5); w.g.goto('title'); ok(!w.g.menu.items('title').includes('lb'), 'web — пункта нет'); ok(!w.g.leaderboard.open());
+  const n0 = engineEnv(); n0.g.useStandardScreens({}); n0.g.useLeaderboard({}); n0.g.goto('title'); ok(!n0.g.menu.items('title').includes('lb'), 'без площадки — нет');
+});
+test('v2.8 «Без рекламы» в меню и паузе: цена из каталога в обоих; покупка из паузы → пункты исчезают, межстраничной нет; восстановление при запуске', async () => {
+  const e = engineEnv({ platform: 'yandex', mock: { adMs: 10 }, opts: { strings: JSON.parse(JSON.stringify(ML)) }, search: '?lang=tr' }), g = e.g; g.useStandardScreens({}); g.useNoAds({ scene: ['title', 'pause'] }); g.scene('play', { draw() {} });
+  await e.win.Platform.init(); await g.flags.ready; await sleep(20); g.goto('play'); g.pause(); await sleep(10); g.goto('pause');
+  ok(g.menu.items('pause').includes('noads') && g.menu.items('title').includes('noads'), JSON.stringify([g.menu.items('title'), g.menu.items('pause')]));
+  eq(g.menu.items('pause').indexOf('noads'), g.menu.items('pause').indexOf('menu') - 1, 'в паузе — перед «В меню»');
+  const it = g.scenes.pause._menu.items.find(x => x.key === 'noads'); eq(it.label(), 'Reklamsız · 49 YAN', 'подпись на языке + цена из SDK');
+  ok(g.adReady()); it.onSelect.call(g); await sleep(40); ok(g.noAds() && !g.adReady()); ok(e.log.includes('purchase:no_ads'));
+  g.goto('pause'); g.goto('title'); ok(!g.menu.items('pause').includes('noads') && !g.menu.items('title').includes('noads'), 'пункты убраны'); ok(g._flashMsg && /Reklamlar/.test(g._flashMsg.text), 'сообщение «реклама отключена»');
+  const purchases = e.win.__sdkMock.purchases.slice(); ok(purchases.some(x => x.productID === 'no_ads'), 'покупка в SDK');
+  const e2 = engineEnv({ platform: 'yandex', mock: { purchases } }), g2 = e2.g; g2.useStandardScreens({}); g2.useNoAds({ scene: ['title', 'pause'] }); await e2.win.Platform.init(); await g2.flags.ready; await sleep(20);
+  ok(g2.noAds() && !g2.adReady(), 'восстановлено при следующем запуске'); g2.goto('title'); ok(!g2.menu.items('title').includes('noads'));
+});
+test('v2.8 «Наши игры» (только через SDK): Яндекс — без текущей игры, сцена-список, открытие страницы каталога Яндекс Игр; GamePush — окно коллекции; web — нет', async () => {
+  const games = [{ appID: '100000', title: 'Каскад', url: 'https://yandex.ru/games/app/100000' }, { appID: '100001', title: 'Отбойник', url: 'https://yandex.ru/games/app/100001' }];
+  const e = engineEnv({ platform: 'yandex', mock: { games, appId: '100000' } }), g = e.g; const opened = []; e.win.open = (u) => { opened.push(u); return {}; };
+  g.useStandardScreens({}); g.useOwnGames(); await e.win.Platform.init(); await sleep(5); g.goto('title'); await sleep(5); g.goto('title');
+  ok(g.menu.items('title').includes('games'), JSON.stringify(g.menu.items('title'))); eq((await e.win.Platform.games.list()).games.map(x => x.id), ['100001'], 'текущая игра исключена');
+  g.scenes.title._menu.items.find(x => x.key === 'games').onSelect.call(g); eq(g._sceneName, 'games'); eq(g.menu.items('games'), ['g_100001', 'back']);
+  g._selectMenu(); eq(opened, ['https://yandex.ru/games/app/100001']); g.current._menu.sel = 1; g._selectMenu(); eq(g._sceneName, 'title');
+  const only = engineEnv({ platform: 'yandex', mock: { games: [games[0]], appId: '100000' } }); only.g.useStandardScreens({}); only.g.useOwnGames(); await only.win.Platform.init(); await sleep(5); only.g.goto('title'); await sleep(5); only.g.goto('title');
+  ok(!only.g.menu.items('title').includes('games'), 'других игр нет — пункта нет');
+  const p = engineEnv({ platform: 'gamepush', metas: GP_META }); p.g.useStandardScreens({}); p.g.useOwnGames(); await p.win.Platform.init(); await sleep(5); p.g.goto('title'); await sleep(5); p.g.goto('title');
+  const pi = p.g.scenes.title._menu.items.find(x => x.key === 'games'); ok(pi, 'GamePush: пункт есть'); pi.onSelect.call(p.g); ok(p.log.includes('gcOpen')); eq(p.g._sceneName, 'title');
+  const w = engineEnv({ platform: 'web' }); w.g.useStandardScreens({}); w.g.useOwnGames(); await w.win.Platform.init(); await sleep(5); w.g.goto('title'); ok(!w.g.menu.items('title').includes('games'), 'web — нет');
+});
+test('v2.8 ярлык: пункт меню только если площадка позволяет; добавление → окно площадки (игра на паузе), пункт исчезает', async () => {
+  const e = engineEnv({ platform: 'yandex' }), g = e.g; g.useStandardScreens({}); g.useShortcut(); await e.win.Platform.init(); await sleep(5); g.goto('title'); await sleep(5); g.goto('title');
+  ok(g.menu.items('title').includes('shortcut'), JSON.stringify(g.menu.items('title')));
+  g.scenes.title._menu.items.find(x => x.key === 'shortcut').onSelect.call(g); await sleep(20); g.goto('title'); await sleep(5); g.goto('title');
+  ok(e.log.includes('showPrompt')); ok(!g.menu.items('title').includes('shortcut'), 'после добавления — нет');
+  const n = engineEnv({ platform: 'yandex', mock: { shortcut: false } }); n.g.useStandardScreens({}); n.g.useShortcut(); await n.win.Platform.init(); await sleep(5); n.g.goto('title'); await sleep(5); n.g.goto('title'); ok(!n.g.menu.items('title').includes('shortcut'), 'нельзя — пункта нет');
+});
+test('v2.8 оценка: только после успеха (победа/рекорд) по выходу с финала, не раньше minSessions-й сессии и не чаще раза в gap сессий; вместо межстраничной; после отправки — никогда', async () => {
+  const run = async (st, o = {}) => { const e = engineEnv({ platform: 'yandex', mock: { adMs: 5 }, store: st ? { 'arcade.review.tst': JSON.stringify(st) } : {} }), g = e.g; g.useStandardScreens({}); g.useReview(Object.assign({ minSessions: 2, gap: 2 }, o)); g.scene('play', { draw() {} });
+    await e.win.Platform.init(); await sleep(5); return e; };
+  let e = await run(null); e.g.goto('win'); e.g.current.press.call(e.g, 'action'); await sleep(30); ok(!e.log.includes('requestReview') && e.log.includes('fullscreen'), '1-я сессия — без оценки, реклама: ' + e.log.join(','));
+  e = await run({ n: 1 }); e.g.state.score = 0; e.g.goto('gameover'); e.g.current.press.call(e.g, 'action'); await sleep(30); ok(!e.log.includes('requestReview'), 'поражение без рекорда — без оценки');
+  e = await run({ n: 1 }); e.g.state.score = 10; e.g.goto('gameover'); e.g.current.press.call(e.g, 'action'); await sleep(30);
+  ok(e.log.includes('requestReview') && !e.log.includes('fullscreen'), 'рекорд во 2-й сессии — оценка вместо рекламы: ' + e.log.join(','));
+  const st = JSON.parse(e.w.store['arcade.review.tst']); eq([st.n, st.ask, st.done], [2, 2, 1]);
+  e = await run({ n: 2, ask: 2 }); e.g.goto('win'); e.g.current.press.call(e.g, 'action'); await sleep(30); ok(!e.log.includes('requestReview') && e.log.includes('fullscreen'), 'gap 2: 3-я сессия после вопроса во 2-й — нет');
+  e = await run({ n: 3, ask: 2 }); ok(JSON.parse(e.w.store['arcade.review.tst']).n === 4, 'счётчик сессий'); e.g.goto('win'); e.g.current.press.call(e.g, 'action'); await sleep(30); ok(e.log.includes('requestReview'), '4-я сессия — снова можно');
+  e = await run({ n: 9, ask: 2, done: 1 }); e.g.goto('win'); e.g.current.press.call(e.g, 'action'); await sleep(30); ok(!e.log.includes('requestReview'), 'оценка отправлена — больше не спрашиваем');
+  e = await run({ n: 5 }); e.g.goto('win'); e.g.current.press.call(e.g, 'action'); await sleep(30); e.w.log.length = 0; e.g.goto('win'); e.g.current.press.call(e.g, 'action'); await sleep(30); ok(!e.log.includes('requestReview'), 'раз за сессию');
+});
+test('v2.8 «облако слито»: g.onCloud(fn) — после init площадки с изменёнными ключами (и рекорд из облака); поздняя подписка — сразу; новый g.persist — снова; без площадки — один вызов с []', async () => {
+  const e = engineEnv({ platform: 'yandex', mock: { cloud: { 'ls.arcade.x.w': '9', 'ls.arcade.x.d': 'deck2', 'best.tst': 500 } }, store: { 'arcade.x.w': '4', 'arcade.x.d': 'deck2' } }), g = e.g;
+  g.persist('arcade.x.w', 'max'); g.persist('arcade.x.d', 'last'); const calls = []; g.onCloud((k) => calls.push(k.slice()));
+  eq(calls, [], 'до init не зовётся'); await e.win.Platform.init(); await sleep(5);
+  eq(calls, [['arcade.best.tst', 'arcade.x.w']]); eq(e.w.store['arcade.x.w'], '9'); eq(await g.cloudReady, ['arcade.best.tst', 'arcade.x.w']);
+  const late = []; g.onCloud((k) => late.push(k)); await sleep(0); eq(late, [[]], 'поздняя подписка');
+  e.win.Platform.save('ls.arcade.x.z', '3'); g.persist('arcade.x.z', 'max'); eq(calls[1], ['arcade.x.z'], 'новый ключ после init');
+  const n = engineEnv(), nc = []; n.g.onCloud((k) => nc.push(k)); await sleep(0); eq(nc, [[]]); eq(await n.g.cloudReady, []);
+});
 for (const [name, fn] of queue) { try { await fn(); passed++; console.log('ok   ' + name); } catch (e) { failed++; console.log('FAIL ' + name + ' — ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' | ') : e)); } }
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

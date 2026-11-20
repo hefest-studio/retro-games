@@ -13,8 +13,7 @@
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', ink: '#ffffff', muted: '#ccaa77', accent: '#ffff55' })
   };
   var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.H, gameId: 'otboynik', strings: OB.STR, theme: 'modern', lives: 1, themes: themes });
-  OB.g = g;
-  ArcadeLangX.install(g, OB.STR_X);   // TR / ES / PT поверх RU/EN движка (js/lang-x.js)
+  OB.g = g;   // языки RU/EN/TR/ES/PT — таблицы js/i18n.js (движок v2.8 берёт языки из ключей strings)
   function pal() { return g.themeName === 'retro' ? R.PR : R.PM; }
   g.useStandardScreens({ lives: 1 });
   g.menu.setHint(function () { return [g.t('hint1'), { text: g.t('hint2'), dim: true }]; }, 'title');
@@ -27,6 +26,15 @@
   // ---------- мета-прогрессия: открытые карты и стартовая колода ----------
   function deckId() { return MT.runOpts(Arcade.Store.get(DECK_KEY, 'bench'), bestWave(), wins()).deck; }
   function setDeck(id) { g.storeSet(DECK_KEY, id); }
+  // ---------- площадка (движок v2.8): таблица лидеров «дальность», «Без рекламы», свои игры, ярлык, оценка ----------
+  // Таблица otboynikWave — дальность (номер волны, 11 — победа над Копром); в консоли площадки: Яндекс — лидерборд с этим техническим
+  // именем, GamePush — числовое поле игрока. Без площадки пункта нет, отправка — тихо false.
+  var LB_WAVE = 'otboynikWave';
+  function lbWave() { var w = bestWave(); if (w > 0) g.leaderboard.submit(w, { board: LB_WAVE }); }
+  g.useLeaderboard({ boards: [{ id: LB_WAVE, label: function () { return g.t('reach'); } }], after: 'deck' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' }); g.useOwnGames(); g.useShortcut();
+  g.useReview({ minSessions: 3, gap: 3, success: function (sc) { return sc === 'win' || unlocked.length > 0 || this._newBest; } });   // победа, открытие или рекорд
+  g.onCloud(function (keys) { if (keys.indexOf(WAVE_KEY) >= 0) lbWave(); });   // облако слито: дальность с другого устройства — в таблицу
   function fit(ctx, s, maxW, size, weight, P) { while (size > 9) { ctx.font = R.font(P, size, weight); if (ctx.measureText(s).width <= maxW) break; size--; } return size; }   // длинные строки TR/ES/PT
   var unlocked = [];   // открытое в последнем забеге — для экранов финала
   function unlockName(u) { return u.kind === 'card' ? g.t('c_' + u.id) : g.t('deck') + ' «' + g.t('dk_' + u.id) + '»'; }
@@ -62,7 +70,7 @@
   }
   function finish() {
     sync(); var S = game.state(), w = Math.min(S.waveReached, L.WAVES + 1), b0 = bestWave(), w0 = wins();
-    if (w > b0) g.storeSet(WAVE_KEY, w);
+    if (w > b0) { g.storeSet(WAVE_KEY, w); lbWave(); }
     if (S.phase === 'won') g.storeSet(WIN_KEY, w0 + 1);
     unlocked = MT.gained(b0, w0, bestWave(), wins());
   }
@@ -150,11 +158,12 @@
     var P = pal(), th = this.th(), W = this.W;
     R.draw(this, ctx, demo.state(), P, { bare: true });
     ctx.fillStyle = P.retro ? 'rgba(0,0,0,.45)' : 'rgba(24,14,6,.45)'; ctx.fillRect(0, 0, W, this.H);
-    var pw = 400, ph = 380, px = (W - pw) / 2, py = 140;
+    var n = menu.items.length, lh = n > 5 ? 26 : 30, extra = Math.max(0, (n - 1) * lh - 120);   // много пунктов (площадка) — панель выше
+    var pw = 400, ph = 380 + extra, px = (W - pw) / 2, py = Math.max(60, 140 - extra / 2);
     R.panel(ctx, px, py, pw, ph, P, P.accent2);
-    R.txt(ctx, this.t('title'), W / 2, py + 66, { size: this.i18n.lang === 'en' ? 40 : 50, align: 'center', color: P.accent2, weight: 900 }, P);
+    R.txt(ctx, this.t('title'), W / 2, py + 66, { size: fit(ctx, this.t('title'), pw - 24, this.i18n.lang === 'ru' ? 50 : 40, 900, P), align: 'center', color: P.accent2, weight: 900 }, P);
     R.txt(ctx, this.t('subtitle'), W / 2, py + 92, { size: fit(ctx, this.t('subtitle'), pw - 24, 12, 600, P), align: 'center', color: th.muted, weight: 600, shadow: false }, P);
-    menu.draw(this, W / 2, py + 132, 30);
+    menu.draw(this, W / 2, py + 132, lh);
     var pl = MT.pool(bestWave());
     var dd = deckDesc(deckId()), nt = g.t('cards') + ': ' + pl.length + '/' + MT.CARDS.length + ' · ' + nextText();
     R.txt(ctx, dd, W / 2, py + ph - 62, { size: fit(ctx, dd, pw - 24, 12, 700, P), align: 'center', color: P.accent2, weight: 700, shadow: false }, P);

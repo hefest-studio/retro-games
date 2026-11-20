@@ -36,14 +36,19 @@
   function campTag() { return ED.campTag(P.EDITION, (P.MISSIONS || []).length); }
   // новая вкладка (окно с 'noopener' всегда возвращает null — тогда не понять, открылась ли вкладка); не открылась — переход в этой же
   function openMore() { var url = ED.MORE_URL, w = null; try { w = global.open(url, '_blank'); } catch (e) {} if (w) { try { w.opener = null; } catch (e) {} } else location.href = url; }
-  g.menu.addItem({ key: 'campaign', after: 'race', label: function () { var t = campTag(); return g.t('campaign') + (t ? ' · ' + g.t(t) : ''); },
-    onSelect: function () { g.goto('edition'); } });
+  // издание «для площадок» (arcade-full/platform): кампании открываются покупкой внутри площадки (ED.buy); нечего открывать — пункта нет
+  if (ED.attach) ED.attach(g);
+  function buyLabel() { var pr = ED.price ? ED.price() : ''; return g.t('more') + (pr ? ' · ' + pr : ''); }
+  function moreGo() { if (!(ED.canBuy && ED.canBuy())) { openMore(); return; } ED.buy(g).then(function (ok) { g.audio.beep(ok ? 1000 : 200, ok ? 0.15 : 0.06, 'triangle'); if (ok) g.goto('title'); }); }
+  if (!(ED.campaignHidden && ED.campaignHidden((P.MISSIONS || []).length)))
+    g.menu.addItem({ key: 'campaign', after: 'race', label: function () { var t = campTag(); return g.t('campaign') + (t ? ' · ' + g.t(t) : ''); },
+      onSelect: function () { g.goto('edition'); } });
   var edMenu = new Arcade.Menu([]), edFin = null;
   g.scene('edition', {
     realtime: true,
     enter: function () {
       edFin = ED.finale(P.EDITION);
-      edMenu.items = edFin.items.map(function (k) { return { key: k, label: function () { return g.t(k); }, onSelect: k === 'more' ? openMore : function () { g.goto('title'); } }; });
+      edMenu.items = edFin.items.map(function (k) { return { key: k, label: function () { return k === 'more' && ED.canBuy && ED.canBuy() ? buyLabel() : g.t(k); }, onSelect: k === 'more' ? moreGo : function () { g.goto('title'); } }; });
       edMenu.sel = 0; g.audio.beep(520, 0.05);
     },
     update: function () {},

@@ -17,7 +17,7 @@ const ROOT = path.resolve(HERE, '..');
 const sandbox = { console, Math };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-for (const f of ['js/game.js', 'js/i18n.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
+for (const f of ['js/game.js', 'js/i18n.js', 'js/meta.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const T = sandbox.TARAN, L = T.logic, C = T.champ;
 const { playRace, playChamp, mulberry32 } = await import('./bot.mjs');
 
@@ -368,7 +368,7 @@ test('страница: фавикон студии, «← Каталог», can
   ok(/class="back"[^>]*href="\.\.\/"/.test(html), 'ссылка в каталог');
   ok(/<canvas id="c" width="640" height="480"/.test(html), 'canvas');
   const order = [...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]);
-  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/modern.js', 'js/classic.js', 'js/render.js', 'js/ui.js', 'js/main.js']);
+  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/modern.js', 'js/classic.js', 'js/render.js', 'js/ui.js', 'js/meta.js', 'js/main.js']);
   ['U', 'D', 'L', 'R'].forEach(d => ok(html.includes('data-d="' + d + '"'), 'крестовина ' + d));
   ['fire', 'rocket', 'drop', 'nitro'].forEach(a => ok(html.includes('data-act="' + a + '"'), 'кнопка ' + a));
   ok(/data-pause/.test(html), 'пауза');
@@ -398,6 +398,22 @@ test('производительность: шаг логики с 6 машин�
 });
 
 // ---------- Баланс: «человеческий» бот ----------
+test('трасса дня: одна трасса на сутки (UTC+3), соседние дни разные; рекорд дня кодируется числом — max = свежий день и меньшее время', () => {
+  const D = sandbox.TARAN.dailyMeta, n = L.TRACKS.length;
+  eq(D.day(Date.UTC(2026, 10, 20, 20, 59)), D.day(Date.UTC(2026, 10, 20, 0, 0)), 'одни сутки по UTC+3');
+  ok(D.day(Date.UTC(2026, 10, 20, 21, 1)) === D.day(Date.UTC(2026, 10, 20, 20, 59)) + 1, 'полночь по Москве — новые сутки');
+  const tr = []; for (let d = 20000; d < 20030; d++) { const t = D.track(d, n); ok(t >= 0 && t < n); tr.push(t); }
+  ok(new Set(tr).size >= 8, 'трассы разнообразны: ' + new Set(tr).size); ok(tr.some((t, i) => i && t !== tr[i - 1]), 'меняются по дням');
+  const a = D.encode(20000, 31.25), b = D.encode(20000, 29.5), c = D.encode(20001, 45);
+  ok(b > a, 'лучше время — больше число'); ok(c > b, 'свежий день важнее'); eq(D.decode(b, 20000), 29.5); eq(D.decode(b, 20001), 0, 'вчерашний рекорд сегодня не считается');
+  const main = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
+  ok(/g\.persist\(DAILY_KEY, 'max'\)/.test(main) && /'arcade\.taran\.champ1', 'arcade\.taran\.champ2', 'arcade\.taran\.laps', 'arcade\.taran\.opts'\]\.forEach\(function \(k\) \{ g\.persist\(k, 'last'\)/.test(main), 'облако: рекорд дня, чемпионат, рекорды, настройки');
+  ok(/useRewardedContinue/.test(main) && /useRewardedBonus/.test(main) && /g\.adBreak\(\)/.test(main), 'реклама за награду и межстраничная между заездами');
+});
+test('i18n: RU/EN/TR/ES/PT — одинаковые ключи, EN-название STEAMRAM в нерусских', () => {
+  const ru = Object.keys(T.STR.ru).sort().join(',');
+  for (const l of ['en', 'tr', 'es', 'pt']) { eq(Object.keys(T.STR[l]).sort().join(','), ru, l); eq(T.STR[l].title, 'STEAMRAM', l); }
+});
 if (process.env.QUICK){ console.log(`\n${passed} прошло, ${failed} упало (без ботов)`); process.exit(failed ? 1 : 0); }
 const N1 = 20, R1 = []; for (let s = 1; s <= N1; s++) R1.push(playRace(T, s, { track: 0 }));
 const RA = []; for (let s = 1; s <= 8; s++) RA.push(playRace(T, 50 + s, { track: 0, control: 'arcade' }));

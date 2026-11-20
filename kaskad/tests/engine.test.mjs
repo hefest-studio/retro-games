@@ -12,11 +12,10 @@ sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/game.js'), 'utf8'), sandbox, { filename: 'game.js' });
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/daily.js'), 'utf8'), sandbox, { filename: 'daily.js' });
-vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/i18n-x.js'), 'utf8'), sandbox, { filename: 'i18n-x.js' });
 const TT = sandbox.TT;
 const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const STR = vm.runInNewContext('(' + /const STR = (\{[\s\S]*?\n\});/.exec(HTML)[1] + ')');
-const { checkLangX } = await import('./lang-x.check.mjs');
+const { checkLangs } = await import('./langs.check.mjs');
 
 let passed = 0, failed = 0;
 function test(name, fn){ try { fn(); passed++; console.log('ok   '+name); } catch(e){ failed++; console.log('FAIL '+name+' — '+e.message); } }
@@ -127,13 +126,16 @@ test('испытание дня: серия дней подряд (+1 за сл�
   eq(TT.daily.Daily(st,20261202).streak(),2,'сегодня ещё не играл — серия вчерашняя');
   eq(TT.daily.Daily(st,20261204).streak(),0,'пропуск'); eq(TT.daily.Daily(st,20261204).submit(1).streak,1);
 });
-test('страница: daily.js, lang-x.js, i18n-x.js подключены после game.js; пункт «Испытание дня», g.persist, серверное время, лидерборд — через проверку наличия', () => {
-  const src=[...HTML.matchAll(/<script src="\.\/([^"]+)"/g)].map(m=>m[1]); eq(src.join(','),'engine.js,js/music.js,js/game.js,js/daily.js,js/lang-x.js,js/i18n-x.js');
+test('страница: daily.js после game.js (lang-x/i18n-x — нет); «Испытание дня», g.persist, серверное время; площадка v2.8 — лидеры kaskad/kaskadDaily, без рекламы, свои игры, ярлык, оценка, облако, P на паузе', () => {
+  const src=[...HTML.matchAll(/<script src="\.\/([^"]+)"/g)].map(m=>m[1]); eq(src.join(','),'engine.js,js/music.js,js/game.js,js/daily.js');
   ok(/key:'daily'/.test(HTML) && /g\.persist\(TT\.daily\.KEY_BEST,'max'\)/.test(HTML), 'испытание/облако');
-  ok(/typeof P\.serverTime==='function'/.test(HTML) && /typeof P\.submit!=='function'/.test(HTML), 'проверка наличия API');
+  ok(/typeof P\.serverTime==='function'/.test(HTML) && !/ArcadeLangX/.test(HTML), 'серверное время, без lang-x');
+  ok(/g\.useLeaderboard\(\{[^\n]*id:'kaskad'[^\n]*id:'kaskadDaily'/.test(HTML) && /g\.leaderboard\.submit\(score\|0,\{ board \}\)/.test(HTML), 'лидеры');
+  ok(/g\.useNoAds\(\{ scene:\['title','pause'\], after:'end' \}\)/.test(HTML) && /g\.useOwnGames\(\)/.test(HTML) && /g\.useShortcut\(\)/.test(HTML) && /g\.useReview\(/.test(HTML) && /g\.onCloud\(/.test(HTML), 'площадка');
+  ok(/g\.scenes\.pause\.press=function\(a\)\{ if\(a==='pause'\) this\.goto\('play',\{resume:true\}\)/.test(HTML), 'P на паузе — в игру');
   ok(/data-tr=/.test(HTML) && /data-es=/.test(HTML) && /data-pt=/.test(HTML), 'подписи страницы TR/ES/PT');
 });
-await checkLangX({ ROOT, test, ok, eq, STR, STRX: TT.STR_X, title: 'CASCADE' });
+await checkLangs({ ROOT, test, ok, eq, STR, title: 'CASCADE' });
 
 console.log((failed? 'FAIL ':'OK ')+passed+'/'+(passed+failed));
 process.exit(failed?1:0);

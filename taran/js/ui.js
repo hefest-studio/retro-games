@@ -9,9 +9,11 @@
   // ---------- DOM ----------
   function fit(g) {
     var c = g.canvas, pad = document.querySelector('.pad');
-    var padH = pad && getComputedStyle(pad).display !== 'none' ? pad.offsetHeight + 16 : 0;
-    var availW = Math.min(innerWidth - 16, 960), availH = innerHeight - padH - 70;
-    var w = Math.max(280, Math.floor(Math.min(availW, availH * g.W / g.H)));
+    var padFixed = pad && getComputedStyle(pad).position === 'fixed';
+    var padH = pad && !padFixed && getComputedStyle(pad).display !== 'none' ? pad.offsetHeight + 16 : 0;
+    var availW = Math.min(innerWidth - 16, 960), availH = innerHeight - padH - (padFixed ? 40 : 70);
+    if (padFixed) availW = Math.min(availW, innerWidth - 2 * 170);   // телефон лёжа: крестовина и кнопки по бокам не закрывают трассу
+    var w = Math.max(200, Math.floor(Math.min(availW, availH * g.W / g.H)));
     c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
   }
   var lastLang = null, lastTheme = null;
@@ -149,6 +151,7 @@
         y += 10;
       });
       txt(g, up(P, g.t('lapRec')) + ': ' + fmtT(R.record) + (R.newRec ? '  ★ ' + g.t('newBest') : ''), W / 2, py + ph - 52, { size: 15, align: 'center', color: R.newRec ? P.good : P.ink, weight: 800 }, P);
+      if (R.daily) txt(g, up(P, g.t('dailyRec')) + ': ' + (R.daily.best ? fmtT(R.daily.best) : '—') + (R.daily.newBest ? '  ★ ' + g.t('newBest') : ''), W / 2, py + ph - 74, { size: 14, align: 'center', color: R.daily.newBest ? P.good : P.accent, weight: 800 }, P);
     } else {
       var A = R.sum;
       txt(g, up(P, g.t('results')) + ' · ' + up(P, g.t('tr_' + S.track.id)), W / 2, py + 30, { size: 19, align: 'center', color: P.accent, weight: 900 }, P);

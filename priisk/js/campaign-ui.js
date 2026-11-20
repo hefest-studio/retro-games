@@ -27,7 +27,7 @@
   var NODES_S = [[566, 118], [492, 176], [418, 128], [350, 196], [282, 252], [370, 300], [470, 330], [380, 420], [252, 396]];
   var camp = 'copper'; // какая кампания открыта на карте: 'copper' | 'sizye'
   function nodes() { return camp === 'sizye' ? NODES_S : NODES; }
-  function setCamp(k) { k = k === 'sizye' ? 'sizye' : 'copper'; if (k === camp) return; camp = k; UI.camp = k; UI.data = C.load(store, k); sel = 0; }
+  function setCamp(k) { k = k === 'sizye' ? 'sizye' : 'copper'; if (k === camp || (E.hidden && !missionList(k).length)) return; camp = k; UI.camp = k; UI.data = C.load(store, k); sel = 0; }
   var WHO = { varvara: { col: 0, letter: { ru: 'В', en: 'V' } }, lunya: { col: 0, letter: { ru: 'Л', en: 'L' } }, sava: { col: 0, letter: { ru: 'С', en: 'S' } },
     korney: { col: 1, letter: { ru: 'К', en: 'K' } }, foe: { col: 1, letter: { ru: 'С', en: 'G' } }, zavod: { col: 3, letter: { ru: 'З', en: 'M' } },
     agafya: { col: 1, letter: { ru: 'А', en: 'A' } }, mityay: { col: 1, letter: { ru: 'М', en: 'M' } }, foeC: { col: 0, letter: { ru: 'М', en: 'C' } }, post: { col: 2, letter: { ru: 'П', en: 'P' } } };
@@ -100,10 +100,22 @@
   function hitAt(p) { for (var i = hot.length - 1; i >= 0; i--) { var b = hot[i]; if (p.x >= b.x && p.x < b.x + b.w && p.y >= b.y && p.y < b.y + b.h) return i; } return -1; }
 
   // ---------- карта кампании ----------
-  function missionList() {
-    var out = C.list(camp).filter(function (m) { return E.playable(P.EDITION, m.id); }).map(function (m) { return { n: m.n, id: m.id, def: m, title: m.title }; });
-    (camp === 'sizye' ? LATER_S : LATER).forEach(function (l) { if (!out.some(function (m) { return m.n === l.n; })) out.push({ n: l.n, id: null, def: null, title: { ru: l.ru, en: l.en } }); });
+  function missionList(k) {
+    k = k || camp;
+    var out = C.list(k).filter(function (m) { return E.playable(P.EDITION, m.id); }).map(function (m) { return { n: m.n, id: m.id, def: m, title: m.title }; });
+    (k === 'sizye' ? LATER_S : LATER).forEach(function (l) {
+      if (out.some(function (m) { return m.n === l.n; })) return;
+      // издание «для площадок» (arcade-full/platform): узлы без файла и закрытые без возможности покупки не показываются (E.hidden)
+      if (E.hidden && E.hidden(k, l.n, C.list(k).some(function (m) { return m.n === l.n; }))) return;
+      out.push({ n: l.n, id: null, def: null, title: { ru: l.ru, en: l.en } });
+    });
     return out.sort(function (a, b) { return a.n - b.n; });
+  }
+  // закрытое в издании открывается покупкой внутри площадки (E.canBuy/E.buy — издание «для площадок»), иначе — ссылка «Узнать больше»
+  function offerLabel() { if (E.canBuy && E.canBuy()) { var pr = E.price ? E.price() : ''; return g.t('more') + (pr ? ' · ' + pr : ''); } return g.t('more') + ' ↗'; }
+  function offerGo() {
+    if (!(E.canBuy && E.canBuy())) { openMore(); return; }
+    E.buy(g).then(function (ok) { g.audio.beep(ok ? 1000 : 200, ok ? 0.15 : 0.06, 'triangle'); if (ok) g.goto('camp'); });
   }
   function nodeState(m) { var d = data(); if (!m.def) return 'later'; if (d.missions[m.id]) return 'done'; return m.n <= d.unlocked ? 'open' : 'closed'; }
   function drawPlateau(c, pl) {
@@ -138,6 +150,7 @@
     text(c, g.t(sz ? 'campSubS' : 'campSub'), 30, 62, { size: 13, weight: 600, color: pl.muted });
     // вкладки кампаний: Медный Ключ / Сизый Перевал
     [['copper', 'campTabC', 0], ['sizye', 'campTabS', 1]].forEach(function (tb, k) {
+      if (E.hidden && camp !== tb[0] && !missionList(tb[0]).length) return; // издание «для площадок»: пустая кампания — без вкладки
       var bx = 330 + k * 166, bw = 160, on = camp === tb[0], hi = hot.length;
       hot.push({ x: bx, y: 28, w: bw, h: 30, fn: function () { setCamp(tb[0]); }, tab: tb[0] });
       c.fillStyle = on ? pl.ownDk[tb[2]] : hover === hi ? pl.line : 'rgba(255,255,255,0.04)'; c.fillRect(bx, 28, bw, 30);
@@ -149,7 +162,7 @@
     drawPlateau(c, pl);
     if (sz) drawPass(c, pl);
     // дорога между узлами
-    c.strokeStyle = sz ? pl.ownDk[1] : pl.wall; c.lineWidth = 3; c.setLineDash([7, 6]); c.beginPath(); NS.forEach(function (p, i) { if (i) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]); }); c.stroke(); c.setLineDash([]);
+    c.strokeStyle = sz ? pl.ownDk[1] : pl.wall; c.lineWidth = 3; c.setLineDash([7, 6]); c.beginPath(); NS.slice(0, ms.length).forEach(function (p, i) { if (i) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]); }); c.stroke(); c.setLineDash([]);
     var oc = sz ? 1 : 0;
     ms.forEach(function (m, i) {
       var p = NS[i] || [0, 0], st = nodeState(m), on = i === sel, r = 17;
@@ -182,7 +195,7 @@
     } else if (E.stub(P.EDITION) === 'full') {
       lock(c, cx + 24, y - 5, pl, 1.3); text(c, g.t('lockedFull'), cx + 40, y, { size: 14, color: pl.warn }); y += 24;
       wrap(c, g.t(lockText()), cw - 32, 12).forEach(function (ln) { text(c, ln, cx + 16, y, { size: 12, weight: 600, color: pl.muted }); y += 18; });
-      button(c, cx + 16, cy + 352, cw - 32, 40, g.t('more') + ' ↗', openMore);
+      button(c, cx + 16, cy + 352, cw - 32, 40, offerLabel(), offerGo);
     } else {
       text(c, g.t(sz ? 'workS' : 'locked'), cx + 16, y, { size: 13, color: pl.warn }); y += 22;
       wrap(c, g.t(sz ? 'workSubS' : 'lockedSub'), cw - 32, 12).forEach(function (ln) { text(c, ln, cx + 16, y, { size: 12, weight: 600, color: pl.muted }); y += 18; });
@@ -198,7 +211,7 @@
     c.restore();
   }
   // новая вкладка (окно с 'noopener' всегда возвращает null — тогда не понять, открылась ли вкладка); не открылась — переход в этой же
-  function openMore() { var url = E.MORE_URL, w = null; try { w = global.open(url, '_blank'); } catch (e) {} if (w) { try { w.opener = null; } catch (e) {} } else location.href = url; }
+  function openMore() { var url = E.MORE_URL, w = null; if (!url) return; /* издание «для площадок» — без ссылок наружу */ try { w = global.open(url, '_blank'); } catch (e) {} if (w) { try { w.opener = null; } catch (e) {} } else location.href = url; }
   function openBrief(m) { if (!m.def || nodeState(m) === 'closed') { g.audio.beep(180, 0.06, 'square'); return; } briefId = m.id; g.goto('brief'); }
 
   // ---------- брифинг ----------
@@ -270,7 +283,7 @@
     var more = missionList().some(function (m) { return m.n > def.n && !m.def; }), after = E.afterWin(P.EDITION, !!next, more);
     var retry = function () { host.startMission(r.id); }, toMap = function () { g.goto('camp'); };
     if (r.win && def.finale) { button(c, g.W / 2 - 250, 456, 240, 44, g.t('next') + ' ▸', function () { finaleId = def.id; g.goto('finale'); }, { primary: true, size: 16 }); button(c, g.W / 2 + 10, 456, 240, 44, g.t('toMap'), toMap); }
-    else if (r.win && after === 'demo') { button(c, g.W / 2 - 250, 456, 240, 44, g.t('next') + ' ▸', function () { g.goto('edition'); }, { primary: true, size: 16 }); button(c, g.W / 2 + 10, 456, 240, 44, g.t('toMap'), toMap); }
+    else if (r.win && after !== 'next' && after !== 'map') { /* экран издания (E.afterWin: демо — «в полной версии», площадки — «после покупки») */ button(c, g.W / 2 - 250, 456, 240, 44, g.t('next') + ' ▸', function () { g.goto('edition'); }, { primary: true, size: 16 }); button(c, g.W / 2 + 10, 456, 240, 44, g.t('toMap'), toMap); }
     else if (r.win && next) { button(c, g.W / 2 - 250, 456, 240, 44, g.t('next') + ' ▸', function () { briefId = next.id; g.goto('brief'); }, { primary: true, size: 16 }); button(c, g.W / 2 + 10, 456, 240, 44, g.t('toMap'), toMap); }
     else if (r.win) { button(c, g.W / 2 - 250, 456, 240, 44, g.t('toMap') + ' ▸', toMap, { primary: true, size: 16 }); button(c, g.W / 2 + 10, 456, 240, 44, '↻ ' + g.t('retry'), retry); }
     else { button(c, g.W / 2 - 250, 456, 240, 44, '↻ ' + g.t('retry'), retry, { primary: true, size: 16 }); button(c, g.W / 2 + 10, 456, 240, 44, g.t('toMap'), toMap); }
@@ -282,14 +295,14 @@
     drawPlateau(c, pl); c.fillStyle = 'rgba(0,0,0,0.62)'; c.fillRect(0, 0, g.W, g.H);
     var pw = 620, x0 = cx - pw / 2, y0 = 110, ph = 320;
     c.fillStyle = pl.panel; c.fillRect(x0, y0, pw, ph); c.strokeStyle = pl.line; c.lineWidth = 1.5; c.strokeRect(x0 + 0.5, y0 + 0.5, pw - 1, ph - 1);
-    icon(c, fin.kind === 'demo' ? 'convoy' : 'flag', cx - 24, y0 + 24, 48, pl);
+    icon(c, fin.items.length > 1 ? 'convoy' : 'flag', cx - 24, y0 + 24, 48, pl);   // экран с кнопкой «дальше» (демо/покупка) — обоз, итог — флаг
     var y = y0 + 112;
     wrap(c, g.t(fin.title), pw - 60, 26, 900).forEach(function (ln) { text(c, ln, cx, y, { size: 26, weight: 900, align: 'center', color: g.th().accent }); y += 32; });
     y += 4; wrap(c, g.t(fin.sub), pw - 90, 15, 600).forEach(function (ln) { text(c, ln, cx, y, { size: 15, weight: 600, align: 'center' }); y += 22; });
     var n = fin.items.length, bw = 240, gap = 20, bx = cx - (n * bw + (n - 1) * gap) / 2;
     fin.items.forEach(function (k, i) {
-      var fn = k === 'more' ? openMore : function () { g.goto('camp'); };
-      button(c, bx + i * (bw + gap), y0 + ph - 70, bw, 44, k === 'more' ? g.t('more') + ' ↗' : '← ' + g.t('toMap'), fn, { primary: i === 0, size: 15, focus: sel2 === i });
+      var fn = k === 'more' ? offerGo : function () { g.goto('camp'); };
+      button(c, bx + i * (bw + gap), y0 + ph - 70, bw, 44, k === 'more' ? offerLabel() : '← ' + g.t('toMap'), fn, { primary: i === 0, size: 15, focus: sel2 === i });
     });
   }
   var sel2 = 0, finaleId = null;
@@ -604,6 +617,7 @@
   UI.openFinale = function (id) { finaleId = id; g.goto('finale'); };
   UI.install = function (game, h) {
     g = game; host = h;
+    if (E.attach) E.attach(g);   // издание «для площадок»: товар full_game (проверка покупок при запуске — движок v2.7)
     try { store = global.localStorage; } catch (e) { store = null; }
     UI.store = store; C.store = store; UI.camp = camp; UI.data = C.load(store, camp);
     // скирмиш: сторона игрока (Медный Ключ — классика; Сизый Перевал — ветряки и канатка, против ИИ Медного Ключа). ?side=sizye|copper

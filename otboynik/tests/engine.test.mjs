@@ -15,10 +15,10 @@ const ROOT = path.resolve(HERE, '..');
 const sandbox = { console, Math };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-for (const f of ['js/game.js', 'js/i18n.js', 'js/meta.js', 'js/i18n-x.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
+for (const f of ['js/game.js', 'js/i18n.js', 'js/meta.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const G = sandbox.OTBOYNIK, L = G.logic;
 const { playOtboynik, mulberry32 } = await import('./bot.mjs');
-const { checkLangX } = await import('./lang-x.check.mjs');
+const { checkLangs } = await import('./langs.check.mjs');
 
 let passed = 0, failed = 0;
 function test(name, fn){ try { fn(); passed++; console.log('ok   ' + name); } catch (e) { failed++; console.log('FAIL ' + name + ' — ' + e.message); } }
@@ -262,7 +262,7 @@ test('страница: фавикон студии, «← Каталог» (RU/
   ok(html.includes(fs.readFileSync(path.join(ROOT, '..', 'roy', 'index.html'), 'utf8').match(/<link rel="icon"[^>]+>/)[0]), 'фавикон не как у студии');
   ok(/<a class="back"[^>]*href="\.\.\/"[^>]*data-catalog-back="1"[^>]*data-en="← Catalog"/.test(html), 'ссылка в каталог');
   ok(/<canvas id="c" width="480" height="760"/.test(html), 'canvas');
-  eq([...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]), ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/meta.js', 'js/lang-x.js', 'js/i18n-x.js', 'js/audio.js', 'js/render.js', 'js/main.js']);
+  eq([...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]), ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/meta.js', 'js/audio.js', 'js/render.js', 'js/main.js']);
   ok(/id="bTilt"/.test(html) && /id="bPause"/.test(html), 'тач-кнопки');
   eq(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js не копия _shared');
   ok(!/(src|href)="https?:\/\/(?!arcade\.hefest\.ru)/.test(html), 'внешние ссылки');
@@ -319,7 +319,13 @@ test('мета: прогресс сохраняется и восстанавл�
   const main = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
   ok(/g\.persist\(WIN_KEY, 'max'\)/.test(main) && /g\.persist\(DECK_KEY, 'last'\)/.test(main) && /g\.persist\(WAVE_KEY, 'max'\)/.test(main), 'облако');
 });
-await checkLangX({ ROOT, test, ok, eq, STR: G.STR, STRX: G.STR_X, title: 'BUMPERWRIGHT' });
+test('площадка (движок v2.8): таблица дальности otboynikWave, «Без рекламы» в меню и паузе, свои игры, ярлык, оценка, событие облака', () => {
+  const main = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
+  ok(/g\.useLeaderboard\(\{ boards: \[\{ id: LB_WAVE/.test(main) && /LB_WAVE = 'otboynikWave'/.test(main) && /g\.leaderboard\.submit\(w, \{ board: LB_WAVE \}\)/.test(main), 'лидеры');
+  ok(/g\.useNoAds\(\{ scene: \['title', 'pause'\], after: 'end' \}\)/.test(main) && /g\.useOwnGames\(\)/.test(main) && /g\.useShortcut\(\)/.test(main) && /g\.useReview\(/.test(main) && /g\.onCloud\(/.test(main), 'площадка');
+  ok(!/ArcadeLangX/.test(main), 'lang-x не используется');
+});
+await checkLangs({ ROOT, test, ok, eq, STR: G.STR, title: 'BUMPERWRIGHT' });
 if (process.env.QUICK){ console.log(`\n${passed} прошло, ${failed} упало (без бота)`); process.exit(failed ? 1 : 0); }
 const N = 20, RUNS = []; for (let s = 1; s <= N; s++) RUNS.push(playOtboynik(G, s));
 test('бот (реакция 150–250 мс, зевает 12%) проходит не меньше 3 волн в ≥ 85% из ' + N + ' партий; Копра побеждает иногда (1…60%); без зависаний', () => {

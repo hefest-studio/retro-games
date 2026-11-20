@@ -1,4 +1,4 @@
-# Игровые площадки — `_shared/platform.js` (v1.2) + `tools/platform-build.mjs` + `tools/promo-build.mjs`
+# Игровые площадки — `_shared/platform.js` (v1.3) + `tools/platform-build.mjs` + `tools/promo-build.mjs`
 
 Один адаптер для всех игр аркады: игра пишется один раз, сборка под площадку собирается командой.
 Сейчас поддержаны **Яндекс Игры** (SDK v2), **GamePush** (агрегатор: VK, OK, Pikabu, CrazyGames, GameDistribution, Y8 и др.)
@@ -11,12 +11,12 @@ index.html (сборка под площадку)
   <meta name="arcade-platform" content="yandex">
   <script src="/sdk.js"></script>                         ← только Яндекс: SDK отдаёт площадка
   <script src="./js/platform.js?platform=yandex"></script> ← адаптер (копия _shared/platform.js)
-  <script src="./engine.js"></script>                      ← движок v2.7 сам находит window.Platform
+  <script src="./engine.js"></script>                      ← движок v2.8 сам находит window.Platform
 ```
-Движок (`_shared/engine.js` v2.7) при наличии `window.Platform`:
+Движок (`_shared/engine.js` v2.8) при наличии `window.Platform`:
 - **старт** — экран «Загрузка…», пока SDK инициализируется (не дольше `initTimeout` = 6 с), затем меню и `ready()` (Яндекс 1.19.2); язык площадки применён ДО меню (2.14);
 - **пауза и звук** — на время рекламы, окна покупки и события площадки «пауза» цикл стоит, `AudioContext` усыплён; после — продолжает;
-- **язык** — язык площадки (`ru`/`be`/`uk`/`kk`/`uz` → RU, остальные → EN), если в адресе нет `?lang=` (Яндекс, п. 2.14); `<title>` сборки — название на языке (из `promo/<slug>/promo.json`);
+- **язык** — язык площадки, если в адресе нет `?lang=` (Яндекс, п. 2.14): **v2.8 — любой язык из таблиц игры** (пилоты: RU/EN/TR/ES/PT), иначе `ru`/`be`/`uk`/`kk`/`uz` → RU, остальные → EN; `<title>` сборки — название на языке (из `promo/<slug>/promo.json`; TR/ES/PT — EN-название через `data-en`);
 - **рекорд** — `g.saveBest()` пишет и в облако (`Platform.save('best.<gameId>')`), при старте берётся максимум из локального и облачного;
 - **разметка геймплея** — сцена `play` → `gameplayStart()`, любая другая (меню, пауза, победа, поражение) → `gameplayStop()`; `g.start()` → `ready()`;
 - **реклама в паузах** — полноэкранная по **нажатию игрока** на экране `win`/`gameover` (неигровое действие, Яндекс 4.4) и `g.adBreak()` в паузах
@@ -27,7 +27,8 @@ index.html (сборка под площадку)
 - **автопауза** — скрытая вкладка в `play` → меню паузы (GamePush); **без контекстного меню/выделения** (Яндекс 1.6.1.8, 1.6.2.7);
 - **любая потеря фокуса (v2.7, Яндекс 1.3 с 18.08.2026)** — `blur` окна и `pagehide` → AudioContext спит, игра в `play` → пауза; `focus`/`pageshow` → звук снова разрешён (игра ждёт «Продолжить»). Без площадки — как раньше (только скрытая вкладка);
 - **v2.7: лидерборд, флаги, покупки, серверное время, оценка, ярлык, свои игры** — обёртки `g.leaderboard`, `g.flags`, `g.purchase()`/`g.useNoAds()`, `g.daily()`, `g.requestReview()`, `g.addShortcut()`, `g.ownGames()` (см. ниже и `_shared/README.md`, раздел v2.7);
-- **облако для своих ключей** — `g.persist(key, 'max'|'last')` + `g.storeSet(key, v)` (ОТБОЙНИК — дальность волн);
+- **облако для своих ключей** — `g.persist(key, 'max'|'last')` + `g.storeSet(key, v)` (ОТБОЙНИК — дальность волн); **v2.8:** событие «облако слито» `g.onCloud(fn(changedKeys))` / `g.cloudReady` — пилоты по нему досылают рекорды из облака в таблицы лидеров и сбрасывают кеши;
+- **v2.8: пункты меню площадки** — `g.useLeaderboard()` («Лидеры»: окно GamePush или своя сцена движка на Яндексе), `g.useNoAds({ scene: ['title','pause'] })`, `g.useOwnGames()` («Наши игры» только через SDK), `g.useShortcut()` (ярлык), `g.useReview()` (оценка после успеха, не чаще раза в N сессий) — все видны только на площадке и только если SDK это умеет;
 - **ссылки наружу** — при `Platform.allowExternalLinks === false` движок прячет все `<a href>` (кроме якорей `#…`), включая «← Каталог».
 
 ## API адаптера
@@ -45,13 +46,13 @@ index.html (сборка под площадку)
 | `Platform.pauseHook(onPause, onResume)` → `unsubscribe` | подписка на паузу площадки; `Platform.paused` |
 | `Platform.allowExternalLinks` | `false` на Яндексе; на GamePush — как разрешит площадка (`gp.platform.isExternalLinksAllowed`), до инициализации — `false` |
 | `Platform.hasAds` | есть ли реклама (web — нет: кнопки «за награду» не показывать) |
-| `Platform.leaderboard` (1.2) | `available`; `submit(score, { board, extra })` → `Promise<bool>` (Яндекс `leaderboards.setScore` — только вошедшему игроку, частые вызовы склеиваются до 1/с; GamePush — поле игрока `<board>` + `sync()`); `top({ limit ≤ 20, around, includeUser })` → `{ entries:[{ rank, score, name, me }], me }`; `me()` → `{ rank, score, name }` или `null`; `open()` — окно площадки (GamePush). Таблица по умолчанию `score` (Яндекс: «техническое имя» в Консоли; GamePush передаёт поле `score` в таблицу Яндекса `score`). Web — заглушка |
+| `Platform.leaderboard` (1.2; 1.3 — `canOpen`) | `available`; `canOpen` (1.3) — есть окно лидеров площадки (GamePush; у Яндекса нет — таблицу рисует движок); `submit(score, { board, extra })` → `Promise<bool>` (Яндекс `leaderboards.setScore` — только вошедшему игроку, частые вызовы склеиваются до 1/с; GamePush — поле игрока `<board>` + `sync()`); `top({ limit ≤ 20, around, includeUser })` → `{ entries:[{ rank, score, name, me }], me }`; `me()` → `{ rank, score, name }` или `null`; `open()` — окно площадки (GamePush). Таблица по умолчанию `score` (Яндекс: «техническое имя» в Консоли; GamePush передаёт поле `score` в таблицу Яндекса `score`). Web — заглушка |
 | `Platform.flags` (1.2) | `get(defaults)` → `Promise<{ ключ: строка }>` — Яндекс `getFlags({ defaultFlags })` (удалённое важнее), GamePush `variables.has/get` по ключам игры; `peek(key, def)`, `all()` |
 | `Platform.serverTime()` / `now()` (1.2) | Яндекс `serverTime()` (мс), GamePush `serverTime` (ISO → мс); web — `null` / `Date.now()` |
 | `Platform.review` (1.2) | `canRequest()`, `request()` → `Promise<bool>`: Яндекс `feedback.canReview()` → `{ value, reason }`, `requestReview()` → `{ feedbackSent }` (раз за сессию); GamePush `app.canRequestReview`, `app.requestReview()` → `{ success }`. На время окна — пауза |
 | `Platform.shortcut` (1.2) | `canAdd()`, `add()` → `Promise<bool>`: Яндекс `shortcut.canShowPrompt()` → `{ canShow }`, `showPrompt()` → `{ outcome:'accepted' }`; GamePush `app.canAddShortcut`, `app.addShortcut()` → bool |
 | `Platform.payments` (1.2) | `available`; `setup({ id: { consumable } })` → после init проверка необработанных (`getPurchases()` — обязательна при каждом запуске, 1.13.1): расходуемые → `onPurchase(id)` → `consumePurchase(token)`, постоянные → `owned(id)`; `catalog()` → `[{ id, title, description, price, priceValue, currency, image, currencyImage }]` (валюта из SDK, 1.13.2); `purchase(id, payload)` → `Promise<bool>` (окно покупки — пауза). Яндекс `ysdk.payments`; GamePush `payments.purchase/consume({ tag })` — id товара = тег в панели GamePush |
-| `Platform.games` (1.2) | `available`; `list()` → `{ games:[{ id, title, url, icon, cover }], developerURL }` (Яндекс `features.GamesAPI.getAllGames()`, GamePush `gamesCollections.fetch({ tag:'ALL' })`); `open(game)` — Яндекс: только адреса Яндекс Игр, новая вкладка (8.4.1); GamePush — окно коллекции |
+| `Platform.games` (1.2; 1.3 — `native`, без текущей игры) | `available`; `native` (1.3) — окно коллекции площадки (GamePush); `list()` (1.3: Яндекс — без текущей игры по `environment.app.id`) → `{ games:[{ id, title, url, icon, cover }], developerURL }` (Яндекс `features.GamesAPI.getAllGames()`, GamePush `gamesCollections.fetch({ tag:'ALL' })`); `open(game)` — Яндекс: только адреса Яндекс Игр, новая вкладка (8.4.1); GamePush — окно коллекции |
 | `Platform.sticky` (1.2) | `show()` / `hide()` — Яндекс `adv.showBannerAdv/hideBannerAdv` (работают при опции Консоли «Использовать API для показа стики-баннера»; иначе баннер ведёт площадка), GamePush `ads.showSticky/closeSticky`; `showing` |
 | `Platform.setInterstitialGap(sec)` (1.2) | интервал полноэкранной из флага; не меньше 30 с (Яндекс) / 180 с (GamePush) |
 
@@ -60,6 +61,16 @@ index.html (сборка под площадку)
 g.useRewardedContinue({ revive() { game.revive(); } });                       // gameover → «Ещё один шанс?» (раз за партию)
 g.useRewardedBonus({ key:'rwLife', scene:'pause', label:{ ru:'Реклама: +1 жизнь', en:'Watch ad: +1 life' },
   available() { return lives < MAX; }, grant() { lives++; } });              // пункт меню паузы (раз за партию)
+```
+
+### Движок 2.8 поверх адаптера 1.3 (пилоты)
+```js
+const g = Arcade.createGame({ …, strings: { ru, en, tr, es, pt }, leaderboard: 'kladka' });  // языки — ключи таблиц; рекорд → таблица kladka
+g.useLeaderboard({ boards: ['kaskad', { id: 'kaskadDaily', label: () => g.t('daily') }] });   // «Лидеры»: окно GamePush / сцена движка (Яндекс)
+g.leaderboard.submit(score, { board: 'kaskadDaily' });                     // именованная таблица
+g.useNoAds({ scene: ['title', 'pause'] });                                // «Без рекламы · 49 YAN» в меню и паузе; восстановление при запуске
+g.useOwnGames(); g.useShortcut(); g.useReview({ minSessions: 3, gap: 3 }); // «Наши игры», ярлык, оценка после успеха
+g.onCloud((keys) => { /* облако слито: дослать рекорды в таблицы, сбросить кеши */ });
 ```
 
 ### Движок 2.7 поверх адаптера 1.2
@@ -98,13 +109,15 @@ node _shared/tests/platform-builds.browser.mjs /путь/вне/репо     # h
 `build.sh` обновляет `js/platform.js` в играх, где файл уже копия общего (метка «Источник — _shared/platform.js»).
 
 **Пилот (11.2026):** КАСКАД (падающие фигуры), ОТБОЙНИК (пинбол + оборона), КЛАДКА (разбей стену) — портретный холст под телефон,
-короткие сессии, одна рука/тап, счёт и рекорд, движок v2. ХРУМ отложен: облик героя и врагов близок к классике жанра — риск отказа
+короткие сессии, одна рука/тап, счёт и рекорд, движок v2. **С v2.8 (20.11):** языки RU/EN/TR/ES/PT в таблицах игры (js/lang-x.js и
+js/i18n-x.js удалены), таблицы лидеров (КАСКАД — `kaskad` и `kaskadDaily`, ОТБОЙНИК — `otboynikWave` (дальность), КЛАДКА — `kladka`
+(рекорд счёта)), «Без рекламы» (`no_ads`) в меню и паузе, «Наши игры», ярлык, просьба об оценке; P на паузе — назад в игру. ХРУМ отложен: облик героя и врагов близок к классике жанра — риск отказа
 модерации как клона (Яндекс 3.6) и правило «узнаваемости» от 13.11.
 
 ## Чек-лист модерации
 Полный чек-лист по официальным требованиям Яндекс Игр и GamePush с отметками по пилотным играм — **`_shared/PLATFORM-CHECKLIST.md`** (20.11.2026).
 Названия (решение владельца 20.11): RU и EN свои — КАСКАД / CASCADE, ОТБОЙНИК / BUMPERWRIGHT, КЛАДКА / MASONRY; внутри языка одно название
-везде (Яндекс 5.1.3) — в игре, `<title>` сборки, промо и текстах (`promo/<slug>/promo.json`). Язык — из SDK на старте (2.14), заявляем RU и EN.
+везде (Яндекс 5.1.3) — в игре, `<title>` сборки, промо и текстах (`promo/<slug>/promo.json`). Язык — из SDK на старте (2.14), заявляем RU, EN, TR, ES, PT (в TR/ES/PT — EN-название).
 
 ## Промо-материалы — `tools/promo-build.mjs` → `arcade-full/promo/<slug>/` (приватный репо; путь — переменная PROMO_DIR)
 Из `promo/<slug>/promo.json` (названия, тексты, теги, категории, подписи, палитра), `shots.mjs` (сценарии кадров и видео) и `art.js`
@@ -120,6 +133,16 @@ node _shared/tests/platform-builds.browser.mjs /путь/вне/репо     # h
 маппинг столбцов гибкий (RU/EN-имена метрик, широкая таблица или файл на виджет, `;`/`,`/таб, десятичная запятая, %, доли, мм:сс). Пример — `tools/fixtures/yandex-metrics-sample.csv`.
 
 ## Что нужно от владельца (без личных данных в репо и чате)
+0. **Консоли площадок для пилота (v2.8):**
+   - Яндекс, черновик каждой игры → «Лидерборды»: создать таблицы с техническими именами **`kaskad`**, **`kaskadDaily`** (КАСКАД), **`otboynikWave`**
+     (ОТБОЙНИК, дальность: 1–10 — волна, 11 — победа над Копром; тип — число, по убыванию), **`kladka`** (КЛАДКА, счёт); названия таблиц на языках
+     (RU/EN/TR/ES/PT) — в Консоли. Без таблицы пункт «Лидеры» есть, но таблица пустая (ошибка 404 тихо пишется в `Platform.errors`).
+   - Яндекс → «Инап-покупки»: товар **`no_ads`** (постоянный, «Без рекламы»; описание «Отключает межстраничную рекламу и баннер; ролики за
+     награду — по желанию»; цена — решение владельца) + запрос на подключение покупок **до публикации**; в «Рекламе» — «Использовать API для
+     показа стики-баннера» (чтобы движок скрывал баннер после покупки). Если «Без рекламы» не продаём — товар не заводить: пункта не будет.
+   - Яндекс: языки игры в черновике — RU, EN, TR, ES, PT (тексты промо TR/ES/PT — вычитка носителем желательна).
+   - GamePush, проект каждой игры: товар с тегом **`no_ads`**; числовые поля игрока **`kaskad`**, **`kaskadDaily`** / **`otboynikWave`** / **`kladka`** и
+     лидерборды по ним; коллекция игр с тегом `ALL` (для «Наши игры»).
 1. Статус самозанятого (если ещё нет) — для Яндекс Игр (ЕЛС), GamePush, VK.
 2. Аккаунт разработчика **Яндекс Игр** (Яндекс ID), принять ЕЛС, реквизиты — сам владелец. ID приложения в сборку не нужен: SDK `/sdk.js` отдаёт площадка.
 3. Аккаунт **GamePush** (вход через Google-аккаунт), проект на каждую игру → **ID проекта** и **публичный токен** (кладутся в конфиг вне репо);
@@ -159,7 +182,11 @@ node _shared/tests/platform-builds.browser.mjs /путь/вне/репо     # h
   Перед первой выкладкой сверить с кабинетом GamePush.
 
 ## Тесты
-- `node _shared/tests/platform.test.mjs` — адаптер с мок-SDK (`_shared/tests/mocks/`) и связка с движком (36 проверок, в т.ч. v2.6: старт после init, `g.rewarded`, «ещё шанс», бонус, `adBreak`, `persist`; v1.2/v2.7: лидерборды Яндекс/GamePush, флаги, серверное время, оценка, ярлык, покупки и необработанные платежи, свои игры, стики, `blur`/`pagehide`, «Без рекламы», `g.daily`).
+- `node _shared/tests/platform.test.mjs` — адаптер с мок-SDK (`_shared/tests/mocks/`) и связка с движком (43 проверки; v2.8: язык площадки
+  из таблиц игры, именованные лидерборды и сцена «Лидеры», «Без рекламы» в меню и паузе + восстановление, «Наши игры», ярлык, оценка, событие облака; в т.ч. v2.6: старт после init, `g.rewarded`, «ещё шанс», бонус, `adBreak`, `persist`; v1.2/v2.7: лидерборды Яндекс/GamePush, флаги, серверное время, оценка, ярлык, покупки и необработанные платежи, свои игры, стики, `blur`/`pagehide`, «Без рекламы», `g.daily`).
 - `node _shared/tests/banned-words.test.mjs` — запрещённые слова (RU/EN, исключения, извлечение текста, `platform-build` и `promo-build`; ПРИИСК/ПОРУБЕЖЬЕ под площадку падают).
 - `node _shared/tests/metrics-report.test.mjs` — отчёт метрик по фикстуре.
-- `node _shared/tests/platform-builds.browser.mjs <папка-сборок>` — каждая сборка в Chromium с мок-SDK: 0 ошибок, язык до меню, ready после init, start/stop, «ещё шанс» за рекламу (пауза, звук, одна награда, пропуск), частота рекламы, автопауза, потеря фокуса (`blur` → пауза и тишина), адаптер 1.2 через мок-SDK (лидерборд, флаги, время, покупки, свои игры), контекстное меню, облако, нет ссылок и внешних запросов; телефон/планшет/десктоп без прокрутки; сборки `-16x9` — сцена 16:9.
+- `node _shared/tests/platform-builds.browser.mjs <папка-сборок>` — каждая сборка в Chromium с мок-SDK: 0 ошибок, язык до меню, ready после init, start/stop, «ещё шанс» за рекламу (пауза, звук, одна награда, пропуск), частота рекламы, автопауза, потеря фокуса (`blur` → пауза и тишина), адаптер 1.2 через мок-SDK (лидерборд, флаги, время, покупки, свои игры), контекстное меню, облако, нет ссылок и внешних запросов; телефон/планшет/десктоп без прокрутки; сборки `-16x9` — сцена 16:9;
+  **v2.8:** отправка во все таблицы игры и «Лидеры» (сцена на Яндексе, окно на GamePush), мок-покупка «Без рекламы» из паузы (цена в меню и паузе,
+  после — без межстраничной, пункты исчезли) и восстановление при следующем запуске, языки RU/EN/TR/ES/PT на телефоне портрет/ландшафт (язык до меню,
+  `<html lang>`, «Язык: XX», EN-название в `<title>`, ни одна строка меню/паузы/финала/лидеров не вылезает за холст).

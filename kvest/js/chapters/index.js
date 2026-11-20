@@ -25,9 +25,10 @@
     BY[ch.id] = ch; LIST.push(ch); LIST.sort(function (a, b) { return a.n - b.n; });
     return ch;
   }
-  function files(build) { return build === 'full' ? FILES.demo.concat(FILES.full) : FILES.demo.slice(); }
+  // 'platform' — издание «для площадок» (arcade-full/platform): грузит все главы, доступ решает js/edition.js (покупка, K.Edition.paid)
+  function files(build) { return build === 'full' || build === 'platform' ? FILES.demo.concat(FILES.full) : FILES.demo.slice(); }
   // главы, доступные изданию: демо — только глава 1 (даже если файл полной версии каким-то образом загрузился)
-  function available(edition) { var ids = files(edition === 'full' ? 'full' : 'demo'); return LIST.filter(function (c) { return ids.indexOf(c.id) >= 0; }); }
+  function available(edition) { var ids = files(edition), E = K.Edition; return LIST.filter(function (c) { return ids.indexOf(c.id) >= 0 && !(E && E.paid && E.paid(c.id)); }); }
   function get(id) { return BY[id] || null; }
   function next(id, edition) { var av = available(edition), i = -1; av.forEach(function (c, j) { if (c.id === id) i = j; }); return i >= 0 && i + 1 < av.length ? av[i + 1] : null; }
   // активная глава: данные главы становятся K.SCENES / K.PUZZLES (их читают тема, эскизы тушью и оболочка)
@@ -65,7 +66,8 @@
   }
   function summary(store, edition, prog) {
     var p = prog || progress(store), av = available(edition), rows = [], solved = 0, total = 0, known = 0, kn = 0;
-    for (var n = 1; n <= TOTAL; n++) {
+    var shown = K.Edition && K.Edition.shown ? K.Edition.shown(TOTAL) : TOTAL;   // площадка без покупок — только открытые главы
+    for (var n = 1; n <= shown; n++) {
       var id = 'ch' + n, ch = BY[id] && av.indexOf(BY[id]) >= 0 ? BY[id] : null;
       if (!ch) { rows.push({ id: id, n: n, title: null, present: false, unlocked: false, done: false, solved: 0, total: 0 }); continue; }
       var tot = ch.puzzles.puzzles.length, done = p.done.indexOf(id) >= 0, sv = done ? tot : solvedIn(store, ch);
@@ -73,7 +75,7 @@
       solved += sv; total += tot; known += tot; kn++;
     }
     var avg = kn ? known / kn : 0, miss = rows.filter(function (r) { return !r.present; }).length, all = total + miss * avg;
-    return { rows: rows, solved: solved, total: total, chapters: TOTAL, done: rows.filter(function (r) { return r.done; }).length, pct: all ? Math.round(solved / all * 100) : 0 };
+    return { rows: rows, solved: solved, total: total, chapters: shown, done: rows.filter(function (r) { return r.done; }).length, pct: all ? Math.round(solved / all * 100) : 0 };
   }
   // ?chapter=2 | ?chapter=ch2 — выбрать и открыть главу (плейтест владельца)
   function fromQuery(search) { var m = /[?&]chapter=(?:ch)?(\d+)\b/.exec(String(search || '')); return m ? 'ch' + (+m[1]) : null; }
@@ -89,7 +91,7 @@
   // файлы глав полной версии — только в сборке 'full'
   var doc = global.document;
   if (!doc || !doc.write || doc.readyState !== 'loading') return;
-  var build = K.Edition ? K.Edition.BUILD : 'demo';
+  var build = K.Edition && K.Edition.BUILD;   // нет издания — как публичная сборка (только глава 1)
   files(build).forEach(function (id) {
     if (id === 'ch1' || !/^ch\d+$/.test(id)) return;
     doc.write('<script src="./js/chapters/' + id + '.js" onerror="KVEST.Chapters.onError(\'' + id + '\')"><\/script>');

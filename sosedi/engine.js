@@ -1,10 +1,10 @@
 /*! Гефест Arcade — фреймворк браузерных игр. vanilla JS, 0 зависимостей.
  * Общие системы, которые игры дублировали: цикл, ввод (клавиатура+тач-дпад), звук (WebAudio
- * SFX + чиптюн-секвенсор музыки, тембр по теме), i18n (RU/EN), темы (retro/modern), меню (title/пауза/
+ * SFX + чиптюн-секвенсор музыки, тембр по теме), i18n (RU/EN + любые языки таблиц игры), темы (retro/modern), меню (title/пауза/
  * настройки: язык/тема/звук), сцены, сетка, частицы, HUD, счёт+рекорд (localStorage по игре).
  * Встроены критерии: проходимость (win/lose+финал, difficulty), играбельность (отклик, фидбек),
  * непресность (нарастание). Игры самодостаточны: build.sh копирует файл в игру. API — README.
- * (c) Студия «Гефест». v2.7.0 (v2.7: с площадкой — тишина и пауза при любой потере фокуса (blur/pagehide, Яндекс 1.3); g.leaderboard, g.flags (удалённая конфигурация: частота/места рекламы, сложность), g.purchase()/g.useNoAds() — после покупки «Без рекламы» межстраничная и стики не показываются, g.serverTime()/g.daily(), g.requestReview(), g.addShortcut(), g.ownGames() — через platform.js 1.2; v2.6: реклама за награду g.rewarded() + «продолжить за рекламу» g.useRewardedContinue() и бонус g.useRewardedBonus() — только при площадке с рекламой; межстраничная реклама — по действию игрока при выходе с финала и g.adBreak() в паузах между уровнями; старт меню после инициализации площадки (язык SDK до меню, ready() — когда можно играть); автопауза при скрытой вкладке; без контекстного меню/выделения; g.persist()/g.storeSet() — ключи в облако; v2.5: необязательная связка с площадкой — window.Platform из _shared/platform.js: пауза и звук на время рекламы, язык площадки, рекорд в облако, gameplayStart/Stop по сценам, реклама в паузах win/gameover, скрытие внешних ссылок; без platform.js — всё как раньше; v2.4: ссылка «← Каталог» a[data-catalog-back] ведёт в каталог текущего языка — ../ или ../en/, dt первого кадра не отрицательный; v2.3: единое правило языка ?lang= → arcade.lang → ru, перевод DOM по data-en; v2.2: g.menu, g.input.player(i), g.usePlayers, touchOnly)
+ * (c) Студия «Гефест». v2.8.0 (v2.8: языки — из ключей strings игры (не только ru/en): ?lang= и язык площадки — любой язык таблиц, иначе en; L — по кругу, «Язык: XX»; data-<язык> с откатом на data-en; ссылка каталога — EN для всех, кроме RU; встроенные строки движка RU/EN/TR/ES/PT (прочие — EN); автоподбор кегля (text maxWidth: overlay, меню, подсказки); g.leaderboard с именованными таблицами + g.useLeaderboard() (окно площадки или своя сцена «Лидеры»); g.useNoAds({ scene:['title','pause'] }); g.useOwnGames() — «Наши игры» через SDK; g.useShortcut() — ярлык; g.useReview() — просьба об оценке после успеха, не чаще раза в N сессий; g.onCloud()/g.cloudReady — событие «облако слито» после g.persist; v2.7: с площадкой — тишина и пауза при любой потере фокуса (blur/pagehide, Яндекс 1.3); g.leaderboard, g.flags (удалённая конфигурация: частота/места рекламы, сложность), g.purchase()/g.useNoAds() — после покупки «Без рекламы» межстраничная и стики не показываются, g.serverTime()/g.daily(), g.requestReview(), g.addShortcut(), g.ownGames() — через platform.js 1.2; v2.6: реклама за награду g.rewarded() + «продолжить за рекламу» g.useRewardedContinue() и бонус g.useRewardedBonus() — только при площадке с рекламой; межстраничная реклама — по действию игрока при выходе с финала и g.adBreak() в паузах между уровнями; старт меню после инициализации площадки (язык SDK до меню, ready() — когда можно играть); автопауза при скрытой вкладке; без контекстного меню/выделения; g.persist()/g.storeSet() — ключи в облако; v2.5: необязательная связка с площадкой — window.Platform из _shared/platform.js: пауза и звук на время рекламы, язык площадки, рекорд в облако, gameplayStart/Stop по сценам, реклама в паузах win/gameover, скрытие внешних ссылок; без platform.js — всё как раньше; v2.4: ссылка «← Каталог» a[data-catalog-back] ведёт в каталог текущего языка — ../ или ../en/, dt первого кадра не отрицательный; v2.3: единое правило языка ?lang= → arcade.lang → ru, перевод DOM по data-en; v2.2: g.menu, g.input.player(i), g.usePlayers, touchOnly)
  */
 (function (global) {
   'use strict';
@@ -15,59 +15,114 @@
     get: function (k, d) { try { var v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } },
     set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
     getNum: function (k, d) { var v = this.get(k, null); return v == null ? d : (parseFloat(v) || d); },
+    remove: function (k) { try { localStorage.removeItem(k); } catch (e) {} },
   };
 
   // ---------- i18n ----------
-  // Единое правило языка всех игр (v2.3): 1) параметр адреса ?lang=en|ru — приоритет, сохраняется в arcade.lang
-  // (EN-страницы каталога ссылаются на игры с ?lang=en); 2) сохранённый выбор arcade.lang; 3) язык игры по умолчанию
-  // (opts.lang), иначе 'ru'. Смена языка (L / меню) переводит и DOM: элементы с data-en (+ data-ru — исходный текст;
+  // Единое правило языка всех игр (v2.3, v2.8 — любые языки): 1) параметр адреса ?lang=<код> — приоритет, сохраняется в arcade.lang
+  // (EN-страницы каталога ссылаются на игры с ?lang=en); 2) сохранённый выбор arcade.lang; 3) язык игры по умолчанию (opts.lang), иначе 'ru'.
+  // Языки игры (v2.8) — ключи её таблиц strings (ru и en есть всегда; порядок: ru, en, затем как в таблицах). Код из адреса/хранилища,
+  // которого нет в таблицах игры: ru/be/uk/kk/uz → ru, прочие известные коды (tr, de, …) → en; мусор игнорируется.
+  // Смена языка (L / меню — по кругу по языкам игры) переводит и DOM: элементы с data-<язык> (нет — data-en; data-ru — исходный текст;
   // если data-ru нет, им становится исходная разметка элемента), <html lang>.
-  var LANGS = { ru: 1, en: 1 };
+  var KNOWN = {};
+  ('ru en tr es pt de fr it pl uk be kk uz az hy ka ky tg tk et lv lt ro cs sk hu bg sr hr sl el he ar fa hi bn id ms vi th ja ko zh nl sv no nb da fi').split(' ').forEach(function (k) { KNOWN[k] = 1; });
+  var RU_LIKE = { ru: 1, be: 1, uk: 1, kk: 1, uz: 1 };
   function urlLang() {
-    try { var m = /[?&]lang=([a-z]{2})(?:[&#]|$)/i.exec((global.location && global.location.search) || ''); var v = m && m[1].toLowerCase(); return LANGS[v] ? v : null; } catch (e) { return null; }
+    try { var m = /[?&]lang=([a-z]{2})(?:[-_][a-z]{2,4})?(?:[&#]|$)/i.exec((global.location && global.location.search) || ''); var v = m && m[1].toLowerCase(); return KNOWN[v] ? v : null; } catch (e) { return null; }
   }
-  function resolveLang(def) {
-    var u = urlLang(); if (u) { Store.set('arcade.lang', u); return u; }
-    var s = Store.get('arcade.lang', null); if (LANGS[s]) return s;
-    return LANGS[def] ? def : 'ru';
+  function langList(tables) {
+    var out = ['ru', 'en']; Object.keys(tables || {}).forEach(function (k) { k = String(k).toLowerCase(); if (/^[a-z]{2}$/.test(k) && out.indexOf(k) < 0) out.push(k); });
+    return out;
+  }
+  // код языка → язык игры: есть в таблицах — он; известный код — ru для «русскоязычных», иначе en; мусор — null
+  function fitLang(v, langs) {
+    v = v == null ? '' : String(v).slice(0, 2).toLowerCase(); if (!v) return null;
+    if (langs.indexOf(v) >= 0) return v; if (!KNOWN[v]) return null;
+    return RU_LIKE[v] && langs.indexOf('ru') >= 0 ? 'ru' : 'en';
+  }
+  function resolveLang(def, langs) {
+    langs = langs || ['ru', 'en'];
+    var u = urlLang(); if (u) { Store.set('arcade.lang', u); Store.remove('arcade.lang.x'); return fitLang(u, langs); }
+    var s = Store.get('arcade.lang', null);
+    // миграция пилотов v2.7 (js/lang-x.js): arcade.lang = 'en' + arcade.lang.x = tr|es|pt → arcade.lang = tr|es|pt
+    var x = Store.get('arcade.lang.x', null);
+    if (x != null) { if (s === 'en' && KNOWN[x] && x !== 'ru') { Store.set('arcade.lang', x); s = x; } Store.remove('arcade.lang.x'); }
+    var f = fitLang(s, langs); if (f) return f;
+    return langs.indexOf(def) >= 0 ? def : 'ru';
   }
   function I18n(tables, lang) {
     this.tables = tables || { ru: {}, en: {} };
-    this.lang = resolveLang(lang);
+    this.langs = langList(this.tables);
+    this.lang = resolveLang(lang, this.langs);
     this.applyDom();
   }
-  // Встроенные строки движка (v2.6) — если в таблицах игры ключа нет: экраны рекламы за награду, загрузка.
+  // Встроенные строки движка (v2.6; v2.8 — RU/EN/TR/ES/PT, для других языков — откат на EN), если в таблицах игры ключа нет:
+  // стандартные экраны (меню, пауза, финалы), загрузка, реклама за награду, «Без рекламы», лидеры, свои игры, ярлык.
+  // Перевод TR/ES/PT — ИИ (обратный перевод на RU), носитель языка не вычитывал.
   var DEF_STR = {
-    ru: { loading: 'Загрузка…', rw_title: 'ЕЩЁ ОДИН ШАНС?', rw_continue: 'Реклама: продолжить', rw_no: 'Нет, завершить', rw_fail: 'Реклама недоступна', rw_hint: 'один раз за партию', rw_got: 'Бонус получен!', noads: 'Без рекламы' },
-    en: { loading: 'Loading…', rw_title: 'ONE MORE CHANCE?', rw_continue: 'Watch ad: continue', rw_no: 'No, finish', rw_fail: 'Ad not available', rw_hint: 'once per run', rw_got: 'Bonus received!', noads: 'No ads' }
+    ru: { loading: 'Загрузка…', rw_title: 'ЕЩЁ ОДИН ШАНС?', rw_continue: 'Реклама: продолжить', rw_no: 'Нет, завершить', rw_fail: 'Реклама недоступна', rw_hint: 'один раз за партию', rw_got: 'Бонус получен!', noads: 'Без рекламы',
+      play: 'Играть', language: 'Язык', theme: 'Тема', sound: 'Звук', on: 'вкл', off: 'выкл', resume: 'Продолжить', menu: 'В меню', pause: 'ПАУЗА', win: 'ПОБЕДА!', gameover: 'КОНЕЦ ИГРЫ',
+      score: 'Счёт', level: 'Ур.', best: 'Рекорд', tapstart: 'пробел / тап', title: 'ИГРА', players: 'Игроки', touch1p: 'тач — 1 игрок',
+      ui_lb: 'Лидеры', ui_lb_empty: 'Пока нет результатов', ui_lb_me: 'Вы', ui_lb_anon: 'Игрок', ui_games: 'Наши игры', ui_back: 'Назад', ui_shortcut: 'Ярлык на рабочий стол', noads_done: 'Реклама отключена' },
+    en: { loading: 'Loading…', rw_title: 'ONE MORE CHANCE?', rw_continue: 'Watch ad: continue', rw_no: 'No, finish', rw_fail: 'Ad not available', rw_hint: 'once per run', rw_got: 'Bonus received!', noads: 'No ads',
+      play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off', resume: 'Resume', menu: 'Menu', pause: 'PAUSE', win: 'YOU WIN!', gameover: 'GAME OVER',
+      score: 'Score', level: 'Lvl', best: 'Best', tapstart: 'space / tap', title: 'GAME', players: 'Players', touch1p: 'touch — 1 player',
+      ui_lb: 'Leaderboard', ui_lb_empty: 'No results yet', ui_lb_me: 'You', ui_lb_anon: 'Player', ui_games: 'Our games', ui_back: 'Back', ui_shortcut: 'Add shortcut', noads_done: 'Ads disabled' },
+    tr: { loading: 'Yükleniyor…', rw_title: 'BİR ŞANS DAHA?', rw_continue: 'Reklam izle: devam et', rw_no: 'Hayır, bitir', rw_fail: 'Reklam şu an yok', rw_hint: 'oyun başına bir kez', rw_got: 'Bonus alındı!', noads: 'Reklamsız',
+      play: 'Oyna', language: 'Dil', theme: 'Tema', sound: 'Ses', on: 'açık', off: 'kapalı', resume: 'Devam et', menu: 'Ana menü', pause: 'DURAKLATILDI', win: 'KAZANDIN!', gameover: 'OYUN BİTTİ',
+      score: 'Puan', level: 'Sv.', best: 'Rekor', tapstart: 'boşluk / dokun', title: 'OYUN', players: 'Oyuncular', touch1p: 'dokunmatik — 1 oyuncu',
+      ui_lb: 'Liderler', ui_lb_empty: 'Henüz sonuç yok', ui_lb_me: 'Sen', ui_lb_anon: 'Oyuncu', ui_games: 'Diğer oyunlarımız', ui_back: 'Geri', ui_shortcut: 'Kısayol ekle', noads_done: 'Reklamlar kapatıldı' },
+    es: { loading: 'Cargando…', rw_title: '¿OTRA OPORTUNIDAD?', rw_continue: 'Ver anuncio: continuar', rw_no: 'No, terminar', rw_fail: 'Anuncio no disponible', rw_hint: 'una vez por partida', rw_got: '¡Bonus obtenido!', noads: 'Sin anuncios',
+      play: 'Jugar', language: 'Idioma', theme: 'Tema', sound: 'Sonido', on: 'sí', off: 'no', resume: 'Continuar', menu: 'Menú principal', pause: 'PAUSA', win: '¡VICTORIA!', gameover: 'FIN DEL JUEGO',
+      score: 'Puntos', level: 'Niv.', best: 'Récord', tapstart: 'espacio / toca', title: 'JUEGO', players: 'Jugadores', touch1p: 'táctil — 1 jugador',
+      ui_lb: 'Clasificación', ui_lb_empty: 'Aún no hay resultados', ui_lb_me: 'Tú', ui_lb_anon: 'Jugador', ui_games: 'Nuestros juegos', ui_back: 'Volver', ui_shortcut: 'Añadir acceso directo', noads_done: 'Anuncios desactivados' },
+    pt: { loading: 'Carregando…', rw_title: 'MAIS UMA CHANCE?', rw_continue: 'Ver anúncio: continuar', rw_no: 'Não, encerrar', rw_fail: 'Anúncio indisponível', rw_hint: 'uma vez por partida', rw_got: 'Bônus recebido!', noads: 'Sem anúncios',
+      play: 'Jogar', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'ligado', off: 'desligado', resume: 'Continuar', menu: 'Menu principal', pause: 'PAUSA', win: 'VITÓRIA!', gameover: 'FIM DE JOGO',
+      score: 'Pontos', level: 'Nív.', best: 'Recorde', tapstart: 'espaço / toque', title: 'JOGO', players: 'Jogadores', touch1p: 'toque — 1 jogador',
+      ui_lb: 'Ranking', ui_lb_empty: 'Ainda sem resultados', ui_lb_me: 'Você', ui_lb_anon: 'Jogador', ui_games: 'Nossos jogos', ui_back: 'Voltar', ui_shortcut: 'Adicionar atalho', noads_done: 'Anúncios desativados' }
   };
+  // Порядок поиска строки: таблица игры на языке → (не RU/EN) встроенная строка движка на языке → таблица игры EN → fallback → встроенная
+  // на языке → встроенная EN → сам ключ. Для RU/EN — как в v2.7: таблица → fallback → встроенная.
   I18n.prototype.t = function (key, fallback) {
-    var tb = this.tables[this.lang] || {};
+    var l = this.lang, tb = this.tables[l] || {};
     if (tb[key] != null) return tb[key];
+    if (l !== 'ru' && l !== 'en') { var dl = DEF_STR[l]; if (dl && dl[key] != null) return dl[key]; var te = this.tables.en || {}; if (te[key] != null) return te[key]; }
     if (fallback != null) return fallback;
-    var d = DEF_STR[this.lang] || DEF_STR.en; return d[key] != null ? d[key] : key;
+    var d = DEF_STR[l]; if (d && d[key] != null) return d[key];
+    return DEF_STR.en[key] != null ? DEF_STR.en[key] : key;
   };
   I18n.prototype.has = function (key, lang) { var tb = this.tables[lang || this.lang]; return !!tb && tb[key] != null; };
-  I18n.prototype.set = function (lang) { this.lang = lang; Store.set('arcade.lang', lang); this.applyDom(); };
-  I18n.prototype.toggle = function () { this.set(this.lang === 'ru' ? 'en' : 'ru'); return this.lang; };
+  // значение по языку из объекта { ru, en, tr, … }: текущий язык → (не RU) en → ru
+  I18n.prototype.pick = function (o) { if (o == null || typeof o !== 'object') return o; var l = this.lang; return o[l] != null ? o[l] : (l !== 'ru' && o.en != null ? o.en : o.ru); };
+  I18n.prototype.set = function (lang) { var l = fitLang(lang, this.langs) || 'en'; this.lang = l; Store.set('arcade.lang', l); this.applyDom(); };
+  I18n.prototype.toggle = function () { var i = this.langs.indexOf(this.lang); this.set(this.langs[(i + 1) % this.langs.length]); return this.lang; };
+  I18n.prototype.code = function () { return this.lang.toUpperCase(); };
   I18n.prototype.applyDom = function () {
-    if (!doc || !doc.querySelectorAll) return; var lang = this.lang;
+    if (!doc || !doc.querySelectorAll) return; var lang = this.lang, ru = lang === 'ru';
     try {
       if (doc.documentElement) doc.documentElement.lang = lang;
-      var els = doc.querySelectorAll('[data-en]');
-      for (var i = 0; i < els.length; i++) {
-        var el = els[i]; if (el.getAttribute('data-ru') == null) el.setAttribute('data-ru', el.innerHTML);
-        var v = el.getAttribute(lang === 'en' ? 'data-en' : 'data-ru'); if (v != null && el.innerHTML !== v) el.innerHTML = v;
+      var qs = ['[data-en]'], seen = [];
+      this.langs.forEach(function (l) { if (l !== 'ru' && l !== 'en') qs.push('[data-' + l + ']'); });
+      for (var q = 0; q < qs.length; q++) {
+        var els = doc.querySelectorAll(qs[q]) || [];
+        for (var i = 0; i < els.length; i++) {
+          var el = els[i]; if (seen.indexOf(el) >= 0) continue; seen.push(el);
+          if (el.getAttribute('data-ru') == null) el.setAttribute('data-ru', el.innerHTML);
+          var v = ru ? el.getAttribute('data-ru') : el.getAttribute('data-' + lang);
+          if (v == null && !ru) { v = el.getAttribute('data-en'); if (v == null) v = el.getAttribute('data-ru'); }
+          if (v != null && el.innerHTML !== v) el.innerHTML = v;
+        }
       }
     } catch (e) {}
     this.applyCatalogLink();
   };
-  // Ссылка «← Каталог» (v2.4): a[data-catalog-back] ведёт в каталог ТЕКУЩЕГО языка — RU: ../ , EN: ../en/
-  // (на file:// — с index.html, иначе браузер покажет листинг папки). Исходный адрес запоминается в
+  // Ссылка «← Каталог» (v2.4; v2.8 — EN-каталог для всех языков, кроме RU): a[data-catalog-back] ведёт в каталог языка — RU: ../ ,
+  // остальные: ../en/ (на file:// — с index.html, иначе браузер покажет листинг папки). Исходный адрес запоминается в
   // data-catalog-root. Подпись: если у ссылки нет data-en и внутри нет своей разметки — движок ставит
-  // «← Catalog» сам (обычный путь — data-en в разметке, см. applyDom).
+  // «← Catalog» сам (обычный путь — data-en / data-<язык> в разметке, см. applyDom).
   I18n.prototype.applyCatalogLink = function () {
-    if (!doc || !doc.querySelectorAll) return; var en = this.lang === 'en';
+    if (!doc || !doc.querySelectorAll) return; var en = this.lang !== 'ru';
     try {
       var file = !!(global.location && global.location.protocol === 'file:');
       var ls = doc.querySelectorAll('a[data-catalog-back]');
@@ -79,7 +134,7 @@
         a.setAttribute('hreflang', en ? 'en' : 'ru');
         if (a.getAttribute('data-en') == null && !/<[a-z]/i.test(a.innerHTML || '')) {
           if (a.getAttribute('data-ru') == null) a.setAttribute('data-ru', a.innerHTML);
-          a.setAttribute('data-en', '\u2190 Catalog'); if (en) a.innerHTML = '\u2190 Catalog';
+          a.setAttribute('data-en', '\u2190 Catalog'); if (en) { var lv = this.lang !== 'en' ? a.getAttribute('data-' + this.lang) : null; a.innerHTML = lv != null ? lv : '\u2190 Catalog'; }
         }
       }
     } catch (e) {}
@@ -89,7 +144,7 @@
     var h = String(href == null ? '../' : href).replace(/[?#].*$/, '').replace(/index\.html$/i, '').replace(/(^|\/)en\/$/i, '$1');
     return h || '../';
   }
-  I18n.resolve = resolveLang; I18n.urlLang = urlLang; I18n.catalogRoot = catalogRoot;
+  I18n.resolve = resolveLang; I18n.urlLang = urlLang; I18n.catalogRoot = catalogRoot; I18n.fitLang = fitLang; I18n.langList = langList; I18n.DEF = DEF_STR;
 
   // ---------- Темы (retro / modern). modern — основная (вместо неона). ----------
   var THEMES = {
@@ -449,14 +504,14 @@
   Menu.prototype.remove = function (key) { var i = this.indexOf(key); if (i < 0) return false; var cur = this.items[this.sel]; this.items.splice(i, 1); this._keep(cur); return true; };
   Menu.prototype._keep = function (cur) { var i = this.items.indexOf(cur); this.sel = i >= 0 ? i : Math.max(0, Math.min(this.sel, this.items.length - 1)); };
   Menu.prototype.draw = function (g, x, y, lh) {
-    lh = lh || 30; var c = g.ctx, th = g.th();
+    lh = lh || 30; var c = g.ctx, th = g.th(); this._lh = lh;
     for (var i = 0; i < this.items.length; i++) {
       var it = this.items[i], on = i === this.sel, label = typeof it.label === 'function' ? it.label() : it.label;
-      g.text((on ? '▸ ' : '  ') + label, x, y + i * lh, { size: 17, align: 'center', color: on ? th.accent : th.muted, weight: on ? 800 : 600 });
+      g.text((on ? '▸ ' : '  ') + label, x, y + i * lh, { size: 17, align: 'center', color: on ? th.accent : th.muted, weight: on ? 800 : 600, maxWidth: g.W - 24, minSize: 11 });
       it._y = y + i * lh;
     }
   };
-  Menu.prototype.pointer = function (py) { for (var i = 0; i < this.items.length; i++) { if (this.items[i]._y != null && Math.abs(py - (this.items[i]._y - 6)) < 16) { this.sel = i; return true; } } return false; };
+  Menu.prototype.pointer = function (py) { for (var i = 0; i < this.items.length; i++) { if (this.items[i]._y != null && Math.abs(py - (this.items[i]._y - 6)) < (this._lh ? Math.min(16, this._lh / 2 + 1) : 16)) { this.sel = i; return true; } } return false; };
 
   // Публичный API меню стандартных экранов: g.menu.addItem/removeItem/items/get/setHint.
   // Можно звать до useStandardScreens — пункты применятся, когда меню появится.
@@ -485,7 +540,7 @@
     var fn = this._hints[scene]; if (!fn) return; var g = this.g, th = g.th(), lines = fn.call(g) || [];
     for (var i = 0; i < lines.length; i++) {
       var ln = lines[i], txt = typeof ln === 'string' ? ln : ln.text, dim = typeof ln === 'object' && ln && ln.dim;
-      g.text(txt, g.W / 2, g.H - 72 + i * 20, { size: 13, align: 'center', weight: 700, color: dim ? th.muted : th.ink });
+      if (!txt) continue; g.text(txt, g.W / 2, g.H - 72 + i * 20, { size: 13, align: 'center', weight: 700, color: dim ? th.muted : th.ink, maxWidth: g.W - 16, minSize: 9 });
     }
   };
 
@@ -519,7 +574,9 @@
     this.adBreaks = opts.adBreaks !== false; // реклама площадки в логических паузах (win/gameover), если подключён platform.js
     var PF = global.Platform; this.platform = PF && typeof PF.init === 'function' && typeof PF.pauseHook === 'function' ? PF : null;
     this._initExtras(opts);
+    this.cloudReady = new Promise(function (r) { self._cloudRes = r; });
     if (this.platform) this._bindPlatform(this.platform);
+    else Promise.resolve().then(function () { if (!self._cloudDone) self._cloudFire([]); }); // без площадки облака нет — событие сразу
   }
   // ---------- Площадка (v2.5): window.Platform из _shared/platform.js (подключается сборкой под площадку ДО engine.js) ----------
   // Пауза площадки (реклама, окно покупки, вкладка) — цикл стоит, звук выключен; язык площадки — если адрес не задал ?lang;
@@ -531,13 +588,14 @@
     this._applyPlatformLinks();
     if (doc && doc.readyState === 'loading' && doc.addEventListener) doc.addEventListener('DOMContentLoaded', function () { self._applyPlatformLinks(); });
     PF.init().then(function () {
-      var tb = self.i18n.tables || {}, l = !urlLang() && PF.langFor ? PF.langFor(Object.keys(tb).filter(function (k) { return LANGS[k]; })) : null;
-      if (l && l !== self.i18n.lang && tb[l]) self.i18n.set(l);
+      // язык площадки (Яндекс 2.14) — любой из языков игры (ключи strings), иначе ru для ru/be/uk/kk/uz и en для прочих (v2.8)
+      var l = !urlLang() && PF.langFor ? PF.langFor(self.i18n.langs.slice()) : null;
+      if (l && l !== self.i18n.lang) self.i18n.set(l);
       self._applyPlatformLinks();
       var b = parseFloat(PF.peek('best.' + self.gameId)) || 0;
-      if (b > self.state.best) { self.state.best = b; Store.set('arcade.best.' + self.gameId, String(b)); }
+      if (b > self.state.best) { self.state.best = b; Store.set('arcade.best.' + self.gameId, String(b)); self._bestFromCloud = true; }
       self._pfInited = true; self._mergePersist(); self._afterPlatform();
-    }, function () { self._pfInited = true; self._afterPlatform(); });
+    }, function () { self._pfInited = true; self._cloudFire([]); self._afterPlatform(); });
     // Площадки (Яндекс 1.6.1.8 / 1.6.2.7, GamePush): долгий тап и ПКМ не открывают меню и не выделяют текст.
     if (doc && doc.addEventListener) ['contextmenu', 'selectstart', 'dragstart'].forEach(function (ev) { doc.addEventListener(ev, function (e) { var t = e.target; if (t && /^(INPUT|TEXTAREA)$/.test(t.tagName || '')) return; e.preventDefault(); }); });
     // v2.7 — Яндекс 1.3 (с 18.08.2026 «звук останавливается при любой потере фокуса, а не только при сворачивании»): окно без
@@ -557,12 +615,28 @@
   Engine.prototype.persist = function (key, mode) { (this._persist = this._persist || {})[key] = mode || 'max'; if (this._pfInited) this._mergePersist(); return this; };
   Engine.prototype.storeSet = function (key, v) { Store.set(key, String(v)); if (this.platform) { try { this.platform.save('ls.' + key, String(v)); } catch (e) {} } };
   Engine.prototype._mergePersist = function () {
-    var PF = this.platform, m = this._persist; if (!PF || !m) return;
-    Object.keys(m).forEach(function (k) {
+    var PF = this.platform, m = this._persist, changed = [];
+    if (PF && m) Object.keys(m).forEach(function (k) {
       var c = PF.peek('ls.' + k), l = Store.get(k, null); if (c == null) { if (l != null) PF.save('ls.' + k, l); return; }
       var v = m[k] === 'max' ? String(Math.max(parseFloat(c) || 0, parseFloat(l) || 0)) : String(c);
-      if (v !== l) Store.set(k, v); if (v !== String(c)) PF.save('ls.' + k, v);
+      if (v !== l) { Store.set(k, v); changed.push(k); } if (v !== String(c)) PF.save('ls.' + k, v);
     });
+    this._cloudFire(changed);
+  };
+  // Событие «облако слито» (v2.8): g.onCloud(fn(changedKeys)) — после того, как облако площадки слито с localStorage для ключей
+  // g.persist (при старте после init площадки и при каждом новом g.persist после него); changedKeys — ключи, чьё локальное значение
+  // поменялось (и 'arcade.best.<gameId>', если облачный рекорд больше). Подписка после слияния — вызов сразу (асинхронно) с [].
+  // Без площадки (сайт) — один вызов с [] сразу после старта. g.cloudReady — Promise (резолвится после первого слияния).
+  Engine.prototype.onCloud = function (fn) {
+    if (typeof fn !== 'function') return this; (this._cloudCbs = this._cloudCbs || []).push(fn);
+    if (this._cloudDone) { var self = this; Promise.resolve().then(function () { try { fn.call(self, []); } catch (e) {} }); }
+    return this;
+  };
+  Engine.prototype._cloudFire = function (changed) {
+    var self = this, first = !this._cloudDone; this._cloudDone = true;
+    if (first && this._bestFromCloud) changed = ['arcade.best.' + this.gameId].concat(changed);
+    (this._cloudCbs || []).slice().forEach(function (fn) { try { fn.call(self, changed); } catch (e) { if (global.console) console.error(e); } });
+    if (first && this._cloudRes) this._cloudRes(changed);
   };
 
   // ---------- v2.7: лидерборд, флаги, покупки, серверное время, оценка, ярлык, свои игры (через platform.js 1.2) ----------
@@ -578,16 +652,23 @@
       num: function (k, d) { var v = parseFloat(this.get(k)); return isFinite(v) ? v : d; },
       all: function () { return Object.assign({}, flags); }, _set: function (f) { Object.keys(f || {}).forEach(function (k) { flags[k] = String(f[k]); }); }, _done: function () { readyRes(this.all()); } };
     if (!this.platform) this.flags._done();
-    // g.leaderboard — таблица лидеров площадки: available(), submit(score) → Promise<bool>, top({ limit }) → Promise<{ entries, me }>,
-    // me() → Promise<{ rank, score }|null>, open() → bool. opts.leaderboard: 'score' — имя таблицы (Яндекс: «техническое имя»)
-    // и автоотправка нового рекорда из g.saveBest().
+    // g.leaderboard — таблицы лидеров площадки: available(), submit(score, { board }) → Promise<bool>, top({ board, limit }) →
+    // Promise<{ entries, me }>, me({ board }) → Promise<{ rank, score }|null>, open({ board }) → bool. opts.leaderboard: 'score' — имя
+    // таблицы по умолчанию (Яндекс: «техническое имя»; GamePush: поле игрока) и автоотправка нового рекорда из g.saveBest().
+    // v2.8: именованные таблицы — { board: 'kaskadDaily' } (или строкой вторым аргументом submit); open() — окно площадки, если оно есть
+    // (GamePush), иначе своя сцена движка «Лидеры» (если игра подключила g.useLeaderboard).
     var board = typeof opts.leaderboard === 'string' ? opts.leaderboard : 'score';
+    var bd = function (o) { return typeof o === 'string' ? o : (o && o.board) || board; }, LBP = function () { var P = self.platform; return P && P.leaderboard; };
     this.leaderboard = { board: board, auto: !!opts.leaderboard,
-      available: function () { var P = self.platform; return !!(P && P.leaderboard && P.leaderboard.available); },
-      submit: function (score) { var P = self.platform; return P && P.leaderboard && P.leaderboard.submit ? P.leaderboard.submit(score == null ? self.state.best : score, { board: board }) : Promise.resolve(false); },
-      top: function (o) { var P = self.platform; return P && P.leaderboard && P.leaderboard.top ? P.leaderboard.top(Object.assign({ board: board }, o || {})) : Promise.resolve({ entries: [], me: null }); },
-      me: function () { var P = self.platform; return P && P.leaderboard && P.leaderboard.me ? P.leaderboard.me({ board: board }) : Promise.resolve(null); },
-      open: function () { var P = self.platform; return !!(P && P.leaderboard && P.leaderboard.open && P.leaderboard.open({ board: board })); } };
+      available: function () { var L = LBP(); return !!(L && L.available); },
+      native: function () { var L = LBP(); return !!(L && L.available && L.canOpen); },
+      submit: function (score, o) { var L = LBP(); if (!L || !L.submit) return Promise.resolve(false); var x = { board: bd(o) }; if (o && typeof o === 'object' && o.extra != null) x.extra = o.extra;
+        return L.submit(score == null ? self.state.best : score, x).then(null, function () { return false; }); },
+      top: function (o) { var L = LBP(); return L && L.top ? L.top(Object.assign({}, typeof o === 'object' ? o : {}, { board: bd(o) })) : Promise.resolve({ entries: [], me: null }); },
+      me: function (o) { var L = LBP(); return L && L.me ? L.me({ board: bd(o) }) : Promise.resolve(null); },
+      open: function (o) { var L = LBP(); if (!L || !L.available) return false;
+        if (L.canOpen && L.open && L.open({ board: bd(o) })) return true;
+        if (self.scenes.leaders) { self.goto('leaders', { board: bd(o), back: self._sceneName }); return true; } return false; } };
     this._products = {}; this._noAds = false; this._stickyOpt = opts.sticky === true;
     if (opts.products) this.useProducts(opts.products);
   };
@@ -624,20 +705,145 @@
   Engine.prototype.owned = function (id) { var P = this.platform; return id === 'no_ads' ? this._noAds : !!(P && P.payments && P.payments.owned && P.payments.owned(id)); };
   Engine.prototype.noAds = function () { return !!this._noAds; };
   Engine.prototype.products = function () { var P = this.platform; return P && P.payments && P.payments.catalog ? P.payments.catalog() : Promise.resolve([]); };
-  // g.useNoAds({ scene: 'title' }) — пункт меню «Без рекламы · <цена из SDK>» (виден, если покупки подключены, товар no_ads есть
-  // в каталоге и ещё не куплен). Объявляет товар no_ads.
+  // g.useNoAds({ scene: 'title' | ['title', 'pause'] }) — пункт меню «Без рекламы · <цена из SDK>» (виден, если покупки подключены, товар
+  // no_ads есть в каталоге и ещё не куплен; в паузе — перед «В меню»). Объявляет товар no_ads: покупка восстанавливается при каждом
+  // запуске (проверка необработанных покупок). После покупки пункт исчезает, межстраничной и стики больше нет.
   Engine.prototype.useNoAds = function (cfg) {
     cfg = Object.assign({ scene: 'title', key: 'noads' }, cfg || {}); var self = this; this.useProducts({ no_ads: {} });
-    this._shop = { cfg: cfg, price: null, item: { key: cfg.key, label: function () { return (cfg.label ? (cfg.label[self.i18n.lang] || cfg.label.ru) : self.t('noads')) + (self._shop.price ? ' · ' + self._shop.price : ''); },
-      onSelect: function () { self.purchase('no_ads').then(function (ok) { if (ok) self.audio.beep(1000, 0.15, 'triangle'); }); } } };
+    var scenes = Array.isArray(cfg.scene) ? cfg.scene.slice() : [cfg.scene];
+    this._shop = { cfg: cfg, scenes: scenes, price: null, item: { key: cfg.key, label: function () { return (cfg.label ? self.i18n.pick(cfg.label) : self.t('noads')) + (self._shop.price ? ' \u00b7 ' + self._shop.price : ''); },
+      onSelect: function () { self.purchase('no_ads').then(function (ok) { if (ok) { self.audio.beep(1000, 0.15, 'triangle'); self._flash(self.t('noads_done')); } }); } } };
     return this;
   };
   Engine.prototype._syncShop = function () {
-    var s = this._shop, P = this.platform, self = this; if (!s) return; var m = this.menu.get(s.cfg.scene); if (!m) return;
+    var s = this._shop, P = this.platform, self = this; if (!s) return;
     var avail = !!(P && P.payments && P.payments.available && !this._noAds);
     if (avail && s.price == null && !s.loading) { s.loading = true; this.products().then(function (l) { s.loading = false; var p = (l || []).filter(function (x) { return x.id === 'no_ads'; })[0]; s.price = p ? (p.price || '') : false; self._syncShop(); }); }
-    var want = avail && s.price !== false && s.price != null, has = m.indexOf(s.cfg.key) >= 0;
-    if (want && !has) m.add(s.item, s.cfg.scene === 'pause' ? { before: 'menu' } : { after: 'play' }); else if (!want && has) m.remove(s.cfg.key);
+    var want = avail && s.price !== false && s.price != null;
+    s.scenes.forEach(function (sc) { self._menuItem(sc, s.item, want, s.cfg.after); });
+  };
+  // Пункт меню по условию: want — показать (title — после cfg.after или «Играть», pause — перед «В меню»), иначе убрать.
+  Engine.prototype._menuItem = function (scene, item, want, after) {
+    var m = this.menu.get(scene); if (!m) return; var has = m.indexOf(item.key) >= 0;
+    if (want && !has) m.add(item, scene === 'pause' ? { before: 'menu' } : (after === 'end' ? {} : { after: after && m.indexOf(after) >= 0 ? after : 'play' }));
+    else if (!want && has) m.remove(item.key);
+  };
+  // Короткое сообщение поверх экрана (1,6 с): «Реклама отключена» и т. п.
+  Engine.prototype._flash = function (msg) { this._flashMsg = { text: String(msg), t: 1.6 }; };
+
+  // ---------- v2.8: «Лидеры», «Наши игры», ярлык, просьба об оценке — пункты меню и экраны поверх обёрток площадки ----------
+  // g.useLeaderboard({ boards: ['kaskad', { id: 'kaskadDaily', label: { ru, en, … } | fn }], scene: 'title', after: 'play' }) — пункт
+  // «Лидеры» (виден, только если таблицы площадки доступны). Выбор: окно площадки (GamePush), иначе сцена движка «leaders»: топ-10
+  // выбранной таблицы, своё место (если вне топа), пункты-переключатели таблиц и «Назад»; ← → — соседняя таблица; P/Esc — назад.
+  // Ответы кешируются на 60 с (Яндекс: getEntries не чаще 20 раз за 5 мин).
+  Engine.prototype.useLeaderboard = function (cfg) {
+    cfg = Object.assign({ scene: 'title', key: 'lb', after: 'play' }, cfg || {}); var self = this;
+    var boards = (cfg.boards && cfg.boards.length ? cfg.boards : [this.leaderboard.board]).map(function (b) { return typeof b === 'string' ? { id: b } : b; });
+    var ui = this._lbUi = { cfg: cfg, boards: boards, i: 0, cache: {}, back: 'title' };
+    var label = function (b) { return typeof b.label === 'function' ? b.label.call(self) : b.label ? self.i18n.pick(b.label) : b.id; };
+    ui.item = { key: cfg.key, label: function () { return cfg.label ? (typeof cfg.label === 'function' ? cfg.label.call(self) : self.i18n.pick(cfg.label)) : self.t('ui_lb'); },
+      onSelect: function () { self.leaderboard.open({ board: boards[ui.i].id }); } };
+    var load = function (force) {
+      var b = boards[ui.i], c = ui.cache[b.id], t = now();
+      if (c && (c.loading || (!force && t - c.at < 60000))) return;
+      c = ui.cache[b.id] = { loading: true, at: t, data: c && c.data };
+      self.leaderboard.top({ board: b.id, limit: 10, includeUser: true }).then(function (d) { c.loading = false; c.data = d || { entries: [], me: null }; }, function () { c.loading = false; c.data = c.data || { entries: [], me: null }; });
+    };
+    var items = boards.length > 1 ? boards.map(function (b, i) { return { key: 'b_' + b.id, label: function () { return (ui.i === i ? '\u25cf ' : '\u25cb ') + label(b); }, onSelect: function () { ui.i = i; load(); } }; }) : [];
+    items.push({ key: 'back', label: function () { return self.t('ui_back'); }, onSelect: function () { self.goto(ui.back || 'title'); } });
+    var menu = new Menu(items); this.menu._register('leaders', menu);
+    this.scene('leaders', { realtime: true, _menu: menu,
+      enter: function (d) { d = d || {}; ui.back = d.back && d.back !== 'leaders' ? d.back : 'title'; for (var i = 0; i < boards.length; i++) if (boards[i].id === d.board) ui.i = i; menu.sel = Math.min(ui.i, items.length - 1); load(); },
+      press: function (a) { if (a === 'pause') this.goto(ui.back || 'title'); else if ((a === 'left' || a === 'right') && boards.length > 1) { ui.i = (ui.i + (a === 'left' ? -1 : 1) + boards.length) % boards.length; menu.sel = ui.i; load(); this.audio.beep(600, 0.03); } },
+      draw: function () {
+        var th = this.th(), W = this.W, H = this.H, b = boards[ui.i], c = ui.cache[b.id], d = c && c.data, lh = Math.min(26, (H - 200) / 12);
+        this.clear(); this.text(this.t('ui_lb'), W / 2, 44, { size: Math.min(30, W / 12), align: 'center', color: th.accent, maxWidth: W - 24 });
+        if (b.label || boards.length > 1) this.text(label(b), W / 2, 70, { size: 15, align: 'center', color: th.muted, weight: 700, maxWidth: W - 24 });
+        var y = 106, rows = (d && d.entries) || [], me = d && d.me;
+        if (!d) this.text(this.t('loading'), W / 2, y + 40, { size: 15, align: 'center', color: th.muted, weight: 700 });
+        else if (!rows.length) this.text(this.t('ui_lb_empty'), W / 2, y + 40, { size: 15, align: 'center', color: th.muted, weight: 700, maxWidth: W - 24 });
+        for (var i = 0; i < rows.length && i < 10; i++) {
+          var e = rows[i], col = e.me ? th.accent : th.ink, yy = y + i * lh;
+          if (e.me) { this.ctx.fillStyle = th.panel; this.ctx.fillRect(12, yy - lh + 7, W - 24, lh); }
+          this.text(String(e.rank), 40, yy, { size: 15, align: 'right', color: th.muted, weight: 700 });
+          this.text(e.me ? this.t('ui_lb_me') : (e.name || this.t('ui_lb_anon')), 52, yy, { size: 15, color: col, weight: e.me ? 800 : 600, maxWidth: W - 160 });
+          this.text(String(e.score == null ? '' : e.score), W - 20, yy, { size: 15, align: 'right', color: col });
+        }
+        if (me && me.rank && !rows.some(function (e) { return e.me; })) {
+          var ym = y + Math.max(rows.length, 1) * lh + 10;
+          this.text(me.rank + '. ' + this.t('ui_lb_me') + (me.score != null ? ' \u2014 ' + me.score : ''), W / 2, ym, { size: 15, align: 'center', color: th.accent, maxWidth: W - 24 });
+        }
+        menu.draw(this, W / 2, H - 30 - (items.length - 1) * 28, 28);
+      } });
+    return this;
+  };
+  // g.useOwnGames({ scene: 'title' }) — пункт «Наши игры» (Яндекс 8.4.1: только через SDK и только на игры каталога площадки).
+  // Виден, только на площадке и если SDK вернул хотя бы одну другую игру студии. GamePush — окно коллекции площадки; Яндекс — сцена
+  // движка «games» со списком (выбор — g.openGame: страница игры в каталоге Яндекс Игр, новая вкладка; игра здесь стоит в меню).
+  Engine.prototype.useOwnGames = function (cfg) {
+    cfg = Object.assign({ scene: 'title', key: 'games', after: 'end' }, cfg || {}); var self = this;
+    var ui = this._gamesUi = { cfg: cfg, list: null, loading: false };
+    ui.item = { key: cfg.key, label: function () { return self.t('ui_games'); }, onSelect: function () {
+      var P = self.platform; if (P && P.games && P.games.native) { self.openGame(null); return; }
+      self.goto('games', { back: self._sceneName }); } };
+    var menu = new Menu([]), back = 'title'; this.menu._register('games', menu);
+    this.scene('games', { realtime: true, _menu: menu,
+      enter: function (d) { back = (d && d.back) || 'title'; menu.items = (ui.list || []).slice(0, 8).map(function (gm) { return { key: 'g_' + gm.id, label: function () { return gm.title || String(gm.id); }, onSelect: function () { self.openGame(gm); } }; });
+        menu.items.push({ key: 'back', label: function () { return self.t('ui_back'); }, onSelect: function () { self.goto(back); } }); menu.sel = 0; },
+      press: function (a) { if (a === 'pause') this.goto(back); },
+      draw: function () { var th = this.th(); this.clear(); this.text(this.t('ui_games'), this.W / 2, 60, { size: Math.min(30, this.W / 12), align: 'center', color: th.accent, maxWidth: this.W - 24 });
+        menu.draw(this, this.W / 2, 120, 30); } });
+    return this;
+  };
+  Engine.prototype._syncGames = function () {
+    var ui = this._gamesUi, P = this.platform, self = this; if (!ui) return;
+    var avail = !!(P && P.inited && P.games && P.games.available);
+    if (avail && ui.list == null && !ui.loading) { ui.loading = true; this.ownGames().then(function (r) { ui.loading = false; ui.list = (r && r.games) || []; self._syncGames(); }, function () { ui.loading = false; ui.list = []; }); }
+    this._menuItem(ui.cfg.scene, ui.item, avail && !!(ui.list && ui.list.length), ui.cfg.after);
+  };
+  // g.useShortcut({ scene: 'title' }) — пункт «Ярлык на рабочий стол», если площадка позволяет (Яндекс shortcut.canShowPrompt,
+  // GamePush app.canAddShortcut); после добавления пункт исчезает (проверка заново).
+  Engine.prototype.useShortcut = function (cfg) {
+    cfg = Object.assign({ scene: 'title', key: 'shortcut', after: 'end' }, cfg || {}); var self = this;
+    var ui = this._scUi = { cfg: cfg, can: null, checking: false };
+    ui.item = { key: cfg.key, label: function () { return self.t('ui_shortcut'); }, onSelect: function () {
+      self.addShortcut().then(function (ok) { if (ok) self.audio.beep(1000, 0.12, 'triangle'); ui.can = null; self._syncShortcut(); }); } };
+    return this;
+  };
+  Engine.prototype._syncShortcut = function () {
+    var ui = this._scUi, P = this.platform, self = this; if (!ui) return;
+    var avail = !!(P && P.inited && P.shortcut && P.shortcut.canAdd);
+    if (avail && ui.can == null && !ui.checking) { ui.checking = true; P.shortcut.canAdd().then(function (v) { ui.checking = false; ui.can = !!v; self._syncShortcut(); }, function () { ui.checking = false; ui.can = false; }); }
+    this._menuItem(ui.cfg.scene, ui.item, avail && ui.can === true, ui.cfg.after);
+  };
+  // g.useReview({ minSessions: 3, gap: 3, success() }) — просьба оценить игру (окно площадки) «в естественный момент, без навязчивости»:
+  // только по действию игрока при выходе с экрана победы или после нового рекорда (success() по умолчанию: сцена win или рекорд в этой
+  // партии), не раньше minSessions-й сессии (запуска страницы), не чаще раза в gap сессий, после отправленной оценки — больше никогда;
+  // окно площадки — раз за сессию (адаптер). Если окно не открылось — как обычно, межстраничная реклама. Хранение — arcade.review.<gameId>.
+  // g.maybeReview() → Promise<bool> — то же из своего места игры (между уровнями и т. п.).
+  Engine.prototype.useReview = function (cfg) {
+    cfg = Object.assign({ minSessions: 3, gap: 3 }, cfg || {}); var k = 'arcade.review.' + this.gameId, st;
+    try { st = JSON.parse(Store.get(k, '{}')) || {}; } catch (e) { st = {}; }
+    st.n = (st.n | 0) + 1; Store.set(k, JSON.stringify(st));
+    this._revUi = { cfg: cfg, key: k, st: st };
+    return this;
+  };
+  Engine.prototype._reviewDue = function () {
+    var r = this._revUi, P = this.platform; if (!r || !P || !P.inited || !P.review || r.asked) return false; var st = r.st;
+    return !st.done && st.n >= r.cfg.minSessions && (st.ask == null || st.n - st.ask >= r.cfg.gap);
+  };
+  Engine.prototype.maybeReview = function () {
+    if (!this._reviewDue()) return Promise.resolve(false); var r = this._revUi, self = this; r.asked = true;
+    return this.platform.review.canRequest().then(function (can) {
+      if (!can) return false; r.st.ask = r.st.n; Store.set(r.key, JSON.stringify(r.st));
+      return self.requestReview().then(function (sent) { if (sent) { r.st.done = 1; Store.set(r.key, JSON.stringify(r.st)); } return true; });
+    }, function () { return false; });
+  };
+  // выход с финала (действие игрока): оценка (если пора и был успех), иначе межстраничная
+  Engine.prototype._finalExit = function (scene) {
+    var r = this._revUi, ok = r && this._reviewDue() && (r.cfg.success ? !!r.cfg.success.call(this, scene) : (scene === 'win' || !!this._newBest));
+    if (!ok) { this._adBreak(); return; }
+    var self = this; this.maybeReview().then(function (shown) { if (!shown) self._adBreak(); });
   };
   // Стики-баннер. Показ из игры — только если игра попросила (opts.sticky: true; сначала проверить, что баннер не закрывает кнопки),
   // есть реклама, не куплено «Без рекламы» и флаг ad_sticky не '0'. Куплено «Без рекламы» или ad_sticky = '0' — баннер скрывается
@@ -707,7 +913,7 @@
     this.scene('continue', { realtime: true, _menu: menu, enter: function () { menu.sel = 0; msg = 0; this.audio.beep(330, 0.12, 'triangle'); },
       update: function (dt) { if (msg > 0) { msg -= dt; if (msg <= 0) this.goto('gameover'); } },
       draw: function () { if (this.scenes.play && this.scenes.play.draw) this.scenes.play.draw.call(this, this.ctx); var th = this.th();
-        this.overlay('', this.t('score', 'Счёт') + ': ' + (this.state.score | 0), th.warn);
+        this.overlay('', this.t('score') + ': ' + (this.state.score | 0), th.warn);
         var tt = this.t('rw_title'), sz = Math.min(40, this.W / 9); this.ctx.font = '800 ' + sz + 'px ' + th.font;
         while (sz > 14 && this.ctx.measureText(tt).width > this.W - 24) { sz -= 2; this.ctx.font = '800 ' + sz + 'px ' + th.font; }
         this.text(tt, this.W / 2, this.H / 2 - 20, { size: sz, align: 'center', color: th.warn });
@@ -721,7 +927,7 @@
   Engine.prototype.useRewardedBonus = function (cfg) {
     cfg = Object.assign({ key: 'rwBonus', scene: 'pause', once: true }, cfg || {}); var self = this;
     (this._bonuses = this._bonuses || []).push(cfg); cfg.used = false;
-    cfg.item = { key: cfg.key, label: function () { return typeof cfg.label === 'function' ? cfg.label.call(self) : (cfg.label && (cfg.label[self.i18n.lang] || cfg.label.ru)) || self.t(cfg.key); },
+    cfg.item = { key: cfg.key, label: function () { return typeof cfg.label === 'function' ? cfg.label.call(self) : (cfg.label && self.i18n.pick(cfg.label)) || self.t(cfg.key); },
       onSelect: function () { if (self._rwBusy) return; self.rewarded({ reward: function () { if (cfg.once) cfg.used = true; try { cfg.grant.call(self); } catch (e) {} } }).then(function (ok) { if (ok) self.audio.beep(1000, 0.15, 'triangle'); self._syncBonuses(); }); } };
     this._syncBonuses(); return this;
   };
@@ -732,6 +938,9 @@
       if (want && !has) m.add(b.item, b.scene === 'pause' ? { before: 'menu' } : { after: 'play' }); else if (!want && has) m.remove(b.key);
     });
     if (this._shop) this._syncShop();
+    if (this._lbUi) this._menuItem(this._lbUi.cfg.scene, this._lbUi.item, this.leaderboard.available(), this._lbUi.cfg.after);
+    if (this._gamesUi) this._syncGames();
+    if (this._scUi) this._syncShortcut();
   };
   Engine.prototype._applyPlatformLinks = function () {
     var PF = this.platform; if (!PF || PF.allowExternalLinks !== false || !doc || !doc.querySelectorAll) return;
@@ -745,10 +954,10 @@
   Engine.prototype.setTheme = function (name) { this.themeName = name; Store.set('arcade.theme', name); this._applyPixel(); };
   Engine.prototype.toggleTheme = function () { var order = ['modern', 'retro']; if (this.themesMap.neon && this._allowNeon) order.push('neon'); this.setTheme(order[(order.indexOf(this.themeName) + 1) % order.length]); return this.themeName; };
   Engine.prototype.loadBest = function () { return Store.getNum('arcade.best.' + this.gameId, 0); };
-  Engine.prototype.saveBest = function () { if (this.state.score > this.state.best) { this.state.best = this.state.score; Store.set('arcade.best.' + this.gameId, String(this.state.best)); if (this.platform) this.platform.save('best.' + this.gameId, this.state.best); if (this.leaderboard.auto) this.leaderboard.submit(this.state.best); } };
+  Engine.prototype.saveBest = function () { if (this.state.score > this.state.best) { this._newBest = true; this.state.best = this.state.score; Store.set('arcade.best.' + this.gameId, String(this.state.best)); if (this.platform) this.platform.save('best.' + this.gameId, this.state.best); if (this.leaderboard.auto) this.leaderboard.submit(this.state.best); } };
 
   Engine.prototype.scene = function (name, def) { this.scenes[name] = def; return this; };
-  Engine.prototype.goto = function (name, data) { this.current = this.scenes[name]; this._sceneName = name; this._acc = 0; if (name === 'play') this.input._armedAt = now(); if (this.platform) { if (name === 'play') this.platform.gameplayStart(); else this.platform.gameplayStop(); } this._musicScene(name, data || {}); if (this.current && this.current.enter) this.current.enter.call(this, data || {}); if (this._bonuses || this._shop) this._syncBonuses(); };
+  Engine.prototype.goto = function (name, data) { this.current = this.scenes[name]; this._sceneName = name; this._acc = 0; if (name === 'play') this.input._armedAt = now(); if (this.platform) { if (name === 'play') this.platform.gameplayStart(); else this.platform.gameplayStop(); } this._musicScene(name, data || {}); if (this.current && this.current.enter) this.current.enter.call(this, data || {}); if (this._bonuses || this._shop || this._lbUi || this._gamesUi || this._scUi) this._syncBonuses(); };
   // Музыка следует за сценой (если musicAuto): play — играет (resume — с того же места, иначе с начала),
   // pause — пауза, title/win/gameover и прочие — стоп (на win/gameover звучит SFX движка, музыка не мешает).
   Engine.prototype._musicScene = function (name, data) {
@@ -793,6 +1002,7 @@
       if (sc.realtime) { if (sc.update) sc.update.call(self, dt); }
       else { self._acc += dt; while (self._acc >= self.step) { self._acc -= self.step; if (sc.update) sc.update.call(self, self.step); } }
       self.ctx.save(); if (sc.draw) sc.draw.call(self, self.ctx); self.particles.draw(self.ctx); self.ctx.restore();
+      var fm = self._flashMsg; if (fm) { fm.t -= dt; if (fm.t <= 0) self._flashMsg = null; else { var fth = self.th(); self.ctx.save(); self.ctx.globalAlpha = Math.min(1, fm.t * 3); self.ctx.fillStyle = 'rgba(6,8,12,.86)'; self.ctx.fillRect(0, self.H / 2 - 28, self.W, 44); self.text(fm.text, self.W / 2, self.H / 2, { size: 18, align: 'center', color: fth.good, maxWidth: self.W - 24 }); self.ctx.restore(); } }
     };
     this._raf = requestAnimationFrame(loop); return this;
   };
@@ -802,19 +1012,25 @@
   Engine.prototype.clear = function (c) { var th = this.th(); this.ctx.fillStyle = c || th.bg; this.ctx.fillRect(0, 0, this.W, this.H); };
   Engine.prototype.rect = function (x, y, w, h, c) { this.ctx.fillStyle = c; this.ctx.fillRect(x, y, w, h); };
   Engine.prototype.sprite = function (img, x, y, w, h) { if (img) this.ctx.drawImage(img, x, y, w, h); };
-  Engine.prototype.text = function (s, x, y, o) { o = o || {}; var c = this.ctx, th = this.th(); c.fillStyle = o.color || th.ink; c.font = (o.weight || 800) + ' ' + (o.size || 16) + 'px ' + (o.font || th.font); c.textAlign = o.align || 'left'; c.textBaseline = o.baseline || 'alphabetic'; c.fillText(s, x, y); };
+  // v2.8: o.maxWidth — кегль уменьшается (до o.minSize, по умолч. 9), пока строка не влезет (длинные строки TR/ES/PT и т. п.)
+  Engine.prototype.fitSize = function (s, maxW, size, min, weight, font) {
+    var c = this.ctx; if (!c || typeof c.measureText !== 'function' || !(maxW > 0)) return size; var f = font || this.th().font; min = min || 9; s = String(s);
+    while (size > min) { c.font = (weight || 800) + ' ' + size + 'px ' + f; var m = c.measureText(s); if (!m || !(m.width > maxW)) break; size--; }
+    return size;
+  };
+  Engine.prototype.text = function (s, x, y, o) { o = o || {}; var c = this.ctx, th = this.th(), sz = o.size || 16; if (o.maxWidth) sz = this.fitSize(s, o.maxWidth, sz, o.minSize, o.weight || 800, o.font || th.font); c.fillStyle = o.color || th.ink; c.font = (o.weight || 800) + ' ' + sz + 'px ' + (o.font || th.font); c.textAlign = o.align || 'left'; c.textBaseline = o.baseline || 'alphabetic'; c.fillText(s, x, y); };
   Engine.prototype.hud = function (o) {
     o = o || this.state; var th = this.th(); this.ctx.save();
-    this.text(this.t('score', 'Счёт') + ' ' + (o.score | 0), 10, 22, { size: 14 });
-    if (o.level != null) this.text(this.t('level', 'Ур.') + ' ' + o.level, this.W / 2, 22, { size: 14, align: 'center' });
+    this.text(this.t('score') + ' ' + (o.score | 0), 10, 22, { size: 14 });
+    if (o.level != null) this.text(this.t('level') + ' ' + o.level, this.W / 2, 22, { size: 14, align: 'center' });
     if (o.lives != null) this.text('♥ ' + o.lives, this.W - 10, 22, { size: 14, align: 'right', color: th.bad });
     this.ctx.restore();
   };
   Engine.prototype.overlay = function (title, sub, color) {
     var th = this.th(), c = this.ctx; c.save();
     c.fillStyle = 'rgba(6,8,12,.82)'; c.fillRect(0, 0, this.W, this.H);
-    this.text(title, this.W / 2, this.H / 2 - 20, { size: Math.min(44, this.W / 9), align: 'center', color: color || th.accent });
-    if (sub) this.text(sub, this.W / 2, this.H / 2 + 14, { size: 15, align: 'center', color: th.muted, weight: 600 });
+    this.text(title, this.W / 2, this.H / 2 - 20, { size: Math.floor(Math.min(44, this.W / 9)), align: 'center', color: color || th.accent, maxWidth: this.W - 24, minSize: 14 });
+    if (sub) this.text(sub, this.W / 2, this.H / 2 + 14, { size: 15, align: 'center', color: th.muted, weight: 600, maxWidth: this.W - 24, minSize: 10 });
     c.restore();
   };
 
@@ -823,26 +1039,30 @@
     cfg = cfg || {}; var self = this; this._allowNeon = !!cfg.neon;
     // заголовок/подзаголовок заставки: cfg.title/subtitle (как раньше), но в не-RU языке строка таблицы
     // (strings.en.title / .subtitle) важнее литерала из cfg — игры передают сюда русский текст.
-    var loc = function (k) { return (self.i18n.lang !== 'ru' && self.i18n.has(k)) ? self.t(k) : cfg[k]; };
-    var startPlay = function () { self.state.score = 0; self.state.lives = cfg.lives || 3; self.state.level = 1; self._contUsed = false; (self._bonuses || []).forEach(function (b) { b.used = false; }); self.goto('play'); };
+    var loc = function (k) { var l = self.i18n.lang; return (l !== 'ru' && (self.i18n.has(k) || self.i18n.has(k, 'en'))) ? self.t(k) : cfg[k]; };
+    var startPlay = function () { self.state.score = 0; self.state.lives = cfg.lives || 3; self.state.level = 1; self.resetRun(); self.goto('play'); };
     var titleMenu = new Menu([
-      { key: 'play', label: function () { return self.t('play', 'Играть'); }, onSelect: startPlay },
-      { key: 'lang', label: function () { return (self.t('language', 'Язык') + ': ' + (self.i18n.lang === 'ru' ? 'RU' : 'EN')); }, onSelect: function () { self.i18n.toggle(); } },
-      { key: 'theme', label: function () { return (self.t('theme', 'Тема') + ': ' + self.themeName); }, onSelect: function () { self.toggleTheme(); } },
-      { key: 'sound', label: function () { return (self.t('sound', 'Звук') + ': ' + (self.audio.enabled ? self.t('on', 'вкл') : self.t('off', 'выкл'))); }, onSelect: function () { self.audio.toggle(); } },
+      { key: 'play', label: function () { return self.t('play'); }, onSelect: startPlay },
+      { key: 'lang', label: function () { return (self.t('language') + ': ' + self.i18n.code()); }, onSelect: function () { self.i18n.toggle(); } },
+      { key: 'theme', label: function () { return (self.t('theme') + ': ' + self.themeName); }, onSelect: function () { self.toggleTheme(); } },
+      { key: 'sound', label: function () { return (self.t('sound') + ': ' + (self.audio.enabled ? self.t('on') : self.t('off'))); }, onSelect: function () { self.audio.toggle(); } },
     ]);
+    this._startPlay = startPlay;
     this.scene('title', { realtime: true, _menu: titleMenu, enter: function () { this.audio.beep(520, 0.08); },
-      draw: function () { this.clear(); var tl = loc('title'), st = loc('subtitle'); this.text(tl || this.t('title', 'ИГРА'), this.W / 2, this.H / 2 - 70, { size: Math.min(40, this.W / 9), align: 'center', color: this.th().accent }); if (st) this.text(st, this.W / 2, this.H / 2 - 42, { size: 13, align: 'center', color: this.th().muted, weight: 600 }); titleMenu.draw(this, this.W / 2, this.H / 2, 30); if (this.state.best) this.text((this.t('best', 'Рекорд')) + ': ' + this.state.best, this.W / 2, this.H - 20, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); this.menu._drawHint('title'); } });
+      draw: function () { this.clear(); var tl = loc('title'), st = loc('subtitle'), W = this.W, H = this.H; this.text(tl || this.t('title'), W / 2, H / 2 - 70, { size: Math.min(40, W / 9), align: 'center', color: this.th().accent, maxWidth: W - 24, minSize: 14 }); if (st) this.text(st, W / 2, H / 2 - 42, { size: 13, align: 'center', color: this.th().muted, weight: 600, maxWidth: W - 24 });
+        // v2.8: много пунктов (лидеры, «Без рекламы», свои игры, ярлык) — шаг меню сжимается, чтобы не залезть на подсказку внизу
+        var n = titleMenu.items.length, lh = 30; if (n > 1 && H / 2 + (n - 1) * 30 > H - 96) lh = Math.max(22, (H - 96 - H / 2) / (n - 1));
+        titleMenu.draw(this, W / 2, H / 2, lh); if (this.state.best) this.text((this.t('best')) + ': ' + this.state.best, W / 2, H - 20, { size: 12, align: 'center', color: this.th().muted, weight: 600, maxWidth: W - 24 }); this.menu._drawHint('title'); } });
     this.menu._register('title', titleMenu);
     var pauseMenu = new Menu([
-      { key: 'resume', label: function () { return self.t('resume', 'Продолжить'); }, onSelect: function () { self.goto('play', { resume: true }); } },
-      { key: 'sound', label: function () { return (self.t('sound', 'Звук') + ': ' + (self.audio.enabled ? self.t('on', 'вкл') : self.t('off', 'выкл'))); }, onSelect: function () { self.audio.toggle(); } },
-      { key: 'menu', label: function () { return self.t('menu', 'В меню'); }, onSelect: function () { self.goto('title'); } },
+      { key: 'resume', label: function () { return self.t('resume'); }, onSelect: function () { self.goto('play', { resume: true }); } },
+      { key: 'sound', label: function () { return (self.t('sound') + ': ' + (self.audio.enabled ? self.t('on') : self.t('off'))); }, onSelect: function () { self.audio.toggle(); } },
+      { key: 'menu', label: function () { return self.t('menu'); }, onSelect: function () { self.goto('title'); } },
     ]);
-    this.scene('pause', { realtime: true, _menu: pauseMenu, draw: function () { if (this.scenes.play && this.scenes.play.draw) this.scenes.play.draw.call(this, this.ctx); this.overlay(this.t('pause', 'ПАУЗА'), '', this.th().warn); pauseMenu.draw(this, this.W / 2, this.H / 2 + 20, 28); this.menu._drawHint('pause'); } });
+    this.scene('pause', { realtime: true, _menu: pauseMenu, draw: function () { if (this.scenes.play && this.scenes.play.draw) this.scenes.play.draw.call(this, this.ctx); this.overlay(this.t('pause'), '', this.th().warn); pauseMenu.draw(this, this.W / 2, this.H / 2 + 20, 28); this.menu._drawHint('pause'); } });
     this.menu._register('pause', pauseMenu);
-    this.scene('win', { realtime: true, enter: function () { this.saveBest(); this.audio.beep(1200, 0.2, 'triangle'); }, draw: function () { this.clear(); this.overlay(this.t('win', 'ПОБЕДА!'), this.t('score', 'Счёт') + ': ' + (this.state.score | 0) + (this.state.best ? '   ' + this.t('best', 'Рекорд') + ': ' + this.state.best : ''), this.th().good); this.text(this.t('tapstart', 'пробел / тап'), this.W / 2, this.H - 24, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); }, press: function () { this.goto('title'); this._adBreak(); } });
-    this.scene('gameover', { realtime: true, enter: function () { this.saveBest(); this.audio.beep(140, 0.3, 'sawtooth'); }, draw: function () { this.clear(); this.overlay(this.t('gameover', 'КОНЕЦ ИГРЫ'), this.t('score', 'Счёт') + ': ' + (this.state.score | 0) + (this.state.best ? '   ' + this.t('best', 'Рекорд') + ': ' + this.state.best : ''), this.th().bad); this.text(this.t('tapstart', 'пробел / тап'), this.W / 2, this.H - 24, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); }, press: function () { this.goto('title'); this._adBreak(); } });
+    this.scene('win', { realtime: true, enter: function () { this.saveBest(); this.audio.beep(1200, 0.2, 'triangle'); }, draw: function () { this.clear(); this.overlay(this.t('win'), this.t('score') + ': ' + (this.state.score | 0) + (this.state.best ? '   ' + this.t('best') + ': ' + this.state.best : ''), this.th().good); this.text(this.t('tapstart'), this.W / 2, this.H - 24, { size: 12, align: 'center', color: this.th().muted, weight: 600, maxWidth: this.W - 24 }); }, press: function () { this.goto('title'); this._finalExit('win'); } });
+    this.scene('gameover', { realtime: true, enter: function () { this.saveBest(); this.audio.beep(140, 0.3, 'sawtooth'); }, draw: function () { this.clear(); this.overlay(this.t('gameover'), this.t('score') + ': ' + (this.state.score | 0) + (this.state.best ? '   ' + this.t('best') + ': ' + this.state.best : ''), this.th().bad); this.text(this.t('tapstart'), this.W / 2, this.H - 24, { size: 12, align: 'center', color: this.th().muted, weight: 600, maxWidth: this.W - 24 }); }, press: function () { this.goto('title'); this._finalExit('gameover'); } });
     return this;
   };
   // Локальный кооп «1–2 игрока за одной клавиатурой» поверх g.input.setPlayers (cfg — те же поля + hint, pad):
@@ -864,10 +1084,10 @@
       if (e.code === 'Digit1' || e.code === 'Numpad1') setN(1); else if (e.code === 'Digit2' || e.code === 'Numpad2') setN(2);
     }, true);
     this.menu.addItem({ key: 'players', after: 'play',
-      label: function () { return self.t('players', 'Игроки') + ': ' + inp.playerCount + (inp.touchOnly ? ' · ' + self.t('touch1p', 'тач — 1 игрок') : ''); },
+      label: function () { return self.t('players') + ': ' + inp.playerCount + (inp.touchOnly ? ' · ' + self.t('touch1p') : ''); },
       onSelect: function () { setN(inp.playerCount === 2 ? 1 : 2); } });
     if (cfg.hint) this.menu.setHint(function () {
-      var lines = cfg.hint[self.i18n.lang] || cfg.hint.ru || [];
+      var lines = self.i18n.pick(cfg.hint) || [];
       if (inp.touchOnly) lines = lines.slice(0, 1);
       return lines.map(function (s, i) { return { text: s, dim: !(i === 0 || (i === 1 && inp.playerCount === 2)) }; });
     }, 'title');
@@ -879,6 +1099,8 @@
     this.players = { count: function () { return inp.playerCount; }, set: setN };
     return this.players;
   };
+  // Новая партия (v2.8): сброс «один раз за партию» (ещё шанс, бонусы за рекламу) и флага «рекорд в этой партии» — для игр со своим «Играть».
+  Engine.prototype.resetRun = function () { this._contUsed = false; this._newBest = false; (this._bonuses || []).forEach(function (b) { b.used = false; }); return this; };
   Engine.prototype.win = function () { this.goto('win'); };
   Engine.prototype.gameover = function () { var c = this._cont; if (c && !this._contUsed && this.flags.get('rewarded_continue') !== '0' && this.scenes['continue'] && this.canRewarded() && (!c.available || c.available.call(this))) { this.goto('continue'); return; } this.goto('gameover'); };
   Engine.prototype.pause = function () { this.goto('pause'); };
@@ -893,7 +1115,7 @@
 
   // Arcade.tracks[gameId] = track — так js/music.js игры регистрирует свою мелодию до createGame.
   var Arcade = (global.Arcade && global.Arcade.tracks) ? global.Arcade : {};
-  Object.assign(Arcade, { createGame: function (o) { var e = new Engine(o); Arcade.last = e; return e; }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, version: '2.7.0', catalogRoot: catalogRoot });
+  Object.assign(Arcade, { createGame: function (o) { var e = new Engine(o); Arcade.last = e; return e; }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, version: '2.8.0', catalogRoot: catalogRoot });
   Arcade.tracks = Arcade.tracks || {};
   if (typeof module !== 'undefined' && module.exports) module.exports = Arcade;
   global.Arcade = Arcade;

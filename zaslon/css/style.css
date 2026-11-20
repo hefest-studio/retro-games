@@ -23,4 +23,12 @@ a.back:hover{color:var(--accent)}
 .pad button:active{filter:brightness(1.4)}
 .foot{color:var(--mut);font-size:11px;margin:6px 12px 12px;text-align:center;max-width:520px}
 .foot b{color:var(--ink)}
-@media(min-width:760px){.pad{display:none}}
+@media(min-width:760px) and (hover:hover){.pad{display:none}}
+/* тач-устройства: подсказка клавиатуры не нужна — экран целиком под поле и кнопки, без прокрутки (Яндекс 1.10) */
+@media (hover:none) and (pointer:coarse){.foot{display:none}}
+/* телефон лёжа: крестовина слева, огонь и бомба справа — поверх полей по бокам портретного поля */
+@media (max-height:520px) and (orientation:landscape){
+  .wrap{margin-top:26px}
+  .pad{position:fixed;left:0;right:0;bottom:10px;width:100%;max-width:none;margin:0;padding:0 14px;pointer-events:none}
+  .pad>div{pointer-events:auto}
+}

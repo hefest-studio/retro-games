@@ -1,4 +1,4 @@
-/*! Гефест Arcade · platform.js — единый адаптер игровых площадок (Яндекс Игры, GamePush, свой сайт). v1.2.0
+/*! Гефест Arcade · platform.js — единый адаптер игровых площадок (Яндекс Игры, GamePush, свой сайт). v1.3.0
  * vanilla JS, 0 зависимостей. Источник — _shared/platform.js; в игру попадает копией js/platform.js через
  * tools/platform-build.mjs (сборка под площадку). На сайте arcade.hefest.ru игры его не подключают — движок без него
  * работает как раньше. Подключать ДО engine.js: движок (v2.5+) сам находит window.Platform и связывается с ним.
@@ -34,6 +34,7 @@
  *                                         только для вошедшего игрока; GamePush — поле игрока <board> + sync())
  *     .top({ board, limit, around, includeUser }) → Promise<{ entries:[{ rank, score, name, me }], me:{ rank, score }|null }>
  *     .me({ board }) → Promise<{ rank, score, name }|null>  — своё место; .open({ board }) → bool — окно площадки (GamePush)
+ *     .canOpen (1.3)                    есть ли окно лидеров площадки (GamePush — да; Яндекс — нет: таблицу рисует игра)
  *                                         board по умолчанию 'score' (GamePush: поле игрока score = таблица Яндекса «score»)
  *   Platform.flags.get(defaults) → Promise<{ ключ: строка }>  — удалённая конфигурация (Яндекс getFlags, GamePush variables);
  *                                         defaults — значения в игре; .peek(key, def) — синхронно (что известно); .all()
@@ -47,6 +48,7 @@
  *     .purchase(id, payload) → Promise<bool>  — окно покупки (игра на паузе); расходуемые — сразу обработчик + consume
  *     .owned(id) → bool; .onPurchase(fn(id)) → unsubscribe
  *   Platform.games.available; .list() → Promise<{ games:[{ id, title, url, icon, cover }], developerURL }>; .open(game) → bool
+ *                                         (1.3: Яндекс — без текущей игры, environment.app.id; .native — окно коллекции площадки, GamePush)
  *                                         ссылки на свои игры только через SDK (Яндекс 8.4.1; GamePush — коллекции игр)
  *   Platform.sticky.show() / hide() → Promise<bool>  — стики-баннер (Яндекс: управление через API — опция в Консоли)
  *   Platform.setInterstitialGap(sec)      интервал полноэкранной (флаг площадки); не меньше минимума площадки (Яндекс 30, GamePush 180)
@@ -56,7 +58,7 @@
  */
 (function (global) {
   'use strict';
-  var VERSION = '1.2.0', NAMES = { web: 1, yandex: 1, gamepush: 1 };
+  var VERSION = '1.3.0', NAMES = { web: 1, yandex: 1, gamepush: 1 };
   var YANDEX_SDK = '/sdk.js';                                   // Яндекс: относительный путь, отдаёт сама площадка
   var GAMEPUSH_SDK = 'https://gamepush.com/sdk/game-score.js';  // GamePush: загрузчик SDK (?projectId&publicToken&callback)
   var RU_LIKE = { ru: 1, be: 1, uk: 1, kk: 1, uz: 1 };          // носителям этих языков удобнее русская версия
@@ -113,7 +115,7 @@
         cloudLoad: function () { return Promise.resolve(null); }, cloudSave: function () { return Promise.resolve(false); }, lang: function () { return null; },
         // v1.2 — заглушки (web и откат без SDK): всё «недоступно», промисы не падают
         lb: false, lbSubmit: function () { return Promise.resolve(false); }, lbTop: function () { return Promise.resolve({ entries: [], me: null }); },
-        lbMe: function () { return Promise.resolve(null); }, lbOpen: function () { return false; },
+        lbMe: function () { return Promise.resolve(null); }, lbOpen: function () { return false; }, lbNative: false, gamesNative: false,
         flags: function (d) { return Promise.resolve(Object.assign({}, d || {})); }, serverTime: function () { return null; },
         canReview: function () { return Promise.resolve(false); }, review: function () { return Promise.resolve(false); },
         canShortcut: function () { return Promise.resolve(false); }, shortcut: function () { return Promise.resolve(false); },
@@ -179,6 +181,7 @@
             return { entries: entries, me: me };
           });
         },
+        lbOpen: function () { return false; }, lbNative: false, // у Яндекса нет окна лидеров — таблицу рисует игра (движок: сцена «Лидеры»)
         lbMe: function (board) {
           var L = ysdk && ysdk.leaderboards; if (!L) return Promise.resolve(null);
           return Promise.resolve(L.getPlayerEntry(board)).then(function (e) { return e ? { rank: e.rank, score: e.score, name: (e.player && e.player.publicName) || '' } : null; },
@@ -208,8 +211,9 @@
         payConsume: function (it) { return this._p().then(function (p) { return p.consumePurchase(it.token); }).then(function () { return true; }); },
         // Свои игры: features.GamesAPI.getAllGames() → { games:[{ appID, title, url, coverURL, iconURL }], developerURL }
         get games() { return !!(ysdk && ysdk.features && ysdk.features.GamesAPI); },
-        gamesList: function () { return Promise.resolve(ysdk.features.GamesAPI.getAllGames()).then(function (r) {
-          return { games: ((r && r.games) || []).map(function (g) { return { id: g.appID, title: g.title, url: g.url, icon: g.iconURL, cover: g.coverURL }; }), developerURL: (r && r.developerURL) || null }; }); },
+        gamesList: function () { var cur = safe(function () { return ysdk.environment && ysdk.environment.app && ysdk.environment.app.id; }); // 1.3: без текущей игры
+          return Promise.resolve(ysdk.features.GamesAPI.getAllGames()).then(function (r) {
+          return { games: ((r && r.games) || []).filter(function (g) { return cur == null || String(g.appID) !== String(cur); }).map(function (g) { return { id: g.appID, title: g.title, url: g.url, icon: g.iconURL, cover: g.coverURL }; }), developerURL: (r && r.developerURL) || null }; }); },
         gamesOpen: function (g) { var u = g && g.url; if (!u || !/^https:\/\/([a-z0-9-]+\.)*(yandex\.(ru|com|by|kz|uz|com\.tr|net)|playhop\.com)\//i.test(u)) return false; // только каталог Яндекс Игр (8.4.1)
           return !!safe(function () { return win.open(u, '_blank'); }); },
         // Стики-баннер: adv.showBannerAdv() / hideBannerAdv() → { stickyAdvIsShowing }. По умолчанию его ведёт площадка; методы
@@ -252,7 +256,7 @@
         // Лидерборд GamePush строится по числовому полю игрока (по умолчанию score; при sync() поле score уходит и в таблицу
         // Яндекса с техническим именем «score»). fetch({ orderBy, order, limit, withMe }) → { players, topPlayers, player };
         // fetchPlayerRating({ orderBy }) → { player:{ position, … } }; open({ orderBy, withMe }) — окно площадки.
-        get lb() { return !!(gp && gp.leaderboard); },
+        get lb() { return !!(gp && gp.leaderboard); }, get lbNative() { return !!(gp && gp.leaderboard && gp.leaderboard.open); },
         lbSubmit: function (board, score) {
           if (!gp || !gp.player) return Promise.resolve(false);
           return Promise.resolve(safe(function () { var cur = +gp.player.get(board) || 0; if (score <= cur) return true; gp.player.set(board, score); return gp.player.sync(); })).then(function () { return true; });
@@ -290,7 +294,7 @@
         payBuy: function (id, payload) { var o = { tag: id }; if (payload != null) o.payload = payload; return Promise.resolve(gp.payments.purchase(o)).then(function (r) { return r && (r.purchase || r.product) ? { id: id } : null; }); },
         payConsume: function (it) { return Promise.resolve(gp.payments.consume({ tag: it.id })).then(function () { return true; }); },
         // Коллекции игр: gamesCollections.fetch({ tag }) → { games:[{ id, name, description, icon, url }] }; open({ tag }) — окно площадки
-        get games() { return !!(gp && gp.gamesCollections); },
+        get games() { return !!(gp && gp.gamesCollections); }, get gamesNative() { return !!(gp && gp.gamesCollections && gp.gamesCollections.open); },
         gamesList: function () { return Promise.resolve(gp.gamesCollections.fetch({ tag: 'ALL' })).then(function (r) {
           return { games: ((r && r.games) || []).map(function (g) { return { id: g.id, title: g.name, url: g.url, icon: g.icon, cover: null }; }), developerURL: null }; }); },
         gamesOpen: function () { if (!gp || !gp.gamesCollections) return false; safe(function () { gp.gamesCollections.open({ tag: 'ALL' }); }); return true; },
@@ -321,6 +325,7 @@
       }).then(function () {
         P.inited = true; P.allowExternalLinks = be.links;
         LB.available = !!be.lb; PAY.available = !!be.pay; P.games.available = !!be.games; // v1.2: что умеет площадка
+        LB.canOpen = !!(be.lb && be.lbNative); P.games.native = !!(be.games && be.gamesNative); // 1.3: окна площадки (GamePush)
         if (readyWanted) P.ready();
         if (wantActive && !active) { active = true; be.start(); }
         return P;
@@ -372,7 +377,7 @@
 
     var lbLast = -Infinity, lbQ = null;
     var LB = P.leaderboard = {
-      available: false, board: 'score',
+      available: false, canOpen: false, board: 'score',
       // Яндекс: setScore не чаще 1 раза в секунду — частые вызовы склеиваются, уходит последний (наибольший) счёт
       submit: function (score, o) {
         o = o || {}; score = Math.max(0, Math.round(+score || 0)); var board = o.board || LB.board;
@@ -444,7 +449,7 @@
     };
 
     P.games = {
-      available: false,
+      available: false, native: false,
       list: function () { return after(function () { return be.games ? be.gamesList() : { games: [], developerURL: null }; }, { games: [], developerURL: null }); },
       open: function (g) { return !!(P.inited && be.games && safe(function () { return be.gamesOpen(g); })); }
     };

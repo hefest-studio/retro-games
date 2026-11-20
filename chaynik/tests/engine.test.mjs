@@ -13,7 +13,7 @@ const fakeCtx = () => new Proxy({}, { get: (o, k) => k in o ? o[k] : (k === 'cre
 const sandbox = { console, Math, setTimeout: () => 0, setInterval: () => 0, clearInterval(){}, document: { createElement: () => ({ width: 0, height: 0, getContext: () => fakeCtx() }) } };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-for (const f of ['engine.js', 'js/music.js', 'js/i18n.js', 'js/levels.js', 'js/game.js', 'js/audio.js', 'js/render.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
+for (const f of ['engine.js', 'js/music.js', 'js/i18n.js', 'js/levels.js', 'js/game.js', 'js/audio.js', 'js/render.js', 'js/meta.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const CH = sandbox.CHAYNIK, L = CH.logic, LVL = CH.levels, K = L.K, T = LVL.T, C = LVL.C, PZ = CH.puzzle, dt = 1 / 60;
 const { playLevel, playRace, playPuzzle, playFly, playBoss, mulberry32 } = await import('./bot.mjs');
 
@@ -205,6 +205,33 @@ test('i18n: у RU и EN одинаковые ключи; есть названи
   const ru = Object.keys(CH.STR.ru).sort(), en = Object.keys(CH.STR.en).sort(); eq(ru.join(','), en.join(','));
   for (let n = 1; n <= 6; n++) ok(CH.STR.ru['l' + n] && CH.STR.en['g' + n]);
   ['boil', 'crack', 'magnet', 'fall', 'cold', 'pop', 'race', 'woke_crunch', 'woke_melt', 'woke_puff', 'woke_alarm'].forEach(k => ok(CH.STR.ru['d_' + k] && CH.STR.en['d_' + k], k));
+});
+test('i18n TR/ES/PT: те же ключи, что у RU; плейсхолдеры {n} сохранены; EN-название KETTLECLANK во всех нерусских таблицах', () => {
+  const ru = Object.keys(CH.STR.ru).sort().join(',');
+  for (const l of ['tr', 'es', 'pt']) { eq(Object.keys(CH.STR[l]).sort().join(','), ru, l);
+    for (const k of Object.keys(CH.STR.ru)) { if (CH.STR.ru[k].includes('{n}')) ok(CH.STR[l][k].includes('{n}'), l + '.' + k); ok(String(CH.STR[l][k]).trim(), l + '.' + k + ' пусто'); } }
+  for (const l of ['en', 'tr', 'es', 'pt']) eq(CH.STR[l].title, 'KETTLECLANK', l);
+});
+test('мета: звёзды (пройден / без потерь / быстрее нормы), открытие уровней, сохранение, слияние max', () => {
+  const M = CH.meta, mem = {}, st = { get: k => (k in mem ? mem[k] : null), set: (k, v) => { mem[k] = v; } }, P = M.Progress(st);
+  eq(M.LEVELS, LVL.COUNT); eq(M.PAR.join(','), [1, 2, 3, 4, 5, 6].map(n => L.PAR[n]).join(','), 'нормы = PAR логики');
+  eq(M.stars({ level: 1, time: 10, lost: 0 }).n, 3); eq(M.stars({ level: 1, time: 999, lost: 0 }).n, 2); eq(M.stars({ level: 1, time: 999, lost: 2 }).n, 1);
+  eq(P.maxUnlocked(), 1); ok(!P.unlocked(2)); ok(P.record(1, 1)); ok(P.unlocked(2)); eq(P.maxUnlocked(), 2);
+  ok(!P.record(1, 1), 'не улучшено'); ok(P.record(1, 3)); eq(P.get(1), 3); eq(mem['arcade.chaynik.stars.1'], '3');
+  eq(P.next(2, 1), 1); eq(P.next(1, -1), 2); eq(P.total(), 3);
+  const P2 = M.Progress(st); eq(P2.get(1), 3, 'восстановление');
+  mem['arcade.chaynik.stars.1'] = String(Math.max(+mem['arcade.chaynik.stars.1'], 2)); eq(P2.get(1), 3, 'слияние max не теряет звёзд');
+});
+test('старт с выбранного уровня; событие clear несёт время и признак «без потерь» для звёзд', () => {
+  const a = mk(4); eq(a.S.level, 4); eq(a.S.kind, 'puzzle');
+  const b = mk(2); run(b.game, 0.5); b.game._clear(); const c = b.last('clear').d; eq(c.level, 2); ok(c.time > 0 && c.nb > 0, JSON.stringify(c));
+  const r = CH.meta.stars({ level: c.level, time: c.time, lost: c.nb ? 0 : 1 }); eq(r.n, 3);
+});
+test('реклама за награду: reviveAd — только после «конец игры», 1 жизнь, тот же уровень, счёт сохраняется; addLife — до 5', () => {
+  const { game, S } = mk(1); noFoes(S); S.score = 777; ok(!game.reviveAd(), 'не во время игры');
+  S.lives = 1; game._die('fall'); run(game, 2.2); eq(S.phase, 'over');
+  ok(game.reviveAd()); eq(S.phase, 'play'); eq(S.lives, 1); eq(S.level, 1); eq(S.score, 777); ok(S.hero && S.hero.inv > 0, 'неуязвимость после возврата');
+  S.lives = 4; ok(game.addLife()); eq(S.lives, 5); ok(!game.addLife(), 'не выше 5'); eq(S.lives, 5);
 });
 test('рендер: все режимы и смерти рисуются без исключений в обеих темах', () => {
   const g = { themeName: 'modern', time: 1, th: () => ({ ink: '#fff', muted: '#aaa', accent: '#fa0', bad: '#f00', good: '#0f0' }), t: k => k, i18n: { lang: 'ru' } };

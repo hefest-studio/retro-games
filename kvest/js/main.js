@@ -26,6 +26,7 @@
   var storedLang = null; try { storedLang = localStorage.getItem('arcade.lang'); } catch (e) {}
   var LANG = K.pickLang(storedLang, (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]));
   var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'kvest', strings: K.STR, lang: LANG, theme: 'modern', themes: { modern: PAL, retro: PAL } });
+  if (K.Edition.attach) K.Edition.attach(g);   // издание «для площадок» (arcade-full/platform): товар full_game, проверка покупок при запуске
   K.g = g;
   var Store = Arcade.Store, CHS = K.Chapters;
   // хранилище для реестра глав (localStorage может быть недоступен — тогда всё молча в памяти)
@@ -38,7 +39,7 @@
   function chapter() { var c = CHS.get(prog.sel); return c && chapters().indexOf(c) >= 0 ? c : CHS.get('ch1'); }
   function chapterLabel(c) { c = c || chapter(); return c.title ? g.t('chapter') + ' ' + c.n + ' · ' + (c.title[g.i18n.lang] || c.title.ru) : g.t('sub2'); }
   function SAVE() { return CHS.saveKey(chapter().id); }
-  function lastChapter(c) { return K.EDITION === 'full' && !!c && c.n === CHS.TOTAL && !CHS.next(c.id, K.EDITION); }
+  function lastChapter(c) { return (K.EDITION === 'full' || !!(K.Edition.owned && K.Edition.owned())) && !!c && c.n === CHS.TOTAL && !CHS.next(c.id, K.EDITION); }
   function useChapter(c) {
     CHS.use(c.id); var tr = typeof c.music === 'string' ? Arcade.tracks[c.music] : c.music;
     if (tr && g.setMusic) g.setMusic(tr);
@@ -229,12 +230,15 @@
   // ---------- финал главы + экран издания (демо / полная) ----------
   var MenuCtor = menu.constructor, finMenu = new MenuCtor([]), finale = null;
   function openMore() { K.Edition.goMore(global.location); }   // одно действие: та же вкладка (см. edition.js)
+  // издание «для площадок»: остальные главы открываются покупкой внутри площадки (K.Edition.buy → g.purchase('full_game'))
+  function buyLabel() { var pr = K.Edition.price ? K.Edition.price() : ''; return g.t('buy') + (pr ? ' · ' + pr : ''); }
+  function buyRest() { K.Edition.buy(g).then(function (ok) { g.audio.beep(ok ? 1000 : 200, ok ? 0.15 : 0.06, 'triangle'); if (!ok) return; chapterItem(); if (g._sceneName === 'win') buildFinale(); else if (g._sceneName === 'chapters') buildChapters(); }); }
   function buildFinale() {
     var ch = (lastWin && lastWin.ch) || chapter(), nx = CHS.next(ch.id, K.EDITION);
     finale = K.Edition.finale(K.EDITION, nx, ch.n, lastChapter(ch));
     finMenu.items = finale.items.map(function (k) {
-      var act = k === 'more' ? openMore : k === 'credits' ? function () { g.goto('credits', { from: 'win' }); } : k === 'next' ? function () { prog.sel = nx.id; CHS.setProgress(LS, prog); g.goto('play'); } : function () { g.goto('title'); };
-      return { key: k, label: function () { return k === 'next' ? chapterLabel(nx) : g.t(k); }, onSelect: act };
+      var act = k === 'more' ? openMore : k === 'buy' ? buyRest : k === 'credits' ? function () { g.goto('credits', { from: 'win' }); } : k === 'next' ? function () { prog.sel = nx.id; CHS.setProgress(LS, prog); g.goto('play'); } : function () { g.goto('title'); };
+      return { key: k, label: function () { return k === 'next' ? chapterLabel(nx) : k === 'buy' ? buyLabel() : g.t(k); }, onSelect: act };
     });
     if (statsOn()) finMenu.items.push({ key: 'stats', label: function () { return g.t('stats'); }, onSelect: function () { exportStats(); } });
     finMenu.sel = 0;
@@ -252,7 +256,7 @@
     var y = y0 + 90; y += 20 * wrapText(this, wt ? wt.sub : this.t('winSub'), W / 2, y, pw - 60, 20, { size: 15, align: 'center', color: th.ink, weight: 700 });
     if (lastWin) this.text(this.t('solved') + ': ' + lastWin.solved + ' / ' + lastWin.total + (lastWin.time ? '   ·   ' + this.t('time') + ': ' + K.Stats.fmt(lastWin.time) : ''), W / 2, y + 6, { size: 13, align: 'center', color: th.muted, weight: 700 });
     ctx.save(); ctx.strokeStyle = 'rgba(240,191,90,0.35)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x0 + 80, y + 26); ctx.lineTo(x0 + pw - 80, y + 26); ctx.stroke(); ctx.restore();
-    T().drawIcon(ctx, finale.kind === 'demo' ? 'boat' : finale.kind === 'next' ? 'map' : finale.kind === 'end' ? 'tower' : 'book', W / 2, y + 62, 46);
+    T().drawIcon(ctx, finale.kind === 'next' ? 'map' : finale.kind === 'end' ? 'tower' : finale.items.length > 1 ? 'boat' : 'book', W / 2, y + 62, 46);
     var y2 = y + 116, ft = this.t(finale.title).replace('{n}', finale.n || ''); y2 += 30 * wrapText(this, ft, W / 2, y2, pw - 60, 30, { size: 24, align: 'center', color: th.accent, weight: 900 });
     y2 += 19 * wrapText(this, this.t(finale.sub), W / 2, y2 - 4, pw - 90, 19, { size: 14, align: 'center', color: th.ink, weight: 600 });
     finMenu.draw(this, W / 2, Math.max(y2 + 22, y0 + ph - 30 - (finMenu.items.length - 1) * 34), 34);
@@ -269,7 +273,7 @@
     chSum = CHS.summary(LS, K.EDITION, prog);
     chMenu.items = chSum.rows.map(function (r) {
       return { key: r.id, row: r, label: function () { return rowTitle(r); },
-        onSelect: function () { if (!selectChapter(r.id)) { g.audio.beep(200, 0.06); return; } g.goto('title'); } };
+        onSelect: function () { if (!selectChapter(r.id)) { if (K.Edition.paid && K.Edition.paid(r.id) && K.Edition.canBuy()) buyRest(); else g.audio.beep(200, 0.06); return; } g.goto('title'); } };
     });
     chMenu.items.push({ key: 'back', label: function () { return g.t('chBack'); }, onSelect: function () { g.goto('title'); } });
     var cur = chapter(); chMenu.sel = 0; chMenu.items.forEach(function (it, i) { if (it.key === cur.id) chMenu.sel = i; });

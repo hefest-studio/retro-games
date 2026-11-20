@@ -15,7 +15,7 @@
     W: { x: 16, y: 240, nx: 1, ny: 0 }, E: { x: 624, y: 240, nx: -1, ny: 0 }
   };
   var OPP = { N: 'S', S: 'N', W: 'E', E: 'W' };
-  var SPEED = 150, HERO_R = 9, HIT_R = 6, LIVES = 3, CONTINUES = 2, CONT_T = 10;
+  var SPEED = 150, HERO_R = 9, HIT_R = 6, LIVES = 3, CONTINUES = 2, CONT_T = 10, AD_LIVES_MAX = 5;
   var RESPAWN_T = 1.4, INV_SPAWN = 2.5, EXTRA_LIFE = 35000, POWER_T = 14, LAYERS = 8;
   var GUN = {
     base:    { cd: 0.11, speed: 560, dmg: 1 },
@@ -235,7 +235,7 @@
 
     // ----- комнаты -----
     function startStage(n) {
-      S.stage = n; S.map = opts.map || genStage(n, seed); S.path = [[0, 1]]; S.roomNo = 1; S.bossKey = BOSSES[(n - 1) % BOSSES.length].key;
+      S.stage = n; S.stageLost = 0; S.stageT0 = S.time; S.map = opts.map || genStage(n, seed); S.path = [[0, 1]]; S.roomNo = 1; S.bossKey = BOSSES[(n - 1) % BOSSES.length].key;
       S.banner = 2.4; emit('stage', { stage: n });
       loadRoom(roomAt(S.map, 0, 1), 'S');
     }
@@ -345,7 +345,7 @@
     // ----- герои -----
     function killHero(h, src) {
       if (!h.alive || h.inv > 0 || h.ring > 0) return false;
-      h.alive = false; h.lives--; h.deadT = RESPAWN_T; h.weapon = 'base'; h.wT = 0; h.hammers = 0;
+      h.alive = false; h.lives--; S.stageLost = (S.stageLost || 0) + 1; h.deadT = RESPAWN_T; h.weapon = 'base'; h.wT = 0; h.hammers = 0;
       emit('heroDie', { pi: h.id, x: h.x, y: h.y, src: src });
       if (h.lives <= 0) { h.out = true; emit('out', { pi: h.id }); }
       return true;
@@ -464,7 +464,7 @@
     // ----- фазы -----
     function stageClear() {
       var bonus = SCORE.stage * S.stage; award(0, bonus);
-      S.phase = 'clear'; S.phaseT = 3.6; emit('clear', { stage: S.stage, bonus: bonus });
+      S.phase = 'clear'; S.phaseT = 3.6; emit('clear', { stage: S.stage, bonus: bonus, lost: S.stageLost || 0, time: S.time - (S.stageT0 || 0) });
     }
     function roomCleared() {
       S.roomState = 'cleared'; S.rooms++;
@@ -759,6 +759,14 @@
         S.heroes.forEach(function (h) { h.out = false; h.lives = LIVES; h.alive = false; h.deadT = 0; respawn(h); });
         emit('continue', { left: S.continues }); return true;
       },
+      // реклама за награду «ещё один шанс» (после «конец игры», когда продолжения кончились): все в бой с 1 жизнью в той же комнате
+      reviveAd: function () {
+        if (S.phase !== 'over') return false;
+        S.phase = 'play'; S.heroes.forEach(function (h) { h.out = false; h.lives = 1; h.alive = false; h.deadT = 0; respawn(h); });
+        S.ebullets = []; emit('revive', {}); return true;
+      },
+      // бонус за рекламу в паузе: +1 жизнь каждому в игре (до AD_LIVES_MAX)
+      addLifeAd: function () { var ok = false; S.heroes.forEach(function (h) { if (!h.out && h.lives < AD_LIVES_MAX) { h.lives++; ok = true; } }); if (ok) emit('extraLife', { pi: 0 }); return ok; },
       state: function () { return S; },
       _spawn: function (type, x, y, o) { return spawn(type, x, y, o); },
       _kill: function (h, src) { return killHero(h, src); },

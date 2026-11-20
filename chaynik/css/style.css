@@ -35,3 +35,12 @@ a.back:hover{color:var(--accent)}
   .dpad{grid-template-columns:44px 44px 44px;grid-template-rows:42px 42px 42px}
   .acts{flex-wrap:wrap;width:150px;justify-content:flex-end;gap:6px}
 }
+/* тач-устройства (телефон, планшет): подсказка клавиатуры не нужна — экран целиком под канву и кнопки, без прокрутки (Яндекс 1.10) */
+@media (hover:none) and (pointer:coarse){.foot{display:none}}
+/* узкий телефон стоя: кнопки помельче, чтобы ряд действий целиком помещался в ширину экрана */
+@media (max-width:440px){
+  .pad{gap:6px;width:100%;padding:0 6px}
+  .dpad{grid-template-columns:46px 46px 46px;grid-template-rows:44px 44px 44px;gap:3px}
+  .acts{gap:5px}
+  .acts .jump{width:62px;height:62px}.acts .fire{width:54px;height:54px}.acts .boil{width:46px;height:46px}.acts .reset{width:34px;height:34px}
+}

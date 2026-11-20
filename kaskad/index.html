@@ -34,14 +34,20 @@ a.back{position:relative;align-self:flex-start;margin:6px 0 0 10px;z-index:60;co
 <script src="./js/music.js"></script>
 <script src="./js/game.js"></script>
 <script src="./js/daily.js"></script>
-<script src="./js/lang-x.js"></script>
-<script src="./js/i18n-x.js"></script>
 <script>
 const STR = {
   ru:{ play:'Играть', language:'Язык', theme:'Тема', sound:'Звук', on:'вкл', off:'выкл', score:'Счёт', level:'Ур.', lines:'Линии', best:'Рекорд', next:'След', hold:'Холд', win:'ПОБЕДА!', gameover:'ИГРА ОКОНЧЕНА', pause:'ПАУЗА', resume:'Продолжить', menu:'В меню', tapstart:'пробел / тап', title:'КАСКАД', subtitle:'Складывай линии · цель — 40',
-    daily:'Испытание дня', dailyBest:'Рекорд дня', dailyNew:'Новый рекорд дня!', streak:'Серия дней', dayTag:'ДЕНЬ', lb:'Лидеры', rwRows:'Реклама: −2 нижних ряда' },
+    daily:'Испытание дня', dailyBest:'Рекорд дня', dailyNew:'Новый рекорд дня!', streak:'Серия дней', dayTag:'ДЕНЬ', lb:'Лидеры', lbAll:'Рекорды', rwRows:'Реклама: −2 нижних ряда' },
   en:{ play:'Play', language:'Language', theme:'Theme', sound:'Sound', on:'on', off:'off', score:'Score', level:'Lvl', lines:'Lines', best:'Best', next:'Next', hold:'Hold', win:'YOU WIN!', gameover:'GAME OVER', pause:'PAUSE', resume:'Resume', menu:'Menu', tapstart:'space / tap', title:'CASCADE', subtitle:'Clear lines · goal 40',
-    daily:'Daily challenge', dailyBest:'Daily best', dailyNew:'New daily best!', streak:'Day streak', dayTag:'DAY', lb:'Leaderboard', rwRows:'Watch ad: clear 2 bottom rows' },
+    daily:'Daily challenge', dailyBest:'Daily best', dailyNew:'New daily best!', streak:'Day streak', dayTag:'DAY', lb:'Leaderboard', lbAll:'All-time best', rwRows:'Watch ad: clear 2 bottom rows' },
+  // TR / ES / PT-BR: перевод — ИИ, вычитан обратным переводом и вторым проходом; носитель языка НЕ проверял. Название внутри языка
+  // одно (Яндекс 5.1.3): в TR/ES/PT — EN-название CASCADE (README, «Языки»). Строки движка (реклама за награду, загрузка) — в движке.
+  tr:{ play:'Oyna', language:'Dil', theme:'Tema', sound:'Ses', on:'açık', off:'kapalı', score:'Puan', level:'Sv.', lines:'Satır', best:'Rekor', next:'Sıradaki', hold:'Yedek', win:'KAZANDIN!', gameover:'OYUN BİTTİ', pause:'DURAKLATILDI', resume:'Devam et', menu:'Ana menü', tapstart:'boşluk / dokun', title:'CASCADE', subtitle:'Satırları tamamla · hedef: 40',
+    daily:'Günlük mücadele', dailyBest:'Günün rekoru', dailyNew:'Yeni günlük rekor!', streak:'Gün serisi', dayTag:'GÜN', lb:'Liderler', lbAll:'Tüm zamanlar', rwRows:'Reklam: alttaki 2 sırayı sil' },
+  es:{ play:'Jugar', language:'Idioma', theme:'Tema', sound:'Sonido', on:'sí', off:'no', score:'Puntos', level:'Niv.', lines:'Líneas', best:'Récord', next:'Siguiente', hold:'Reserva', win:'¡VICTORIA!', gameover:'FIN DEL JUEGO', pause:'PAUSA', resume:'Continuar', menu:'Menú principal', tapstart:'espacio / toca', title:'CASCADE', subtitle:'Completa líneas · meta: 40',
+    daily:'Reto diario', dailyBest:'Récord del día', dailyNew:'¡Nuevo récord del día!', streak:'Días seguidos', dayTag:'DÍA', lb:'Clasificación', lbAll:'Récord histórico', rwRows:'Anuncio: borra 2 filas de abajo' },
+  pt:{ play:'Jogar', language:'Idioma', theme:'Tema', sound:'Som', on:'ligado', off:'desligado', score:'Pontos', level:'Nív.', lines:'Linhas', best:'Recorde', next:'Próxima', hold:'Reserva', win:'VITÓRIA!', gameover:'FIM DE JOGO', pause:'PAUSA', resume:'Continuar', menu:'Menu principal', tapstart:'espaço / toque', title:'CASCADE', subtitle:'Complete linhas · meta: 40',
+    daily:'Desafio diário', dailyBest:'Recorde do dia', dailyNew:'Novo recorde do dia!', streak:'Dias seguidos', dayTag:'DIA', lb:'Ranking', lbAll:'Recorde geral', rwRows:'Anúncio: limpar 2 linhas de baixo' },
 };
 // Палитра фигур по теме (I O T S Z J L -> id 1..7)
 const PAL = {
@@ -50,7 +56,6 @@ const PAL = {
   neon:   [null,'#39e7ff','#ffe14d','#ff2f9c','#49ffb0','#ff5d6c','#6a8cff','#ff9f1c'],
 };
 const g = Arcade.createGame({ canvas:'#c', width:420, height:640, gameId:'kaskad', strings:STR, theme:'modern' });
-ArcadeLangX.install(g, TT.STR_X);   // TR / ES / PT поверх RU/EN движка (js/lang-x.js)
 g.input.bindDpad(document.querySelector('.pad'));
 // Поле вписывается и по ширине, и по высоте окна (масштаб по min): без обрезки и прокрутки.
 // Телефон лёжа (LAND): поле по высоте экрана, тач-кнопки — в боковых полях, «← Каталог» — в левом верхнем углу.
@@ -106,18 +111,20 @@ g.useStandardScreens({ title:'КАСКАД', subtitle:STR.ru.subtitle, lives:0 }
 const STORE={ get:k=>Arcade.Store.get(k,null), set:(k,v)=>g.storeSet(k,v) };
 g.persist(TT.daily.KEY_BEST,'max'); g.persist(TT.daily.KEY_STREAK,'max');
 function srvTime(){ try{ const P=g.platform, t=P && typeof P.serverTime==='function' ? P.serverTime() : null; return (typeof t==='number' && isFinite(t) && t>1e12) ? t : null; } catch(e){ return null; } }
-function today(){ const t=srvTime(); return TT.daily.Daily(STORE, t ? TT.daily.dateKey(t,3) : TT.daily.dateKey(Date.now())); }
-// лидерборды — через адаптер площадки (Platform.leaderboard 1.2: submit(score,{board}), open({board})), если он есть и таблица доступна;
-// без него — тихо пропускаем. Таблицы в консоли площадки: kaskad (рекорд) и kaskadDaily (испытания дня).
-function lb(){ const P=g.platform && g.platform.leaderboard; if(!P || typeof P.submit!=='function') return null;
-  const av=g.leaderboard && typeof g.leaderboard.available==='function' ? g.leaderboard.available() : P.available; return av ? P : null; }
-function lbSubmit(board,score){ try{ const L=lb(); if(L && score>0){ const r=L.submit(score|0,{ board }); if(r && r.catch) r.catch(()=>{}); } } catch(e){} }
-function startRun(isDaily){ daily=isDaily ? today() : null; g.state.score=0; g.state.level=1; g._contUsed=false; (g._bonuses||[]).forEach(b=>{ b.used=false; }); g.goto('play'); }
+// испытание текущего дня: объект на день кешируется (меню рисует подпись каждый кадр); сброс — при смене дня и после слияния облака
+let dayCache=null;
+function today(){ const t=srvTime(), key=t ? TT.daily.dateKey(t,3) : TT.daily.dateKey(Date.now()); if(!dayCache || dayCache.key!==key) dayCache=TT.daily.Daily(STORE,key); return dayCache; }
+// Лидерборды площадки (движок v2.8: именованные таблицы): kaskad — рекорд, kaskadDaily — очки испытаний дня. Таблицы с этими техническими
+// именами — в консоли площадки (Яндекс: «Лидерборды»; GamePush: числовые поля игрока). Без площадки — пункта нет, отправка — тихо false.
+function lbSubmit(board,score){ if(score>0) g.leaderboard.submit(score|0,{ board }); }
+function startRun(isDaily){ daily=isDaily ? today() : null; g.state.score=0; g.state.level=1; g.resetRun(); g.goto('play'); }
 g.menu.addItem({ key:'daily', scene:'title', after:'play', label:()=>g.t('daily')+' · '+today().label, onSelect:()=>startRun(true) });
 { const tm=g.menu.get('title'); tm.items[tm.indexOf('play')].onSelect=()=>startRun(false); }   // «Играть» — обычная партия
-function addLbItem(){ const L=lb(); if(L && typeof L.open==='function' && g.menu.items('title').indexOf('lb')<0)
-  g.menu.addItem({ key:'lb', scene:'title', after:'daily', label:()=>g.t('lb'), onSelect:()=>{ try{ L.open({ board:'kaskadDaily' }); } catch(e){} } }); }
-if(g.platform && g.platform.init) g.platform.init().then(addLbItem,()=>{});
+g.useLeaderboard({ after:'daily', label:()=>g.t('lb'), boards:[ { id:'kaskad', label:()=>g.t('lbAll') }, { id:'kaskadDaily', label:()=>g.t('daily') } ] });
+// облако слито (рекорд, испытание дня и серия с другого устройства) — сбросить кеш дня и дослать рекорды в таблицы
+g.onCloud(keys=>{ dayCache=null; if(keys.length){ lbSubmit('kaskad', g.state.best); const d=today(), b=d.best(); if(b) lbSubmit('kaskadDaily', b); } });
+// Площадка: «Без рекламы» (меню и пауза, цена из каталога), «Наши игры» (через SDK), ярлык, просьба об оценке после успеха
+g.useNoAds({ scene:['title','pause'], after:'end' }); g.useOwnGames(); g.useShortcut(); g.useReview({ minSessions:3, gap:3 });
 g.menu.setHint(()=>{ const d=today(), b=d.best(), s=d.streak();
   return [ g.t('dailyBest')+' '+d.label+': '+(b||'—'), { text: s ? g.t('streak')+': '+s : '', dim:true } ]; }, 'title');
 // финал партии (после экрана «ещё шанс», если он был): рекорд дня, серия, лидерборды
@@ -193,6 +200,8 @@ g.scene('play', { realtime:true,
 g.useRewardedContinue({ revive(){ if(stack) stack.revive(); } });
 g.useRewardedBonus({ key:'rwRows', scene:'pause', label:()=>g.t('rwRows'),
   available(){ return !!stack && stack.filledRows()>=3; }, grant(){ if(stack) stack.clearBottom(2); } });
+// P / Esc на паузе — назад в игру
+g.scenes.pause.press=function(a){ if(a==='pause') this.goto('play',{resume:true}); };
 // пауза с тач-кнопки
 (function(){ const pb=document.querySelector('[data-pause]'); if(!pb) return; const h=e=>{ e.preventDefault(); if(g._sceneName==='play') g.pause(); else if(g._sceneName==='pause') g.goto('play',{resume:true}); };
   pb.addEventListener('touchstart',h,{passive:false}); pb.addEventListener('mousedown',h); })();
