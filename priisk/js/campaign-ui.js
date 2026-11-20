@@ -25,9 +25,17 @@
     { n: 7, ru: 'Заводчик', en: 'The Foundryman' }, { n: 8, ru: 'Канатка над пропастью', en: 'Cableway over the Abyss' },
     { n: 9, ru: 'Последний перевал', en: 'The Last Pass' }];
   var NODES_S = [[566, 118], [492, 176], [418, 128], [350, 196], [282, 252], [370, 300], [470, 330], [380, 420], [252, 396]];
-  var camp = 'copper'; // какая кампания открыта на карте: 'copper' | 'sizye'
+  var camp = 'copper', campBack = 'copper'; // какая кампания открыта: 'copper' | 'sizye' | 'both' (эпилог — только брифинг/итог, на карте — вкладка, откуда пришли)
+  // эпилог «Общий посёлок» (миссия с camp 'both'): узел-отметка на карте кампаний, когда пройдены обе и выбор в них совместим
+  var EP_NODE = [560, 448];
   function nodes() { return camp === 'sizye' ? NODES_S : NODES; }
-  function setCamp(k) { k = k === 'sizye' ? 'sizye' : 'copper'; if (k === camp || (E.hidden && !missionList(k).length)) return; camp = k; UI.camp = k; UI.data = C.load(store, k); sel = 0; }
+  function setCamp(k) {
+    k = k === 'sizye' || k === 'both' ? k : 'copper'; if (k === camp || (k !== 'both' && E.hidden && !missionList(k).length)) return;
+    if (camp !== 'both') campBack = camp; camp = k; UI.camp = k; UI.data = C.load(store, k); if (k !== 'both') sel = 0;
+  }
+  function backFromBoth() { if (camp === 'both') { camp = campBack; UI.camp = camp; } }
+  function epi() { var d = C.epilogue && C.epilogue(); return d && E.playable(P.EDITION, d.id) ? d : null; }
+  function epiState() { var d = epi(); return d ? C.epilogueState(d) : null; }
   var WHO = { varvara: { col: 0, letter: { ru: 'В', en: 'V' } }, lunya: { col: 0, letter: { ru: 'Л', en: 'L' } }, sava: { col: 0, letter: { ru: 'С', en: 'S' } },
     korney: { col: 1, letter: { ru: 'К', en: 'K' } }, foe: { col: 1, letter: { ru: 'С', en: 'G' } }, zavod: { col: 3, letter: { ru: 'З', en: 'M' } },
     agafya: { col: 1, letter: { ru: 'А', en: 'A' } }, mityay: { col: 1, letter: { ru: 'М', en: 'M' } }, foeC: { col: 0, letter: { ru: 'М', en: 'C' } }, post: { col: 2, letter: { ru: 'П', en: 'P' } } };
@@ -103,6 +111,7 @@
   function missionList(k) {
     k = k || camp;
     var out = C.list(k).filter(function (m) { return E.playable(P.EDITION, m.id); }).map(function (m) { return { n: m.n, id: m.id, def: m, title: m.title }; });
+    if (k === 'both') return out;
     (k === 'sizye' ? LATER_S : LATER).forEach(function (l) {
       if (out.some(function (m) { return m.n === l.n; })) return;
       // издание «для площадок» (arcade-full/platform): узлы без файла и закрытые без возможности покупки не показываются (E.hidden)
@@ -117,7 +126,7 @@
     if (!(E.canBuy && E.canBuy())) { openMore(); return; }
     E.buy(g).then(function (ok) { g.audio.beep(ok ? 1000 : 200, ok ? 0.15 : 0.06, 'triangle'); if (ok) g.goto('camp'); });
   }
-  function nodeState(m) { var d = data(); if (!m.def) return 'later'; if (d.missions[m.id]) return 'done'; return m.n <= d.unlocked ? 'open' : 'closed'; }
+  function nodeState(m) { if (m.ep) return m.state.done ? 'done' : 'open'; var d = data(); if (!m.def) return 'later'; if (d.missions[m.id]) return 'done'; return m.n <= d.unlocked ? 'open' : 'closed'; }
   function drawPlateau(c, pl) {
     var x0 = 30, y0 = 78, w = 590, h = 420;
     c.fillStyle = pl.pixel ? '#2b2a12' : '#59604f'; if (pl.pixel) c.fillRect(x0, y0, w, h); else { R.roundRect(c, x0, y0, w, h, 14); c.fill(); }
@@ -144,6 +153,8 @@
   }
   function drawCamp(c) {
     var pl = pal(), d = data(), ms = missionList(), t = g.time || 0; hot = [];
+    var ed = epi(), es = ed && C.epilogueState(ed), epItem = es && (es.open || es.done) ? { n: '★', id: ed.id, def: ed, title: ed.title, ep: true, state: es, save: C.load(store, 'both') } : null;
+    var items = epItem ? ms.concat([epItem]) : ms; if (sel >= items.length) sel = 0;
     g.clear();
     var sz = camp === 'sizye', NS = nodes();
     text(c, g.t(sz ? 'campMapS' : 'campMap'), 30, 40, { size: 24, weight: 900, color: sz ? pl.own[1] : g.th().accent });
@@ -174,10 +185,24 @@
       if (st === 'later' && E.stub(P.EDITION) === 'full') lock(c, p[0] + 12, p[1] - 13, pl);
       if (st === 'done') { var stars = d.missions[m.id].stars || []; for (var k = 0; k < 3; k++) star(c, p[0] - 13 + k * 13, p[1] + r + 9, 5, !!stars[k], pl); }
     });
+    // отметка эпилога «Общий посёлок»: двухцветный узел с домом (латунь и сирень), пунктир от финалов обеих кампаний
+    if (epItem) {
+      var ep = EP_NODE, ei = ms.length, eon = sel === ei, ehot = hot.length;
+      hot.push({ x: ep[0] - 24, y: ep[1] - 24, w: 48, h: 48, fn: function () { if (sel === ei) openBrief(epItem); sel = ei; }, node: ei, ep: true });
+      var last = NS[ms.length - 1] || NS[NS.length - 1]; // пунктир — от финала открытой кампании
+      c.strokeStyle = pl.warn; c.lineWidth = 1.5; c.setLineDash([3, 5]); c.globalAlpha = 0.7; c.beginPath(); c.moveTo(last[0], last[1]); c.quadraticCurveTo((last[0] + ep[0]) / 2 + 30, Math.max(last[1], ep[1]) + 10, ep[0], ep[1]); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+      if (eon || hover === ehot) { c.strokeStyle = pl.warn; c.lineWidth = 2; c.globalAlpha = 0.6 + 0.4 * Math.sin(t * 5); c.beginPath(); c.arc(ep[0], ep[1], 26, 0, 7); c.stroke(); c.globalAlpha = 1; }
+      c.fillStyle = pl.own[0]; c.beginPath(); c.arc(ep[0], ep[1], 20, Math.PI / 2, Math.PI * 1.5); c.fill(); c.fillStyle = pl.own[1]; c.beginPath(); c.arc(ep[0], ep[1], 20, -Math.PI / 2, Math.PI / 2); c.fill();
+      c.strokeStyle = pl.warn; c.lineWidth = 2; c.beginPath(); c.arc(ep[0], ep[1], 20, 0, 7); c.stroke();
+      c.fillStyle = pl.panel; c.beginPath(); c.arc(ep[0], ep[1], 12.5, 0, 7); c.fill(); icon(c, 'home', ep[0] - 9, ep[1] - 10, 18, pl);
+      if (es.done) { var es3 = (epItem.save.missions[ed.id] || {}).stars || []; for (var k3 = 0; k3 < 3; k3++) star(c, ep[0] - 13 + k3 * 13, ep[1] + 30, 5, !!es3[k3], pl); }
+      text(c, tx(ed.title), ep[0], ep[1] - 28, { size: 11, weight: 800, align: 'center', color: pl.warn });
+    }
     // карточка выбранной миссии
-    var m = ms[sel] || ms[0], st = nodeState(m), cx = 640, cy = 78, cw = 300;
+    var m = items[sel] || items[0], st = nodeState(m), cx = 640, cy = 78, cw = 300;
+    if (m.ep) d = m.save; // карточка эпилога: своё сохранение (звёзды, лучшее время)
     c.fillStyle = 'rgba(255,255,255,0.04)'; c.fillRect(cx, cy, cw, 420); c.strokeStyle = pl.line; c.strokeRect(cx + 0.5, cy + 0.5, cw - 1, 419);
-    text(c, (g.t('mission') + ' ' + m.n).toUpperCase(), cx + 16, cy + 28, { size: 12, color: pl.muted });
+    text(c, (m.ep ? g.t('epilogueT') : g.t('mission') + ' ' + m.n).toUpperCase(), cx + 16, cy + 28, { size: 12, color: m.ep ? pl.warn : pl.muted });
     wrap(c, tx(m.title), cw - 32, 20, 900).forEach(function (ln, k) { text(c, ln, cx + 16, cy + 56 + k * 24, { size: 20, weight: 900, color: st === 'later' ? pl.muted : pl.ink }); });
     var y = cy + 92;
     if (m.def) {
@@ -191,7 +216,7 @@
       if (m.id === 'm2' && d.flags.convoy && m.def.flagText) { y += 4; wrap(c, '◆ ' + tx(m.def.flagText.convoy[d.flags.convoy]), cw - 32, 11).forEach(function (ln) { text(c, ln, cx + 16, y, { size: 11, weight: 600, color: pl.warn }); y += 16; }); }
       if (st === 'closed') text(c, g.t('closed'), cx + 16, cy + 372, { size: 12, color: pl.muted, weight: 600 });
       else button(c, cx + 16, cy + 352, cw - 32, 40, '▶ ' + g.t('brief'), function () { openBrief(m); }, { primary: true });
-      if (m.def.finale && rec) button(c, cx + 16, cy + 312, cw - 32, 32, '★ ' + g.t('finaleT'), function () { finaleId = m.id; g.goto('finale'); }, { size: 13 }); // пройденный финал — итог кампании
+      if (m.def.finale && rec) button(c, cx + 16, cy + 312, cw - 32, 32, '★ ' + g.t(m.ep ? 'epilogueEnd' : 'finaleT'), function () { if (m.ep) setCamp('both'); finaleId = m.id; g.goto('finale'); }, { size: 13 }); // пройденный финал — итог кампании (эпилог — экран «Общий посёлок»)
     } else if (E.stub(P.EDITION) === 'full') {
       lock(c, cx + 24, y - 5, pl, 1.3); text(c, g.t('lockedFull'), cx + 40, y, { size: 14, color: pl.warn }); y += 24;
       wrap(c, g.t(lockText()), cw - 32, 12).forEach(function (ln) { text(c, ln, cx + 16, y, { size: 12, weight: 600, color: pl.muted }); y += 18; });
@@ -212,7 +237,7 @@
   }
   // новая вкладка (окно с 'noopener' всегда возвращает null — тогда не понять, открылась ли вкладка); не открылась — переход в этой же
   function openMore() { var url = E.MORE_URL, w = null; if (!url) return; /* издание «для площадок» — без ссылок наружу */ try { w = global.open(url, '_blank'); } catch (e) {} if (w) { try { w.opener = null; } catch (e) {} } else location.href = url; }
-  function openBrief(m) { if (!m.def || nodeState(m) === 'closed') { g.audio.beep(180, 0.06, 'square'); return; } briefId = m.id; g.goto('brief'); }
+  function openBrief(m) { if (!m.def || nodeState(m) === 'closed') { g.audio.beep(180, 0.06, 'square'); return; } if (m.ep) setCamp('both'); briefId = m.id; g.goto('brief'); }
 
   // ---------- брифинг ----------
   function drawMiniMap(c, def, x, y, maxW, maxH, pl) {
@@ -309,23 +334,26 @@
 
   // ---------- финал кампании: итог по флагам, звёзды по миссиям, реплики героев (данные — def.finale миссии, см. campaign.js) ----------
   function drawFinale(c) {
-    var pl = pal(), def = C.byId(finaleId), F = def && C.finale(def, data()), t = g.time || 0; hot = []; g.clear();
+    var pl = pal(), def = C.byId(finaleId), F = def && C.finale(def, data()), t = g.time || 0, fc = def && C.campOf(def), oc = fc === 'sizye' ? 1 : 0; hot = []; g.clear();
     if (!F) { button(c, g.W / 2 - 120, 260, 240, 44, '← ' + g.t('toMap'), function () { g.goto('camp'); }, { primary: true }); return; }
     drawPlateau(c, pl); c.fillStyle = pl.pixel ? 'rgba(0,0,0,0.95)' : 'rgba(12,14,18,0.95)'; c.fillRect(0, 0, g.W, g.H); // плато — едва видным фоном
-    text(c, (g.t('finaleT') + ' · ' + g.t('campMap')).toUpperCase(), 30, 30, { size: 12, color: pl.muted });
+    text(c, (fc === 'both' ? g.t('epilogueT') + ' · ' + g.t('epilogueSub') : g.t('finaleT') + ' · ' + g.t(fc === 'sizye' ? 'campMapS' : 'campMap')).toUpperCase(), 30, 30, { size: 12, color: fc === 'both' ? pl.warn : pl.muted });
     text(c, tx(F.title), 30, 62, { size: 28, weight: 900, color: g.th().accent });
     var y = 84; wrap(c, tx(F.sub), 900, 14, 600).slice(0, 2).forEach(function (ln) { text(c, ln, 30, y, { size: 14, weight: 600, color: pl.ink }); y += 19; });
     // слева: решения и звёзды
     var x = 30, cw = 430; y = 138;
-    text(c, g.t('finaleChoices').toUpperCase(), x, y, { size: 11, color: pl.muted }); y += 8;
+    text(c, g.t(fc === 'both' ? 'finaleChoicesB' : 'finaleChoices').toUpperCase(), x, y, { size: 11, color: pl.muted }); y += 8;
     F.rows.forEach(function (r) {
       var lines = wrap(c, tx(r.text), cw - 52, 12, 600).slice(0, 3), h = Math.max(34, 12 + lines.length * 15);
-      c.fillStyle = 'rgba(255,255,255,0.04)'; c.fillRect(x, y, cw, h); c.fillStyle = pl.ownDk[0]; c.beginPath(); c.arc(x + 20, y + h / 2, 12, 0, 7); c.fill();
+      var rc = r.camp === 'sizye' ? 1 : r.camp === 'copper' ? 0 : oc; // в эпилоге решения обеих кампаний — каждое своим цветом
+      c.fillStyle = 'rgba(255,255,255,0.04)'; c.fillRect(x, y, cw, h); c.fillStyle = pl.ownDk[rc]; c.beginPath(); c.arc(x + 20, y + h / 2, 12, 0, 7); c.fill();
       text(c, String(r.n), x + 20, y + h / 2 + 5, { size: 13, weight: 900, align: 'center', color: pl.ink });
       lines.forEach(function (ln, k) { text(c, ln, x + 42, y + 20 + k * 15 - (lines.length > 1 ? 4 : 0) + (lines.length === 1 ? 1 : 0), { size: 12, weight: 600, color: pl.ink }); });
       y += h + 5;
     });
-    y += 14; text(c, g.t('starsT').toUpperCase() + ' · ' + F.total + ' / ' + F.max, x, y, { size: 11, color: pl.muted }); y += 12;
+    y += 14; text(c, g.t('starsT').toUpperCase() + ' · ' + F.total + ' / ' + F.max, x, y, { size: 11, color: pl.muted });
+    if (F.totals && F.totals.length) { var tl = F.totals.map(function (q) { return g.t(q.camp === 'sizye' ? 'campTabS' : 'campTabC') + ' ★ ' + q.total + ' / ' + q.max; }).join('   ·   '); text(c, tl, x + 150, y, { size: 11, weight: 700, color: pl.oreHi }); }
+    y += 12;
     F.stars.forEach(function (m, i) {
       var cx2 = x + (i % 5) * 86, cy2 = y + Math.floor(i / 5) * 30;
       c.fillStyle = 'rgba(255,255,255,0.04)'; c.fillRect(cx2, cy2, 82, 26);
@@ -344,19 +372,25 @@
       lines.forEach(function (ln, k) { text(c, ln, qx + 54, qy + 35 + k * 16, { size: 13, weight: 600 }); });
       qy += h + 6;
     });
-    if (F.note) { c.globalAlpha = 0.75 + 0.25 * Math.sin(t * 2); text(c, tx(F.note), 30, 478, { size: 13, weight: 800, color: pl.warn }); c.globalAlpha = 1; }
-    button(c, 30, 492, 220, 36, '← ' + g.t('toMap'), function () { g.goto('camp'); }, { primary: true, size: 14, focus: sel2 === 0 });
-    button(c, 260, 492, 160, 36, g.t('toMenu'), function () { g.goto('title'); }, { size: 13, focus: sel2 === 1 });
+    // эпилог «Общий посёлок»: после финала второй кампании (флаги обеих совместимы) — кнопка; совместимо, но вторая не пройдена — подсказка
+    var ed = fc !== 'both' && epi(), es = ed && C.epilogueState(ed), mine = es && es.camps[fc], other = es && es.camps[fc === 'sizye' ? 'copper' : 'sizye'];
+    var note = F.note ? tx(F.note) : null; if (es && !es.open && mine && mine.match && other && !other.done) note = g.t('epilogueHint');
+    if (note) { c.globalAlpha = 0.75 + 0.25 * Math.sin(t * 2); text(c, note, 30, 478, { size: 13, weight: 800, color: pl.warn }); c.globalAlpha = 1; }
+    var bi = 0;
+    if (es && es.open) { button(c, 30, 492, 280, 36, '★ ' + tx(ed.title) + ' ▸', function () { setCamp('both'); briefId = ed.id; g.goto('brief'); }, { primary: true, size: 14, focus: sel2 === bi++ }); }
+    var bx0 = es && es.open ? 320 : 30;
+    button(c, bx0, 492, 200, 36, '← ' + g.t('toMap'), function () { g.goto('camp'); }, { primary: !(es && es.open), size: 14, focus: sel2 === bi++ });
+    button(c, bx0 + 210, 492, 150, 36, g.t('toMenu'), function () { g.goto('title'); }, { size: 13, focus: sel2 === bi++ });
   }
 
   // ---------- ввод на экранах ----------
   function sceneKeys(name) {
     return function (a) {
       if (name === 'camp') {
-        var n = missionList().length;
+        var es0 = epiState(), epOn = es0 && (es0.open || es0.done), n = missionList().length + (epOn ? 1 : 0);
         if (a === 'right' || a === 'down') { sel = (sel + 1) % n; g.audio.beep(600, 0.03); }
         else if (a === 'left' || a === 'up') { sel = (sel - 1 + n) % n; g.audio.beep(600, 0.03); }
-        else if (a === 'start' || a === 'action') openBrief(missionList()[sel]);
+        else if (a === 'start' || a === 'action') { if (epOn && sel === n - 1) { var eh = hot.filter(function (h) { return h.ep; })[0]; if (eh) eh.fn(); } else openBrief(missionList()[sel]); }
         else if (a === 'pause') g.goto('title');
       } else if (name === 'brief') {
         if (a === 'start' || a === 'action') host.startMission(briefId);
@@ -368,7 +402,8 @@
         else if (a === 'start' || a === 'action') { if (hot[sel2]) hot[sel2].fn(); }
         else if (a === 'pause') g.goto('camp');
       } else if (name === 'finale') {
-        if (a === 'right' || a === 'down' || a === 'left' || a === 'up') { sel2 = 1 - sel2; g.audio.beep(600, 0.03); }
+        var nf = Math.max(1, hot.length);
+        if (a === 'right' || a === 'down') { sel2 = (sel2 + 1) % nf; g.audio.beep(600, 0.03); } else if (a === 'left' || a === 'up') { sel2 = (sel2 - 1 + nf) % nf; g.audio.beep(600, 0.03); }
         else if (a === 'start' || a === 'action') { if (hot[sel2]) hot[sel2].fn(); else g.goto('camp'); }
         else if (a === 'pause') g.goto('camp');
       } else if (name === 'result') {
@@ -434,7 +469,10 @@
       else if (e.t === 'site') { var sd = MS.sites[e.id]; host.msg((sd && sd.def.doneText ? tx(sd.def.doneText) : g.t('msgSite')), 'good'); g.audio.beep(300, 0.06, 'square'); g.audio.beep(520, 0.08, 'triangle'); }
       else if (e.t === 'talked') { host.msg(g.t('msgTalked'), 'good'); g.audio.beep(660, 0.08, 'triangle'); g.audio.beep(880, 0.1, 'triangle'); }
       else if (e.t === 'talkFail') { host.msg(g.t('msgTalkFail'), 'bad'); g.audio.beep(200, 0.1, 'square'); }
-      else if (e.t === 'carFall') host.msg(g.t('msgCarFall'), 'bad');
+      else if (e.t === 'carFall') { host.msg(g.t(e.shot ? 'msgCarShot' : 'msgCarFall'), 'bad'); g.audio.beep(120, 0.25, 'sawtooth', 0.08); }
+      else if (e.t === 'cutWarn') { host.msg(g.t('msgCutWarn'), 'bad'); g.audio.beep(90, 0.4, 'sawtooth', 0.08); }
+      else if (e.t === 'cut') { host.msg(g.t('msgCut'), 'bad'); g.audio.beep(70, 0.5, 'sawtooth', 0.1); }
+      else if (e.t === 'spliced') { host.msg(g.t('msgSpliced'), 'good'); g.audio.beep(520, 0.08, 'triangle'); g.audio.beep(780, 0.1, 'triangle'); }
       else if (e.t === 'scouted' && MS.def.scoutMsg) { host.msg(g.t('msgScouted') + ': ' + g.t(e.type), 'good'); g.audio.beep(760, 0.05, 'triangle'); }
       else if (e.t === 'wind') host.msg(g.t('msgWindShift') + ' · ' + g.t('steamS') + ' ' + Math.round(W.wind.s * 100) + '%', 'warn');
       else if (e.t === 'halt' && MS.groups[e.tag] && MS.groups[e.tag].owner === 0) host.msg(g.t(e.on ? 'msgHalt' : 'msgGo'), e.on ? 'warn' : 'good');
@@ -456,6 +494,7 @@
     if (cnt && ob.state === 'active' && cnt.t === 'zone' && cnt.who) { var tin = W.units.filter(function (u) { return u.tag === cnt.who && C.inZone(W.mission, cnt.zone, u.x, u.y); }).length; return s + ' (' + Math.min(cnt.n, tin) + '/' + cnt.n + ')'; } // «сколько дошло» по тегу
     if (cnt && ob.state === 'active' && cnt.t === 'since') { var so = W.mission.byObj[cnt.obj]; if (so && so.state === 'done' && cnt.gte - (W.time - so.t) > 0) s += ' · ' + fmtTime(cnt.gte - (W.time - so.t)); } // отсчёт вышел, а цель ещё не выполнена — «00:00» не показываем
     if (cnt && ob.state === 'active' && cnt.t === 'sites') s += ' (' + Math.min(cnt.gte, cnt.ids ? cnt.ids.filter(function (k) { return W.mission.sites[k] && W.mission.sites[k].done; }).length : W.mission.sitesN) + '/' + cnt.gte + ')';
+    if (cnt && ob.state === 'active' && cnt.t === 'ferried') s += ' (' + Math.min(cnt.gte, [].concat(cnt.tag || '*').reduce(function (a, k) { return a + (W.mission.ferried[k] || 0); }, 0)) + '/' + cnt.gte + ')'; // довезли люльками
     if (cnt && ob.state === 'active' && cnt.t === 'mined') s += ' (' + Math.min(cnt.gte, Math.floor(W.players[0].mined)) + '/' + cnt.gte + ')';
     if (cnt && ob.state === 'active' && cnt.t === 'pumped') s += ' (' + Math.min(cnt.gte, Math.floor(W.mission.pumped[cnt.zone] || 0)) + '/' + cnt.gte + ')'; // выкачано вышками в зоне
     if (cnt && ob.state === 'active' && cnt.t === 'fires') s += ' · ' + W.fires.filter(function (f) { return f.hp > 0 && (!cnt.tag || [].concat(cnt.tag).indexOf(f.tag) >= 0); }).length;
@@ -640,11 +679,11 @@
     g.menu.addItem({ key: 'campaign', after: 'foe', label: function () { return g.t('campaign'); }, onSelect: function () { var d = data(); sel = Math.max(0, Math.min(d.unlocked, C.list(camp).length || 1) - 1); g.goto('camp'); } });
     var draw = { camp: drawCamp, brief: drawBrief, result: drawResult, edition: drawEdition, finale: drawFinale };
     ['camp', 'brief', 'result', 'edition', 'finale'].forEach(function (name) {
-      g.scene(name, { realtime: true, enter: function () { hover = -1; resetArm = 0; sel2 = 0; UI.data = C.load(store, camp); g.audio.beep(520, 0.05); }, update: function () {}, draw: function (c) { draw[name](c); }, press: sceneKeys(name) });
+      g.scene(name, { realtime: true, enter: function () { hover = -1; resetArm = 0; sel2 = 0; if (name === 'camp' || name === 'edition') backFromBoth(); UI.data = C.load(store, camp); g.audio.beep(520, 0.05); }, update: function () {}, draw: function (c) { draw[name](c); }, press: sceneKeys(name) });
     });
     g.canvas.addEventListener('pointerdown', function (e) { if (!inScreens()) return; var i = hitAt(pt(e)); if (i >= 0) { e.preventDefault(); var b = hot[i]; if (b.node != null && sel !== b.node) { sel = b.node; g.audio.beep(600, 0.03); return; } g.audio.beep(700, 0.03); b.fn(); } });
     g.canvas.addEventListener('pointermove', function (e) { if (!inScreens()) return; hover = hitAt(pt(e)); g.canvas.style.cursor = hover >= 0 ? 'pointer' : 'default'; });
     return UI;
   };
-  UI._test = { missionList: missionList, nodeState: nodeState, nodes: NODES, nodesS: NODES_S, setCamp: setCamp, camp: function () { return camp; }, hot: function () { return hot; } };
+  UI._test = { missionList: missionList, nodeState: nodeState, nodes: NODES, nodesS: NODES_S, epNode: EP_NODE, epi: epi, epiState: epiState, setCamp: setCamp, camp: function () { return camp; }, hot: function () { return hot; }, sel: function (v) { if (v != null) sel = v; return sel; } };
 })(window);

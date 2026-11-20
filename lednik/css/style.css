@@ -29,10 +29,12 @@ a.back:hover{color:var(--accent)}
 @media(min-width:900px) and (hover:hover){.pad{display:none}}
 /* телефон «лёжа»: кнопки по бокам поверх полей, канва — на всю высоту */
 @media (max-height:520px) and (orientation:landscape){
-  .wrap{margin-top:26px}
+  .wrap{margin-top:26px;width:calc(100vw - 300px)}
   .foot{display:none}
   .pad{position:fixed;left:0;right:0;bottom:8px;width:100%;max-width:none;margin:0;padding:0 8px;pointer-events:none}
   .pad>div{pointer-events:auto}
   .dpad{grid-template-columns:44px 44px 44px;grid-template-rows:42px 42px 42px}
   .acts .jump{width:62px;height:62px}
 }
+/* тач-устройства: подсказка клавиатуры не нужна — экран целиком под поле и кнопки (Яндекс 1.10) */
+@media (hover:none) and (pointer:coarse){ .foot{display:none} }

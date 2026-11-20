@@ -14,6 +14,7 @@ sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/game.js'), 'utf8'), sandbox, { filename: 'game.js' });
 vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/i18n.js'), 'utf8'), sandbox, { filename: 'i18n.js' });
+vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/meta.js'), 'utf8'), sandbox, { filename: 'meta.js' });
 const Z = sandbox.ZHEODA, L = Z.logic;
 const { playZheoda, reachLevel, makePlanner, mulberry32 } = await import('./bot.mjs');
 
@@ -288,6 +289,31 @@ test('непресность: смертей на уровень больше в
   console.log('     смертей на уровень: ' + per.map(v => v.toFixed(2)).join(' '));
   const a = per.slice(0, 8).reduce((x, y) => x + y) / 8, b = per.slice(8, 17).reduce((x, y) => x + y) / 9;
   ok(b > a * 1.5, 'нет нарастания: ' + a.toFixed(2) + ' → ' + b.toFixed(2));
+});
+
+
+// ---------- волна 3: звёзды пещер, реклама за награду, языки ----------
+test('мета: звёзды пещеры (пройдена / без потерь / все тайники; без тайников — сразу), 17 пещер, открытие по порядку', () => {
+  const M = Z.meta, mem = {}, P = M.Progress({ get: k => (k in mem ? mem[k] : null), set: (k, v) => { mem[k] = v; } });
+  eq(M.LEVELS, L.LEVELS.length); eq(M.stars({ deaths: 0, found: 2, secrets: 2 }).n, 3); eq(M.stars({ deaths: 0, found: 0, secrets: 0 }).n, 3);
+  eq(M.stars({ deaths: 1, found: 1, secrets: 2 }).n, 1);
+  ok(!P.unlocked(2)); ok(P.record(1, 1)); ok(P.unlocked(2)); eq(P.maxUnlocked(), 2); ok(!P.record(1, 1)); ok(P.record(1, 3)); eq(mem['arcade.zheoda.stars.1'], '3');
+});
+test('мета: партия с выбранной пещеры — хаб с открытой N и пройденными до неё', () => {
+  const g = Z.Game({ level: 5, rng: mulberry32(1) }).start(), S = g.state(); eq(S.open, 5); eq(S.hubSel, 5); ok(S.cleared[4] && !S.cleared[5]); ok(g.enter()); eq(S.level, 5);
+});
+test('реклама: reviveAd после последней жизни — 2 жизни, та же пещера заново, запас на входе; addLife до 5', () => {
+  const ev = []; const g = Z.Game({ rng: mulberry32(2), onEvent: (t) => ev.push(t) }).start(); g.enter(1); const S = g.state();
+  S.lives = 1; S.pl.inv = 0; S.hp = 1; g._hurt('test'); eq(S.over, true);
+  ok(g.reviveAd()); eq(S.over, false); eq(S.lives, 2); eq(S.phase, 'play'); eq(S.level, 1); ok(ev.includes('revive'));
+  run(g, 0.5); eq(S.phase, 'play');
+  S.lives = 4; ok(g.addLife()); ok(!g.addLife()); eq(S.lives, 5);
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ЖЕОДА, EN/TR/ES/PT GEODELVE', () => {
+  const ks = Object.keys(Z.STR.en).sort().join(','); eq(Object.keys(Z.STR).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(Z.STR[l]).sort().join(','), ks, l);
+  eq(Z.STR.ru.title, 'ЖЕОДА'); for (const l of ['en', 'tr', 'es', 'pt']) { eq(Z.STR[l].title, 'GEODELVE', l); ok(Z.STR[l].foot.includes('GEODELVE'), l); }
+  for (const lv of L.LEVELS) for (const l of ['tr', 'es', 'pt']) ok(Z.STR[l]['lv_' + lv.name], l + ' lv_' + lv.name);
 });
 
 console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed));

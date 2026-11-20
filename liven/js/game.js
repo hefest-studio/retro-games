@@ -456,6 +456,16 @@
         P.x = K.PX0; P.y = K.PY0; P.inv = K.INV; P.dead = 0; emit('continue', S.conts, 0, 0); return true;
       },
       giveUp: function () { if (S.phase === 'cont') { S.phase = 'over'; S.over = true; emit('gameover', S.score, 0, 0); } },
+      // «Ещё один шанс» за рекламу (площадки): после конца партии — 2 жизни и полный запас разрядов, игра с того же места
+      reviveAd: function () {
+        if (S.won) return false;
+        S.over = false; if (S.phase === 'over' || S.phase === 'cont' || S.phase === 'idle') S.phase = 'play';
+        S.lives = Math.max(S.lives, 2); S.bombs = Math.max(S.bombs, K.BOMBS);
+        P.x = K.PX0; P.y = K.PY0; P.inv = K.INV; P.dead = 0; P.hitT = -1; cancelBullets(false);
+        emit('revive', 0, 0, 0); return true;
+      },
+      // бонус за рекламу в паузе: +1 разряд (не больше K.BOMBS + 2)
+      addBomb: function () { if (S.bombs >= K.BOMBS + 2) return false; S.bombs++; return true; },
       // ---- тестовые хуки ----
       _G: G,
       _card: function (id, ci, mid) { // сразу карта босса id с номером ci (в тестах — бессмертный челнок стоит на месте)

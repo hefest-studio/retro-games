@@ -610,6 +610,10 @@
       setInput: setInput,
       throwBoom: throwBoom,
       callFox: callFox,
+      // «Ещё один шанс» за рекламу (площадки): после последней жизни — 2 жизни, с последнего костра (как обычная потеря жизни)
+      reviveAd: function () { if (!S || !S.LV || S.phase === 'clear' || S.phase === 'idle') return false; S.lives = Math.max(S.lives, 2); if (S.phase === 'over' || S.phase === 'dead') respawn(); ev('revive'); return true; },
+      // бонус за рекламу в паузе: +1 жизнь (не больше 9)
+      addLife: function () { if (!S || S.lives >= 9) return false; S.lives++; return true; },
       _place: function (tx, ty) { spawn(tx * T + 8, (ty + 1) * T); S.hero.inv = 0; },
       _hurt: hurt, _die: die, _clear: clear, _collect: collect
     };

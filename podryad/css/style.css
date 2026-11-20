@@ -21,3 +21,12 @@ a.back:hover{color:var(--accent)}
 .foot{color:var(--mut);font-size:11px;margin:8px 12px 12px;text-align:center;max-width:820px}
 .foot b{color:var(--ink)}
 @media (max-height:560px) and (orientation:landscape){ .wrap{margin-top:24px} .foot{display:none} }
+/* тач-устройства: подсказка клавиатуры не нужна — экран целиком под поле и кнопки (Яндекс 1.10) */
+@media (hover:none) and (pointer:coarse){ .foot{display:none} }
+/* телефон лёжа: ОРУДИЕ и ЩИТ слева, БОМБА справа, пауза вверху справа — поле на всю высоту */
+@media (max-height:520px) and (orientation:landscape){
+  .pad{position:fixed;left:0;right:0;bottom:12px;margin:0;padding:0 12px;justify-content:flex-start;pointer-events:none;flex-wrap:nowrap}
+  .pad button{pointer-events:auto}
+  .pad #bCell{margin-right:auto}
+  .pad #bPause{position:fixed;right:12px;top:6px;padding:8px 14px}
+}

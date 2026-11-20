@@ -10,7 +10,7 @@ const ROOT = path.resolve(HERE, '..');
 const sandbox = { console, Math };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
-for (const f of ['js/music.js', 'js/i18n.js', 'js/data.js', 'js/economy.js', 'js/game.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
+for (const f of ['js/music.js', 'js/i18n.js', 'js/data.js', 'js/economy.js', 'js/meta.js', 'js/game.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const PD = sandbox.PODRYAD, D = PD.DATA, E = PD.Eco, K = PD.logic.K;
 const { playMission, playCampaign, shop, mulberry32 } = await import('./bot.mjs');
 
@@ -246,6 +246,29 @@ test('правило имён: в папке игры нет чужих назв
   ok(!BAD.test('Ржавая артель') && !BAD.test('Клепальник') && !BAD.test('CONTRACT.md') && !BAD.test('Гефест') && !BAD.test('Старшина артели') && !BAD.test('turret'), 'стоп-лист без ложных срабатываний на наши слова');
 });
 
+// ---------- волна 3: звёзды заданий, реклама за награду, языки ----------
+test('мета: звёзды задания (выполнено / не сбит / броня ≥ 60), рекорд звёзд не падает, 9 заданий', () => {
+  const M = PD.meta, mem = {}, P = M.Progress({ get: k => (k in mem ? mem[k] : null), set: (k, v) => { mem[k] = v; } });
+  eq(M.LEVELS, 9); eq(M.stars({ ok: false, revived: 0, armor: 100 }).n, 0); eq(M.stars({ ok: true, revived: 0, armor: 80 }).n, 3);
+  eq(M.stars({ ok: true, revived: 1, armor: 80 }).n, 2); eq(M.stars({ ok: true, revived: 1, armor: 30 }).n, 1);
+  ok(P.record(4, 2)); ok(!P.record(4, 1)); eq(P.get(4), 2); ok(P.record(4, 3)); eq(P.total(), 3); eq(mem['arcade.podryad.stars.4'], '3'); ok(!P.record(10, 3));
+});
+test('реклама: сбитое крыло → reviveAd — задание продолжается (броня 50, щит полон), result.revived; addMega до максимума', () => {
+  const { game, S, ev } = mk(); S.P.inv = 0; S.P.shield = 0; S.P.armor = 1; game._hurt ? game._hurt(999) : null;
+  // смерть через внутренний путь: имитируем фазу dead → fail
+  S.prev = 'play'; S.phase = 'fail'; S.P.armor = 0;
+  ok(game.reviveAd()); eq(S.phase, 'play'); eq(S.P.armor, 50); eq(S.P.shield, S.P.scap); ok(ev.some(e => e.t === 'revive'));
+  run(game, 1); ok(S.phase === 'play' || S.phase === 'boss'); eq(game.result().revived, 1);
+  S.P.mega = D.SPECIAL.mega.max - 1; ok(game.addMega()); ok(!game.addMega()); eq(S.P.mega, D.SPECIAL.mega.max);
+  S.phase = 'done'; ok(!game.reviveAd(), 'после выполнения — нет');
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ПОДРЯД, EN/TR/ES/PT SKYHIRE; плейсхолдеры на месте', () => {
+  const ks = Object.keys(PD.STR.en).sort().join(','); eq(Object.keys(PD.STR).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(PD.STR[l]).sort().join(','), ks, l);
+  eq(PD.STR.ru.title, 'ПОДРЯД');
+  for (const l of ['en', 'tr', 'es', 'pt']) { eq(PD.STR[l].title, 'SKYHIRE', l); ok(PD.STR[l].foot.includes('SKYHIRE'), l);
+    for (const k of Object.keys(PD.STR.en)) { const ph = (PD.STR.en[k].match(/\{[a-z]\}/g) || []).sort().join(); eq((PD.STR[l][k].match(/\{[a-z]\}/g) || []).sort().join(), ph, l + '.' + k); } }
+});
 // ---------- партии бота (QUICK=1 — пропустить) ----------
 if (process.env.QUICK){ console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed) + ' (без бота)'); process.exit(failed ? 1 : 0); }
 // «Человеческий» бот (tests/bot.mjs): реакция 150–250 мс, ошибки оценки, ограниченное внимание; в ангаре — простая стратегия.

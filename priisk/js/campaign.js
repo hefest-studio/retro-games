@@ -55,18 +55,28 @@
    сами идут к ближнему узлу канатки и уезжают на Станцию; сгорела опора впереди — люлька срывается), условие ferried (сколько
    довезли, tag), действие ferry (вкл/выкл); fire.drift — пожар идёт по ветру (новые очаги — с подветренной стороны, ветер
    повернул — повернул и огонь); despawn.zone — убрать только тех, кто дошёл до зоны (наёмники ушли с карты).
+   «Канатка над пропастью» и «Последний перевал» (С8–С9): ferry.exposed / armor — пассажирские люльки под обстрелом с земли
+   (сбили — люди падают), ferry.sway — ветер раскачивает и тормозит люльки, в порыв (stop) они ждут у опор; действие cut — обрыв
+   пролёта: канат на опоре с тегом сорвёт с ролика через warn секунд (люльки через неё не отправляются, едущие — висят), условие
+   cut (сейчас оборван), def.ropeFix — Агафья, стоя у опоры, чинит её и сращивает канат (условие spliced — сколько срастила);
+   условие routed — от узла с тегом есть канат до Станции (пролёт перестроили в обход рухнувшей опоры);
+   действие build — поставить здание сценарием (setup — «вырастает» за секунды). Эпилог «Общий посёлок»: миссия с
+   def.camp = 'both' (P.MISSIONS_B, своё сохранение) открывается, когда пройдены финалы ОБЕИХ кампаний и их флаги совпадают с
+   def.unlock = { copper: { флаг: значение | [значения] }, sizye: { … } } — C.epilogueState(def, saves); флаги обеих — через
+   def.xcarry. def.finale.camps — на экране эпилога ещё и итог звёзд обеих кампаний.
    Прогресс — localStorage 'arcade.priisk.campaign' (Медный Ключ) и 'arcade.priisk.campaign.sizye' (Сизые), через переданное
    хранилище, с try/catch. Экспорт: PRIISK.campaign. */
 (function (root) {
   'use strict';
   var P = root.PRIISK = root.PRIISK || {};
   var L = P.logic;
-  var KEY = 'arcade.priisk.campaign', KEYS = { copper: KEY, sizye: KEY + '.sizye' }, CAMPS = ['copper', 'sizye'];
-  P.MISSIONS = P.MISSIONS || []; P.MISSIONS_S = P.MISSIONS_S || [];
-  function campOf(def) { return def && def.camp === 'sizye' ? 'sizye' : 'copper'; }
-  function list(camp) { return camp === 'sizye' ? P.MISSIONS_S : P.MISSIONS; }
+  var KEY = 'arcade.priisk.campaign', KEYS = { copper: KEY, sizye: KEY + '.sizye', both: KEY + '.both' }, CAMPS = ['copper', 'sizye'];
+  P.MISSIONS = P.MISSIONS || []; P.MISSIONS_S = P.MISSIONS_S || []; P.MISSIONS_B = P.MISSIONS_B || []; // _B — эпилог обеих кампаний
+  function campKey(camp) { return camp === 'sizye' || camp === 'both' ? camp : 'copper'; }
+  function campOf(def) { return def && (def.camp === 'sizye' || def.camp === 'both') ? def.camp : 'copper'; }
+  function list(camp) { return camp === 'sizye' ? P.MISSIONS_S : camp === 'both' ? P.MISSIONS_B : P.MISSIONS; }
   function register(def) { var ls = list(campOf(def)); for (var n = 0; n < ls.length; n++) if (ls[n].id === def.id) { ls[n] = def; return def; } ls.push(def); ls.sort(function (a, b) { return a.n - b.n; }); return def; }
-  function byId(id) { var all = P.MISSIONS.concat(P.MISSIONS_S); for (var n = 0; n < all.length; n++) if (all[n].id === id) return all[n]; return null; }
+  function byId(id) { var all = P.MISSIONS.concat(P.MISSIONS_S, P.MISSIONS_B); for (var n = 0; n < all.length; n++) if (all[n].id === id) return all[n]; return null; }
 
   // ---------- Карта ----------
   var TILE = { '#': L.ROCK, '~': L.WATER, '=': L.ICE, '_': L.OPEN, ':': L.BRIDGE, '.': L.GROUND, 'o': L.GROUND, 'O': L.GROUND, ',': L.SHAKY, '^': L.PIT, '+': L.GROUND };
@@ -131,7 +141,7 @@
     var MS = W.mission = {
       def: def, id: def.id, points: map.points, objs: [], byObj: Object.create(null), fired: Object.create(null), queue: [], groups: Object.create(null),
       flags: Object.assign({}, def.flags || {}, carried(def, save), xcarried(def, opts.xsave)), talked: Object.create(null), cabled: 0, paid: Object.create(null), spawned: Object.create(null), killed: Object.create(null), heroDead: Object.create(null), heroes: Object.create(null),
-      scouted: Object.create(null), scoutedN: Object.create(null), ferried: Object.create(null),
+      scouted: Object.create(null), scoutedN: Object.create(null), ferried: Object.create(null), spliced: Object.create(null),
       ui: [], allow: Object.create(null), night: false, nightMul: 1, weather: def.weather ? Object.assign({}, def.weather) : null, storm: 0,
       winAt: -1, reason: null, trigT: 0, aiT: 0, vetsUsed: 0, save: save, razed: Object.create(null), warn: [], geys: Object.create(null), creakT: 0,
       pumped: Object.create(null), lamps: Object.create(null), sites: Object.create(null), sitesN: 0, litN: 0, doused: Object.create(null), captured: Object.create(null), partsDown: Object.create(null), partsN: Object.create(null), bossDone: Object.create(null), scalded: Object.create(null)
@@ -144,6 +154,7 @@
     if (def.foeBlind) W.foeBlind = true; // ночью и соперник видит хуже (его автоприцел × обзор)
     if (def.campBuild) W.campBuild = true; // стоянка без конторы: стройка разрешена (у своих построек)
     if (def.ferry) { W.ferry = def.ferry === true ? true : Object.assign({}, def.ferry); if (W.ferry.home) W.ferry.home = pointOf(MS, W.ferry.home); } // автолюльки: горняки (spawn.fare) уезжают по канату сами; home — точка, куда уходят со Станции
+    if (def.ropeFix) W.ropeFix = def.ropeFix === true ? {} : Object.assign({}, def.ropeFix); // Агафья чинит опоры и сращивает канат
     if (def.holdFire) W.holdFire = true; // разведка: свои стреляют только по приказу или в ответ (действие holdFire снимает)
     if (def.keepHq) W.hqSafe = { 1: true }; // снос чужой конторы — не победа: миссия решает сама (разведка, а не разгром)
     W.sand = def.sand || 0; W.haulCap = def.haulCap || 0; W.rigRate = def.rigRate || 0; W.treaty = !!def.treaty; W.packOn = !!def.player.pack; if (def.plantable) { W.plantable = {}; def.plantable.forEach(function (t) { W.plantable[t] = 1; }); }
@@ -162,7 +173,7 @@
         if (s.when && !cond(W, s.when)) return; // стартовые силы по флагам прошлых миссий (например, обоз из миссии 2)
         var owner = s.owner == null ? owner0 : s.owner;
         if (s.type === 'train') { makeTrain(W, MS, Object.assign({ owner: owner }, s)); return; }
-        if (L.BLDS[s.type]) { var c = MS.points[s.at][0]; var b = L.addBuilding(W, owner, s.type, c.i, c.j, s.noFree); if (s.tag) b.tag = s.tag; if (s.hpFrac) b.hp = Math.round(b.maxHp * s.hpFrac); if (s.stock != null) b.stock = s.stock; if (s.mult) b.mult = s.mult; return; }
+        if (L.BLDS[s.type]) { var c = MS.points[s.at][0]; var b = L.addBuilding(W, owner, s.type, c.i, c.j, s.noFree); if (s.tag) b.tag = s.tag; if (s.cut) b.cut = true; if (s.hpFrac) b.hp = Math.round(b.maxHp * s.hpFrac); if (s.stock != null) b.stock = s.stock; if (s.mult) b.mult = s.mult; return; }
         var p = pointOf(MS, s.at), tiles = spreadAround(W, p.x, p.y, s.n || 1);
         tiles.forEach(function (tl) {
           var u = L.addUnit(W, owner, s.type, tl.i + 0.5, tl.j + 0.5); u.post = { x: u.x, y: u.y };
@@ -265,6 +276,9 @@
       case 'scouted': { var sk = (c.owner == null ? 1 : c.owner) + ':' + (c.type || c.tag || '*'); return (MS.scoutedN[sk] || 0) >= (c.gte || 1); } // сколько чужих зданий разведано (видели хоть раз)
       case 'storm': return (c.gte == null || MS.storm >= c.gte) && (c.lte == null || MS.storm <= c.lte); // сила метели/бурана 0…1
       case 'cabled': return MS.cabled >= (c.gte || 1);
+      case 'cut': return W.blds.some(function (b) { return b.tag === c.tag && b.hp > 0 && (b.cut || b.cutAt > 0); }); // пролёт на опоре с тегом оборван (или вот-вот)
+      case 'spliced': return (MS.spliced[c.tag || '*'] || 0) >= (c.gte || 1);
+      case 'routed': return W.blds.some(function (b) { return b.tag === c.tag && b.owner === o && b.hp > 0 && L.BLDS[b.type].cable && !b.cut && L.cableRoute(W, b, function (x) { return !!L.BLDS[x.type].terminal; }).length > 0; }); // от узла с тегом есть канат до Станции
       case 'ferried': return [].concat(c.tag || '*').reduce(function (s, t) { return s + (MS.ferried[t] || 0); }, 0) >= (c.gte || 1); // сколько горняков с тегом довезли люльками до Станции
       case 'paid': return (MS.paid[c.tag] || 0) >= (c.gte || 1);
       case 'wind': return !!W.wind && (c.gte == null || W.wind.s >= c.gte) && (c.lte == null || W.wind.s <= c.lte);
@@ -346,6 +360,10 @@
       case 'calm': W.units.forEach(function (u) { if (u.tag === a.tag) { u.calm = a.on !== false; if (u.calm && u.order.t === 'attack') { u.order = { t: 'idle' }; u.path = []; } } }); W.units.forEach(function (u) { if (u.order.t === 'attack') { var tg2 = W.byId[u.order.target]; if (tg2 && tg2.tag === a.tag && tg2.calm) { u.order = { t: 'idle' }; u.path = []; } } }); break;
       case 'wind': L.setWind(W, a); break;
       case 'holdFire': W.holdFire = a.on !== false; break;
+      case 'cut': W.blds.forEach(function (b) { if (b.tag !== a.tag || b.hp <= 0) return; if (a.on === false) { b.cut = false; b.cutAt = 0; b.cutP = 0; } else if (!b.cut) b.cutAt = W.time + (a.warn || 0.01); }); if (a.on !== false) MS.ui.push({ t: 'cutWarn', tag: a.tag, s: a.warn || 0 }); break;
+      case 'build': { var bp = MS.points[a.at] && MS.points[a.at][0]; if (!bp) throw new Error('нет точки «' + a.at + '»'); var ow = a.owner == null ? 0 : a.owner, d0 = L.BLDS[a.type];
+        for (var bj = 0; bj < d0.h; bj++) for (var bi = 0; bi < d0.w; bi++) if (W.occ[(bp.j + bj) * W.w + bp.i + bi]) return; // место занято — не ставим
+        var nb = L.addBuilding(W, ow, a.type, bp.i, bp.j, true); if (a.tag) nb.tag = a.tag; if (a.hpFrac) nb.hp = Math.round(nb.maxHp * a.hpFrac); if (a.setup) { nb.setup = a.setup; L.calcPower(W); } break; }
       case 'ferry': W.ferry = a.on === false ? false : a.cfg ? Object.assign({}, a.cfg) : (W.ferry || true); break; // включить/выключить автолюльки
       case 'seize': { var sz0 = 0; W.units = W.units.filter(function (u) { if (u.owner === (a.owner || 0) && a.types.indexOf(u.type) >= 0) { delete W.byId[u.id]; sz0++; return false; } return true; }); var pz = W.players[a.owner || 0]; ['inf', 'veh'].forEach(function (q) { pz[q] = pz[q].filter(function (t) { if (a.types.indexOf(t) >= 0) { pz.copper += L.UNITS[t].cost; return false; } return true; }); }); MS.seized = (MS.seized || 0) + sz0; break; } // заводчик забирает технику (и заказанную — медь возвращается)
       case 'allow': (a.build || []).concat(a.units || []).forEach(function (b) { MS.allow[b] = true; }); if (a.repair) { MS.repair = W.repairOn = true; } if (a.pack) W.packOn = true; break;
@@ -472,7 +490,9 @@
       if (ev.t === 'cableIn' && ev.owner === 0) { if (ev.fare) { MS.ferried[ev.tag || '-'] = (MS.ferried[ev.tag || '-'] || 0) + 1; MS.ferried['*'] = (MS.ferried['*'] || 0) + 1; } else MS.cabled++; }
       if (ev.t === 'ferry' && L.friendTo0(W, ev.owner)) MS.ui.push({ t: 'ferry', n: ev.n });
       if (ev.t === 'copper' && ev.cable && ev.owner === 0 && ev.tag) MS.paid[ev.tag] = (MS.paid[ev.tag] || 0) + ev.n; // медь, пришедшая по канату на станцию с тегом
-      if (ev.t === 'carFall' && ev.owner === 0) MS.ui.push({ t: 'carFall' });
+      if (ev.t === 'carFall' && ev.owner === 0) MS.ui.push({ t: 'carFall', shot: !!ev.shot });
+      if (ev.t === 'cut' && ev.owner === 0) MS.ui.push({ t: 'cut', tag: ev.tag });
+      if (ev.t === 'spliced' && ev.owner === 0) { MS.spliced[ev.tag || '-'] = (MS.spliced[ev.tag || '-'] || 0) + 1; MS.spliced['*'] = (MS.spliced['*'] || 0) + 1; MS.ui.push({ t: 'spliced', tag: ev.tag }); }
       if (ev.t === 'windShift' && L.facOf(W, 0) === 'sizye') MS.ui.push({ t: 'wind' });
       if (ev.t === 'bossArrived') { MS.bossDone[ev.tag || '-'] = true; MS.bossDone['*'] = true; }
       var bt = ev.kind === 'bld' ? ev.type : ev.packed; // здание (или фургон со свёрнутым зданием) снесено
@@ -572,17 +592,17 @@
   }
 
   // ---------- Прогресс кампании ----------
-  function newSave(camp) { var d = { v: 1, unlocked: 1, missions: {}, flags: {}, roster: { heroes: {}, vets: [] } }; if (camp === 'sizye') d.camp = 'sizye'; return d; }
+  function newSave(camp) { var d = { v: 1, unlocked: 1, missions: {}, flags: {}, roster: { heroes: {}, vets: [] } }; if (camp === 'sizye' || camp === 'both') d.camp = camp; return d; }
   function load(store, camp) {
-    var s = null; camp = camp === 'sizye' ? 'sizye' : 'copper';
+    var s = null; camp = campKey(camp);
     try { var raw = store && store.getItem(KEYS[camp]); if (raw) s = JSON.parse(raw); } catch (e) { s = null; }
     if (!s || typeof s !== 'object' || s.v !== 1) return newSave(camp);
     var d = newSave(camp); d.unlocked = Math.max(1, s.unlocked | 0); d.missions = s.missions || {}; d.flags = s.flags || {};
     d.roster = { heroes: (s.roster && s.roster.heroes) || {}, vets: (s.roster && Array.isArray(s.roster.vets)) ? s.roster.vets : [] };
     return d;
   }
-  function save(store, data) { try { store && store.setItem(KEYS[data && data.camp === 'sizye' ? 'sizye' : 'copper'], JSON.stringify(data)); return true; } catch (e) { return false; } }
-  function reset(store, camp) { try { store && store.removeItem(KEYS[camp === 'sizye' ? 'sizye' : 'copper']); } catch (e) {} return newSave(camp); }
+  function save(store, data) { try { store && store.setItem(KEYS[campKey(data && data.camp)], JSON.stringify(data)); return true; } catch (e) { return false; } }
+  function reset(store, camp) { try { store && store.removeItem(KEYS[campKey(camp)]); } catch (e) {} return newSave(camp); }
   // Победа: звёзды (лучшие), время, флаги, герои и ветераны → в сохранение; открывается следующая миссия.
   function applyResult(data, res) {
     if (!res.win) return data;
@@ -600,15 +620,33 @@
   // игрока (текст — row.text[значение] или flagText той миссии); quotes: [{ who, when: { флаг: значение | [значения] }, text }]; note — пометка внизу }.
   function pick(o, flags) { if (!o) return null; if (o.key) return o[flags[o.key]] || o.other || null; return o; }
   function flagsMatch(when, flags) { return Object.keys(when || {}).every(function (k) { var v = when[k]; return Array.isArray(v) ? v.indexOf(flags[k]) >= 0 : flags[k] === v; }); }
-  function finale(def, data) {
+  function finale(def, data, xsaves) {
     var f = def && def.finale; if (!f) return null; var flags = (data && data.flags) || {}, total = 0, max = 0;
-    var rows = (f.rows || []).map(function (r) { var m = byId(r.mission), v = flags[r.key], t = (r.text && r.text[v]) || (m && m.flagText && m.flagText[r.key] && m.flagText[r.key][v]); return t ? { n: m.n, title: m.title, text: t, key: r.key, value: v } : null; }).filter(Boolean);
+    var rows = (f.rows || []).map(function (r) { var m = byId(r.mission), v = flags[r.key], t = (r.text && r.text[v]) || (m && m.flagText && m.flagText[r.key] && m.flagText[r.key][v]); return t ? { n: m.n, title: m.title, text: t, key: r.key, value: v, camp: campOf(m) } : null; }).filter(Boolean);
     var stars = list(campOf(def)).map(function (m) { var rec = data && data.missions && data.missions[m.id], st = [0, 1, 2].map(function (k) { return !!(rec && rec.stars && rec.stars[k]); }); st.forEach(function (x) { max++; if (x) total++; }); return { n: m.n, id: m.id, stars: st, done: !!rec }; });
-    return { title: pick(f.title, flags), sub: pick(f.sub, flags), rows: rows, stars: stars, total: total, max: max,
+    // f.camps — эпилог: итог звёзд каждой из кампаний (сохранения — xsaves или хранилище C.store)
+    var totals = (f.camps || []).map(function (k) { var sv = xsaves && xsaves[k] !== undefined ? xsaves[k] : load(P.campaign.store, k), t = 0, mx = 0;
+      list(k).forEach(function (m) { var rec = sv && sv.missions && sv.missions[m.id]; [0, 1, 2].forEach(function (q) { mx++; if (rec && rec.stars && rec.stars[q]) t++; }); }); return { camp: k, total: t, max: mx }; });
+    return { title: pick(f.title, flags), sub: pick(f.sub, flags), rows: rows, stars: stars, total: total, max: max, totals: totals,
       quotes: (f.quotes || []).filter(function (q) { return flagsMatch(q.when, flags); }).slice(0, f.maxQuotes || 4), note: pick(f.note, flags), ending: flags[f.key || 'ending'] || null };
   }
 
-  P.campaign = { finale: finale, KEY: KEY, KEYS: KEYS, CAMPS: CAMPS, campOf: campOf, list: list, xcarried: xcarried, register: register, byId: byId, parseMap: parseMap, build: build, step: step, tick: tick, cond: cond, act: act, run: run,
+  // ---------- Эпилог обеих кампаний (def.camp = 'both') ----------
+  // кампания пройдена — выигран её финал (миссия с def.finale; нет такой — последняя по номеру)
+  function campDone(camp, sv) { var ls = list(camp), fin = ls.filter(function (m) { return m.finale; })[0] || ls[ls.length - 1]; return !!(fin && sv && sv.missions && sv.missions[fin.id]); }
+  // состояние эпилога: open — обе кампании пройдены и флаги каждой совпадают с def.unlock[кампания]; done — эпилог уже пройден;
+  // camps — по каждой кампании { done, match } (для подсказок на экранах финала). saves — { copper, sizye, both } или из C.store
+  function epilogueState(def, saves) {
+    if (!def) return { open: false, done: false, camps: {} };
+    var sv = function (k) { return saves && saves[k] !== undefined ? saves[k] : load(P.campaign.store, k); }, camps = {}, open = true;
+    Object.keys(def.unlock || {}).forEach(function (k) { var s = sv(k), dn = campDone(k, s), mt = !!(s && flagsMatch(def.unlock[k], s.flags || {})); camps[k] = { done: dn, match: mt }; if (!dn || !mt) open = false; });
+    if (!Object.keys(camps).length) open = false;
+    var b = sv('both');
+    return { open: open, done: !!(b && b.missions && b.missions[def.id]), camps: camps };
+  }
+  function epilogue() { return P.MISSIONS_B[0] || null; }
+
+  P.campaign = { finale: finale, epilogue: epilogue, epilogueState: epilogueState, campDone: campDone, flagsMatch: flagsMatch, KEY: KEY, KEYS: KEYS, CAMPS: CAMPS, campOf: campOf, list: list, xcarried: xcarried, register: register, byId: byId, parseMap: parseMap, build: build, step: step, tick: tick, cond: cond, act: act, run: run,
     result: result, newSave: newSave, load: load, save: save, reset: reset, applyResult: applyResult, pointOf: pointOf, inZone: inZone, zoneCenter: zoneCenter,
     zoneCells: zoneCells, txt: txt, everyone: everyone, makeTrain: makeTrain, hazards: hazards, allowed: function (W, type) { return !W.mission || !!W.mission.allow[type]; } };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -14,8 +14,18 @@
 
   // ---------- Сохранение ----------
   function loadSave() { try { var s = localStorage.getItem(SAVE); s = s ? JSON.parse(s) : null; return s && s.v === 1 && s.herd && s.herd.length ? s : null; } catch (e) { return null; } }
-  function writeSave(sn) { try { localStorage.setItem(SAVE, JSON.stringify(sn)); } catch (e) {} }
-  function clearSave() { try { localStorage.removeItem(SAVE); } catch (e) {} }
+  function writeSave(sn) { g.storeSet(SAVE, JSON.stringify(sn)); }   // localStorage сразу + облако площадки
+  function clearSave() { try { localStorage.removeItem(SAVE); } catch (e) {} if (g.platform) g.storeSet(SAVE, ''); }
+  // ---------- облако и мета-прогрессия: выбор участка, звёзды (js/meta.js) ----------
+  var Store = Arcade.Store, M = O.meta, START_KEY = 'arcade.otgon.start';
+  var prog = M.Progress({ get: function (k) { return Store.get(k, null); }, set: function (k, v) { g.storeSet(k, v); } });
+  g.persist(SAVE, 'last'); g.persist(START_KEY, 'last'); g.persist('arcade.best.otgon', 'max');
+  for (var lv = 1; lv <= M.LEVELS; lv++) g.persist(M.key(lv), 'max');
+  function startLv() { var v = parseInt(Store.get(START_KEY, '1'), 10) || 1; return prog.unlocked(v) ? v : 1; }
+  function nextStart(dir) { g.storeSet(START_KEY, prog.next(startLv(), dir || 1)); }
+  function legSnap(lv) { var herd = []; for (var i = 0; i < L.HERD; i++) herd.push({ id: i, mark: i, food: 0.9, pep: 0.9 }); return { v: 1, lv: lv, x: 220, herd: herd, gone: [], T: 0 }; }
+  var legRec = { lost: 0 }, pendingAlone = false, starNote = null;
+  function recordLeg(lv) { var s = game.state(), r = M.stars({ lost: legRec.lost, alive: game.alive().length, total: s.total }), isNew = prog.record(lv + 1, r.n); starNote = { text: M.starStr(r.n) + (isNew ? '  ' + g.t('starNew') : ''), t: 3 }; legRec = { lost: 0 }; }
   // отладка/скриншоты: #at=<участок 1..6>:<x> — начать с точки пути
   function debugSnap() {
     var m = /[#&?]at=(\d+):(\d+)/.exec(location.hash + location.search); if (!m) return null;
@@ -28,10 +38,10 @@
   function onEvent(type, d) {
     O.sfx(g, type, d);
     if (type === 'checkpoint') { writeSave(d.save); banners.push({ kind: 'cp', t: 1.8 }); }
-    else if (type === 'lost') { var s = game.state(), mk = d.id; s.gone.forEach(function (q) { if (q.id === d.id) mk = q.mark; }); banners.push({ kind: 'lost', mark: mk, why: d.why, t: 3.2 }); }
+    else if (type === 'lost') { legRec.lost++; var s = game.state(), mk = d.id; s.gone.forEach(function (q) { if (q.id === d.id) mk = q.mark; }); banners.push({ kind: 'lost', mark: mk, why: d.why, t: 3.2 }); }
     else if (type === 'leg') music(d.lv);
-    else if (type === 'camp') { var sn = game.snapshot(); sn.lv = d.lv + 1; sn.x = 220; writeSave(sn); sync(); g.goto('camp'); }
-    else if (type === 'win') { final = d; clearSave(); sync(); g.win(); }
+    else if (type === 'camp') { recordLeg(d.lv); var sn = game.snapshot(); sn.lv = d.lv + 1; sn.x = 220; writeSave(sn); sync(); g.goto('camp'); }
+    else if (type === 'win') { recordLeg(game.state().lv); final = d; clearSave(); sync(); g.win(); }
     else if (type === 'alone') { banners.push({ kind: 'alone', t: 2.6 }); }
   }
   function sync() { if (!game) return; var s = game.state(); g.state.score = game.alive().length; g.state.level = s.lv + 1; }
@@ -44,7 +54,17 @@
   // ---------- Стандартные экраны + своя заставка с живым фоном ----------
   g.useStandardScreens({ get subtitle() { return g.t('subtitle'); }, lives: 0 });
   var contItem = { key: 'cont', label: function () { var s = loadSave(); return g.t('cont') + (s ? ' · ' + (s.lv + 1) + '/' + L.LEGS.length : ''); }, onSelect: function () { O._resume = loadSave(); this.goto('play'); }, before: 'play' };
+  // пункт «Участок N ★★☆» — с какого участка начинать «Новый путь» (со всем стадом): выбор/тап — следующий открытый, ← → — по кругу
+  g.menu.addItem({ key: 'legpick', after: 'play', label: function () { var n = startLv(); return g.t('legPick') + ' ' + n + '/' + L.LEGS.length + '  ' + M.starStr(prog.get(n)); }, onSelect: function () { nextStart(1); } });
+  // Реклама за награду (только площадки с рекламой): стадо разбрелось — «ещё один шанс»: двое последних отбившихся снова рядом
+  // (иначе — как раньше, возврат к последнему туру); бонус в паузе — вернуть одного отбившегося (раз за партию).
+  g.useRewardedContinue({ revive: function () { pendingAlone = false; if (game) game.reviveAd(); } });
+  g.useRewardedBonus({ key: 'rwBack', scene: 'pause', label: function () { return g.t('rwBack'); },
+    available: function () { return !!game && game.canReturn(); }, grant: function () { if (game) game.returnOne(); } });
+  var goEnter = g.scenes.gameover.enter;
+  g.scenes.gameover.enter = function (d) { if (pendingAlone) { pendingAlone = false; newGame(loadSave() || (game && game.state().cp)); this.goto('play', { resume: true }); return; } if (goEnter) goEnter.call(this, d); };
   var title = g.scenes.title, menu = title._menu;
+  title.press = function (a) { var it = menu && menu.current(); if (it && it.key === 'legpick' && (a === 'left' || a === 'right')) { nextStart(a === 'left' ? -1 : 1); this.audio.beep(600, 0.03); } };
   function refreshMenu() {
     var has = !!loadSave(), items = g.menu.items('title');
     if (has && items.indexOf('cont') < 0) g.menu.addItem(contItem);
@@ -65,8 +85,8 @@
     panel(ctx, px, py, pw, ph, retro);
     this.text(this.t('title'), W / 2, py + 64, { size: 50, align: 'center', color: retro ? '#f8a030' : '#f0a04b', weight: 900 });
     this.text(this.t('subtitle'), W / 2, py + 96, { size: 14, align: 'center', color: th.muted, weight: 600 });
-    menu.draw(this, W / 2, py + 140, 30);
-    if (this.state.best) this.text(this.t('best') + ': ' + this.state.best + ' ' + this.t('of') + ' ' + L.HERD, W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600 });
+    menu.draw(this, W / 2, py + 134, 26);
+    this.text(this.t('starsHint') + ' · ' + prog.total() + '/' + (M.LEVELS * 3) + (this.state.best ? '   ' + this.t('best') + ': ' + this.state.best + ' ' + this.t('of') + ' ' + L.HERD : ''), W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600, maxWidth: pw - 24 });
     this.text(this.t(this.input.touchOnly ? 'hintTouch' : 'hint'), W / 2, this.input.touchOnly ? 20 : H - 14, { size: 12, align: 'center', color: '#e8ecee', weight: 600 }); // на телефоне — подсказка про тач, сверху (низ занят кнопками)
   };
   function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
@@ -81,8 +101,8 @@
     realtime: true,
     enter: function (d) {
       if (d && d.resume) return;
-      var snap = O._resume || debugSnap(); O._resume = null;
-      if (!snap) clearSave();
+      var snap = O._resume || debugSnap(); O._resume = null; legRec = { lost: 0 }; pendingAlone = false; g.resetRun();   // «раз за партию» — и для «Продолжить»
+      if (!snap) { clearSave(); if (startLv() > 1) snap = legSnap(startLv() - 1); }
       newGame(snap);
     },
     press: function (a) { if (a === 'pause') this.pause(); else if (a === 'action' && game) game.whistle(); },
@@ -93,7 +113,7 @@
       game.setMove(dx, dy, run);
       game.update(dt);
       var s = game.state();
-      if (s.phase === 'alone') { s.aloneT = (s.aloneT || 0) + dt; if (s.aloneT > 2.4) { var sn = loadSave() || s.cp; newGame(sn); } }
+      if (s.phase === 'alone') { s.aloneT = (s.aloneT || 0) + dt; if (s.aloneT > 2.4 && !pendingAlone) { s.aloneT = -99; pendingAlone = true; g.gameover(); return; } }   // «ещё один шанс» (площадка) или возврат к туру
       if (s.lv === L.LEGS.length - 1 && s.hero.x > 7000 && !s._fin) { s._fin = true; music(6); }
       O.ambience(g, s, dt);
       for (var i = banners.length - 1; i >= 0; i--) { banners[i].t -= dt; if (banners[i].t <= 0) banners.splice(i, 1); }
@@ -103,6 +123,7 @@
       if (!game) { this.clear(); return; }
       var s = game.state(); RD.draw(ctx, s, g, { dt: lastDt });
       drawBanners(ctx, s);
+      if (starNote && starNote.t > 0) { starNote.t -= lastDt; this.text(starNote.text, W / 2, 40, { size: 22, align: 'center', color: '#f0a04b', weight: 900, maxWidth: W - 40 }); }
       if (s.lv === 0 && s.T < 45 && s.hero.x < 2000 && !this.input.touchOnly) drawKeys(ctx, s, this);
       if (stick && stick.mag > 0.05) { ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(stick.ox, stick.oy, 46, 0, 7); ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.arc(stick.ox + stick.x * stick.mag * 46, stick.oy + stick.y * stick.mag * 46, 16, 0, 7); ctx.fill(); }
     }
@@ -135,7 +156,8 @@
 
   // ---------- Ночёвка у костра: стадо отдыхает, можно сменить метки ----------
   var campSel = 0, campT = 0;
-  function campGo() { if (game && game.nextLeg()) { RD.resetCam(); g.goto('play', { resume: true }); music(game.state().lv); g.audio.music.play(true); } }
+  // межстраничная — по выходу с ночёвки (действие игрока)
+  function campGo() { if (game && game.state().phase === 'camp') g.adBreak(); if (game && game.nextLeg()) { RD.resetCam(); g.goto('play', { resume: true }); music(game.state().lv); g.audio.music.play(true); } }
   function campMark(dir) { var a = game.alive(); if (!a.length) return; var c = a[campSel % a.length]; game.setMark(c.id, c.mark + dir); O.sfx(g, 'mark'); var sn = loadSave(); if (sn) { sn.herd.forEach(function (h) { if (h.id === c.id) h.mark = c.mark; }); writeSave(sn); } }
   g.scene('camp', {
     realtime: true,
@@ -165,6 +187,7 @@
         RD.creature(ctx, view, x - 2, y, P, s.t, { scale: 1.5, sleep: ok, ghost: !ok });
         if (ok) { RD.mark(ctx, cr.mark, x, y + 20, 8, P.marks[cr.mark % P.marks.length]); temperIcon(ctx, L.TEMPERS[i], x + 20, y - 48, P); }
       }
+      if (starNote && starNote.t > 0) this.text(starNote.text, W / 2, py + 64, { size: 16, align: 'center', color: th.ink, weight: 800 });
       this.text(this.t(this.input.touchOnly ? 'campHintTouch' : 'campHint'), W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600 });
     }
   });
@@ -247,7 +270,8 @@
 
   // подпись под канвой — язык
   var lastLang = null;
-  function syncDom() { if (lastLang === g.i18n.lang) return; lastLang = g.i18n.lang; var f = document.getElementById('foot'); if (f) f.textContent = g.t('foot') + ' ' + g.t('hint') + '.'; document.title = g.t('title') + ' · ' + g.t('subtitle') + ' — HTML5'; }
+  function syncDom() { if (lastLang === g.i18n.lang) return; lastLang = g.i18n.lang; var f = document.getElementById('foot'); if (f) f.textContent = g.t('foot') + ' ' + g.t('hint') + '.'; }   // <title> не трогаем: в сборке под площадку он задан по языку (5.1.3)
+  g.onCloud(function () { if (g._sceneName === 'title') refreshMenu(); });
   syncDom(); setInterval(syncDom, 250);
 
   g.start('title');

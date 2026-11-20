@@ -452,6 +452,9 @@
       saveData: function () { return { z: S.z, cp: S.cp, snap: S.cpSnap }; },
       restartCp: function () { if (S.hero.st !== 'dead') reset('menu'); },
       loadZone: loadZone,
+      // бонус за рекламу (площадки): перелистнуть страницу без решения — как дойти до края страницы (на последней — нельзя)
+      canSkip: function () { return S.phase === 'play' && !!S.L && !S.L.final && S.hero.st !== 'dead'; },
+      skipPage: function () { if (!api.canSkip()) return false; S.skipped = (S.skipped || 0) + 1; S.phase = 'turn'; S.turnT = C.TURN_T; emit('page', { z: S.z, skip: true }); return true; },
       // для рендера и тестов
       solids: solids, sig: sig, bridgeOn: bridgeOn, sketchLit: sketchLit, lampPos: lampPos, doorRect: doorRect, scaleRects: scaleRects,
       inkRect: inkRect, flowOf: flowOf, sawPos: sawPos, dripPos: dripPos, logRect: logRect, waterAt: waterAt, heroBox: heroBox, adjacentBox: adjacentBox, DT: DT

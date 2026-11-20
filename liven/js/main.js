@@ -22,12 +22,22 @@
   var form = L.FORMS.indexOf(Store.get(FKEY, 'fan')) >= 0 ? Store.get(FKEY, 'fan') : 'fan';
   function bestKey(d) { return 'arcade.best.liven.' + (d || diff); }
   g.loadBest = function () { return Store.getNum(bestKey(), 0); };
-  g.saveBest = function () {
-    var b = this.loadBest(); if (this.state.score > b) Store.set(bestKey(), String(this.state.score));
-    if (this.state.score > Store.getNum('arcade.best.liven', 0)) Store.set('arcade.best.liven', String(this.state.score)); // общий — для каталога
+  g.saveBest = function () {   // рекорды по сложностям + общий; на площадке — и в облако (g.storeSet + g.persist 'max')
+    var b = this.loadBest(); if (this.state.score > b) { g.storeSet(bestKey(), this.state.score); this._newBest = true; }
+    if (this.state.score > Store.getNum('arcade.best.liven', 0)) { g.storeSet('arcade.best.liven', this.state.score); if (this.platform) this.platform.save('best.liven', this.state.score); } // общий — для каталога
     this.state.best = Math.max(b, this.state.score);
   };
+  L.DIFFS.forEach(function (d) { g.persist(bestKey(d), 'max'); }); g.persist('arcade.best.liven', 'max');
   g.state.best = g.loadBest();
+  g.onCloud(function () { g.state.best = g.loadBest(); });
+
+  // ---------- мета-прогрессия: выбор открытого этапа и звёзды (js/meta.js); прогресс — и в облако площадки ----------
+  var M = LV.meta, prog = M.Progress({ get: function (k) { return Store.get(k, null); }, set: function (k, v) { g.storeSet(k, v); } });
+  for (var lv = 1; lv <= M.LEVELS; lv++) g.persist(M.key(lv), 'max');
+  var START_KEY = 'arcade.liven.start'; g.persist(START_KEY, 'last');
+  function startLv() { var v = parseInt(Store.get(START_KEY, '1'), 10) || 1; return prog.unlocked(v) ? v : prog.maxUnlocked(); }
+  function setStart(v) { g.storeSet(START_KEY, v); }
+  var stRec = { caps: 0, cards: 0 };   // перезвоны текущего этапа (для третьей звезды)
 
   var game = null, banner = null, endT = 0, endTo = null, playSince = 0;
   var focusToggle = false, kFocus = false;
@@ -35,13 +45,13 @@
   function sync() { if (!game) return; var s = S(); g.state.score = s.score; g.state.lives = Math.max(0, s.lives); g.state.level = s.stage; }
   function showBanner(title, sub, dur, col, y) { banner = { title: title, sub: sub, a: dur || 2, col: col, y: y }; }
   function P() { return g.themeName === 'retro' ? RN.PR : RN.PM; }
-  function cardName(ci) { var b = S().boss; return b.def ? b.def.cards[ci].n[g.i18n.lang] : ''; }
+  function cardName(ci) { var b = S().boss; return b.def ? LV.nm(b.def.cards[ci].n, g.i18n.lang) : ''; }
 
   function onEvent(type, a, b, c) {
     LV.sfx(g, type, a, b, c);
     var C = P(), s = game ? S() : null;
     switch (type) {
-      case 'stage': RN.clearFx(); var st = LV.STAGES[a - 1]; showBanner(g.t('stage') + ' ' + a, st ? st.n[g.i18n.lang] : '', 2.6, C.accent); break;
+      case 'stage': RN.clearFx(); stRec = { caps: 0, cards: 0 }; var st = LV.STAGES[a - 1]; showBanner(g.t('stage') + ' ' + a + '  ' + M.starStr(prog.get(a)), st ? LV.nm(st.n, g.i18n.lang) : '', 2.6, C.accent); break;
       case 'kill': RN.spawn(a, b, 12, 1, 140, 0.45, 3); RN.spawn(a, b, 6, 0, 80, 0.35, 2); if (c >= 300) RN.pop(a, b - 8, '+' + c, 1); break;
       case 'graze': if (Math.random() < 0.5) RN.spawn(a, b, 2, 3, 90, 0.25, 2); break;
       case 'hit': RN.flash(0.1); break;
@@ -49,12 +59,17 @@
       case 'bomb': RN.wave(a, b, 520, 0.8, 3); RN.wave(a, b, 360, 0.6, 2); RN.flash(0.25); RN.shake(0.35); RN.pop(a, b - 24, g.t('bombName'), 5, true); break;
       case 'card': showBanner(cardName(a), (c ? g.t('midboss') : g.t('bossCome')) + ' · ' + (a + 1) + '/' + b, 1.6, C.accent, 300); break;
       case 'cardEnd':
+        stRec.cards++; if (a > 0) stRec.caps++;
         if (a > 0) showBanner(g.t('cardGet'), g.t('bonus') + ' +' + a, 1.8, C.good, 220);
         else showBanner(b ? g.t('cardTime') : g.t('cardFail'), '', 1.2, C.muted, 220);
         break;
       case 'midboss': case 'boss': showBanner(g.t('warning'), type === 'midboss' ? g.t('midboss') : g.t('bossCome'), 1.6, C.bad, 260); break;
       case 'midDown': case 'bossDown': RN.spawn(a, b, 60, 1, 260, 1.1, 4); RN.spawn(a, b, 40, 5, 200, 1.0, 3); RN.wave(a, b, 300, 0.9, 1); RN.shake(type === 'bossDown' ? 1.2 : 0.5); RN.flash(0.3); break;
-      case 'clear': showBanner(g.t('clear'), g.t('clearSub') + ' +' + b, 3.6, C.good); break;
+      case 'clear':
+        var r = M.stars({ deaths: s ? (s.stats.stageDeaths[a] || 0) : 0, caps: stRec.caps, cards: stRec.cards }), before = prog.maxUnlocked(), isNew = prog.record(a, r.n), after = prog.maxUnlocked();
+        if (after > before) setStart(after);
+        showBanner(g.t('clear') + '  ' + M.starStr(r.n), g.t('clearSub') + ' +' + b + (isNew ? ' · ' + g.t('starNew') : '') + (after > before ? ' · ' + g.t('opened').replace('{n}', after) : ''), 3.6, C.good); break;
+      case 'revive': endT = 0; endTo = null; showBanner(g.t('revived'), '', 1.6, C.accent); break;
       case 'extend': RN.pop(a, b - 20, g.t('extend'), 2, true); break;
       case 'spark': if (c % 50 === 0 && s) RN.pop(s.P.x, s.P.y - 26, '×' + s.mult.toFixed(1), 4, true); break;
       case 'win': sync(); endT = 2.6; endTo = 'win'; break;
@@ -63,7 +78,7 @@
     sync();
   }
   function newGame() {
-    game = LV.Game({ diff: diff, form: form, onEvent: onEvent });
+    game = LV.Game({ diff: diff, form: form, onEvent: onEvent, stage: startLv() });
     banner = null; endT = 0; endTo = null; RN.clearFx(); focusToggle = false;
     game.start(); LV.current = game; sync();
   }
@@ -72,6 +87,15 @@
   g.useStandardScreens({ lives: K.LIVES });
   g.menu.addItem({ key: 'diff', after: 'play', label: function () { return g.t('diff') + ': ' + g.t('d_' + diff); }, onSelect: function () { diff = L.DIFFS[(L.DIFFS.indexOf(diff) + 1) % 3]; Store.set(DKEY, diff); g.state.best = g.loadBest(); } });
   g.menu.addItem({ key: 'form', after: 'diff', label: function () { return g.t('form') + ': ' + g.t('f_' + form) + ' (' + g.t('fdesc_' + form) + ')'; }, onSelect: function () { form = form === 'fan' ? 'blade' : 'fan'; Store.set(FKEY, form); } });
+  // пункт «Этап N ★★☆»: выбор/тап — следующий открытый, ← → — по кругу
+  g.menu.addItem({ key: 'level', scene: 'title', after: 'play', label: function () { var n = startLv(); return g.t('lvPick') + ' ' + n + '  ' + M.starStr(prog.get(n)); },
+    onSelect: function () { setStart(prog.next(startLv(), 1)); } });
+  // Реклама за награду (только площадки с рекламой): «ещё один шанс» раз за партию — после последнего продолжения 2 жизни и разряды;
+  // бонус в паузе — +1 разряд (раз за партию). Межстраничная — только по нажатию на экранах финала (движок).
+  g.useRewardedContinue({ revive: function () { if (game) { game.reviveAd(); sync(); } } });
+  g.useRewardedBonus({ key: 'rwBomb', scene: 'pause', label: function () { return g.t('rwBomb'); },
+    available: function () { return !!game && !S().over && S().bombs < K.BOMBS + 2; },
+    grant: function () { if (game) game.addBomb(); } });
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
   ['win', 'gameover'].forEach(function (name) {
     var sc = g.scenes[name];
@@ -98,6 +122,7 @@
   function newDemo() { var d = DEMO[demoI++ % DEMO.length]; demo = LV.Game({ diff: 'normal', rng: L.mulberry32(11 + demoI), noHit: true, frozen: true }); demo._card(d[0], d[1]); demo.state().P.y = K.FH + 40; demoT = 0; }
   newDemo();
   var title = g.scenes.title, menu = g.menu.get('title');
+  title.press = function (a) { var it = menu && menu.current(); if (it && it.key === 'level' && (a === 'left' || a === 'right')) { setStart(prog.next(startLv(), a === 'left' ? -1 : 1)); this.audio.beep(600, 0.03); } };
   title.update = function (dt) { demoT += dt; demo.update(dt); RN.update(dt); if (demoT > 9) newDemo(); };
   title.draw = function (ctx) {
     var C = P(), retro = C.retro, th = this.th();
@@ -107,13 +132,15 @@
     var pw = 470, ph = 400, x0 = (W - pw) / 2, y0 = 70;
     if (retro) { ctx.fillStyle = '#000'; ctx.fillRect(x0, y0, pw, ph); ctx.fillStyle = '#5555ff'; ctx.fillRect(x0, y0, pw, 3); ctx.fillRect(x0, y0 + ph - 3, pw, 3); ctx.fillRect(x0, y0, 3, ph); ctx.fillRect(x0 + pw - 3, y0, 3, ph); }
     else { ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 26; ctx.fillStyle = 'rgba(18,21,34,.94)'; ctx.fillRect(x0, y0, pw, ph); ctx.restore(); ctx.strokeStyle = '#3a3f5c'; ctx.strokeRect(x0 + 0.5, y0 + 0.5, pw - 1, ph - 1); }
-    RN.txt(this, this.t('title'), W / 2, y0 + 62, { size: retro ? 44 : 56, align: 'center', color: C.accent, weight: 900 }, C);
-    RN.shuttle(ctx, C, { x: W / 2 - (retro ? 150 : 168), y: y0 + 44, form: form, inv: 0 }, this.time);
-    RN.ringer(ctx, C, 'brass', W / 2 + (retro ? 156 : 172), y0 + 46, 0.8, this.time, 0);
+    RN.txt(this, this.t('title'), W / 2, y0 + 62, { size: retro ? 44 : 56, align: 'center', color: C.accent, weight: 900, maxWidth: pw - 120 }, C);
+    ctx.font = '900 ' + (retro ? 44 : 56) + 'px ' + th.font; var tw = Math.min(pw - 120, ctx.measureText(this.t('title')).width) / 2 + (retro ? 36 : 40);
+    RN.shuttle(ctx, C, { x: W / 2 - tw, y: y0 + 44, form: form, inv: 0 }, this.time);
+    RN.ringer(ctx, C, 'brass', W / 2 + tw + 4, y0 + 46, 0.8, this.time, 0);
     RN.txt(this, this.t('subtitle'), W / 2, y0 + 92, { size: retro ? 10 : 12, align: 'center', color: th.ink, weight: 700 }, C);
     RN.txt(this, this.t('sub2'), W / 2, y0 + 112, { size: retro ? 9 : 11, align: 'center', color: th.muted, weight: 600 }, C);
     menu.draw(this, W / 2, y0 + 156, 30);
     var bl = L.DIFFS.map(function (d) { return g.t('d_' + d) + ' ' + Store.getNum(bestKey(d), 0); }).join(' · ');
+    RN.txt(this, this.t('starsHint') + ' · ' + prog.total() + '/' + (M.LEVELS * 3), W / 2, y0 + ph - 38, { size: 11, align: 'center', color: th.muted, weight: 700 }, C);
     RN.txt(this, this.t('best') + ': ' + bl, W / 2, y0 + ph - 18, { size: 11, align: 'center', color: th.muted, weight: 700 }, C);
     RN.txt(this, (this.input.touchOnly ? this.t('hintTouch') : this.t('hintKeys')).split('\n').join(' · '), W / 2, H - 22, { size: retro ? 8 : 10, align: 'center', color: th.muted, weight: 600, upper: false }, C);
   };
@@ -193,8 +220,9 @@
   // ---------- DOM: подгонка канвы, подписи ----------
   function $(id) { return document.getElementById(id); }
   function fit() {
-    var wrap = cv.parentElement, padH = (document.querySelector('.pad') && getComputedStyle(document.querySelector('.pad')).display !== 'none') ? 70 : 0;
-    var availH = innerHeight - 70 - padH;
+    var wrap = cv.parentElement, pad = document.querySelector('.pad'), foot = document.getElementById('foot');
+    var padH = (pad && getComputedStyle(pad).display !== 'none' && getComputedStyle(pad).position !== 'fixed') ? pad.offsetHeight + 14 : 0, footH = (foot && getComputedStyle(foot).display !== 'none') ? foot.offsetHeight + 20 : 0;
+    var availH = innerHeight - (wrap ? wrap.offsetTop : 28) - padH - footH - 4;
     var w = Math.min(960, (wrap && wrap.clientWidth) || W, availH * W / H);
     w = Math.max(280, Math.floor(w)); cv.style.width = w + 'px'; cv.style.height = Math.round(w * H / W) + 'px';
   }
@@ -205,13 +233,14 @@
       lastLang = lang; document.documentElement.lang = lang;
       var b = $('backLink'); if (b) b.innerHTML = '&larr; ' + g.t('back');
       var f = $('foot'); if (f) f.innerHTML = g.t('foot');   // строки — наши, из i18n.js
-      var bf = $('bFocus'); if (bf) bf.textContent = lang === 'ru' ? 'ФОКУС' : 'FOCUS';
-      var bb = $('bBomb'); if (bb) bb.textContent = lang === 'ru' ? 'РАЗРЯД' : 'DISCHARGE';
+      var bf = $('bFocus'); if (bf) bf.textContent = g.t('bFocus');
+      var bb = $('bBomb'); if (bb) bb.textContent = g.t('bBomb');
+      fit();
     }
     if (theme !== lastTheme) { lastTheme = theme; document.body.setAttribute('data-theme', theme); }
   }
   fit(); addEventListener('resize', fit); domSync(); setInterval(domSync, 250);
 
   g.start('title');
-  LV.app = { g: g, game: function () { return game; }, setDiff: function (d) { diff = d; g.state.best = g.loadBest(); }, setForm: function (f) { form = f; }, newGame: newGame };   // для автотестов в браузере
+  LV.app = { g: g, prog: prog, setStart: setStart, game: function () { return game; }, setDiff: function (d) { diff = d; g.state.best = g.loadBest(); }, setForm: function (f) { form = f; }, newGame: newGame };   // для автотестов в браузере
 })(typeof window !== 'undefined' ? window : globalThis);

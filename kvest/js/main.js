@@ -24,13 +24,15 @@
   var PAL = { bg: '#2b2a29', panel: '#3a3836', ink: '#f1ede6', muted: '#b9b3a9', accent: '#f0bf5a', good: '#b7d3a6', bad: '#d99a8c', warn: '#f0bf5a',
     grid: '#45423f', font: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', pixel: false, glow: false, radius: 10 };
   var storedLang = null; try { storedLang = localStorage.getItem('arcade.lang'); } catch (e) {}
-  var LANG = K.pickLang(storedLang, (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]));
+  // языки системы; обёртка (издание steam: K.Edition.langs) даёт язык клиента Steam и системы, в конце 'en'
+  var LANG = K.pickLang(storedLang, K.Edition.langs ? K.Edition.langs() : (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]));
   var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'kvest', strings: K.STR, lang: LANG, theme: 'modern', themes: { modern: PAL, retro: PAL } });
   if (K.Edition.attach) K.Edition.attach(g);   // издание «для площадок» (arcade-full/platform): товар full_game, проверка покупок при запуске
   K.g = g;
   var Store = Arcade.Store, CHS = K.Chapters;
-  // хранилище для реестра глав (localStorage может быть недоступен — тогда всё молча в памяти)
-  var LS = (function () { var mem = {}; try { localStorage.setItem('arcade.kvest.t', '1'); localStorage.removeItem('arcade.kvest.t'); return localStorage; } catch (e) {
+  // хранилище для реестра глав (localStorage может быть недоступен — тогда всё молча в памяти);
+  // обёртка (издание steam: K.Edition.storage) — сохранения файлами в профиле пользователя (Steam Cloud)
+  var LS = K.Edition.storage || (function () { var mem = {}; try { localStorage.setItem('arcade.kvest.t', '1'); localStorage.removeItem('arcade.kvest.t'); return localStorage; } catch (e) {
     return { getItem: function (k) { return k in mem ? mem[k] : null; }, setItem: function (k, v) { mem[k] = String(v); }, removeItem: function (k) { delete mem[k]; } }; } })();
   CHS.migrate(LS);   // сохранение пилота (arcade.save.kvest) → глава 1
   var prog = CHS.progress(LS);
@@ -47,7 +49,8 @@
   var game = null, wantContinue = false, lastWin = null, saveDirty = false, saveT = 0, mouseSeen = false;
   var TOUCH = false;
   try { TOUCH = !!(matchMedia('(pointer: coarse)').matches || ('ontouchstart' in global && navigator.maxTouchPoints > 0)); } catch (e) {}
-  var PLAYTEST = /[?&]playtest\b/.test(location.search || '');
+  var RELEASE = !!K.Edition.release;   // издание steam: без отладки D/E, статистики плейтеста и ?check
+  var PLAYTEST = !RELEASE && /[?&]playtest\b/.test(location.search || '');
   var stats = K.Stats.create(), fpsNow = 0;
 
   // ================= экран: HiDPI, раскладка, адаптивное качество =================
@@ -147,7 +150,7 @@
     if (!(sv && game.load(sv))) game.start(); else stats.event('scene', { id: game.state().scene });
     lastWin = null; g.state.score = game.solvedCount(); K.current = game;
   }
-  function statsOn() { return PLAYTEST || !!(game && game.runtime().debug); }
+  function statsOn() { return !RELEASE && (PLAYTEST || !!(game && game.runtime().debug)); }
   // выгрузка статистики — локальный файл JSON (data:-ссылка с атрибутом download), ничего не отправляется по сети
   function exportStats() {
     if (!stats.data()) return false;
@@ -192,6 +195,13 @@
       onSelect: function () { if (K.InkSketch) K.InkSketch.setAnim(!K.InkSketch.anim()); } });
   }
   inkItem(); inkItem('pause');
+  // обёртка (издание steam): «Во весь экран: вкл/выкл» и «Выход» — закрыть приложение (сохранение пишется до выхода)
+  if (K.Edition.fullscreen) g.menu.addItem({ key: 'fullscreen', after: 'inkAnim', label: function () { return g.t('fullscreen') + ': ' + (fsOn() ? g.t('on') : g.t('off')); }, onSelect: function () { toggleFullscreen(); } });
+  if (K.Edition.quit) {
+    var quitApp = function () { writeSave(); stats.flush(); K.Edition.quit(); };
+    g.menu.addItem({ key: 'quit', label: function () { return g.t('quit'); }, onSelect: quitApp });
+    g.menu.addItem({ key: 'quit', scene: 'pause', label: function () { return g.t('quit'); }, onSelect: quitApp });
+  }
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
   // в паузе для плейтеста (?playtest или включена отладка D) — пункт «Статистика плейтеста → файл»
   g.scenes.pause.enter = function () {
@@ -418,11 +428,11 @@
     if (g._sceneName !== 'play' || !game) return;
     if (e.code === 'KeyH') { game.hint(); K.sfx(g, 'hint'); }
     else if (e.code === 'KeyB') { var rt = game.runtime(); if (rt.mode === 'walk') game.closeWalk(); else if (rt.mode === 'scene') game.openWalk(); }
-    else if (e.code === 'KeyD') game.setDebug();
+    else if (e.code === 'KeyD' && !RELEASE) game.setDebug();
     else if (e.code === 'Tab' && game.multi) { e.preventDefault(); game.cycleHero(e.shiftKey ? -1 : 1); }
     else if (/^Digit[1-3]$/.test(e.code) && game.multi) { var hl = game.portraits(), hi = +e.code.slice(5) - 1; if (hl[hi]) game.switchHero(hl[hi]); }
     else if (e.code === 'KeyQ') game.ability();   // умение активного героя; у Таи под водой — «прислушаться»
-    else if (e.code === 'KeyE' && game.runtime().debug) exportStats();
+    else if (e.code === 'KeyE' && !RELEASE && game.runtime().debug) exportStats();
   });
 
   // ================= мышь и тач по канве =================
@@ -458,10 +468,11 @@
     var h = function (e) { e.preventDefault(); if (g._sceneName === 'play') { writeSave(); g.pause(); } else if (g._sceneName === 'pause') g.goto('play', { resume: true }); };
     bPause.addEventListener('touchstart', h, { passive: false }); bPause.addEventListener('mousedown', h);
   })();
-  var fsEl = document.documentElement;
-  function fsOn() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
-  function fsCan() { return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled); }
+  var fsEl = document.documentElement, FSX = K.Edition.fullscreen || null;   // обёртка (издание steam): окно приложения ↔ полный экран
+  function fsOn() { return FSX ? !!FSX.on() : !!(document.fullscreenElement || document.webkitFullscreenElement); }
+  function fsCan() { return FSX ? !!FSX.can() : !!(document.fullscreenEnabled || document.webkitFullscreenEnabled); }
   function toggleFullscreen() {
+    if (FSX) { FSX.toggle(); return; }
     if (!fsCan()) return;
     try {
       if (fsOn()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
@@ -558,12 +569,13 @@
   addEventListener('resize', fit); addEventListener('orientationchange', function () { setTimeout(fit, 120); });
   if (global.visualViewport) global.visualViewport.addEventListener('resize', fit);
   document.addEventListener('fullscreenchange', fit); document.addEventListener('webkitfullscreenchange', fit);
+  if (FSX && FSX.onChange) FSX.onChange(function () { setTimeout(fit, 60); });
   document.addEventListener('visibilitychange', function () { if (document.hidden) { if (g._sceneName === 'play') writeSave(); stats.flush(); } });
   addEventListener('pagehide', function () { stats.flush(); });
   fit(); domSync();
 
   // ?check — проверка темы по API (результат — в консоль)
-  if (/[?&#]check\b/.test(location.search + location.hash)) { var r = A.validateTheme(T(), { ctx: g.ctx }); console.log('KvestTheme ' + T().id + ': ' + (r.ok ? 'OK' : 'ошибки: ' + r.errors.join('; '))); }
+  if (!RELEASE && /[?&#]check\b/.test(location.search + location.hash)) { var r = A.validateTheme(T(), { ctx: g.ctx }); console.log('KvestTheme ' + T().id + ': ' + (r.ok ? 'OK' : 'ошибки: ' + r.errors.join('; '))); }
 
   wrapDraws();
   g.start('title');

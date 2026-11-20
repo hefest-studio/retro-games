@@ -843,6 +843,15 @@
       enter: function (n) { if (S.phase !== 'hub') return false; n = n || S.hubSel; if (n > S.open || S.cleared[n]) { ev('locked', { n: n }); return false; } loadLevel(n); return true; },
       canEnter: function (n) { return n <= S.open && !S.cleared[n]; },
       loadLevel: function (n) { loadLevel(n); return api; },
+      // «Ещё один шанс» за рекламу (площадки): после последней жизни — 2 жизни, уровень заново с запасом на входе
+      reviveAd: function () {
+        if (S.won || S.phase === 'hub') return false;
+        S.over = false; S.lives = Math.max(S.lives, 2);
+        if (S.entry) { S.ammo = S.entry.ammo; S.dyn = S.entry.dyn; }
+        loadLevel(S.level); ev('revive'); return true;
+      },
+      // бонус за рекламу в паузе: +1 жизнь (не больше 5)
+      addLife: function () { if (S.lives >= 5) return false; S.lives++; return true; },
       _hurt: hurt, _explode: explode, _clear: clearLevel, _rebuild: function () { W = makeWorld(S); }
     };
     return api;

@@ -1,4 +1,4 @@
-/* ЛЕДНИК · i18n (RU/EN). LEDNIK.STR — таблицы для Arcade.createGame({strings}).
+/* ЛЕДНИК · i18n (RU/EN/TR/ES/PT — движок v2.8 берёт языки из ключей strings; название: RU — ЛЕДНИК, EN/TR/ES/PT — RIMETRAIL). LEDNIK.STR — таблицы для Arcade.createGame({strings}).
    Ключи play/language/theme/... нужны стандартным экранам движка; остальные — игре.
    n_<id> — названия уровней, r<N> — регионы, b_<босс> — боссы, e_<враг> — враги, d_<причина> — причина потери жизни. */
 (function (global) {
@@ -27,7 +27,7 @@
       clear: 'ПРИПАСЫ ДОБЫТЫ', clearBoss: 'ПУТЬ СВОБОДЕН', bonus: 'Бонус', tapMap: 'пробел — на карту',
       mapTitle: 'КАРТА КРАЁВ', mapHint: '← → ↑ ↓ — тропа · Пробел/Enter — в путь · Esc — пауза',
       locked: 'тропа закрыта', secret: 'тайная тропа', cleared: 'пройден', fullTag: '100%', bossTag: 'вожак', secretTag: 'тайник', newTag: 'новый',
-      stuzha: 'Стужа близко', lives: 'Жизни',
+      stuzha: 'Стужа близко', lives: 'Жизни', revived: 'Ещё один шанс!', rwLife: 'Реклама: +1 жизнь',
       d_fall: 'Сорвалась в пропасть', d_water: 'Провалилась в прорубь', d_hurt: 'Без сил', d_spike: 'Ледяные шипы', d_kitten: 'Котёнок', d_beetle: 'Жук', d_mammoth: 'Мамонтёнок', d_boss: 'Вожак', d_shard: 'Сосулька',
       hint: '←→ бег · Пробел прыжок · X бумеранг · C Бураш · ↓ подкат · ↑ сосулька · P пауза',
       intro: 'Великая Стужа идёт с севера. Племя ждёт припасов: еды, шкур и кремней.',
@@ -37,7 +37,7 @@
       play: 'Set out', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
       score: 'Score', level: 'Level', best: 'Best', pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
       win: 'THE TRIBE IS READY FOR THE COLD!', gameover: 'ISKRA HEADS BACK TO CAMP',
-      title: 'LEDNIK', subtitle: 'Iskra and Burash the arctic fox gather supplies before the Great Cold',
+      title: 'RIMETRAIL', subtitle: 'Iskra and Burash the arctic fox gather supplies before the Great Cold',
       sub2: 'Three lands · world map · secret trails',
       back: 'Catalog', reset: 'Reset map', resetQ: 'Reset? once more — yes', resetDone: 'Map reset', toMap: 'To the map',
       r1: 'Snowy Pinewood', r2: 'Frozen River', r3: 'The Glacier',
@@ -55,11 +55,96 @@
       clear: 'SUPPLIES GATHERED', clearBoss: 'THE WAY IS CLEAR', bonus: 'Bonus', tapMap: 'space — to the map',
       mapTitle: 'MAP OF THE LANDS', mapHint: '← → ↑ ↓ — trail · Space/Enter — go · Esc — pause',
       locked: 'trail closed', secret: 'secret trail', cleared: 'cleared', fullTag: '100%', bossTag: 'leader', secretTag: 'hideout', newTag: 'new',
-      stuzha: 'The Cold is near', lives: 'Lives',
+      stuzha: 'The Cold is near', lives: 'Lives', revived: 'One more chance!', rwLife: 'Watch ad: +1 life',
       d_fall: 'Fell into the chasm', d_water: 'Fell through the ice', d_hurt: 'Out of strength', d_spike: 'Ice spikes', d_kitten: 'Kitten', d_beetle: 'Beetle', d_mammoth: 'Mammoth calf', d_boss: 'Leader', d_shard: 'Icicle',
       hint: '←→ run · Space jump · X boomerang · C Burash · ↓ slide · ↑ icicle · P pause',
       intro: 'The Great Cold is coming from the north. The tribe needs supplies: food, hides and flints.',
-      foot: '<b>LEDNIK</b> · ← → / A D — run · Space / Z — jump (hold — higher) · X / J — boomerang · C / F — Burash the fox · ↓ while running — slide (far on ice), ↓ standing — crouch against wind · ↑ — climb icicles · P / Esc — pause · L language, T theme, M sound.'
+      foot: '<b>RIMETRAIL</b> · ← → / A D — run · Space / Z — jump (hold — higher) · X / J — boomerang · C / F — Burash the fox · ↓ while running — slide (far on ice), ↓ standing — crouch against wind · ↑ — climb icicles · P / Esc — pause · L language, T theme, M sound.'
     }
+  };
+
+  LD.STR.tr = {
+    play: 'Yola çık', language: 'Dil', theme: 'Tema', sound: 'Ses', on: 'açık', off: 'kapalı',
+    score: 'Puan', level: 'Seviye', best: 'Rekor', pause: 'DURAKLATILDI', resume: 'Devam', menu: 'Menü', tapstart: 'boşluk / dokun',
+    win: 'KABİLE SOĞUĞA HAZIR!', gameover: 'İSKRA KAMPA DÖNÜYOR',
+    title: 'RIMETRAIL', subtitle: 'İskra ve kutup tilkisi Buraş, Büyük Soğuk öncesi erzak topluyor',
+    sub2: 'Üç diyar · dünya haritası · gizli patikalar',
+    back: 'Katalog', reset: 'Haritayı sıfırla', resetQ: 'Sıfırla? bir daha — evet', resetDone: 'Harita sıfırlandı', toMap: 'Haritaya',
+    r1: 'Karlı Çamlık', r2: 'Donmuş Nehir', r3: 'Buzul',
+    'n_1-1': 'Orman Kıyısı', 'n_1-2': 'Kar Çukuru', 'n_1-3': 'Yaşlı Ladinlik', 'n_1-4': 'Hayvan Patikası', 'n_1-S': 'Sincap Kileri', 'n_1-B': 'Diş’in İni',
+    'n_2-1': 'Donmuş Geçit', 'n_2-2': 'Buz Köprüleri', 'n_2-3': 'Buz Delikleri', 'n_2-4': 'Mamut Sığlığı', 'n_2-S': 'Balıkçı Deliği', 'n_2-B': 'Çatırkabuk’un Kıyısı',
+    'n_3-1': 'Sarkıt Yamacı', 'n_3-2': 'Rüzgârlı Geçit', 'n_3-3': 'Mavi Mağaralar', 'n_3-4': 'Buzul Sırtı', 'n_3-S': 'Kehribar Mağarası', 'n_3-B': 'Tipi Yuvası',
+    b_fang: 'Yaşlı Diş', b_shell: 'Çatırkabuk', b_owl: 'Tipi Baykuşu',
+    bd_fang: 'İnin içinde zıplar. İnişten sonra sersemler — bumerangla vur!',
+    bd_shell: 'Duvardan duvara yuvarlanır. Sırtüstü dönünce — vur!',
+    bd_owl: 'Sarkıt düşürür ve tipi estirir. Kara konunca — vur!',
+    e_kitten: 'Kılıç dişli yavru', e_beetle: 'Buz böceği', e_mammoth: 'Mamut yavrusu',
+    sup: 'Erzak', need: 'kota', needMore: '{n} tane daha lazım', enough: 'Kota tamam — kampa!', full: 'TÜM ERZAK! +can',
+    key: 'Kemik anahtar!', keyHint: 'Anahtar haritada gizli bir patika açtı', camp: 'Ateş yakıldı', heart: '+kalp',
+    fox: 'Buraş, getir!', foxNo: 'Buraş sadece İskra dururken koşar', foxGot: 'Buraş getirdi!', reveal: 'Gizli erzak!',
+    clear: 'ERZAK TOPLANDI', clearBoss: 'YOL AÇIK', bonus: 'Bonus', tapMap: 'boşluk — haritaya',
+    mapTitle: 'DİYARLAR HARİTASI', mapHint: '← → ↑ ↓ — patika · Boşluk/Enter — git · Esc — duraklat',
+    locked: 'patika kapalı', secret: 'gizli patika', cleared: 'geçildi', fullTag: '%100', bossTag: 'lider', secretTag: 'saklı yer', newTag: 'yeni',
+    stuzha: 'Soğuk yaklaşıyor', lives: 'Can', revived: 'Bir şans daha!', rwLife: 'Reklam: +1 can',
+    d_fall: 'Uçuruma düştü', d_water: 'Buzun içine düştü', d_hurt: 'Gücü kalmadı', d_spike: 'Buz dikenleri', d_kitten: 'Yavru', d_beetle: 'Böcek', d_mammoth: 'Mamut yavrusu', d_boss: 'Lider', d_shard: 'Sarkıt',
+    hint: '←→ koş · Boşluk zıpla · X bumerang · C Buraş · ↓ kay · ↑ sarkıt · P duraklat',
+    intro: 'Büyük Soğuk kuzeyden geliyor. Kabile erzak bekliyor: yiyecek, post ve çakmaktaşı.',
+    foot: '<b>RIMETRAIL</b> · ← → / A D — koş · Boşluk / Z — zıpla (basılı tut — daha yüksek) · X / J — bumerang · C / F — tilki Buraş · koşarken ↓ — kayma (buzda uzağa), dururken ↓ — rüzgâra karşı eğil · ↑ — sarkıta tırman · P / Esc — duraklat · L dil, T tema, M ses.'
+  };
+  LD.STR.es = {
+    play: 'En marcha', language: 'Idioma', theme: 'Tema', sound: 'Sonido', on: 'sí', off: 'no',
+    score: 'Puntos', level: 'Nivel', best: 'Récord', pause: 'PAUSA', resume: 'Seguir', menu: 'Menú', tapstart: 'espacio / toca',
+    win: '¡LA TRIBU ESTÁ LISTA PARA EL FRÍO!', gameover: 'ISKRA VUELVE AL CAMPAMENTO',
+    title: 'RIMETRAIL', subtitle: 'Iskra y el zorro ártico Burash juntan provisiones antes del Gran Frío',
+    sub2: 'Tres tierras · mapa del mundo · sendas secretas',
+    back: 'Catálogo', reset: 'Borrar el mapa', resetQ: '¿Borrar? otra vez — sí', resetDone: 'Mapa borrado', toMap: 'Al mapa',
+    r1: 'Pinar Nevado', r2: 'Río Helado', r3: 'El Glaciar',
+    'n_1-1': 'Linde del Bosque', 'n_1-2': 'Hondonada de Nieve', 'n_1-3': 'Viejo Abetal', 'n_1-4': 'Senda de Bestias', 'n_1-S': 'Despensa de la Ardilla', 'n_1-B': 'Cubil de Colmillo',
+    'n_2-1': 'Vado Helado', 'n_2-2': 'Puentes de Hielo', 'n_2-3': 'Polinias', 'n_2-4': 'Bajío del Mamut', 'n_2-S': 'Agujero de Pesca', 'n_2-B': 'Orilla de Crujecaparazón',
+    'n_3-1': 'Ladera de Carámbanos', 'n_3-2': 'Paso Ventoso', 'n_3-3': 'Cuevas Azules', 'n_3-4': 'Cresta del Glaciar', 'n_3-S': 'Gruta de Ámbar', 'n_3-B': 'Nido de la Ventisca',
+    b_fang: 'Viejo Colmillo', b_shell: 'Crujecaparazón', b_owl: 'Búho de la Ventisca',
+    bd_fang: 'Salta por el cubil. Al aterrizar queda aturdido: ¡dale con el bumerán!',
+    bd_shell: 'Rueda de pared a pared. Si queda panza arriba, ¡golpea!',
+    bd_owl: 'Suelta carámbanos y sopla ventisca. Si se posa en la nieve, ¡golpea!',
+    e_kitten: 'Cachorro dientes de sable', e_beetle: 'Escarabajo de hielo', e_mammoth: 'Cría de mamut',
+    sup: 'Provisiones', need: 'cuota', needMore: 'Faltan {n}', enough: 'Cuota cumplida: ¡al campamento!', full: '¡TODAS LAS PROVISIONES! +vida',
+    key: '¡Llave de hueso!', keyHint: 'La llave abrió una senda secreta en el mapa', camp: 'Hoguera encendida', heart: '+corazón',
+    fox: '¡Burash, busca!', foxNo: 'Burash solo sale cuando Iskra está quieta', foxGot: '¡Burash lo trajo!', reveal: '¡Provisión escondida!',
+    clear: 'PROVISIONES REUNIDAS', clearBoss: 'EL CAMINO ESTÁ LIBRE', bonus: 'Bonus', tapMap: 'espacio — al mapa',
+    mapTitle: 'MAPA DE LAS TIERRAS', mapHint: '← → ↑ ↓ — senda · Espacio/Enter — ir · Esc — pausa',
+    locked: 'senda cerrada', secret: 'senda secreta', cleared: 'superado', fullTag: '100%', bossTag: 'líder', secretTag: 'escondite', newTag: 'nuevo',
+    stuzha: 'El Frío se acerca', lives: 'Vidas', revived: '¡Otra oportunidad!', rwLife: 'Anuncio: +1 vida',
+    d_fall: 'Cayó al abismo', d_water: 'Se hundió en el hielo', d_hurt: 'Sin fuerzas', d_spike: 'Púas de hielo', d_kitten: 'Cachorro', d_beetle: 'Escarabajo', d_mammoth: 'Cría de mamut', d_boss: 'Líder', d_shard: 'Carámbano',
+    hint: '←→ correr · Espacio saltar · X bumerán · C Burash · ↓ deslizar · ↑ carámbano · P pausa',
+    intro: 'El Gran Frío llega del norte. La tribu espera provisiones: comida, pieles y pedernal.',
+    foot: '<b>RIMETRAIL</b> · ← → / A D — correr · Espacio / Z — saltar (mantén — más alto) · X / J — bumerán · C / F — el zorro Burash · ↓ al correr — deslizarse (lejos sobre hielo), ↓ quieta — agacharse ante el viento · ↑ — trepar carámbanos · P / Esc — pausa · L idioma, T tema, M sonido.'
+  };
+  LD.STR.pt = {
+    play: 'A caminho', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'lig.', off: 'desl.',
+    score: 'Pontos', level: 'Nível', best: 'Recorde', pause: 'PAUSA', resume: 'Continuar', menu: 'Menu', tapstart: 'espaço / toque',
+    win: 'A TRIBO ESTÁ PRONTA PARA O FRIO!', gameover: 'ISKRA VOLTA AO ACAMPAMENTO',
+    title: 'RIMETRAIL', subtitle: 'Iskra e a raposa-do-ártico Burash juntam provisões antes do Grande Frio',
+    sub2: 'Três terras · mapa do mundo · trilhas secretas',
+    back: 'Catálogo', reset: 'Zerar o mapa', resetQ: 'Zerar? de novo — sim', resetDone: 'Mapa zerado', toMap: 'Ao mapa',
+    r1: 'Pinheiral Nevado', r2: 'Rio Congelado', r3: 'A Geleira',
+    'n_1-1': 'Orla da Floresta', 'n_1-2': 'Baixada de Neve', 'n_1-3': 'Velho Abetal', 'n_1-4': 'Trilha dos Bichos', 'n_1-S': 'Despensa do Esquilo', 'n_1-B': 'Toca do Presa',
+    'n_2-1': 'Vau Congelado', 'n_2-2': 'Pontes de Gelo', 'n_2-3': 'Polínias', 'n_2-4': 'Baixio do Mamute', 'n_2-S': 'Buraco de Pesca', 'n_2-B': 'Margem do Racha-casco',
+    'n_3-1': 'Encosta de Pingentes', 'n_3-2': 'Passo Ventoso', 'n_3-3': 'Cavernas Azuis', 'n_3-4': 'Crista da Geleira', 'n_3-S': 'Gruta de Âmbar', 'n_3-B': 'Ninho da Nevasca',
+    b_fang: 'Velho Presa', b_shell: 'Racha-casco', b_owl: 'Coruja da Nevasca',
+    bd_fang: 'Salta pela toca. Ao aterrissar fica tonto: acerte com o bumerangue!',
+    bd_shell: 'Rola de parede a parede. Virou de costas, acerte!',
+    bd_owl: 'Solta pingentes e sopra nevasca. Pousou na neve, acerte!',
+    e_kitten: 'Filhote dentes-de-sabre', e_beetle: 'Besouro de gelo', e_mammoth: 'Filhote de mamute',
+    sup: 'Provisões', need: 'cota', needMore: 'Faltam {n}', enough: 'Cota cumprida — ao acampamento!', full: 'TODAS AS PROVISÕES! +vida',
+    key: 'Chave de osso!', keyHint: 'A chave abriu uma trilha secreta no mapa', camp: 'Fogueira acesa', heart: '+coração',
+    fox: 'Burash, busca!', foxNo: 'Burash só sai quando Iskra está parada', foxGot: 'Burash trouxe!', reveal: 'Provisão escondida!',
+    clear: 'PROVISÕES REUNIDAS', clearBoss: 'O CAMINHO ESTÁ LIVRE', bonus: 'Bônus', tapMap: 'espaço — ao mapa',
+    mapTitle: 'MAPA DAS TERRAS', mapHint: '← → ↑ ↓ — trilha · Espaço/Enter — ir · Esc — pausa',
+    locked: 'trilha fechada', secret: 'trilha secreta', cleared: 'concluído', fullTag: '100%', bossTag: 'líder', secretTag: 'esconderijo', newTag: 'novo',
+    stuzha: 'O Frio está perto', lives: 'Vidas', revived: 'Mais uma chance!', rwLife: 'Anúncio: +1 vida',
+    d_fall: 'Caiu no abismo', d_water: 'Afundou no gelo', d_hurt: 'Sem forças', d_spike: 'Espinhos de gelo', d_kitten: 'Filhote', d_beetle: 'Besouro', d_mammoth: 'Filhote de mamute', d_boss: 'Líder', d_shard: 'Pingente',
+    hint: '←→ correr · Espaço pular · X bumerangue · C Burash · ↓ deslizar · ↑ pingente · P pausa',
+    intro: 'O Grande Frio vem do norte. A tribo espera provisões: comida, peles e sílex.',
+    foot: '<b>RIMETRAIL</b> · ← → / A D — correr · Espaço / Z — pular (segure — mais alto) · X / J — bumerangue · C / F — a raposa Burash · ↓ correndo — deslizar (longe no gelo), ↓ parada — abaixar-se ao vento · ↑ — escalar pingentes · P / Esc — pausa · L idioma, T tema, M som.'
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -20,3 +20,15 @@ a.back:hover{color:var(--accent)}
 .foot{color:var(--mut);font-size:11px;margin:6px 12px 12px;text-align:center;max-width:760px}
 .foot b{color:var(--ink)}
 @media(min-width:760px){.pad{display:none}}
+/* тач-устройства: подсказка клавиатуры не нужна — экран целиком под поле и кнопки (Яндекс 1.10); тач — по типу указателя, а не по ширине */
+@media (hover:none) and (pointer:coarse){ .foot{display:none} .pad{display:grid} }
+/* телефон лёжа: ◀ ▶ слева, ▼ ▲ ✦ справа (в два ряда) — по бокам поля, поле на всю высоту */
+@media (max-height:520px) and (orientation:landscape) and (hover:none){
+  .wrap{margin-top:26px;width:calc(100vw - 280px)}
+  .pad{position:fixed;left:0;right:0;bottom:10px;width:100%;max-width:none;margin:0;padding:0 8px;display:grid;
+    grid-template-columns:58px 58px 1fr 58px 58px;grid-template-rows:58px 58px;gap:6px;pointer-events:none}
+  .pad button{pointer-events:auto;height:58px}
+  .pad button[data-d="L"]{grid-column:1;grid-row:2}.pad button[data-d="R"]{grid-column:2;grid-row:2}
+  .pad button[data-d="D"]{grid-column:4;grid-row:2}.pad button[data-d="U"]{grid-column:5;grid-row:2}
+  .pad button.fire{grid-column:5;grid-row:1}
+}

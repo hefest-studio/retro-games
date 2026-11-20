@@ -20,14 +20,25 @@
   // ---------- кампания и сложность ----------
   var DKEY = 'arcade.podryad.diff';
   var diff = D.DIFFS.indexOf(Store.get(DKEY, 'normal')) >= 0 ? Store.get(DKEY, 'normal') : 'normal';
+  // облако площадки: кампания ('last'), сложность ('last'), рекорд и звёзды заданий ('max') — g.persist + запись через g.storeSet
+  var CS = { get: function (k, d) { return Store.get(k, d); }, set: function (k, v) { g.storeSet(k, v); } };
+  g.persist(E.SAVE_KEY, 'last'); g.persist(DKEY, 'last'); g.persist('arcade.best.podryad', 'max');
+  var M = P.meta, prog = M.Progress({ get: function (k) { return Store.get(k, null); }, set: function (k, v) { g.storeSet(k, v); } });
+  for (var lv = 1; lv <= M.LEVELS; lv++) g.persist(M.key(lv), 'max');
   var camp = E.load(Store);
   if (camp && camp.done) camp = null;
+  g.onCloud(function (keys) {   // облако слито: кампания с другого устройства (только вне полёта)
+    if (keys.indexOf(E.SAVE_KEY) >= 0 && !(g._sceneName === 'play' && phase === 'fly')) { var c = E.load(Store); camp = c && !c.done ? c : null; syncScore(); }
+    if (keys.indexOf(DKEY) >= 0) { var d = Store.get(DKEY, diff); if (D.DIFFS.indexOf(d) >= 0) diff = d; }
+    g.state.best = Store.getNum('arcade.best.podryad', 0);
+  });
   function C() { return g.themeName === 'retro' ? RN.PR : RN.PM; }
-  function saveCamp() { if (camp) E.save(Store, camp); }
+  function saveCamp() { if (camp) E.save(CS, camp); }
   function syncScore() { if (camp) { g.state.score = camp.earned; g.state.level = camp.mi + 1; } }
-  g.saveBest = function () { syncScore(); if (this.state.score > this.state.best) { this.state.best = this.state.score; Store.set('arcade.best.podryad', String(this.state.best)); } };
+  g.saveBest = function () { syncScore(); if (this.state.score > this.state.best) { this.state.best = this.state.score; g.storeSet('arcade.best.podryad', this.state.best); this._newBest = true; if (this.platform) this.platform.save('best.podryad', this.state.best); } };
 
   // ---------- фазы сцены play ----------
+  var pendingFail = false;
   var phase = 'hangar', game = null, banner = null, playSince = 0, debrief = null;
   var rows = D.SHOP.slice(), sel = rows.length - 1, msg = null, hits = [];
   function S() { return game.state(); }
@@ -56,20 +67,21 @@
       case 'bossLeft': showBanner(g.t('b_zep'), g.t('bossLeft'), 1.6, Cc.muted, 260); break;
       case 'midDown': case 'bossDown': RN.spawn(a, b, 70, 0, 280, 1.2, 7); RN.spawn(a, b, 40, 2, 120, 1.8, 12); RN.wave(a, b, 300, 0.9, '#ffd28a'); RN.shake(type === 'bossDown' ? 1.1 : 0.5); RN.flash(0.3); break;
       case 'done': endFlight(true); break;
-      case 'fail': endFlight(false); break;
+      case 'fail': pendingFail = true; g.gameover(); break;   // площадка с рекламой: сначала «Ещё один шанс?», иначе — сразу итог
+      case 'revive': showBanner(g.t('revived'), '', 1.6, Cc.accent, 260); break;
     }
   }
   function startFlight() {
     if (!camp) return;
     game = P.Game({ load: camp, diff: camp.diff, si: Math.floor(camp.mi / 3), mj: camp.mi % 3, onEvent: onEvent });
-    phase = 'fly'; banner = null; debrief = null; playSince = g.time; RN.clearFx();
+    phase = 'fly'; banner = null; debrief = null; playSince = g.time; RN.clearFx(); pendingFail = false; g.resetRun();   // «раз за партию» = раз за задание
     game.start(); P.current = game;
     P.sfx(g, 'launch');
   }
   function endFlight(ok) {
     var r = game.result(), s = S(), mi = camp.mi, wasSector = mi % 3 === 2;
-    var fin = E.finishMission(camp, r);
-    debrief = { ok: ok, mi: mi, money: ok ? r.money : r.earnedRaw, kills: s.kills, gkills: s.gkills, lost: fin.lost ? RN.itemName(g, fin.lost, camp) : null, lostLv: fin.lost, sector: ok && wasSector ? Math.floor(mi / 3) + 1 : 0, t: 0 };
+    var fin = E.finishMission(camp, r), st = M.stars(r), stNew = ok && prog.record(mi + 1, st.n);
+    debrief = { ok: ok, mi: mi, money: ok ? r.money : r.earnedRaw, kills: s.kills, gkills: s.gkills, lost: fin.lost ? RN.itemName(g, fin.lost, camp) : null, lostLv: fin.lost, sector: ok && wasSector ? Math.floor(mi / 3) + 1 : 0, t: 0, stars: ok ? st.n : -1, starNew: stNew };
     if (fin.lost) { var lr = E.row(fin.lost.id); if (lr && lr.kind === 'gun') debrief.lost = g.t(fin.lost.id.replace(':', '_')) + (camp.guns[lr.key] ? ' ' + g.t('lvl') + ' ' + (camp.guns[lr.key] + 1) : ''); if (lr && lr.kind === 'gen') debrief.lost = g.t('x_gen') + ' ' + g.t('lvl') + ' ' + (camp.gen + 1); }
     if (!ok) P.sfx(g, 'lost');
     banner = null;
@@ -78,7 +90,8 @@
   }
   function leaveDebrief() {
     if (!debrief || debrief.t < 0.6) return;
-    if (camp.done) { syncScore(); E.clear(Store); g.win(); return; }
+    g.adBreak();   // межстраничная — по нажатию игрока между заданиями (естественная пауза; частоту режет адаптер)
+    if (camp.done) { syncScore(); E.clear(CS); g.win(); return; }
     phase = 'hangar'; sel = rows.length - 1; game = null; debrief = null;
   }
 
@@ -112,10 +125,19 @@
   function newCampaign() { camp = E.create(diff); saveCamp(); phase = 'hangar'; sel = rows.length - 1; game = null; debrief = null; syncScore(); }
   g.menu.addItem({ key: 'play', index: 0, label: function () {
     return camp ? g.t('cont') + ' · ' + g.t('contAt').replace('{s}', Math.floor(camp.mi / 3) + 1).replace('{m}', camp.mi % 3 + 1) : g.t('play');
-  }, onSelect: function () { if (!camp) newCampaign(); else { phase = 'hangar'; game = null; debrief = null; sel = rows.length - 1; } syncScore(); g.goto('play', { fresh: true }); } });
-  g.menu.addItem({ key: 'newc', after: 'play', label: function () { return g.t('newc') + ' · ' + g.t('d_' + diff); }, onSelect: function () { newCampaign(); g.goto('play', { fresh: true }); } });
-  g.menu.addItem({ key: 'diff', after: 'newc', label: function () { return g.t('diff') + ': ' + g.t('d_' + diff); }, onSelect: function () { diff = D.DIFFS[(D.DIFFS.indexOf(diff) + 1) % 3]; Store.set(DKEY, diff); } });
+  }, onSelect: function () { g.resetRun(); if (!camp) newCampaign(); else { phase = 'hangar'; game = null; debrief = null; sel = rows.length - 1; } syncScore(); g.goto('play', { fresh: true }); } });
+  g.menu.addItem({ key: 'newc', after: 'play', label: function () { return g.t('newc') + ' · ' + g.t('d_' + diff); }, onSelect: function () { g.resetRun(); newCampaign(); g.goto('play', { fresh: true }); } });
+  g.menu.addItem({ key: 'diff', after: 'newc', label: function () { return g.t('diff') + ': ' + g.t('d_' + diff); }, onSelect: function () { diff = D.DIFFS[(D.DIFFS.indexOf(diff) + 1) % 3]; g.storeSet(DKEY, diff); } });
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
+  // Реклама за награду (только площадки с рекламой): «ещё один шанс» раз за задание — крыло снова в бою (броня 50), задание продолжается;
+  // отказ — обычный итог (потеря снаряжения). Бонус в паузе полёта — +1 мега-бомба (раз за задание).
+  g.useRewardedContinue({ revive: function () { pendingFail = false; if (game) game.reviveAd(); } });
+  g.useRewardedBonus({ key: 'rwMega', scene: 'pause', label: function () { return g.t('rwMega'); },
+    available: function () { return phase === 'fly' && !!game && S().P.mega < D.SPECIAL.mega.max; },
+    grant: function () { if (game) game.addMega(); } });
+  // сцена gameover в ПОДРЯДЕ — только переход: сбитое крыло → итог задания в ангаре (как без рекламы)
+  var goEnter = g.scenes.gameover.enter;
+  g.scenes.gameover.enter = function (d) { if (pendingFail && game) { pendingFail = false; endFlight(false); this.goto('play', { resume: true }); return; } if (goEnter) goEnter.call(this, d); };
   g.state.best = Store.getNum('arcade.best.podryad', 0);
 
   // победа: итог карьеры
@@ -155,6 +177,7 @@
     RN.txt(this, this.t('subtitle'), W / 2, y0 + 92, { size: retro ? 11 : 13, align: 'center', color: th.ink, weight: 700 }, Cc);
     RN.txt(this, this.t('sub2'), W / 2, y0 + 112, { size: retro ? 9 : 11, align: 'center', color: th.muted, weight: 600 }, Cc);
     menu.draw(this, W / 2, y0 + 156, 32);
+    RN.txt(this, this.t('stars') + ': ' + prog.total() + '/' + (M.LEVELS * 3) + '  ·  ' + this.t('starsHint'), W / 2, y0 + ph - 40, { size: 11, align: 'center', color: th.muted, weight: 700, maxWidth: pw - 24 }, Cc);
     RN.txt(this, this.t('best') + ': ' + P.money(this.state.best) + (camp ? '   ·   ' + this.t('funds') + ': ' + P.money(camp.money) + ' · ' + this.t('d_' + camp.diff) : ''), W / 2, y0 + ph - 20, { size: 11, align: 'center', color: th.muted, weight: 700 }, Cc);
     RN.txt(this, this.input.touchOnly ? this.t('hintTouch') : this.t('hintKeys'), W / 2, H - 24, { size: retro ? 9 : 10, align: 'center', color: th.muted, weight: 600 }, Cc);
   };
@@ -255,6 +278,7 @@
     ctx.strokeStyle = b.ok ? Cc.good : Cc.bad; ctx.lineWidth = Cc.retro ? 3 : 2; ctx.strokeRect(x0 + 1, y0 + 1, w - 2, h - 2);
     var cx = x0 + w / 2, y = y0 + 44;
     RN.txt(g, b.sector ? g.t('sectorClear').replace('{s}', b.sector) : g.t(b.ok ? 'done' : 'fail'), cx, y, { size: 24, weight: 900, align: 'center', color: b.ok ? Cc.good : Cc.bad }, Cc);
+    if (b.stars >= 0) RN.txt(g, M.starStr(b.stars) + (b.starNew ? '  ' + g.t('starNew') : ''), cx, y - 30, { size: 14, weight: 900, align: 'center', color: Cc.gold, maxWidth: w - 20 }, Cc);
     y += 24; RN.txt(g, g.t('mn' + b.mi), cx, y, { size: 13, weight: 700, align: 'center', color: Cc.muted }, Cc);
     y += 40; RN.txt(g, g.t('earned') + ': ' + P.money(b.money), cx, y, { size: 20, weight: 900, align: 'center', color: b.ok ? Cc.gold : Cc.muted }, Cc);
     y += 22; ctx.font = '600 11px sans-serif'; y = RN.wrapC(g, b.ok ? g.t('paid') : g.t('failNote'), cx, y, w - 40, 15, { size: 11, weight: 600, color: Cc.muted }, Cc);
@@ -268,8 +292,9 @@
   // ---------- DOM: подгонка канвы, подписи ----------
   function $(id) { return document.getElementById(id); }
   function fit() {
-    var wrap = cv.parentElement, pad = document.querySelector('.pad'), padH = (pad && getComputedStyle(pad).display !== 'none') ? 70 : 0;
-    var availH = innerHeight - 70 - padH;
+    var wrap = cv.parentElement, pad = document.querySelector('.pad'), foot = document.getElementById('foot');
+    var padH = (pad && getComputedStyle(pad).display !== 'none' && getComputedStyle(pad).position !== 'fixed') ? pad.offsetHeight + 14 : 0, footH = (foot && getComputedStyle(foot).display !== 'none') ? foot.offsetHeight + 20 : 0;
+    var availH = innerHeight - (wrap ? wrap.offsetTop : 28) - padH - footH - 4;
     var w = Math.min(860, (wrap && wrap.clientWidth) || W, availH * W / H);
     w = Math.max(280, Math.floor(w)); cv.style.width = w + 'px'; cv.style.height = Math.round(w * H / W) + 'px';
   }
@@ -281,6 +306,7 @@
       var b = $('backLink'); if (b) b.innerHTML = '&larr; ' + g.t('back');
       var f = $('foot'); if (f) f.innerHTML = g.t('foot');   // строки — наши, из i18n.js
       [['bBomb', 'bBomb'], ['bCell', 'bCell'], ['bGun', 'bGun']].forEach(function (p) { var el = $(p[0]); if (el) el.textContent = g.t(p[1]); });
+      fit();
     }
     if (theme !== lastTheme) { lastTheme = theme; document.body.setAttribute('data-theme', theme); }
   }
@@ -288,6 +314,6 @@
 
   g.start('title');
   // для автотестов в браузере
-  P.app = { g: g, game: function () { return game; }, camp: function () { return camp; }, phase: function () { return phase; },
+  P.app = { g: g, prog: prog, game: function () { return game; }, camp: function () { return camp; }, phase: function () { return phase; },
     newCampaign: newCampaign, startFlight: startFlight, buy: function (id) { sel = rows.findIndex(function (r) { return r.id === id; }); doBuy(); }, setDiff: function (d) { diff = d; } };
 })(typeof window !== 'undefined' ? window : globalThis);

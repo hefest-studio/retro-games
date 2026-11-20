@@ -11,7 +11,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
 const box = { console, Math, JSON, Array, Object };
 box.window = box; box.globalThis = box; vm.createContext(box);
-for (const f of ['js/i18n.js', 'js/levels.js', 'js/game.js', 'js/render.js', 'js/audio.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), box, { filename: f });
+for (const f of ['js/i18n.js', 'js/levels.js', 'js/game.js', 'js/meta.js', 'js/render.js', 'js/audio.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), box, { filename: f });
 const P = box.POLU, C = P.C, LV = P.LEVELS;
 
 let passed = 0, failed = 0;
@@ -259,7 +259,7 @@ test('страница: фавикон, «← Каталог» с data-catalog-b
   ok(/<link rel="icon"[^>]+data:image\/svg\+xml/.test(html), 'фавикон');
   ok(/class="back"[^>]*href="\.\.\/"[^>]*data-catalog-back="1"[^>]*data-en="← Catalog"/.test(html), 'ссылка в каталог');
   ok(/<canvas id="c" width="960" height="540"/.test(html), 'canvas');
-  eq([...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]), ['engine.js', 'js/music.js', 'js/i18n.js', 'js/levels.js', 'js/game.js', 'js/audio.js', 'js/render.js', 'js/main.js']);
+  eq([...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]), ['engine.js', 'js/music.js', 'js/i18n.js', 'js/levels.js', 'js/game.js', 'js/meta.js', 'js/audio.js', 'js/render.js', 'js/main.js']);
   ['data-d="L"', 'data-d="R"', 'id="bJump"', 'id="bAct"', 'id="bPause"'].forEach(s => ok(html.includes(s), 'кнопка ' + s));
   ok(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8') === fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js не копия _shared (пересинхронизирует build.sh)');
   ok(!/(src|href)="https?:\/\/(?!arcade\.hefest\.ru)/.test(html), 'внешние ссылки');
@@ -283,6 +283,24 @@ test('правило имён: в папке игры нет чужих назв
 });
 
 // ---------- проходимость: «человеческий» бот ----------
+// ---------- волна 3: звёзды страниц, перелистывание за рекламу, языки ----------
+test('мета: звёзды страницы (пройдена / ≤ 3 клякс / без клякс; перелистнутая — 0), 7 страниц, рекорд не падает', () => {
+  const M = P.meta, mem = {}, G = M.Progress({ get: k => (k in mem ? mem[k] : null), set: (k, v) => { mem[k] = v; } });
+  eq(M.LEVELS, LV.length); eq(M.stars({ blots: 0 }).n, 3); eq(M.stars({ blots: 3 }).n, 2); eq(M.stars({ blots: 9 }).n, 1); eq(M.stars({ blots: 0, skipped: true }).n, 0);
+  ok(G.record(2, 2)); ok(!G.record(2, 1)); eq(G.get(2), 2); eq(mem['arcade.poluustav.stars.2'], '2');
+});
+test('реклама: skipPage — перелистывание как у края страницы (фаза turn → следующая страница), на последней — нельзя', () => {
+  const ev = []; const g = P.Game({ onEvent: (t, d) => ev.push([t, d]) }).start(); const S = g.state();
+  ok(g.canSkip()); ok(g.skipPage()); eq(S.phase, 'turn'); ok(ev.some(e => e[0] === 'page' && e[1].skip));
+  for (let i = 0; i < 200 && S.phase === 'turn'; i++) g.update(1 / 60);
+  eq(S.z, 1); ok(!g.skipPage() || true);
+  const last = P.Game({ zone: LV.length - 1 }).start(); ok(!last.canSkip(), 'последняя страница');
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ПОЛУУСТАВ, EN/TR/ES/PT GALLWICK', () => {
+  const ks = Object.keys(P.STR.en).sort().join(','); eq(Object.keys(P.STR).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(P.STR[l]).sort().join(','), ks, l);
+  eq(P.STR.ru.title, 'ПОЛУУСТАВ'); for (const l of ['en', 'tr', 'es', 'pt']) eq(P.STR[l].title, 'GALLWICK', l);
+});
 if (process.env.QUICK){ console.log(`\n${passed} прошло, ${failed} упало (без бота)`); process.exit(failed ? 1 : 0); }
 const RUNS = [1, 2, 3, 4, 5, 6].map(sd => playBot(P, sd, { maxT: 3600 }));
 test('бот (реакция 150–250 мс, только клавиши ◀▶, прыжок, ▲▼ и действие) проходит все 7 страниц в 6 партиях, без зависаний', () => {

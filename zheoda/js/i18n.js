@@ -1,4 +1,4 @@
-/* ЖЕОДА · i18n (RU/EN). ZHEODA.STR — таблицы для Arcade.createGame({strings}).
+/* ЖЕОДА · i18n (RU/EN/TR/ES/PT — движок v2.8 берёт языки из ключей strings; название: RU — ЖЕОДА, EN/TR/ES/PT — GEODELVE). ZHEODA.STR — таблицы для Arcade.createGame({strings}).
    Ключи play/language/theme/... нужны стандартным экранам движка; остальные — игре. */
 (function (global) {
   'use strict';
@@ -23,6 +23,7 @@
       tip_key: 'Ключ отпирает дверь своего цвета', tip_drips: 'Сталактиты срываются, когда проходишь под ними',
       tip_blast: '↓ / S — заложить взрывчатку у трещиноватой стены и отбежать', tip_lift: 'Встань на лифт и жди остановки',
       tip_flip: 'Сфера гравитации переворачивает тебя и обитателей', tip_secret: 'Некоторые стены — ложные',
+      lvPick: 'Пещера', starNew: 'новый рекорд звёзд!', revived: 'Ещё один шанс!', rwLife: 'Реклама: +1 жизнь', starsHint: '★ пройти · ★ без потерь · ★ все тайники',
       hint: '← → бег · ↑ прыжок · Пробел огонь · ↓ рычаг/взрывчатка · P пауза',
       foot: '<b>ЖЕОДА</b> · ← → / A D — бег · ↑ / W / Z — прыжок · Пробел / X — заводной бластер · ↓ / S — рычаг или взрывчатка · P/Esc — пауза · L язык, T тема, M звук.'
     },
@@ -30,7 +31,7 @@
       play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
       score: 'Score', level: 'Lvl', best: 'Best', win: 'THE GEODE IS OPEN!', gameover: 'THE LAMP WENT OUT',
       pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
-      title: 'ZHEODA', subtitle: 'Prospector Druza · 16 caves and the Colossus', back: 'Catalog', lives: 'Lives',
+      title: 'GEODELVE', subtitle: 'Prospector Druza · 16 caves and the Colossus', back: 'Catalog', lives: 'Lives',
       episode: 'Episode', ep1: 'Upper geodes', ep2: 'Deep geodes', ep3: 'Heart of the mountain',
       hubTitle: 'GEODE MAP', hubHint: '← → — choose · Space / Enter — descend', hubDone: 'cleared', hubLocked: 'locked', hubNext: 'open',
       ready: 'LEVEL', goal: 'Collect every crystal — the exit will open', bossGoal: 'Blast the Colossus, flip gravity to dodge',
@@ -45,8 +46,79 @@
       tip_key: 'A key unlocks the door of its colour', tip_drips: 'Stalactites drop when you pass beneath',
       tip_blast: '↓ / S — plant an explosive by a cracked wall and run', tip_lift: 'Step on a lift and wait for the stop',
       tip_flip: 'A gravity orb flips you and the cave dwellers', tip_secret: 'Some walls are fake',
+      lvPick: 'Cave', starNew: 'new star record!', revived: 'One more chance!', rwLife: 'Watch ad: +1 life', starsHint: '★ clear · ★ no losses · ★ all secrets',
       hint: '← → run · ↑ jump · Space fire · ↓ lever/explosive · P pause',
-      foot: '<b>ZHEODA</b> · ← → / A D — run · ↑ / W / Z — jump · Space / X — clockwork blaster · ↓ / S — lever or explosive · P/Esc — pause · L language, T theme, M sound.'
+      foot: '<b>GEODELVE</b> · ← → / A D — run · ↑ / W / Z — jump · Space / X — clockwork blaster · ↓ / S — lever or explosive · P/Esc — pause · L language, T theme, M sound.'
     }
+  };
+
+  Z.STR.tr = {
+    play: 'Oyna', language: 'Dil', theme: 'Tema', sound: 'Ses', on: 'açık', off: 'kapalı',
+    score: 'Puan', level: 'Sv', best: 'Rekor', win: 'JEOT AÇILDI!', gameover: 'FENER SÖNDÜ',
+    pause: 'DURAKLATILDI', resume: 'Devam', menu: 'Menü', tapstart: 'boşluk / dokun',
+    title: 'GEODELVE', subtitle: 'Maden arayıcı Druza · 16 mağara ve Dev', back: 'Katalog', lives: 'Can',
+    episode: 'Bölüm', ep1: 'Üst jeotlar', ep2: 'Derin jeotlar', ep3: 'Dağın kalbi',
+    hubTitle: 'JEOT HARİTASI', hubHint: '← → — seç · Boşluk / Enter — in', hubDone: 'geçildi', hubLocked: 'kilitli', hubNext: 'açık',
+    ready: 'SEVİYE', goal: 'Tüm kristalleri topla — çıkış açılacak', bossGoal: 'Devi blasterla vur, kaçmak için yerçekimini çevir',
+    clear: 'MAĞARA GEÇİLDİ', bonus: 'Bonus', lost: 'DRUZA SERSEMLEDİ', exitOpen: 'ÇIKIŞ AÇIK!', secret: 'GİZLİ YER!',
+    noammo: 'ŞARJ YOK', gravity: 'YERÇEKİMİ!', leverOn: 'MEKANİZMA AÇIK', leverOff: 'MEKANİZMA KAPALI',
+    key_R: 'KIRMIZI ANAHTAR', key_B: 'MAVİ ANAHTAR', key_Y: 'SARI ANAHTAR', door: 'KAPI AÇILDI', ammo: 'ŞARJLAR', dyn: 'PATLAYICI', heal: 'İLK YARDIM', gem: 'DEĞERLİ TAŞ',
+    crystals: 'Kristaller', boss: 'Dev', enrage: 'DEV ÖFKELENDİ',
+    lv_mouth: 'Ağız', lv_ledges: 'Çıkıntılar', lv_lever: 'Kol', lv_key: 'Kırmızı Anahtar', lv_drips: 'Damlalar', lv_blast: 'Patlatma',
+    lv_lift: 'Asansörler', lv_flip: 'Ters Yüz', lv_twokeys: 'İki Anahtar', lv_ceiling: 'Tavan', lv_shaft: 'Kuyu',
+    lv_acid: 'Asit Gölleri', lv_rockfall: 'Kaya Düşmesi', lv_gears: 'Mekanizma', lv_locks: 'Üç Kilit', lv_core: 'Çekirdek', lv_colossus: 'Dev',
+    tip_mouth: 'Zıpla — ↑ / W / Z, uzun basarsan daha yükseğe', tip_lever: 'Kolun yanında ↓ / S — mekanizmayı çevir',
+    tip_key: 'Anahtar kendi rengindeki kapıyı açar', tip_drips: 'Altlarından geçince sarkıtlar düşer',
+    tip_blast: '↓ / S — çatlak duvarın yanına patlayıcı koy ve kaç', tip_lift: 'Asansöre bin ve durmasını bekle',
+    tip_flip: 'Yerçekimi küresi seni ve mağara sakinlerini ters çevirir', tip_secret: 'Bazı duvarlar sahte',
+    lvPick: 'Mağara', starNew: 'yeni yıldız rekoru!', revived: 'Bir şans daha!', rwLife: 'Reklam: +1 can', starsHint: '★ geç · ★ kayıpsız · ★ tüm gizli yerler',
+    hint: '← → koş · ↑ zıpla · Boşluk ateş · ↓ kol/patlayıcı · P duraklat',
+    foot: '<b>GEODELVE</b> · ← → / A D — koş · ↑ / W / Z — zıpla · Boşluk / X — kurmalı blaster · ↓ / S — kol veya patlayıcı · P/Esc — duraklat · L dil, T tema, M ses.'
+  };
+  Z.STR.es = {
+    play: 'Jugar', language: 'Idioma', theme: 'Tema', sound: 'Sonido', on: 'sí', off: 'no',
+    score: 'Puntos', level: 'Nv', best: 'Récord', win: '¡LA GEODA SE ABRIÓ!', gameover: 'EL FAROL SE APAGÓ',
+    pause: 'PAUSA', resume: 'Seguir', menu: 'Menú', tapstart: 'espacio / toca',
+    title: 'GEODELVE', subtitle: 'La buscadora Druza · 16 cuevas y el Coloso', back: 'Catálogo', lives: 'Vidas',
+    episode: 'Episodio', ep1: 'Geodas altas', ep2: 'Geodas profundas', ep3: 'Corazón de la montaña',
+    hubTitle: 'MAPA DE GEODAS', hubHint: '← → — elegir · Espacio / Enter — bajar', hubDone: 'superada', hubLocked: 'cerrada', hubNext: 'abierta',
+    ready: 'NIVEL', goal: 'Junta todos los cristales y se abrirá la salida', bossGoal: 'Dispara al Coloso, invierte la gravedad para esquivar',
+    clear: 'CUEVA SUPERADA', bonus: 'Bonus', lost: 'DRUZA ATURDIDA', exitOpen: '¡SALIDA ABIERTA!', secret: '¡ESCONDITE!',
+    noammo: 'SIN CARGAS', gravity: '¡GRAVEDAD!', leverOn: 'MECANISMO SÍ', leverOff: 'MECANISMO NO',
+    key_R: 'LLAVE ROJA', key_B: 'LLAVE AZUL', key_Y: 'LLAVE AMARILLA', door: 'PUERTA ABIERTA', ammo: 'CARGAS', dyn: 'EXPLOSIVO', heal: 'BOTIQUÍN', gem: 'GEMA',
+    crystals: 'Cristales', boss: 'Coloso', enrage: 'EL COLOSO SE ENFURECE',
+    lv_mouth: 'La Boca', lv_ledges: 'Cornisas', lv_lever: 'La Palanca', lv_key: 'Llave Roja', lv_drips: 'Goteras', lv_blast: 'Voladura',
+    lv_lift: 'Ascensores', lv_flip: 'Del Revés', lv_twokeys: 'Dos Llaves', lv_ceiling: 'El Techo', lv_shaft: 'El Pozo',
+    lv_acid: 'Lagos de Ácido', lv_rockfall: 'Derrumbe', lv_gears: 'Engranajes', lv_locks: 'Tres Cerrojos', lv_core: 'El Núcleo', lv_colossus: 'El Coloso',
+    tip_mouth: 'Salto — ↑ / W / Z, cuanto más lo mantienes, más alto', tip_lever: '↓ / S junto a la palanca — mover el mecanismo',
+    tip_key: 'Cada llave abre la puerta de su color', tip_drips: 'Las estalactitas caen cuando pasas debajo',
+    tip_blast: '↓ / S — pon un explosivo junto a la pared agrietada y corre', tip_lift: 'Súbete al ascensor y espera a que pare',
+    tip_flip: 'La esfera de gravedad te invierte a ti y a los habitantes', tip_secret: 'Algunas paredes son falsas',
+    lvPick: 'Cueva', starNew: '¡nuevo récord de estrellas!', revived: '¡Otra oportunidad!', rwLife: 'Anuncio: +1 vida', starsHint: '★ superar · ★ sin bajas · ★ todos los escondites',
+    hint: '← → correr · ↑ saltar · Espacio disparar · ↓ palanca/explosivo · P pausa',
+    foot: '<b>GEODELVE</b> · ← → / A D — correr · ↑ / W / Z — saltar · Espacio / X — bláster de cuerda · ↓ / S — palanca o explosivo · P/Esc — pausa · L idioma, T tema, M sonido.'
+  };
+  Z.STR.pt = {
+    play: 'Jogar', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'lig.', off: 'desl.',
+    score: 'Pontos', level: 'Nv', best: 'Recorde', win: 'O GEODO SE ABRIU!', gameover: 'A LANTERNA APAGOU',
+    pause: 'PAUSA', resume: 'Continuar', menu: 'Menu', tapstart: 'espaço / toque',
+    title: 'GEODELVE', subtitle: 'A garimpeira Druza · 16 cavernas e o Colosso', back: 'Catálogo', lives: 'Vidas',
+    episode: 'Episódio', ep1: 'Geodos altos', ep2: 'Geodos profundos', ep3: 'Coração da montanha',
+    hubTitle: 'MAPA DOS GEODOS', hubHint: '← → — escolher · Espaço / Enter — descer', hubDone: 'concluída', hubLocked: 'fechada', hubNext: 'aberta',
+    ready: 'NÍVEL', goal: 'Junte todos os cristais e a saída se abrirá', bossGoal: 'Atire no Colosso, inverta a gravidade para desviar',
+    clear: 'CAVERNA CONCLUÍDA', bonus: 'Bônus', lost: 'DRUZA ATORDOADA', exitOpen: 'SAÍDA ABERTA!', secret: 'ESCONDERIJO!',
+    noammo: 'SEM CARGAS', gravity: 'GRAVIDADE!', leverOn: 'MECANISMO LIG.', leverOff: 'MECANISMO DESL.',
+    key_R: 'CHAVE VERMELHA', key_B: 'CHAVE AZUL', key_Y: 'CHAVE AMARELA', door: 'PORTA ABERTA', ammo: 'CARGAS', dyn: 'EXPLOSIVO', heal: 'KIT MÉDICO', gem: 'GEMA',
+    crystals: 'Cristais', boss: 'Colosso', enrage: 'O COLOSSO SE ENFURECEU',
+    lv_mouth: 'A Boca', lv_ledges: 'Saliências', lv_lever: 'A Alavanca', lv_key: 'Chave Vermelha', lv_drips: 'Goteiras', lv_blast: 'Detonação',
+    lv_lift: 'Elevadores', lv_flip: 'De Cabeça para Baixo', lv_twokeys: 'Duas Chaves', lv_ceiling: 'O Teto', lv_shaft: 'O Poço',
+    lv_acid: 'Lagos de Ácido', lv_rockfall: 'Desmoronamento', lv_gears: 'Engrenagens', lv_locks: 'Três Fechaduras', lv_core: 'O Núcleo', lv_colossus: 'O Colosso',
+    tip_mouth: 'Pulo — ↑ / W / Z, quanto mais segura, mais alto', tip_lever: '↓ / S junto à alavanca — mover o mecanismo',
+    tip_key: 'Cada chave abre a porta da sua cor', tip_drips: 'As estalactites caem quando você passa embaixo',
+    tip_blast: '↓ / S — ponha um explosivo junto à parede rachada e corra', tip_lift: 'Suba no elevador e espere parar',
+    tip_flip: 'A esfera de gravidade inverte você e os habitantes', tip_secret: 'Algumas paredes são falsas',
+    lvPick: 'Caverna', starNew: 'novo recorde de estrelas!', revived: 'Mais uma chance!', rwLife: 'Anúncio: +1 vida', starsHint: '★ concluir · ★ sem perdas · ★ todos os esconderijos',
+    hint: '← → correr · ↑ pular · Espaço atirar · ↓ alavanca/explosivo · P pausa',
+    foot: '<b>GEODELVE</b> · ← → / A D — correr · ↑ / W / Z — pular · Espaço / X — blaster de corda · ↓ / S — alavanca ou explosivo · P/Esc — pausa · L idioma, T tema, M som.'
   };
 })(typeof window !== 'undefined' ? window : globalThis);

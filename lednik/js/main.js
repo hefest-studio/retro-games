@@ -15,8 +15,12 @@
   LD.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
   var ls = null; try { ls = global.localStorage; } catch (e) {}
-  var store = LD.save.store(ls || { getItem: function () { return null; }, setItem: function () {}, removeItem: function () {} });
+  // прогресс карты — localStorage сразу + облако площадки (g.storeSet; g.persist 'last' — на другом устройстве берётся облачный)
+  var LS = ls || { getItem: function () { return null; }, setItem: function () {}, removeItem: function () {} };
+  var store = LD.save.store({ getItem: function (k) { return LS.getItem(k); }, setItem: function (k, v) { if (k === LD.save.KEY) g.storeSet(k, v); else LS.setItem(k, v); }, removeItem: function (k) { if (LS.removeItem) LS.removeItem(k); } });
   var prog = store.load();
+  g.persist(LD.save.KEY, 'last'); g.persist('arcade.best.lednik', 'max');
+  g.onCloud(function (keys) { if (keys.indexOf(LD.save.KEY) >= 0 && !(g._sceneName === 'play' && mode === 'level')) { prog = store.load(); M.prog = prog; M.sel = prog.at; } g.state.best = g.loadBest(); });
 
   var game = null, mode = 'map', playSince = 0, cam = 0, camPrev = 0;
   var ui = { toasts: [], banner: null, msg: null, runPh: 0, throwT: 0, shake: 0 };
@@ -73,6 +77,7 @@
       case 'bossHit': FX.add(d.x, d.y, { n: 12, sp: 130, c: col('#ffe36a', E.y), r: 2 }); break;
       case 'bossDown': ui.shake = 0.6; FX.add(d.x, d.y, { n: 40, sp: 200, c: col('#ffffff', E.w), r: 2.6, life: 0.9 }); toast('+' + L.PTS.boss, col('#ffe08a', E.y), d.x, d.y - 30, true); break;
       case 'clear': onClear(d); break;
+      case 'revive': msg(g.t('revived'), t.warn, 1.6); break;
       case 'gameover': sync(); setTimeout(function () { if (g._sceneName === 'play' && game && S().phase === 'over') g.gameover(); }, 1500); break;
     }
     sync();
@@ -101,7 +106,9 @@
     M.sel = at; var n = MAP.node(at); M.pos = { x: n.x, y: n.y }; M.moving = null; M.note = '';
     music(LD.MUSIC.map);
   }
+  var entered = 0;
   function enterLevel(id) {
+    if (entered++) g.adBreak();   // межстраничная — по входу в уровень с карты (действие игрока, естественная пауза); не на первом входе
     mode = 'level'; prog.at = id; store.save(prog);
     game.startLevel(id); cam = -1; playSince = g.time; ui.runPh = 0;
     sync();
@@ -126,6 +133,12 @@
   g.menu.addItem({ key: 'tomap', scene: 'pause', before: 'menu', label: function () { return g.t('toMap'); },
     onSelect: function () { if (game && mode === 'level') { S().phase = 'idle'; toMap(prog.at); } g.goto('play', { resume: true }); } });
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
+  // Реклама за награду (только площадки с рекламой): «ещё один шанс» раз за забег — 2 жизни, с последнего костра;
+  // бонус в паузе уровня — +1 жизнь (раз за забег). Карта мира с узлами, 100%-звёздами и ключами — мета-прогрессия игры (save.js).
+  g.useRewardedContinue({ revive: function () { if (game) { game.reviveAd(); sync(); } } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { return !!game && mode === 'level' && S().lives < 9 && S().phase !== 'over'; },
+    grant: function () { if (game) { game.addLife(); sync(); } } });
   ['win', 'gameover'].forEach(function (name) {
     var sc = g.scenes[name], baseDraw = sc.draw;
     sc.draw = function (ctx) {
@@ -261,7 +274,8 @@
     var c = g.canvas, wrap = c.parentElement, padEl = document.querySelector('.pad');
     var padFixed = padEl && getComputedStyle(padEl).position === 'fixed';
     var padH = padEl && !padFixed && getComputedStyle(padEl).display !== 'none' ? padEl.offsetHeight + 16 : 0;
-    var w = Math.min(1120, (wrap && wrap.clientWidth) || g.W, (innerHeight - padH - 64) * g.W / g.H);
+    var foot = document.getElementById('foot'), footH = foot && getComputedStyle(foot).display !== 'none' ? foot.offsetHeight + 18 : 0;
+    var w = Math.min(1120, (wrap && wrap.clientWidth) || g.W, (innerHeight - padH - footH - (wrap ? wrap.offsetTop : 32) - 6) * g.W / g.H);
     w = Math.max(240, Math.floor(w)); c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
   }
   var lastLang = null, lastTheme = null;
@@ -270,6 +284,7 @@
       lastLang = g.i18n.lang; document.documentElement.lang = lastLang;
       var b = document.getElementById('backLink'); if (b) b.innerHTML = '&larr; ' + g.t('back');
       var f = document.getElementById('foot'); if (f) f.innerHTML = g.t('foot');   // строки — наши, из i18n.js
+      fit();
     }
     if (g.themeName !== lastTheme) { lastTheme = g.themeName; document.body.setAttribute('data-theme', lastTheme); }
     requestAnimationFrame(domSync);

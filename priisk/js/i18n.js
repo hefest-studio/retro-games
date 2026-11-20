@@ -141,7 +141,11 @@
     workS: 'В работе', workSubS: 'Эта миссия «Долга перевала» ещё в работе — появится в следующих обновлениях.',
     xflag: 'Помнят «Медную лихорадку»', foeVoiceC: 'Дозорный Медного Ключа', postVoice: 'Постовой',
     hint1S: 'Снеси Контору Медного Ключа. Ветряки — только на гребнях, медь возит канатка',
-    msgScouted: 'Разведано', millLow: 'Не на высоте — ветра нет'
+    msgScouted: 'Разведано', millLow: 'Не на высоте — ветра нет',
+    msgCarShot: 'Люльку сбили выстрелом — люди упали в пропасть', msgCutWarn: 'Канат на опоре трещит — сейчас сорвёт с ролика!', msgCut: 'Канат сорвало с ролика — люльки встали над пропастью',
+    msgSpliced: 'Агафья срастила канат — пролёт снова держит', cutTip: 'Канат сорвало — Агафья срастит, стоя рядом', splicing: 'Агафья сращивает канат',
+    epilogueT: 'Эпилог', epilogueSub: 'обе кампании', epilogueEnd: 'Эпилог: итог', finaleChoicesB: 'Что решили артели',
+    epilogueHint: 'Пройдите и вторую кампанию — если и там договорятся, откроется ещё одна дорога'
   });
   Object.assign(P.STR.en, {
     hqS: 'Lodge Hall', mill: 'Windmill', pylon: 'Pylon', hut: 'Winter Hut', station: 'Terminal', face: 'Adit', sail: 'Sail Yard',
@@ -158,6 +162,10 @@
     workS: 'In the works', workSubS: 'This Debt of the Pass mission is still in the works — coming in a later update.',
     xflag: 'They remember Copper Fever', foeVoiceC: 'Copper Spring sentry', postVoice: 'Post guard',
     hint1S: 'Raze the Copper Spring Lodge. Windmills only on ridges, the cableway carries copper',
-    msgScouted: 'Scouted', millLow: 'Not on high ground — no wind'
+    msgScouted: 'Scouted', millLow: 'Not on high ground — no wind',
+    msgCarShot: 'A car was shot down — the people fell into the abyss', msgCutWarn: 'The rope on a pylon is groaning — it’s about to jump the sheave!', msgCut: 'The rope jumped the sheave — the cars are stuck over the abyss',
+    msgSpliced: 'Agafya spliced the rope — the span holds again', cutTip: 'The rope came off — Agafya splices it standing next to it', splicing: 'Agafya is splicing the rope',
+    epilogueT: 'Epilogue', epilogueSub: 'both campaigns', epilogueEnd: 'Epilogue: outcome', finaleChoicesB: 'What the artels decided',
+    epilogueHint: 'Play the other campaign too — if they come to terms there as well, one more road opens'
   });
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -35,10 +35,15 @@
   function money(n) { n = Math.round(n); var s = String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); return (n < 0 ? '−' : '') + '◈' + s; }
   P.money = money;
   function txt(g, s, x, y, o, C) {
-    var c = g.ctx; c.fillStyle = o.color || C.ink;
-    c.font = (o.weight || 800) + ' ' + (C.retro ? Math.max(8, Math.round((o.size || 14) * 0.85)) : (o.size || 14)) + 'px ' + (C.retro ? '"Courier New", ui-monospace, monospace' : 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif');
-    c.textAlign = o.align || 'left'; c.textBaseline = o.base || 'alphabetic';
-    c.fillText(o.upper && C.retro ? String(s).toUpperCase() : s, x, y);
+    var c = g.ctx; c.fillStyle = o.color || C.ink; s = o.upper && C.retro ? String(s).toUpperCase() : String(s);
+    var fam = C.retro ? '"Courier New", ui-monospace, monospace' : 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+    var sz = C.retro ? Math.max(8, Math.round((o.size || 14) * 0.85)) : (o.size || 14), al = o.align || 'left';
+    // строка не вылезает за холст (и за maxWidth): кегль уменьшается (длинные TR/ES/PT)
+    var mw = o.maxWidth || (al === 'center' ? Math.min(x, g.W - x) * 2 - 8 : al === 'right' ? x - 4 : g.W - x - 4);
+    c.font = (o.weight || 800) + ' ' + sz + 'px ' + fam;
+    while (sz > 7 && mw > 0 && c.measureText(s).width > mw) { sz--; c.font = (o.weight || 800) + ' ' + sz + 'px ' + fam; }
+    c.textAlign = al; c.textBaseline = o.base || 'alphabetic';
+    c.fillText(s, x, y);
   }
   function bar(ctx, x, y, w, h, f, col, C) {
     ctx.fillStyle = C.retro ? '#555555' : 'rgba(255,255,255,.08)'; if (C.retro) ctx.fillRect(x, y, w, h); else { rr(ctx, x, y, w, h, h / 2); ctx.fill(); }
@@ -460,7 +465,7 @@
       else if (r.kind === 'cell') st = c.cells + '/' + D.SPECIAL.cell.max;
       else if (r.kind === 'gen') { st = T('lvl') + ' ' + c.gen + '/3'; }
       else if (r.kind === 'repair') { st = Math.round(c.armor) + '/100'; col = c.armor < 60 ? C.bad : C.ink; }
-      txt(g, name, x0 + 12, ty, { size: 14, weight: 800 }, C);
+      txt(g, name, x0 + 12, ty, { size: 14, weight: 800, maxWidth: (r.kind === 'gun' ? 196 : 142) }, C);
       if (st) txt(g, st, r.kind === 'gun' ? x0 + 214 : x0 + 160, ty, { size: 11, weight: 700, color: r.kind === 'repair' ? col : C.muted }, C);
       // кнопки [−] [+]
       var bp = E.price(c, r.id), bs = E.sellPrice(c, r.id), can = E.canBuy(c, r.id);
@@ -469,7 +474,7 @@
         ctx.fillStyle = on ? (act === 'buy' ? (C.retro ? '#00aa00' : 'rgba(123,224,160,.18)') : (C.retro ? '#aa0000' : 'rgba(255,106,85,.16)')) : (C.retro ? '#000000' : 'rgba(255,255,255,.04)');
         if (C.retro) ctx.fillRect(xb, y + 3, 40, rh - 10); else { rr(ctx, xb, y + 3, 40, rh - 10, 6); ctx.fill(); }
         txt(g, label, xb + 20, y + 15, { size: 12, weight: 900, align: 'center', color: on ? C.ink : C.muted }, C);
-        txt(g, sub, xb + 20, y + 28, { size: 9, weight: 700, align: 'center', color: on ? (act === 'buy' ? C.gold : C.good) : C.muted }, C);
+        txt(g, sub, xb + 20, y + 28, { size: 9, weight: 700, maxWidth: 42, align: 'center', color: on ? (act === 'buy' ? C.gold : C.good) : C.muted }, C);
         hits.push({ x: xb, y: y, w: 40, h: rh - 4, row: i, act: act });
       }
       btn(bxm, '−', bs != null, 'sell', bs != null ? '+' + bs : '');

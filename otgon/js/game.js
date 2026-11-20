@@ -434,7 +434,18 @@
       moveTo: function (x, y) { target = { x: x, y: y }; },
       whistle: whistle, staff: staff, nextLeg: nextLeg, snapshot: function () { return snap(); },
       setMark: function (id, mark) { S.herd.forEach(function (c) { if (c.id === id) c.mark = ((mark % MARKS.length) + MARKS.length) % MARKS.length; }); if (S.cp) S.cp.herd.forEach(function (hh) { if (hh.id === id) hh.mark = ((mark % MARKS.length) + MARKS.length) % MARKS.length; }); },
-      alive: function () { return alive(); }, leg: function () { return L(); }
+      alive: function () { return alive(); }, leg: function () { return L(); },
+      // реклама за награду (площадки): вернуть последнего отбившегося к подпаску (на последнем участке после финала — нет)
+      canReturn: function () { return S.phase === 'play' && S.gone.some(function (q) { return S.herd.some(function (c) { return c.id === q.id; }); }); },
+      returnOne: function () {
+        for (var i = S.gone.length - 1; i >= 0; i--) { var q = S.gone[i], c = null; S.herd.forEach(function (h) { if (h.id === q.id) c = h; }); if (!c) continue;
+          S.gone.splice(i, 1); c.st = 'ok'; c.food = Math.max(c.food, 0.8); c.pep = Math.max(c.pep, 0.8); c.fear = 0; c.bolt = 0; c.stray = false; c.callT = 0; c.cmdT = 0;
+          var h = S.hero, l = L(); c.x = h.x + 40 + rng() * 30; c.y = clamp(h.y + (rng() - 0.5) * 40, topY(l, c.x) + 14, botY(l, c.x) - 14); c.vx = c.vy = 0;
+          emit('back', { id: c.id, left: alive().length }); return true; }
+        return false;
+      },
+      // «ещё один шанс»: стадо разбрелось — двое последних отбившихся снова рядом, путь продолжается с места
+      reviveAd: function () { if (S.phase !== 'alone' && S.phase !== 'play') return false; S.phase = 'play'; var n = 0; while (n < 2 && api.returnOne()) n++; return n > 0 || alive().length > 0; }
     };
     return api;
   }

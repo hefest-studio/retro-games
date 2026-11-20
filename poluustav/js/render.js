@@ -321,9 +321,13 @@
     ctx.restore();
     if (L.motif === 'lamp') darkness(ctx, S, game, pal, th, cx);
     frame(ctx, S, pal, th, t);
-    if (opt.overlay) opt.overlay(ctx, pal, th);
+    // ретро: всё рисуется в FULL и потом дизерится в холст — надписи меню/паузы (g.text пишет прямо в холст) иначе затираются;
+    // поэтому в ретро текст оверлея копится и выводится поверх уже после дизеринга (волна 3: меню и пауза в ретро были пустыми)
+    var texts = null;
+    if (opt.overlay) { if (th === 'retro') { texts = []; var gt = g.text; g.text = function () { texts.push(arguments); }; try { opt.overlay(ctx, pal, th); } finally { g.text = gt; } } else opt.overlay(ctx, pal, th); }
     turnFx(ctx, S, pal, th);
     if (th === 'retro') dither(out);
+    if (texts) for (var ti = 0; ti < texts.length; ti++) g.text.apply(g, texts[ti]);
   };
   function dither(out) {
     if (!SMALL) SMALL = mk(W / 2, H / 2);

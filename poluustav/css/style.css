@@ -22,3 +22,7 @@ a.back:hover { color: #e09a6b; }
   .foot { display: none; }
   .wrap { width: min(96vw, 980px, calc((100dvh - 40px) * 16 / 9)); margin-top: 34px; }
 }
+/* телефон лёжа: кнопки по бокам поля — поле не заходит под них */
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+  .wrap { width: min(96vw, calc(100vw - 300px), calc((100dvh - 40px) * 16 / 9)); }
+}
