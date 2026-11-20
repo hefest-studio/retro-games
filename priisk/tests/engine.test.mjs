@@ -4,7 +4,7 @@
    рудовозы, тот же тип), разведение отряда по клеткам и расталкивание, экономика (рудовоз привозит медь на плавильню),
    стройка (сетка, занято, далеко от базы, медь вперёд, отмена), пар (нехватка замедляет), производство юнитов,
    бой и победа (снос конторы), туман (видно/видели), ИИ (за 5 игровых минут ≥3 зданий и первая волна),
-   ArcadeMouse (клик, двойной клик, рамка, ПКМ, захват панели, колесо, средняя кнопка, тач: долгий тап, протяжка, два пальца),
+   ArcadeMouse — общий _shared/mouse.js (копия, клик, двойной клик, рамка, ПКМ на отпускании, UI-зона, колесо, средняя кнопка, тач: долгий тап, протяжка, два пальца),
    i18n, правило имён (стоп-лист в base64). Браузерная проверка мышью — tests/browser.mjs. */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -245,39 +245,51 @@ test('партия «ИИ против ИИ» заканчивается поб�
   console.log('     победитель ' + W.winner + ' на ' + Math.round(W.time / 60) + '-й минуте');
 });
 
-// ---------- ArcadeMouse ----------
+// ---------- ArcadeMouse (общий модуль _shared/mouse.js; полное покрытие — _shared/tests/mouse.test.mjs) ----------
+// Модуль слушает pointermove/up на window — в песочнице window = sandbox, даём ему шину событий.
+const winLs = {};
+sandbox.addEventListener = (t, f) => { (winLs[t] = winLs[t] || []).push(f); };
+sandbox.removeEventListener = (t, f) => { winLs[t] = (winLs[t] || []).filter(x => x !== f); };
 function fakeCanvas() {
   const ls = {};
   return { width: 960, height: 540, style: {}, getBoundingClientRect: () => ({ left: 0, top: 0, width: 480, height: 270 }),
     addEventListener: (t, f) => { (ls[t] = ls[t] || []).push(f); }, removeEventListener() {}, setPointerCapture() {}, releasePointerCapture() {},
-    fire(t, e) { e = Object.assign({ pointerId: 1, pointerType: 'mouse', button: 0, preventDefault() {}, type: t, timeStamp: Date.now() }, e); (ls[t] || []).forEach(f => f(e)); } };
+    fire(t, e) { e = Object.assign({ pointerId: 1, pointerType: 'mouse', button: 0, preventDefault() {}, type: t }, e); (ls[t] || []).concat(winLs[t] || []).forEach(f => f(e)); } };
 }
 function mouseLog(extra = {}) {
+  for (const k in winLs) winLs[k] = [];
   const log = []; const cv = fakeCanvas();
-  const m = AM.attach(cv, Object.assign({ onClick: (p, i) => log.push(['click', p.x, p.y, i.dbl, i.shift]), onBox: (r, i) => log.push(['box', r.x0, r.y0, r.x1, r.y1, i.shift]),
-    onCommand: (p, i) => log.push(['cmd', p.x, p.y, i.touch]), onPan: (dx, dy) => log.push(['pan', dx, dy]), onWheel: (dx, dy) => log.push(['wheel', dx, dy]) }, extra));
+  const m = AM.attach(cv, Object.assign({ W: 960, H: 540, onClick: (p, i) => log.push(['click', p.x, p.y, i.double, i.shift]),
+    onBoxEnd: (b, i) => { const r = AM.normBox(b); log.push(['box', r.x0, r.y0, r.x1, r.y1, i.shift]); },
+    onRight: (p, i) => log.push(['cmd', p.x, p.y, !!i.touch]), onPan: (dx, dy) => log.push(['pan', dx, dy]), onWheel: (dx, dy) => log.push(['wheel', dx, dy]) }, extra));
   return { log, cv, m };
 }
-test('ArcadeMouse: клик, двойной клик, рамка (с Shift), ПКМ — в координатах canvas', () => {
-  const { log, cv } = mouseLog();
-  cv.fire('pointerdown', { clientX: 50, clientY: 40 }); cv.fire('pointerup', { clientX: 50, clientY: 40, timeStamp: 1000 });
-  cv.fire('pointerdown', { clientX: 51, clientY: 40 }); cv.fire('pointerup', { clientX: 51, clientY: 40, timeStamp: 1200 });
-  eq(log[0], ['click', 100, 80, false, false]); eq(log[1], ['click', 102, 80, true, false]);
-  cv.fire('pointerdown', { clientX: 200, clientY: 150, shiftKey: true }); cv.fire('pointermove', { clientX: 120, clientY: 100 }); cv.fire('pointerup', { clientX: 120, clientY: 100 });
-  eq(log[2], ['box', 240, 200, 400, 300, true]);
-  cv.fire('pointerdown', { clientX: 10, clientY: 20, button: 2 }); eq(log[3], ['cmd', 20, 40, false]);
+test('ArcadeMouse: js/mouse.js — копия _shared/mouse.js (метка источника для build.sh)', () => {
+  const src = fs.readFileSync(path.join(ROOT, '../_shared/mouse.js'), 'utf8');
+  ok(src.includes('Источник — _shared/mouse.js'), 'нет метки');
+  eq(fs.readFileSync(path.join(ROOT, 'js/mouse.js'), 'utf8') === src, true, 'js/mouse.js рассинхронизирован (bash build.sh)');
 });
-test('ArcadeMouse: захват (панель/мини-карта) — без рамки; средняя кнопка и колесо двигают камеру; край экрана', () => {
-  const drags = []; const { log, cv, m } = mouseLog({ onDown: p => p.y > 400 ? 'capture' : undefined, onDrag: p => drags.push(p.y) });
-  cv.fire('pointerdown', { clientX: 100, clientY: 220 }); cv.fire('pointermove', { clientX: 140, clientY: 230 }); cv.fire('pointerup', { clientX: 140, clientY: 230 });
-  eq(log.length, 0, 'захваченный жест дал рамку/клик'); eq(drags, [460]);
+test('ArcadeMouse: клик, двойной клик, рамка (с Shift), ПКМ (на отпускании) — в координатах canvas', () => {
+  const { log, cv } = mouseLog();
+  cv.fire('pointerdown', { clientX: 50, clientY: 40 }); cv.fire('pointerup', { clientX: 50, clientY: 40 });
+  cv.fire('pointerdown', { clientX: 51, clientY: 40 }); cv.fire('pointerup', { clientX: 51, clientY: 40 });
+  eq(log[0], ['click', 100, 80, false, false]); eq(log[1], ['click', 102, 80, true, false]);
+  cv.fire('pointerdown', { clientX: 200, clientY: 150, shiftKey: true }); cv.fire('pointermove', { clientX: 120, clientY: 100, shiftKey: true }); cv.fire('pointerup', { clientX: 120, clientY: 100, shiftKey: true });
+  eq(log[2], ['box', 240, 200, 400, 300, true]);
+  cv.fire('pointerdown', { clientX: 10, clientY: 20, button: 2 }); eq(log.length, 3, 'ПКМ сработал на нажатии');
+  cv.fire('pointerup', { clientX: 10, clientY: 20, button: 2 }); eq(log[3], ['cmd', 20, 40, false]);
+});
+test('ArcadeMouse: UI-зона (панель/мини-карта/кнопки групп) — без рамки; средняя кнопка и колесо; край экрана', () => {
+  const ui = []; const { log, cv, m } = mouseLog({ hitUI: p => p.y > 400, onUi: (ph, p, i) => ui.push([ph, p.y, i.btn, !!(i.mods && i.mods.ctrl)]) });
+  cv.fire('pointerdown', { clientX: 100, clientY: 220, ctrlKey: true }); cv.fire('pointermove', { clientX: 140, clientY: 230 }); cv.fire('pointerup', { clientX: 140, clientY: 230 });
+  eq(log.length, 0, 'жест в UI-зоне дал рамку/клик'); eq(ui.map(u => u[0]), ['down', 'move', 'up']); eq(ui[0], ['down', 440, 0, true]);
   cv.fire('pointerdown', { clientX: 100, clientY: 100, button: 1 }); cv.fire('pointermove', { clientX: 90, clientY: 105 }); cv.fire('pointerup', { clientX: 90, clientY: 105, button: 1 });
-  eq(log[0], ['pan', 20, -10]);
+  eq(log[0], ['pan', -20, 10], 'сдвиг указателя (камера: cam -= d)');
   cv.fire('wheel', { deltaX: 0, deltaY: 120, deltaMode: 0 }); eq(log[1], ['wheel', 0, 120]);
   cv.fire('wheel', { deltaX: 0, deltaY: 50, deltaMode: 0, shiftKey: true }); eq(log[2], ['wheel', 50, 0]);
-  cv.fire('pointermove', { clientX: 2, clientY: 135 }); eq(m.edgeDir(), { x: -1, y: 0 });
-  cv.fire('pointermove', { clientX: 479, clientY: 269 }); eq(m.edgeDir(), { x: 1, y: 1 });
-  cv.fire('pointerleave', {}); eq(m.edgeDir(), { x: 0, y: 0 });
+  cv.fire('pointermove', { clientX: 2, clientY: 135 }); eq(m.edge(14), { x: -1, y: 0 });
+  cv.fire('pointermove', { clientX: 479, clientY: 269 }); eq(m.edge(14), { x: 1, y: 1 });
+  cv.fire('pointerleave', {}); eq(m.edge(14), { x: 0, y: 0 });
 });
 test('ArcadeMouse: тач — тап = выбор, протяжка = рамка, долгий тап = приказ, два пальца = камера', async () => {
   const { log, cv } = mouseLog({ longPress: 60 });
@@ -288,7 +300,7 @@ test('ArcadeMouse: тач — тап = выбор, протяжка = рамка
   eq(log.pop(), ['cmd', 120, 120, true]); eq(log.length, 0, 'после долгого тапа лишний клик');
   T('pointerdown', 6, 100, 100); T('pointerdown', 7, 200, 100); T('pointermove', 6, 90, 100); T('pointermove', 7, 190, 100); T('pointerup', 6, 90, 100); T('pointerup', 7, 190, 100);
   ok(log.length >= 1 && log.every(e => e[0] === 'pan'), 'двумя пальцами не камера: ' + JSON.stringify(log));
-  eq(log.reduce((s, e) => s + e[1], 0), 20, 'сдвиг камеры');
+  eq(log.reduce((s, e) => s + e[1], 0), -20, 'сдвиг указателя');
 });
 test('ArcadeMouse: enabled()=false — события игнорируются', () => {
   let on = false; const { log, cv } = mouseLog({ enabled: () => on });

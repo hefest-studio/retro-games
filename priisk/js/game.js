@@ -102,7 +102,8 @@
       vis: new Uint8Array(w * h), units: [], blds: [], byId: Object.create(null), nextId: 1, time: 0,
       rng: mulberry32(seed || 1), fx: [], events: [], winner: -1, visT: 0, sightMul: 1, flares: [], mapRev: 0,
       players: [newPlayer(0), newPlayer(1), newPlayer(2)], ai: null, oreMax: 0, hadHq: [false, false], charges: [], hits: Object.create(null),
-      fires: [], depots: [], team: null, paint: null, lifts: [], lights: [], los: false
+      fires: [], depots: [], team: null, paint: null, lifts: [], lights: [], los: false,
+      fac: null, wind: null, cars: [], windT: 0 // Сизый Перевал: стороны владельцев (fac), ветер, люльки канатной дороги
     };
     return W;
   }
@@ -125,20 +126,22 @@
   var START = [{ hq: { x: 5, y: 37 } }, { hq: { x: 56, y: 7 } }];
   function newWorld(opt) {
     opt = opt || {};
-    var seed = opt.seed || 1, W;
+    var seed = opt.seed || 1, W, side = opt.side || P.SKIRMISH_SIDE || null; // side: сторона игрока ('copper' | 'sizye'); без неё — классика
     for (var attempt = 0; attempt < 40; attempt++) {
       W = emptyWorld(MAP_W, MAP_H, seed + attempt * 7919);
       genTerrain(W);
+      if (side === 'sizye') ridgeNearBase(W, 0); // Сизым нужны гребни для ветряков — у их базы две короткие гряды
       if (connected(W)) break;
     }
+    if (side === 'sizye') setSides(W, ['sizye', 'copper']);
     W.oreMax = 520;
     var startCopper = opt.copper != null ? opt.copper : 2500;
     for (var o = 0; o < 2; o++) {
       var hq = START[o].hq; addBuilding(W, o, 'hq', hq.x, hq.y);
       W.players[o].copper = startCopper;
-      var ex = o === 0 ? hq.x + 4 : hq.x - 2, ey = o === 0 ? hq.y - 2 : hq.y + 4;
-      addUnit(W, o, 'crawler', ex + 0.5, ey + 0.5);
-      for (var r = 0; r < 3; r++) addUnit(W, o, 'rifleman', ex + 1.5 + (r % 2), ey + 1.5 + (r >> 1));
+      var ex = o === 0 ? hq.x + 4 : hq.x - 2, ey = o === 0 ? hq.y - 2 : hq.y + 4, sz = facOf(W, o) === 'sizye';
+      addUnit(W, o, sz ? 'skiff' : 'crawler', ex + 0.5, ey + 0.5);
+      for (var r = 0; r < 3; r++) addUnit(W, o, sz ? 'ranger' : 'rifleman', ex + 1.5 + (r % 2), ey + 1.5 + (r >> 1));
     }
     if (opt.ai !== false) W.ai = newAI(W, 1);
     updateVis(W);
@@ -284,6 +287,7 @@
   function addBuilding(W, owner, type, tx, ty, noFree) {
     var d = BLDS[type], b = { id: W.nextId++, kind: 'bld', type: type, owner: owner, pi: paintOf(W, owner), tx: tx, ty: ty, w: d.w, h: d.h, hp: d.hp, maxHp: d.hp, rally: null, hitT: -99, hitBy: 0 };
     if (d.stock) b.stock = d.stock;
+    if (type === 'hq' && facOf(W, owner) === 'sizye') b.look = 'sizye'; // изба-контора Сизых
     for (var j = 0; j < d.h; j++) for (var i = 0; i < d.w; i++) W.occ[(ty + j) * W.w + tx + i] = b.id;
     W.blds.push(b); W.byId[b.id] = b; calcPower(W);
     if (type === 'hq') W.hadHq[owner] = true;
@@ -303,7 +307,7 @@
   }
   function calcPower(W) {
     for (var o = 0; o < W.players.length; o++) { W.players[o].pOut = 0; W.players[o].pUse = 0; }
-    W.blds.forEach(function (b) { if (b.setup > 0) return; var p = BLDS[b.type].power, pl = W.players[b.owner]; if (p > 0) pl.pOut += p; else pl.pUse -= p; });
+    W.blds.forEach(function (b) { if (b.setup > 0) return; var p = BLDS[b.type].wind ? (b.pw = millOut(W, b)) : BLDS[b.type].power, pl = W.players[b.owner]; if (p > 0) pl.pOut += p; else pl.pUse -= p; });
   }
   function powerFactor(W, o) { var p = W.players[o]; return p.pOut >= p.pUse ? 1 : LOW_POWER; }
   function has(W, o, type) { for (var n = 0; n < W.blds.length; n++) if (W.blds[n].owner === o && W.blds[n].type === type) return W.blds[n]; return null; }
@@ -349,13 +353,13 @@
   }
   function cancelBuild(W, o) { var p = W.players[o]; if (!p.build) return false; p.copper += BLDS[p.build.type].cost; p.build = null; return true; }
   function queueUnit(W, o, type) {
-    var p = W.players[o], d = UNITS[type], q = d.from === 'bunk' ? p.inf : p.veh;
+    var p = W.players[o], d = UNITS[type], q = INF_FAC[d.from] ? p.inf : p.veh;
     if (!reqMet(W, o, type) || p.copper < d.cost || q.length >= 6) return false;
     p.copper -= d.cost; q.push(type); return true;
   }
   function dequeueUnit(W, o, type) {
-    var p = W.players[o], d = UNITS[type], q = d.from === 'bunk' ? p.inf : p.veh, k = q.lastIndexOf(type);
-    if (k < 0) return false; q.splice(k, 1); if (k === 0) { if (d.from === 'bunk') p.infP = 0; else p.vehP = 0; }
+    var p = W.players[o], d = UNITS[type], q = INF_FAC[d.from] ? p.inf : p.veh, k = q.lastIndexOf(type);
+    if (k < 0) return false; q.splice(k, 1); if (k === 0) { if (INF_FAC[d.from]) p.infP = 0; else p.vehP = 0; }
     p.copper += d.cost; return true;
   }
   function canPlace(W, o, type, tx, ty) {
@@ -363,9 +367,13 @@
     if (tx < 1 || ty < 1 || tx + d.w > W.w - 1 || ty + d.h > W.h - 1) return false;
     for (var j = 0; j < d.h; j++) for (var i = 0; i < d.w; i++) { var k = (ty + j) * W.w + tx + i; if (W.t[k] !== GROUND || W.occ[k] || W.ore[k]) return false; }
     if (d.pump && !nearWater(W, tx, ty, d.w, d.h)) return false; // насос — только у воды
+    if (d.wind && ridgeRocks(W, tx, ty, d.w, d.h) < MILL.ridge) return false; // ветряк — только на гребне (у скал)
+    if (d.face && !oreNear(W, tx + d.w / 2, ty + d.h / 2, FACE.r)) return false; // забой — у самой жилы
     for (var n = 0; n < W.units.length; n++) { var u = W.units[n], r = UNITS[u.type].r; if (u.x + r > tx && u.x - r < tx + d.w && u.y + r > ty && u.y - r < ty + d.h) return false; }
+    if (d.cable) return cableAnchor(W, o, tx + d.w / 2, ty + d.h / 2); // опора и забой — в пролёте каната от своей опоры/станции/конторы
     var near = false;
     for (n = 0; n < W.blds.length; n++) { var b = W.blds[n]; if (b.owner !== o) continue;
+      if (BLDS[b.type].cable && !d.wind) continue; // от опор канатки можно ставить только ветряки (на дальних гребнях)
       var gx = Math.max(b.tx - (tx + d.w), tx - (b.tx + b.w), 0), gy = Math.max(b.ty - (ty + d.h), ty - (b.ty + b.h), 0);
       if (Math.max(gx, gy) <= (d.gap || BUILD_GAP)) { near = true; break; } }
     return near;
@@ -378,9 +386,9 @@
   function production(W, o, dt) {
     var p = W.players[o], pf = powerFactor(W, o);
     if (p.build && !p.build.ready) { p.build.p += dt / BLDS[p.build.type].time * pf; if (p.build.p >= 1) { p.build.p = 1; p.build.ready = true; W.events.push({ t: 'ready', owner: o }); } }
-    [['inf', 'infP', 'bunk'], ['veh', 'vehP', 'works']].forEach(function (q) {
+    [['inf', 'infP'], ['veh', 'vehP']].forEach(function (q) {
       var list = p[q[0]]; if (!list.length) return;
-      var fac = working(W, o, q[2]); if (!fac) return;
+      var fac = working(W, o, UNITS[list[0]].from); if (!fac) return; // барак/мастерская (Сизые — зимовьё/верфь)
       p[q[1]] += dt / UNITS[list[0]].time * pf;
       if (p[q[1]] >= 1) { p[q[1]] = 0; spawnFrom(W, fac, list.shift()); }
     });
@@ -513,6 +521,8 @@
     if (W.charges.length) chargeStep(W, dt);
     if (W.fires.length) fireStep(W, dt);
     if (W.lifts.length) liftStep(W, dt);
+    if (W.wind) windStep(W, dt);
+    if (W.cars.length) carStep(W, dt);
     // смерти
     var dead = false;
     W.units = W.units.filter(function (u) { if (u.hp > 0) return true; if (u.gone) { delete W.byId[u.id]; return false; } kill(W, u); dead = true; return false; }); // gone — инженер вошёл в здание
@@ -535,6 +545,7 @@
     W.events.push({ t: 'die', owner: e.owner, kind: e.kind, type: e.type, x: c.x, y: c.y, tag: e.tag || null, id: e.id, packed: e.packed ? e.packed.type : null });
   }
   function damage(W, attacker, tg) {
+    if (tg.riding) return; // едущих в люльке над пропастью не достать
     var d = UNITS[attacker.type] || BLDS[attacker.type], cls = tg.kind === 'bld' ? 'bld' : UNITS[tg.type].cls;
     if (tg.tag) { var hk = attacker.owner + ':' + tg.tag; W.hits[hk] = (W.hits[hk] || 0) + 1; } // кто по кому стрелял (условие hit кампании)
     if (tg.calm && attacker.owner !== tg.owner) tg.calm = false; // по мирному выстрелили — он больше не мирный
@@ -578,7 +589,7 @@
   function scan(W, u, radius) {
     var best = null, bd = 1e9;
     if (u.calm) return null; // мирные (сценарные) сами не стреляют, и по ним не стреляют без приказа
-    for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (!hostile(W, e.owner, u.owner) || e.hp <= 0 || e.calm) continue; var d = e.parts ? distTo(u, e) : Math.hypot(e.x - u.x, e.y - u.y); if (d <= radius && d < bd && sees(W, u.x, u.y, e.x, e.y)) { bd = d; best = e; } }
+    for (var n = 0; n < W.units.length; n++) { var e = W.units[n]; if (!hostile(W, e.owner, u.owner) || e.hp <= 0 || e.calm || e.riding) continue; var d = e.parts ? distTo(u, e) : Math.hypot(e.x - u.x, e.y - u.y); if (d <= radius && d < bd && sees(W, u.x, u.y, e.x, e.y)) { bd = d; best = e; } }
     if (best || W.treaty) return best; // по договору здания сами не обстреливают
     for (n = 0; n < W.blds.length; n++) { var b = W.blds[n]; if (!hostile(W, b.owner, u.owner)) continue; var db = distTo(u, b); if (db <= radius && db < bd) { bd = db; best = b; } }
     return best;
@@ -589,6 +600,7 @@
     if (u.trail) trailStep(u);
     if (u.tow) { towStep(W, u, dt); return; }
     if (o.t === 'lift') { liftWalk(W, u, dt); return; }
+    if (o.t === 'cable') { cableRide(W, u, dt); return; }
     if (o.t === 'plant') { plantStep(W, u, dt); return; }
     if (o.t === 'deploy') { deployStep(W, u, dt); return; }
     if (d.boss) { bossStep(W, u, dt); return; }
@@ -631,6 +643,7 @@
     var d = BLDS[b.type];
     if (b.setup > 0) { b.setup -= dt; if (b.setup <= 0) { b.setup = 0; calcPower(W); W.events.push({ t: 'setupDone', owner: b.owner, id: b.id }); } return; }
     if (d.rate) rigStep(W, b, d, dt);
+    if (d.face) faceStep(W, b, d, dt);
     if (d.weapon) {
       b.cd = (b.cd || 0) - dt;
       if (b.cd <= 0) {
@@ -816,6 +829,8 @@
       var h = us[n], hd = HEROES[h.type]; if (!hd || h.hp <= 0) continue;
       if (h.abT > 0) h.abT = Math.max(0, h.abT - dt);
       if (h.abOn > 0) h.abOn = Math.max(0, h.abOn - dt);
+      if (hd.ability === 'talk' && h.talking) talkStep(W, h, hd, dt);
+      if (hd.aura && hd.guard && !(h.abOn > 0) && !nearOwnBld(W, h, hd.guard)) continue; // Корней: ярость — при обороне (у своих зданий) или по кличу
       if (hd.aura) {
         var on = h.abOn > 0, R = hd.aura * (on ? 1.6 : 1), bd = on ? hd.cryDmg : hd.dmg, bs = on ? hd.crySpd : hd.spd;
         for (m = 0; m < us.length; m++) { var a = us[m]; if (a.owner !== h.owner || a === h || UNITS[a.type].cls !== 'inf' && !on) continue;
@@ -848,6 +863,8 @@
     if (u.abT > 0) return 'cd';
     if (hd.ability === 'fix') { u.abOn = hd.dur; u.abT = hd.cd; W.events.push({ t: 'ability', owner: u.owner, id: u.id, kind: 'fix', x: u.x, y: u.y }); return 'ok'; }
     if (hd.ability === 'cry') { u.abOn = hd.dur; u.abT = hd.cd; W.events.push({ t: 'ability', owner: u.owner, id: u.id, kind: 'cry', x: u.x, y: u.y }); return 'ok'; }
+    if (hd.ability === 'cable') return cableAbility(W, u, hd, x, y);
+    if (hd.ability === 'talk') return talkAbility(W, u, hd);
     if (hd.ability === 'flare') {
       if (x == null || Math.hypot(x - u.x, y - u.y) > hd.reach) return 'far';
       W.flares.push({ x: x, y: y, r: hd.r, t: hd.dur, max: hd.dur, owner: u.owner }); u.abT = hd.cd; W.visT = 0;
@@ -1422,6 +1439,194 @@
     return null;
   }
 
+  // ---------- Артель Сизого Перевала: своя сторона (ветряки, канатная дорога, лёгкая техника) ----------
+  // W.fac[владелец] — сторона: 'copper' (котельные, рудовозы, плавильня) или 'sizye'. Сизые: энергия — от ветряков, которые
+  // ставятся только на гребне (у скал, MILL.ridge клеток скалы вокруг) и дают MILL.power × сила ветра; ветряк в «тени» —
+  // скалы с наветренной стороны — даёт долю MILL.shelter. Ветер W.wind = { a — откуда дует (рад), s — сила 0…1.5, ta/ts — куда
+  // меняется, t — когда следующая смена, lock — сценарий держит сам }. Медь: забой у жилы копит медь (FACE.rate в секунду),
+  // люльки (W.cars, CAR.cap меди) едут по канату опора → опора → Станция (пролёт не длиннее SPAN клеток, канат идёт над скалами
+  // и водой). Опору сбили — люльки на этом пролёте падают. Агафья перебрасывает людей по канату («Переброска»), Митяй
+  // уговаривает посты (юниты с u.talk), Корней — аура ярости у своих зданий (и по кличу — везде).
+  var SPAN = 7.5, MILL = { power: 26, ridge: 2, shelter: 0.45 }, FACE = { rate: 5, r: 3.4, stock: 200 }, CAR = { cap: 50, speed: 3.6, gap: 1.5 };
+  var INF_FAC = { bunk: 1, hut: 1 };
+  Object.assign(UNITS, {
+    ranger:  { hp: 52,  speed: 2.0, range: 3.9, dmg: 9,  cd: 0.75, weapon: 'gun',   cost: 90,  time: 4.5, sight: 5.5, r: 0.3,  cls: 'inf', from: 'hut' },
+    skiff:   { hp: 170, speed: 3.4, range: 4.4, dmg: 19, cd: 1.0,  weapon: 'shell', cost: 330, time: 7.5, sight: 6.5, r: 0.42, cls: 'veh', from: 'sail' },
+    harpoon: { hp: 330, speed: 2.2, range: 6.2, dmg: 46, cd: 2.0,  weapon: 'shell', cost: 640, time: 12,  sight: 6.5, r: 0.48, cls: 'veh', from: 'sail' },
+    korney:  { hp: 320, speed: 1.9, range: 3.8, dmg: 13, cd: 0.8,  weapon: 'gun',   cost: 0,   time: 0,   sight: 6,   r: 0.35, cls: 'inf', hero: true },
+    agafya:  { hp: 160, speed: 2.0, range: 3.6, dmg: 7,  cd: 0.9,  weapon: 'gun',   cost: 0,   time: 0,   sight: 6,   r: 0.31, cls: 'inf', hero: true },
+    mityay:  { hp: 110, speed: 2.5, range: 3.4, dmg: 5,  cd: 1.0,  weapon: 'gun',   cost: 0,   time: 0,   sight: 8.5, r: 0.28, cls: 'inf', hero: true }
+  });
+  Object.assign(HEROES, {
+    korney: { ability: 'cry', cd: 30, dur: 8, aura: 4.5, dmg: 1.2, spd: 1.0, cryDmg: 1.5, crySpd: 1.15, guard: 7 },
+    agafya: { ability: 'cable', cd: 20, near: 3.5, pick: 3.2, cap: 8, speed: 6, reach: 3 },
+    mityay: { ability: 'talk', cd: 6, r: 3.4, time: 4 }
+  });
+  Object.assign(BLDS, {
+    mill:    { w: 2, h: 2, hp: 420,  cost: 200, time: 8,   power: 0,   req: [],          sight: 4, wind: true },
+    pylon:   { w: 1, h: 1, hp: 260,  cost: 50,  time: 2.5, power: 0,   req: [],          sight: 3, cable: true },
+    hut:     { w: 2, h: 2, hp: 560,  cost: 280, time: 11,  power: -5,  req: ['mill'],    sight: 4 },
+    station: { w: 3, h: 2, hp: 800,  cost: 500, time: 16,  power: -8,  req: ['mill'],    sight: 4, cable: true, terminal: true },
+    face:    { w: 2, h: 2, hp: 600,  cost: 350, time: 10,  power: -4,  req: ['station'], sight: 4, cable: true, face: true },
+    sail:    { w: 3, h: 3, hp: 900,  cost: 700, time: 18,  power: -12, req: ['station'], sight: 4 }
+  });
+  var SZ_BUILD_LIST = ['mill', 'pylon', 'hut', 'station', 'face', 'sail'], SZ_UNIT_LIST = ['ranger', 'skiff', 'harpoon'];
+  function facOf(W, o) { return W.fac && W.fac[o] || 'copper'; }
+  // кнопки панели стороны: здания и юниты
+  function sideLists(fac) { return fac === 'sizye' ? { b: SZ_BUILD_LIST, u: SZ_UNIT_LIST } : { b: BUILD_LIST, u: UNIT_LIST }; }
+  // назначить стороны владельцам: цвет (сирень — Сизые) и ветер, если есть ветряная сторона
+  function setSides(W, fac) {
+    W.fac = fac.slice(); W.paint = W.paint || {};
+    fac.forEach(function (f, o) { W.paint[o] = f === 'sizye' ? 1 : f === 'copper' ? 0 : W.paint[o]; });
+    W.units.concat(W.blds).forEach(function (e) { e.pi = paintOf(W, e.owner); });
+    if (fac.indexOf('sizye') >= 0 && !W.wind) W.wind = { a: W.rng() * Math.PI * 2, s: 0.85, ta: null, ts: null, t: 45, lock: false };
+  }
+  // две короткие гряды у базы владельца o (скирмиш за Сизых): места под ветряки, проход к базе не закрывают
+  function ridgeNearBase(W, o) {
+    var h = START[o].hq, sx = o === 0 ? 1 : -1, sy = o === 0 ? -1 : 1, cells = [];
+    for (var a = -2; a <= 2; a++) cells.push([h.x + 1 + a, h.y + 1 + sy * 5]);
+    for (var b = 2; b <= 4; b++) cells.push([h.x + 1 + sx * 6, h.y + 1 + sy * b]);
+    cells.forEach(function (c) { if (c[0] > 0 && c[1] > 0 && c[0] < W.w - 1 && c[1] < W.h - 1) { var k = c[1] * W.w + c[0]; W.t[k] = ROCK; W.ore[k] = 0; } });
+  }
+  // ---------- ветер ----------
+  function ridgeRocks(W, tx, ty, w, h) { var n = 0; for (var j = ty - 1; j <= ty + h; j++) for (var i = tx - 1; i <= tx + w; i++) { if (i >= tx && i < tx + w && j >= ty && j < ty + h) continue; if (!inb(W, i, j) || W.t[j * W.w + i] === ROCK) n++; } return n; }
+  // в тени: скалы с наветренной стороны (не меньше двух клеток кольца в секторе ветра)
+  function sheltered(W, b) {
+    if (!W.wind) return false; var cx = b.tx + b.w / 2, cy = b.ty + b.h / 2, wx = Math.cos(W.wind.a), wy = Math.sin(W.wind.a), n = 0;
+    for (var j = b.ty - 1; j <= b.ty + b.h; j++) for (var i = b.tx - 1; i <= b.tx + b.w; i++) {
+      if (i >= b.tx && i < b.tx + b.w && j >= b.ty && j < b.ty + b.h) continue;
+      if (inb(W, i, j) && W.t[j * W.w + i] !== ROCK) continue;
+      var dx = i + 0.5 - cx, dy = j + 0.5 - cy, dl = Math.hypot(dx, dy); if ((dx * wx + dy * wy) / dl > 0.45) n++;
+    }
+    return n >= 2;
+  }
+  function millOut(W, b) {
+    if (ridgeRocks(W, b.tx, b.ty, b.w, b.h) < MILL.ridge) return 0;
+    var s = W.wind ? W.wind.s : 1; return Math.round(MILL.power * s * (sheltered(W, b) ? MILL.shelter : 1));
+  }
+  function angTo(a, b, max) { var d = Math.atan2(Math.sin(b - a), Math.cos(b - a)); return a + Math.max(-max, Math.min(max, d)); }
+  function windStep(W, dt) {
+    var w = W.wind;
+    if (!w.lock && W.time >= w.t) { w.ta = W.rng() * Math.PI * 2; w.ts = 0.45 + W.rng() * 0.85; w.t = W.time + 50 + W.rng() * 50; W.events.push({ t: 'windShift' }); }
+    if (w.ta != null) w.a = angTo(w.a, w.ta, dt * (w.rate || 0.12));
+    if (w.ts != null) { var ds = w.ts - w.s, k = dt * (w.srate || 0.03); w.s += Math.abs(ds) <= k ? ds : ds > 0 ? k : -k; }
+    W.windT -= dt; if (W.windT <= 0) { W.windT = 0.5; calcPower(W); }
+  }
+  // сценарий: ветер { dir — 'N'|'NE'|…|угол (откуда дует), s — сила, now — сразу, lock — больше не менять самому }
+  var DIRS = { E: 0, SE: Math.PI / 4, S: Math.PI / 2, SW: Math.PI * 3 / 4, W: Math.PI, NW: -Math.PI * 3 / 4, N: -Math.PI / 2, NE: -Math.PI / 4 };
+  function setWind(W, o) {
+    var w = W.wind = W.wind || { a: 0, s: 1, ta: null, ts: null, t: 1e9, lock: true };
+    var a = typeof o.dir === 'string' ? DIRS[o.dir] : o.dir;
+    if (a != null) { w.ta = a; if (o.now) w.a = a; }
+    if (o.s != null) { w.ts = o.s; if (o.now) w.s = o.s; }
+    if (o.lock != null) w.lock = !!o.lock; if (w.lock) w.t = 1e9; else if (o.free) w.t = W.time + (o.free || 60);
+    if (o.rate) w.rate = o.rate; if (o.srate) w.srate = o.srate;
+    W.windT = 0; W.events.push({ t: 'windShift', scripted: true });
+  }
+  // ---------- канатная дорога ----------
+  function cableNodes(W, o) { return W.blds.filter(function (b) { return b.owner === o && b.hp > 0 && BLDS[b.type].cable && !(b.setup > 0); }); }
+  function linked(a, b) { var ca = center(a), cb = center(b); return Math.hypot(ca.x - cb.x, ca.y - cb.y) <= SPAN; }
+  // пролёты канатки владельца: [[a, b], …] — минимальное остовное дерево по узлам в пределах пролёта (канат не путается в
+  // паутину: каждый узел висит на ближайших), по нему и рисуем, и возим
+  function cableLinks(W, o) {
+    var ns = cableNodes(W, o), es = [], par = {}, out = [];
+    for (var i = 0; i < ns.length; i++) { par[ns[i].id] = ns[i].id; for (var j = i + 1; j < ns.length; j++) { var ca = center(ns[i]), cb = center(ns[j]), d = Math.hypot(ca.x - cb.x, ca.y - cb.y); if (d <= SPAN) es.push([d, ns[i], ns[j]]); } }
+    function root(x) { while (par[x] !== x) { par[x] = par[par[x]]; x = par[x]; } return x; }
+    es.sort(function (p, q) { return p[0] - q[0] || p[1].id - q[1].id || p[2].id - q[2].id; });
+    es.forEach(function (e) { var ra = root(e[1].id), rb = root(e[2].id); if (ra !== rb) { par[ra] = rb; out.push([e[1], e[2]]); } });
+    return out;
+  }
+  // опору/забой можно ставить, если до своей опоры, станции, забоя или конторы — не больше пролёта
+  function cableAnchor(W, o, x, y) { return W.blds.some(function (b) { if (b.owner !== o || !(BLDS[b.type].cable || b.type === 'hq')) return false; var c = center(b); return Math.hypot(c.x - x, c.y - y) <= SPAN; }); }
+  // маршрут по канату от узла from до узла, где goal(b) — правда (BFS по пролётам); [] — нет пути
+  function cableRoute(W, from, goal) {
+    var adj = Object.create(null), prev = Object.create(null), q = [from], seen = Object.create(null); seen[from.id] = 1;
+    cableLinks(W, from.owner).forEach(function (e) { (adj[e[0].id] = adj[e[0].id] || []).push(e[1]); (adj[e[1].id] = adj[e[1].id] || []).push(e[0]); });
+    for (var h = 0; h < q.length; h++) {
+      var a = q[h]; if (a !== from && goal(a)) { var out = [a]; while (prev[out[0].id] && prev[out[0].id] !== from) out.unshift(prev[out[0].id]); return out; }
+      (adj[a.id] || []).forEach(function (b) { if (!seen[b.id]) { seen[b.id] = 1; prev[b.id] = a; q.push(b); } });
+    }
+    return [];
+  }
+  function oreNear(W, x, y, r) { for (var j = Math.floor(y - r); j <= Math.ceil(y + r); j++) for (var i = Math.floor(x - r); i <= Math.ceil(x + r); i++) if (inb(W, i, j) && W.ore[j * W.w + i] > 0 && Math.hypot(i + 0.5 - x, j + 0.5 - y) <= r + 0.5) return true; return false; }
+  // забой: копит медь из ближайших клеток жилы, полную люльку отправляет по канату на Станцию
+  function faceStep(W, b, d, dt) {
+    var c = center(b), want = Math.min(FACE.stock - (b.stock || 0), FACE.rate * powerFactor(W, b.owner) * dt);
+    b.stock = b.stock || 0; b.carT = (b.carT || 0) - dt;
+    if (want > 0) {
+      var best = -1, bd = 1e9;
+      for (var j = Math.floor(c.y - FACE.r); j <= Math.ceil(c.y + FACE.r); j++) for (var i = Math.floor(c.x - FACE.r); i <= Math.ceil(c.x + FACE.r); i++) {
+        if (!inb(W, i, j)) continue; var k = j * W.w + i, dd = Math.hypot(i + 0.5 - c.x, j + 0.5 - c.y); if (W.ore[k] > 0 && dd <= FACE.r + 0.5 && dd < bd) { bd = dd; best = k; }
+      }
+      if (best >= 0) { b.acc = (b.acc || 0) + want; var take = Math.min(Math.floor(b.acc), W.ore[best]); if (take > 0) { W.ore[best] -= take; b.stock += take; b.acc -= take; } b.dry = false; } // W.ore — целые: копим дробь в b.acc
+      else if (!b.dry) { b.dry = true; W.events.push({ t: 'faceDry', owner: b.owner, id: b.id }); }
+    }
+    if (b.carT <= 0) { // раз в секунду: есть ли канат до Станции; полная люлька — в путь
+      b.carT = 1;
+      var rt = cableRoute(W, b, function (x) { return !!BLDS[x.type].terminal; });
+      b.link = rt.length > 0;
+      var load = b.dry ? Math.floor(b.stock) : CAR.cap; // выработан — отправляем остаток неполной люлькой
+      if (rt.length && load > 0 && b.stock >= load) { b.carT = CAR.gap; b.stock -= load; launchCar(W, b.owner, [b].concat(rt), load, null); }
+    }
+  }
+  // люлька: едет по точкам узлов; n — медь (или null), riders — не используется (людей возит Агафья приказом cable)
+  function launchCar(W, o, nodes, n) { var car = { id: W.nextId++, owner: o, ids: nodes.map(function (b) { return b.id; }), pts: nodes.map(center), k: 1, x: 0, y: 0, n: n }; car.x = car.pts[0].x; car.y = car.pts[0].y; W.cars.push(car); return car; }
+  function carStep(W, dt) {
+    for (var n = W.cars.length - 1; n >= 0; n--) {
+      var car = W.cars[n], broken = false;
+      for (var m = Math.max(0, car.k - 1); m < car.ids.length; m++) if (!alive(W.byId[car.ids[m]])) { broken = true; break; }
+      if (broken) { W.cars.splice(n, 1); W.fx.push({ t: 'boom', x: car.x, y: car.y, life: 0.5, max: 0.5, big: false }); W.events.push({ t: 'carFall', owner: car.owner, x: car.x, y: car.y, n: car.n }); continue; }
+      var go = CAR.speed * dt;
+      while (go > 0 && car.k < car.pts.length) { var p = car.pts[car.k], dx = p.x - car.x, dy = p.y - car.y, dl = Math.hypot(dx, dy); if (dl <= go) { car.x = p.x; car.y = p.y; car.k++; go -= dl; } else { car.x += dx / dl * go; car.y += dy / dl * go; go = 0; } }
+      if (car.k >= car.pts.length) {
+        var term = W.byId[car.ids[car.ids.length - 1]], got = Math.round(car.n * (term && term.mult || 1)); // торговый пост (b.mult) платит дороже
+        W.cars.splice(n, 1); var pl = W.players[car.owner]; pl.copper += got; pl.mined += got;
+        W.events.push({ t: 'copper', owner: car.owner, n: got, x: car.x, y: car.y, cable: true, to: term ? term.id : 0, tag: term && term.tag || null });
+      }
+    }
+  }
+  // Агафья, «Переброска»: отряд рядом с ней (до cap) садится в люльки у ближайшего узла и едет по канату к узлу у точки (x,y)
+  function cableAbility(W, u, hd, x, y) {
+    if (x == null) return 'far';
+    var ns = cableNodes(W, u.owner), from = null, to = null, bf = hd.near, bt = hd.reach;
+    ns.forEach(function (b) { var c = center(b), d1 = Math.hypot(c.x - u.x, c.y - u.y), d2 = Math.hypot(c.x - x, c.y - y); if (d1 < bf) { bf = d1; from = b; } if (d2 < bt) { bt = d2; to = b; } });
+    if (!from) return 'nonode'; if (!to || to === from) return 'far';
+    var rt = cableRoute(W, from, function (b) { return b === to; }); if (!rt.length) return 'nolink';
+    var pts = [from].concat(rt).map(center), riders = W.units.filter(function (e) { return e.owner === u.owner && e.hp > 0 && !e.locked && !e.riding && UNITS[e.type].cls === 'inf' && Math.hypot(e.x - u.x, e.y - u.y) <= hd.pick; })
+      .sort(function (a, b) { return (a === u ? -1 : 0) - (b === u ? -1 : 0) || Math.hypot(a.x - u.x, a.y - u.y) - Math.hypot(b.x - u.x, b.y - u.y); }).slice(0, hd.cap);
+    riders.forEach(function (e, i) { e.order = { t: 'cable', pts: [{ x: e.x, y: e.y }].concat(pts), k: 1, delay: i * 0.35 }; e.path = []; e.riding = true; });
+    u.abT = hd.cd; W.events.push({ t: 'ability', owner: u.owner, id: u.id, kind: 'cable', x: x, y: y, n: riders.length });
+    return 'ok';
+  }
+  function cableRide(W, u, dt) {
+    var o = u.order; if (o.delay > 0) { o.delay -= dt; return; }
+    var go = HEROES.agafya.speed * dt;
+    while (go > 0 && o.k < o.pts.length) { var p = o.pts[o.k], dx = p.x - u.x, dy = p.y - u.y, dl = Math.hypot(dx, dy); if (dl > 0.01) u.heading = u.aim = Math.atan2(dy, dx); if (dl <= go) { u.x = p.x; u.y = p.y; o.k++; go -= dl; } else { u.x += dx / dl * go; u.y += dy / dl * go; go = 0; } }
+    if (o.k >= o.pts.length) {
+      var sp = nearestPassable(W, Math.floor(u.x), Math.floor(u.y), 6, true) || nearestPassable(W, Math.floor(u.x), Math.floor(u.y), 6);
+      if (sp) { u.x = sp.i + 0.5; u.y = sp.j + 0.5; }
+      u.riding = false; u.order = { t: 'idle' }; u.post = { x: u.x, y: u.y }; W.events.push({ t: 'cableIn', owner: u.owner, id: u.id });
+    }
+  }
+  // Митяй, «Уговор»: стоит у поста (юниты с тегом и u.talk) time секунд — пост пропускает (мирный); обстрелян/ушёл — сорвалось
+  function talkAbility(W, u, hd) {
+    var best = null, bd = hd.r;
+    W.units.forEach(function (e) { if (e.talk && e.owner !== u.owner && e.hp > 0) { var d = Math.hypot(e.x - u.x, e.y - u.y); if (d <= bd) { bd = d; best = e; } } });
+    if (!best) return 'far';
+    u.talking = { tag: best.tag, t: 0, need: hd.time }; u.path = []; u.order = { t: 'idle' }; u.abT = 1;
+    W.events.push({ t: 'ability', owner: u.owner, id: u.id, kind: 'talk', x: best.x, y: best.y, tag: best.tag }); return 'ok';
+  }
+  function talkStep(W, h, hd, dt) {
+    var tk = h.talking, near = W.units.some(function (e) { return e.tag === tk.tag && e.talk && e.hp > 0 && Math.hypot(e.x - h.x, e.y - h.y) <= hd.r + 0.6; });
+    if (!near || h.path.length || W.time - h.hitT < 1) { h.talking = null; h.abT = hd.cd; W.events.push({ t: 'talkFail', owner: h.owner, tag: tk.tag }); return; }
+    tk.t += dt;
+    if (tk.t >= tk.need) {
+      W.units.forEach(function (e) { if (e.tag === tk.tag) { e.calm = true; e.talk = false; e.talked = true; if (e.order.t === 'attack') { e.order = { t: 'idle' }; e.path = []; } } });
+      h.talking = null; h.abT = hd.cd; W.events.push({ t: 'talked', owner: h.owner, tag: tk.tag, x: h.x, y: h.y });
+    }
+  }
+  function nearOwnBld(W, u, r) { return W.blds.some(function (b) { return b.owner === u.owner && distTo(u, b) <= r; }); }
+
   P.logic = {
     UNITS: UNITS, BLDS: BLDS, HEROES: HEROES, BUILD_LIST: BUILD_LIST, FORT_LIST: FORT_LIST, REPAIR: REPAIR, repairPrice: repairPrice, setRepair: setRepair, repathBlocked: repathBlocked, trailPoint: trailPoint, UNIT_LIST: UNIT_LIST, GROUND: GROUND, ROCK: ROCK, WATER: WATER, ICE: ICE, OPEN: OPEN, BRIDGE: BRIDGE, MAP_W: MAP_W, MAP_H: MAP_H,
     walkable: walkable, ability: ability, aiSpot: aiSpot, alive: alive, inb: inb,
@@ -1438,6 +1643,8 @@
     addFire: addFire, fireAt: fireAt, nearestFire: nearestFire, depotAt: depotAt, waterSource: waterSource, commandDouse: commandDouse, commandFill: commandFill, nearWater: nearWater,
     canCapture: canCapture, commandCapture: commandCapture, captureNow: captureNow, guarded: guarded,
     sees: sees, addLift: addLift, liftById: liftById, liftAt: liftAt, commandLift: commandLift, liftStep: liftStep, liftWaiting: liftWaiting, riders: riders, regionOf: regionOf, liftRoute: liftRoute, liftReach: liftReach, LIFT: LIFT,
+    facOf: facOf, sideLists: sideLists, setSides: setSides, ridgeRocks: ridgeRocks, sheltered: sheltered, millOut: millOut, setWind: setWind, cableNodes: cableNodes, cableLinks: cableLinks, cableRoute: cableRoute, cableAnchor: cableAnchor, launchCar: launchCar, oreNear: oreNear,
+    SPAN: SPAN, MILL: MILL, FACE: FACE, CAR: CAR, INF_FAC: INF_FAC, SZ_BUILD_LIST: SZ_BUILD_LIST, SZ_UNIT_LIST: SZ_UNIT_LIST, DIRS: DIRS, talkAbility: talkAbility, cableAbility: cableAbility, nearOwnBld: nearOwnBld,
     initBoss: initBoss, setBoss: setBoss, partAlive: partAlive, partOf: partOf, partPts: partPts, partToward: partToward, hitPart: hitPart, bossSteam: bossSteam, passBig: passBig, distTo: distTo, waterCap: waterCap
   };
 })(typeof window !== 'undefined' ? window : globalThis);

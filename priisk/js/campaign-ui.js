@@ -17,8 +17,20 @@
     { n: 7, ru: 'Чужая беда', en: 'Another’s Trouble' }, { n: 8, ru: 'Паровая громада', en: 'Steam Colossus' },
     { n: 9, ru: 'Штольни', en: 'The Adits' }, { n: 10, ru: 'Сердце плато', en: 'Heart of the Plateau' }];
   var NODES = [[95, 432], [178, 352], [268, 404], [350, 322], [452, 362], [528, 280], [446, 204], [334, 218], [250, 142], [400, 112]];
+  // «Долг перевала» (Артель Сизого Перевала): путь с перевала на северо-востоке вниз, на плато; миссии 4–9 — заготовки «в работе»
+  var LATER_S = [
+    { n: 1, ru: 'Пустой рудник', en: 'The Empty Mine' }, { n: 2, ru: 'Долговая расписка', en: 'The Promissory Note' },
+    { n: 3, ru: 'Тропа на плато', en: 'Trail to the Plateau' }, { n: 4, ru: 'Ночная проверка', en: 'The Night Probe' },
+    { n: 5, ru: 'Ветер с перевала', en: 'Wind off the Pass' }, { n: 6, ru: 'Горящий рудник', en: 'The Burning Mine' },
+    { n: 7, ru: 'Заводчик', en: 'The Foundryman' }, { n: 8, ru: 'Канатка над пропастью', en: 'Cableway over the Abyss' },
+    { n: 9, ru: 'Последний перевал', en: 'The Last Pass' }];
+  var NODES_S = [[566, 118], [492, 176], [418, 128], [350, 196], [282, 252], [370, 300], [470, 330], [380, 420], [252, 396]];
+  var camp = 'copper'; // какая кампания открыта на карте: 'copper' | 'sizye'
+  function nodes() { return camp === 'sizye' ? NODES_S : NODES; }
+  function setCamp(k) { k = k === 'sizye' ? 'sizye' : 'copper'; if (k === camp) return; camp = k; UI.camp = k; UI.data = C.load(store, k); sel = 0; }
   var WHO = { varvara: { col: 0, letter: { ru: 'В', en: 'V' } }, lunya: { col: 0, letter: { ru: 'Л', en: 'L' } }, sava: { col: 0, letter: { ru: 'С', en: 'S' } },
-    korney: { col: 1, letter: { ru: 'К', en: 'K' } }, foe: { col: 1, letter: { ru: 'С', en: 'G' } }, zavod: { col: 3, letter: { ru: 'З', en: 'M' } } };
+    korney: { col: 1, letter: { ru: 'К', en: 'K' } }, foe: { col: 1, letter: { ru: 'С', en: 'G' } }, zavod: { col: 3, letter: { ru: 'З', en: 'M' } },
+    agafya: { col: 1, letter: { ru: 'А', en: 'A' } }, mityay: { col: 1, letter: { ru: 'М', en: 'M' } }, foeC: { col: 0, letter: { ru: 'М', en: 'C' } }, post: { col: 2, letter: { ru: 'П', en: 'P' } } };
 
   function lang() { return g.i18n.lang; }
   function tx(o) { return C.txt(o, lang()); }
@@ -30,6 +42,7 @@
   function fmtTime(s) { s = Math.round(s || 0); var m = Math.floor(s / 60), r = s % 60; return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r; }
   function data() { return UI.data; }
   function persist() { C.save(store, UI.data); }
+  function lockText() { return camp === 'sizye' ? 'lockedFullSubS' : 'lockedFullSub'; }
 
   // ---------- пиктограммы ----------
   function icon(c, kind, x, y, s, pl) {
@@ -88,8 +101,8 @@
 
   // ---------- карта кампании ----------
   function missionList() {
-    var out = P.MISSIONS.filter(function (m) { return E.playable(P.EDITION, m.id); }).map(function (m) { return { n: m.n, id: m.id, def: m, title: m.title }; });
-    LATER.forEach(function (l) { if (!out.some(function (m) { return m.n === l.n; })) out.push({ n: l.n, id: null, def: null, title: { ru: l.ru, en: l.en } }); });
+    var out = C.list(camp).filter(function (m) { return E.playable(P.EDITION, m.id); }).map(function (m) { return { n: m.n, id: m.id, def: m, title: m.title }; });
+    (camp === 'sizye' ? LATER_S : LATER).forEach(function (l) { if (!out.some(function (m) { return m.n === l.n; })) out.push({ n: l.n, id: null, def: null, title: { ru: l.ru, en: l.en } }); });
     return out.sort(function (a, b) { return a.n - b.n; });
   }
   function nodeState(m) { var d = data(); if (!m.def) return 'later'; if (d.missions[m.id]) return 'done'; return m.n <= d.unlocked ? 'open' : 'closed'; }
@@ -109,20 +122,41 @@
     [[110, 370], [300, 300], [470, 230], [380, 60]].forEach(function (p) { c.fillStyle = pl.ore; c.beginPath(); c.arc(x0 + p[0], y0 + p[1], 5, 0, 7); c.fill(); c.fillStyle = pl.oreHi; c.fillRect(x0 + p[0] - 1, y0 + p[1] - 3, 3, 2); });
     c.restore();
   }
+  // перевал Сизых на северо-востоке: скальные зубцы, посёлок, нитка канатки
+  function drawPass(c, pl) {
+    var x0 = 30, y0 = 78; c.save(); c.beginPath(); c.rect(x0, y0, 590, 420); c.clip();
+    c.fillStyle = pl.pixel ? '#555555' : 'rgba(120,112,150,0.35)'; c.beginPath(); c.moveTo(x0 + 430, y0); c.lineTo(x0 + 590, y0); c.lineTo(x0 + 590, y0 + 120); c.lineTo(x0 + 540, y0 + 70); c.lineTo(x0 + 500, y0 + 95); c.lineTo(x0 + 470, y0 + 40); c.closePath(); c.fill();
+    [[548, 22], [570, 46], [520, 30]].forEach(function (h) { c.fillStyle = pl.own[1]; c.fillRect(x0 + h[0], y0 + h[1], 8, 6); c.beginPath(); c.moveTo(x0 + h[0] - 1, y0 + h[1]); c.lineTo(x0 + h[0] + 4, y0 + h[1] - 5); c.lineTo(x0 + h[0] + 9, y0 + h[1]); c.closePath(); c.fill(); });
+    c.strokeStyle = pl.ownDk[1]; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x0 + 552, y0 + 30); c.quadraticCurveTo(x0 + 500, y0 + 62, x0 + 462, y0 + 52); c.stroke();
+    c.restore();
+  }
   function drawCamp(c) {
     var pl = pal(), d = data(), ms = missionList(), t = g.time || 0; hot = [];
     g.clear();
-    text(c, g.t('campMap'), 30, 40, { size: 24, weight: 900, color: g.th().accent });
-    text(c, g.t('campSub'), 30, 62, { size: 13, weight: 600, color: pl.muted });
+    var sz = camp === 'sizye', NS = nodes();
+    text(c, g.t(sz ? 'campMapS' : 'campMap'), 30, 40, { size: 24, weight: 900, color: sz ? pl.own[1] : g.th().accent });
+    text(c, g.t(sz ? 'campSubS' : 'campSub'), 30, 62, { size: 13, weight: 600, color: pl.muted });
+    // вкладки кампаний: Медный Ключ / Сизый Перевал
+    [['copper', 'campTabC', 0], ['sizye', 'campTabS', 1]].forEach(function (tb, k) {
+      var bx = 330 + k * 166, bw = 160, on = camp === tb[0], hi = hot.length;
+      hot.push({ x: bx, y: 28, w: bw, h: 30, fn: function () { setCamp(tb[0]); }, tab: tb[0] });
+      c.fillStyle = on ? pl.ownDk[tb[2]] : hover === hi ? pl.line : 'rgba(255,255,255,0.04)'; c.fillRect(bx, 28, bw, 30);
+      c.strokeStyle = on ? pl.own[tb[2]] : pl.line; c.lineWidth = 1.5; c.strokeRect(bx + 0.5, 28.5, bw - 1, 29);
+      c.fillStyle = pl.own[tb[2]]; c.fillRect(bx + 8, 38, 9, 9);
+      text(c, g.t(tb[1]), bx + 24, 48, { size: 13, weight: 800, color: on ? pl.ink : pl.muted });
+      if (tb[0] === 'sizye' && E.stub(P.EDITION) === 'full' && !C.list('sizye').some(function (m) { return E.playable(P.EDITION, m.id); })) lock(c, bx + bw - 12, 42, pl);
+    });
     drawPlateau(c, pl);
+    if (sz) drawPass(c, pl);
     // дорога между узлами
-    c.strokeStyle = pl.wall; c.lineWidth = 3; c.setLineDash([7, 6]); c.beginPath(); NODES.forEach(function (p, i) { if (i) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]); }); c.stroke(); c.setLineDash([]);
+    c.strokeStyle = sz ? pl.ownDk[1] : pl.wall; c.lineWidth = 3; c.setLineDash([7, 6]); c.beginPath(); NS.forEach(function (p, i) { if (i) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]); }); c.stroke(); c.setLineDash([]);
+    var oc = sz ? 1 : 0;
     ms.forEach(function (m, i) {
-      var p = NODES[i] || [0, 0], st = nodeState(m), on = i === sel, r = 17;
+      var p = NS[i] || [0, 0], st = nodeState(m), on = i === sel, r = 17;
       hot.push({ x: p[0] - 22, y: p[1] - 22, w: 44, h: 44, fn: function () { if (sel === i) openBrief(m); sel = i; }, node: i });
-      if (on) { c.strokeStyle = g.th().accent; c.lineWidth = 2; c.globalAlpha = 0.6 + 0.4 * Math.sin(t * 5); c.beginPath(); c.arc(p[0], p[1], r + 6, 0, 7); c.stroke(); c.globalAlpha = 1; }
-      c.fillStyle = st === 'done' ? pl.own[0] : st === 'open' ? pl.ownDk[0] : pl.panel; c.beginPath(); c.arc(p[0], p[1], r, 0, 7); c.fill();
-      c.strokeStyle = st === 'later' || st === 'closed' ? pl.line : pl.own[0]; c.lineWidth = 2; c.stroke();
+      if (on) { c.strokeStyle = sz ? pl.own[1] : g.th().accent; c.lineWidth = 2; c.globalAlpha = 0.6 + 0.4 * Math.sin(t * 5); c.beginPath(); c.arc(p[0], p[1], r + 6, 0, 7); c.stroke(); c.globalAlpha = 1; }
+      c.fillStyle = st === 'done' ? pl.own[oc] : st === 'open' ? pl.ownDk[oc] : pl.panel; c.beginPath(); c.arc(p[0], p[1], r, 0, 7); c.fill();
+      c.strokeStyle = st === 'later' || st === 'closed' ? pl.line : pl.own[oc]; c.lineWidth = 2; c.stroke();
       text(c, String(m.n), p[0], p[1] + 5, { size: 14, weight: 900, align: 'center', color: st === 'done' ? pl.panel : st === 'open' ? pl.ink : pl.muted });
       if (st === 'later' && E.stub(P.EDITION) === 'full') lock(c, p[0] + 12, p[1] - 13, pl);
       if (st === 'done') { var stars = d.missions[m.id].stars || []; for (var k = 0; k < 3; k++) star(c, p[0] - 13 + k * 13, p[1] + r + 9, 5, !!stars[k], pl); }
@@ -140,20 +174,21 @@
       if (rec) text(c, g.t('bestTime') + ' ' + fmtTime(rec.time), cx + 112, y + 5, { size: 12, color: pl.muted, weight: 600 });
       y += 28;
       (m.def.objectives || []).forEach(function (o) { if (y > cy + 330 || o.secret) return; /* secret — цель ветки развилки: в брифинге не показываем */ icon(c, o.icon, cx + 16, y - 13, 18, pl); text(c, tx(o.text) + (o.kind === 'opt' ? ' · ' + g.t('optional') : ''), cx + 42, y, { size: 12, weight: 600, color: pl.ink }); y += 24; });
+      if (sz && m.def.xcarry && m.def.xnote) { var xf = C.xcarried(m.def), xn = Object.keys(m.def.xnote).filter(function (k) { return xf[k] != null && m.def.xnote[k][xf[k]]; })[0]; if (xn) { y += 4; wrap(c, '◆ ' + g.t('xflag') + ': ' + tx(m.def.xnote[xn][xf[xn]]), cw - 32, 11).forEach(function (ln) { text(c, ln, cx + 16, y, { size: 11, weight: 600, color: pl.own[1] }); y += 16; }); } } // связка кампаний
       if (m.id === 'm2' && d.flags.convoy && m.def.flagText) { y += 4; wrap(c, '◆ ' + tx(m.def.flagText.convoy[d.flags.convoy]), cw - 32, 11).forEach(function (ln) { text(c, ln, cx + 16, y, { size: 11, weight: 600, color: pl.warn }); y += 16; }); }
       if (st === 'closed') text(c, g.t('closed'), cx + 16, cy + 372, { size: 12, color: pl.muted, weight: 600 });
       else button(c, cx + 16, cy + 352, cw - 32, 40, '▶ ' + g.t('brief'), function () { openBrief(m); }, { primary: true });
       if (m.def.finale && rec) button(c, cx + 16, cy + 312, cw - 32, 32, '★ ' + g.t('finaleT'), function () { finaleId = m.id; g.goto('finale'); }, { size: 13 }); // пройденный финал — итог кампании
     } else if (E.stub(P.EDITION) === 'full') {
       lock(c, cx + 24, y - 5, pl, 1.3); text(c, g.t('lockedFull'), cx + 40, y, { size: 14, color: pl.warn }); y += 24;
-      wrap(c, g.t('lockedFullSub'), cw - 32, 12).forEach(function (ln) { text(c, ln, cx + 16, y, { size: 12, weight: 600, color: pl.muted }); y += 18; });
+      wrap(c, g.t(lockText()), cw - 32, 12).forEach(function (ln) { text(c, ln, cx + 16, y, { size: 12, weight: 600, color: pl.muted }); y += 18; });
       button(c, cx + 16, cy + 352, cw - 32, 40, g.t('more') + ' ↗', openMore);
     } else {
-      text(c, g.t('locked'), cx + 16, y, { size: 13, color: pl.warn }); y += 22;
-      wrap(c, g.t('lockedSub'), cw - 32, 12).forEach(function (ln) { text(c, ln, cx + 16, y, { size: 12, weight: 600, color: pl.muted }); y += 18; });
+      text(c, g.t(sz ? 'workS' : 'locked'), cx + 16, y, { size: 13, color: pl.warn }); y += 22;
+      wrap(c, g.t(sz ? 'workSubS' : 'lockedSub'), cw - 32, 12).forEach(function (ln) { text(c, ln, cx + 16, y, { size: 12, weight: 600, color: pl.muted }); y += 18; });
     }
     button(c, 30, 506, 150, 28, '← ' + g.t('toMenu'), function () { g.goto('title'); }, { size: 13 });
-    button(c, 470, 506, 150, 28, resetArm > t ? g.t('resetSure').slice(0, 18) + '…' : g.t('reset'), function () { if (resetArm > (g.time || 0)) { UI.data = C.reset(store); sel = 0; resetArm = 0; } else resetArm = (g.time || 0) + 3; }, { size: 11 });
+    button(c, 470, 506, 150, 28, resetArm > t ? g.t('resetSure').slice(0, 18) + '…' : g.t('reset'), function () { if (resetArm > (g.time || 0)) { UI.data = C.reset(store, camp); sel = 0; resetArm = 0; } else resetArm = (g.time || 0) + 3; }, { size: 11 });
     text(c, g.t('campHint'), 640, 524, { size: 10, weight: 600, color: pl.muted });
   }
   function lock(c, x, y, pl, k) {
@@ -230,7 +265,7 @@
     if (r.win && r.vets && r.vets.length) rows.push([g.t('resVets'), String(r.vets.length)]);
     rows.forEach(function (rw) { text(c, rw[0], g.W / 2 - 12, y, { size: 14, weight: 600, align: 'right', color: pl.muted }); text(c, rw[1], g.W / 2 + 12, y, { size: 15, weight: 800 }); y += 26; });
     if (r.win && def.flagText) Object.keys(def.flagText).forEach(function (k) { var v = r.flags[k]; if (v && def.flagText[k][v]) { text(c, '◆ ' + tx(def.flagText[k][v]), g.W / 2, y + 8, { size: 14, weight: 700, align: 'center', color: pl.warn }); y += 24; } });
-    var next = r.win && P.MISSIONS.filter(function (m) { return m.n === def.n + 1 && E.playable(P.EDITION, m.id); })[0];
+    var next = r.win && C.list(C.campOf(def)).filter(function (m) { return m.n === def.n + 1 && E.playable(P.EDITION, m.id); })[0];
     var more = missionList().some(function (m) { return m.n > def.n && !m.def; }), after = E.afterWin(P.EDITION, !!next, more);
     var retry = function () { host.startMission(r.id); }, toMap = function () { g.goto('camp'); };
     if (r.win && def.finale) { button(c, g.W / 2 - 250, 456, 240, 44, g.t('next') + ' ▸', function () { finaleId = def.id; g.goto('finale'); }, { primary: true, size: 16 }); button(c, g.W / 2 + 10, 456, 240, 44, g.t('toMap'), toMap); }
@@ -331,7 +366,9 @@
 
   // ---------- в бою ----------
   function heroUnit(W, type) { var MS = W.mission, id = MS && MS.heroes[type], u = id && W.byId[id]; return u && u.hp > 0 ? u : null; }
-  var AB = [{ hero: 'varvara', key: 'Q', label: 'abCry' }, { hero: 'lunya', key: 'E', label: 'abFlare' }, { hero: 'sava', key: 'R', label: 'abFix' }];
+  var AB = [{ hero: 'varvara', key: 'Q', label: 'abCry' }, { hero: 'lunya', key: 'E', label: 'abFlare' }, { hero: 'sava', key: 'R', label: 'abFix' },
+    { hero: 'korney', key: 'Q', label: 'abRage' }, { hero: 'mityay', key: 'E', label: 'abTalk' }, { hero: 'agafya', key: 'R', label: 'abCable' }];
+  var AB_KEYS = { KeyQ: 'korney', KeyE: 'mityay', KeyR: 'agafya' }; // клавиши героев Сизых (Медного Ключа — в main.js)
   // кнопки способностей — в одну строку под выделением (до трёх героев делят 290 px)
   function abilityButtons(W) {
     var list = AB.filter(function (a) { return W.mission && W.mission.heroes[a.hero]; }), out = [], n = list.length, w = n > 2 ? 94 : 140, x = 160;
@@ -344,17 +381,27 @@
     var W = S.W, u = W && W.mission && heroUnit(W, hero); if (!u) return false;
     if (u.abT > 0) { host.msg(g.t('msgCd') + ' · ' + Math.ceil(u.abT) + (lang() === 'ru' ? ' с' : ' s'), 'warn'); g.audio.beep(180, 0.06, 'square'); return false; }
     if (hero === 'lunya') { S.targeting = { hero: 'lunya' }; host.msg(g.t('tipFlare')); g.audio.beep(760, 0.04); return true; }
-    if (L.ability(W, u) === 'ok') { g.audio.beep(520, 0.12, 'square'); g.audio.beep(780, 0.14, 'triangle'); return true; }
+    if (hero === 'agafya') { S.targeting = { hero: 'agafya' }; host.msg(g.t('tipCable')); g.audio.beep(760, 0.04); return true; }
+    var r = L.ability(W, u);
+    if (r === 'ok') { g.audio.beep(520, 0.12, 'square'); g.audio.beep(780, 0.14, 'triangle'); return true; }
+    if (r === 'far' && hero === 'mityay') { host.msg(g.t('msgNoPost'), 'warn'); g.audio.beep(180, 0.06, 'square'); }
     return false;
   };
   UI.placeFlare = function (S, w) {
+    if (S.targeting && S.targeting.hero === 'agafya') { // Агафья: куда ехать по канату
+      var ua = heroUnit(S.W, 'agafya'); S.targeting = null; if (!ua) return;
+      var ra = L.ability(S.W, ua, w.x, w.y);
+      if (ra === 'ok') { g.audio.beep(330, 0.1, 'triangle'); g.audio.beep(495, 0.14, 'triangle'); S.marks.push({ x: w.x, y: w.y, kind: 'move', life: 0.6 }); }
+      else { host.msg(g.t(ra === 'nonode' ? 'msgNoNode' : 'msgNoLink'), 'bad'); g.audio.beep(150, 0.08, 'square'); }
+      return;
+    }
     var W = S.W, u = heroUnit(W, 'lunya'); S.targeting = null; if (!u) return;
     var r = L.ability(W, u, w.x, w.y);
     if (r === 'ok') { g.audio.beep(1200, 0.08, 'triangle'); g.audio.beep(900, 0.12, 'sine'); S.marks.push({ x: w.x, y: w.y, kind: 'harvest', life: 0.6 }); }
     else if (r === 'far') { host.msg(g.t('msgFar'), 'bad'); g.audio.beep(150, 0.08, 'square'); }
   };
   // реплики живут по игровому времени; устаревшие в очереди (старше 12 с) выбрасываются
-  function sayLine(S, e) { S.say = { who: e.who, text: e.text, life: e.life || 5.5 }; g.audio.beep(e.who === 'foe' ? 260 : 620, 0.05, 'triangle'); }
+  function sayLine(S, e) { S.say = { who: e.who, text: e.text, life: e.life || 5.5 }; g.audio.beep(e.who === 'foe' || e.who === 'foeC' ? 260 : 620, 0.05, 'triangle'); }
   // события миссии → реплики, сообщения, звук
   UI.drain = function (S) {
     var W = S.W, MS = W.mission; if (!MS) return;
@@ -371,11 +418,16 @@
       else if (e.t === 'scald') { host.msg(g.t('msgScald'), 'good'); g.audio.beep(90, 0.6, 'sawtooth', 0.08); }
       else if (e.t === 'lamp') { host.msg(g.t('msgLamp')); g.audio.beep(980, 0.05, 'triangle'); }
       else if (e.t === 'site') { var sd = MS.sites[e.id]; host.msg((sd && sd.def.doneText ? tx(sd.def.doneText) : g.t('msgSite')), 'good'); g.audio.beep(300, 0.06, 'square'); g.audio.beep(520, 0.08, 'triangle'); }
+      else if (e.t === 'talked') { host.msg(g.t('msgTalked'), 'good'); g.audio.beep(660, 0.08, 'triangle'); g.audio.beep(880, 0.1, 'triangle'); }
+      else if (e.t === 'talkFail') { host.msg(g.t('msgTalkFail'), 'bad'); g.audio.beep(200, 0.1, 'square'); }
+      else if (e.t === 'carFall') host.msg(g.t('msgCarFall'), 'bad');
+      else if (e.t === 'wind') host.msg(g.t('msgWindShift') + ' · ' + g.t('steamS') + ' ' + Math.round(W.wind.s * 100) + '%', 'warn');
       else if (e.t === 'halt' && MS.groups[e.tag] && MS.groups[e.tag].owner === 0) host.msg(g.t(e.on ? 'msgHalt' : 'msgGo'), e.on ? 'warn' : 'good');
     });
     MS.ui.length = 0;
     // метель: волна сильнее / слабее
     if (MS.weather) { var hi = MS.storm > 0.75, lo = MS.storm < 0.25; if (hi && S.stormWas !== 'hi') { if (S.stormWas) host.msg(g.t('msgStormUp'), 'warn'); S.stormWas = 'hi'; } else if (lo && S.stormWas !== 'lo') { if (S.stormWas) host.msg(g.t('msgStormDown')); S.stormWas = 'lo'; } }
+    W.events.forEach(function (ev) { if (ev.t === 'faceDry' && ev.owner === 0) host.msg(g.t('msgFaceDry'), 'warn'); if (ev.t === 'cableIn' && ev.owner === 0 && ev.id === (MS.heroes.agafya || -1)) host.msg(g.t('msgCableIn'), 'good'); });
     W.events.forEach(function (ev) { if (ev.t === 'vet' && ev.owner === 0) host.msg(g.t('msgVet') + ': ' + g.t(W.byId[ev.id] ? W.byId[ev.id].type : 'rifleman'), 'good'); });
   };
   UI.update = function (S) {
@@ -504,7 +556,7 @@
     }
     // реплика героя
     if (S.say) {
-      var line = tx(S.say.text), name = S.say.who === 'foe' ? g.t('foeVoice') : g.t(S.say.who), a = Math.min(1, S.say.life * 2);
+      var line = tx(S.say.text), name = S.say.who === 'foe' ? g.t('foeVoice') : S.say.who === 'foeC' ? g.t('foeVoiceC') : S.say.who === 'post' ? g.t('postVoice') : g.t(S.say.who), a = Math.min(1, S.say.life * 2);
       c.font = '600 14px ' + f; var tw = Math.min(700, Math.max(c.measureText(line).width, 160)), lines = wrap(c, line, 700, 14, 600);
       var dw = Math.min(760, tw + 84), dh = 30 + lines.length * 18, dx = LY.W / 2 - dw / 2, dy = LY.VIEW_H - 40 - dh;
       c.globalAlpha = a; c.fillStyle = 'rgba(0,0,0,0.72)'; c.fillRect(dx, dy, dw, dh); c.fillStyle = pl.own[(WHO[S.say.who] || WHO.foe).col]; c.fillRect(dx, dy, 3, dh);
@@ -518,7 +570,7 @@
     if (hb) R.BTNS.forEach(function (b) { if (b.type === hb && !(W.players[0].build && b.kind === 'bld' && !W.players[0].build.ready)) { c.strokeStyle = pl.warn; c.lineWidth = 3; c.globalAlpha = 0.5 + 0.5 * Math.sin(now * 6); c.strokeRect(b.x - 1.5, b.y - 1.5, b.w + 3, b.h + 3); c.globalAlpha = 1; } });
     // кнопки способностей
     abilityButtons(W).forEach(function (b) {
-      var u = heroUnit(W, b.ab.hero), cd = u ? u.abT || 0 : 0, hd = L.HEROES[b.ab.hero], ready = u && cd <= 0, act = S.targeting && b.ab.hero === 'lunya';
+      var u = heroUnit(W, b.ab.hero), cd = u ? u.abT || 0 : 0, hd = L.HEROES[b.ab.hero], ready = u && cd <= 0, act = S.targeting && b.ab.hero === S.targeting.hero;
       c.fillStyle = act ? pl.ownDk[0] : 'rgba(255,255,255,0.05)'; c.fillRect(b.x, b.y, b.w, b.h);
       if (u && cd > 0) { c.fillStyle = 'rgba(255,255,255,0.08)'; c.fillRect(b.x, b.y, b.w * (1 - cd / hd.cd), b.h); }
       c.strokeStyle = ready ? pl.own[0] : pl.line; c.lineWidth = 1; c.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
@@ -540,24 +592,35 @@
   };
   UI.detach = function (S) { ['worldOverlay', 'viewOverlay', 'hudOverlay', 'btnAllowed', 'btnHidden', 'noEco', 'idleTitle', 'idleSub', 'say', 'targeting', 'msgY', 'objBox'].forEach(function (k) { delete S[k]; }); };
   UI.finish = function (W) {
-    var res = W.mission.result || C.result(W); lastRes = res;
-    UI.data = C.applyResult(C.load(store), res); persist();
+    var res = W.mission.result || C.result(W); lastRes = res; setCamp(C.campOf(C.byId(res.id)));
+    UI.data = C.applyResult(C.load(store, camp), res); persist();
     g.goto('result');
   };
-  UI.openBrief = function (id) { briefId = id; g.goto('brief'); };
+  UI.openBrief = function (id) { setCamp(C.campOf(C.byId(id))); briefId = id; g.goto('brief'); };
   UI.openFinale = function (id) { finaleId = id; g.goto('finale'); };
   UI.install = function (game, h) {
     g = game; host = h;
     try { store = global.localStorage; } catch (e) { store = null; }
-    UI.store = store; UI.data = C.load(store);
-    g.menu.addItem({ key: 'campaign', after: 'play', label: function () { return g.t('campaign'); }, onSelect: function () { var d = data(); sel = Math.max(0, Math.min(d.unlocked, P.MISSIONS.length) - 1); g.goto('camp'); } });
+    UI.store = store; C.store = store; UI.camp = camp; UI.data = C.load(store, camp);
+    // скирмиш: сторона игрока (Медный Ключ — классика; Сизый Перевал — ветряки и канатка, против ИИ Медного Ключа). ?side=sizye|copper
+    var side = 'copper', qs = /[?&]side=(sizye|copper)\b/.exec(global.location ? global.location.search : '');
+    try { side = global.localStorage.getItem('arcade.priisk.side') === 'sizye' ? 'sizye' : 'copper'; } catch (e) {}
+    if (qs) side = qs[1]; P.SKIRMISH_SIDE = side;
+    g.menu.addItem({ key: 'side', after: 'play', label: function () { return g.t('side') + ': ' + g.t(P.SKIRMISH_SIDE === 'sizye' ? 'sideSizye' : 'sideCopper'); },
+      onSelect: function () { P.SKIRMISH_SIDE = P.SKIRMISH_SIDE === 'sizye' ? 'copper' : 'sizye'; try { global.localStorage.setItem('arcade.priisk.side', P.SKIRMISH_SIDE); } catch (e) {} g.audio.beep(P.SKIRMISH_SIDE === 'sizye' ? 520 : 660, 0.05); } });
+    // клавиши героев Сизых: Q — Корней, E — Митяй, R — Агафья (у Медного Ключа Q/E/R ловит main.js)
+    global.addEventListener('keydown', function (e) {
+      var hk = AB_KEYS[e.code], S = host.S; if (!hk || e.ctrlKey || e.metaKey || e.altKey || g._sceneName !== 'play' || !S.W || !S.W.mission || !S.W.mission.heroes[hk]) return;
+      UI.useAbility(S, hk); e.preventDefault();
+    });
+    g.menu.addItem({ key: 'campaign', after: 'side', label: function () { return g.t('campaign'); }, onSelect: function () { var d = data(); sel = Math.max(0, Math.min(d.unlocked, C.list(camp).length || 1) - 1); g.goto('camp'); } });
     var draw = { camp: drawCamp, brief: drawBrief, result: drawResult, edition: drawEdition, finale: drawFinale };
     ['camp', 'brief', 'result', 'edition', 'finale'].forEach(function (name) {
-      g.scene(name, { realtime: true, enter: function () { hover = -1; resetArm = 0; sel2 = 0; UI.data = C.load(store); g.audio.beep(520, 0.05); }, update: function () {}, draw: function (c) { draw[name](c); }, press: sceneKeys(name) });
+      g.scene(name, { realtime: true, enter: function () { hover = -1; resetArm = 0; sel2 = 0; UI.data = C.load(store, camp); g.audio.beep(520, 0.05); }, update: function () {}, draw: function (c) { draw[name](c); }, press: sceneKeys(name) });
     });
     g.canvas.addEventListener('pointerdown', function (e) { if (!inScreens()) return; var i = hitAt(pt(e)); if (i >= 0) { e.preventDefault(); var b = hot[i]; if (b.node != null && sel !== b.node) { sel = b.node; g.audio.beep(600, 0.03); return; } g.audio.beep(700, 0.03); b.fn(); } });
     g.canvas.addEventListener('pointermove', function (e) { if (!inScreens()) return; hover = hitAt(pt(e)); g.canvas.style.cursor = hover >= 0 ? 'pointer' : 'default'; });
     return UI;
   };
-  UI._test = { missionList: missionList, nodeState: nodeState, nodes: NODES, hot: function () { return hot; } };
+  UI._test = { missionList: missionList, nodeState: nodeState, nodes: NODES, nodesS: NODES_S, setCamp: setCamp, camp: function () { return camp; }, hot: function () { return hot; } };
 })(window);

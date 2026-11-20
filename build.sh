@@ -4,6 +4,9 @@
 #   _shared/host.js   → <игра>/js/host.js    (index.html ссылается на ./js/host.js — «оболочка» поверх своей игры)
 #   _shared/mouse.js  → <игра>/js/mouse.js   (только если js/mouse.js игры УЖЕ копия общего модуля — в нём есть метка
 #                                             «Источник — _shared/mouse.js»; собственные модули мыши игр не затираются)
+#   _shared/platform.js → <игра>/js/platform.js (только если игра его подключает и файл — копия общего, метка
+#                                             «Источник — _shared/platform.js»; обычно его кладёт tools/platform-build.mjs)
+#   _shared/engine.js → _proto/<прототип>/engine.js (прототипы, где index.html подключает ./engine.js)
 # Внешних зависимостей не добавляет. Копии в играх руками не правим — только _shared/.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -11,10 +14,12 @@ ENGINE="_shared/engine.js"
 HOST="_shared/host.js"
 MOUSE="_shared/mouse.js"
 MOUSE_MARK="Источник — _shared/mouse.js"
+PLATFORM="_shared/platform.js"
+PLATFORM_MARK="Источник — _shared/platform.js"
 [ -f "$ENGINE" ] || { echo "нет $ENGINE"; exit 1; }
 [ -f "$HOST" ] || { echo "нет $HOST"; exit 1; }
 [ -f "$MOUSE" ] || { echo "нет $MOUSE"; exit 1; }
-copied=0; hosts=0; mice=0
+copied=0; hosts=0; mice=0; plats=0; protos=0
 for d in */; do
   idx="${d}index.html"
   [ -f "$idx" ] || continue
@@ -30,5 +35,17 @@ for d in */; do
   if grep -q 'src="\./js/mouse\.js"' "$idx" 2>/dev/null && grep -qF "$MOUSE_MARK" "${d}js/mouse.js" 2>/dev/null; then
     cp "$MOUSE" "${d}js/mouse.js"; mice=$((mice+1)); echo "→ ${d}js/mouse.js"
   fi
+  # адаптер площадок — тоже только поверх своей копии (по метке)
+  if [ -f "$PLATFORM" ] && grep -q 'src="\./js/platform\.js' "$idx" 2>/dev/null && grep -qF "$PLATFORM_MARK" "${d}js/platform.js" 2>/dev/null; then
+    cp "$PLATFORM" "${d}js/platform.js"; plats=$((plats+1)); echo "→ ${d}js/platform.js"
+  fi
 done
-echo "engine.js скопирован в $copied игр, host.js — в $hosts, mouse.js — в $mice."
+# прототипы: _proto/<имя>/engine.js — копия движка, если прототип его подключает
+for d in _proto/*/; do
+  idx="${d}index.html"
+  [ -f "$idx" ] || continue
+  if grep -q 'src="\./engine\.js"' "$idx" 2>/dev/null; then
+    cp "$ENGINE" "${d}engine.js"; protos=$((protos+1)); echo "→ ${d}engine.js"
+  fi
+done
+echo "engine.js скопирован в $copied игр и $protos прототип(ов), host.js — в $hosts, mouse.js — в $mice, platform.js — в $plats."
