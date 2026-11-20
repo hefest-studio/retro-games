@@ -130,7 +130,8 @@
     }
     var w = toWorld(p), units = ownSel();
     if (!units.length) { // выбрано своё здание — точка сбора
-      var sb = singleOwnBld(); if (sb && (sb.type === 'bunk' || sb.type === 'works')) { sb.rally = { x: w.x, y: w.y }; S.marks.push({ x: w.x, y: w.y, kind: 'move', life: 0.6 }); msg(g.t('msgRally')); }
+      // любое здание, что выпускает юнитов (барак, мастерская, зимовьё, верфь)
+      var sb = singleOwnBld(); if (sb && L.producer(sb.type)) { sb.rally = { x: w.x, y: w.y }; S.marks.push({ x: w.x, y: w.y, kind: 'move', life: 0.6 }); msg(g.t('msgRally')); }
       return;
     }
     var tg = visiblePick(w); if (tg && tg.owner === 0 && tg.kind === 'unit') tg = null;

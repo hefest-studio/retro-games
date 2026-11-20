@@ -171,8 +171,9 @@ function engineEnv({ platform = null, search = '', mock = {}, metas = {}, store 
   const g = win.Arcade.createGame({ canvas: '#c', width: 100, height: 100, gameId: 'tst', strings: { ru: { play: 'Играть' }, en: { play: 'Play' } } });
   return { w, win, g, links, ac, frame: (t) => raf && raf(t), log: w.log };
 }
-test('движок без platform.js: как раньше (g.platform = null, ссылки на месте, версия 2.5.0)', () => {
-  const e = engineEnv(); ok(e.g.platform === null); ok(!e.links.some(a => a.style.display === 'none')); eq(e.win.Arcade.version, '2.5.0');
+test('движок без platform.js: как раньше (g.platform = null, ссылки на месте, версия 2.6.0, реклама за награду недоступна)', () => {
+  const e = engineEnv(); ok(e.g.platform === null); ok(!e.links.some(a => a.style.display === 'none')); eq(e.win.Arcade.version, '2.6.0');
+  ok(!e.g.canRewarded() && !e.g.adReady(), 'без площадки рекламы нет');
 });
 test('движок + web: ссылки не прячутся, язык — по правилу движка', async () => {
   const e = engineEnv({ platform: 'web' }); await e.win.Platform.init(); ok(e.g.platform); ok(!e.links.some(a => a.style.display === 'none')); eq(e.g.i18n.lang, 'ru');
@@ -185,16 +186,17 @@ test('движок + Яндекс: ссылки наружу и «← Катал
   const e2 = engineEnv({ platform: 'yandex', mock: { lang: 'en' }, search: '?lang=ru' }); await e2.win.Platform.init(); await sleep(0); eq(e2.g.i18n.lang, 'ru', '?lang важнее');
   const e3 = engineEnv({ platform: 'yandex', mock: { lang: 'de' } }); await e3.win.Platform.init(); await sleep(0); eq(e3.g.i18n.lang, 'en', 'de → en');
 });
-test('движок + Яндекс: start() → ready; сцена play → gameplayStart, pause/gameover → stop; рекорд — в облако; gameover — полноэкранная реклама', async () => {
+test('движок + Яндекс: start() → ready; сцена play → gameplayStart, pause/gameover → stop; рекорд — в облако; полноэкранная — по нажатию на экране gameover (действие игрока), не при входе', async () => {
   const e = engineEnv({ platform: 'yandex' }), g = e.g; g.useStandardScreens({ title: 'Т' }); g.scene('play', { update() {}, draw() {} });
   await e.win.Platform.init(); g.start('title'); g.goto('play'); g.goto('pause'); g.goto('play', { resume: true });
   eq(e.log.filter(x => ['ready', 'start', 'stop'].includes(x)), ['ready', 'start', 'stop', 'start']);
   g.state.score = 555; g.gameover(); await sleep(60);
-  ok(e.log.includes('fullscreen'), 'реклама в паузе gameover'); eq(e.w.store['arcade.best.tst'], '555'); eq(e.w.store['arcade.pf.best.tst'], '555');
+  ok(!e.log.includes('fullscreen'), 'при входе в gameover рекламы нет'); g.current.press.call(g, 'action'); await sleep(60);
+  ok(e.log.includes('fullscreen'), 'реклама после нажатия на gameover'); eq(g._sceneName, 'title'); eq(e.w.store['arcade.best.tst'], '555'); eq(e.w.store['arcade.pf.best.tst'], '555');
   ok(e.log.includes('setData') && e.win.__sdkMock.saved['best.tst'] === 555, 'рекорд в облаке');
   const e2 = engineEnv({ platform: 'yandex', mock: { cloud: { 'best.tst': 777 } }, store: { 'arcade.best.tst': '100' } }); await e2.win.Platform.init(); await sleep(0);
   eq(e2.g.state.best, 777, 'облачный рекорд больше локального');
-  const e3 = engineEnv({ platform: 'yandex' }); e3.g.adBreaks = false; e3.g.useStandardScreens({}); await e3.win.Platform.init(); e3.g.gameover(); await sleep(40); ok(!e3.log.includes('fullscreen'), 'adBreaks:false');
+  const e3 = engineEnv({ platform: 'yandex' }); e3.g.adBreaks = false; e3.g.useStandardScreens({}); await e3.win.Platform.init(); e3.g.gameover(); e3.g.current.press.call(e3.g, 'action'); await sleep(40); ok(!e3.log.includes('fullscreen'), 'adBreaks:false');
 });
 test('движок + пауза площадки: цикл стоит (update не вызывается), звук выключен; после — продолжает и звук включается', async () => {
   const e = engineEnv({ platform: 'yandex' }), g = e.g; let n = 0; g.scene('play', { realtime: true, update() { n++; }, draw() {} });
@@ -202,6 +204,53 @@ test('движок + пауза площадки: цикл стоит (update н
   e.frame(16); e.frame(32); const n0 = n; ok(n0 >= 1, 'цикл идёт');
   e.win.Platform.sdk._fire('game_api_pause'); e.frame(48); e.frame(64); eq(n, n0, 'на паузе update не идёт'); ok(e.ac.calls.includes('suspend'), 'звук выключен');
   e.win.Platform.sdk._fire('game_api_resume'); e.frame(80); ok(n > n0, 'продолжили'); ok(e.ac.calls.includes('resume'), 'звук включён');
+});
+
+// ---------- v2.6: реклама за награду в движке ----------
+function playEnv(o = {}) { const e = engineEnv(Object.assign({ platform: 'yandex' }, o)), g = e.g; g.useStandardScreens({ lives: 3 }); let n = 0; g.scene('play', { realtime: true, update() { n++; }, draw() {} }); e.n = () => n; return e; }
+test('v2.6: старт с площадкой — меню после init SDK (язык площадки уже применён), ready() после init; до init — экран загрузки', async () => {
+  const e = engineEnv({ platform: 'yandex', mock: { lang: 'en' } }), g = e.g; g.useStandardScreens({}); g.scene('play', { draw() {} });
+  g.start('title'); eq(g._sceneName, 'loading'); ok(!e.log.includes('ready'), 'ready до init');
+  await e.win.Platform.init(); await sleep(5); eq(g._sceneName, 'title'); eq(g.i18n.lang, 'en', 'язык до меню'); ok(e.log.includes('ready'));
+  ok(e.log.indexOf('ready') > e.log.indexOf('init'));
+});
+test('v2.6: g.rewarded — награда только при досмотре и ровно один раз; повторный вызов во время показа — false; цикл стоит и звук спит во время показа', async () => {
+  for (const [mode, want] of [['ok', 1], ['skip', 0], ['error', 0]]) {
+    const e = playEnv({ mock: { rewarded: mode, adMs: 40 } }), g = e.g; await e.win.Platform.init(); g.audio.unlocked = true; g.audio._ctx(); g.start('play'); await sleep(5);
+    e.frame(16); e.frame(32); const n0 = e.n(); let got = 0;
+    const p = g.rewarded({ reward() { got++; } }); await sleep(10);
+    ok(g._adPause, mode + ': пауза во время показа'); e.frame(48); e.frame(64); eq(e.n(), n0, mode + ': update не идёт'); ok(e.ac.calls.includes('suspend'), mode + ': звук выключен');
+    eq(await g.rewarded({ reward() { got += 10; } }), false, mode + ': второй показ поверх первого');
+    const r = await p; eq(got, want, mode + ': награда'); eq(r, !!want, mode); ok(!g._adPause, 'пауза снята');
+    e.frame(80); ok(e.n() > n0, mode + ': цикл продолжил');
+  }
+});
+test('v2.6: «продолжить за рекламу» — один раз за партию; досмотр → revive и play; отказ ролика → gameover; на web экрана нет', async () => {
+  const e = playEnv({ mock: { adMs: 10 } }), g = e.g; let rev = 0; g.useRewardedContinue({ revive() { rev++; } });
+  await e.win.Platform.init(); g.start('title'); await sleep(5); g.scenes.title._menu.items[0].onSelect.call(g); eq(g._sceneName, 'play');
+  g.gameover(); eq(g._sceneName, 'continue'); g._selectMenu(); await sleep(60); eq(rev, 1); eq(g._sceneName, 'play');
+  g.gameover(); eq(g._sceneName, 'gameover', 'второй раз за партию — сразу gameover'); g.current.press.call(g, 'action');
+  g.scenes.title._menu.items[0].onSelect.call(g); g.gameover(); eq(g._sceneName, 'continue', 'новая партия — снова можно');
+  g.current._menu.sel = 1; g._selectMenu(); eq(g._sceneName, 'gameover', '«Нет» → gameover');
+  const e2 = playEnv({ mock: { rewarded: 'skip', adMs: 10 } }); let r2 = 0; e2.g.useRewardedContinue({ revive() { r2++; } }); await e2.win.Platform.init(); e2.g.start('play'); await sleep(5);
+  e2.g.gameover(); e2.g._selectMenu(); await sleep(40); eq(r2, 0, 'пропуск — без награды'); e2.g.scenes['continue'].update.call(e2.g, 2); eq(e2.g._sceneName, 'gameover');
+  const e3 = playEnv({ platform: 'web' }); e3.g.useRewardedContinue({ revive() {} }); await e3.win.Platform.init(); e3.g.start('play'); await sleep(5); e3.g.gameover(); eq(e3.g._sceneName, 'gameover', 'web — без экрана рекламы');
+});
+test('v2.6: бонус за рекламу в меню паузы — виден только с рекламой и до получения; на web пункта нет', async () => {
+  const e = playEnv({ mock: { adMs: 10 } }), g = e.g; let gr = 0; g.useRewardedBonus({ key: 'rwLife', label: { ru: 'Реклама: +1 жизнь', en: 'Ad: +1 life' }, grant() { gr++; } });
+  await e.win.Platform.init(); g.start('play'); await sleep(5); g.pause(); ok(g.menu.items('pause').includes('rwLife'), JSON.stringify(g.menu.items('pause')));
+  eq(g.menu.items('pause').indexOf('rwLife'), g.menu.items('pause').indexOf('menu') - 1, 'перед «В меню»');
+  g.current._menu.sel = g.menu.items('pause').indexOf('rwLife'); g._selectMenu(); await sleep(40); eq(gr, 1); ok(!g.menu.items('pause').includes('rwLife'), 'после получения пункт убран');
+  const e2 = playEnv({ platform: 'web' }); e2.g.useRewardedBonus({ key: 'rwLife', grant() {} }); await e2.win.Platform.init(); e2.g.start('play'); await sleep(5); e2.g.pause(); ok(!e2.g.menu.items('pause').includes('rwLife'), 'web — пункта нет');
+});
+test('v2.6: g.adBreak — частота по адаптеру (Яндекс 60 с, GamePush 180 с); на время показа цикл стоит; g.persist — ключ в облако (max)', async () => {
+  let t = 5e6; const e = playEnv({ mock: { adMs: 20 } }); e.win.Platform = null; // not used
+  const w = makeWin(), P = w.mk({ platform: 'yandex', now: () => t }); await P.init(); ok(P.interstitialReady()); await P.showInterstitial(); ok(!P.interstitialReady()); t += 61000; ok(P.interstitialReady());
+  const w2 = makeWin({ metas: GP_META }), P2 = w2.mk({ platform: 'gamepush', now: () => t }); await P2.init(); eq(P2.config.interstitialGap, 180); await P2.showInterstitial(); t += 120000; ok(!P2.interstitialReady(), 'GP: 2 мин — рано'); t += 61000; ok(P2.interstitialReady());
+  const e2 = playEnv({ mock: { adMs: 30, cloud: { 'ls.arcade.x.wave': '7' } }, store: { 'arcade.x.wave': '4' } }), g = e2.g; await e2.win.Platform.init(); await sleep(5);
+  g.persist('arcade.x.wave', 'max'); eq(e2.w.store['arcade.x.wave'], '7', 'облако больше — взяли облачное'); g.storeSet('arcade.x.wave', 9); eq(e2.w.store['arcade.pf.ls.arcade.x.wave'], '"9"');
+  g.start('play'); await sleep(5); const p = g.adBreak(); await sleep(5); ok(g._adPause, 'пауза на время рекламы'); eq(await p, true); ok(!g._adPause);
+  eq(await g.adBreak(), false, 'вторая подряд — нет');
 });
 
 for (const [name, fn] of queue) { try { await fn(); passed++; console.log('ok   ' + name); } catch (e) { failed++; console.log('FAIL ' + name + ' — ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' | ') : e)); } }

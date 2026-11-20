@@ -230,6 +230,18 @@
           over: S.over, won: S.won, paused: S.paused, started: S.started
         };
       },
+      // реклама за награду (движок v2.6): «ещё один шанс» — верхняя половина стакана очищается, игра продолжается;
+      // бонус — убрать n нижних рядов (без очков). Оба — только по досмотру ролика.
+      revive: function () {
+        if (!S.over || S.won) return false;
+        for (var y = 0; y < ROWS / 2; y++) S.board[y] = new Array(COLS).fill(0);
+        S.over = false; S.paused = false; S.gravT = 0; S.lockT = 0; spawn(); return !S.over;
+      },
+      clearBottom: function (n) {
+        n = Math.max(1, Math.min(ROWS, n | 0)); for (var i = 0; i < n; i++) { S.board.pop(); S.board.unshift(new Array(COLS).fill(0)); }
+        if (S.cur) { while (S.cur.y > -2 && collides(S.cur.m, S.cur.x, S.cur.y)) S.cur.y--; } return true;
+      },
+      filledRows: function () { var n = 0; for (var y = 0; y < ROWS; y++) if (S.board[y].some(function (c) { return c; })) n++; return n; },
       // для тестов:
       _S: S, _collides: collides, _clearLines: clearLines, _spawn: spawn
     };

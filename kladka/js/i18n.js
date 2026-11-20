@@ -16,13 +16,14 @@
       lv_stairs: 'Лестница', lv_grate: 'Решётка', lv_bastion: 'Бастион', lv_hearth: 'Горн', lv_smelter: 'Плавильня',
       pw_wide: 'РАЗМАХ', pw_narrow: 'ТЕСНОТА', pw_triple: 'ТРОЙНЯ', pw_glue: 'СМОЛА', pw_cutter: 'РЕЗАК', pw_chill: 'ОСТУДА', pw_life: 'ЗАПАС',
       hint: 'Мышь / ← → — мастерок · Пробел — пуск и резак · P — пауза',
+      nextLevel: 'Пробел / тап — дальше', revived: 'ЕЩЁ ОДНО ЯДРО', rwLife: 'Реклама: +1 ядро',
       foot: '<b>КЛАДКА</b> · мышь, палец или ← → / A D — мастерок · Пробел / клик / тап — пуск ядра и резак · P — пауза · L язык, T тема, M звук.'
     },
     en: {
       play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
       score: 'Score', level: 'Lvl', best: 'Best', win: 'SMELTER QUENCHED!', gameover: 'THE WALL STANDS',
       pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
-      title: 'KLADKA', subtitle: 'Break the masonry · 10 levels · furnace heart',
+      title: 'MASONRY', subtitle: 'Break the masonry · 10 levels · furnace heart',
       back: 'Catalog', lives: 'Lives',
       ready: 'LEVEL', launch: 'Space / click — launch the core', bossSub: 'Hit the furnace heart, keep the trowel clear of sparks',
       clear: 'WALL TORN DOWN', bonus: 'Bonus', lost: 'CORE LOST', heart: 'Furnace heart', draft: 'FURNACE DRAFT',
@@ -30,7 +31,8 @@
       lv_stairs: 'Staircase', lv_grate: 'Grate', lv_bastion: 'Bastion', lv_hearth: 'Hearth', lv_smelter: 'Smelter',
       pw_wide: 'SPAN', pw_narrow: 'PINCH', pw_triple: 'TRIPLET', pw_glue: 'RESIN', pw_cutter: 'CUTTER', pw_chill: 'CHILL', pw_life: 'SPARE',
       hint: 'Mouse / ← → — trowel · Space — launch & cutter · P — pause',
-      foot: '<b>KLADKA</b> · mouse, finger or ← → / A D — trowel · Space / click / tap — launch the core & fire the cutter · P — pause · L language, T theme, M sound.'
+      nextLevel: 'Space / tap — continue', revived: 'ONE MORE CORE', rwLife: 'Watch ad: +1 core',
+      foot: '<b>MASONRY</b> · mouse, finger or ← → / A D — trowel · Space / click / tap — launch the core & fire the cutter · P — pause · L language, T theme, M sound.'
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

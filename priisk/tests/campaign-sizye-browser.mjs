@@ -1,7 +1,8 @@
 /* ПРИИСК · tests/campaign-sizye-browser.mjs — Артель Сизого Перевала в браузере (Playwright, ДЕМО): пункт меню «Сторона»,
    скирмиш за Сизых (свои кнопки, ветер на панели, ветряк мышью — кнопка и призрак на гребне, канатка с люльками, ИИ Медного
-   Ключа), карта кампаний (вкладки; «Долг перевала» в демо — под замком), ?mission=s1 в демо игнорируется, 0 ошибок.
-   Скриншоты: priisk-skirmish-sizye-*, priisk-sizye-map-* (обе темы). Миссии С1–С3 — в полной сборке (arcade-full).
+   Ключа), точка сбора у Зимовья и Верфи мышью, пункт «Соседи» и скирмиш против ИИ-Сизых (ветряки, канатка, забои), карта
+   кампаний (вкладки; «Долг перевала» в демо — под замком), ?mission=s1 в демо игнорируется, 0 ошибок.
+   Скриншоты: priisk-skirmish-sizye-*, priisk-ai-sizye-*, priisk-sizye-map-* (обе темы). Миссии С1–С5 — в полной сборке (arcade-full).
    Запуск из корня репо: node priisk/tests/campaign-sizye-browser.mjs [папка-для-скриншотов] (сервер — PORT, по умолчанию 8392) */
 import { createRequire } from 'node:module';
 import http from 'node:http';
@@ -79,6 +80,33 @@ try {
     await page.evaluate(() => { const W = PRIISK.S.W, L = PRIISK.logic, hq = L.has(W, 0, 'hq'), S = PRIISK.S; S.cam.x = Math.max(0, hq.tx * 24 - 330); S.cam.y = Math.max(0, Math.min(W.h * 24 - 428, hq.ty * 24 - 270)); });
     await shot('skirmish-sizye');
     const ai = await page.evaluate(() => { const W = PRIISK.S.W; return { pi: PRIISK.logic.has(W, 1, 'hq').pi, ai: !!W.ai }; }); ok(ai.pi === 0 && ai.ai, JSON.stringify(ai));
+  });
+  await test('точка сбора у Зимовья и Верфи: выбрать здание ЛКМ, ПКМ по земле — флажок; новый стрелок идёт туда', async () => {
+    for (const t of ['hut', 'sail']) {
+      const b = await page.evaluate(t => { const W = PRIISK.S.W, b = W.blds.find(x => x.owner === 0 && x.type === t); return b && { tx: b.tx, ty: b.ty, w: b.w, h: b.h }; }, t); ok(b, 'нет ' + t);
+      await look(b.tx + 1, b.ty + 1); await wait(100); await clickW(b.tx + b.w / 2, b.ty + b.h / 2);
+      ok(await page.evaluate(t => { const S = PRIISK.S, e = S.W.byId[[...S.sel][0]]; return S.sel.size === 1 && e && e.type === t; }, t), t + ' не выбрано');
+      const tgt = await page.evaluate(([x, y]) => { const L = PRIISK.logic, W = PRIISK.S.W, np = L.nearestPassable(W, x, y, 6); return { x: np.i + 0.5, y: np.j + 0.5 }; }, [b.tx + b.w + 3, b.ty + b.h + 2]);
+      await clickW(tgt.x, tgt.y, { button: 'right' });
+      const r = await page.evaluate(t => { const W = PRIISK.S.W, b = W.blds.find(x => x.owner === 0 && x.type === t); return b.rally; }, t); ok(r && Math.hypot(r.x - tgt.x, r.y - tgt.y) < 0.8, t + ': точка сбора ' + JSON.stringify(r));
+      if (t === 'hut') { await page.evaluate(() => { const L = PRIISK.logic, W = PRIISK.S.W; W.players[0].inf = []; W.players[0].infP = 0.99; L.queueUnit(W, 0, 'ranger'); }); await wait(900);
+        ok(await page.evaluate(([x, y]) => PRIISK.S.W.units.some(u => u.owner === 0 && u.type === 'ranger' && u.order.t === 'move' && Math.hypot(u.order.x - x, u.order.y - y) < 2.5), [tgt.x, tgt.y]), 'стрелок не пошёл к точке сбора'); }
+    }
+  });
+  await test('скирмиш против ИИ-Сизых: пункт «Соседи» (котельные / ветряки и канатка); ИИ ставит ветряки на гребнях, канатку, забои, верфь; скриншоты', async () => {
+    const keys = await page.evaluate(() => PRIISK.g.menu.items()); ok(keys.indexOf('foe') === keys.indexOf('side') + 1, 'порядок ' + keys.join());
+    const r = await page.evaluate(() => { const m = PRIISK.g.menu.get(), side = m.items[m.indexOf('side')], foe = m.items[m.indexOf('foe')]; if (PRIISK.SKIRMISH_SIDE === 'sizye') side.onSelect(); const a = foe.label(); foe.onSelect(); return { a, b: foe.label(), foe: PRIISK.SKIRMISH_FOE, ls: localStorage.getItem('arcade.priisk.foe') }; });
+    ok(/котельных/.test(r.a) && /ветряки/.test(r.b) && r.foe === 'sizye' && r.ls === 'sizye', JSON.stringify(r));
+    await page.evaluate(() => { PRIISK.S.W = null; PRIISK.g.goto('play'); }); await wait(500);
+    const st = await page.evaluate(() => { const W = PRIISK.S.W; return { fac: W.fac, sz: !!W.ai.sz, btn: PRIISK.render.BTNS.map(b => b.type).join() }; });
+    ok(st.fac && st.fac[0] === 'copper' && st.fac[1] === 'sizye' && st.sz && st.btn === 'boiler,bunk,smelter,works,rifleman,crawler,ironwagon,hauler', JSON.stringify(st));
+    const g = await page.evaluate(() => { const L = PRIISK.logic, W = PRIISK.S.W; for (let i = 0; i < 2400; i++) L.step(W, 0.1); W.events.length = 0; L.updateVis(W);
+      const n = t => W.blds.filter(b => b.owner === 1 && b.type === t).length; return { mill: n('mill'), on: W.blds.filter(b => b.owner === 1 && b.type === 'mill' && b.pw > 0).length, st: n('station'), face: W.blds.filter(b => b.owner === 1 && b.type === 'face' && b.link).length, sail: n('sail'), mined: W.players[1].mined, cars: W.cars.length }; });
+    ok(g.on >= 2 && g.st && g.face >= 2 && g.sail && g.mined > 1500, JSON.stringify(g));
+    await page.evaluate(() => { const W = PRIISK.S.W, L = PRIISK.logic, hq = L.has(W, 1, 'hq'); for (let j = 0; j < W.h; j++) for (let i = Math.max(0, hq.tx - 34); i < W.w; i++) if (j < hq.ty + 16) W.vis[j * W.w + i] = 2; const S = PRIISK.S; S.cam.x = Math.max(0, Math.min(W.w * 24 - 960, (hq.tx - 9) * 24)); S.cam.y = 0; });
+    for (let t = 0; t < 20; t++) { await wait(150); if (await page.evaluate(() => PRIISK.S.W.cars.length > 0)) break; }
+    await shot('ai-sizye');
+    await page.evaluate(() => { const m = PRIISK.g.menu.get(), foe = m.items[m.indexOf('foe')]; foe.onSelect(); });
   });
   await test('кампания в демо: вкладки Медный Ключ / Сизый Перевал; «Долг перевала» целиком под замком «В полной версии»; ?mission=s1 игнорируется', async () => {
     await page.evaluate(() => PRIISK.g.goto('camp')); await wait(300);

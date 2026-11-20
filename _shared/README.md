@@ -1,4 +1,4 @@
-# Гефест Arcade — фреймворк (v2.5) · engine.js + host.js + mouse.js + platform.js
+# Гефест Arcade — фреймворк (v2.6) · engine.js + host.js + mouse.js + platform.js + aspect.js
 
 `engine.js` — vanilla JS, **0 зависимостей**. Расширен из микро-движка (v1) в фреймворк с общими
 системами, которые игры дублировали. Критерии проходимость/играбельность/непресность — встроены.
@@ -21,7 +21,7 @@
 - **Меню:** `useStandardScreens({title,subtitle,lives,neon})` даёт сцены `title` (меню: Играть/Язык/Тема/Звук + показ рекорда), `pause` (Продолжить/Звук/В меню), `win`, `gameover`. Навигация ↑↓+action и клик/тап. Свои пункты — `g.menu.addItem(…)` (раздел «v2.2»). `Arcade.Menu` — переиспользуемый.
 - **Счёт/рекорд:** `g.state{score,lives,level,best}`; `g.saveBest()` (вызывается на win/gameover) пишет `arcade.best.<gameId>`. Хук под рейтинг/звёзды — поверх best.
 - **Проходимость/сложность:** `g.win()/gameover()/nextLevel()`, `g.difficulty(base,step,max)`.
-- **Площадки (v2.5):** необязательный `_shared/platform.js` (Яндекс Игры / GamePush / свой сайт) — подключается только в сборках под площадку (`tools/platform-build.mjs`) ДО `engine.js`; движок сам связывается с `window.Platform`: пауза и звук на время рекламы, язык площадки, рекорд в облако, `gameplayStart/Stop` по сценам, реклама в паузах `win`/`gameover` (`adBreaks:false` — выключить), скрытие внешних ссылок. Без `platform.js` — всё как раньше. Подробно — `_shared/PLATFORMS.md`, тест — `platform.test.mjs`.
+- **Площадки (v2.5):** необязательный `_shared/platform.js` (Яндекс Игры / GamePush / свой сайт) — подключается только в сборках под площадку (`tools/platform-build.mjs`) ДО `engine.js`; движок сам связывается с `window.Platform`: пауза и звук на время рекламы, язык площадки, рекорд в облако, `gameplayStart/Stop` по сценам, реклама в паузах `win`/`gameover` (`adBreaks:false` — выключить), скрытие внешних ссылок. Без `platform.js` — всё как раньше. Подробно — `_shared/PLATFORMS.md`, тест — `platform.test.mjs`. **v2.6** — реклама за награду и старт после SDK, раздел ниже.
 - **Утилиты:** `Arcade.Grid`, `g.particles`, `g.fit(maxCssWidth)`, `Arcade.loadSprites`, `Arcade.Store`.
 
 ## Старт
@@ -119,6 +119,25 @@ P1.onPress(name => …); // нажатие действия этого игро�
 | `soundFromEngine: true` | при старте игра следует звуку движка (кроме `?mute=`) | saga, saga-2 |
 | `bootKeep: true` | первый вход в title не сбрасывает игру (её мог запустить `?level=`) | saga, saga-2 |
 | `bootAdopt: true` | игра при загрузке уже в `play`/`sub` (`#demo=`/`#scene=`/`#wave=`) — движок сразу следует за ней | neon-yarost |
+
+## v2.6: реклама за награду, межстраничная по действию игрока, старт после SDK
+Всё ниже работает **только при подключённом `platform.js` с рекламой** (сборки под Яндекс/GamePush). На сайте и без SDK (блокировщик, офлайн)
+экраны и пункты не появляются, `g.rewarded()` и `g.adBreak()` сразу возвращают `false` — игра идёт как раньше.
+| API | Что делает |
+|---|---|
+| `g.canRewarded()` / `g.adReady()` | показ ролика за награду / межстраничной сейчас возможен |
+| `g.rewarded({ reward(), done(ok) })` → `Promise<bool>` | ролик за награду: `reward()` — ровно один раз и **только при досмотре**; на время показа цикл стоит, AudioContext спит; повторный вызов во время показа — `false` |
+| `g.useRewardedContinue({ revive(), available(), label })` | `g.gameover()` сначала открывает сцену `continue` «Ещё один шанс?»: «Реклама: продолжить» → `revive()` и `goto('play',{resume:true})`; «Нет, завершить» → `gameover`; раз за партию (сброс — «Играть»); ролик не удался — «Реклама недоступна» → `gameover` |
+| `g.useRewardedBonus({ key, scene:'pause'\|'title', label:{ru,en}\|fn, available(), grant(), once:true })` | пункт меню (в паузе — перед «В меню»); виден, только если реклама доступна, бонус ещё не взят в этой партии и `available()` |
+| `g.adBreak()` → `Promise<bool>` | межстраничная в естественной паузе (между уровнями/волнами — по действию игрока); частоту режет адаптер (Яндекс 60 с, GamePush 180 с) |
+| `g.persist(key, 'max'\|'last')`, `g.storeSet(key, v)` | свой ключ localStorage зеркалится в облако площадки; при старте — max (или облачное) |
+| `createGame({ autoPause:false })` | отключить автопаузу при скрытой вкладке (по умолчанию вкл. при площадке) |
+Поведение движка с площадкой: экран «Загрузка…» до `Platform.init()` (≤ 6 с), затем язык площадки → меню → `ready()`; межстраничная реклама —
+по нажатию на экране победы/поражения (не при входе); скрытая вкладка в `play` → пауза; `contextmenu/selectstart/dragstart` подавлены.
+Встроенные строки (`loading`, `rw_title`, `rw_continue`, `rw_no`, `rw_fail`, `rw_hint`) — RU/EN в движке, игра может переопределить в своих таблицах.
+Пилоты: КАСКАД (ещё шанс — очистка верхней половины стакана; бонус — −2 нижних ряда), ОТБОЙНИК (ворота до 50 %; бонус — ремонт +6; реклама между
+волнами), КЛАДКА (1 ядро; бонус — +1 ядро; реклама между уровнями по «Пробел / тап — дальше»). Тесты — `platform.test.mjs` (блок v2.6) и
+`platform-builds.browser.mjs`. Режим 16:9 для порталов — `_shared/aspect.js` (только в сборках `tools/platform-build.mjs --aspect 16:9`).
 
 ## Мышь и тач — `_shared/mouse.js` → `<игра>/js/mouse.js` (v1.0)
 Общий модуль указателя для игр, где мало дпада: стратегии, головоломки с выбором, редакторы. Отдельный файл, **от `engine.js` не зависит**;

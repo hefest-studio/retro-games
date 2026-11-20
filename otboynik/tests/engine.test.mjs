@@ -283,6 +283,13 @@ test('правило имён: в папке игры нет чужих назв
 });
 
 // ---------- Проходимость: «человеческий» бот ----------
+test('реклама за награду: revive после поражения — ворота до половины, волна продолжается, враги оглушены; повторно без поражения — false; repair +6 до максимума', () => {
+  const T = mk(), S = T.S; S.enemies = []; T.game._spawn('beetle', 240, 650); S.balls = []; S.hp = 1; T.game._hurtGate(1);
+  eq(S.phase, 'over'); ok(T.has('gameover')); ok(T.game.revive(), 'revive'); eq(S.phase, 'wave'); eq(S.hp, Math.ceil(S.hpMax / 2)); ok(S.balls.length === 1, 'новый шар');
+  ok(S.enemies.every(e => e.stun >= 2), 'оглушены'); eq(T.game.revive(), false, 'без поражения не действует');
+  S.hp = S.hpMax - 2; ok(T.game.repair(6)); eq(S.hp, S.hpMax, 'не выше максимума'); eq(T.game.repair(6), false, 'целые ворота — бонус не нужен');
+});
+
 if (process.env.QUICK){ console.log(`\n${passed} прошло, ${failed} упало (без бота)`); process.exit(failed ? 1 : 0); }
 const N = 20, RUNS = []; for (let s = 1; s <= N; s++) RUNS.push(playOtboynik(G, s));
 test('бот (реакция 150–250 мс, зевает 12%) проходит не меньше 3 волн в ≥ 85% из ' + N + ' партий; Копра побеждает иногда (1…60%); без зависаний', () => {

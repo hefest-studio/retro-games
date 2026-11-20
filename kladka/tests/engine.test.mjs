@@ -254,5 +254,15 @@ test('непресность: потерь ядер на уровень боль
   ok(b > a * 1.5, 'нет нарастания: ' + a.toFixed(2) + ' → ' + b.toFixed(2));
 });
 
+test('реклама за награду: revive после потери последнего ядра — 1 ядро и подача; без поражения/после победы — false; addLife не выше MAX_LIVES', () => {
+  const ev = []; const game = K.Game({ rng: mulberry32(3), lives: 1, onEvent: (t) => ev.push(t) }).start(); const S = game._S;
+  S.phase = 'play'; S.balls = []; game.update(1 / 60); ok(S.over && ev.includes('gameover'), 'поражение');
+  ok(game.revive(), 'revive'); ok(!S.over); eq(S.lives, 1); eq(S.phase, 'dead');
+  for (let i = 0; i < 90; i++) game.update(1 / 60); eq(S.phase, 'play', 'подача после паузы'); ok(S.balls.length === 1 && S.balls[0].stuck, 'ядро на мастерке');
+  eq(game.revive(), false, 'без поражения не действует');
+  const w = K.Game({ rng: mulberry32(4) }).start(); w._S.over = true; w._S.won = true; eq(w.revive(), false, 'после победы — нет');
+  const g2 = K.Game({ rng: mulberry32(5), lives: L.MAX_LIVES - 1 }).start(); ok(g2.addLife()); eq(g2._S.lives, L.MAX_LIVES); eq(g2.addLife(), false, 'не выше максимума');
+});
+
 console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed));
 process.exit(failed ? 1 : 0);

@@ -432,11 +432,22 @@
       return true;
     }
     function start() { offerCards(); return api; }
+    // Реклама за награду (движок v2.6, только по досмотру ролика): «ещё один шанс» — ворота чинятся до половины, механизмы
+    // у ворот оглушены на 2 с, волна продолжается; бонус — ремонт ворот (+6, как карта «Ремонт»).
+    function revive() {
+      if (S.phase !== 'over') return false;
+      S.hp = Math.max(1, Math.ceil(S.hpMax / 2)); S.phase = 'wave';
+      S.enemies.forEach(function (e) { e.stun = Math.max(e.stun || 0, 2); });
+      if (!S.balls.length) serveBall();
+      emit('revive', { hp: S.hp }); return true;
+    }
+    function repair(n) { if (S.hp >= S.hpMax || S.phase === 'over' || S.phase === 'won') return false; S.hp = Math.min(S.hpMax, S.hp + (n || 6)); emit('repair', { hp: S.hp }); return true; }
 
     var api = {
       state: function () { return S; }, _S: S, start: start, update: update,
       setFlip: setFlip, launch: launch, tilt: tilt, chooseCard: chooseCard, placeSlot: placeSlot, moveSel: moveSel, confirm: confirm,
       waiting: waiting, freeSlots: freeSlots, owned: owned,
+      revive: revive, repair: repair,
       _spawn: spawn, _serve: serveBall, _physics: physics, _hurtGate: hurtGate, _beginWave: beginWave, _offer: offerCards
     };
     return api;

@@ -73,5 +73,19 @@ test('коллизия со стеной/полом', () => {
   ok(g._collides(g.state().cur.m, 0, 30), 'за полом нет коллизии');
 });
 
+test('реклама за награду: revive после game over очищает верх и продолжает; повторный revive без game over — false', () => {
+  const g=TT.Game({rng:mulberry32(5)}); g.start(); const S=g._S;
+  for(let y=0;y<20;y++) for(let x=0;x<10;x++) if(x!==y%10) S.board[y][x]=1;
+  g._spawn(); ok(S.over, 'game over'); ok(g.revive(), 'revive');
+  ok(!S.over && S.cur, 'продолжили'); for(let y=0;y<10;y++) ok(S.board[y].every(c=>!c), 'верх пуст '+y);
+  eq(g.revive(), false, 'без game over revive не действует');
+  const w=TT.Game(); w.start(); w._S.over=true; w._S.won=true; eq(w.revive(), false, 'после победы — нет');
+});
+test('бонус за рекламу: clearBottom(2) убирает 2 нижних ряда без очков; filledRows', () => {
+  const g=TT.Game({rng:mulberry32(9)}); g.start(); const S=g._S;
+  for(let x=0;x<9;x++){ S.board[19][x]=1; S.board[18][x]=2; S.board[17][x]=3; }
+  eq(g.filledRows(),3); const sc=S.score; g.clearBottom(2); eq(g.filledRows(),1); eq(S.board[19][0],3,'третий ряд опустился'); eq(S.score,sc,'без очков');
+});
+
 console.log((failed? 'FAIL ':'OK ')+passed+'/'+(passed+failed));
 process.exit(failed?1:0);

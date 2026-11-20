@@ -4,7 +4,7 @@
  * настройки: язык/тема/звук), сцены, сетка, частицы, HUD, счёт+рекорд (localStorage по игре).
  * Встроены критерии: проходимость (win/lose+финал, difficulty), играбельность (отклик, фидбек),
  * непресность (нарастание). Игры самодостаточны: build.sh копирует файл в игру. API — README.
- * (c) Студия «Гефест». v2.5.0 (v2.5: необязательная связка с площадкой — window.Platform из _shared/platform.js: пауза и звук на время рекламы, язык площадки, рекорд в облако, gameplayStart/Stop по сценам, реклама в паузах win/gameover, скрытие внешних ссылок; без platform.js — всё как раньше; v2.4: ссылка «← Каталог» a[data-catalog-back] ведёт в каталог текущего языка — ../ или ../en/, dt первого кадра не отрицательный; v2.3: единое правило языка ?lang= → arcade.lang → ru, перевод DOM по data-en; v2.2: g.menu, g.input.player(i), g.usePlayers, touchOnly)
+ * (c) Студия «Гефест». v2.6.0 (v2.6: реклама за награду g.rewarded() + «продолжить за рекламу» g.useRewardedContinue() и бонус g.useRewardedBonus() — только при площадке с рекламой; межстраничная реклама — по действию игрока при выходе с финала и g.adBreak() в паузах между уровнями; старт меню после инициализации площадки (язык SDK до меню, ready() — когда можно играть); автопауза при скрытой вкладке; без контекстного меню/выделения; g.persist()/g.storeSet() — ключи в облако; v2.5: необязательная связка с площадкой — window.Platform из _shared/platform.js: пауза и звук на время рекламы, язык площадки, рекорд в облако, gameplayStart/Stop по сценам, реклама в паузах win/gameover, скрытие внешних ссылок; без platform.js — всё как раньше; v2.4: ссылка «← Каталог» a[data-catalog-back] ведёт в каталог текущего языка — ../ или ../en/, dt первого кадра не отрицательный; v2.3: единое правило языка ?lang= → arcade.lang → ru, перевод DOM по data-en; v2.2: g.menu, g.input.player(i), g.usePlayers, touchOnly)
  */
 (function (global) {
   'use strict';
@@ -36,9 +36,16 @@
     this.lang = resolveLang(lang);
     this.applyDom();
   }
+  // Встроенные строки движка (v2.6) — если в таблицах игры ключа нет: экраны рекламы за награду, загрузка.
+  var DEF_STR = {
+    ru: { loading: 'Загрузка…', rw_title: 'ЕЩЁ ОДИН ШАНС?', rw_continue: 'Реклама: продолжить', rw_no: 'Нет, завершить', rw_fail: 'Реклама недоступна', rw_hint: 'один раз за партию', rw_got: 'Бонус получен!' },
+    en: { loading: 'Loading…', rw_title: 'ONE MORE CHANCE?', rw_continue: 'Watch ad: continue', rw_no: 'No, finish', rw_fail: 'Ad not available', rw_hint: 'once per run', rw_got: 'Bonus received!' }
+  };
   I18n.prototype.t = function (key, fallback) {
     var tb = this.tables[this.lang] || {};
-    return tb[key] != null ? tb[key] : (fallback != null ? fallback : key);
+    if (tb[key] != null) return tb[key];
+    if (fallback != null) return fallback;
+    var d = DEF_STR[this.lang] || DEF_STR.en; return d[key] != null ? d[key] : key;
   };
   I18n.prototype.has = function (key, lang) { var tb = this.tables[lang || this.lang]; return !!tb && tb[key] != null; };
   I18n.prototype.set = function (lang) { this.lang = lang; Store.set('arcade.lang', lang); this.applyDom(); };
@@ -506,6 +513,7 @@
     if (preset) this.audio.setMusic(preset);
     this.canvas.addEventListener('click', function (e) { self._click(e); });
     this.canvas.addEventListener('touchstart', function (e) { if (self.current && self.current._menu) { e.preventDefault(); self._click(e.changedTouches[0]); } }, { passive: false });
+    this.autoPause = opts.autoPause !== false; // с площадкой: скрытая вкладка в play → пауза
     this.adBreaks = opts.adBreaks !== false; // реклама площадки в логических паузах (win/gameover), если подключён platform.js
     var PF = global.Platform; this.platform = PF && typeof PF.init === 'function' && typeof PF.pauseHook === 'function' ? PF : null;
     if (this.platform) this._bindPlatform(this.platform);
@@ -525,14 +533,96 @@
       self._applyPlatformLinks();
       var b = parseFloat(PF.peek('best.' + self.gameId)) || 0;
       if (b > self.state.best) { self.state.best = b; Store.set('arcade.best.' + self.gameId, String(b)); }
-    }, function () {});
+      self._pfInited = true; self._mergePersist();
+    }, function () { self._pfInited = true; });
+    // Площадки (Яндекс 1.6.1.8 / 1.6.2.7, GamePush): долгий тап и ПКМ не открывают меню и не выделяют текст.
+    if (doc && doc.addEventListener) ['contextmenu', 'selectstart', 'dragstart'].forEach(function (ev) { doc.addEventListener(ev, function (e) { var t = e.target; if (t && /^(INPUT|TEXTAREA)$/.test(t.tagName || '')) return; e.preventDefault(); }); });
+  };
+  // Ключи localStorage игры, которые зеркалятся в облако площадки (v2.6): g.persist(key, 'max'|'last'); запись — g.storeSet(key, v).
+  // При старте с площадкой: 'max' — берётся большее из локального и облачного, 'last' — облачное, если есть.
+  Engine.prototype.persist = function (key, mode) { (this._persist = this._persist || {})[key] = mode || 'max'; if (this._pfInited) this._mergePersist(); return this; };
+  Engine.prototype.storeSet = function (key, v) { Store.set(key, String(v)); if (this.platform) { try { this.platform.save('ls.' + key, String(v)); } catch (e) {} } };
+  Engine.prototype._mergePersist = function () {
+    var PF = this.platform, m = this._persist; if (!PF || !m) return;
+    Object.keys(m).forEach(function (k) {
+      var c = PF.peek('ls.' + k), l = Store.get(k, null); if (c == null) { if (l != null) PF.save('ls.' + k, l); return; }
+      var v = m[k] === 'max' ? String(Math.max(parseFloat(c) || 0, parseFloat(l) || 0)) : String(c);
+      if (v !== l) Store.set(k, v); if (v !== String(c)) PF.save('ls.' + k, v);
+    });
+  };
+  // ---------- Реклама (v2.6) ----------
+  // g.canRewarded() — показ ролика за награду возможен (есть площадка с рекламой, SDK поднят, другой показ не идёт).
+  // g.rewarded({ reward(), done(ok) }) → Promise<bool>: reward() вызывается ровно один раз и ТОЛЬКО при досмотре;
+  // на время показа цикл стоит и звук выключен (даже если SDK не прислал событие паузы); повторный вызов во время показа — false.
+  Engine.prototype.canRewarded = function () { var P = this.platform; return !!(P && P.hasAds && P.inited && !this._rwBusy && (!P.rewardedReady || P.rewardedReady())); };
+  Engine.prototype.rewarded = function (o) {
+    o = typeof o === 'function' ? { reward: o } : (o || {}); var self = this, P = this.platform;
+    if (!this.canRewarded()) { if (o.done) { try { o.done.call(this, false); } catch (e) {} } return Promise.resolve(false); }
+    this._rwBusy = true; this._adHold(true); var given = false;
+    return Promise.resolve().then(function () { return P.showRewarded(function () { if (given) return; given = true; if (o.reward) o.reward.call(self); }); })
+      .then(function (ok) { return !!ok && given; }, function () { return false; })
+      .then(function (ok) { self._rwBusy = false; self._adHold(false); if (o.done) { try { o.done.call(self, ok); } catch (e) {} } return ok; });
+  };
+  Engine.prototype._adHold = function (on) { // своя причина паузы на время показа: цикл стоит, AudioContext спит
+    this._adPause = !!on; var a = this.audio, ac = a.ac; this._last = performance.now();
+    if (!ac) return; try { if (on) ac.suspend(); else if (!this._pfPause && a.unlocked && !a._hidden) ac.resume(); } catch (e) {}
+  };
+  // Межстраничная реклама в естественной паузе (между уровнями, выход с финала). → Promise<bool>. Частоту ограничивает адаптер.
+  Engine.prototype.adReady = function () { var P = this.platform; return !!(P && this.adBreaks && P.hasAds && P.inited && !this._rwBusy && (!P.interstitialReady || P.interstitialReady())); };
+  Engine.prototype.adBreak = function () {
+    if (!this.adReady()) return Promise.resolve(false); var self = this; this._adHold(true);
+    return Promise.resolve().then(function () { return self.platform.showInterstitial(); }).then(function (ok) { return !!ok; }, function () { return false; })
+      .then(function (ok) { self._adHold(false); return ok; });
+  };
+  // «Продолжить за рекламу» (один раз за партию): g.useRewardedContinue({ revive(), available() }) — g.gameover() сначала
+  // показывает экран «Ещё один шанс?» (только при площадке с рекламой); досмотрел — revive() и игра продолжается с места.
+  Engine.prototype.useRewardedContinue = function (cfg) {
+    cfg = cfg || {}; var self = this; this._cont = cfg; this._contUsed = false; var msg = 0;
+    var menu = new Menu([
+      { key: 'watch', label: function () { return cfg.label ? (typeof cfg.label === 'function' ? cfg.label.call(self) : cfg.label) : self.t('rw_continue'); }, onSelect: function () {
+        if (self._rwBusy) return;
+        self.rewarded({ reward: function () { self._contUsed = true; } }).then(function (ok) {
+          if (self._sceneName !== 'continue') return;
+          if (ok) { try { cfg.revive.call(self); } catch (e) {} self.goto('play', { resume: true, revived: true }); }
+          else { msg = 1.6; }
+        });
+      } },
+      { key: 'no', label: function () { return self.t('rw_no'); }, onSelect: function () { self.goto('gameover'); } }
+    ]);
+    this.scene('continue', { realtime: true, _menu: menu, enter: function () { menu.sel = 0; msg = 0; this.audio.beep(330, 0.12, 'triangle'); },
+      update: function (dt) { if (msg > 0) { msg -= dt; if (msg <= 0) this.goto('gameover'); } },
+      draw: function () { if (this.scenes.play && this.scenes.play.draw) this.scenes.play.draw.call(this, this.ctx); var th = this.th();
+        this.overlay('', this.t('score', 'Счёт') + ': ' + (this.state.score | 0), th.warn);
+        var tt = this.t('rw_title'), sz = Math.min(40, this.W / 9); this.ctx.font = '800 ' + sz + 'px ' + th.font;
+        while (sz > 14 && this.ctx.measureText(tt).width > this.W - 24) { sz -= 2; this.ctx.font = '800 ' + sz + 'px ' + th.font; }
+        this.text(tt, this.W / 2, this.H / 2 - 20, { size: sz, align: 'center', color: th.warn });
+        menu.draw(this, this.W / 2, this.H / 2 + 56, 30);
+        this.text(msg > 0 ? this.t('rw_fail') : this.t('rw_hint'), this.W / 2, this.H / 2 + 128, { size: 12, align: 'center', color: msg > 0 ? th.bad : th.muted, weight: 600 }); },
+      press: function (a) { if (a === 'pause') this.goto('gameover'); } });
+    return this;
+  };
+  // Бонус за рекламу пунктом меню (title/pause): g.useRewardedBonus({ key, scene:'pause', label, available(), grant(), once:true }).
+  // Пункт виден только при площадке с рекламой и если available() (по умолч. true); once — раз за партию.
+  Engine.prototype.useRewardedBonus = function (cfg) {
+    cfg = Object.assign({ key: 'rwBonus', scene: 'pause', once: true }, cfg || {}); var self = this;
+    (this._bonuses = this._bonuses || []).push(cfg); cfg.used = false;
+    cfg.item = { key: cfg.key, label: function () { return typeof cfg.label === 'function' ? cfg.label.call(self) : (cfg.label && (cfg.label[self.i18n.lang] || cfg.label.ru)) || self.t(cfg.key); },
+      onSelect: function () { if (self._rwBusy) return; self.rewarded({ reward: function () { if (cfg.once) cfg.used = true; try { cfg.grant.call(self); } catch (e) {} } }).then(function (ok) { if (ok) self.audio.beep(1000, 0.15, 'triangle'); self._syncBonuses(); }); } };
+    this._syncBonuses(); return this;
+  };
+  Engine.prototype._syncBonuses = function () {
+    var self = this; (this._bonuses || []).forEach(function (b) {
+      var m = self.menu.get(b.scene), want = self.canRewarded() && !(b.once && b.used) && (!b.available || b.available.call(self));
+      if (!m) return; var has = m.indexOf(b.key) >= 0;
+      if (want && !has) m.add(b.item, b.scene === 'pause' ? { before: 'menu' } : { after: 'play' }); else if (!want && has) m.remove(b.key);
+    });
   };
   Engine.prototype._applyPlatformLinks = function () {
     var PF = this.platform; if (!PF || PF.allowExternalLinks !== false || !doc || !doc.querySelectorAll) return;
     try { var ls = doc.querySelectorAll('a[href]'); for (var i = 0; i < ls.length; i++) { var a = ls[i], h = a.getAttribute('href') || '';
       if (/^(#|javascript:)/i.test(h)) continue; a.style.display = 'none'; a.setAttribute('aria-hidden', 'true'); a.setAttribute('tabindex', '-1'); a.setAttribute('data-platform-hidden', '1'); } } catch (e) {}
   };
-  Engine.prototype._adBreak = function () { if (this.platform && this.adBreaks) { try { this.platform.showInterstitial(); } catch (e) {} } };
+  Engine.prototype._adBreak = function () { try { this.adBreak(); } catch (e) {} };
   Engine.prototype.th = function () { return this.themesMap[this.themeName] || THEMES.modern; };
   Engine.prototype.t = function (k, f) { return this.i18n.t(k, f); };
   Engine.prototype._applyPixel = function () { this.ctx.imageSmoothingEnabled = !this.th().pixel; };
@@ -542,7 +632,7 @@
   Engine.prototype.saveBest = function () { if (this.state.score > this.state.best) { this.state.best = this.state.score; Store.set('arcade.best.' + this.gameId, String(this.state.best)); if (this.platform) this.platform.save('best.' + this.gameId, this.state.best); } };
 
   Engine.prototype.scene = function (name, def) { this.scenes[name] = def; return this; };
-  Engine.prototype.goto = function (name, data) { this.current = this.scenes[name]; this._sceneName = name; this._acc = 0; if (name === 'play') this.input._armedAt = now(); if (this.platform) { if (name === 'play') this.platform.gameplayStart(); else this.platform.gameplayStop(); } this._musicScene(name, data || {}); if (this.current && this.current.enter) this.current.enter.call(this, data || {}); };
+  Engine.prototype.goto = function (name, data) { this.current = this.scenes[name]; this._sceneName = name; this._acc = 0; if (name === 'play') this.input._armedAt = now(); if (this.platform) { if (name === 'play') this.platform.gameplayStart(); else this.platform.gameplayStop(); } this._musicScene(name, data || {}); if (this.current && this.current.enter) this.current.enter.call(this, data || {}); if (this._bonuses) this._syncBonuses(); };
   // Музыка следует за сценой (если musicAuto): play — играет (resume — с того же места, иначе с начала),
   // pause — пауза, title/win/gameover и прочие — стоп (на win/gameover звучит SFX движка, музыка не мешает).
   Engine.prototype._musicScene = function (name, data) {
@@ -568,10 +658,19 @@
       if (a === 'theme') self.toggleTheme();
       if (sc && sc.press) sc.press.call(self, a);
     });
-    this.goto(name || 'title'); this.running = true; this._last = performance.now(); if (this.platform) this.platform.ready();
+    // С площадкой меню показывается ПОСЛЕ инициализации SDK (язык площадки — до первого экрана, Яндекс 2.14), и только тогда
+    // ready() (LoadingAPI.ready — «можно играть», 1.19.2). SDK не ответил за initTimeout адаптера — игра стартует без него.
+    var first = name || 'title', went = false, go = function () { if (went) return; went = true; self.goto(first); if (self.platform) self.platform.ready(); };
+    if (this.platform && !this.platform.inited) {
+      this.current = { realtime: true, draw: function () { var th = this.th(); this.clear(); this.text(this.t('loading'), this.W / 2, this.H / 2, { size: 16, align: 'center', color: th.muted, weight: 700 }); } };
+      this._sceneName = 'loading'; this.platform.init().then(function () { setTimeout(go, 0); }, function () { setTimeout(go, 0); });
+    } else go();
+    this.running = true; this._last = performance.now();
+    if (this.platform && (this.autoPause !== false) && doc && doc.addEventListener) doc.addEventListener('visibilitychange', function () { // вкладка скрыта — игра на паузе (GamePush: «пауза при сворачивании», продолжение — кнопкой)
+      if (doc.hidden && self._sceneName === 'play' && self.scenes.pause) self.pause(); });
     var loop = function (t) {
       self._raf = requestAnimationFrame(loop);
-      if (self._pfPause) { self._last = t; return; } // пауза площадки (реклама и т.п.): кадр стоит
+      if (self._pfPause || self._adPause) { self._last = t; var pac = self.audio.ac; if (pac && pac.state === 'running') { try { pac.suspend(); } catch (e) {} } return; } // звук не должен «проснуться» во время показа (resume из жеста/другого колбэка) // пауза площадки / показ рекламы: кадр стоит
       var dt = (t - self._last) / 1000; self._last = t; if (dt > 0.25) dt = 0.25; else if (dt < 0) dt = 0; // метка rAF первого кадра бывает раньше performance.now() из start() — без отрицательного времени (иначе g.time < 0 и кадры спрайтов с индексом -1)
       self.time += dt; self.particles.update(dt);
       var sc = self.current; if (!sc) return;
@@ -609,7 +708,7 @@
     // заголовок/подзаголовок заставки: cfg.title/subtitle (как раньше), но в не-RU языке строка таблицы
     // (strings.en.title / .subtitle) важнее литерала из cfg — игры передают сюда русский текст.
     var loc = function (k) { return (self.i18n.lang !== 'ru' && self.i18n.has(k)) ? self.t(k) : cfg[k]; };
-    var startPlay = function () { self.state.score = 0; self.state.lives = cfg.lives || 3; self.state.level = 1; self.goto('play'); };
+    var startPlay = function () { self.state.score = 0; self.state.lives = cfg.lives || 3; self.state.level = 1; self._contUsed = false; (self._bonuses || []).forEach(function (b) { b.used = false; }); self.goto('play'); };
     var titleMenu = new Menu([
       { key: 'play', label: function () { return self.t('play', 'Играть'); }, onSelect: startPlay },
       { key: 'lang', label: function () { return (self.t('language', 'Язык') + ': ' + (self.i18n.lang === 'ru' ? 'RU' : 'EN')); }, onSelect: function () { self.i18n.toggle(); } },
@@ -626,8 +725,8 @@
     ]);
     this.scene('pause', { realtime: true, _menu: pauseMenu, draw: function () { if (this.scenes.play && this.scenes.play.draw) this.scenes.play.draw.call(this, this.ctx); this.overlay(this.t('pause', 'ПАУЗА'), '', this.th().warn); pauseMenu.draw(this, this.W / 2, this.H / 2 + 20, 28); this.menu._drawHint('pause'); } });
     this.menu._register('pause', pauseMenu);
-    this.scene('win', { realtime: true, enter: function () { this.saveBest(); this.audio.beep(1200, 0.2, 'triangle'); this._adBreak(); }, draw: function () { this.clear(); this.overlay(this.t('win', 'ПОБЕДА!'), this.t('score', 'Счёт') + ': ' + (this.state.score | 0) + (this.state.best ? '   ' + this.t('best', 'Рекорд') + ': ' + this.state.best : ''), this.th().good); this.text(this.t('tapstart', 'пробел / тап'), this.W / 2, this.H - 24, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); }, press: function () { this.goto('title'); } });
-    this.scene('gameover', { realtime: true, enter: function () { this.saveBest(); this.audio.beep(140, 0.3, 'sawtooth'); this._adBreak(); }, draw: function () { this.clear(); this.overlay(this.t('gameover', 'КОНЕЦ ИГРЫ'), this.t('score', 'Счёт') + ': ' + (this.state.score | 0) + (this.state.best ? '   ' + this.t('best', 'Рекорд') + ': ' + this.state.best : ''), this.th().bad); this.text(this.t('tapstart', 'пробел / тап'), this.W / 2, this.H - 24, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); }, press: function () { this.goto('title'); } });
+    this.scene('win', { realtime: true, enter: function () { this.saveBest(); this.audio.beep(1200, 0.2, 'triangle'); }, draw: function () { this.clear(); this.overlay(this.t('win', 'ПОБЕДА!'), this.t('score', 'Счёт') + ': ' + (this.state.score | 0) + (this.state.best ? '   ' + this.t('best', 'Рекорд') + ': ' + this.state.best : ''), this.th().good); this.text(this.t('tapstart', 'пробел / тап'), this.W / 2, this.H - 24, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); }, press: function () { this.goto('title'); this._adBreak(); } });
+    this.scene('gameover', { realtime: true, enter: function () { this.saveBest(); this.audio.beep(140, 0.3, 'sawtooth'); }, draw: function () { this.clear(); this.overlay(this.t('gameover', 'КОНЕЦ ИГРЫ'), this.t('score', 'Счёт') + ': ' + (this.state.score | 0) + (this.state.best ? '   ' + this.t('best', 'Рекорд') + ': ' + this.state.best : ''), this.th().bad); this.text(this.t('tapstart', 'пробел / тап'), this.W / 2, this.H - 24, { size: 12, align: 'center', color: this.th().muted, weight: 600 }); }, press: function () { this.goto('title'); this._adBreak(); } });
     return this;
   };
   // Локальный кооп «1–2 игрока за одной клавиатурой» поверх g.input.setPlayers (cfg — те же поля + hint, pad):
@@ -665,7 +764,7 @@
     return this.players;
   };
   Engine.prototype.win = function () { this.goto('win'); };
-  Engine.prototype.gameover = function () { this.goto('gameover'); };
+  Engine.prototype.gameover = function () { var c = this._cont; if (c && !this._contUsed && this.scenes['continue'] && this.canRewarded() && (!c.available || c.available.call(this))) { this.goto('continue'); return; } this.goto('gameover'); };
   Engine.prototype.pause = function () { this.goto('pause'); };
   Engine.prototype.nextLevel = function () { this.state.level++; };
   Engine.prototype.difficulty = function (base, step, max) { var v = base + (this.state.level - 1) * step; return max == null ? v : (step >= 0 ? Math.min(v, max) : Math.max(v, max)); };
@@ -678,7 +777,7 @@
 
   // Arcade.tracks[gameId] = track — так js/music.js игры регистрирует свою мелодию до createGame.
   var Arcade = (global.Arcade && global.Arcade.tracks) ? global.Arcade : {};
-  Object.assign(Arcade, { createGame: function (o) { return new Engine(o); }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, version: '2.5.0', catalogRoot: catalogRoot });
+  Object.assign(Arcade, { createGame: function (o) { var e = new Engine(o); Arcade.last = e; return e; }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, version: '2.6.0', catalogRoot: catalogRoot });
   Arcade.tracks = Arcade.tracks || {};
   if (typeof module !== 'undefined' && module.exports) module.exports = Arcade;
   global.Arcade = Arcade;

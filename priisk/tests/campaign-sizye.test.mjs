@@ -1,8 +1,10 @@
 /* ПРИИСК · tests/campaign-sizye.test.mjs — вторая сторона, Артель Сизого Перевала (общий движок, публично):
    ветряки на гребнях и ветер, канатная дорога (опоры, забой, люльки, сбитая опора), производство зимовья/верфи, герои Сизых
    (Агафья — переброска по канату, Митяй — уговор поста, Корней — ярость при обороне), скирмиш за обе стороны (ИИ Медного Ключа
-   против игрока-Сизых — строит, добывает, шлёт волну; Сизые-бот добывают медь канаткой), две кампании — два сохранения,
-   связка кампаний (флаги чужой кампании), реестр (s1–s3 — только полная версия), демо: кампания Сизых — под замком.
+   против игрока-Сизых — строит, добывает, шлёт волну; Сизые-бот добывают медь канаткой), точка сбора у любого здания, что
+   выпускает юнитов (зимовьё, верфь), ИИ Сизых на их механике (Медный Ключ против ИИ-Сизых: 3 сида против ИИ Медного Ключа и
+   3 против бота-игрока, партия 10–20 мин; без гребней у избы — опоры к дальнему гребню), две кампании — два сохранения,
+   связка кампаний (флаги чужой кампании), реестр (s1–s5 — только полная версия), демо: кампания Сизых — под замком.
    Запуск: node priisk/tests/campaign-sizye.test.mjs */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -168,6 +170,88 @@ test('скирмиш за Медный Ключ — классика без из
   ok(W.blds.some(b => b.owner === 1 && b.type === 'boiler'), 'ИИ не строит котельную'); eq(L.has(W, 1, 'hq').pi, 1);
 });
 
+// ---------- точка сбора ----------
+test('точка сбора: любое здание, что выпускает юнитов (барак, мастерская, зимовьё, верфь), а не только Барак и Мастерская', () => {
+  ['bunk', 'works', 'hut', 'sail'].forEach(t => ok(L.producer(t), t)); ['hq', 'mill', 'pylon', 'station', 'face', 'boiler', 'smelter', 'tower'].forEach(t => ok(!L.producer(t), t));
+  const src = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8'); ok(/L\.producer\(sb\.type\)/.test(src) && !/sb\.type === 'bunk' \|\| sb\.type === 'works'/.test(src), 'main.js: точка сбора по списку типов');
+  for (const [t, u] of [['hut', 'ranger'], ['sail', 'skiff']]) { // зимовьё и верфь: новый юнит идёт к точке сбора
+    const W = szWorld(open(24, 16)); const hq = L.addBuilding(W, 0, 'hq', 2, 2), mill = L.addBuilding(W, 0, 'mill', 6, 2), st = L.addBuilding(W, 0, 'station', 2, 8), b = L.addBuilding(W, 0, t, 7, 7);
+    W.players[0].copper = 2000; b.rally = { x: 19.5, y: 12.5 }; ok(L.queueUnit(W, 0, u), u); run(W, 40, 1 / 20);
+    const v = W.units.find(x => x.type === u); ok(v && Math.hypot(v.x - 19.5, v.y - 12.5) < 2, t + ': ' + u + ' не дошёл до точки сбора (' + (v && v.x.toFixed(1)) + ',' + (v && v.y.toFixed(1)) + ')');
+  }
+});
+
+// ---------- ИИ Сизых на их механике (скирмиш: Медный Ключ против ИИ-Сизых) ----------
+// бот-игрок Медного Ключа: реакция 150–250 мс, одно действие за раз (стройка по списку, стрелки и машины, оборона, атака с 10-й минуты)
+function copperPlan(W) {
+  const hq = L.has(W, 0, 'hq'), c = L.center(hq), order = ['boiler', 'smelter', 'bunk', 'boiler', 'works', 'boiler', 'boiler']; let attackAt = 600, flip = 0;
+  return () => {
+    const pl = W.players[0], n = t => W.blds.filter(b => b.owner === 0 && b.type === t).length; if (!L.has(W, 0, 'hq')) return null;
+    if (pl.build && pl.build.ready) { const sp = L.aiSpot(W, 0, pl.build.type, hq); return () => { if (!sp || !L.placeBuild(W, 0, sp.i, sp.j)) L.cancelBuild(W, 0); }; }
+    const built = order.filter((t, i) => order.slice(0, i + 1).filter(x => x === t).length <= n(t)).length, want = built < order.length ? order[built] : (pl.pUse + 10 > pl.pOut ? 'boiler' : null);
+    if (!pl.build && want && L.reqMet(W, 0, want) && pl.copper >= L.BLDS[want].cost) return () => L.startBuild(W, 0, want);
+    const army = W.units.filter(u => u.owner === 0 && u.type !== 'hauler');
+    if (n('bunk') && pl.inf.length < 1 && army.filter(u => u.type === 'rifleman').length < 6 && pl.copper >= 300) return () => L.queueUnit(W, 0, 'rifleman');
+    if (n('works') && pl.veh.length < 1 && pl.copper >= 900) return () => L.queueUnit(W, 0, flip++ % 3 === 2 ? 'ironwagon' : 'crawler');
+    const foe = W.units.find(e => e.owner === 1 && e.hp > 0 && Math.hypot(e.x - c.x, e.y - c.y) < 14), idle = army.filter(u => u.order.t === 'idle');
+    if (foe && idle.length) return () => L.commandMove(W, idle.map(u => u.id), foe.x, foe.y, true);
+    if (W.time > attackAt && idle.length >= 10) { const t = L.has(W, 1, 'hq'); if (t) { attackAt = W.time + 120; return () => L.commandMove(W, idle.map(u => u.id), t.tx + 1, t.ty + 1, true); } }
+    return null;
+  };
+}
+// партия до конца (не дольше 25 мин); что делал ИИ Сизых
+function szMatch(seed, vs, opt = {}) {
+  const W = L.newWorld(Object.assign({ seed, foe: 'sizye' }, opt)), A0 = vs === 'ai' ? L.newAI(W, 0) : null, b = vs === 'bot' ? H.bot(W, copperPlan(W), seed) : null;
+  const st = { millOn: 0, linked: 0, built: new Set(), maxFaces: 0, waveHit: false, pylons: 0 };
+  for (let i = 0; i < 25 * 60 * 10 && W.winner < 0; i++) {
+    if (A0) L.aiStep(W, 0.1, A0); if (b) b.step(); L.step(W, 0.1); W.events.length = 0;
+    if (i % 50 === 0) {
+      W.blds.filter(x => x.owner === 1).forEach(x => st.built.add(x.type));
+      st.millOn = Math.max(st.millOn, W.blds.filter(x => x.owner === 1 && x.type === 'mill' && x.pw > 0).length);
+      st.maxFaces = Math.max(st.maxFaces, W.blds.filter(x => x.owner === 1 && x.type === 'face' && x.link).length);
+      st.pylons = Math.max(st.pylons, W.blds.filter(x => x.owner === 1 && x.type === 'pylon').length);
+      const h0 = L.has(W, 0, 'hq'); if (h0 && W.units.some(u => u.owner === 1 && u.wave && Math.hypot(u.x - h0.tx, u.y - h0.ty) < 14)) st.waveHit = true;
+    }
+  }
+  return { W, st };
+}
+const H = helpers(G);
+test('скирмиш против ИИ-Сизых: стороны (Медный Ключ — латунь, ИИ — Сизые на ветряках), у их базы — гряды, ИИ на своей механике; без foe — классика', () => {
+  const W = L.newWorld({ seed: 3, foe: 'sizye' }); eq(W.fac, ['copper', 'sizye']); ok(W.ai.sz, 'ИИ не Сизых'); ok(W.wind, 'нет ветра'); eq(L.has(W, 1, 'hq').look, 'sizye');
+  eq(W.units.filter(u => u.owner === 1).map(u => u.type).sort(), ['ranger', 'ranger', 'ranger', 'skiff']);
+  const hq = L.has(W, 1, 'hq'); let rock = 0; for (let j = hq.ty - 2; j <= hq.ty + 8; j++) for (let i = hq.tx - 7; i <= hq.tx + 4; i++) if (W.t[j * W.w + i] === L.ROCK) rock++; ok(rock >= 8, 'нет гряд у базы Сизых');
+  run(W, 120, 1 / 20); ok(!W.blds.some(b => b.owner === 1 && ['boiler', 'smelter', 'bunk', 'works'].includes(b.type)), 'ИИ Сизых строит котельные');
+  ok(L.newWorld({ seed: 3 }).ai.sz !== true && L.newWorld({ seed: 3, side: 'copper' }).fac === null, 'классика задета');
+  ok(L.newWorld({ seed: 3, side: 'sizye', foe: 'sizye' }).fac[1] === 'copper', 'за Сизых соседи — всегда Медный Ключ');
+  const ui = fs.readFileSync(path.join(ROOT, 'js/campaign-ui.js'), 'utf8'); ok(/key: 'foe'/.test(ui) && /arcade\.priisk\.foe/.test(ui) && /SKIRMISH_FOE/.test(ui), 'пункт меню «Соседи»');
+  ok(STR.ru.foeSizye && STR.en.foeSizye && STR.ru.foeClassic, 'тексты пункта меню');
+});
+for (const vs of ['ai', 'bot']) {
+  test('скирмиш против ИИ-Сизых (' + (vs === 'ai' ? 'против ИИ Медного Ключа' : 'против бота-игрока Медного Ключа, реакция 150–250 мс') + '): ветряки на гребнях, канатка, забои, армия, волна; партия 10–20 мин (3 сида)', () => {
+    for (const seed of [1, 3, 7]) {
+      const { W, st } = szMatch(seed, vs), m = (W.time / 60).toFixed(1);
+      ['mill', 'station', 'face', 'hut', 'sail'].forEach(t => ok(st.built.has(t), 'сид ' + seed + ': ИИ не поставил ' + t));
+      ok(st.millOn >= 2, 'сид ' + seed + ': ветряки не крутятся'); ok(st.maxFaces >= 2, 'сид ' + seed + ': забоев с канатом ' + st.maxFaces);
+      ok(W.players[1].mined >= 3000, 'сид ' + seed + ': ИИ добыл ' + W.players[1].mined); ok((W.players[1].trained.skiff || 0) + (W.players[1].trained.harpoon || 0) >= 4, 'сид ' + seed + ': мало машин');
+      ok(W.ai.waves >= 1 && st.waveHit, 'сид ' + seed + ': ИИ не атаковал'); ok(W.winner >= 0 && W.time >= 600 && W.time <= 1200, 'сид ' + seed + ': партия ' + m + ' мин, победитель ' + W.winner);
+      console.log('     сид ' + seed + ': ' + m + ' мин, победитель ' + (W.winner === 1 ? 'ИИ Сизых' : 'Медный Ключ') + ', ИИ Сизых: добыл ' + W.players[1].mined + ', ветряков в работе до ' + st.millOn + ', забоев до ' + st.maxFaces + ', волн ' + W.ai.waves + ', обучено ' + JSON.stringify(W.players[1].trained));
+    }
+  });
+}
+test('ИИ-Сизых: гребней у базы нет — тянет опоры к дальнему гребню и ставит ветряки там; без ветра — запас (лишних потребителей нет), добыча идёт', () => {
+  // открытое поле 44×34: изба в середине, жила рядом, ближайшие скалы — края карты (11+ клеток)
+  const rows = open(44, 34).map((r, j) => j >= 18 && j <= 20 ? r.slice(0, 26) + 'ooo' + r.slice(29) : r), W = L.worldFromMap(rows);
+  L.setSides(W, ['copper', 'sizye']); L.setWind(W, { dir: 'N', s: 1, lock: true, now: true });
+  const hq = L.addBuilding(W, 1, 'hq', 20, 15), c = L.center(hq); W.players[1].copper = 2500; W.ai = L.newSzAI(W, 1);
+  ok(!L.szMillSpot(W, 1, c), 'у избы нашёлся гребень — проверка не о том');
+  run(W, 480, 1 / 10);
+  const mills = W.blds.filter(b => b.owner === 1 && b.type === 'mill'), on = mills.filter(b => b.pw > 0);
+  ok(W.ai.farPy > 0 && W.blds.some(b => b.owner === 1 && b.type === 'pylon'), 'опоры к дальнему гребню не тянул');
+  ok(on.length >= 1 && on.every(b => Math.hypot(b.tx + 1 - c.x, b.ty + 1 - c.y) >= 8), 'ветряков на дальнем гребне: ' + on.length);
+  ok(W.players[1].mined >= 600, 'добыча ' + W.players[1].mined); ok(W.players[1].pUse <= W.players[1].pOut + 20, 'потребителей больше, чем ветра: ' + W.players[1].pOut + '/' + W.players[1].pUse);
+  console.log('     без гребней у избы: ветряков ' + mills.length + ' (крутятся ' + on.length + '), опор к гребню ' + W.ai.farPy + ', добыто ' + W.players[1].mined + ', ветер/расход ' + W.players[1].pOut + '/' + W.players[1].pUse);
+});
+
 // ---------- две кампании ----------
 test('две кампании: свои списки (P.MISSIONS — Медный Ключ, P.MISSIONS_S — Сизые), свои сохранения и сброс', () => {
   ok(P.MISSIONS.every(m => C.campOf(m) === 'copper') && P.MISSIONS_S.every(m => C.campOf(m) === 'sizye'));
@@ -201,7 +285,8 @@ test('действия и условия Сизых: wind, talked, cabled, linke
 // ---------- издание и реестр ----------
 test('реестр: s1–s3 — только в полной версии (файлов в публичном дереве нет); демо — кампания Сизых под замком', () => {
   ['s1', 's2', 's3'].forEach(id => { ok(P.MISSION_FILES.full.includes(id), id); ok(!P.MISSION_FILES.demo.includes(id)); ok(!fs.existsSync(path.join(ROOT, 'js/missions/' + id + '.js')), 'файл ' + id + ' в публичном дереве'); ok(!P.Edition.playable('demo', id)); });
-  ok(!P.MISSION_FILES.full.some(id => /^s[4-9]$/.test(id)), 's4–s9 ещё не готовы — в реестре их нет');
+  ['s4', 's5'].forEach(id => { ok(P.MISSION_FILES.full.includes(id), id + ' в реестре full'); ok(!fs.existsSync(path.join(ROOT, 'js/missions/' + id + '.js')), 'файл ' + id + ' в публичном дереве'); ok(!P.Edition.playable('demo', id)); });
+  ok(!P.MISSION_FILES.full.some(id => /^s[6-9]$/.test(id)), 's6–s9 ещё не готовы — в реестре их нет');
   const src = fs.readFileSync(path.join(ROOT, 'js/campaign-ui.js'), 'utf8');
   ok(/LATER_S = \[/.test(src) && ['Ночная проверка', 'Ветер с перевала', 'Горящий рудник', 'Заводчик', 'Канатка над пропастью', 'Последний перевал'].every(t => src.includes(t)), 'заготовки s4–s9 на карте');
   ok(/lockedFullSubS/.test(src) && STR.ru.lockedFullSubS.includes('скирмиш'), 'текст замка кампании Сизых');

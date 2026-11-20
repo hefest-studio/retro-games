@@ -512,6 +512,9 @@
         for (var i = 0; i < S.balls.length; i++) if (S.balls[i].stuck) { release(S.balls[i]); any = true; }
         if (!any) fireBolts();
       },
+      // Реклама за награду (движок v2.6, только по досмотру): «ещё один шанс» — 1 ядро и подача; бонус — +1 ядро (не выше MAX_LIVES)
+      revive: function () { if (!S.over || S.won) return false; S.over = false; S.lives = 1; S.phase = 'dead'; S.phaseT = 0.8; ev('revive', { lives: 1 }); return true; },
+      addLife: function () { if (S.over || S.lives >= MAX_LIVES) return false; S.lives++; ev('power', { kind: 'life', x: S.paddle.x }); return true; },
       state: function () { return S; },
       _S: S, _damage: damage, _applyPower: applyPower, _loadLevel: loadLevel
     };

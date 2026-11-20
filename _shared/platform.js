@@ -1,4 +1,4 @@
-/*! Гефест Arcade · platform.js — единый адаптер игровых площадок (Яндекс Игры, GamePush, свой сайт). v1.0.0
+/*! Гефест Arcade · platform.js — единый адаптер игровых площадок (Яндекс Игры, GamePush, свой сайт). v1.1.0
  * vanilla JS, 0 зависимостей. Источник — _shared/platform.js; в игру попадает копией js/platform.js через
  * tools/platform-build.mjs (сборка под площадку). На сайте arcade.hefest.ru игры его не подключают — движок без него
  * работает как раньше. Подключать ДО engine.js: движок (v2.5+) сам находит window.Platform и связывается с ним.
@@ -17,7 +17,9 @@
  *   Platform.ready()                      «игра загружена, можно играть» (Яндекс LoadingAPI.ready / GamePush gameStart)
  *   Platform.gameplayStart() / gameplayStop()  — начало/конец активной игры (без повторов: шлёт только смену состояния)
  *   Platform.showRewarded(onReward) → Promise<bool>  — ролик за награду; onReward() вызывается ТОЛЬКО при успешном просмотре
- *   Platform.showInterstitial() → Promise<bool>      — полноэкранная реклама, не чаще interstitialGap секунд (по умолч. 60)
+ *   Platform.showInterstitial() → Promise<bool>      — полноэкранная реклама, не чаще interstitialGap секунд
+ *                                         (Яндекс — 60, частоту ещё режет сама площадка; GamePush — 180: «не чаще раза в 3 минуты»)
+ *   Platform.interstitialReady() / rewardedReady() → bool — показ сейчас возможен (SDK поднят, нет другого показа, интервал прошёл)
  *   Platform.save(key, data) → Promise    localStorage сразу + облако площадки (с задержкой saveDelay, пачкой);
  *   Platform.load(key) → Promise<data|null>  — после init: облако, при его отсутствии — localStorage;
  *   Platform.peek(key) → data|null        то же синхронно (что известно сейчас); Platform.flush() — отправить в облако сейчас
@@ -33,7 +35,7 @@
  */
 (function (global) {
   'use strict';
-  var VERSION = '1.0.0', NAMES = { web: 1, yandex: 1, gamepush: 1 };
+  var VERSION = '1.1.0', NAMES = { web: 1, yandex: 1, gamepush: 1 };
   var YANDEX_SDK = '/sdk.js';                                   // Яндекс: относительный путь, отдаёт сама площадка
   var GAMEPUSH_SDK = 'https://gamepush.com/sdk/game-score.js';  // GamePush: загрузчик SDK (?projectId&publicToken&callback)
   var RU_LIKE = { ru: 1, be: 1, uk: 1, kk: 1, uz: 1 };          // носителям этих языков удобнее русская версия
@@ -45,7 +47,7 @@
     var win = env.win || global, doc = env.doc !== undefined ? env.doc : win.document;
     var now = env.now || function () { return Date.now(); };
     var later = env.setTimeout || function (f, ms) { return (win.setTimeout || setTimeout)(f, ms); };
-    var cfg = Object.assign({ interstitialGap: 60, initTimeout: 6000, saveDelay: 1500, prefix: 'arcade.pf.' }, env.config || {});
+    var cfg = Object.assign({ interstitialGap: null, initTimeout: 6000, saveDelay: 1500, prefix: 'arcade.pf.' }, env.config || {});
     var store = env.storage !== undefined ? env.storage : (function () { try { return win.localStorage; } catch (e) { return null; } })();
 
     function meta(name) { try { var m = doc && doc.querySelector && doc.querySelector('meta[name="' + name + '"]'); var v = m && m.getAttribute('content'); return v ? String(v).trim() : null; } catch (e) { return null; } }
@@ -160,7 +162,9 @@
     };
 
     // ---------- общий фасад ----------
-    var name = detect(), be = B[name](), initP = null, readyWanted = false, readySent = false, active = false, wantActive = false;
+    var name = detect();
+    if (cfg.interstitialGap == null) cfg.interstitialGap = name === 'gamepush' ? 180 : 60; // GamePush, чек-лист тестирования: реклама не чаще раза в 3 мин
+    var be = B[name](), initP = null, readyWanted = false, readySent = false, active = false, wantActive = false;
     var cache = {}, dirty = false, saveT = 0, lastAd = -Infinity, adBusy = false;
     var P = { version: VERSION, name: name, allowExternalLinks: be.links, hasAds: be.ads, cloud: false, inited: false, paused: false, sdk: null, errors: [], config: cfg };
 
@@ -194,6 +198,8 @@
       var t = now(); if (t - lastAd < cfg.interstitialGap * 1000) return Promise.resolve(false);
       lastAd = t; return around(function () { return be.interstitial(); });
     };
+    P.interstitialReady = function () { return !!(P.inited && P.hasAds && !adBusy && now() - lastAd >= cfg.interstitialGap * 1000); };
+    P.rewardedReady = function () { return !!(P.inited && P.hasAds && !adBusy); };
     P.showRewarded = function (onReward) {
       if (!P.inited || !P.hasAds || adBusy) return Promise.resolve(false);
       return around(function () { return be.rewarded(); }).then(function (ok) { lastAd = now(); if (ok && typeof onReward === 'function') safe(onReward); return ok; });

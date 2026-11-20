@@ -20,6 +20,7 @@
 
   var WAVE_KEY = 'arcade.otboynik.wave';
   function bestWave() { return Arcade.Store.getNum(WAVE_KEY, 0); }
+  g.persist(WAVE_KEY, 'max');   // дальность — и в облако площадки (если есть platform.js)
 
   // ---------- игра ----------
   var game = null, toasts = [], shakeT = 0;
@@ -36,12 +37,20 @@
     else if (type === 'waveClear') toast(g.t('waveClear') + ' · ' + g.t('bonus') + ' +' + d.bonus, P.good, 240, 160, true);
     else if (type === 'split') toast('×2', P.accent2, d.x, d.y - 26, true);
     else if (type === 'bossHit') g.particles.spawn(d.x, d.y, { color: P.brass, count: 6, speed: 110, life: 0.4, size: 3 });
+    else if (type === 'revive' || type === 'repair') { toast(g.t(type === 'revive' ? 'revived' : 'repaired'), P.good, 240, 600, true); g.particles.spawn(240, 700, { color: P.door, count: 16, speed: 90, life: 0.6, size: 3 }); }
+    else if (type === 'waveStart' && d.wave > 1) g.adBreak();   // межстраничная — между волнами, сразу после выбора карты игроком (частоту режет адаптер)
     else if (type === 'bossDie') { g.particles.spawn(d.x, d.y, { color: P.coal, count: 80, speed: 240, life: 1.2, size: 4 }); shakeT = 1; }
     sync();
     if (type === 'win') { finish(); g.win(); }
     else if (type === 'gameover') { finish(); g.gameover(); }
   }
-  function finish() { sync(); var S = game.state(), w = Math.min(S.waveReached, L.WAVES + 1); if (w > bestWave()) Arcade.Store.set(WAVE_KEY, String(w)); }
+  function finish() { sync(); var S = game.state(), w = Math.min(S.waveReached, L.WAVES + 1); if (w > bestWave()) g.storeSet(WAVE_KEY, w); }
+  // Реклама за награду (только на площадках с рекламой): «ещё один шанс» раз за партию — ворота до половины;
+  // бонус в меню паузы — ремонт ворот +6 (раз за партию, если ворота повреждены).
+  g.useRewardedContinue({ revive: function () { if (game) game.revive(); releaseAll(); } });
+  g.useRewardedBonus({ key: 'rwRepair', scene: 'pause', label: function () { return g.t('rwRepair'); },
+    available: function () { var S = game && game.state(); return !!S && S.hp < S.hpMax && S.phase !== 'over' && S.phase !== 'won'; },
+    grant: function () { if (game) game.repair(6); } });
   function newGame() { game = OB.Game({ seed: Math.floor(Math.random() * 1e9), onEvent: onEvent }).start(); OB.current = game; toasts = []; shakeT = 0; sync(); }
   function inPlay() { return game && g._sceneName === 'play'; }
   function releaseAll() { if (game) { game.setFlip('L', false); game.setFlip('R', false); } held = {}; touches = {}; }

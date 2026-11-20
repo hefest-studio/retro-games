@@ -16,7 +16,7 @@
   K.ui.init(g);
 
   function rnd() { return g.themeName === 'retro' ? K.classic : K.modern; }
-  var game = null, toasts = [], playSince = 0, wasDraft = false;
+  var game = null, toasts = [], playSince = 0, wasDraft = false, adGate = 0;   // adGate: 1 — ждём уровень, 2 — ждём нажатия, 3 — идёт показ
 
   // Сложность уровня — через g.difficulty движка (база + шаг на уровень, с потолком)
   function diff(level, base, step, max) {
@@ -43,6 +43,8 @@
   function onEvent(type, d) {
     K.sfx(g, type, d); fx(type, d);
     if (type === 'power' && game) { var S = game.state(); toast(g.t('pw_' + d.kind), rnd().P.pw[d.kind], S.paddle.x, L.PADDLE_Y - 16); }
+    if (type === 'revive') toast(g.t('revived'), rnd().P.accent, L.W / 2, 380);
+    if (type === 'clear' && g.adReady()) adGate = 1;   // межстраничная реклама между уровнями — только по нажатию игрока (Яндекс 4.4)
     sync();
     if (type === 'win') g.win();
     else if (type === 'gameover') g.gameover();
@@ -50,8 +52,15 @@
 
   function newGame() {
     game = K.Game({ lives: 3, level: 1, difficulty: diff, onEvent: onEvent });
-    game.start(); K.current = game; toasts = []; wasDraft = false; sync();
+    game.start(); K.current = game; toasts = []; wasDraft = false; adGate = 0; sync();
   }
+  // Пауза между уровнями с рекламой: «КЛАДКА РАЗОБРАНА» доигрывает 2 с, затем ждёт нажатия игрока → полноэкранная реклама → уровень.
+  function adGo() { if (adGate !== 2) return false; adGate = 3; g.adBreak().then(function () { adGate = 0; }); return true; }
+  // Реклама за награду (только на площадках с рекламой): «ещё один шанс» (1 ядро) раз за партию; бонус в паузе — +1 ядро.
+  g.useRewardedContinue({ revive: function () { if (game) game.revive(); } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { var S = game && game.state(); return !!S && !S.over && S.lives < L.MAX_LIVES; },
+    grant: function () { if (game) game.addLife(); } });
 
   // ---------- Стандартные экраны + фон кладки на всех экранах ----------
   g.useStandardScreens({ lives: 3 });
@@ -108,21 +117,24 @@
     press: function (a) {
       if (!game) return;
       if (a === 'pause') { this.pause(); return; }
+      if ((a === 'action' || a === 'start') && adGo()) return;
       if (a === 'action') game.action();
     },
     update: function (dt) {
       if (!game) return;
       game.setDir(this.input.dir.x);
       game.setFire(this.input.pressed('action'));
-      game.update(dt);
       var S = game.state();
+      if (adGate === 1 && S.phase === 'clear' && S.phaseT <= dt * 1.5) adGate = 2;
+      if (adGate >= 2) { if (S.phase !== 'clear') adGate = 0; else return; }   // ждём нажатия / идёт показ
+      game.update(dt);
       if (S.draft && !wasDraft) toast(g.t('draft'), rnd().P.accent, L.W / 2, 380);
       wasDraft = S.draft;
       for (var i = 0; i < toasts.length; i++) toasts[i].t -= dt;
       toasts = toasts.filter(function (o) { return o.t > 0; });
       sync();
     },
-    draw: function (ctx) { if (game) rnd().draw(ctx, game.state(), this, { toasts: toasts }); else this.clear(); }
+    draw: function (ctx) { if (game) { rnd().draw(ctx, game.state(), this, { toasts: toasts }); if (adGate === 2 && Math.floor(this.time * 2) % 2 === 0) K.ui.txt(this, this.t('nextLevel'), L.W / 2, 440, { size: 15, align: 'center', color: rnd().P.accent, weight: 800 }, rnd().P); } else this.clear(); }
   });
 
   // ---------- Мышь и палец ----------
@@ -130,10 +142,10 @@
   function canvasX(e) { var r = cv.getBoundingClientRect(); return (e.clientX - r.left) * (g.W / r.width); }
   function live() { return g._sceneName === 'play' && game && g.time - playSince > 0.25; }
   cv.addEventListener('mousemove', function (e) { if (live()) game.setTarget(canvasX(e)); });
-  cv.addEventListener('mousedown', function (e) { if (live()) { game.setTarget(canvasX(e)); game.action(); } });
+  cv.addEventListener('mousedown', function (e) { if (live()) { if (adGo()) return; game.setTarget(canvasX(e)); game.action(); } });
   var touch = null;   // перетаскивание: мастерок едет на смещение пальца; короткий тап — пуск/резак
   cv.addEventListener('touchstart', function (e) {
-    if (!live()) return; e.preventDefault();
+    if (!live()) return; e.preventDefault(); if (adGo()) return;
     var t = e.changedTouches[0]; touch = { id: t.identifier, x0: canvasX(t), px: game.state().paddle.x, cx: t.clientX, cy: t.clientY, at: Date.now(), moved: false };
   }, { passive: false });
   cv.addEventListener('touchmove', function (e) {
