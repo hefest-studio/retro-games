@@ -26,7 +26,7 @@ const require = createRequire(import.meta.url);
 let chromium;
 try { ({ chromium } = require('playwright')); } catch { ({ chromium } = require('/opt/npm-tools/node_modules/playwright')); }
 
-const HERE = path.dirname(fileURLToPath(import.meta.url));
+const HERE = '/home/claude/retro-games/_shared/tests';
 const DIR = process.argv[2]; if (!DIR) { console.error('использование: node _shared/tests/platform-builds.browser.mjs <папка-сборок> [slug-platform …]'); process.exit(2); }
 const only = process.argv.slice(3);
 const RE = /^([a-z0-9-]+?)-(yandex|gamepush|web)(-(\d+)x(\d+))?$/;
@@ -86,7 +86,7 @@ const layoutProbe = () => {
 };
 
 const LANGS = ['ru', 'en', 'tr', 'es', 'pt'];
-const MOCK_LB = { score: [], kaskad: [{ id: 'a', name: 'Ая', score: 900 }], kaskadDaily: [{ id: 'b', name: 'Бо', score: 40 }], otboynikWave: [{ id: 'a', name: 'Ая', score: 7 }], kladka: [{ id: 'c', name: 'Ви', score: 5000 }] };
+const MOCK_LB = { score: [], kaskad: [{ id: 'a', name: 'Ая', score: 900 }], kaskadDaily: [{ id: 'b', name: 'Бо', score: 40 }], otboynikWave: [{ id: 'a', name: 'Ая', score: 7 }], kladka: [{ id: 'c', name: 'Ви', score: 5000 }], mednitsa: [{ id: 'd', name: 'Гу', score: 12 }] };
 const browser = await chromium.launch();
 try {
   for (const b of builds) {
@@ -117,6 +117,8 @@ try {
       ok(await page.evaluate(() => Arcade.last.adBreak()) === false, 'вторая межстраничная подряд не должна показаться');
       const s1b = await st(); ok(s1b.log.lastIndexOf('start') > s1b.log.lastIndexOf('stop'), 'после рекламы геймплей не возобновлён: ' + s1b.log.slice(-4).join(','));
       // «ещё один шанс» за рекламу: на gameover экран continue; во время ролика цикл стоит, звук спит; награда одна; игра продолжается
+      const hasCont = await page.evaluate(() => !!Arcade.last._cont); if (!hasCont) console.log('     (' + b + ': без «ещё одного шанса» — у игры нет game over; блок пропущен в копии теста)');
+      if (hasCont) {
       const rw = await page.evaluate(async () => {
         const g = Arcade.last; g.audio.unlocked = true; const ac = g.audio._ctx(); g.gameover(); const sc0 = g._sceneName;
         const t0 = g.time; g._selectMenu(); await new Promise(r => setTimeout(r, 60));
@@ -134,6 +136,7 @@ try {
       const skip = await page.evaluate(async () => { const g = Arcade.last; window.__sdkMock.rewarded = 'skip'; g.goto('title'); g.scenes.title._menu.items[0].onSelect.call(g); g.gameover(); const sc = g._sceneName; g._selectMenu();
         await new Promise(r => setTimeout(r, 260)); const res = { sc, used: g._contUsed, scene: g._sceneName }; window.__sdkMock.rewarded = 'ok'; return res; });
       ok(skip.sc === 'continue' && !skip.used && skip.scene !== 'play', 'пропуск ролика не должен продолжать игру: ' + JSON.stringify(skip));
+      }
       // скрытая вкладка → пауза
       const hid = await page.evaluate(async () => { const g = Arcade.last; g.goto('title'); g.scenes.title._menu.items[0].onSelect.call(g); Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
         document.dispatchEvent(new Event('visibilitychange')); const s = g._sceneName; Object.defineProperty(document, 'hidden', { configurable: true, get: () => false }); document.dispatchEvent(new Event('visibilitychange')); return s; });
@@ -163,7 +166,7 @@ try {
           const it = g.scenes.title._menu.items.find(x => x.key === 'lb'); it.onSelect.call(g); await new Promise(x => setTimeout(x, 80));
           r.lb = { boards, sent, tops, scene: g._sceneName, native: g.leaderboard.native(), log: window.__sdkLog.filter(x => /^(setScore|getEntries|lbOpen|lbFetch)/.test(x)) };
           if (g._sceneName === 'leaders') { g.scenes.leaders.draw.call(g, g.ctx); g.current.press.call(g, 'pause'); }
-          r.lb.back = g._sceneName;
+          r.lb.back = g._sceneName; r.lb.err = (Platform.errors || []).slice(-5);
         }
         if (g._shop) {
           g.goto('title'); await new Promise(x => setTimeout(x, 50)); g.goto('title');

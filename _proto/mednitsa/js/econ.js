@@ -12,6 +12,7 @@
     var c = clone(cfg), K = M.FLAG_KEYS || {};
     c.costScale = 1; c.incomeScale = 1;
     Object.keys(K).forEach(function (k) {
+      if (K[k] && K[k][2] === 'str') { var sv = get(k); if (sv != null && String(sv).trim() !== '') c[K[k][0]][K[k][1]] = String(sv).trim().toLowerCase(); return; }   // строковые флаги (event_mode, event_id)
       var v = parseFloat(get(k)); if (!isFinite(v) || v < 0 || (v === 0 && k !== 'ad_idle_first')) return;   // 0 допустим только для «реклама с первой секунды»
       if (k === 'cost_scale') c.costScale = v; else if (k === 'income_scale') c.incomeScale = v;
       else { var p = K[k]; c[p[0]][p[1]] = v; }
@@ -22,13 +23,17 @@
   function Econ(cfg) {
     cfg = cfg || M.CFG; if (cfg.costScale == null) { cfg = clone(cfg); cfg.costScale = 1; cfg.incomeScale = 1; }
     var WS = cfg.WS, N = WS.length, UPS = cfg.UPS, UPI = {}; UPS.forEach(function (u) { UPI[u.id] = u; });
-    var E = { cfg: cfg, N: N };
+    var E = { cfg: cfg, N: N, evOn: false };
+    var WK = [[], []]; WS.forEach(function (w, i) { WK[w.wk || 0].push(i); });
+    E.wsOf = function (wk) { return WK[wk || 0]; };          // индексы цехов мастерской: 0 — горн, 1 — верфь
+    E.wkOf = function (i) { return WS[i].wk || 0; };
 
     E.newState = function () {
       return { v: cfg.version, copper: 0, runEarned: 0, lifeEarned: 0, marks: 0, marksEver: 0, prestiges: 0,
         lv: WS.map(function () { return 0; }), ups: {}, taps: 0, goals: {}, goalSeq: 0, chests: 0, boosts: 0,
         boostLeft: 0, lastSeen: 0, giftDay: -1, giftStreak: 0, chestT: cfg.chest.first, chestLive: 0,
-        starter: false, starterGranted: false, playSec: 0, saved: 0 };
+        starter: false, starterGranted: false, playSec: 0, saved: 0,
+        wharf: false, view: 0, ev: null, marksBonus: 0 };
     };
     // Миграция/нормализация загруженного состояния (новые поля — значения по умолчанию)
     E.normalize = function (s) {
@@ -36,7 +41,12 @@
       Object.keys(d).forEach(function (k) { if (s[k] === undefined || s[k] === null) s[k] = d[k]; });
       if (!Array.isArray(s.lv)) s.lv = d.lv; while (s.lv.length < N) s.lv.push(0); s.lv.length = N;
       for (var i = 0; i < N; i++) { s.lv[i] = Math.max(0, Math.floor(+s.lv[i] || 0)); }
-      ['copper', 'runEarned', 'lifeEarned', 'marks', 'marksEver', 'boostLeft', 'playSec'].forEach(function (k) { s[k] = +s[k]; if (!isFinite(s[k]) || s[k] < 0) s[k] = 0; });
+      ['copper', 'runEarned', 'lifeEarned', 'marks', 'marksEver', 'boostLeft', 'playSec', 'prestiges', 'marksBonus'].forEach(function (k) { s[k] = +s[k]; if (!isFinite(s[k]) || s[k] < 0) s[k] = 0; });
+      // v1 → v2: верфи не было — её уровни 0; если переплавок уже достаточно, верфь открыта сразу
+      if (s.prestiges >= cfg.wharf.unlock) s.wharf = true;
+      s.wharf = !!s.wharf; s.view = s.view === 1 && s.wharf ? 1 : 0;
+      if (s.ev && (typeof s.ev !== 'object' || typeof s.ev.id !== 'string')) s.ev = null;
+      if (!s.ups || typeof s.ups !== 'object') s.ups = {}; if (!s.goals || typeof s.goals !== 'object') s.goals = {};
       s.v = cfg.version; return s;
     };
 
@@ -53,6 +63,7 @@
       var m = (1 + cfg.prestige.bonus * s.marks) * cfg.incomeScale;
       for (var k = 0; k < UPS.length; k++) { var u = UPS[k]; if (u.kind === 'all' && s.ups[u.id]) m *= u.x; }
       if (starterOwned || s.starter) m *= cfg.starter.mult;
+      if (E.evOn) m *= cfg.event.mult;
       return m;
     };
     E.wsIncome = function (s, i, lv) { return (lv == null ? s.lv[i] : lv) * WS[i].inc * E.wsMult(s, i); };
@@ -72,7 +83,8 @@
       var w = WS[i], gg = w.g, c = s.copper / cfg.costScale, base = w.c0 * Math.pow(gg, s.lv[i]);
       if (c < base) return 0; return Math.max(0, Math.floor(Math.log(c * (gg - 1) / base + 1) / Math.log(gg) + 1e-9));
     };
-    E.unlocked = function (s, i) { return i === 0 || s.lv[i - 1] > 0 || s.lv[i] > 0; };
+    E.unlocked = function (s, i) { if (WS[i].wk && !E.wharfOpen(s)) return false; return i === 0 || s.lv[i - 1] > 0 || s.lv[i] > 0; };
+    E.wharfOpen = function (s) { return !!s.wharf || s.prestiges >= cfg.wharf.unlock; };
     // mode: 1 | 10 | 'max' → сколько уровней купить сейчас (для 10 — ровно 10, если хватает)
     E.buyCount = function (s, i, mode) { var m = E.maxBuy(s, i); if (mode === 'max') return m; return m >= mode ? mode : (mode === 1 ? 0 : 0); };
     E.buy = function (s, i, mode) {
@@ -90,7 +102,7 @@
     E.up = function (id) { return UPI[id]; };
 
     // ---------- время: доход, форсаж, посылка ----------
-    function earn(s, v) { s.copper += v; s.runEarned += v; s.lifeEarned += v; }
+    function earn(s, v) { s.copper += v; s.runEarned += v; s.lifeEarned += v; if (E.evOn && s.ev && !s.ev.done) s.ev.got += v; }
     E.earn = earn;
     // продвинуть игру на sec секунд активной игры (доход + форсаж + таймер посылки) → { chest: 'show'|'gone'|null }
     E.advance = function (s, sec) {
@@ -142,9 +154,11 @@
     };
 
     // ---------- заказы ----------
-    function goalAt(idx) {
-      var G = cfg.GOALS; if (idx < G.length) return G[idx];
-      var k = idx - G.length + 1; return { id: 'gx' + k, type: 'all', n: 50 + 25 * k, rw: 240 + 20 * k, min: 1e12 * Math.pow(10, k) };
+    function goalList(wk) { return wk ? cfg.GOALS2 : cfg.GOALS; }
+    function goalAt(idx, wk) {
+      var G = goalList(wk); if (idx < G.length) return G[idx];
+      var k = idx - G.length + 1;
+      return wk ? { id: 'rx' + k, type: 'all', wk: 1, n: 50 + 25 * k, rw: 300 + 20 * k } : { id: 'gx' + k, type: 'all', n: 50 + 25 * k, rw: 240 + 20 * k, min: 1e12 * Math.pow(10, k) };
     }
     E.goalAt = goalAt;
     E.goalProgress = function (s, g) {
@@ -156,25 +170,51 @@
         case 'chest': return s.chests;
         case 'prestige': return s.prestiges;
         case 'boost': return s.boosts;
-        case 'all': { var m = Infinity, any = false; for (var i = 0; i < N; i++) { if (!E.unlocked(s, i)) continue; any = true; m = Math.min(m, s.lv[i]); } return any ? m : 0; }
+        case 'all': { var m = Infinity, any = false, L = WK[g.wk || 0]; for (var j = 0; j < L.length; j++) { var i = L[j]; if (!E.unlocked(s, i)) continue; any = true; m = Math.min(m, s.lv[i]); } return any ? m : 0; }
       }
       return 0;
     };
-    // 3 первых невыполненных (забранных) заказа
-    E.activeGoals = function (s, n) {
-      n = n || 3; var out = [];
-      for (var i = 0; out.length < n && i < cfg.GOALS.length + 400; i++) {
-        var g = goalAt(i); if (s.goals[g.id]) continue;
+    // 3 первых невыполненных (забранных) заказа мастерской wk (0 — горн, 1 — верфь, пока закрыта — пусто)
+    E.activeGoals = function (s, n, wk) {
+      n = n || 3; var out = []; wk = wk ? 1 : 0; if (wk && !E.wharfOpen(s)) return out;
+      for (var i = 0; out.length < n && i < goalList(wk).length + 400; i++) {
+        var g = goalAt(i, wk); if (s.goals[g.id]) continue;
         var p = E.goalProgress(s, g); out.push({ goal: g, idx: i, p: Math.min(p, g.n), n: g.n, done: p >= g.n, reward: E.goalReward(s, g) });
       }
       return out;
     };
     E.goalReward = function (s, g) { return Math.max(25, E.baseIncome(s) * g.rw, E.tapValue(s) * g.rw / 4); };   // секунды дохода (в самом начале — удары)
     E.claimGoal = function (s, id) {
-      var a = E.activeGoals(s, 3); for (var i = 0; i < a.length; i++) if (a[i].goal.id === id && a[i].done) { s.goals[id] = 1; s.goalSeq++; earn(s, a[i].reward); return a[i].reward; }
+      var a = E.activeGoals(s, 3, 0).concat(E.activeGoals(s, 3, 1));
+      for (var i = 0; i < a.length; i++) if (a[i].goal.id === id && a[i].done) { s.goals[id] = 1; s.goalSeq++; earn(s, a[i].reward); return a[i].reward; }
       return 0;
     };
-    E.goalsReady = function (s) { return E.activeGoals(s, 3).filter(function (a) { return a.done; }).length; };
+    E.goalsReady = function (s, wk) {
+      var f = function (a) { return a.done; };
+      if (wk != null) return E.activeGoals(s, 3, wk).filter(f).length + (E.eventReady(s) ? 1 : 0);
+      return E.activeGoals(s, 3, 0).filter(f).length + E.activeGoals(s, 3, 1).filter(f).length + (E.eventReady(s) ? 1 : 0);
+    };
+
+    // ---------- «Ярмарка выходного дня» (флаги event_*): множитель дохода + особый заказ за клейма ----------
+    // now — мс площадки. Выходные — сб и вс по UTC+3 (день 0 = чт 01.01.1970 → сб = 2, вс = 3 по модулю 7).
+    E.eventInfo = function (now) {
+      var c = cfg.event, mode = c.mode, day = E.dayOf(now), wd = ((day % 7) + 7) % 7, info = { on: false, id: '', left: 0 };
+      if (!(now > 0) || mode === 'off' || mode === '0' || !(c.mult > 0)) return info;
+      var end = function (d) { return (d + 1) * 86400000 - 3 * 3600000; };
+      if (mode === 'on') { info.on = true; info.id = 'on:' + (c.id || 'w' + Math.floor((day + 4) / 7)); info.left = (end(day) - now) / 1000; }
+      else if (wd === 2 || wd === 3) { var sat = wd === 2 ? day : day - 1; info.on = true; info.id = 'we:' + sat + (c.id ? ':' + c.id : ''); info.left = (end(sat + 1) - now) / 1000; }
+      return info;
+    };
+    // вызывать на каждом шаге времени: включает множитель и заводит особый заказ новой ярмарки
+    E.eventSync = function (s, now) {
+      var info = E.eventInfo(now); E.evOn = info.on;
+      if (info.on && (!s.ev || s.ev.id !== info.id)) { E.evOn = false; s.ev = { id: info.id, need: Math.max(1000, E.baseIncome(s) * cfg.event.orderMin * 60), got: 0, done: false }; E.evOn = true; }   // цель — от дохода без ярмарки
+      return info;
+    };
+    E.eventReady = function (s) { return !!(E.evOn && s.ev && !s.ev.done && s.ev.got >= s.ev.need); };
+    E.eventMarks = function (s) { return Math.max(cfg.event.marksMin, Math.round((s.marksEver + s.marksBonus) * cfg.event.marksPct)); };
+    // награда — клейма «сверху»: не входят в marksEver, поэтому не уменьшают будущую переплавку
+    E.claimEvent = function (s) { if (!E.eventReady(s)) return 0; var g = E.eventMarks(s); s.ev.done = true; s.marks += g; s.marksBonus += g; return g; };
 
     // ---------- переплавка (престиж) ----------
     E.marksTotal = function (lifeEarned) { return Math.floor(cfg.prestige.k * Math.cbrt(Math.max(0, lifeEarned) / cfg.prestige.div)); };   // кубический корень: удвоить клейма — заработать ×8
@@ -187,6 +227,8 @@
       s.marks += g; s.marksEver += g; s.prestiges++;
       s.copper = 0; s.runEarned = 0; s.lv = WS.map(function () { return 0; }); s.ups = {};
       s.chestT = cfg.chest.first; s.chestLive = 0;
+      if (!s.wharf && s.prestiges >= cfg.wharf.unlock) { s.wharf = true; s.wharfNew = true; }   // верфь открылась этой переплавкой (окно в игре)
+      if (s.view && !E.wharfOpen(s)) s.view = 0;
       return g;
     };
     return E;

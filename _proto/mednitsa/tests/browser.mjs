@@ -1,10 +1,11 @@
 /* МЕДНИЦА · tests/browser.mjs — проверка в Chromium (Playwright) + скриншоты.
-   Нужно: `python3 -m http.server 8424` в корне репо (BASE, по умолч. http://localhost:8424) и сборка под Яндекс
-   (`node _proto/mednitsa/tests/build-platform.mjs yandex /home/claude/platform-builds`).
+   Нужно: `python3 -m http.server 8432` в корне репо (BASE, по умолч. http://localhost:8432) и сборка под Яндекс
+   (`node tools/platform-build.mjs _proto/mednitsa yandex /home/claude/platform-builds`).
    Запуск: node _proto/mednitsa/tests/browser.mjs [папка-сборок] [папка-скриншотов]
    Сайт: 0 ошибок, меню → Enter, пауза P, тема T, язык L, удар/покупка, офлайн без рекламы, вписывание в экран.
    Сборка Яндекса с мок-SDK: язык SDK, офлайн по серверному времени (часы устройства подменены), ролик ×2 — только при досмотре,
-   форсаж, межстраничная — по флагам и только в паузе, «Без рекламы», «Набор мастера», облако. */
+   форсаж, межстраничная — по флагам и только в паузе, «Без рекламы», «Набор мастера», облако; Речная верфь из старого сохранения
+   (v1 без верфи), переключение мастерских (кнопка и V); «Ярмарка выходного дня» по серверному времени и флагам event_*. */
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,7 +16,7 @@ import { execSync } from 'node:child_process';
 const require = createRequire(import.meta.url);
 let chromium; try { ({ chromium } = require('playwright')); } catch (e) { ({ chromium } = require(path.join(execSync('npm root -g').toString().trim(), 'playwright'))); }
 const HERE = path.dirname(fileURLToPath(import.meta.url)), REPO = path.resolve(HERE, '../../..');
-const BASE = process.env.BASE || 'http://localhost:8424', URL = BASE + '/_proto/mednitsa/';
+const BASE = process.env.BASE || 'http://localhost:8432', URL = BASE + '/_proto/mednitsa/';
 const BUILDS = process.argv[2] || '/home/claude/platform-builds', SHOTS = process.argv[3] || '/home/claude/wave2-shots';
 const BUILD = path.join(BUILDS, 'mednitsa-yandex'), MOCK = fs.readFileSync(path.join(REPO, '_shared/tests/mocks/yandex-sdk.js'), 'utf8');
 const T0 = 1767225600000;
@@ -100,9 +101,32 @@ await test('сайт: холст вписан без прокрутки — те
   }
 });
 
+
+// старое сохранение (v1: 10 уровней, без верфи) с 12 переплавками — для верфи
+const OLD = () => save({ lv: [120, 110, 100, 90, 80, 70, 60, 50, 40, 30], prestiges: 12, marks: 9000, marksEver: 9000, lifeEarned: 1e22, copper: 2e15, goals: Object.fromEntries(Array.from({ length: 30 }, (_, i) => ['g' + (i + 1), 1])) });
+await test('сайт: старое сохранение v1 (12 переплавок) → верфь открыта; кнопка «Верфь ›» и V переключают мастерскую; покупка насоса; заказы верфи', async () => {
+  const { page, ctx, errs } = await open(URL, { ls: OLD() });
+  let s = await st(page); ok(s.lv.length === 20 && s.wharf && s.v === 2, 'миграция: ' + s.lv.length + ' ' + s.wharf);
+  await play(page); await page.evaluate(() => { MEDNITSA.debug.ui.queue = []; MEDNITSA.debug.ui.dlg = null; }); await sleep(100);
+  ok((await hits(page)).includes('view'), 'кнопка мастерской'); await clickHit(page, 'view'); ok((await st(page)).view === 1, 'на верфи');
+  ok((await hits(page)).includes('ws10'), 'цех верфи в списке: ' + (await hits(page)).join());
+  await clickHit(page, 'ws10'); s = await st(page); ok(s.lv[10] >= 1, 'насос куплен'); ok(await page.evaluate(() => MEDNITSA.debug.ui.dlg && MEDNITSA.debug.ui.dlg.type === 'unlock'), 'окно нового цеха'); await clickHit(page, 'dlg_0');
+  await page.keyboard.press('Digit3'); await sleep(80); const h = await hits(page); ok(h.some((x) => /^goal_r/.test(x)), 'заказы верфи: ' + h.join());
+  await page.keyboard.press('KeyV'); await sleep(60); ok((await st(page)).view === 0, 'V → горн'); await page.keyboard.press('KeyV'); await sleep(60); ok((await st(page)).view === 1, 'V → верфь');
+  await page.evaluate(() => MEDNITSA.debug.save(true)); const raw = await page.evaluate(() => JSON.parse(localStorage.getItem('arcade.mednitsa.save')));
+  ok(raw.v === 2 && raw.lv.length === 20 && raw.view === 1, 'сохранено v2');
+  ok(!errs.length, errs.join('; ')); await ctx.close();
+});
+await test('сайт: верфь закрыта до 10-й переплавки — на кнопке счётчик переплавок, V не переключает', async () => {
+  const { page, ctx, errs } = await open(URL, { ls: save({ prestiges: 3, marks: 50, marksEver: 50 }) });
+  await play(page); await page.evaluate(() => { MEDNITSA.debug.ui.queue = []; MEDNITSA.debug.ui.dlg = null; }); await sleep(80);
+  ok((await hits(page)).includes('view'), 'кнопка-счётчик'); await page.keyboard.press('KeyV'); await sleep(50); ok((await st(page)).view === 0, 'осталась мастерская');
+  ok(!errs.length, errs.join('; ')); await ctx.close();
+});
+
 // ---------------- сборка под Яндекс с мок-SDK ----------------
 const haveBuild = fs.existsSync(path.join(BUILD, 'index.html'));
-if (!haveBuild) { failed++; console.log('FAIL нет сборки ' + BUILD + ' — node _proto/mednitsa/tests/build-platform.mjs yandex'); }
+if (!haveBuild) { failed++; console.log('FAIL нет сборки ' + BUILD + ' — node tools/platform-build.mjs _proto/mednitsa yandex ' + BUILDS); }
 else {
   await test('Яндекс: 0 ошибок, язык из SDK (tr) до меню, ready после init, start/stop по сцене, нет ссылок наружу', async () => {
     const { page, ctx, errs } = await open(YURL, { mock: { lang: 'tr', serverTime: T0 } });
@@ -175,6 +199,20 @@ else {
     await play(page); await sleep(2600); ok((await st(page)).starter, 'восстановлено из покупок SDK');
     ok(!errs.length, errs.join('; ')); await ctx.close();
   });
+
+  const SAT = Date.UTC(2026, 10, 21, 12);
+  await test('Яндекс: «Ярмарка выходного дня» по серверному времени — плашка ×2, доход ×2, заказ ярмарки во «Заказах»; event_mode=off — нет', async () => {
+    let { page, ctx, errs } = await open(YURL, { mock: { serverTime: SAT }, ls: save({}) });
+    await play(page); await page.evaluate(() => { MEDNITSA.debug.ui.queue = []; MEDNITSA.debug.ui.dlg = null; }); await sleep(200);
+    ok(await page.evaluate(() => MEDNITSA.debug.event().on), 'ярмарка идёт'); ok((await hits(page)).includes('evpill'), 'плашка');
+    const m = await page.evaluate(() => { const E = MEDNITSA.E(), s = MEDNITSA.state(); const a = E.income(s); E.evOn = false; const b = E.income(s); E.evOn = true; return a / b; }); ok(Math.abs(m - 2) < 1e-9, 'доход ×' + m);
+    await page.keyboard.press('Digit3'); await sleep(80); ok((await hits(page)).includes('event'), 'заказ ярмарки');
+    await page.evaluate(() => { const s = MEDNITSA.state(); s.ev.got = s.ev.need; }); await sleep(80); const k0 = (await st(page)).marks; await clickHit(page, 'event');
+    ok((await st(page)).marks > k0, 'клейма за заказ ярмарки'); ok(!errs.length, errs.join('; ')); await ctx.close();
+    ({ page, ctx, errs } = await open(YURL, { mock: { serverTime: SAT, flags: { event_mode: 'off' } }, ls: save({}) }));
+    await play(page); await sleep(300); ok(!(await page.evaluate(() => MEDNITSA.debug.event().on)), 'выключено флагом'); ok(!(await hits(page)).includes('evpill'), 'без плашки');
+    ok(!errs.length, errs.join('; ')); await ctx.close();
+  });
   await test('Яндекс: облачное сохранение — берётся продвинутая копия; прогресс уходит в облако (setData)', async () => {
     const cloudSave = JSON.parse(save({ marksEver: 7, marks: 7, lifeEarned: 1e9, lv: [40, 30, 20, 10, 1, 0, 0, 0, 0, 0] })['arcade.mednitsa.save']);
     const { page, ctx, errs } = await open(YURL, { mock: { serverTime: T0, cloud: { 'mednitsa.save': JSON.stringify(cloudSave) } }, ls: save({}) });
@@ -203,6 +241,25 @@ await test('скриншоты: ' + SHOTS + '/mednitsa-*.png', async () => {
   if (haveBuild) {   // окно офлайна с кнопкой «Реклама: ×2» (сборка Яндекса, мок-SDK)
     const { page, ctx, errs } = await open(YURL, { dpr: 2, mock: { serverTime: T0 }, ls: Object.assign({ 'arcade.theme': 'modern' }, save({ lv: [46, 41, 28, 12, 3, 0, 0, 0, 0, 0], lastSeen: T0 - 3 * 3600e3, marks: 5, marksEver: 5 })) });
     await play(page); await sleep(300); await shot(page, 'mednitsa-offline-yandex.png'); ok(!errs.length, errs.join('; ')); await ctx.close();
+  }
+  // Речная верфь (обе темы) и окно открытия верфи
+  for (const theme of ['modern', 'retro']) {
+    const lvW = [140, 130, 120, 110, 100, 90, 80, 70, 60, 50, 46, 31, 18, 6, 1, 0, 0, 0, 0, 0];
+    const { page, ctx, errs } = await open(URL, { dpr: 2, ls: Object.assign({ 'arcade.theme': theme, 'arcade.lang': 'ru' }, save({ lv: lvW, prestiges: 15, wharf: true, view: 1, marks: 9.8e5, marksEver: 9.8e5, lifeEarned: 1e30, copper: 4.1e24, taps: 9e4, ups: { seals10: 1, seals11: 1, bell: 1, blades10: 1, seals12: 1 }, goals: { r1: 1, r2: 1, r3: 1, r4: 1, r5: 1 } })) });
+    await play(page); await page.evaluate(() => { MEDNITSA.debug.ui.queue = []; MEDNITSA.debug.ui.dlg = null; });
+    for (let i = 0; i < 6; i++) { await page.keyboard.press('Space'); await sleep(60); }
+    await sleep(1500); await shot(page, 'mednitsa-wharf-' + theme + '.png');
+    if (theme === 'modern') {
+      await page.evaluate(() => { MEDNITSA.debug.ui.tab = 'goals'; }); await sleep(200); await shot(page, 'mednitsa-wharf-goals.png');
+      await page.evaluate(() => { MEDNITSA.debug.openDlg({ type: 'wharf' }); }); await sleep(250); await shot(page, 'mednitsa-wharf-dialog.png');
+    }
+    ok(!errs.length, errs.join('; ')); await ctx.close();
+  }
+  if (haveBuild) {   // ярмарка выходного дня (серверное время — суббота)
+    const { page, ctx, errs } = await open(YURL, { dpr: 2, mock: { serverTime: Date.UTC(2026, 10, 21, 12) }, ls: Object.assign({ 'arcade.theme': 'modern' }, save({ lv: [46, 41, 28, 12, 3, 0, 0, 0, 0, 0], marks: 5, marksEver: 5, goals: { g1: 1, g2: 1, g3: 1, g4: 1, g5: 1, g6: 1 } })) });
+    await play(page); await page.evaluate(() => { MEDNITSA.debug.ui.queue = []; MEDNITSA.debug.ui.dlg = null; MEDNITSA.debug.ui.tab = 'goals'; }); await sleep(600);
+    await shot(page, 'mednitsa-fair.png'); await page.evaluate(() => MEDNITSA.debug.openDlg({ type: 'event' })); await sleep(250); await shot(page, 'mednitsa-fair-dialog.png');
+    ok(!errs.length, errs.join('; ')); await ctx.close();
   }
   { const { page, ctx, errs } = await open(URL, { vp: { width: 1280, height: 720 }, ls: Object.assign({ 'arcade.theme': 'modern' }, mid) });
     await play(page); await page.evaluate(() => { MEDNITSA.debug.ui.queue = []; MEDNITSA.debug.ui.dlg = null; MEDNITSA.debug.ui.tab = 'goals'; }); await sleep(400);

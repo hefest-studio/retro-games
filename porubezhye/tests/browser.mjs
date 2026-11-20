@@ -1,4 +1,4 @@
-/* ПОРУБЕЖЬЕ · tests/browser.mjs — демо в браузере (Playwright): меню (Играть, Раса, «Кампания · в полной версии»), экран
+/* ПОРУБЕЖЬЕ · tests/browser.mjs — демо в браузере (Playwright): движок кампании подключён, но миссий нет; меню (Играть, Раса, «Кампания · в полной версии»), экран
    «Кампания — в полной версии» («Вернуться в меню», «Узнать больше» → ../), старт по Enter, пауза P, тема T, язык L,
    0 ошибок консоли. Скриншоты (если указана папка): porubezhye-{retro,modern}.png — геймплей обеих рас-соперников
    (партия на автопилоте у игрока, ~5-я минута, кроп по canvas 1280×720) и porubezhye-edition-{retro,modern}.png.
@@ -42,6 +42,7 @@ try {
 
   await test('издание демо: реестр миссий пуст, флаг demo; меню: Играть, Раса, «Кампания · в полной версии»', async () => {
     ok(await page.evaluate(() => PORUB.Edition.BUILD === 'demo' && PORUB.EDITION === 'demo' && PORUB.MISSIONS.length === 0), 'издание');
+    ok(await page.evaluate(() => !!PORUB.campUI && !PORUB.campUI.available() && !!PORUB.g.scenes.camp), 'движок кампании подключён, миссий в демо нет');
     const items = await page.evaluate(() => PORUB.g.menu.items('title'));
     ok(items[0] === 'play' && items[1] === 'race' && items[2] === 'campaign', 'меню: ' + items);
     const l = await label('campaign'); ok(/Кампания · в полной версии/.test(l), l);

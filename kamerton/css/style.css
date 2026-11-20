@@ -1,0 +1,31 @@
+/* КАМЕРТОН · стили страницы. Канва 960×540 вписывается и по ширине, и по высоте экрана (телефон в ландшафте);
+   тач-кнопки — только на сенсорных устройствах (или узком экране), поверх канвы по углам. */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { margin: 0; background: #0d0b10; color: #f3e6cc; font-family: Georgia, "Times New Roman", serif;
+  display: flex; flex-direction: column; align-items: center; min-height: 100dvh; user-select: none; overflow-x: hidden; }
+.wrap { position: relative; width: min(96vw, 980px, calc((100dvh - 64px) * 16 / 9)); margin-top: 30px; }
+canvas { width: 100%; display: block; border: 1px solid #3a2a22; border-radius: 4px; background: #050404; touch-action: none; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+.pad { display: none; }
+.pad button { width: 56px; height: 56px; background: rgba(201,154,82,.28); border: 1.5px solid rgba(201,154,82,.7); border-radius: 50%;
+  color: #f3e6cc; font-size: 20px; font-weight: 800; touch-action: none; }
+.pad button:active { background: rgba(143,220,255,.45); }
+.foot { color: #a8917a; font-size: 12px; margin: 10px 14px 18px; text-align: center; max-width: 960px; line-height: 1.5; }
+a.back { position: fixed; left: 10px; top: 7px; color: #f3e6cc; font-size: 13px; font-weight: 700; text-decoration: none; z-index: 20;
+  background: rgba(13,11,16,.8); padding: 3px 9px; border-radius: 8px; font-family: Inter, system-ui, sans-serif; }
+a.back:hover { color: #8fdcff; }
+@media (hover: none) and (pointer: coarse), (max-width: 760px) {
+  .pad { display: block; }
+  .pad .cross { position: fixed; left: max(10px, env(safe-area-inset-left)); bottom: 12px; display: grid; grid-template-columns: 52px 52px 52px; grid-template-rows: 46px 46px; gap: 6px; z-index: 10; }
+  .pad .cross button { width: 52px; height: 46px; border-radius: 12px; }
+  .pad .cross [data-d="L"] { grid-column: 1; grid-row: 2; } .pad .cross [data-d="U"] { grid-column: 2; grid-row: 1; }
+  .pad .cross [data-d="D"] { grid-column: 2; grid-row: 2; } .pad .cross [data-d="R"] { grid-column: 3; grid-row: 2; }
+  .pad .sw { position: fixed; right: calc(max(10px, env(safe-area-inset-right)) + 140px); bottom: 14px; z-index: 10; }
+  .pad .act { position: fixed; right: calc(max(10px, env(safe-area-inset-right)) + 74px); bottom: 14px; z-index: 10; }
+  .pad .jump { position: fixed; right: max(10px, env(safe-area-inset-right)); bottom: 30px; width: 66px; height: 66px; font-size: 24px; z-index: 10; }
+  .pad .mini { position: fixed; right: max(10px, env(safe-area-inset-right)); top: 8px; width: 44px; height: 36px; border-radius: 10px; font-size: 15px; z-index: 10; }
+  .foot { display: none; }
+  .wrap { width: min(96vw, 980px, calc((100dvh - 40px) * 16 / 9)); margin-top: 34px; }
+}
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+  .wrap { width: min(96vw, calc(100vw - 340px), calc((100dvh - 40px) * 16 / 9)); }
+}

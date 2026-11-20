@@ -6,8 +6,11 @@
   var P = global.PORUB = global.PORUB || {};
 
   var T = 32, MW = 64, MH = 48;            // тайл (px мира), размер карты в тайлах
-  var TERR = { GRASS: 0, WOOD: 1, WATER: 2, ROCK: 3, HEATH: 4 };
-  var PASS = [true, false, false, false, true];
+  // SNOW — снег (проходим, медленнее, строить можно), ICE — лёд (проходим, строить нельзя), BRIDGE — настил моста (из пролётов 'span')
+  var TERR = { GRASS: 0, WOOD: 1, WATER: 2, ROCK: 3, HEATH: 4, SNOW: 5, ICE: 6, BRIDGE: 7 };
+  var PASS = [true, false, false, false, true, true, true, true];
+  var BUILD = [true, false, false, false, true, true, false, false];
+  var TSPD = [1, 1, 1, 1, 1, 0.78, 1, 1];   // множитель скорости по земле (снег — вязнут)
 
   // ---------- Расы ----------
   // ед.: hp, spd (тайл/с), sight/range (тайлы), dmg, cd (с), cost {a: янтарь, r: смола}, sup (провизия), time (с), r (радиус px)
@@ -17,13 +20,18 @@
       units: {
         worker:  { hp: 40, spd: 2.6, sight: 6, range: 0.4, dmg: 4, cd: 1.2, cost: { a: 50, r: 0 }, sup: 1, time: 12, r: 9, worker: true, from: 'hall' },
         shooter: { hp: 50, spd: 2.4, sight: 8, range: 5, dmg: 8, cd: 1.2, cost: { a: 50, r: 15 }, sup: 1, time: 15, r: 9, from: 'gunhouse', ranged: true },
-        walker:  { hp: 220, armor: 2, spd: 1.6, sight: 9, range: 6, dmg: 20, splash: 1.0, cd: 2.4, cost: { a: 125, r: 75 }, sup: 3, time: 28, r: 15, mech: true, from: 'boiler', ranged: true }
+        walker:  { hp: 220, armor: 2, spd: 1.6, sight: 9, range: 6, dmg: 20, splash: 1.0, cd: 2.4, cost: { a: 125, r: 75 }, sup: 3, time: 28, r: 15, mech: true, from: 'boiler', ranged: true },
+        // герои кампании (не обучаются): воевода Ярина — знамя ускоряет стройку рядом; изобретатель Тихон — строит и чинит вдвое быстрее
+        yarina:  { hp: 200, armor: 1, spd: 2.6, sight: 9, range: 4.5, dmg: 11, cd: 1.0, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 10, hero: true, ranged: true, ability: 'banner' },
+        tikhon:  { hp: 130, spd: 2.5, sight: 7, range: 0.4, dmg: 5, cd: 1.2, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 10, hero: true, worker: true, craft: 2 }
       },
       buildings: {
         hall:     { s: 4, hp: 1500, cost: { a: 400, r: 0 }, time: 70, sup: 10, sight: 9, trains: ['worker'], drop: true },
         house:    { s: 2, hp: 400, cost: { a: 100, r: 0 }, time: 22, sup: 8, sight: 5 },
         gunhouse: { s: 3, hp: 800, cost: { a: 150, r: 0 }, time: 35, sight: 6, trains: ['shooter'] },
-        boiler:   { s: 3, hp: 900, cost: { a: 150, r: 100 }, time: 45, sight: 6, trains: ['walker'], req: 'gunhouse' }
+        boiler:   { s: 3, hp: 900, cost: { a: 150, r: 100 }, time: 45, sight: 6, trains: ['walker'], req: 'gunhouse' },
+        // пролёт моста (кампания): ставится на воду у берега/готового пролёта; достроен — клетки становятся настилом, снесён — снова вода
+        span:     { s: 2, hp: 600, cost: { a: 100, r: 0 }, time: 40, sight: 4, deck: true, extra: true }
       },
       order: ['house', 'gunhouse', 'boiler', 'hall']
     },
@@ -44,8 +52,10 @@
     }
   };
   var LARVA_MAX = 3, LARVA_EVERY = 8, SUP_MAX = 60, QUEUE_MAX = 5;
-  var GATHER = { amber: { amt: 5, t: 1.6 }, resin: { amt: 4, t: 2.2 } };
-  var NODE_AMT = { amber: 1200, resin: 3000 };
+  // timber — сухостой (дрова, ресурс кампании): rk — ключ ресурса в res[p]
+  var GATHER = { amber: { amt: 5, t: 1.6 }, resin: { amt: 4, t: 2.2 }, timber: { amt: 4, t: 3.0 } };
+  var NODE_AMT = { amber: 1200, resin: 3000, timber: 300 };
+  var RKEY = { amber: 'a', resin: 'r', timber: 'w' };
   var REPAIR_HPS = 14;
 
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -118,52 +128,66 @@
   }
 
   // ---------- Игра ----------
+  // opts.map — карта миссии (кампания): { w, h, terr: Uint8Array, nodes: [{ type, tx, ty, amt }] } — без случайной карты,
+  // стартовых баз и ИИ скирмиша (их ставит js/campaign.js). opts.endRule: 'blds' (по умолчанию: нет зданий — поражение) | 'none'.
   function Game(opts) {
     opts = opts || {};
-    var self = this;
-    this.T = T; this.MW = MW; this.MH = MH;
+    var self = this, M = opts.map || null;
+    this.T = T; this.MW = M ? M.w : MW; this.MH = M ? M.h : MH;
     this.rng = opts.rng || mulberry32(opts.seed || 1);
     this.onEvent = opts.onEvent || function () {};
     this.races = [opts.playerRace || 'wright', opts.aiRace || (opts.playerRace === 'thicket' ? 'wright' : 'thicket')];
-    this.terr = genMap(opts.seed || 1); this.seedKey = opts.seed || 1;
-    this.occ = new Int32Array(MW * MH);          // id+1 здания/месторождения на тайле
-    this.myc = [new Uint8Array(MW * MH), new Uint8Array(MW * MH)]; // грибница по сторонам
-    this.vis = [new Uint8Array(MW * MH), new Uint8Array(MW * MH)]; // 0 — не разведано, 1 — разведано, 2 — видно
+    this.terr = M ? M.terr : genMap(opts.seed || 1); this.seedKey = M ? (opts.key || 'map') : (opts.seed || 1); this.terrRev = 0;
+    var N = this.MW * this.MH;
+    this.occ = new Int32Array(N);          // id+1 здания/месторождения на тайле
+    this.myc = [new Uint8Array(N), new Uint8Array(N)]; // грибница по сторонам
+    this.vis = [new Uint8Array(N), new Uint8Array(N)]; // 0 — не разведано, 1 — разведано, 2 — видно
     this.ents = []; this.byId = new Map(); this.nextId = 1; this.t = 0;
-    this.res = [{ a: 150, r: 0 }, { a: 150, r: 0 }];
-    this.stats = [{ kills: 0, lost: 0, built: 0, trained: 0, gathered: 0 }, { kills: 0, lost: 0, built: 0, trained: 0, gathered: 0 }];
+    this.res = [{ a: 150, r: 0, w: 0 }, { a: 150, r: 0, w: 0 }];
+    this.stats = [{ kills: 0, lost: 0, lostB: 0, built: 0, trained: 0, gathered: 0, wood: 0 }, { kills: 0, lost: 0, lostB: 0, built: 0, trained: 0, gathered: 0, wood: 0 }];
     this.shots = []; this.winner = -1; this._visT = 0; this._mycDirty = true;
-    this.fogOff = !!opts.fogOff;
-    // месторождения
-    var addNode = function (type, tx, ty) { var s = type === 'resin' ? 2 : 1; self._addEnt({ kind: 'n', type: type, owner: -1, tx: tx, ty: ty, s: s, amt: NODE_AMT[type], hp: 1, maxhp: 1 }); };
-    [AMBER0, EXP0.amber].forEach(function (list) { list.forEach(function (a) { addNode('amber', a[0], a[1]); var m = mir(a[0], a[1]); addNode('amber', m[0], m[1]); }); });
-    [RESIN0, EXP0.resin].forEach(function (r) { addNode('resin', r[0], r[1]); var m = mir(r[0], r[1], 2); addNode('resin', m[0], m[1]); });
-    // стартовые базы
-    for (var p = 0; p < 2; p++) {
-      var R = RACES[this.races[p]], B = BASES[p];
-      var main = this._addBuilding(p, R.main, B.tx, B.ty, true);
-      for (var i = 0; i < 5; i++) { var sp = this._spawnPoint(main, i); this._addUnit(p, R.worker, sp.x, sp.y); }
-      if (R.grow) main.larva = LARVA_MAX;
+    this.fogOff = !!opts.fogOff; this.endRule = opts.endRule || 'blds';
+    this.cold = 0;                 // мороз 0…1 (погода «Зимнего вала»): медленнее ходят вдали от тепла, медленнее добыча и стройка
+    this.banners = [];             // знамёна Ярины: { x, y, r, until, owner }
+    this.allowB = null;            // кампания: какие здания можно ставить (null — все из R.order)
+    this.allowU = null;            // кампания: каких юнитов можно обучать (null — всех)
+    this.flares = [];              // кампания: временный обзор игрока { x, y, r (клетки), until }
+    var addNode = function (type, tx, ty, amt) { var s = type === 'resin' ? 2 : 1; return self._addEnt({ kind: 'n', type: type, owner: -1, tx: tx, ty: ty, s: s, amt: amt || NODE_AMT[type], amt0: amt || NODE_AMT[type], hp: 1, maxhp: 1 }); };
+    this.addNode = addNode;
+    if (M) { (M.nodes || []).forEach(function (n) { addNode(n.type, n.tx, n.ty, n.amt); }); }
+    else {
+      // месторождения
+      [AMBER0, EXP0.amber].forEach(function (list) { list.forEach(function (a) { addNode('amber', a[0], a[1]); var m = mir(a[0], a[1]); addNode('amber', m[0], m[1]); }); });
+      [RESIN0, EXP0.resin].forEach(function (r) { addNode('resin', r[0], r[1]); var m = mir(r[0], r[1], 2); addNode('resin', m[0], m[1]); });
+      // стартовые базы
+      for (var p = 0; p < 2; p++) {
+        var R = RACES[this.races[p]], B = BASES[p];
+        var main = this._addBuilding(p, R.main, B.tx, B.ty, true);
+        for (var i = 0; i < 5; i++) { var sp = this._spawnPoint(main, i); this._addUnit(p, R.worker, sp.x, sp.y); }
+        if (R.grow) main.larva = LARVA_MAX;
+      }
     }
     this._recalcMyc();
-    this.ai = opts.noAI ? null : new AI(this, 1);
+    this.ai = opts.noAI || M ? null : new AI(this, 1);
     if (opts.aiBoth) this.ai0 = new AI(this, 0);
     this._updateVis();
   }
   P.Game = Game;
   P.create = function (o) { return new Game(o); };
-  P.RACES = RACES; P.T = T; P.MW = MW; P.MH = MH; P.TERR = TERR; P.PASS = PASS; P.mulberry32 = mulberry32; P.Heap = Heap;
+  P.RACES = RACES; P.T = T; P.MW = MW; P.MH = MH; P.TERR = TERR; P.PASS = PASS; P.BUILD = BUILD; P.TSPD = TSPD; P.RKEY = RKEY; P.mulberry32 = mulberry32; P.Heap = Heap;
   P.consts = { LARVA_MAX: LARVA_MAX, LARVA_EVERY: LARVA_EVERY, SUP_MAX: SUP_MAX, QUEUE_MAX: QUEUE_MAX, GATHER: GATHER, NODE_AMT: NODE_AMT };
 
   var G = Game.prototype;
   G.def = function (e) { var R = RACES[this.races[e.owner]]; return e.kind === 'u' ? R.units[e.type] : R.buildings[e.type]; };
   G.race = function (p) { return RACES[this.races[p]]; };
   G.get = function (id) { return this.byId.get(id) || null; };
+  // события: main.js (onEvent) + миссия кампании (mission.event), если она подключена
+  G.emit = function (t, d) { this.onEvent(t, d); if (this.mission && this.mission.event) this.mission.event(t, d); };
   G._addEnt = function (e) {
     e.id = this.nextId++; if (e.kind !== 'u') { e.x = (e.tx + e.s / 2) * T; e.y = (e.ty + e.s / 2) * T; this._occupy(e, e.id + 1); }
     this.ents.push(e); this.byId.set(e.id, e); return e;
   };
-  G._occupy = function (e, v) { for (var y = e.ty; y < e.ty + e.s; y++) for (var x = e.tx; x < e.tx + e.s; x++) this.occ[y * MW + x] = v; };
+  G._occupy = function (e, v) { for (var y = e.ty; y < e.ty + e.s; y++) for (var x = e.tx; x < e.tx + e.s; x++) this.occ[y * this.MW + x] = v; };
   G._addBuilding = function (p, type, tx, ty, done) {
     var D = this.race(p).buildings[type];
     var b = this._addEnt({ kind: 'b', type: type, owner: p, tx: tx, ty: ty, s: D.s, maxhp: D.hp, hp: done ? D.hp : Math.max(1, D.hp * 0.1),
@@ -179,8 +203,22 @@
   };
 
   // ---------- Проходимость и A* ----------
-  G.inMap = function (tx, ty) { return tx >= 0 && ty >= 0 && tx < MW && ty < MH; };
-  G.passable = function (tx, ty) { return this.inMap(tx, ty) && PASS[this.terr[ty * MW + tx]] && this.occ[ty * MW + tx] === 0; };
+  G.inMap = function (tx, ty) { return tx >= 0 && ty >= 0 && tx < this.MW && ty < this.MH; };
+  G.passable = function (tx, ty) { return this.inMap(tx, ty) && PASS[this.terr[ty * this.MW + tx]] && this.occ[ty * this.MW + tx] === 0; };
+  G.terrAt = function (tx, ty) { return this.inMap(tx, ty) ? this.terr[ty * this.MW + tx] : TERR.WOOD; };
+  // смена клеток карты (кампания: разлив, лёд, мост): перерисовать землю, вытолкнуть юнитов с непроходимого, перестроить пути
+  G.setTiles = function (cells, to) {
+    var self = this, n = 0;
+    cells.forEach(function (c) { var k = c[1] * self.MW + c[0]; if (self.inMap(c[0], c[1]) && self.terr[k] !== to) { self.terr[k] = to; n++; } });
+    if (!n) return 0;
+    this.terrRev++; this._mycDirty = true;
+    this.ents.forEach(function (e) {
+      if (e.dead) return;
+      if (e.kind === 'u') { if (!self.walkPx(e.x, e.y)) { var fc = self._freeAround(Math.floor(e.x / T), Math.floor(e.y / T), 1)[0]; if (fc) { e.x = (fc[0] + 0.5) * T; e.y = (fc[1] + 0.5) * T; } } e.path = null; }
+      else if (e.kind === 'b' && !self.def(e).deck) { for (var y = e.ty; y < e.ty + e.s; y++) for (var x = e.tx; x < e.tx + e.s; x++) if (!PASS[self.terr[y * self.MW + x]]) { self._kill(e, null); return; } }
+    });
+    return n;
+  };
   G.walkPx = function (x, y) { return this.passable(Math.floor(x / T), Math.floor(y / T)); };
   // A* по 8 направлениям без срезания углов. goal(x,y) → bool; h(x,y) → оценка (тайлы).
   // Если цель недостижима — путь к самой близкой к ней достигнутой клетке (best по h). → массив [x,y] тайлов или null
@@ -188,27 +226,27 @@
     if (!this.inMap(sx, sy)) return null;
     if (goal(sx, sy)) return [[sx, sy]];
     limit = limit || 6000;
-    var N = MW * MH, gs = this._gs || (this._gs = new Float32Array(N)), from = this._from || (this._from = new Int32Array(N)), stamp = this._stamp || (this._stamp = new Int32Array(N)), closed = this._closed || (this._closed = new Int32Array(N));
+    var N = this.MW * this.MH, gs = this._gs || (this._gs = new Float32Array(N)), from = this._from || (this._from = new Int32Array(N)), stamp = this._stamp || (this._stamp = new Int32Array(N)), closed = this._closed || (this._closed = new Int32Array(N));
     var run = this._run = (this._run || 0) + 1;
-    var open = new Heap(), s = sy * MW + sx; stamp[s] = run; gs[s] = 0; from[s] = -1; open.push(s, h(sx, sy));
+    var open = new Heap(), s = sy * this.MW + sx; stamp[s] = run; gs[s] = 0; from[s] = -1; open.push(s, h(sx, sy));
     var best = s, bestH = h(sx, sy), found = -1, iter = 0;
     var DX = [1, -1, 0, 0, 1, 1, -1, -1], DY = [0, 0, 1, -1, 1, -1, 1, -1];
     while (open.size && iter++ < limit) {
       var c = open.pop(); if (closed[c] === run) continue; closed[c] = run;
-      var cx = c % MW, cy = (c / MW) | 0;
+      var cx = c % this.MW, cy = (c / this.MW) | 0;
       if (goal(cx, cy)) { found = c; break; }
       var hc = h(cx, cy); if (hc < bestH) { bestH = hc; best = c; }
       for (var d = 0; d < 8; d++) {
         var nx = cx + DX[d], ny = cy + DY[d];
         if (!this.passable(nx, ny)) continue;
         if (d >= 4 && (!this.passable(cx + DX[d], cy) || !this.passable(cx, cy + DY[d]))) continue;
-        var n = ny * MW + nx; if (closed[n] === run) continue;
+        var n = ny * this.MW + nx; if (closed[n] === run) continue;
         var ng = gs[c] + (d < 4 ? 1 : 1.4142);
         if (stamp[n] !== run || ng < gs[n]) { stamp[n] = run; gs[n] = ng; from[n] = c; open.push(n, ng + h(nx, ny) * 1.001); }
       }
     }
     var end = found >= 0 ? found : best, out = [];
-    while (end >= 0) { out.push([end % MW, (end / MW) | 0]); end = from[end]; if (out.length > N) break; }
+    while (end >= 0) { out.push([end % this.MW, (end / this.MW) | 0]); end = from[end]; if (out.length > N) break; }
     out.reverse(); out.found = found >= 0;
     return out;
   };
@@ -239,8 +277,8 @@
   // ---------- Выбор (рамка/клик) ----------
   G.visibleTo = function (e, p) {
     if (e.owner === p || this.fogOff) return true;
-    if (e.kind === 'u') { var tx = Math.floor(e.x / T), ty = Math.floor(e.y / T); return this.inMap(tx, ty) && this.vis[p][ty * MW + tx] === 2; }
-    if (e.kind === 'n') return this.vis[p][e.ty * MW + e.tx] > 0;
+    if (e.kind === 'u') { var tx = Math.floor(e.x / T), ty = Math.floor(e.y / T); return this.inMap(tx, ty) && this.vis[p][ty * this.MW + tx] === 2; }
+    if (e.kind === 'n') return this.vis[p][e.ty * this.MW + e.tx] > 0;
     return !!e.seen[p];
   };
   // Сущность под точкой мира (юниты важнее зданий)
@@ -250,7 +288,8 @@
       if (e.kind === 'u') { var d = Math.hypot(e.x - x, e.y - y); if (d <= e.r + 4 && d < bd) { bd = d; best = e; } } }
     if (best) return best;
     var tx = Math.floor(x / T), ty = Math.floor(y / T); if (!this.inMap(tx, ty)) return null;
-    var id = this.occ[ty * MW + tx] - 1; var b = id > 0 ? this.get(id) : null;
+    var id = this.occ[ty * this.MW + tx] - 1; var b = id > 0 ? this.get(id) : null;
+    if (!b) for (var j = 0; j < this.ents.length; j++) { var d = this.ents[j]; if (!d.dead && d.kind === 'b' && d.done && d.type === 'span' && tx >= d.tx && ty >= d.ty && tx < d.tx + d.s && ty < d.ty + d.s) { b = d; break; } } // готовый настил моста
     return b && this.visibleTo(b, p) ? b : null;
   };
   // Рамка: свои юниты, чей круг задевает рамку; если юнитов нет — одно своё здание в рамке.
@@ -283,7 +322,8 @@
   G.count = function (p, kind, type, pred) { var n = 0; for (var i = 0; i < this.ents.length; i++) { var e = this.ents[i]; if (!e.dead && e.owner === p && e.kind === kind && (!type || e.type === type) && (!pred || pred(e))) n++; } return n; };
   // Почему нельзя обучить юнита (null — можно)
   G.trainBlock = function (p, b, type) {
-    var R = this.race(p), D = R.units[type]; if (!D || !b || b.dead || b.owner !== p || !b.done) return 'nobuild';
+    var R = this.race(p), D = R.units[type]; if (!D || D.hero || !b || b.dead || b.owner !== p || !b.done) return 'nobuild';
+    if (p === 0 && this.allowU && !this.allowU[type]) return 'nobuild';
     var BD = R.buildings[b.type];
     if (R.grow) { if (!BD.larva) return 'nobuild'; if (D.req && !this.hasDone(p, D.req)) return 'req'; if (b.larva < 1) return 'larva'; }
     else { if ((BD.trains || []).indexOf(type) < 0) return 'nobuild'; if (b.queue.length >= QUEUE_MAX) return 'queue'; }
@@ -295,10 +335,21 @@
   G.canPlace = function (p, type, tx, ty) {
     var R = this.race(p), D = R.buildings[type]; if (!D) return { ok: false, why: 'type' };
     if (D.req && !this.hasDone(p, D.req)) return { ok: false, why: 'req' };
+    if (this.allowB && !this.allowB[type]) return { ok: false, why: 'nobuild' };
+    if (D.deck) { // пролёт моста: вся площадь — вода, рядом — берег или готовый настил (чтобы подойти строителям)
+      var shore = false;
+      for (var dy0 = 0; dy0 < D.s; dy0++) for (var dx0 = 0; dx0 < D.s; dx0++) { var kx = tx + dx0, ky = ty + dy0;
+        if (!this.inMap(kx, ky) || this.terr[ky * this.MW + kx] !== TERR.WATER || this.occ[ky * this.MW + kx]) return { ok: false, why: 'blocked' };
+        if (p === 0 && !this.fogOff && this.vis[0][ky * this.MW + kx] === 0) return { ok: false, why: 'fog' }; }
+      for (var e2 = -1; e2 <= D.s; e2++) [[tx + e2, ty - 1], [tx + e2, ty + D.s], [tx - 1, ty + e2], [tx + D.s, ty + e2]].forEach(function (q) { if (e2 >= 0 && e2 < D.s && this.passable(q[0], q[1])) shore = true; }, this);
+      if (!shore) return { ok: false, why: 'shore' };
+      if (!this.afford(p, D.cost)) return { ok: false, why: this.res[p].a < D.cost.a ? 'amber' : 'resin' };
+      return { ok: true };
+    }
     for (var y = ty; y < ty + D.s; y++) for (var x = tx; x < tx + D.s; x++) {
-      if (!this.passable(x, y) || x < 1 || y < 1 || x > MW - 2 || y > MH - 2) return { ok: false, why: 'blocked' };
-      if (R.grow && !D.anywhere && !this.myc[p][y * MW + x]) return { ok: false, why: 'myc' };
-      if (p === 0 && !this.fogOff && this.vis[0][y * MW + x] === 0) return { ok: false, why: 'fog' };
+      if (!this.passable(x, y) || !BUILD[this.terr[y * this.MW + x]] || x < 1 || y < 1 || x > this.MW - 2 || y > this.MH - 2) return { ok: false, why: this.terr[y * this.MW + x] === TERR.ICE ? 'ice' : 'blocked' };
+      if (R.grow && !D.anywhere && !this.myc[p][y * this.MW + x]) return { ok: false, why: 'myc' };
+      if (p === 0 && !this.fogOff && this.vis[0][y * this.MW + x] === 0) return { ok: false, why: 'fog' };
     }
     // чужие юниты на месте стройки мешают
     for (var i = 0; i < this.ents.length; i++) { var e = this.ents[i]; if (e.dead || e.kind !== 'u' || e.owner === p) continue;
@@ -314,7 +365,7 @@
         var rad = D.myc * (e.done ? 1 : 0.35 + 0.65 * e.prog), cx = e.tx + e.s / 2, cy = e.ty + e.s / 2;
         for (var y = Math.floor(cy - rad); y <= Math.ceil(cy + rad); y++) for (var x = Math.floor(cx - rad); x <= Math.ceil(cx + rad); x++) {
           if (!this.inMap(x, y)) continue; var dx = x + 0.5 - cx, dy = y + 0.5 - cy;
-          if (dx * dx + dy * dy <= rad * rad && PASS[this.terr[y * MW + x]]) M[y * MW + x] = 1; } }
+          if (dx * dx + dy * dy <= rad * rad && PASS[this.terr[y * this.MW + x]]) M[y * this.MW + x] = 1; } }
     }
     this._mycDirty = false;
   };
@@ -333,6 +384,7 @@
       case 'build': return this._build(p, units, c.type, c.tx, c.ty);
       case 'train': return this._train(p, this.get(c.id), c.type);
       case 'cancel': return this._cancel(p, this.get(c.id));
+      case 'banner': return this._banner(p, this.get(c.id));
       case 'rally': { var b = this.get(c.id); if (!b || b.owner !== p || b.kind !== 'b') return false; var tgt = c.target ? this.get(c.target) : null; b.rally = { x: c.x, y: c.y, node: tgt && tgt.kind === 'n' ? tgt.id : 0 }; return true; }
     }
     return false;
@@ -383,23 +435,48 @@
       [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]].forEach(function (d) { var k = (c[0] + d[0]) + ',' + (c[1] + d[1]); if (!seen[k] && self.passable(c[0] + d[0], c[1] + d[1])) { seen[k] = 1; q.push([c[0] + d[0], c[1] + d[1]]); } }); }
     return out;
   };
+  // Знамя Ярины: на 30 с у места, где она стоит, — стройка в 1,75 раза быстрее, рядом тепло (мороз не мешает); перезарядка 60 с
+  var BANNER = { r: 4.5, life: 30, cd: 60, mul: 1.75 };
+  P.BANNER = BANNER;
+  G._banner = function (p, u) {
+    if (!u || u.dead || u.owner !== p || this.def(u).ability !== 'banner') return false;
+    if ((u.abT || 0) > this.t) { this.emit('deny', { p: p, why: 'cooldown' }); return false; }
+    u.abT = this.t + BANNER.cd; this.banners.push({ x: u.x, y: u.y, r: BANNER.r * T, until: this.t + BANNER.life, owner: p, t0: this.t });
+    this.emit('banner', { p: p, id: u.id, x: u.x, y: u.y }); return true;
+  };
+  G.bannerAt = function (p, x, y) { for (var i = 0; i < this.banners.length; i++) { var b = this.banners[i]; if (b.owner === p && b.until > this.t && Math.hypot(b.x - x, b.y - y) <= b.r) return true; } return false; };
+  // Тепло: Мастеровым — у своих готовых острога/избы/котельни (5 клеток) и у знамени; Чаще — на своей грибнице
+  G.warm = function (u) {
+    if (!this.cold) return true;
+    if ((u.warmT || 0) > this.t) return u.isWarm; u.warmT = this.t + 0.5;
+    var p = u.owner, tx = Math.floor(u.x / T), ty = Math.floor(u.y / T), w = false;
+    if (this.race(p).grow) w = this.inMap(tx, ty) && !!this.myc[p][ty * this.MW + tx];
+    else { if (this.bannerAt(p, u.x, u.y)) w = true;
+      for (var i = 0; i < this.ents.length && !w; i++) { var e = this.ents[i]; if (e.dead || e.kind !== 'b' || e.owner !== p || !e.done || !(e.type === 'hall' || e.type === 'house' || e.type === 'boiler')) continue; if (this.distTo(u, e) <= 5 * T) w = true; } }
+    u.isWarm = w; return w;
+  };
+  // множители мороза: ход (вдали от тепла), работа (добыча), рост/стройка/обучение — у рас по-разному
+  G.coldMove = function (u) { return this.cold && !this.warm(u) ? 1 - 0.3 * this.cold : 1; };
+  G.coldWork = function (u) { return this.cold ? 1 - 0.4 * this.cold * (this.warm(u) ? 0.4 : 1) : 1; };
+  G.coldGrow = function (p) { return this.cold ? 1 - (this.race(p).grow ? 0.5 : 0.3) * this.cold : 1; };
+  G.buildList = function (p) { var R = this.race(p), al = this.allowB; if (!al) return R.order.slice(0, 4); return R.order.concat(Object.keys(R.buildings).filter(function (k) { return R.buildings[k].extra && R.order.indexOf(k) < 0; })).filter(function (k) { return al[k]; }).slice(0, 4); };
   G._build = function (p, units, type, tx, ty) {
-    var R = this.race(p), workers = units.filter(function (u) { return u.type === R.worker; });
+    var self0 = this, R = this.race(p), workers = units.filter(function (u) { return self0.def(u).worker; });
     if (!workers.length) return false;
-    var chk = this.canPlace(p, type, tx, ty); if (!chk.ok) { this.onEvent('deny', { p: p, why: chk.why }); return false; }
+    var chk = this.canPlace(p, type, tx, ty); if (!chk.ok) { this.emit('deny', { p: p, why: chk.why }); return false; }
     this.pay(p, R.buildings[type].cost);
     var b = this._addBuilding(p, type, tx, ty, false);
     var self = this;
     if (R.grow) this._order(workers[0], { t: 'plant', id: b.id });  // жук сажает росток и свободен
     else workers.forEach(function (u) { var g = u.ord.t === 'gather' ? u.ord.id : (u.ord.t === 'build' ? u.prevGather : 0); self._order(u, { t: 'build', id: b.id }); u.prevGather = g; });
-    this.onEvent('place', { p: p, id: b.id, type: type });
+    this.emit('place', { p: p, id: b.id, type: type });
     return b;
   };
   G._train = function (p, b, type) {
-    var why = this.trainBlock(p, b, type); if (why) { this.onEvent('deny', { p: p, why: why }); return false; }
+    var why = this.trainBlock(p, b, type); if (why) { this.emit('deny', { p: p, why: why }); return false; }
     var R = this.race(p), D = R.units[type]; this.pay(p, D.cost);
     if (R.grow) { b.larva--; b.cocoons.push({ type: type, t: 0 }); } else b.queue.push({ type: type, t: 0 });
-    this.onEvent('queue', { p: p, id: b.id, type: type });
+    this.emit('queue', { p: p, id: b.id, type: type });
     return true;
   };
   G._cancel = function (p, b) {
@@ -424,28 +501,40 @@
     if (this._mycDirty || ((this.t * 2) | 0) !== (((this.t - dt) * 2) | 0)) this._recalcMyc();
     this._visT -= dt; if (this._visT <= 0) { this._visT = 0.2; this._updateVis(); }
     if (this.ai) this.ai.update(dt); if (this.ai0) this.ai0.update(dt);
-    // победа: у стороны не осталось зданий
-    for (var p = 0; p < 2; p++) if (this.count(p, 'b') === 0) { this.winner = 1 - p; this.onEvent('end', { winner: 1 - p }); break; }
+    if (this.banners.length) { var tnow = this.t; this.banners = this.banners.filter(function (b) { return b.until > tnow; }); }
+    if (this.mission && this.mission.step) this.mission.step(dt);   // кампания: триггеры, цели, сценарный ИИ (js/campaign.js)
+    // победа: у стороны не осталось зданий (в кампании endRule 'none' — исход решает миссия: G.end)
+    if (this.endRule !== 'none' && this.winner < 0) for (var p = 0; p < 2; p++) if (this.count(p, 'b') === 0) { this.end(1 - p); break; }
   };
+  G.end = function (winner) { if (this.winner >= 0) return; this.winner = winner; this.emit('end', { winner: winner }); };
   G._bld = function (b, dt) {
     var D = this.def(b), R = this.race(b.owner);
     if (!b.done) {
-      if (R.grow && b.planted) { this._progress(b, dt / D.time); }
+      if (R.grow && b.planted) { this._progress(b, dt / D.time * this.coldGrow(b.owner)); }
       return; // люди: прогресс двигают рабочие (_unit build)
     }
     if (D.regen && b.hp < b.maxhp) b.hp = Math.min(b.maxhp, b.hp + D.regen * dt);
     if (R.grow && D.larva) {
-      if (b.larva < LARVA_MAX) { b.larvaT += dt; if (b.larvaT >= LARVA_EVERY) { b.larvaT = 0; b.larva++; } } else b.larvaT = 0;
-      for (var c = b.cocoons.length - 1; c >= 0; c--) { var co = b.cocoons[c]; co.t += dt; if (co.t >= R.units[co.type].time) { b.cocoons.splice(c, 1); this._emerge(b, co.type); } }
+      var gk = this.coldGrow(b.owner);
+      if (b.larva < LARVA_MAX) { b.larvaT += dt * gk; if (b.larvaT >= LARVA_EVERY) { b.larvaT = 0; b.larva++; } } else b.larvaT = 0;
+      for (var c = b.cocoons.length - 1; c >= 0; c--) { var co = b.cocoons[c]; co.t += dt * gk; if (co.t >= R.units[co.type].time) { b.cocoons.splice(c, 1); this._emerge(b, co.type); } }
     } else if (b.queue.length) {
-      var q = b.queue[0]; q.t += dt; if (q.t >= R.units[q.type].time) { b.queue.shift(); this._emerge(b, q.type); }
+      var q = b.queue[0]; q.t += dt * this.coldGrow(b.owner); if (q.t >= R.units[q.type].time) { b.queue.shift(); this._emerge(b, q.type); }
     }
   };
   G._progress = function (b, k) {
     var D = this.def(b), before = b.prog; b.prog = Math.min(1, b.prog + k);
     b.hp = Math.min(b.maxhp, b.hp + b.maxhp * 0.9 * (b.prog - before));
-    if (b.prog >= 1 && !b.done) { b.done = true; b.hp = Math.max(b.hp, Math.round(b.hp)); this._mycDirty = true; if (D.larva) b.larva = 1; this.stats[b.owner].built++; this.onEvent('built', { p: b.owner, id: b.id, type: b.type }); }
+    if (b.prog >= 1 && !b.done) { b.done = true; b.hp = Math.max(b.hp, Math.round(b.hp)); this._mycDirty = true; if (D.larva) b.larva = 1;
+      if (D.deck) this._deck(b, true); this.stats[b.owner].built++; this.emit('built', { p: b.owner, id: b.id, type: b.type }); }
   };
+  // настил пролёта: готов — клетки BRIDGE и проходимы (сам пролёт остаётся сущностью: его можно бить и чинить); снесён — снова вода
+  G._deck = function (b, on) {
+    var cells = []; for (var y = b.ty; y < b.ty + b.s; y++) for (var x = b.tx; x < b.tx + b.s; x++) cells.push([x, y]);
+    if (on) { this._occupy(b, 0); this.setTiles(cells, TERR.BRIDGE); }
+    else { this.setTiles(cells, TERR.WATER); }
+  };
+  G.decks = function (p) { return this.ents.filter(function (e) { return !e.dead && e.kind === 'b' && (p == null || e.owner === p) && e.type === 'span'; }); };
   G._spawnPoint = function (b, i) {
     var tiles = [], self = this;
     for (var x = b.tx - 1; x <= b.tx + b.s; x++) for (var y = b.ty - 1; y <= b.ty + b.s; y++) { if (x >= b.tx && x < b.tx + b.s && y >= b.ty && y < b.ty + b.s) continue; if (self.passable(x, y)) tiles.push([x, y]); }
@@ -460,7 +549,7 @@
     this.stats[b.owner].trained++;
     if (b.rally) { var n = b.rally.node ? this.get(b.rally.node) : null;
       if (n && !n.dead && this.def(u).worker) this._order(u, { t: 'gather', id: n.id }); else this._order(u, { t: this.def(u).worker ? 'move' : 'amove', x: b.rally.x, y: b.rally.y }); }
-    this.onEvent('trained', { p: b.owner, id: u.id, type: type });
+    this.emit('trained', { p: b.owner, id: u.id, type: type });
     return u;
   };
   // Расстояние от юнита до края сущности (px)
@@ -494,19 +583,20 @@
         if (b.done) { this._afterBuild(u); break; }
         if (this.distTo(u, b) > reach) { this._approachRect(u, D, dt, b); break; }
         u.path = null; u.work = true;
-        var builders = 0; for (var i = 0; i < this.ents.length; i++) { var w = this.ents[i]; if (w.kind === 'u' && w.ord.t === 'build' && w.ord.id === b.id && w.work) builders++; }
-        this._progress(b, dt / this.def(b).time * (builders > 3 ? 3 / builders : 1));
+        var builders = 0, crafts = 0; for (var i = 0; i < this.ents.length; i++) { var w = this.ents[i]; if (w.kind === 'u' && !w.dead && w.ord.t === 'build' && w.ord.id === b.id && w.work) { builders++; crafts += this.def(w).craft || 1; } }
+        var mine = D.craft || 1, share = builders > 3 ? 3 * mine / crafts : mine; // троим быстрее; больше — не быстрее (Тихон — за двоих)
+        this._progress(b, dt / this.def(b).time * share * this.coldGrow(b.owner) * (this.bannerAt(b.owner, b.x, b.y) ? BANNER.mul : 1));
         if (b.done) this._afterBuild(u);
         break; }
       case 'plant': {
         var s = this.get(o.id); if (!s || s.dead || s.planted) { this._order(u, { t: 'idle' }); break; }
         if (this.distTo(u, s) > reach) { this._approachRect(u, D, dt, s); break; }
-        s.planted = true; this._mycDirty = true; this.onEvent('planted', { p: u.owner, id: s.id });
+        s.planted = true; this._mycDirty = true; this.emit('planted', { p: u.owner, id: s.id });
         var pg = u.prevGather; this._order(u, pg ? { t: 'gather', id: pg } : { t: 'idle' }); break; }
       case 'repair': {
         var rb = this.get(o.id); if (!rb || rb.dead || rb.hp >= rb.maxhp) { this._order(u, { t: 'idle' }); break; }
         if (this.distTo(u, rb) > reach + (rb.kind === 'u' ? 4 : 0)) { if (rb.kind === 'b') this._approachRect(u, D, dt, rb); else this._follow(u, D, dt, rb.x, rb.y, null, null, rb.r + u.r + 6); break; }
-        u.path = null; u.work = true; rb.hp = Math.min(rb.maxhp, rb.hp + REPAIR_HPS * dt); break; }
+        u.path = null; u.work = true; rb.hp = Math.min(rb.maxhp, rb.hp + REPAIR_HPS * (D.craft || 1) * dt); break; }
     }
     if (o.t !== 'build' && o.t !== 'repair') u.work = false;
   };
@@ -547,7 +637,8 @@
   };
   G._stepTo = function (u, D, dt, x, y) {
     var dx = x - u.x, dy = y - u.y, d = Math.hypot(dx, dy); if (d < 0.01) return;
-    var v = D.spd * T * dt, k = Math.min(1, v / d), nx = u.x + dx * k, ny = u.y + dy * k;
+    var tt = this.terr[Math.floor(u.y / T) * this.MW + Math.floor(u.x / T)];
+    var v = D.spd * T * dt * (TSPD[tt] || 1) * this.coldMove(u) * (u.sm || 1), k = Math.min(1, v / d), nx = u.x + dx * k, ny = u.y + dy * k;
     u.fx = dx / d; u.fy = dy / d; u.moving = true;
     this._place(u, nx, ny);
   };
@@ -627,20 +718,20 @@
     if (D.splash) { var R = D.splash * T;
       for (var i = 0; i < this.ents.length; i++) { var e = this.ents[i]; if (e === tg || e.dead || e.kind !== 'u' || e.owner === u.owner || e.owner < 0) continue;
         if (Math.hypot(e.x - tg.x, e.y - tg.y) <= R + e.r) this._damage(e, dmg(e) * 0.5, u); } }
-    this.onEvent('shot', { p: u.owner, type: u.type, x: u.x, y: u.y, tx: tg.x, ty: tg.y });
+    this.emit('shot', { p: u.owner, type: u.type, x: u.x, y: u.y, tx: tg.x, ty: tg.y });
   };
   G._damage = function (e, n, by) {
     if (e.dead) return; e.hp -= n; e.hitT = this.t;
-    this.onEvent('hurt', { p: e.owner, id: e.id, x: e.x, y: e.y, kind: e.kind });
+    this.emit('hurt', { p: e.owner, id: e.id, x: e.x, y: e.y, kind: e.kind });
     // ответный огонь: стоящий боец переключается на обидчика
     if (e.kind === 'u' && by && !by.dead && e.ord.t === 'idle' && !e.tgt && !this.def(e).worker) e.tgt = by.id;
     if (e.hp <= 0) this._kill(e, by);
   };
   G._kill = function (e, by, silent) {
     e.dead = true; e.hp = 0; this.byId.delete(e.id);
-    if (e.kind !== 'u') { this._occupy(e, 0); this._mycDirty = true; }
-    if (!silent && e.owner >= 0) { this.stats[e.owner].lost++; if (by) this.stats[by.owner].kills++; }
-    this.onEvent('death', { p: e.owner, id: e.id, kind: e.kind, type: e.type, x: e.x, y: e.y, s: e.s, silent: !!silent });
+    if (e.kind !== 'u') { this._occupy(e, 0); this._mycDirty = true; if (e.kind === 'b' && e.done && this.def(e).deck) this._deck(e, false); }
+    if (!silent && e.owner >= 0) { this.stats[e.owner].lost++; if (e.kind === 'b') this.stats[e.owner].lostB++; if (by) this.stats[by.owner].kills++; }
+    this.emit('death', { p: e.owner, id: e.id, kind: e.kind, type: e.type, x: e.x, y: e.y, s: e.s, silent: !!silent, tag: e.tag || null, hero: e.kind === 'u' && e.owner >= 0 && !!this.def(e).hero });
   };
   // Добыча: к месторождению → копать → к ближайшему складу (главное здание) → сдать → снова
   G._gather = function (u, D, dt, reach) {
@@ -648,15 +739,15 @@
     if (u.carry && (o.ret || !n || n.dead || u.carry.amt > 0 && o.phase !== 'mine')) {
       var drop = this._nearestDrop(u); if (!drop) { this._order(u, { t: 'idle' }); return; }
       if (this.distTo(u, drop) > reach) { this._approachRect(u, D, dt, drop); return; }
-      this.res[u.owner][u.carry.type === 'amber' ? 'a' : 'r'] += u.carry.amt; this.stats[u.owner].gathered += u.carry.amt;
-      this.onEvent('deposit', { p: u.owner, type: u.carry.type, amt: u.carry.amt, x: u.x, y: u.y });
+      this.res[u.owner][RKEY[u.carry.type]] += u.carry.amt; this.stats[u.owner].gathered += u.carry.amt; if (u.carry.type === 'timber') this.stats[u.owner].wood += u.carry.amt;
+      this.emit('deposit', { p: u.owner, type: u.carry.type, amt: u.carry.amt, x: u.x, y: u.y });
       var lastType = u.carry.type; u.carry = null; o.ret = false; u.path = null;
-      if (!n || n.dead) { var nn = this._nearestNode(u, lastType); if (nn) { o.id = nn.id; n = nn; } else { this._order(u, { t: 'idle' }); return; } }
+      if (!n || n.dead) { var nn = this._nearestNode(u, lastType, null, u.lastNX); if (nn) { o.id = nn.id; n = nn; } else { this._order(u, { t: 'idle' }); return; } }
     }
-    if (!n || n.dead) { var alt = this._nearestNode(u, u.lastType || 'amber'); if (alt) { o.id = alt.id; u.path = null; } else this._order(u, { t: 'idle' }); return; }
-    u.lastNode = n.id; u.lastType = n.type;
+    if (!n || n.dead) { var alt = this._nearestNode(u, u.lastType || 'amber', null, u.lastNX); if (alt) { o.id = alt.id; u.path = null; } else this._order(u, { t: 'idle' }); return; }
+    u.lastNode = n.id; u.lastType = n.type; u.lastNX = { x: n.x, y: n.y };
     if (this.distTo(u, n) > reach) { o.phase = 'go'; this._approachRect(u, D, dt, n); return; }
-    o.phase = 'mine'; u.path = null; u.work = true; u.mineT = (u.mineT || 0) + dt; u.fx = (n.x - u.x) / (Math.hypot(n.x - u.x, n.y - u.y) || 1); u.fy = (n.y - u.y) / (Math.hypot(n.x - u.x, n.y - u.y) || 1);
+    o.phase = 'mine'; u.path = null; u.work = true; u.mineT = (u.mineT || 0) + dt * this.coldWork(u); u.fx = (n.x - u.x) / (Math.hypot(n.x - u.x, n.y - u.y) || 1); u.fy = (n.y - u.y) / (Math.hypot(n.x - u.x, n.y - u.y) || 1);
     var gk = GATHER[n.type];
     if (u.mineT >= gk.t) {
       u.mineT = 0; var amt = Math.min(gk.amt, n.amt); n.amt -= amt; u.carry = { type: n.type, amt: amt }; o.phase = 'back'; u.work = false;
@@ -669,9 +760,10 @@
       var d = this.distTo(u, e); if (d < bd) { bd = d; best = e; } }
     return best;
   };
-  G._nearestNode = function (u, type, maxD) {
-    var best = null, bd = maxD || 14 * T;
-    for (var i = 0; i < this.ents.length; i++) { var e = this.ents[i]; if (e.dead || e.kind !== 'n' || e.type !== type) continue; var d = Math.hypot(e.x - u.x, e.y - u.y); if (d < bd) { bd = d; best = e; } }
+  // ближайшее месторождение типа type; from — откуда искать (иссякшая жила: искать рядом с ней, а не у склада)
+  G._nearestNode = function (u, type, maxD, from) {
+    var best = null, bd = maxD || 14 * T, ox = from ? from.x : u.x, oy = from ? from.y : u.y;
+    for (var i = 0; i < this.ents.length; i++) { var e = this.ents[i]; if (e.dead || e.kind !== 'n' || e.type !== type) continue; var d = Math.hypot(e.x - ox, e.y - oy); if (d < bd) { bd = d; best = e; } }
     return best;
   };
 
@@ -683,13 +775,16 @@
       for (var k = 0; k < this.ents.length; k++) { var e = this.ents[k]; if (e.dead || e.owner !== p) continue;
         var D = this.def(e), sr = D.sight * (e.kind === 'b' && !e.done ? 0.6 : 1), cx = e.x / T, cy = e.y / T;
         for (var y = Math.floor(cy - sr); y <= Math.ceil(cy + sr); y++) for (var x = Math.floor(cx - sr); x <= Math.ceil(cx + sr); x++) {
-          if (!this.inMap(x, y)) continue; var dx = x + 0.5 - cx, dy = y + 0.5 - cy; if (dx * dx + dy * dy <= sr * sr) V[y * MW + x] = 2; } }
+          if (!this.inMap(x, y)) continue; var dx = x + 0.5 - cx, dy = y + 0.5 - cy; if (dx * dx + dy * dy <= sr * sr) V[y * this.MW + x] = 2; } }
+      if (p === 0 && this.flares.length) { var tn = this.t; this.flares = this.flares.filter(function (f) { return f.until > tn; });
+        for (var fi = 0; fi < this.flares.length; fi++) { var fl = this.flares[fi], fx = fl.x / T, fy = fl.y / T;
+          for (var y2 = Math.floor(fy - fl.r); y2 <= Math.ceil(fy + fl.r); y2++) for (var x2 = Math.floor(fx - fl.r); x2 <= Math.ceil(fx + fl.r); x2++) if (this.inMap(x2, y2) && Math.hypot(x2 + 0.5 - fx, y2 + 0.5 - fy) <= fl.r) V[y2 * this.MW + x2] = 2; } }
       // здания противника, попавшие в обзор, запоминаются
       for (var j = 0; j < this.ents.length; j++) { var b = this.ents[j]; if (b.kind !== 'b' || b.owner === p || b.seen[p]) continue;
-        for (var yy = b.ty; yy < b.ty + b.s && !b.seen[p]; yy++) for (var xx = b.tx; xx < b.tx + b.s; xx++) if (V[yy * MW + xx] === 2) { b.seen[p] = true; break; } }
+        for (var yy = b.ty; yy < b.ty + b.s && !b.seen[p]; yy++) for (var xx = b.tx; xx < b.tx + b.s; xx++) if (V[yy * this.MW + xx] === 2) { b.seen[p] = true; break; } }
     }
   };
-  G.tileVis = function (p, tx, ty) { return this.fogOff ? 2 : this.vis[p][ty * MW + tx]; };
+  G.tileVis = function (p, tx, ty) { return this.fogOff ? 2 : this.vis[p][ty * this.MW + tx]; };
 
   // ---------- ИИ: развивается по плану и нападает волнами ----------
   function AI(game, p) {
@@ -759,7 +854,7 @@
         var ids = army.map(function (u) { u.wave = true; return u.id; });
         g.cmd(p, { t: 'amove', ids: ids, x: target.x, y: target.y });
         this.wave++; this.lastWaveT = this.t; this.nextWave = this.t + 100; this.waveSize = Math.min(24, this.waveSize + 3);
-        g.onEvent('wave', { p: p, n: this.wave, size: ids.length });
+        g.emit('wave', { p: p, n: this.wave, size: ids.length });
       }
     } else if (this.wave > 0) {
       // волна дошла и стоит без дела — добить ближайшее здание
@@ -769,7 +864,7 @@
     if (main) army.forEach(function (u) { if (!u.wave && u.ord.t === 'idle' && Math.hypot(u.x - main.x, u.y - main.y) > 12 * T) g.cmd(p, { t: 'move', ids: [u.id], x: main.x + (p ? -4 : 4) * T, y: main.y + (p ? -4 : 4) * T }); });
   };
   AI.prototype._target = function () {
-    var g = this.g, p = this.p, enemy = 1 - p, best = null, bd = 1e9, B = BASES[p], ox = (B.tx + 2) * T, oy = (B.ty + 2) * T;
+    var g = this.g, p = this.p, enemy = 1 - p, best = null, bd = 1e9, home = this._mine().filter(function (e) { return e.kind === 'b'; })[0], ox = home ? home.x : g.MW * T / 2, oy = home ? home.y : g.MH * T / 2;
     g.ents.forEach(function (e) { if (e.dead || e.owner !== enemy || e.kind !== 'b') return; var d = Math.hypot(e.x - ox, e.y - oy); if (d < bd) { bd = d; best = e; } });
     return best;
   };
@@ -796,7 +891,7 @@
   };
   AI.prototype._margin = function (tx, ty, s) {
     var g = this.g;
-    for (var x = tx - 1; x <= tx + s; x++) for (var y = ty - 1; y <= ty + s; y++) { if (x >= tx && x < tx + s && y >= ty && y < ty + s) continue; if (!g.inMap(x, y) || g.occ[y * MW + x]) return false; }
+    for (var x = tx - 1; x <= tx + s; x++) for (var y = ty - 1; y <= ty + s; y++) { if (x >= tx && x < tx + s && y >= ty && y < ty + s) continue; if (!g.inMap(x, y) || g.occ[y * g.MW + x]) return false; }
     // не загораживать месторождения
     for (var i = 0; i < g.ents.length; i++) { var n = g.ents[i]; if (n.kind === 'n' && n.tx >= tx - 2 && n.tx <= tx + s + 1 && n.ty >= ty - 2 && n.ty <= ty + s + 1) return false; }
     return true;
