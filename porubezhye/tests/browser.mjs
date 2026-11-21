@@ -1,7 +1,8 @@
 /* ПОРУБЕЖЬЕ · tests/browser.mjs — демо в браузере (Playwright): движок кампании подключён, но миссий нет; меню (Играть, Раса, «Кампания · в полной версии»), экран
    «Кампания — в полной версии» («Вернуться в меню», «Узнать больше» → ../), старт по Enter, пауза P, тема T, язык L,
-   0 ошибок консоли. Скриншоты (если указана папка): porubezhye-{retro,modern}.png — геймплей обеих рас-соперников
-   (партия на автопилоте у игрока, ~5-я минута, кроп по canvas 1280×720) и porubezhye-edition-{retro,modern}.png.
+   третья раса (Курганный род) в скирмише демо, 0 ошибок консоли. Скриншоты (если указана папка): porubezhye-{retro,modern}.png — геймплей рас-соперников
+   (партия на автопилоте у игрока, ~5-я минута, кроп по canvas 1280×720), porubezhye-barrow-{retro,modern}.png — то же за Курганный род,
+   и porubezhye-edition-{retro,modern}.png.
    Запуск из корня репо: node porubezhye/tests/browser.mjs [папка-для-скриншотов]
    Сервер: если на PORT (по умолчанию 8352) уже отвечает http.server над репо — используется он, иначе поднимается свой. */
 import { createRequire } from 'node:module';
@@ -93,6 +94,24 @@ try {
     });
     await wait(400); ok(await scene() === 'play', 'партия закончилась до кадра: ' + await scene());
     await shot('');
+  });
+  await test('третья раса в скирмише демо: «Раса» по кругу — Мастеровые → Живая чаща → Курганный род; старт — курган и 5 каменщиков, камень и руда у базы', async () => {
+    await page.evaluate(() => PORUB.g.goto('title')); await wait(200);
+    const lab = () => label('race');
+    for (let i = 0; i < 3 && !/Курганный род/.test(await lab()); i++) { await page.evaluate(() => { const m = PORUB.g.menu.get('title'); m.sel = m.indexOf('race'); }); await page.keyboard.press('Enter'); await wait(120); }
+    ok(/Раса: Курганный род/.test(await lab()), await lab());
+    await page.evaluate(() => { const m = PORUB.g.menu.get('title'); m.sel = 0; }); await page.keyboard.press('Enter'); await wait(400); ok(await scene() === 'play', 'сцена ' + await scene());
+    const st = await page.evaluate(() => { const G = PORUB.debug.game; return { r: G.races.join(), k: G.ents.filter(e => e.owner === 0 && e.type === 'kurgan').length, m: G.ents.filter(e => e.owner === 0 && e.type === 'mason').length, stone: G.ents.filter(e => e.type === 'stone').length, ore: G.ents.filter(e => e.type === 'ore').length }; });
+    ok(/^barrow,(wright|thicket)$/.test(st.r) && st.k === 1 && st.m === 5 && st.stone === 10 && st.ore === 2, JSON.stringify(st));
+    if (SHOTS) {
+      await page.evaluate(() => {
+        const D = PORUB.debug, G = D.game, A0 = new PORUB.AI(G, 0); let fightT = -1;
+        for (let t = 0; t < 600; t += 0.05) { A0.update(0.05); G.update(0.05); if (fightT < 0 && t > 200 && G.ents.some(e => !e.dead && e.kind === 'u' && e.owner === 1 && G.ents.some(m => !m.dead && m.owner === 0 && Math.hypot(m.x - e.x, m.y - e.y) < 160))) fightT = t; if (fightT > 0 && t > fightT + 3) break; }
+        let best = null, bs = -1; G.ents.filter(e => !e.dead && e.owner === 0 && e.kind === 'u').forEach(u => { const s = G.ents.filter(e => !e.dead && Math.hypot(e.x - u.x, e.y - u.y) < 220).length + (G.ents.some(e => !e.dead && e.owner === 1 && Math.hypot(e.x - u.x, e.y - u.y) < 200) ? 8 : 0); if (s > bs) { bs = s; best = u; } });
+        const c = best || G.ents.find(e => !e.dead && e.owner === 0); D.cam.x = c.x - D.view.w / 2; D.cam.y = c.y - D.view.h / 2;
+      });
+      await wait(400); ok(await scene() === 'play', 'партия закончилась до кадра'); await shot('-barrow');
+    }
   });
   await test('ошибок в браузере нет', async () => { ok(errors.length === 0, errors.join(' | ')); });
   await ctx.close();

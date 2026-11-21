@@ -653,20 +653,20 @@
   UI.install = function (game, h) {
     g = game; host = h;
     if (E.attach) E.attach(g);   // издание «для площадок»: товар full_game (проверка покупок при запуске — движок v2.7)
-    try { store = global.localStorage; } catch (e) { store = null; }
+    try { store = E.storage || global.localStorage; } catch (e) { store = null; }   // E.storage — хук издания вне сайта (файлы); на сайте — localStorage
     UI.store = store; C.store = store; UI.camp = camp; UI.data = C.load(store, camp);
     // скирмиш: сторона игрока (Медный Ключ — классика; Сизый Перевал — ветряки и канатка, против ИИ Медного Ключа). ?side=sizye|copper
-    var side = 'copper', qs = /[?&]side=(sizye|copper)\b/.exec(global.location ? global.location.search : '');
-    try { side = global.localStorage.getItem('arcade.priisk.side') === 'sizye' ? 'sizye' : 'copper'; } catch (e) {}
+    var side = 'copper', qs = !E.release && /[?&]side=(sizye|copper)\b/.exec(global.location ? global.location.search : '');
+    try { side = store.getItem('arcade.priisk.side') === 'sizye' ? 'sizye' : 'copper'; } catch (e) {}
     if (qs) side = qs[1]; P.SKIRMISH_SIDE = side;
     g.menu.addItem({ key: 'side', after: 'play', label: function () { return g.t('side') + ': ' + g.t(P.SKIRMISH_SIDE === 'sizye' ? 'sideSizye' : 'sideCopper'); },
-      onSelect: function () { P.SKIRMISH_SIDE = P.SKIRMISH_SIDE === 'sizye' ? 'copper' : 'sizye'; try { global.localStorage.setItem('arcade.priisk.side', P.SKIRMISH_SIDE); } catch (e) {} g.audio.beep(P.SKIRMISH_SIDE === 'sizye' ? 520 : 660, 0.05); } });
+      onSelect: function () { P.SKIRMISH_SIDE = P.SKIRMISH_SIDE === 'sizye' ? 'copper' : 'sizye'; try { store.setItem('arcade.priisk.side', P.SKIRMISH_SIDE); } catch (e) {} g.audio.beep(P.SKIRMISH_SIDE === 'sizye' ? 520 : 660, 0.05); } });
     // противник в скирмише за Медный Ключ: Сизые на котельных (классика) или на своей механике — ветряки и канатка (ИИ Сизых). ?foe=sizye|classic
-    var foe = 'classic', qf = /[?&]foe=(sizye|classic)\b/.exec(global.location ? global.location.search : '');
-    try { foe = global.localStorage.getItem('arcade.priisk.foe') === 'sizye' ? 'sizye' : 'classic'; } catch (e) {}
+    var foe = 'classic', qf = !E.release && /[?&]foe=(sizye|classic)\b/.exec(global.location ? global.location.search : '');
+    try { foe = store.getItem('arcade.priisk.foe') === 'sizye' ? 'sizye' : 'classic'; } catch (e) {}
     if (qf) foe = qf[1]; P.SKIRMISH_FOE = foe;
     g.menu.addItem({ key: 'foe', after: 'side', label: function () { return g.t('foe') + ': ' + g.t(P.SKIRMISH_SIDE === 'sizye' ? 'sideCopper' : P.SKIRMISH_FOE === 'sizye' ? 'foeSizye' : 'foeClassic'); },
-      onSelect: function () { if (P.SKIRMISH_SIDE === 'sizye') { g.audio.beep(200, 0.05); return; } P.SKIRMISH_FOE = P.SKIRMISH_FOE === 'sizye' ? 'classic' : 'sizye'; try { global.localStorage.setItem('arcade.priisk.foe', P.SKIRMISH_FOE); } catch (e) {} g.audio.beep(P.SKIRMISH_FOE === 'sizye' ? 520 : 660, 0.05); } });
+      onSelect: function () { if (P.SKIRMISH_SIDE === 'sizye') { g.audio.beep(200, 0.05); return; } P.SKIRMISH_FOE = P.SKIRMISH_FOE === 'sizye' ? 'classic' : 'sizye'; try { store.setItem('arcade.priisk.foe', P.SKIRMISH_FOE); } catch (e) {} g.audio.beep(P.SKIRMISH_FOE === 'sizye' ? 520 : 660, 0.05); } });
     // клавиши героев Сизых: Q — Корней, E — Митяй, R — Агафья (у Медного Ключа Q/E/R ловит main.js)
     global.addEventListener('keydown', function (e) {
       var hk = AB_KEYS[e.code], S = host.S; if (!hk || e.ctrlKey || e.metaKey || e.altKey || g._sceneName !== 'play' || !S.W || !S.W.mission || !S.W.mission.heroes[hk]) return;

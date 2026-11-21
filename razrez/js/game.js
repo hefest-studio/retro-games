@@ -250,6 +250,11 @@
         movePlayer(dt);
         if (S.phase === 'play') moveEnemies(dt);
       },
+      // Реклама за награду (площадки): «ещё один шанс» после последней жизни — 1 жизнь на том же уровне (захват сохранён);
+      // бонус в паузе — +1 жизнь (если жизней меньше MAX_LIVES и идёт игра).
+      reviveAd: function () { if (!S.over || S.won) return false; S.over = false; S.lives = 1; S.phase = 'dead'; respawn(); S.ver++; return true; },
+      canBoost: function () { return !S.over && S.lives < MAX_LIVES; },
+      boost: function () { if (!api.canBoost()) return false; S.lives++; S.ver++; return true; },
       // служебное — для тестов
       _S: S, _close: close, _die: die, _build: buildLevel
     };

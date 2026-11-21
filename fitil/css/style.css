@@ -18,4 +18,13 @@ a.back:hover{color:var(--accent)}
 .pad button:active{filter:brightness(1.4)}
 .foot{color:var(--mut);font-size:11px;margin:6px 12px 12px;text-align:center;max-width:620px}
 .foot b{color:var(--ink)}
-@media(min-width:760px){.pad{display:none}}
+@media(min-width:900px) and (hover:hover){.pad{display:none}}
+/* телефон «лёжа»: крестовина слева, бомба/РЕЛЕ/пауза справа — поверх полей по бокам канвы; подпись скрыта */
+@media (max-height:520px) and (orientation:landscape){
+  .wrap{margin-top:24px}
+  .foot{display:none}
+  .pad{position:fixed;left:8px;right:8px;bottom:8px;width:auto;max-width:none;margin:0;grid-template-columns:50px 50px 50px 1fr 56px 64px;grid-template-rows:48px 48px;pointer-events:none}
+  .pad button{height:48px;pointer-events:auto}
+  .pad [data-d="U"]{grid-column:2;grid-row:1}.pad [data-d="L"]{grid-column:1;grid-row:2}.pad [data-d="D"]{grid-column:2;grid-row:2}.pad [data-d="R"]{grid-column:3;grid-row:2}
+  .pad .fire{grid-column:6;grid-row:2}.pad .det{grid-column:5;grid-row:2}.pad [data-pause]{grid-column:6;grid-row:1}
+}

@@ -205,5 +205,22 @@ test('непресность: потери жизней растут к 4–5-м
   ok(per[0]<per[3] && per[3]<per[4], 'нет нарастания: '+per.join(','));
 });
 
+// ---------- площадка (21.11, волна 5): реклама за награду, языки, «Без рекламы» и таблица лидеров ----------
+test('реклама: reviveAd после последней жизни — 1 жизнь на том же уровне, захват сохранён; boost — +1 жизнь (не больше 5)', () => {
+  const g=R.Game({ lives:1, rng: mulberry32(3) }).start(); toPlay(g); const S=g._S;
+  ok(!g.reviveAd(), 'в игре — нельзя'); S.grid[S.cols*10+10]=L.LAND; const land=countVal(S.grid,L.LAND);
+  g._die('test'); for(let i=0;i<200 && !S.over;i++) g.update(1/60); ok(S.over && !S.won, 'партия кончилась');
+  ok(g.reviveAd()); eq(S.lives,1); eq(S.phase,'play'); ok(!S.over); eq(countVal(S.grid,L.LAND), land, 'суша сохранена'); ok(S.inv>0, 'неуязвимость после возврата');
+  ok(g.canBoost()); ok(g.boost()); eq(S.lives,2); S.lives=5; ok(!g.canBoost()); ok(!g.boost());
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU РАЗРЕЗ, EN/TR/ES/PT SLICEWARD', () => {
+  const sb={ window:null }; sb.window=sb; vm.createContext(sb); vm.runInContext(fs.readFileSync(path.join(ROOT,'js/i18n.js'),'utf8'), sb);
+  const T=sb.RAZREZ.STR, ks=Object.keys(T.en).sort().join(','); eq(Object.keys(T).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru','tr','es','pt']) eq(Object.keys(T[l]).sort().join(','), ks, l);
+  eq(T.ru.title,'РАЗРЕЗ'); for (const l of ['en','tr','es','pt']) eq(T[l].title,'SLICEWARD', l);
+});
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'razrez', boards: ['razrez'], test, ok }); }
+
 console.log((failed? 'FAIL ':'OK ')+passed+'/'+(passed+failed));
 process.exit(failed?1:0);

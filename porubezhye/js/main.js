@@ -15,7 +15,11 @@
   var THEMES = { modern: Object.assign({}, Arcade.themes.modern, { accent: '#e8913a', bg: '#0f1310' }), retro: Object.assign({}, Arcade.themes.retro) };
   var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'porubezhye', strings: P.STR, theme: 'modern', lives: 1, themes: THEMES });
   global.PORUB.g = g;
-  var race = Store.get(RACE_KEY, 'wright') === 'thicket' ? 'thicket' : 'wright';
+  var RACES3 = ['wright', 'thicket', 'barrow'];   // три рода: Мастеровые, Живая чаща, Курганный род
+  var race = RACES3.indexOf(Store.get(RACE_KEY, 'wright')) >= 0 ? Store.get(RACE_KEY, 'wright') : 'wright';
+  // соперник в скирмише: Мастеровым — Чаща, Чаще — Мастеровые (как было); Курганному роду — по очереди оба (и они — Курганному роду через раз)
+  var foeN = 0;
+  function foeOf(r) { foeN++; if (r === 'barrow') return foeN % 2 ? 'wright' : 'thicket'; if (foeN % 3 === 0) return 'barrow'; return r === 'thicket' ? 'wright' : 'thicket'; }
   var game = null, cam = { x: 0, y: 0 }, sel = [], groups = {}, mode = null, hover = null, hoverBtn = -1, notices = [], fx = [], pings = [];
   var keys = {}, lastGroupKey = { n: -1, t: 0 }, endT = -1, shotSnd = 0, attackNoteT = -99, preview = null, uiDown = null;
 
@@ -27,7 +31,7 @@
 
   // ---------- Меню: выбор расы + подсказки ----------
   g.menu.addItem({ key: 'race', after: 'play', label: function () { return g.t('race') + ': ' + g.t('r_' + race); },
-    onSelect: function () { race = race === 'wright' ? 'thicket' : 'wright'; Store.set(RACE_KEY, race); g.audio.beep(700, 0.04); } });
+    onSelect: function () { race = RACES3[(RACES3.indexOf(race) + 1) % RACES3.length]; Store.set(RACE_KEY, race); g.audio.beep(700, 0.04); } });
   g.menu.setHint(function () { return [g.t('rd_' + race), { text: g.t('hint1'), dim: true }, { text: g.t('hint2'), dim: true }]; }, 'title');
   g.useStandardScreens({ title: 'ПОРУБЕЖЬЕ', subtitle: P.STR.ru.subtitle, lives: 1 });
 
@@ -88,14 +92,15 @@
     // по бойцу каждой расы по бокам заставки
     if (this._sceneName === 'title') { R.icon(ctx, preview, 0, 'u', 'walker', 150, 250, 180, this.themeName); }
     ctx.restore();
-    if (this._sceneName === 'title') { var pv2 = preview2(); R.icon(ctx, pv2, 0, 'u', 'shell', W - 330, 250, 180, this.themeName); }
+    if (this._sceneName === 'title') { var pv2 = preview2(); R.icon(ctx, pv2, 0, 'u', 'shell', W - 330, 250, 180, this.themeName); R.icon(ctx, preview3(), 0, 'u', 'boulder', W - 250, 450, 120, this.themeName); R.icon(ctx, preview3(), 0, 'u', 'slinger', 140, 460, 110, this.themeName); }
   };
+  var _pv3 = null; function preview3() { return _pv3 || (_pv3 = new P.Game({ seed: 1, noAI: true, playerRace: 'barrow' })); }
   var _pv2 = null; function preview2() { return _pv2 || (_pv2 = new P.Game({ seed: 1, noAI: true, playerRace: 'thicket' })); }
 
   // ---------- Игра ----------
   function newGame() {
     if (pendingMission && CU) { game = CU.makeGame(pendingMission, onEvent); pendingMission = null; }
-    else game = new P.Game({ seed: 1 + ((Math.random() * 4) | 0), playerRace: race, onEvent: onEvent });
+    else game = new P.Game({ seed: 1 + ((Math.random() * 4) | 0), playerRace: race, aiRace: foeOf(race), onEvent: onEvent });
     sel = []; groups = {}; mode = null; notices = []; fx = []; pings = []; endT = -1;
     var main = mine('b').filter(function (b) { return b.type === game.race(0).main; })[0] || mine('u').filter(function (u) { return game.def(u).hero; })[0] || mine()[0];
     if (main) centerOn(main.x, main.y);
@@ -113,14 +118,14 @@
 
   function onEvent(type, d) {
     var p = R.pal(g.themeName);
-    if (type === 'deny' && d.p === 0) { note(g.t(d.why === 'supply' ? 'deny_supply_' + pr() : 'deny_' + d.why), 'bad'); g.audio.beep(160, 0.08, 'square', 0.6); }
+    if (type === 'deny' && d.p === 0) { note(g.t(d.why === 'supply' ? 'deny_supply_' + pr() : (d.why === 'amber' || d.why === 'resin') && pr() === 'barrow' ? 'deny_' + d.why + '_barrow' : 'deny_' + d.why), 'bad'); g.audio.beep(160, 0.08, 'square', 0.6); }
     else if (type === 'built' && d.p === 0) { var b = game.get(d.id); note(g.t('builtN') + ': ' + g.t('b_' + d.type), 'good'); g.audio.beep(880, 0.08, 'triangle'); g.audio.beep(1320, 0.1, 'triangle'); if (b) addFx({ kind: 'text', x: b.x, y: b.y - 30, dur: 1.4, text: g.t('b_' + d.type), c1: p.sel }); }
     else if (type === 'trained' && d.p === 0) g.audio.beep(660, 0.05, 'triangle', 0.6);
     else if (type === 'shot') { if (inView(d.x, d.y) && g.time - shotSnd > 0.07) { shotSnd = g.time; g.audio.beep(d.type === 'walker' ? 90 : (d.type === 'shooter' ? 300 : 520), 0.03, d.type === 'stinger' ? 'triangle' : 'square', 0.25); } }
     else if (type === 'death') {
       if (d.silent) return;
       var big = d.kind === 'b', vis = game.tileVis(0, Math.floor(d.x / T), Math.floor(d.y / T)) === 2;
-      if (vis) addFx({ kind: 'boom', x: d.x, y: d.y, dur: big ? 1.0 : 0.5, r: big ? 60 : 18, seed: Math.random() * 6, c1: big ? '#ffb040' : '#e8d8b0', c2: game.races[d.p] === 'thicket' ? p.moss : p.copper });
+      if (vis) addFx({ kind: 'boom', x: d.x, y: d.y, dur: big ? 1.0 : 0.5, r: big ? 60 : 18, seed: Math.random() * 6, c1: big ? '#ffb040' : '#e8d8b0', c2: game.races[d.p] === 'thicket' ? p.moss : game.races[d.p] === 'barrow' ? p.stone : p.copper });
       if (vis && inView(d.x, d.y)) g.audio.beep(big ? 70 : 120, big ? 0.3 : 0.1, 'sawtooth', 0.5);
       sel = sel.filter(function (e) { return e.id !== d.id; });
     }
@@ -134,6 +139,8 @@
     else if (type === 'buzz' && d.p === 0) { g.audio.beep(180, 0.2, 'sawtooth', 0.35); g.audio.beep(240, 0.25, 'sawtooth', 0.3); addFx({ kind: 'ring', x: d.x, y: d.y, dur: 0.8, c1: p.amberHi }); }
     else if (type === 'sporeLand' && d.p === 0) { note(g.t('sporeLand'), 'good'); g.audio.beep(880, 0.08, 'triangle'); addFx({ kind: 'ring', x: d.x, y: d.y, dur: 0.9, c1: p.mossHi }); }
     else if (type === 'sporeLost' && d.p === 0) { note(g.t('sporeLost'), 'bad'); g.audio.beep(200, 0.08, 'square', 0.5); }
+    else if (type === 'wake' && d.p === 0) { g.audio.beep(196, 0.3, 'triangle', 0.6); g.audio.beep(294, 0.3, 'triangle', 0.4); addFx({ kind: 'ring', x: d.x, y: d.y, dur: 0.9, c1: p.rune }); if (d.n) note(g.t('wokeN'), 'good'); }
+    else if (type === 'roll' && d.hit && inView(d.x, d.y)) { g.audio.beep(80, 0.18, 'sawtooth', 0.5); addFx({ kind: 'boom', x: d.x, y: d.y, dur: 0.5, r: P.ROLL.splash * T, seed: 3, c1: p.stoneHi, c2: p.stone }); }
     else if (type === 'regrow' && d.p === 0) { if (inView(d.x, d.y)) addFx({ kind: 'ring', x: d.x, y: d.y, dur: 0.7, c1: p.mossHi }); }
     else if (type === 'end') endT = 0;
   }
@@ -196,7 +203,7 @@
     if (!gh.ok) { onEvent('deny', { p: 0, why: gh.why }); return; }
     // строит ближайший к месту рабочий (Чаща — один жук; Мастеровые — все выбранные рабочие, если их ≤ 3, иначе ближайший)
     var cx = (gh.tx + 1) * T, cy = (gh.ty + 1) * T; ws.sort(function (a, b) { return Math.hypot(a.x - cx, a.y - cy) - Math.hypot(b.x - cx, b.y - cy); });
-    var builders = pr() === 'wright' && ws.length <= 3 ? ws : ws.slice(0, 1);
+    var builders = !game.race(0).grow && ws.length <= 3 ? ws : ws.slice(0, 1);   // Мастеровые и Курганный род строят вместе
     if (game.cmd(0, { t: 'build', ids: ids(builders), type: gh.type, tx: gh.tx, ty: gh.ty })) { g.audio.beep(500, 0.05, 'triangle'); if (!keep) mode = null; }
   }
 
@@ -223,7 +230,9 @@
       var mat = !yar && !stp && us.filter(function (u) { return game.def(u).ability === 'roots'; })[0];
       if (mat) { var cdr = Math.max(0, (mat.abT || 0) - game.t); set(7, { glyph: cdr > 0 ? String(Math.ceil(cdr)) : '❦', label: g.t('roots'), tip: g.t('rootsTip'), dis: cdr > 0, act: function () { game.cmd(0, { t: 'roots', id: mat.id }); } }); }
       var bzz = !yar && !stp && !mat && us.filter(function (u) { return game.def(u).ability === 'buzz'; })[0];
-      if (bzz) { var cdb = Math.max(0, (bzz.abT || 0) - game.t); set(7, { glyph: cdb > 0 ? String(Math.ceil(cdb)) : '≋', label: g.t('buzz'), tip: g.t('buzzTip'), dis: cdb > 0, act: function () { game.cmd(0, { t: 'buzz', id: bzz.id }); } }); }
+      var ved = !yar && !stp && !mat && us.filter(function (u) { return game.def(u).ability === 'wake'; })[0];   // кампания Курганного рода: F Ведогора
+      if (ved) { var cdw = Math.max(0, (ved.abT || 0) - game.t); set(7, { glyph: cdw > 0 ? String(Math.ceil(cdw)) : 'ᛟ', label: g.t('wake'), tip: g.t('wakeTip'), dis: cdw > 0, act: function () { game.cmd(0, { t: 'wake', id: ved.id }); } }); }
+      if (bzz && !ved) { var cdb = Math.max(0, (bzz.abT || 0) - game.t); set(7, { glyph: cdb > 0 ? String(Math.ceil(cdb)) : '≋', label: g.t('buzz'), tip: g.t('buzzTip'), dis: cdb > 0, act: function () { game.cmd(0, { t: 'buzz', id: bzz.id }); } }); }
     }
     if (b) {
       var BD = Rc.buildings[b.type], list = (Rc.grow ? (BD.larva ? Object.keys(Rc.units) : []) : (BD.trains || [])).filter(function (k) { return !Rc.units[k].hero && (!game.allowU || game.allowU[k]) && (!Rc.units[k].camp || (game.allowU && game.allowU[k])); }).slice(0, 4);
@@ -278,8 +287,8 @@
     var w = toWorld(m); hover = game.entAt(w.x, w.y, 0);
     var us = selUnits(), workers = us.filter(function (u) { return game.def(u).worker; });
     if (hover && game.hostile(0, hover.owner) && us.length) m.setCursor('attack');
-    else if (hover && hover.kind === 'n' && workers.length) m.setCursor('gather');
-    else if (hover && hover.owner === 0 && workers.length && pr() === 'wright' && (hover.kind === 'b' ? (!hover.done || hover.hp < hover.maxhp) : (game.def(hover).mech && hover.hp < hover.maxhp))) m.setCursor('repair');
+    else if (hover && hover.kind === 'n' && workers.length && game.canGather(0, hover)) m.setCursor('gather');
+    else if (hover && hover.owner === 0 && workers.length && !game.race(0).grow && (hover.kind === 'b' ? (!hover.done || hover.hp < hover.maxhp) : (game.def(hover).mech && hover.hp < hover.maxhp))) m.setCursor('repair');
     else if (hover) m.setCursor('select');
     else m.setCursor(us.length ? 'move' : 'default');
   }
@@ -354,8 +363,9 @@
     var s = game.supply(0), rs = game.res[0], mm = Math.floor(game.t / 60), ss = Math.floor(game.t % 60);
     var rx = W - 560, econ = !(game.mission && game.mission.def.noEcon);   // кампания: миссия без хозяйства (отряд, колонна) — без ресурсов и провизии
     if (econ) {
-    R.prims.oval(ctx, rx, 14, 6, 6, p.amber, ret); txt(Math.floor(rs.a), rx + 12, 19, { color: p.amberHi }); txt(g.t('amber'), rx + 60, 19, { color: th.muted, size: 11, weight: 600 });
-    R.prims.oval(ctx, rx + 140, 14, 6, 6, p.resinHi, ret); txt(Math.floor(rs.r), rx + 152, 19, { color: p.resinHi }); txt(g.t('resin'), rx + 196, 19, { color: th.muted, size: 11, weight: 600 });
+    var kin = pr() === 'barrow';   // Курганный род: камень и руда
+    R.prims.oval(ctx, rx, 14, 6, 6, kin ? p.stoneHi : p.amber, ret); txt(Math.floor(rs.a), rx + 12, 19, { color: kin ? p.stoneHi : p.amberHi }); txt(g.t(kin ? 'stoneR' : 'amber'), rx + 60, 19, { color: th.muted, size: 11, weight: 600 });
+    R.prims.oval(ctx, rx + 140, 14, 6, 6, kin ? p.oreHi : p.resinHi, ret); txt(Math.floor(rs.r), rx + 152, 19, { color: kin ? p.oreHi : p.resinHi }); txt(g.t(kin ? 'oreR' : 'resin'), rx + 196, 19, { color: th.muted, size: 11, weight: 600 });
     R.prims.box(ctx, rx + 270, 9, 10, 10, s.used >= s.cap ? p.hpBad : p.woodHi, ret, 2); txt(s.used + '/' + s.cap, rx + 286, 19, { color: s.used >= s.cap ? p.hpBad : th.ink }); txt(g.t('sup'), rx + 342, 19, { color: th.muted, size: 11, weight: 600 });
     }
     txt((mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss, rx + 450, 19, { color: th.ink });
@@ -395,7 +405,8 @@
     txt(g.t('hp') + ': ' + Math.ceil(e.hp) + ' / ' + e.maxhp, X, Y + 46, { color: p.ink, size: 13 });
     if (e.kind === 'u') {
       txt(g.t('dmg') + ': ' + D.dmg + (D.splash ? ' ✶' : '') + '   ' + g.t('rng') + ': ' + (D.range < 1 ? '—' : D.range) + (D.armor ? '   ⛨ ' + D.armor : ''), X, Y + 66, { color: th.muted, size: 12 });
-      if (e.carry) txt(g.t('carry') + ': ' + e.carry.amt + ' ' + g.t(e.carry.type === 'amber' ? 'amber' : 'resin'), X, Y + 86, { color: p.amberHi, size: 12 });
+      if (e.carry) txt(g.t('carry') + ': ' + e.carry.amt + ' ' + g.t({ amber: 'amber', resin: 'resin', timber: 'wood', stone: 'stoneR', ore: 'oreR' }[e.carry.type] || 'amber'), X, Y + 86, { color: p.amberHi, size: 12 });
+      if (e.stone) txt(g.t('stoneUp') + ' ⛨ +' + P.PETRIFY.armor, X + 220, Y + 66, { color: p.stoneHi, size: 12 });
       return;
     }
     if (!e.done) { var gr = game.race(e.owner).grow; txt((gr ? g.t('growing') + (e.planted ? '' : ' · ' + g.t('needPlant')) : g.t('building')) + ': ' + Math.floor(e.prog * 100) + '%', X, Y + 66, { color: p.copperHi, size: 13 }); return; }
@@ -421,7 +432,7 @@
       if (c.icon) R.icon(ctx, game, 0, c.icon.kind, c.icon.type, r.x + 4, r.y + 2, 40, g.themeName);
       else txt(c.glyph, r.x + 24, r.y + 34, { align: 'center', size: 22, color: i === 4 ? p.enemy : p.ink });
       txt(c.label, r.x + r.w / 2, r.y + r.h - 7, { align: 'center', size: c.label.length > 11 ? 9 : 11, color: p.ink, weight: 700 });
-      if (c.cost) { txt(String(c.cost.a), r.x + r.w - 6, r.y + 16, { align: 'right', size: 11, color: p.amberHi }); if (c.cost.r) txt(String(c.cost.r), r.x + r.w - 6, r.y + 30, { align: 'right', size: 11, color: p.resinHi }); }
+      if (c.cost) { var kin3 = pr() === 'barrow'; txt(String(c.cost.a), r.x + r.w - 6, r.y + 16, { align: 'right', size: 11, color: kin3 ? p.stoneHi : p.amberHi }); if (c.cost.r) txt(String(c.cost.r), r.x + r.w - 6, r.y + 30, { align: 'right', size: 11, color: kin3 ? p.oreHi : p.resinHi }); }
       ctx.globalAlpha = 1;
       if (!m.pointerType || m.pointerType === 'mouse') { R.prims.box(ctx, r.x + 3, r.y + 3, 16, 16, 'rgba(0,0,0,0.55)', ret, 4); txt(SLOT_KEYS[i], r.x + 11, r.y + 15, { align: 'center', size: 11, color: p.accent }); }
     }
@@ -429,7 +440,7 @@
     if (hc && hc.tip) { var tw = 360, tx = Math.min(W - tw - 8, slotRect(hoverBtn).x - 40), ty = CARD.y - 64;
       R.prims.box(ctx, tx, ty, tw, 56, ret ? '#1b1620' : 'rgba(12,14,20,0.95)', ret, 8); ctx.strokeStyle = p.line; ctx.strokeRect(tx + 0.5, ty + 0.5, tw, 56);
       txt(hc.label + '  [' + SLOT_KEYS[hoverBtn] + ']', tx + 10, ty + 20, { size: 13, color: p.accent, weight: 800 });
-      var cs = hc.cost ? hc.cost.a + ' ' + g.t('amber') + (hc.cost.r ? ' · ' + hc.cost.r + ' ' + g.t('resin') : '') + (hc.sup ? ' · ' + hc.sup + ' ' + g.t('sup') : '') : '';
+      var kin2 = pr() === 'barrow', cs = hc.cost ? hc.cost.a + ' ' + g.t(kin2 ? 'stoneR' : 'amber') + (hc.cost.r ? ' · ' + hc.cost.r + ' ' + g.t(kin2 ? 'oreR' : 'resin') : '') + (hc.sup ? ' · ' + hc.sup + ' ' + g.t('sup') : '') : '';
       txt(cs, tx + tw - 10, ty + 20, { size: 11, align: 'right', color: p.amberHi, weight: 700 });
       txt(hc.tip, tx + 10, ty + 42, { size: 12, color: th.ink, weight: 600 }); }
   }

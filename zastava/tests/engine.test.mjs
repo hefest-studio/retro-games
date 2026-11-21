@@ -342,5 +342,21 @@ test('непресность: потерь лафетов на волну бол
   ok(b > a * 1.5, 'нет нарастания: ' + a.toFixed(2) + ' → ' + b.toFixed(2));
 });
 
+// ---------- площадка (21.11, волна 5): реклама за награду, языки, «Без рекламы» и таблица лидеров ----------
+test('реклама: reviveAd после гибели — 1 лафет на той же волне; после «ржавь дошла до земли» строй отодвинут; boost — +1 лафет (до 5)', () => {
+  const { game, S } = setup(1, { lives: 1 }); ok(!game.reviveAd(), 'в игре — нельзя');
+  game._playerHit(S.player.x, 594); ok(S.over && !S.won); ok(game.reviveAd()); eq(S.lives, 1); eq(S.phase, 'play'); ok(!S.over); ok(S.player.grace > 0);
+  const b = setup(1, { lives: 3 }); b.S.fleet.y = 560; const y0 = b.S.fleet.y; for (let i = 0; i < 40 && !b.S.over; i++) b.game._march();
+  ok(b.S.invaded && b.S.over, 'строй дошёл'); const y1 = b.S.fleet.y; ok(b.game.reviveAd()); ok(!b.S.invaded); ok(b.S.fleet.y < y1, 'строй отодвинут'); void y0;
+  ok(b.game.canBoost()); ok(b.game.boost()); eq(b.S.lives, 2); b.S.lives = 5; ok(!b.game.canBoost());
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ЗАСТАВА, EN/TR/ES/PT ANVILWATCH', () => {
+  const T = Z.STR, ks = Object.keys(T.en).sort().join(','); eq(Object.keys(T).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(T[l]).sort().join(','), ks, l);
+  eq(T.ru.title, 'ЗАСТАВА'); for (const l of ['en', 'tr', 'es', 'pt']) eq(T[l].title, 'ANVILWATCH', l);
+});
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'zastava', boards: ['zastava'], test, ok }); }
+
 console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed));
 process.exit(failed ? 1 : 0);

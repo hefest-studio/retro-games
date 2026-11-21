@@ -528,6 +528,15 @@
       bomb: placeBomb,
       detonate: detonate,
       setFF: function (on) { S.ff = !!on; },
+      // Реклама за награду (площадки): «ещё один шанс» после выбывания всех — по 1 жизни, возврат на старт уровня с неуязвимостью
+      // (взорванное и враги остаются как были); бонус в паузе — +1 жизнь каждому, кто в игре.
+      reviveAd: function () {
+        if (!S.over || S.won) return false;
+        S.players.forEach(function (p) { p.out = false; p.lives = 1; p.alive = true; p.x = SPAWNS[p.i][0]; p.y = SPAWNS[p.i][1]; p.inv = INV_T; p.deadT = 0; });
+        S.over = false; S.phase = 'play'; return true;
+      },
+      canBoost: function () { return !S.over && S.players.some(function (p) { return !p.out && p.lives < MAX_LIVES; }); },
+      boost: function () { if (!api.canBoost()) return false; S.players.forEach(function (p) { if (!p.out && p.lives < MAX_LIVES) p.lives++; }); return true; },
       state: function () { return S; },
       _S: S,
       _explode: explode, _bombAt: bombAt, _loadLevel: loadLevel, _mkEnemy: mkEnemy

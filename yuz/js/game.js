@@ -262,6 +262,7 @@
       S.cars = cars;
     }
     function loadTrack(ti) {
+      S._snap = { champ: Object.assign({}, S.champ), wins: Object.assign({}, S.wins), pickups: S.pickups };   // для «перезаезда» за рекламу
       var T = S.track = buildTrack(ti); S.ti = ti; S.diff = DIFF[Math.min(ti, DIFF.length - 1)];
       S.laps = opts.laps || lapsFor(T);
       S.phase = 'count'; S.phaseT = 0; S.raceT = 0; S.results = null; S.finishN = 0; S.outN = 0; S.endT = 0;
@@ -495,6 +496,18 @@
         S.place = place; S.won = place === 1; S.score = score();
         emit(S.won ? 'win' : 'gameover', { place: place, score: S.score });
         return true;
+      },
+      // Реклама за награду (площадки): «ещё один шанс» в конце чемпионата не на 1-м месте — перезаезд последней трассы (очки этого заезда
+      // отменяются); бонус в паузе во время гонки — турбо и щит машинам игроков.
+      reviveAd: function () {
+        if (!S.over || S.won || !S._snap) return false;
+        Object.assign(S.champ, S._snap.champ); Object.assign(S.wins, S._snap.wins); S.pickups = S._snap.pickups;
+        S.over = false; S.place = 0; firstFin = 0; loadTrack(S.ti); S.score = score(); return true;
+      },
+      canBoost: function () { return S.phase === 'race' && cars.some(function (c) { return c.human && !c.out && !c.finished; }); },
+      boost: function () {
+        if (!api.canBoost()) return false;
+        cars.forEach(function (c) { if (c.human && !c.out && !c.finished) { c.boost = CAR.boostT * 1.5; c.shield = CAR.shieldT; } }); return true;
       },
       state: function () { return S; },
       car: function (id) { for (var i = 0; i < cars.length; i++) if (cars[i].id === id) return cars[i]; return null; },

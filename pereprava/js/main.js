@@ -11,7 +11,7 @@
     modern: Object.assign({}, TH.modern, { bg: '#0f1318', panel: '#141a21', ink: '#eef2f8', muted: '#8d98a8', accent: '#ff8a3d', grid: '#232b35' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#fc9838', muted: '#a4a4a4' })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.H, gameId: 'pereprava', strings: K.STR, theme: 'modern', lives: 3, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.H, gameId: 'pereprava', leaderboard: 'pereprava', strings: K.STR, theme: 'modern', lives: 3, themes: themes });
   K.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
   K.ui.init(g);
@@ -49,11 +49,13 @@
     else if (type === 'extra') toast(g.t('t_extra'), P.good, L.W / 2, L.rowY(L.START) - 10);
     else if (type === 'trap') toast(g.t('t_trap'), P.bad, d.x, by);
     sync();
+    if (type === 'level' && d.level > 1 && g._sceneName === 'play' && g.adReady()) { cardLv = d.level - 1; g.goto('card'); }   // межстраничная — по нажатию на карточке смены (Яндекс 4.4)
     if (type === 'win') g.win();
     else if (type === 'gameover') g.gameover();
   }
 
   function newGame() {
+    g.resetRun();
     game = K.Game({ lives: 3, level: 1, difficulty: diff, onEvent: onEvent });
     game.start(); K.current = game; toasts = []; queued = null; holdDir = null; sync();
   }
@@ -73,6 +75,37 @@
   var baseClear = Object.getPrototypeOf(g).clear;
   g.clear = function (c) { baseClear.call(this, c); rnd().bg(this.ctx, this); };
 
+  // ---------- Площадка (движок v2.8/2.9): таблица лидеров «pereprava», «Без рекламы» (no_ads) в меню и паузе, реклама за награду ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «pereprava», GamePush — числовое поле игрока «pereprava» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/pereprava/platform.json (arcade-full). На сайте (без площадки) пунктов нет.
+  var LB = 'pereprava';
+  g.persist('arcade.best.pereprava', 'max');
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
+  // «Ещё один шанс» (раз за партию): 1 жизнь в той же смене, доставленное остаётся; бонус в паузе — +1 жизнь
+  g.useRewardedContinue({ revive: function () { if (game) { game.reviveAd(); sync(); } } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { return !!game && game.canBoost(); }, grant: function () { if (game) { game.boost(); sync(); } } });
+  // Меню вмещает пункты площадки («Лидеры», «Без рекламы»): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
+  // ---------- Карточка «склад заполнен» (только когда площадка готова показать межстраничную): нажатие → реклама → дальше ----------
+  var cardLv = 0, cardGoing = false;
+  function cardGo() { if (cardGoing || g._sceneName !== 'card') return; cardGoing = true; g.adBreak().then(function () { cardGoing = false; if (g._sceneName === 'card') g.goto('play', { resume: true }); }); }
+  g.scene('card', {
+    enter: function () { cardGoing = false; },
+    press: function (a) { if (a === 'action' || a === 'start') cardGo(); else if (a === 'pause') this.goto('play', { resume: true }); },
+    draw: function (ctx) {
+      var th = this.th(), P = rnd().P;
+      if (game) rnd().draw(ctx, game.state(), this, { toasts: [] }); else this.clear();
+      ctx.fillStyle = 'rgba(8,10,14,.74)'; ctx.fillRect(0, 0, this.W, this.H);
+      K.ui.txt(this, this.t('clear'), this.W / 2, this.H / 2 - 30, { size: 28, align: 'center', color: th.accent, weight: 900, maxWidth: this.W - 40 }, P);
+      K.ui.txt(this, this.t('ready') + ' ' + cardLv + '/' + L.MAX_LEVEL + (game ? ' · ' + this.t('score') + ': ' + game.state().score : ''), this.W / 2, this.H / 2 + 8, { size: 16, align: 'center', color: th.ink, weight: 700, maxWidth: this.W - 40 }, P);
+      K.ui.txt(this, this.t('cardNext'), this.W / 2, this.H / 2 + 46, { size: 14, align: 'center', color: th.muted, weight: 600, maxWidth: this.W - 40 }, P);
+    }
+  });
+
   // ---------- Титул: живой двор без героя ----------
   var demo = null, demoLevels = [3, 6, 8, 10, 5], demoI = 0;
   function makeDemo() { demo = K.Game({ level: demoLevels[demoI++ % demoLevels.length], maxLevel: 99, lives: 99, rng: function () { return 0.5; } }).start(); demo.state().banner = 0; }
@@ -89,13 +122,13 @@
     ctx.fillStyle = retro ? 'rgba(0,0,0,.66)' : 'rgba(10,13,17,.62)'; ctx.fillRect(0, 0, W, H);
     var pw = 384, ph = 340, px = (W - pw) / 2, py = 140;
     K.ui.box(ctx, P, px, py, pw, ph, retro ? P.hudLine : '#2c3644', 18);
-    K.ui.txt(this, this.t('title'), W / 2, py + 62, { size: retro ? 44 : 46, align: 'center', color: P.accent, weight: 900 }, P);
+    K.ui.txt(this, this.t('title'), W / 2, py + 62, { size: retro ? 44 : 46, align: 'center', color: P.accent, weight: 900, maxWidth: pw - 30 }, P);
     if (retro) K.classic.lifeIcon(ctx, W / 2, py + 92, true);
     else { K.modern.hero(ctx, W / 2 - 46, py + 94, 'right', 0, 1.35, false, g.time); K.modern.gear(ctx, W / 2, py + 94, 12, 8, g.time, '#ffd36b'); K.modern.washer(ctx, W / 2 + 46, py + 96, 1.15, g.time, -1); }
-    K.ui.txt(this, this.t('subtitle'), W / 2, py + 132, { size: 13, align: 'center', color: th.muted, weight: 600 }, P);
-    menu.draw(this, W / 2, py + 176, 32);
+    K.ui.txt(this, this.t('subtitle'), W / 2, py + 132, { size: 13, align: 'center', color: th.muted, weight: 600, maxWidth: pw - 20 }, P);
+    var mf = menuFit(menu, py + 176, 32, py + 160, py + ph - 34); menu.draw(this, W / 2, mf[0], mf[1]);
     if (this.state.best) K.ui.txt(this, this.t('best') + ': ' + this.state.best, W / 2, py + ph - 16, { size: 12, align: 'center', color: th.muted, weight: 600 }, P);
-    K.ui.txt(this, this.t('hint'), W / 2, H - 22, { size: 11, align: 'center', color: th.muted, weight: 600 }, P);
+    K.ui.txt(this, this.t('hint'), W / 2, H - 22, { size: 11, align: 'center', color: th.muted, weight: 600, maxWidth: W - 20 }, P);
   };
 
   // ---------- Игровая сцена ----------
@@ -131,6 +164,7 @@
   var cv = g.canvas, touch = null;
   function live() { return g._sceneName === 'play' && game && g.time - playSince > 0.2; }
   cv.addEventListener('touchstart', function (e) {
+    if (g._sceneName === 'card') { e.preventDefault(); cardGo(); return; }
     if (!live()) return; e.preventDefault();
     var t = e.changedTouches[0]; touch = { id: t.identifier, x: t.clientX, y: t.clientY, at: Date.now() };
   }, { passive: false });
@@ -148,6 +182,8 @@
       touch = null;
     }
   }, { passive: false });
+
+  cv.addEventListener('mousedown', function () { if (g._sceneName === 'card') cardGo(); });
 
   g.start('title');
   K.app = { g: g, game: function () { return game; } };   // для отладки/автотестов в браузере

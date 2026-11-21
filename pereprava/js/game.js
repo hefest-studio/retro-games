@@ -267,6 +267,11 @@
 
     var api = {
       _S: S,
+      // Реклама за награду (площадки): «ещё один шанс» после последней жизни — 1 жизнь в той же смене (доставленное сохранено);
+      // бонус в паузе — +1 жизнь (до MAX_LIVES).
+      reviveAd: function () { if (S.phase !== 'over') return false; S.over = false; S.lives = 1; S.phase = 'play'; S.death = null; spawnHero(); return true; },
+      canBoost: function () { return (S.phase === 'play' || S.phase === 'dead') && S.lives < MAX_LIVES; },
+      boost: function () { if (!api.canBoost()) return false; S.lives++; return true; },
       start: function () { loadLevel(); return api; },
       state: function () { return S; },
       // Прыжок: 'up' | 'down' | 'left' | 'right' → true, если начат

@@ -11,10 +11,16 @@
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#ff5555', muted: '#aaaaaa', ink: '#ffffff' })
   };
   var W = L.COLS * T, H = OY + L.ROWS * T;
-  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'ugolyok', strings: U.STR, theme: 'modern', lives: L.LIVES, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'ugolyok', leaderboard: 'ugolyok', strings: U.STR, theme: 'modern', lives: L.LIVES, themes: themes });
   U.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
-  var Store = Arcade.Store, TKEY = 'arcade.besttime.ugolyok';
+  var Store = Arcade.Store, TKEY = 'arcade.besttime.ugolyok', SAVE = 'arcade.ugolyok.save';
+  // ---------- облако: сохранение у маяка («Продолжить»), лучшее время, рекорд счёта ----------
+  g.persist(SAVE, 'last'); g.persist(TKEY, 'last'); g.persist('arcade.best.ugolyok', 'max');
+  function loadSave() { try { var o = JSON.parse(Store.get(SAVE, '') || 'null'); return o && o.v === 1 && o.cp ? o : null; } catch (e) { return null; } }
+  function writeSave(o) { g.storeSet(SAVE, JSON.stringify(o)); }
+  function clearSave() { g.storeSet(SAVE, ''); }
+  var resume = null, zonesSeen = {}, cardZone = 0;
 
   function rnd() { return g.themeName === 'retro' ? U.classic : U.modern; }
   var game = null, toasts = [], playSince = 0, mapOpen = false, fade = 0, intro = 0, extraJump = false, lastTime = null, lastWhy = null;
@@ -44,16 +50,20 @@
       case 'gear': toast('+' + d.pts, P.warn, px(d.x), py(d.y) - 20); g.particles.spawn(px(d.x), py(d.y) - 10, { color: '#ffd35a', count: 10, speed: 80, life: 0.4, size: sz }); break;
       case 'life': toast(g.t('life'), P.good, W / 2, OY + 96, true); break;
       case 'gateOpen': toast(g.t('gateOpen'), P.accent, W / 2, OY + 120, true); break;
-      case 'beacon': toast(g.t('beacon'), P.good, px(d.x), py(d.y) - 50);
+      case 'beacon': if (game) writeSave(game.snapshot());   // маяк зажжён — партия сохранена (облако площадки)
+        toast(g.t('beacon'), P.good, px(d.x), py(d.y) - 50);
         g.particles.spawn(px(d.x), py(d.y) - 30, { color: retro ? '#ffff55' : '#ffd27a', count: 14, speed: 80, life: 0.6, size: sz }); break;
       case 'slam': g.particles.spawn(px(d.x), py(d.y), { color: retro ? '#aaaaaa' : '#a89a8e', count: 8, speed: 70, life: 0.35, size: sz }); break;
       case 'thud': { var H0 = game.state().hero; g.particles.spawn(px(H0.x), py(H0.y), { color: retro ? '#aaaaaa' : '#8f8378', count: 6, speed: 50, life: 0.3, size: sz }); break; }
       case 'die': lastWhy = d.why; g.particles.spawn(px(d.x), py(d.y), { color: retro ? '#ffaa00' : '#ff8a3a', count: 40, speed: 170, life: 1, size: sz });
         g.particles.spawn(px(d.x), py(d.y), { color: retro ? '#aaaaaa' : '#6a727e', count: 20, speed: 120, life: 0.9, size: sz + 1 }); break;
       case 'respawn': lastWhy = null; break;
-      case 'room': fade = retro ? 0 : 0.45; toasts = toasts.filter(function (o) { return o.big; }); break;
+      case 'room': fade = retro ? 0 : 0.45; toasts = toasts.filter(function (o) { return o.big; });
+        // первый вход в новую зону — естественная пауза: карточка зоны, межстраничная по нажатию игрока (Яндекс 4.4; только если готова)
+        if (!zonesSeen[d.zone]) { var firstZone = !Object.keys(zonesSeen).length; zonesSeen[d.zone] = 1; if (!firstZone && g._sceneName === 'play' && g.adReady()) { cardZone = d.zone; g.goto('card'); } }
+        break;
       case 'win': {
-        var bt = bestTime(); if (!bt || d.time < bt) Store.set(TKEY, String(Math.round(d.time * 10) / 10));
+        var bt = bestTime(); if (!bt || d.time < bt) g.storeSet(TKEY, String(Math.round(d.time * 10) / 10)); clearSave();
         lastTime = d.time; sync(); setTimeout(function () { if (g._sceneName === 'play') g.win(); }, 1600); break;
       }
       case 'gameover': sync(); g.state.lives = 0; setTimeout(function () { if (g._sceneName === 'play') g.gameover(); }, 600); break;
@@ -61,7 +71,8 @@
     sync();
   }
   function newGame() {
-    game = U.Game({ onEvent: onEvent }); game.start(); U.current = game;
+    var sv = resume; resume = null; if (!sv) clearSave(); g.resetRun(); zonesSeen = {};
+    game = U.Game({ onEvent: onEvent, save: sv }); game.start(); U.current = game;
     toasts = []; mapOpen = false; fade = 0; intro = 3; lastTime = null; lastWhy = null; sync();
   }
   function mapAct() { if (g._sceneName === 'play' && game && game.state().phase === 'play') { mapOpen = !mapOpen; g.audio.beep(mapOpen ? 660 : 440, 0.05, 'triangle', 0.03); } }
@@ -72,6 +83,44 @@
   var baseClear = Object.getPrototypeOf(g).clear;
   g.clear = function (c) { baseClear.call(this, c); rnd().bg(this.ctx, this); };
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
+  // ---------- Площадка (движок v2.8/2.9): таблица лидеров «ugolyok», «Без рекламы» (no_ads) в меню и паузе, реклама за награду ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «ugolyok», GamePush — числовое поле игрока «ugolyok» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/ugolyok/platform.json (arcade-full). На сайте (без площадки) пунктов нет.
+  var LB = 'ugolyok';
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
+  // «Продолжить · уголь N/M» — с последнего зажжённого маяка (сохранение — в облаке площадки)
+  function contItem() { return { key: 'cont', before: 'play', label: function () { var s = loadSave(); return g.t('cont') + (s ? ' · ' + s.coal + '/' + L.world().totalCoal : ''); }, onSelect: function () { resume = loadSave(); this.goto('play'); } }; }
+  function refreshMenu() { var has = !!loadSave(), items = g.menu.items('title'); if (has && items.indexOf('cont') < 0) g.menu.addItem(contItem()); if (!has && items.indexOf('cont') >= 0) g.menu.removeItem('cont'); var m = g.menu.get('title'); if (m) m.sel = 0; }
+  g.onCloud(function () { if (g._sceneName === 'title') refreshMenu(); });
+  // Реклама за награду: «ещё один шанс» — 1 жизнь у последнего маяка; бонус в паузе — +1 жизнь (раз за партию, если жизней меньше трёх).
+  // Без «ещё шанса» партия кончена — сохранение стирается.
+  g.useRewardedContinue({ revive: function () { if (game) { game.reviveAd(); sync(); } } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { return !!game && game.canBoost(); }, grant: function () { if (game) { game.boost(); sync(); } } });
+  var goEnter = g.scenes.gameover.enter;
+  g.scenes.gameover.enter = function (d) { clearSave(); if (goEnter) goEnter.call(this, d); };
+  // Меню вмещает пункты площадки и «Продолжить»: если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
+  // ---------- Карточка «новая зона» (только когда площадка готова показать межстраничную): нажатие → реклама → дальше ----------
+  var cardGoing = false;
+  function cardGo() { if (cardGoing || g._sceneName !== 'card') return; cardGoing = true; g.adBreak().then(function () { cardGoing = false; if (g._sceneName === 'card') g.goto('play', { resume: true }); }); }
+  g.scene('card', {
+    enter: function () { cardGoing = false; },
+    press: function (a) { if (a === 'action' || a === 'start') cardGo(); else if (a === 'pause') this.goto('play', { resume: true }); },
+    draw: function (ctx) {
+      var th = this.th(), R = rnd(), P = R.P;
+      if (game) R.draw(ctx, game.state(), this, { toasts: [], fade: 0, intro: 0 }); else this.clear();
+      ctx.fillStyle = 'rgba(10,7,6,.74)'; ctx.fillRect(0, 0, this.W, this.H);
+      U.ui.txt(this, U.ui.up(P, this.t('z_' + L.ZONES[cardZone])), this.W / 2, this.H / 2 - 24, { size: 30, align: 'center', color: th.accent, weight: 900, maxWidth: this.W - 40 }, P);
+      if (game) U.ui.txt(this, this.t('coal') + ': ' + game.state().coal + '/' + game.state().total + ' · ' + this.t('score') + ': ' + game.state().score, this.W / 2, this.H / 2 + 12, { size: 15, align: 'center', color: th.ink, weight: 700, maxWidth: this.W - 40 }, P);
+      U.ui.txt(this, this.t('cardNext'), this.W / 2, this.H / 2 + 48, { size: 13, align: 'center', color: th.muted, weight: 600, maxWidth: this.W - 40 }, P);
+    }
+  });
+  g.canvas.addEventListener('mousedown', function () { if (g._sceneName === 'card') cardGo(); });
+  g.canvas.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { e.preventDefault(); cardGo(); } }, { passive: false });
   ['win', 'gameover'].forEach(function (name) {
     var sc = g.scenes[name], baseDraw = sc.draw;
     sc.draw = function (ctx) {
@@ -84,7 +133,8 @@
 
   // ---------- Титул: стартовый экран шахты + меню движка ----------
   var demo = U.Game({}).start(), DS = demo.state();
-  var title = g.scenes.title, menu = title._menu;
+  var title = g.scenes.title, menu = title._menu, tEnter = title.enter;
+  title.enter = function (d) { if (tEnter) tEnter.call(this, d); refreshMenu(); };
   title.update = function (dt) { DS.time += dt; DS.hero.face = Math.sin(DS.time * 0.4) > 0 ? 1 : -1; };
   title.draw = function (ctx) {
     var th = this.th(), R = rnd(), P = R.P, retro = P.pixel, Wc = this.W, Hc = this.H;
@@ -92,18 +142,18 @@
     ctx.fillStyle = retro ? 'rgba(0,0,0,.7)' : 'rgba(10,7,6,.55)'; ctx.fillRect(0, 0, Wc, Hc);
     var pw = 440, ph = 318, x0 = (Wc - pw) / 2, y0 = 46;
     U.ui.panel(ctx, x0, y0, pw, ph, P, retro ? P.line : '#5a4236');
-    U.ui.txt(this, this.t('title'), Wc / 2, y0 + 56, { size: retro ? 44 : 50, align: 'center', color: P.accent, weight: 900 }, P);
+    U.ui.txt(this, this.t('title'), Wc / 2, y0 + 56, { size: retro ? 44 : 50, align: 'center', color: P.accent, weight: 900, maxWidth: pw - 30 }, P);
     for (var k = 0; k < 5; k++) R.coalIcon(ctx, Wc / 2 - 44 + k * 22, y0 + 76, 7, this.time + k);
-    U.ui.txt(this, this.t('subtitle'), Wc / 2, y0 + 104, { size: retro ? 10 : 12, align: 'center', color: th.ink, weight: 700 }, P);
-    U.ui.txt(this, this.t('sub2'), Wc / 2, y0 + 121, { size: retro ? 9 : 11, align: 'center', color: th.muted, weight: 600 }, P);
+    U.ui.txt(this, this.t('subtitle'), Wc / 2, y0 + 104, { size: retro ? 10 : 12, align: 'center', color: th.ink, weight: 700, maxWidth: pw - 20 }, P);
+    U.ui.txt(this, this.t('sub2'), Wc / 2, y0 + 121, { size: retro ? 9 : 11, align: 'center', color: th.muted, weight: 600, maxWidth: pw - 20 }, P);
     var HH = { x: 0, y: 0, face: 1, ground: true, climb: false, walkT: 0 };
     R.hero(ctx, x0 + 48, y0 + 262, HH, this.time, { fire: 0.6 });
-    menu.draw(this, Wc / 2, y0 + 160, 28);
+    var mf = menuFit(menu, y0 + 160, 28, y0 + 140, y0 + ph - 30); menu.draw(this, Wc / 2, mf[0], mf[1]);
     var bt = bestTime(), line = [];
     if (this.state.best) line.push(this.t('best') + ': ' + this.state.best);
     if (bt) line.push(this.t('bestTime') + ': ' + U.ui.clock(bt));
     if (line.length) U.ui.txt(this, line.join(' · '), Wc / 2, y0 + ph - 14, { size: 11, align: 'center', color: th.muted, weight: 600 }, P);
-    U.ui.txt(this, this.t('hint'), Wc / 2, Hc - 14, { size: retro ? 9 : 11, align: 'center', color: th.muted, weight: 600 }, P);
+    U.ui.txt(this, this.t(this.input.touchOnly ? 'hintTouch' : 'hint'), Wc / 2, Hc - 14, { size: retro ? 9 : 11, align: 'center', color: th.muted, weight: 600, maxWidth: Wc - 20 }, P);
   };
 
   // ---------- Игровая сцена ----------

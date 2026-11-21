@@ -1,6 +1,6 @@
 /* ПОРУБЕЖЬЕ · js/game.js — логика RTS без DOM (запускается и в браузере, и в Node для тестов).
-   Карта-сетка, A*, юниты/здания двух асимметричных рас, экономика (янтарь + смола, провизия),
-   грибница Чащи, туман войны, простой ИИ волнами. Всё, что видит игрок, — через game.cmd(p, …). */
+   Карта-сетка, A*, юниты/здания трёх асимметричных родов, экономика (янтарь + смола или камень + руда, провизия),
+   грибница Чащи, окаменение Курганного рода, туман войны, простой ИИ волнами. Всё, что видит игрок, — через game.cmd(p, …). */
 (function (global) {
   'use strict';
   var P = global.PORUB = global.PORUB || {};
@@ -64,11 +64,41 @@
         barrow: { s: 3, hp: 850, cost: { a: 150, r: 100 }, time: 42, sight: 6, myc: 3, regen: 1.5, req: 'den' }
       },
       order: ['hollow', 'den', 'barrow', 'stump']
+    },
+    barrow: { // Курганный род: каменотёсы с перевалов — камень и руда, очаги вместо изб, стоящие бойцы каменеют (броня), здания — камень (броня)
+      main: 'kurgan', worker: 'mason', supply: 'hearth', grow: false, nodes: { a: 'stone', r: 'ore' },
+      units: {
+        mason:    { hp: 45, spd: 2.4, sight: 6, range: 0.4, dmg: 4, cd: 1.2, cost: { a: 50, r: 0 }, sup: 1, time: 12, r: 9, worker: true, from: 'kurgan' },
+        slinger:  { hp: 60, spd: 2.3, sight: 8, range: 4.5, dmg: 9, cd: 1.25, cost: { a: 50, r: 15 }, sup: 1, time: 15, r: 9, from: 'slingery', ranged: true, petrify: true },
+        // валун-страж: медленный, с разбега раскатывается по прямой (roll) и сшибает первого врага
+        boulder:  { hp: 280, armor: 2, spd: 1.35, sight: 8, range: 0.6, dmg: 17, splash: 0.7, cd: 1.6, cost: { a: 110, r: 80 }, sup: 3, time: 26, r: 15, from: 'stoneworks', petrify: true, roll: true },
+        // кампания «Голос камня»: старейшина Ведогор (F — пробудить идолов / голос камня), резчица Зорянка (строит и чинит за двоих)
+        vedogor:  { hp: 260, armor: 2, spd: 2.3, sight: 9, range: 4, dmg: 10, cd: 1.1, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 11, hero: true, ranged: true, petrify: true, ability: 'wake' },
+        zoryanka: { hp: 140, spd: 2.6, sight: 8, range: 0.4, dmg: 5, cd: 1.1, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 10, hero: true, worker: true, craft: 2, petrify: true },
+        // пастухи с козами (мирные) и волокуша с очагом (мирная, вокруг неё тепло — warmR клеток)
+        herder:   { hp: 60, spd: 2.2, sight: 5, range: 0, dmg: 0, cd: 9, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 10, civil: true },
+        cart:     { hp: 320, armor: 1, spd: 1.4, sight: 6, range: 0, dmg: 0, cd: 9, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 14, mech: true, civil: true, warmR: 4.5 }
+      },
+      buildings: {
+        kurgan:     { s: 4, hp: 1600, armor: 2, cost: { a: 400, r: 0 }, time: 70, sup: 10, sight: 9, trains: ['mason'], drop: true, warm: true },
+        hearth:     { s: 2, hp: 450, armor: 2, cost: { a: 100, r: 0 }, time: 22, sup: 8, sight: 5, warm: true },
+        slingery:   { s: 3, hp: 850, armor: 2, cost: { a: 150, r: 0 }, time: 35, sight: 6, trains: ['slinger'] },
+        stoneworks: { s: 3, hp: 950, armor: 2, cost: { a: 150, r: 100 }, time: 45, sight: 6, trains: ['boulder'], req: 'slingery' },
+        // кампания: каменная стена (клетка), идол (спит, пока его не разбудит Ведогор; бодрый — бьёт врагов рунами)
+        wall:       { s: 1, hp: 520, armor: 3, cost: { a: 30, r: 0 }, time: 10, sight: 3, extra: true },
+        idol:       { s: 2, hp: 900, armor: 2, cost: { a: 0, r: 0 }, time: 1, sight: 7, atk: { range: 6, dmg: 12, cd: 1.5 }, camp: true }
+      },
+      order: ['hearth', 'slingery', 'stoneworks', 'kurgan']
     }
   };
+  RACES.wright.nodes = { a: 'amber', r: 'resin' }; RACES.thicket.nodes = { a: 'amber', r: 'resin' };
+  ['hall', 'house', 'boiler'].forEach(function (k) { RACES.wright.buildings[k].warm = true; });
   // стужевик — живой холод Зимнего вала (кампания; сторона врага любой расы): мороз и вал ему не помеха (frost)
   var FROSTLING = { hp: 70, spd: 2.4, sight: 7, range: 0.45, dmg: 7, cd: 1.0, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 10, frost: true, camp: true };
-  RACES.thicket.units.frostling = FROSTLING; RACES.wright.units.frostling = FROSTLING;
+  RACES.thicket.units.frostling = FROSTLING; RACES.wright.units.frostling = FROSTLING; RACES.barrow.units.frostling = FROSTLING;
+  // сердце Зимнего вала (общий финал «Весна»): ледяная глыба стороны врага; морозу не подвластна (frost), рану ей наносят только три силы сразу
+  var ICEHEART = { s: 4, hp: 3000, armor: 4, cost: { a: 0, r: 0 }, time: 1, sight: 8, frost: true, camp: true };
+  RACES.thicket.buildings.iceheart = ICEHEART; RACES.wright.buildings.iceheart = ICEHEART; RACES.barrow.buildings.iceheart = ICEHEART;
   var LARVA_MAX = 3, LARVA_EVERY = 8, SUP_MAX = 60, QUEUE_MAX = 5;
   // механики кампании Чащи: дым котелен, споры, корни, гул, опыление, корни под льдом
   var SMOKE = { dps: 1.2 };                                             // в дыму (b.smoke — радиус, клетки) бойцы Чащи чахнут и не заживают
@@ -78,9 +108,17 @@
   var POLLEN = { t: 6, r: 2.5 };                                        // рой-опылитель: клетка вырубки → лес раз в t секунд
   var THAW = { t: 4, push: 0.35, need: 6, back: 3, front: 1 };          // корни под льдом: лёд под грибницей тает за t с; у кромки вала — толкают вал
   // timber — сухостой (дрова, ресурс кампании): rk — ключ ресурса в res[p]
-  var GATHER = { amber: { amt: 5, t: 1.6 }, resin: { amt: 4, t: 2.2 }, timber: { amt: 4, t: 3.0 } };
-  var NODE_AMT = { amber: 1200, resin: 3000, timber: 300 };
-  var RKEY = { amber: 'a', resin: 'r', timber: 'w' };
+  // Курганный род: stone — каменная россыпь (как янтарь, ключ 'a'), ore — рудная жила 2×2 (как смола, ключ 'r')
+  var GATHER = { amber: { amt: 5, t: 1.6 }, resin: { amt: 4, t: 2.2 }, timber: { amt: 4, t: 3.0 }, stone: { amt: 5, t: 1.6 }, ore: { amt: 4, t: 2.2 } };
+  var NODE_AMT = { amber: 1200, resin: 3000, timber: 300, stone: 1200, ore: 3000 };
+  var RKEY = { amber: 'a', resin: 'r', timber: 'w', stone: 'a', ore: 'r' };
+  var BIG = { resin: 1, ore: 1 };   // месторождения 2×2
+  // окаменение (Курганный род): боец, простоявший PETRIFY.t с, каменеет — броня +armor; сдвинуть — wake с «стряхивает камень»
+  var PETRIFY = { t: 2.5, armor: 3, wake: 0.7 };
+  // раскат валуна-стража: цель в min…max клеток по прямой — катится (spd ×), сшибает первого врага (dmg + разлёт splash), перезарядка cd
+  var ROLL = { min: 2.5, max: 7, spd: 3.2, dmg: 35, splash: 1.2, dur: 2.2, cd: 10 };
+  // F Ведогора: будит спящих идолов в r клетках; рядом нет идолов — «голос камня»: свои бойцы рядом сразу каменеют; перезарядка cd
+  var WAKE = { r: 5, cd: 20 };
   var REPAIR_HPS = 14;
 
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -163,6 +201,7 @@
     this.onEvent = opts.onEvent || function () {};
     this.races = [opts.playerRace || 'wright', opts.aiRace || (opts.playerRace === 'thicket' ? 'wright' : 'thicket')];
     if (opts.thirdRace) this.races.push(opts.thirdRace);   // кампания: третья сторона (owner 2 — союзник/нейтрал, отношения — setRel)
+    if (opts.thirdRace && opts.fourthRace) this.races.push(opts.fourthRace);   // общий финал «Весна»: четвёртая сторона (owner 3)
     var NS = this.sides = this.races.length;
     this.rel = null;               // отношения сторон { 'a,b': 'enemy'|'neutral'|'ally' }; null — все стороны враги (скирмиш)
     this.terr = M ? M.terr : genMap(opts.seed || 1); this.seedKey = M ? (opts.key || 'map') : (opts.seed || 1); this.terrRev = 0;
@@ -187,13 +226,18 @@
     this.felled = new Uint8Array(N); if (M && M.felled) M.felled.forEach(function (k) { self.felled[k] = 1; });
     this.young = new Uint8Array(N);   // подрост: вырубка, где рой-опылитель вырастил молодой лес (проходим, рисуется ёлочками)
     this.smokes = [];
-    var addNode = function (type, tx, ty, amt) { var s = type === 'resin' ? 2 : 1; return self._addEnt({ kind: 'n', type: type, owner: -1, tx: tx, ty: ty, s: s, amt: amt || NODE_AMT[type], amt0: amt || NODE_AMT[type], hp: 1, maxhp: 1 }); };
+    // кампания Курганного рода: буран (chill: { at, dps } — при морозе ≥ at вдали от тепла стынут и теряют здоровье), «камень хранит тепло»
+    // (stoneRest: { hps } — окаменевшие не стынут, Зимний вал их не жжёт, раны затягиваются)
+    this.chill = null; this.stoneRest = null;
+    var addNode = function (type, tx, ty, amt) { var s = BIG[type] ? 2 : 1; return self._addEnt({ kind: 'n', type: type, owner: -1, tx: tx, ty: ty, s: s, amt: amt || NODE_AMT[type], amt0: amt || NODE_AMT[type], hp: 1, maxhp: 1 }); };
     this.addNode = addNode;
     if (M) { (M.nodes || []).forEach(function (n) { addNode(n.type, n.tx, n.ty, n.amt); }); }
     else {
-      // месторождения
-      [AMBER0, EXP0.amber].forEach(function (list) { list.forEach(function (a) { addNode('amber', a[0], a[1]); var m = mir(a[0], a[1]); addNode('amber', m[0], m[1]); }); });
-      [RESIN0, EXP0.resin].forEach(function (r) { addNode('resin', r[0], r[1]); var m = mir(r[0], r[1], 2); addNode('resin', m[0], m[1]); });
+      // месторождения: у своей базы и у ближней к ней россыпи — своего рода (Мастеровые и Чаща — янтарь и смола, Курганный род — камень и руда);
+      // места те же (центральная симметрия), так что старт честный при любой паре рас
+      var NA = [RACES[this.races[0]].nodes, RACES[this.races[1]].nodes];
+      [AMBER0, EXP0.amber].forEach(function (list) { list.forEach(function (a) { addNode(NA[0].a, a[0], a[1]); var m = mir(a[0], a[1]); addNode(NA[1].a, m[0], m[1]); }); });
+      [RESIN0, EXP0.resin].forEach(function (r) { addNode(NA[0].r, r[0], r[1]); var m = mir(r[0], r[1], 2); addNode(NA[1].r, m[0], m[1]); });
       // стартовые базы
       for (var p = 0; p < 2; p++) {
         var R = RACES[this.races[p]], B = BASES[p];
@@ -211,7 +255,8 @@
   P.create = function (o) { return new Game(o); };
   P.RACES = RACES; P.T = T; P.MW = MW; P.MH = MH; P.TERR = TERR; P.PASS = PASS; P.BUILD = BUILD; P.TSPD = TSPD; P.RKEY = RKEY; P.mulberry32 = mulberry32; P.Heap = Heap;
   P.consts = { LARVA_MAX: LARVA_MAX, LARVA_EVERY: LARVA_EVERY, SUP_MAX: SUP_MAX, QUEUE_MAX: QUEUE_MAX, GATHER: GATHER, NODE_AMT: NODE_AMT };
-  P.SMOKE = SMOKE; P.SPORE = SPORE; P.ROOTS = ROOTS; P.BUZZ = BUZZ; P.POLLEN = POLLEN; P.THAW = THAW;
+  P.SMOKE = SMOKE; P.SPORE = SPORE; P.ROOTS = ROOTS; P.BUZZ = BUZZ; P.POLLEN = POLLEN; P.THAW = THAW; P.PETRIFY = PETRIFY; P.ROLL = ROLL; P.WAKE = WAKE;
+  P.nodeOf = function (race, k) { return (RACES[race] || RACES.wright).nodes[k]; };   // какое месторождение даёт расе ресурс k ('a' | 'r')
   function calmD(D) { return !!(D.civil || D.passive); }   // не воюет: мирные (посол, сани) и «тихие» юниты кампании (светляк, рой)
 
   var G = Game.prototype;
@@ -357,6 +402,8 @@
         for (var c = 0; c < e.cocoons.length; c++) used += R.units[e.cocoons[c].type].sup; } }
     return { used: used, cap: Math.min(SUP_MAX, cap) };
   };
+  // своё ли месторождение: янтарь/смола — Мастеровым и Чаще, камень/руда — Курганному роду; сухостой (дрова) — всем
+  G.canGather = function (p, n) { var N = this.race(p).nodes; return !!n && (n.type === 'timber' || n.type === N.a || n.type === N.r); };
   G.afford = function (p, cost) { var r = this.res[p]; return r.a >= cost.a && r.r >= (cost.r || 0); };
   G.pay = function (p, cost, k) { k = k == null ? 1 : k; this.res[p].a -= cost.a * k; this.res[p].r -= (cost.r || 0) * k; };
   G.hasDone = function (p, type) { for (var i = 0; i < this.ents.length; i++) { var e = this.ents[i]; if (!e.dead && e.owner === p && e.kind === 'b' && e.type === type && e.done) return true; } return false; };
@@ -432,7 +479,7 @@
       case 'smart': return this._smart(p, units, c);
       case 'move': case 'amove': return this._groupMove(units, c.x, c.y, c.t);
       case 'attack': { var tg = this.get(c.target); if (!tg || tg.dead) return false; units.forEach(function (u) { self._order(u, { t: 'attack', id: tg.id }); }); return true; }
-      case 'gather': { var n = this.get(c.target); if (!n || n.kind !== 'n') return false; units.forEach(function (u) { if (self.def(u).worker) self._order(u, { t: 'gather', id: n.id }); }); return true; }
+      case 'gather': { var n = this.get(c.target); if (!n || n.kind !== 'n' || !this.canGather(p, n)) return false; units.forEach(function (u) { if (self.def(u).worker) self._order(u, { t: 'gather', id: n.id }); }); return true; }
       case 'repair': { var rb = this.get(c.target); if (!rb || rb.dead) return false; units.forEach(function (u) { if (self.def(u).worker && !self.race(p).grow) self._order(u, { t: 'repair', id: rb.id }); }); return true; }
       case 'stop': units.forEach(function (u) { self._order(u, { t: 'idle' }); }); return true;
       case 'build': return this._build(p, units, c.type, c.tx, c.ty);
@@ -443,6 +490,7 @@
       case 'roots': return this._roots(p, this.get(c.id));
       case 'buzz': return this._buzz(p, this.get(c.id));
       case 'spore': return this._spore(p, this.get(c.id), c.tx, c.ty);
+      case 'wake': return this._wake(p, this.get(c.id));
       case 'rally': { var b = this.get(c.id); if (!b || b.owner !== p || b.kind !== 'b') return false; var tgt = c.target ? this.get(c.target) : null; b.rally = { x: c.x, y: c.y, node: tgt && tgt.kind === 'n' ? tgt.id : 0 }; return true; }
     }
     return false;
@@ -452,7 +500,7 @@
     var self = this, tg = c.target ? this.get(c.target) : null, R = this.race(p), res = { kind: 'move' };
     if (tg && !tg.dead) {
       if (this.hostile(p, tg.owner)) { units.forEach(function (u) { self._order(u, { t: 'attack', id: tg.id }); }); return { kind: 'attack' }; }
-      if (tg.kind === 'n') {
+      if (tg.kind === 'n' && this.canGather(p, tg)) {
         var any = false; units.forEach(function (u) { if (self.def(u).worker) { self._order(u, { t: 'gather', id: tg.id }); any = true; } });
         var rest = units.filter(function (u) { return !self.def(u).worker; }); if (rest.length) this._groupMove(rest, c.x, c.y, 'move');
         return { kind: any ? 'gather' : 'move' };
@@ -528,6 +576,20 @@
     this.ents.forEach(function (e) { if (e.dead || e.kind !== 'u' || e.owner !== p || Math.hypot(e.x - u.x, e.y - u.y) > BUZZ.r * T) return; e.hasteT = self.t + BUZZ.s; n++; });
     this.emit('buzz', { p: p, id: u.id, x: u.x, y: u.y, n: n }); return true;
   };
+  // F Ведогора (кампания Курганного рода): спящие идолы (b.asleep) в WAKE.r клетках просыпаются (если у идола нет врагов — иначе песнь глушат); нет их — «голос камня»: свои бойцы
+  // с окаменением в тех же клетках сразу каменеют; перезарядка WAKE.cd
+  G._wake = function (p, u) {
+    if (!u || u.dead || u.owner !== p || this.def(u).ability !== 'wake') return false;
+    if ((u.abT || 0) > this.t) { this.emit('deny', { p: p, why: 'wakeCd' }); return false; }
+    var self = this, R = WAKE.r * T, woke = [], hot = 0;
+    // рядом со спящим идолом враг — песнь глушит (идол не просыпается)
+    var noisy = function (b) { return self.ents.some(function (e) { return !e.dead && e.kind === 'u' && self.hostile(p, e.owner) && !self.def(e).civil && self.distTo(e, b) <= WAKE.r * T; }); };
+    this.ents.forEach(function (b) { if (b.dead || b.kind !== 'b' || b.owner !== p || !b.asleep || self.distTo(u, b) > R) return; if (noisy(b)) { hot++; return; } b.asleep = false; b.quiet = false; woke.push(b.id); self.emit('woke', { p: p, id: b.id, tag: b.tag || null, x: b.x, y: b.y }); });
+    if (!woke.length && hot) { this.emit('deny', { p: p, why: 'wakeHot' }); return false; }
+    u.abT = this.t + (woke.length ? WAKE.cd * 0.5 : WAKE.cd);
+    if (!woke.length) this.ents.forEach(function (e) { if (e.dead || e.kind !== 'u' || e.owner !== p || !self.def(e).petrify || Math.hypot(e.x - u.x, e.y - u.y) > R) return; e.stillT = PETRIFY.t; e.stone = true; });
+    this.emit('wake', { p: p, id: u.id, x: u.x, y: u.y, n: woke.length }); return true;
+  };
   // Споры (кампания Чащи, game.sporeCfg): готовое дупло или Пень пускает споры в клетку (tx, ty — левый верх дупла 2×2);
   // дальность — range, по ветру дальше на wind × cos(угла к ветру); в полёте fly с; упали на сушу — растёт дупло (без грибницы),
   // некуда — пропали (половина цены назад). Перезарядка — у каждого здания своя.
@@ -573,7 +635,10 @@
     var p = u.owner, tx = Math.floor(u.x / T), ty = Math.floor(u.y / T), w = false;
     if (this.race(p).grow) w = this.inMap(tx, ty) && !!this.myc[p][ty * this.MW + tx];
     else { if (this.bannerAt(p, u.x, u.y)) w = true;
-      for (var i = 0; i < this.ents.length && !w; i++) { var e = this.ents[i]; if (e.dead || e.kind !== 'b' || e.owner !== p || !e.done || !(e.type === 'hall' || e.type === 'house' || e.type === 'boiler')) continue; if (this.distTo(u, e) <= 5 * T) w = true; } }
+      // тёплые здания (warm: острог, изба, котельня; курган, очаг) — 5 клеток; тёплые юниты (warmR: волокуша с очагом)
+      for (var i = 0; i < this.ents.length && !w; i++) { var e = this.ents[i]; if (e.dead || e.owner !== p || e === u) continue;
+        if (e.kind === 'b') { if (e.done && this.def(e).warm && this.distTo(u, e) <= 5 * T) w = true; }
+        else if (e.kind === 'u') { var wr = this.def(e).warmR; if (wr && Math.hypot(e.x - u.x, e.y - u.y) <= wr * T) w = true; } } }
     u.isWarm = w; return w;
   };
   // множители мороза: ход (вдали от тепла), работа (добыча), рост/стройка/обучение — у рас по-разному
@@ -638,6 +703,7 @@
       return; // люди: прогресс двигают рабочие (_unit build)
     }
     if (D.regen && b.hp < b.maxhp) b.hp = Math.min(b.maxhp, b.hp + D.regen * dt);
+    if (D.atk && !b.asleep) this._tower(b, D.atk, dt);   // идол Курганного рода (кампания): бьёт врагов рунами
     if (R.grow && D.larva) {
       var gk = this.coldGrow(b.owner);
       if (b.larva < LARVA_MAX) { b.larvaT += dt * gk; if (b.larvaT >= LARVA_EVERY) { b.larvaT = 0; b.larva++; } } else b.larvaT = 0;
@@ -645,6 +711,12 @@
     } else if (b.queue.length) {
       var q = b.queue[0]; q.t += dt * this.coldGrow(b.owner); if (q.t >= R.units[q.type].time) { b.queue.shift(); this._emerge(b, q.type); }
     }
+  };
+  G._tower = function (b, A, dt) {
+    b.cd = Math.max(0, (b.cd || 0) - dt); if (b.cd > 0) return;
+    var best = null, bd = A.range * T;
+    for (var i = 0; i < this.ents.length; i++) { var e = this.ents[i]; if (e.dead || e.kind !== 'u' || !this.hostile(b.owner, e.owner) || this.def(e).civil) continue; var d = this.distTo(b, e); if (d <= bd) { bd = d; best = e; } }
+    if (!best) return; b.cd = A.cd; this._hit(b, { dmg: A.dmg, ranged: true }, best);
   };
   G._progress = function (b, k) {
     var D = this.def(b), before = b.prog; b.prog = Math.min(1, b.prog + k);
@@ -691,6 +763,10 @@
     else if (D.regen && u.hp < u.maxhp) u.hp = Math.min(u.maxhp, u.hp + D.regen * dt);
     if (D.heal) { var hr = D.heal.r * T; for (var hi = 0; hi < this.ents.length; hi++) { var hu = this.ents[hi]; if (hu === u || hu.dead || hu.kind !== 'u' || hu.owner !== u.owner || hu.hp >= hu.maxhp || hu.inSmoke) continue; if (Math.abs(hu.x - u.x) < hr && Math.abs(hu.y - u.y) < hr && Math.hypot(hu.x - u.x, hu.y - u.y) <= hr) hu.hp = Math.min(hu.maxhp, hu.hp + D.heal.hps * dt); } }
     if (D.pollen) this._pollen(u, dt);
+    // кампания Курганного рода: буран (вдали от тепла стынут), «камень хранит тепло» (окаменевшие не стынут и заживают)
+    if (this.chill && this.cold >= (this.chill.at || 0) && !D.frost && !(u.stone && this.stoneRest) && !this.warm(u)) { u.hp -= this.chill.dps * dt; u.hitT = this.t; u.chilled = true; if (u.hp <= 0) { this._kill(u, null); return; } } else u.chilled = false;
+    if (u.stone && this.stoneRest && u.hp < u.maxhp) u.hp = Math.min(u.maxhp, u.hp + this.stoneRest.hps * dt);
+    if (u.roll) { this._rollStep(u, D, dt); return; }   // валун-страж катится — приказы ждут
     var reach = u.r + 10;
     switch (o.t) {
       case 'idle':
@@ -728,6 +804,21 @@
         u.path = null; u.work = true; rb.hp = Math.min(rb.maxhp, rb.hp + REPAIR_HPS * (D.craft || 1) * dt); break; }
     }
     if (o.t !== 'build' && o.t !== 'repair') u.work = false;
+    // окаменение: стоит на месте (без дела или стреляет с места) PETRIFY.t секунд — камень (броня +PETRIFY.armor)
+    if (D.petrify) { if (u.ord.t !== 'move' && !u.moving && !(u.wakeT > this.t)) { u.stillT = (u.stillT || 0) + dt; if (u.stillT >= PETRIFY.t && !u.stone) { u.stone = true; this.emit('petrify', { p: u.owner, id: u.id }); } } else if (!u.stone) u.stillT = 0; }
+  };
+  // раскат валуна-стража: катится по прямой; первый враг на пути — удар ROLL.dmg и разлёт; упёрся / время вышло — встал
+  G._rollStep = function (u, D, dt) {
+    var r = u.roll, self = this, v = D.spd * ROLL.spd * T * dt * (TSPD[this.terrAt(Math.floor(u.x / T), Math.floor(u.y / T))] || 1) * this.coldMove(u), nx = u.x + r.vx * v, ny = u.y + r.vy * v;
+    u.moving = true; u.fx = r.vx; u.fy = r.vy;
+    var hit = null; for (var i = 0; i < this.ents.length && !hit; i++) { var e = this.ents[i]; if (e.dead || (e.kind !== 'u' && e.kind !== 'b') || !this.hostile(u.owner, e.owner)) continue; if (this.distTo({ x: nx, y: ny }, e) <= u.r + 3) hit = e; }
+    if (hit) {
+      this._damage(hit, ROLL.dmg, u);
+      this.ents.forEach(function (e) { if (e === hit || e.dead || e.kind !== 'u' || !self.hostile(u.owner, e.owner)) return; if (Math.hypot(e.x - nx, e.y - ny) <= ROLL.splash * T + e.r) self._damage(e, ROLL.dmg * 0.5, u); });
+      this.emit('roll', { p: u.owner, id: u.id, x: nx, y: ny, hit: true }); u.roll = null; u.cd = D.cd; return;
+    }
+    if (!this.walkPx(nx, ny) || this.t >= r.until) { u.roll = null; return; }
+    u.x = nx; u.y = ny;
   };
   G._afterBuild = function (u) { var pg = u.prevGather; this._order(u, pg && this.get(pg) ? { t: 'gather', id: pg } : { t: 'idle' }); };
   G._canSee = function (p, e) { return p !== 0 || this.visibleTo(e, p) || (e.kind === 'b' && e.seen[p]); };
@@ -767,6 +858,8 @@
   G._stepTo = function (u, D, dt, x, y) {
     var dx = x - u.x, dy = y - u.y, d = Math.hypot(dx, dy); if (d < 0.01) return;
     if (u.rootT > this.t) return;                                   // опутан корнями Матушки
+    if (u.stone) { u.stone = false; u.stillT = 0; u.wakeT = this.t + PETRIFY.wake; }   // окаменевший «стряхивает камень»
+    if (u.wakeT > this.t) return;
     var tt = this.terr[Math.floor(u.y / T) * this.MW + Math.floor(u.x / T)];
     var v = D.spd * T * dt * (TSPD[tt] || 1) * this.coldMove(u) * (u.sm || 1) * (u.hasteT > this.t ? BUZZ.mul : 1), k = Math.min(1, v / d), nx = u.x + dx * k, ny = u.y + dy * k;
     u.fx = dx / d; u.fy = dy / d; u.moving = true;
@@ -791,7 +884,7 @@
         var d2 = dx * dx + dy * dy; if (d2 >= rr * rr) continue;
         var d = Math.sqrt(d2) || 0.01; if (d2 < 0.0001) { dx = Math.cos(a.id) ; dy = Math.sin(a.id); d = 1; }
         var ov = (rr - d) * 0.5, ux = dx / d, uy = dy / d;
-        var am = a.moving ? 0.35 : 1, bm = b.moving ? 0.35 : 1, wa = a.work ? 0.1 : 1, wb = b.work ? 0.1 : 1, s = am * wa + bm * wb || 1;
+        var am = a.moving ? 0.35 : 1, bm = b.moving ? 0.35 : 1, wa = a.work || a.stone ? 0.1 : 1, wb = b.work || b.stone ? 0.1 : 1, s = am * wa + bm * wb || 1;
         var ka = ov * 2 * (am * wa) / s, kb = ov * 2 * (bm * wb) / s;
         this._place(a, a.x - ux * ka * 0.5, a.y - uy * ka * 0.5); this._place(b, b.x + ux * kb * 0.5, b.y + uy * kb * 0.5);
       } }
@@ -829,6 +922,10 @@
   };
   G._engage = function (u, D, dt, tg) {
     var range = Math.max(D.range * T, 4) + 2, d = this.distTo(u, tg) - u.r;
+    if (D.roll && !(u.rollCd > this.t) && !(u.wakeT > this.t) && d >= ROLL.min * T && d <= ROLL.max * T && this.lineFree(u.x, u.y, tg.x, tg.y, u.r)) {   // раскат
+      var L = Math.hypot(tg.x - u.x, tg.y - u.y) || 1; if (u.stone) { u.stone = false; u.stillT = 0; }
+      u.roll = { vx: (tg.x - u.x) / L, vy: (tg.y - u.y) / L, until: this.t + ROLL.dur }; u.rollCd = this.t + ROLL.cd; u.path = null; this.emit('roll', { p: u.owner, id: u.id, x: u.x, y: u.y, hit: false }); return;
+    }
     if (d <= range) {
       u.path = null; u.fx = (tg.x - u.x) / (Math.hypot(tg.x - u.x, tg.y - u.y) || 1); u.fy = (tg.y - u.y) / (Math.hypot(tg.x - u.x, tg.y - u.y) || 1);
       if (u.cd <= 0) { u.cd = D.cd; this._hit(u, D, tg); }
@@ -846,7 +943,7 @@
     if (!u.path || !u.path.length || this._walkPath(u, D, dt)) { this._stepTo(u, D, dt, tg.x, tg.y); }
   };
   G._hit = function (u, D, tg) {
-    var dmg = function (e) { var ed = e.kind === 'u' ? this.def(e) : null; return Math.max(1, D.dmg - (ed && ed.armor || 0)); }.bind(this);
+    var dmg = function (e) { var ed = e.kind === 'n' ? null : this.def(e); return Math.max(1, D.dmg - (ed && ed.armor || 0) - (e.stone ? PETRIFY.armor : 0)); }.bind(this);   // броня; здания Курганного рода — каменные; окаменевшие — крепче
     this.shots.push({ x0: u.x, y0: u.y, x1: tg.x, y1: tg.y, t: 0, dur: D.ranged ? 0.18 : 0.12, kind: u.type, owner: u.owner });
     this._damage(tg, dmg(tg), u);
     if (D.splash) { var R = D.splash * T;
@@ -927,7 +1024,7 @@
       w.done += fwd ? 1 : -1; this.emit('wallRow', { row: row });
     }
     w.hurtT -= dt; if (w.hurtT > 0 || !w.dps) return; w.hurtT = 0.5;
-    this.ents.forEach(function (e) { if (e.dead || e.owner < 0 || !self.inWall(e.x, e.y) || (e.kind === 'u' && self.def(e).frost)) return; self._damage(e, w.dps * 0.5 * (e.kind === 'b' ? 1.5 : 1), null); });
+    this.ents.forEach(function (e) { if (e.dead || e.owner < 0 || !self.inWall(e.x, e.y) || self.def(e).frost || (e.stone && self.stoneRest)) return; self._damage(e, w.dps * 0.5 * (e.kind === 'b' ? 1.5 : 1), null); });   // стужевики и сердце вала — свои; окаменевших («камень хранит тепло») не жжёт
   };
 
   // ---------- Рой-опылитель (кампания Чащи): у вырубки снова растёт лес ----------
@@ -989,9 +1086,10 @@
   function AI(game, p) {
     this.g = game; this.p = p; this.t = 0; this.think = 0.5; this.wave = 0; this.nextWave = 300; this.waveSize = 5; this.lastWaveT = -1e9;
     var R = game.race(p);
+    var O = R.order;   // [дом, казарма, тяжёлое, главное] — у каждой расы свои
     this.plan = R.grow
       ? [{ at: 30, type: 'hollow' }, { at: 55, type: 'den' }, { at: 150, type: 'hollow' }, { at: 190, type: 'barrow' }, { at: 300, type: 'hollow' }, { at: 420, type: 'hollow' }]
-      : [{ at: 30, type: 'house' }, { at: 60, type: 'gunhouse' }, { at: 150, type: 'house' }, { at: 200, type: 'boiler' }, { at: 280, type: 'gunhouse' }, { at: 330, type: 'house' }, { at: 450, type: 'house' }];
+      : [{ at: 30, type: O[0] }, { at: 60, type: O[1] }, { at: 150, type: O[0] }, { at: 200, type: O[2] }, { at: 280, type: O[1] }, { at: 330, type: O[0] }, { at: 450, type: O[0] }];
     this.done = 0; this.log = [];
   }
   P.AI = AI;
@@ -1004,15 +1102,16 @@
     var workers = units.filter(function (u) { return R.units[u.type].worker; }), army = units.filter(function (u) { return !R.units[u.type].worker; });
     var sup = g.supply(p);
     // 1) рабочие: простаивающих — на добычу (смола — 3 рабочих, когда нужна)
+    var NA = R.nodes.a, NR = R.nodes.r;   // янтарь/смола или камень/руда
     var wantResin = g.hasDone(p, R.order[1]) || this.t > 120 ? (R.grow ? 3 : 4) : 0;
-    var onResin = workers.filter(function (u) { var n = u.ord.t === 'gather' && g.get(u.ord.id); return n && n.type === 'resin'; }).length;
+    var onResin = workers.filter(function (u) { var n = u.ord.t === 'gather' && g.get(u.ord.id); return n && n.type === NR; }).length;
     workers.forEach(function (u) {
       if (u.ord.t !== 'idle') return;
-      var type = onResin < wantResin ? 'resin' : 'amber', n = g._nearestNode(u, type, 30 * T) || g._nearestNode(u, 'amber', 40 * T);
-      if (n) { g.cmd(p, { t: 'gather', ids: [u.id], target: n.id }); if (n.type === 'resin') onResin++; }
+      var type = onResin < wantResin ? NR : NA, n = g._nearestNode(u, type, 30 * T) || g._nearestNode(u, NA, 40 * T);
+      if (n) { g.cmd(p, { t: 'gather', ids: [u.id], target: n.id }); if (n.type === NR) onResin++; }
     });
-    if (onResin < wantResin) { var mover = workers.filter(function (u) { var n = u.ord.t === 'gather' && g.get(u.ord.id); return n && n.type === 'amber' && !u.carry; })[0];
-      var rn = mover && g._nearestNode(mover, 'resin', 40 * T); if (rn) g.cmd(p, { t: 'gather', ids: [mover.id], target: rn.id }); }
+    if (onResin < wantResin) { var mover = workers.filter(function (u) { var n = u.ord.t === 'gather' && g.get(u.ord.id); return n && n.type === NA && !u.carry; })[0];
+      var rn = mover && g._nearestNode(mover, NR, 40 * T); if (rn) g.cmd(p, { t: 'gather', ids: [mover.id], target: rn.id }); }
     // 2) рабочие до 14
     if (main) {
       var queued = R.grow ? main.cocoons.filter(function (c) { return c.type === R.worker; }).length : main.queue.length;
@@ -1029,8 +1128,9 @@
     }
     // лишний янтарь — ещё одно здание бойцов (до 3)
     var prodType = R.order[1], prodN = blds.filter(function (b) { return b.type === prodType; }).length;
-    if (!R.grow && this.done >= 4 && g.res[p].a > 450 && prodN < 3) this._place(prodType, workers, main);
-    if (R.grow && this.done >= 4 && g.res[p].a > 550 && blds.filter(function (b) { return b.type === R.main; }).length < 2) this._place(R.main, workers, main); // второй Пень — больше личинок
+    if (!R.grow && this.done >= 2 && g.res[p].a > 400 && prodN < 3 && !blds.some(function (b) { return b.type === prodType && !b.done; })) this._place(prodType, workers, main);
+    var nMain = blds.filter(function (b) { return b.type === R.main; }).length;   // Чаща: второй и третий Пень — больше личинок (янтарь не копится без дела)
+    if (R.grow && this.done >= 3 && nMain < 3 && g.res[p].a > 350 + 250 * nMain && !blds.some(function (b) { return b.type === R.main && !b.done; })) this._place(R.main, workers, main);
     // 5) армия
     blds.forEach(function (b) {
       if (!b.done) return; var BD = R.buildings[b.type];

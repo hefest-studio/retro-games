@@ -443,5 +443,20 @@ test('бот: кооп вдвоём (огонь по своим выкл) про
   ok(l2 >= 7, 'кооп: 2 уровня из 3 пройдены в ' + l2 + '/10');
 });
 
+// ---------- площадка (21.11, волна 5): реклама за награду, языки, «Без рекламы» и таблица лидеров ----------
+test('реклама: reviveAd после выбывания всех — по 1 жизни, старт уровня с неуязвимостью; boost — +1 жизнь', () => {
+  const game = F.Game({ players: 1, lives: 1 }).start(), S = game._S, p = S.players[0];
+  ok(!game.reviveAd(), 'в игре — нельзя'); S.phase = 'play'; p.out = true; p.alive = false; p.lives = 0; game.update(1 / 60);
+  ok(S.over && !S.won, 'партия окончена'); ok(game.reviveAd()); ok(!S.over); eq(S.phase, 'play'); ok(!p.out && p.alive); eq(p.lives, 1); ok(p.inv > 0);
+  ok(game.canBoost()); ok(game.boost()); eq(p.lives, 2);
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ФИТИЛЬ, EN/TR/ES/PT FUSEWICK', () => {
+  const T = F.STR, ks = Object.keys(T.en).sort().join(','); eq(Object.keys(T).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(T[l]).sort().join(','), ks, l);
+  eq(T.ru.title, 'ФИТИЛЬ'); for (const l of ['en', 'tr', 'es', 'pt']) eq(T[l].title, 'FUSEWICK', l);
+});
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'fitil', boards: ['fitil'], test, ok }); }
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

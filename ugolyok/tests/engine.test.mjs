@@ -273,6 +273,28 @@ test('правило имён: в папке игры нет чужих назв
   ok(!BAD.test('Уголёк') && !BAD.test('ugolyok') && !BAD.test('сажник') && !BAD.test('окалыш') && !BAD.test('CONTRACT.md') && !BAD.test('Гефест'), 'стоп-лист без ложных срабатываний на наши слова');
 });
 
+// ---------- площадка (21.11, волна 5): сохранение у маяка, реклама за награду, языки ----------
+test('сохранение: snapshot у маяка → Game({ save }) — уголь, ключи, жизни, очки, маяк; чужой формат — новая партия', () => {
+  const a = U.Game({}).start(); a._giveCoal(5); a._giveKey(1); const S = a.state(); S.score = 4321; S.lives = 2; S.time = 77;
+  const b0 = W.beacons.find((q) => W.rooms[q.room].kind !== 'S') || W.beacons[0]; S.cp = { room: b0.room, x: b0.c + 0.5, y: b0.r, id: 'x' };
+  const sn = JSON.parse(JSON.stringify(a.snapshot())), b = U.Game({ save: sn }).start(), B = b.state();
+  ok(B.coal === 5 && B.keys[1] && B.lives === 2 && B.score === 4321 && B.room === b0.room && B.hero.room === b0.room, JSON.stringify({ coal: B.coal, lives: B.lives, room: B.room }));
+  const c = U.Game({ save: { v: 9 } }).start(); ok(c.state().coal === 0 && c.state().room === W.start.room, 'чужой формат');
+});
+test('реклама: reviveAd после последней жизни — 1 жизнь у маяка; boost — +1 жизнь (до трёх)', () => {
+  const a = U.Game({ lives: 1 }).start(), S = a.state(); ok(!a.reviveAd(), 'в игре — нельзя');
+  a._die('test'); for (let i = 0; i < 200 && !S.over; i++) a.update(1 / 60); ok(S.over && !S.won);
+  ok(a.reviveAd()); ok(!S.over); eq(S.phase, 'play'); eq(S.lives, 1); ok(S.hero.inv > 0);
+  ok(a.canBoost()); ok(a.boost()); eq(S.lives, 2);
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU УГОЛЁК, EN/TR/ES/PT STOKELING', () => {
+  const T = U.STR, ks = Object.keys(T.en).sort().join(','); eq(Object.keys(T).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(T[l]).sort().join(','), ks, l);
+  eq(T.ru.title, 'УГОЛЁК'); for (const l of ['en', 'tr', 'es', 'pt']) eq(T[l].title, 'STOKELING', l);
+});
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'ugolyok', boards: ['ugolyok'], test, ok }); }
+
 // ---------- партии бота (QUICK=1 — пропустить) ----------
 if (process.env.QUICK){ console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed) + ' (без бота)'); process.exit(failed ? 1 : 0); }
 test('исполнимость: бот без гибели от ловушек собирает весь уголь и раздувает Горн в настоящей физике', () => {
