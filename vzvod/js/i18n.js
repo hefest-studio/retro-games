@@ -8,7 +8,14 @@
     ru: ['Шуруп', 'Гайка', 'Болтик', 'Шплинт', 'Клёпка', 'Пружина', 'Втулка', 'Зубец', 'Ключик', 'Скоба', 'Штифт', 'Шайба',
       'Уголок', 'Кулачок', 'Рычажок', 'Валик', 'Поршень', 'Фланец', 'Сверло', 'Кернер', 'Муфта', 'Хомут', 'Защёлка', 'Колёсико'],
     en: ['Screw', 'Nut', 'Bolty', 'Cotter', 'Rivet', 'Spring', 'Bushing', 'Cog', 'Keylet', 'Bracket', 'Pin', 'Washer',
-      'Angle', 'Cam', 'Lever', 'Roller', 'Piston', 'Flange', 'Drill', 'Punch', 'Coupler', 'Clamp', 'Latch', 'Wheely']
+      'Angle', 'Cam', 'Lever', 'Roller', 'Piston', 'Flange', 'Drill', 'Punch', 'Coupler', 'Clamp', 'Latch', 'Wheely'],
+    // TR/ES/PT — свои «железные» прозвища (21.11, второй проход переводов; не длиннее 8 букв — панель отряда, кегль 13)
+    tr: ['Vida', 'Somun', 'Cıvata', 'Kopilya', 'Perçin', 'Yay', 'Burç', 'Diş', 'Anahtar', 'Kenet', 'Pim', 'Pul',
+      'Köşebent', 'Kam', 'Kolcuk', 'Merdane', 'Piston', 'Flanş', 'Matkap', 'Nokta', 'Kavrama', 'Kelepçe', 'Mandal', 'Teker'],
+    es: ['Tornillo', 'Tuerca', 'Pernito', 'Chaveta', 'Remache', 'Muelle', 'Casquillo', 'Diente', 'Llavín', 'Grapa', 'Pasador', 'Arandela',
+      'Escuadra', 'Leva', 'Palanca', 'Rodillo', 'Pistón', 'Brida', 'Broca', 'Punzón', 'Manguito', 'Collarín', 'Pestillo', 'Ruedita'],
+    pt: ['Parafuso', 'Porca', 'Pininho', 'Cupilha', 'Rebite', 'Mola', 'Bucha', 'Dente', 'Chavinha', 'Grampo', 'Pino', 'Arruela',
+      'Esquadro', 'Came', 'Manete', 'Rolete', 'Pistão', 'Flange', 'Broca', 'Punção', 'Luva', 'Presilha', 'Trinco', 'Rodinha']
   };
   V.STR = {
     ru: {
@@ -91,7 +98,7 @@
     score: 'Puan', level: 'Operasyon', best: 'Rekor', win: 'KOVAN DURDU! MAHALLELER YİNE ÇALIŞIYOR', gameover: 'EKİP GERİ ÇEKİLDİ',
     pause: 'DURAKLATILDI', resume: 'Devam', menu: 'Menü', tapstart: 'boşluk / dokun',
     title: 'HIVEWRENCH', subtitle: 'Hefest atölyesinin tamir ekibi Pas Kovanı’na karşı',
-    back: 'Katalog', cont: 'Devam et', newc: 'Yeni sefer', newcSure: 'Baştan mı? (tekrar)',
+    back: 'Katalog', cont: 'Devam et', newc: 'Yeni kampanya', newcSure: 'Baştan mı? (tekrar)',
     op: 'OPERASYON', opShort: 'Op.', missionW: 'Görev',
     op_1: 'Deneme Çalıştırması', op_2: 'Döküm Mahallesi', op_3: 'Soğuk Depo', op_4: 'Boru Bataklığı', op_5: 'Buz Hangarı', op_6: 'Kovanın Kalbi',
     m_1_1: 'İlk Kıvılcım', m_1_2: 'Temiz Atölye',
@@ -107,11 +114,11 @@
     o_hold: 'Pompa noktasını tutun: ekipten biri dairenin içinde durmalı',
     os_hives: 'Kovan', os_clear: 'Kalan', os_escort: 'Ayarcı', os_hold: 'Nokta',
     r_0: 'Çırak', r_1: 'Tesviyeci', r_2: 'Ayarcı', r_3: 'Usta', r_4: 'Kd. usta', r_5: 'Baş usta',
-    squad: 'EKİP', inRepair: 'Tamirde', fund: 'Tamir fonu', repairCost: 'tamir —', ammo: 'Erzak',
+    squad: 'EKİP', inRepair: 'Tamirde', fund: 'Tamir fonu', repairCost: 'tamir —', ammo: 'Cephane',
     gear: 'Dişli', rocket: 'Roket', goFight: 'Enter / tıkla — sahaya', toMenu: 'Esc — menü', next: 'Enter / tıkla — devam',
     returns: 'dönecek', waitFund: 'fon bekliyor', afterMis: 'görevden sonra',
     won: 'GÖREV TAMAM', lost: 'EKİP DÜŞTÜ', lostVip: 'AYARCI BOZULDU', retry: 'Görev tekrarlanmalı',
-    kills: 'Makine', hivesW: 'Kovan', xp: 'tcr', promo: 'terfi', broken: 'tamire', fundGain: 'Fona',
+    kills: 'Makine', hivesW: 'Kovan', xp: 'deneyim', promo: 'terfi', broken: 'tamire', fundGain: 'Fona',
     recruits: 'Atölye yaptı', repaired: 'Tamirden döndü', emergency: 'Acil yapım', opDone: 'Operasyon tamam!',
     grpA: 'A grubu', grpB: 'B grubu', inCart: 'vagonet', inSkimmer: 'kızak',
     t_noAmmo_gear: 'dişli yok', t_noAmmo_rocket: 'roket yok', t_ping: 'kovana yalnızca dişli ya da roket',
@@ -197,5 +204,5 @@
     hintKeys: 'Botão esq. — andar · Botão dir. (segurar) / espaço — fogo · Q — engrenagem · E — foguete · X — dividir · Tab — grupo · F — sair',
     foot: '<b>HIVEWRENCH</b> · Botão esquerdo — a equipe anda em fila atrás do líder (clique num veículo — embarcar) · Botão direito (segurar) ou espaço — raios de solda no cursor · Q/G — engrenagem (explode, voa sobre muros) · E/R — foguete · X — dividir/juntar a equipe · Tab — trocar de grupo · F — sair do veículo · setas/WASD — olhar em volta · clique no minimapa — ir até lá · P/Esc pausa · L idioma, T tema, M som. Toque: toque — andar, toque duplo — fogo, botões abaixo.'
   };
-  NAMES.ru.forEach(function (n, i) { V.STR.ru['n_' + i] = n; ['en', 'tr', 'es', 'pt'].forEach(function (l) { V.STR[l]['n_' + i] = NAMES.en[i]; }); });   // имена болванчиков — EN-форма для всех, кроме RU
+  NAMES.ru.forEach(function (n, i) { ['ru', 'en', 'tr', 'es', 'pt'].forEach(function (l) { V.STR[l]['n_' + i] = (NAMES[l] || NAMES.en)[i]; }); });   // имена болванчиков — на языке игрока
 })(typeof window !== 'undefined' ? window : globalThis);

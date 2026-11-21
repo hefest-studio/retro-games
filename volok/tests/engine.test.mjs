@@ -332,5 +332,9 @@ test('бот с медленной реакцией (300–450 мс) и расс
   ok(r.won && !r.stuck, JSON.stringify({ mx: Math.round(r.mx), solved: r.solved }));
 });
 
+// ---------- площадка (21.11): «Без рекламы» и таблицы лидеров — статика main.js + список для Консоли (promo/<slug>/platform.json) ----------
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'volok', boards: ['volok'], test, ok }); }
+
 console.log(`\n${passed} прошло, ${failed} упало`);
 process.exit(failed ? 1 : 0);

@@ -44,15 +44,15 @@
       pause: 'DURAKLATILDI', resume: 'Devam et', menu: 'Ana menü', tapstart: 'boşluk / dokun',
       title: 'MASONRY', subtitle: 'Duvarı yık · 10 seviye · fırının kalbi',
       back: 'Katalog', lives: 'Canlar',
-      ready: 'SEVİYE', launch: 'Boşluk / tıkla — çekirdeği fırlat', bossSub: 'Fırının kalbine vur, malayı kıvılcımlardan koru',
-      clear: 'DUVAR YIKILDI', bonus: 'Bonus', lost: 'ÇEKİRDEK KAYBOLDU', heart: 'Fırının kalbi', draft: 'FIRIN ÇEKİŞİ',
+      ready: 'SEVİYE', launch: 'Boşluk / tıkla — gülleyi fırlat', bossSub: 'Fırının kalbine vur, malayı kıvılcımlardan koru',
+      clear: 'DUVAR YIKILDI', bonus: 'Bonus', lost: 'GÜLLE KAYBOLDU', heart: 'Fırının kalbi', draft: 'FIRIN ÇEKİŞİ',
       lv_base: 'Temel', lv_arch: 'Kemer', lv_checker: 'Dama', lv_gates: 'Kapılar', lv_flue: 'Baca',
       lv_stairs: 'Merdiven', lv_grate: 'Izgara', lv_bastion: 'Burç', lv_hearth: 'Ocak', lv_smelter: 'Ergitme fırını',
       pw_wide: 'GENİŞLİK', pw_narrow: 'DARLIK', pw_triple: 'ÜÇLÜ', pw_glue: 'REÇİNE', pw_cutter: 'KESİCİ', pw_chill: 'SOĞUTMA', pw_life: 'YEDEK',
       hint: 'Fare / ← → — mala · Boşluk — fırlat ve kesici · P — duraklat',
-      nextLevel: 'Boşluk / dokun — devam', revived: 'BİR ÇEKİRDEK DAHA', rwLife: 'Reklam: +1 çekirdek',
-      lvPick: 'Seviye', unlockedLv: 'Açık', st_clear: 'Duvar yıkıldı', st_safe: 'Çekirdek kaybı yok', st_fast: '{n} sn altında', opened: 'SEVİYE {n} AÇILDI',
-      foot: '<b>MASONRY</b> · fare, parmak veya ← → / A D — mala · Boşluk / tıklama / dokunma — çekirdeği fırlat ve kesiciyi ateşle · P — duraklat · L dil, T tema, M ses.'
+      nextLevel: 'Boşluk / dokun — devam', revived: 'BİR GÜLLE DAHA', rwLife: 'Reklam: +1 gülle',
+      lvPick: 'Seviye', unlockedLv: 'Açık', st_clear: 'Duvar yıkıldı', st_safe: 'Gülle kaybı yok', st_fast: '{n} sn altında', opened: 'SEVİYE {n} AÇILDI',
+      foot: '<b>MASONRY</b> · fare, parmak veya ← → / A D — mala · Boşluk / tıklama / dokunma — gülleyi fırlat ve kesiciyi ateşle · P — duraklat · L dil, T tema, M ses.'
     },
     es: {
       play: 'Jugar', language: 'Idioma', theme: 'Tema', sound: 'Sonido', on: 'sí', off: 'no',
@@ -60,15 +60,15 @@
       pause: 'PAUSA', resume: 'Continuar', menu: 'Menú principal', tapstart: 'espacio / toca',
       title: 'MASONRY', subtitle: 'Derriba el muro · 10 niveles · corazón del horno',
       back: 'Catálogo', lives: 'Vidas',
-      ready: 'NIVEL', launch: 'Espacio / clic — lanza el núcleo', bossSub: 'Golpea el corazón del horno, protege la llana de las chispas',
-      clear: 'MURO DERRIBADO', bonus: 'Bonus', lost: 'NÚCLEO PERDIDO', heart: 'Corazón del horno', draft: 'TIRO DEL HORNO',
+      ready: 'NIVEL', launch: 'Espacio / clic — lanza la bola', bossSub: 'Golpea el corazón del horno, protege la llana de las chispas',
+      clear: 'MURO DERRIBADO', bonus: 'Bonus', lost: 'BOLA PERDIDA', heart: 'Corazón del horno', draft: 'TIRO DEL HORNO',
       lv_base: 'Cimientos', lv_arch: 'Arco', lv_checker: 'Damero', lv_gates: 'Puertas', lv_flue: 'Chimenea',
       lv_stairs: 'Escalera', lv_grate: 'Rejilla', lv_bastion: 'Bastión', lv_hearth: 'Fragua', lv_smelter: 'Fundición',
       pw_wide: 'AMPLITUD', pw_narrow: 'ESTRECHEZ', pw_triple: 'TRIPLE', pw_glue: 'RESINA', pw_cutter: 'CORTADOR', pw_chill: 'FRÍO', pw_life: 'REPUESTO',
       hint: 'Ratón / ← → — llana · Espacio — lanzar y cortador · P — pausa',
-      nextLevel: 'Espacio / toca — seguir', revived: 'UN NÚCLEO MÁS', rwLife: 'Anuncio: +1 núcleo',
-      lvPick: 'Nivel', unlockedLv: 'Abiertos', st_clear: 'Muro derribado', st_safe: 'Sin perder núcleo', st_fast: 'En menos de {n} s', opened: 'NIVEL {n} DESBLOQUEADO',
-      foot: '<b>MASONRY</b> · ratón, dedo o ← → / A D — llana · Espacio / clic / toque — lanza el núcleo y dispara el cortador · P — pausa · L idioma, T tema, M sonido.'
+      nextLevel: 'Espacio / toca — seguir', revived: 'UNA BOLA MÁS', rwLife: 'Anuncio: +1 bola',
+      lvPick: 'Nivel', unlockedLv: 'Abiertos', st_clear: 'Muro derribado', st_safe: 'Sin perder la bola', st_fast: 'En menos de {n} s', opened: 'NIVEL {n} DESBLOQUEADO',
+      foot: '<b>MASONRY</b> · ratón, dedo o ← → / A D — llana · Espacio / clic / toque — lanza la bola y dispara el cortador · P — pausa · L idioma, T tema, M sonido.'
     },
     pt: {
       play: 'Jogar', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'ligado', off: 'desligado',
@@ -76,15 +76,15 @@
       pause: 'PAUSA', resume: 'Continuar', menu: 'Menu principal', tapstart: 'espaço / toque',
       title: 'MASONRY', subtitle: 'Derrube o muro · 10 fases · coração da fornalha',
       back: 'Catálogo', lives: 'Vidas',
-      ready: 'FASE', launch: 'Espaço / clique — lance o núcleo', bossSub: 'Acerte o coração da fornalha, proteja a colher das faíscas',
-      clear: 'MURO DERRUBADO', bonus: 'Bônus', lost: 'NÚCLEO PERDIDO', heart: 'Coração da fornalha', draft: 'TIRAGEM DA FORNALHA',
+      ready: 'FASE', launch: 'Espaço / clique — lance a bola', bossSub: 'Acerte o coração da fornalha, proteja a colher das faíscas',
+      clear: 'MURO DERRUBADO', bonus: 'Bônus', lost: 'BOLA PERDIDA', heart: 'Coração da fornalha', draft: 'TIRAGEM DA FORNALHA',
       lv_base: 'Alicerce', lv_arch: 'Arco', lv_checker: 'Xadrez', lv_gates: 'Portões', lv_flue: 'Chaminé',
       lv_stairs: 'Escada', lv_grate: 'Grelha', lv_bastion: 'Bastião', lv_hearth: 'Forja', lv_smelter: 'Fundição',
       pw_wide: 'AMPLO', pw_narrow: 'ESTREITO', pw_triple: 'TRIPLO', pw_glue: 'RESINA', pw_cutter: 'CORTADOR', pw_chill: 'FRIO', pw_life: 'RESERVA',
       hint: 'Mouse / ← → — colher de pedreiro · Espaço — lançar e cortador · P — pausa',
-      nextLevel: 'Espaço / toque — continuar', revived: 'MAIS UM NÚCLEO', rwLife: 'Anúncio: +1 núcleo',
-      lvPick: 'Fase', unlockedLv: 'Liberadas', st_clear: 'Muro derrubado', st_safe: 'Sem perder núcleo', st_fast: 'Em menos de {n} s', opened: 'FASE {n} LIBERADA',
-      foot: '<b>MASONRY</b> · mouse, dedo ou ← → / A D — colher de pedreiro · Espaço / clique / toque — lança o núcleo e dispara o cortador · P — pausa · L idioma, T tema, M som.'
+      nextLevel: 'Espaço / toque — continuar', revived: 'MAIS UMA BOLA', rwLife: 'Anúncio: +1 bola',
+      lvPick: 'Fase', unlockedLv: 'Liberadas', st_clear: 'Muro derrubado', st_safe: 'Sem perder a bola', st_fast: 'Em menos de {n} s', opened: 'FASE {n} LIBERADA',
+      foot: '<b>MASONRY</b> · mouse, dedo ou ← → / A D — colher de pedreiro · Espaço / clique / toque — lança a bola e dispara o cortador · P — pausa · L idioma, T tema, M som.'
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

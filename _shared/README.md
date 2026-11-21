@@ -309,7 +309,67 @@ Chrome отдаёт геймпад странице только после на
 После перевода: тесты `priisk/tests/engine.test.mjs` (блок «ArcadeMouse», стр. ~248–300) переписать под новый контракт или заменить ссылкой на `_shared/tests/mouse.test.mjs`;
 браузером проверить рамку, приказ ПКМ, мини-карту (перетаскивание), группы (долгое нажатие ≥ 480 мс = назначить), размещение зданий на таче, панораму двумя пальцами.
 
-Тесты v2.2–2.4, 2.8, 2.9: `node _shared/tests/gamepad.test.mjs` (геймпад), `node _shared/tests/i18n.test.mjs` (правило языка, ссылка «← Каталог», языки из таблиц, кегль), `node _shared/tests/mouse.test.mjs` (мышь и тач), `node _shared/tests/input.test.mjs` (меню, игроки, конфликты, touchOnly, usePlayers), `node _shared/tests/host.test.mjs`.
+## Ядро кампаний стратегий — `_shared/campaign-core.js` → `<игра>/js/campaign-core.js` (v1.0) и кит экранов `_shared/campaign-ui-kit.js`
+Общее ядро миссий RTS студии: **без DOM, без зависимостей и без знания об игре** — игра даёт свою легенду карты, свой мир, свои условия
+и действия. Вынесено из ПОРУБЕЖЬЯ (`porubezhye/js/scenario.js`, удалён) и ПРИИСКа (`priisk/js/campaign.js`) в 11.2026; обе игры на нём,
+поведение миссий и сохранения игроков — прежние (ключи `arcade.priisk.campaign[.sizye|.both]`, `arcade.porubezhye.campaign.<род>`, формат v1).
+Экспорт — `HefestCampaign` (ядро) и `HefestCampaignUI` (кит).
+
+| Часть | API ядра |
+|---|---|
+| карта | `parseMap(rows, { tiles, legend, ground, isPoint, under, unknown, id, cell })` → `{ w, h, t, points }`: `tiles` — символ → код клетки игры; точки (по умолчанию — символы не из `tiles`) и метки (`under`) берут клетку из `legend[буква]` или `ground`; `unknown` — код неизвестного символа (не задан — ошибка); `cell(k, i, j, ch, base)` — руда, высоты, узлы ресурсов |
+| точки и зоны | `pointOf`, `cornerOf`, `inZone`, `zoneCenter`, `zoneRadius`, `zoneCells(MS, z, w, h)` → `[{ i, j }]`; зоны `{ at, r }`, `{ x, y, w, h }`, `{ pts: ['1','H'] }` |
+| сценарий | `create(def, flags[, { objectives:false }])` → MS; `handler({ ctx, now, end, conds, acts, … })` → H; `step(MS, H, dt)`; `cond / run / act / setObj / lose / stars`; `extend(H, { conds, acts })` |
+| общие условия | `time`, `obj`, `since`, `flag`, `heroDead`, `killed` (тег / список, `type` — если игра зовёт `noteKill(MS, tag, type)`), `all/any/not` |
+| общие действия | `wait`, `if` (`do`/`else`), `say`, `msg`, `objective`, `flag`, `win` (`delay`), `lose` (`reason`) |
+| цели, исход | триггеры `{ id, when, do, repeat }` раз в 0,25 с; цели `after`/`hidden`/`kind:'opt'`/`done`/`fail`/`failText`; `def.lose`; автопобеда, когда выполнены обязательные (`def.manualWin` — только `win`); звёзды `[победа, …def.stars]` |
+| учёт | `noteSpawn(MS, tag)`, `noteKill(MS, tag, type)`, `heroesOf(MS)`, `setGroup(MS, gr, base)` (сценарные группы: умолчания + тревога сохраняется) |
+| прогресс | `newSave({ vets, camp })`, `load / save / reset(store, key, o)` (try/catch), `applyResult(data, res, { n, vets })` — лучшие звёзды и время, флаги, герои (пал — `wounded`), ветераны; `wounded(save, type)`; `carried(def, save)` — `def.carry`; `xcarried(def, getSave)` — флаги чужой кампании `camp.flag` + `camp.done`; `unlockState(unlock, getSave, done)` — миссия, открываемая флагами других кампаний |
+| финал по флагам | `flagsMatch({ флаг: значение \| [значения] }, flags)`, `pick({ key, значение: текст, other }, flags)`, `flagCond(дерево flag/all/any/not, flags, свои типы)`, `starsOf(missions, save, 3)` |
+| реестр, карта кампании | `upsert(list, def)` (по id, сортировка по n), `nodeState(def, save)` → `done/open/closed`, `txt(o, lang)` |
+
+**Привязка `H`** (`handler`): `ctx` — мир игры (первый аргумент её условий `conds[t](ctx, c, MS)` и действий `acts[a](ctx, a, MS)`),
+`now()` — время миссии, `end(win)` — исход (ядро зовёт один раз), `over()` — «кончилась» по мнению игры (по умолчанию `MS.over`),
+`tick(MS)` — работа игры между триггерами и целями, `sayLife` 6 с, `winDelay` 2 с, `autoWinDelay` 2 с, `failReason` `'obj'`,
+`strict` (true): после исхода шаг сразу останавливается, повторный `win` срок не переносит. `strict:false` — порядок ПРИИСКа до ядра
+(его миссии рассчитаны на него: триггеры шага дорабатывают, проваленная цель задаёт причину поверх) — новой игре не нужен.
+Запасные `H.cond(c)` / `H.act(a)` (возврат `undefined` — «не знаю такого») тоже работают; неизвестное — ошибка «неизвестное условие …».
+
+**Кит экранов** (`campaign-ui-kit.js`) — только то, что у игр совпадало дословно: `wrap(c, s, maxW, size, weight, font)` (перенос по словам),
+`fmtTime(s, clamp)`, `starPath(c, x, y, r)`, `hitAt(list, p)`, `canvasPoint(canvas, e, W, H)`, `bindHot(canvas, { active, list, size, press, hover })`
+(кнопки экранов мышью/тачем, курсор). Палитры, пиктограммы, кнопки, портреты, карта кампании, брифинг и HUD — у игр свои (разный облик и раскладка).
+
+**Новая RTS подключает ядро:**
+```html
+<script src="./js/campaign-core.js"></script>     <!-- копия _shared/campaign-core.js (метка источника — build.sh обновляет) -->
+<script src="./js/campaign.js"></script>          <!-- правила игры поверх ядра -->
+<script src="./js/campaign-ui-kit.js"></script>   <!-- по желанию: копия _shared/campaign-ui-kit.js -->
+```
+```js
+var K = HefestCampaign;
+var TILE = { '.': 0, '#': 1, '~': 2 };                               // своя легенда
+function build(def, save) {
+  var m = K.parseMap(def.map, { tiles: TILE, legend: def.legend, cell: function (k, i, j, ch) { /* руда, высоты: ch — символ клетки */ } });
+  var world = newWorld(m);                                           // мир игры
+  var MS = world.mission = K.create(def, K.carried(def, save));      // + K.xcarried(def, getSave) — флаги чужой кампании
+  MS.points = m.points; MS.groups = {};
+  MS.H = K.handler({ ctx: world, now: function () { return world.t; },
+    end: function (win) { world.winner = win ? 0 : 1; MS.result = { id: def.id, n: def.n, win: win, stars: K.stars(MS, MS.H, win), time: world.t, flags: MS.flags, heroes: K.heroesOf(MS) }; },
+    conds: { units: function (W, c, MS) { return W.units.filter(function (u) { return u.owner === (c.owner || 0); }).length >= (c.gte || 1); },
+             zone:  function (W, c, MS) { return W.units.some(function (u) { return u.owner === 0 && K.inZone(MS, c.zone, u.x, u.y); }); } },
+    acts:  { spawn: function (W, a, MS) { var p = K.pointOf(MS, a.at); addUnit(W, a.owner, a.type, p.x, p.y, a.tag); K.noteSpawn(MS, a.tag); } } });
+  return world;
+}
+// в шаге мира: K.step(world.mission, world.mission.H, dt); при смерти юнита с тегом: K.noteKill(MS, u.tag, u.type)
+// итог: data = K.load(localStorage, 'arcade.<игра>.campaign'); K.applyResult(data, MS.result); K.save(localStorage, 'arcade.<игра>.campaign', data);
+```
+- **Синхронизация:** `build.sh` копирует `_shared/campaign-core.js` и `_shared/campaign-ui-kit.js` в `<игра>/js/`, только если игра подключает
+  файл и он копия общего (метка «Источник — _shared/<файл>»). Сейчас — `priisk`, `porubezhye`.
+- **Тест:** `node _shared/tests/campaign-core.test.mjs` (18: карта, зоны, триггеры, цели, исход, словари, строгий/старый шаг, звёзды, прогресс,
+  перенос флагов, финал, кит экранов, сверка копий в играх). Миссии игр — их тесты (`priisk/tests/campaign*.test.mjs`,
+  `porubezhye/tests/campaign.test.mjs` и полные наборы в arcade-full).
+
+Тесты v2.2–2.4, 2.8, 2.9: `node _shared/tests/gamepad.test.mjs` (геймпад), `node _shared/tests/campaign-core.test.mjs` (ядро кампаний), `node _shared/tests/i18n.test.mjs` (правило языка, ссылка «← Каталог», языки из таблиц, кегль), `node _shared/tests/mouse.test.mjs` (мышь и тач), `node _shared/tests/input.test.mjs` (меню, игроки, конфликты, touchOnly, usePlayers), `node _shared/tests/host.test.mjs`.
 
 ## План игр (ремейки на фреймворке с паритетом фич — retro+modern, i18n, звук; неон→modern)
 Старые версии архивировать как `<game>/legacy.html` ПЕРЕД заменой; каждую новую — отдельным протестированным коммитом; аркада всегда рабочая. Эталон первым: **kaskad** или **hrum** (самые компактные: 628 / 759 строк).

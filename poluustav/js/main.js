@@ -1,34 +1,46 @@
 /* ПОЛУУСТАВ · сборка игры на фреймворке Гефест Arcade v2: сцены, ввод (клавиши, тач-кнопки, свайп-прыжок),
    сохранение по отметкам (localStorage poluustav.save), музыка и звук среды по страницам, связь логики с рендером.
-   Отладка/скриншоты: #z=<страница 0..6>&cp=<отметка> — начать с нужного места (как «Продолжить»). */
+   Отладка/скриншоты: #z=<страница 0..6>&cp=<отметка> — начать с нужного места (как «Продолжить»).
+   Издания вне сайта (необязательно): POLU.Edition — хуки обёртки (Steam-издание кладёт свой js/edition.js в ПРИВАТНОЙ сборке):
+   storage (сохранения), quit («Выход»), fullscreen (окно ↔ полный экран), lang(языки) (язык по умолчанию), strings (доп. строки),
+   padStyle (подписи геймпада), release (без отладочного старта). На сайте объекта нет — всё как раньше. */
 (function (global) {
   'use strict';
   var P = global.POLU, RD = P.render;
   var W = 960, H = 540, SAVE = 'poluustav.save';
+  var E = P.Edition || {}, LS = E.storage || null, BEST = 'arcade.best.poluustav';
+  if (E.strings) Object.keys(E.strings).forEach(function (l) { if (P.STR[l]) Object.keys(E.strings[l]).forEach(function (k) { P.STR[l][k] = E.strings[l][k]; }); });
+  if (LS) { var b0 = parseFloat(LS.getItem(BEST)) || 0; if (b0 > Arcade.Store.getNum(BEST, 0)) Arcade.Store.set(BEST, String(b0)); }   // рекорд из файла — до createGame
   var THEMES = {
     modern: { bg: '#efe3c6', panel: '#e5d4ae', ink: '#3b2817', muted: '#7a6346', accent: '#b4442b', good: '#4f6b2e', bad: '#b4442b', warn: '#b4442b', grid: '#d9c7a0', font: 'Georgia, "Times New Roman", serif', pixel: false, glow: false, radius: 6 },
     retro: { bg: '#f4efe1', panel: '#d8d0bc', ink: '#120e0a', muted: '#4a4038', accent: '#120e0a', good: '#120e0a', bad: '#120e0a', warn: '#120e0a', grid: '#d8d0bc', font: '"Courier New", ui-monospace, monospace', pixel: true, glow: false, radius: 0 }
   };
-  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'poluustav', strings: P.STR, theme: 'modern', themes: THEMES });
+  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'poluustav', strings: P.STR, theme: 'modern', themes: THEMES, lang: E.lang ? E.lang(Object.keys(P.STR)) : undefined });
+  if (E.padStyle) g.gamepad.configure({ style: E.padStyle });
   P.g = g;
   var pad = document.querySelector('.pad');
   g.input.bindDpad(pad);
 
   // ---------- сохранение ----------
-  function loadSave() { try { var s = localStorage.getItem(SAVE); var o = s ? JSON.parse(s) : null; return o && P.LEVELS[o.z] ? o : null; } catch (e) { return null; } }
-  function writeSave(o) { g.storeSet(SAVE, JSON.stringify(o)); }   // localStorage сразу + облако площадки
-  function clearSave() { try { localStorage.removeItem(SAVE); } catch (e) {} if (g.platform) g.storeSet(SAVE, ''); }
+  // хранилище: на сайте — localStorage (+ облако площадки через g.storeSet); в издании с обёрткой — E.storage (файлы, Steam Cloud)
+  var sGet = LS ? function (k, d) { var v = LS.getItem(k); return v == null ? d : v; } : function (k, d) { return Arcade.Store.get(k, d); };
+  var sSet = LS ? function (k, v) { LS.setItem(k, String(v)); } : function (k, v) { g.storeSet(k, v); };
+  var sNum = function (k, d) { var v = sGet(k, null); return v == null ? d : (parseFloat(v) || d); };
+  function loadSave() { try { var s = LS ? LS.getItem(SAVE) : localStorage.getItem(SAVE); var o = s ? JSON.parse(s) : null; return o && P.LEVELS[o.z] ? o : null; } catch (e) { return null; } }
+  function writeSave(o) { sSet(SAVE, JSON.stringify(o)); }   // localStorage сразу + облако площадки
+  function clearSave() { if (LS) { LS.removeItem(SAVE); return; } try { localStorage.removeItem(SAVE); } catch (e) {} if (g.platform) g.storeSet(SAVE, ''); }
   // ---------- облако и мета-прогрессия: выбор страницы, звёзды (js/meta.js) ----------
   var Store = Arcade.Store, M = P.meta, REACHED = 'arcade.poluustav.reached', START_KEY = 'arcade.poluustav.start';
-  var prog = M.Progress({ get: function (k) { return Store.get(k, null); }, set: function (k, v) { g.storeSet(k, v); } });
+  var prog = M.Progress({ get: function (k) { return sGet(k, null); }, set: function (k, v) { sSet(k, v); } });
   g.persist(SAVE, 'last'); g.persist(REACHED, 'max'); g.persist(START_KEY, 'last'); g.persist('arcade.best.poluustav', 'max');
   for (var lv = 1; lv <= M.LEVELS; lv++) g.persist(M.key(lv), 'max');
-  function reached() { return Math.min(M.LEVELS, Math.max(Store.getNum(REACHED, 1), prog.maxUnlocked())); }
-  function startLv() { var v = parseInt(Store.get(START_KEY, '1'), 10) || 1; return v >= 1 && v <= reached() ? v : 1; }
-  function nextStart(dir) { var m = reached(), n = startLv() + (dir || 1); if (n > m) n = 1; if (n < 1) n = m; g.storeSet(START_KEY, n); }
+  function reached() { return Math.min(M.LEVELS, Math.max(sNum(REACHED, 1), prog.maxUnlocked())); }
+  function startLv() { var v = parseInt(sGet(START_KEY, '1'), 10) || 1; return v >= 1 && v <= reached() ? v : 1; }
+  function nextStart(dir) { var m = reached(), n = startLv() + (dir || 1); if (n > m) n = 1; if (n < 1) n = m; sSet(START_KEY, n); }
   var pg = { z: -1, base: 0, skip: false, turned: false, startZ: 0 };   // текущая страница: кляксы на входе, перелистнута ли за рекламу
   function recordPage(z, S) { var r = M.stars({ blots: S.deaths - pg.base, skipped: pg.skip }); if (r.n && prog.record(z + 1, r.n)) pg.note = { text: M.starStr(r.n) + '  ' + g.t('starNew'), t: 2.4 }; else if (r.n) pg.note = { text: M.starStr(r.n), t: 1.8 }; }
   function debugStart() {
+    if (E.release) return null;
     var m = /[#&?]z=(\d+)/.exec(location.hash + location.search); if (!m) return null;
     var z = Math.min(P.LEVELS.length - 1, +m[1]), c = /[#&?]cp=(\d+)/.exec(location.hash + location.search), cp = c ? Math.min(P.LEVELS[z].cps.length - 1, +c[1]) : 0;
     return { z: z, cp: cp, snap: null };
@@ -48,13 +60,13 @@
         if (pg.z >= 0 && d.z === pg.z + 1) recordPage(pg.z, S);
         if (pg.turned && d.z > pg.startZ) g.adBreak();   // межстраничная — на перелистывании (игрок сам дошёл до края страницы); частоту режет адаптер
         pg.z = d.z; pg.base = S.deaths; pg.skip = false; pg.turned = false;
-        if (d.z + 1 > Store.getNum(REACHED, 1)) g.storeSet(REACHED, d.z + 1);
+        if (d.z + 1 > sNum(REACHED, 1)) sSet(REACHED, d.z + 1);
       } }
     if (type === 'win') {
       if (S) recordPage(S.z, S);
       clearSave(); var s2 = game.state();
       g.state.score = Math.max(100, Math.round(7000 - s2.deaths * 40 - s2.played / 2)); g.state.level = 7;
-      setTimeout(function () { if (g._sceneName === 'play') g.win(); }, 1600); music(7);
+      setTimeout(function () { if (g._sceneName === 'play') g.win(); if (LS) LS.setItem(BEST, String(g.state.best)); }, 1600); music(7);
     }
   }
   function newGame(save) {
@@ -82,6 +94,17 @@
   g.useRewardedContinue({ revive: function () { if (game) game.restartCp(); } });
   g.useRewardedBonus({ key: 'rwSkip', scene: 'pause', label: function () { return g.t('rwSkip'); },
     available: function () { return !!game && game.canSkip(); }, grant: function () { if (game) game.skipPage(); } });
+  // издание с обёрткой: «Во весь экран: вкл/выкл» и «Выход» (в меню и паузе); прогресс уже в файлах — по отметкам
+  if (E.fullscreen) g.menu.addItem({ key: 'fullscreen', after: 'sound', label: function () { return g.t('fullscreen') + ': ' + (E.fullscreen.on() ? g.t('on') : g.t('off')); }, onSelect: function () { E.fullscreen.toggle(); } });
+  if (E.quit) {
+    g.menu.addItem({ key: 'quit', label: function () { return g.t('quit'); }, onSelect: function () { E.quit(); } });
+    g.menu.addItem({ key: 'quit', scene: 'pause', label: function () { return g.t('quit'); }, onSelect: function () { E.quit(); } });
+  }
+  // подсказка внизу: при геймпаде (только если издание дало строку hint_pad) — значками кнопок
+  function hintText() {
+    if (!(E.strings && g.padActive && g.padActive())) return g.t('hint');
+    return g.t('hint_pad', g.t('hint')).replace(/\{(\w+)\}/g, function (m, n) { return g.gamepad.glyph(n, 0); });
+  }
   var title = g.scenes.title, menu = title._menu, oldEnter = title.enter;
   title.press = function (a) { var it = menu && menu.current(); if (it && it.key === 'page' && (a === 'left' || a === 'right')) { nextStart(a === 'left' ? -1 : 1); this.audio.beep(600, 0.03); } };
   title.enter = function (d) { if (oldEnter) oldEnter.call(this, d); refreshMenu(); P.stopAmbience(); };
@@ -95,7 +118,8 @@
   title.draw = function (ctx) {
     var th = this.th(), retro = this.themeName === 'retro', pal = RD.PAL[retro ? 'retro' : 'modern'];
     RD.draw(ctx, demo.state(), g, { game: demo, dt: 1 / 60, walk: walk, overlay: function (c) {
-      var pw = 470, ph = 300, px = (W - pw) / 2, py = 100;
+      // 6+ пунктов («Продолжить», пункты издания) — лист выше и шаг меню меньше: пункты не наезжают на подсказку звёзд
+      var nIt = menu ? menu.items.length : 5, pw = 470, ph = 300 + Math.max(0, nIt - 5) * 24, px = (W - pw) / 2, py = 100, step = nIt > 5 ? 26 : 30;
       c.save(); c.globalAlpha = 0.93; c.drawImage(RD.paperTex(retro ? 'retro' : 'modern'), px, py, pw, ph, px, py, pw, ph); c.restore();
       RD.pen(c, RD.rectPts(px, py, pw, ph), 1.8, 51, pal.ink, true); RD.pen(c, RD.rectPts(px + 6, py + 6, pw - 12, ph - 12), 0.8, 52, pal.soft, true);
       // буквица-заставка: киноварный квадрат с завитком (без буквы)
@@ -103,10 +127,10 @@
       var sw = []; for (var k = 0; k < 24; k++) { var a = k / 24 * Math.PI * 3; sw.push([px + 39 + Math.cos(a) * (12 - k * 0.4), py + 39 + Math.sin(a) * (12 - k * 0.4)]); } RD.pen(c, sw, 1.2, 54, retro ? '#ffffff' : pal.paper);
       g.text(g.t('title'), W / 2 + 16, py + 62, { size: 46, align: 'center', color: pal.ink, weight: 700, font: th.font });
       g.text(g.t('subtitle'), W / 2, py + 92, { size: 15, align: 'center', color: th.muted, weight: 400, font: th.font });
-      menu.draw(g, W / 2, py + 136, 30);
+      menu.draw(g, W / 2, py + 136, step);
       g.text(g.t('starsHint') + ' · ' + prog.total() + '/' + (M.LEVELS * 3) + (g.state.best ? '   ' + g.t('best') + ': ' + g.state.best : ''), W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600, maxWidth: pw - 30 });
       c.save(); c.globalAlpha = 0.9; c.drawImage(RD.paperTex(retro ? 'retro' : 'modern'), 40, H - 48, W - 80, 28, 40, H - 48, W - 80, 28); c.restore();
-      g.text(g.t('hint'), W / 2, H - 29, { size: 12, align: 'center', color: pal.ink, weight: 600 });
+      g.text(hintText(), W / 2, H - 29, { size: 12, align: 'center', color: pal.ink, weight: 600, maxWidth: E.strings ? W - 100 : undefined });
     } });
   };
 
@@ -149,7 +173,7 @@
     var retro = this.themeName === 'retro', pal = RD.PAL[retro ? 'retro' : 'modern'], th = this.th(), pm = g.menu.get('pause');
     if (game) RD.draw(ctx, game.state(), g, { game: game, dt: 0, walk: walk, overlay: function (c) {
       c.fillStyle = retro ? 'rgba(0,0,0,0.35)' : 'rgba(40,25,10,0.35)'; c.fillRect(0, 0, W, H);
-      var pw = 360, ph = 256, px = (W - pw) / 2, py = (H - ph) / 2;
+      var nIt = pm ? pm.items.length : 4, pw = 360, ph = 256 + Math.max(0, nIt - 4) * 30, px = (W - pw) / 2, py = (H - ph) / 2;   // 5+ пунктов — лист выше
       c.drawImage(RD.paperTex(retro ? 'retro' : 'modern'), px, py, pw, ph, px, py, pw, ph); RD.pen(c, RD.rectPts(px, py, pw, ph), 1.8, 61, pal.ink, true);
       // пиктограмма паузы — две черты пером
       RD.pen(c, [[W / 2 - 9, py + 26], [W / 2 - 9, py + 56]], 4, 62, pal.ink); RD.pen(c, [[W / 2 + 9, py + 26], [W / 2 + 9, py + 56]], 4, 63, pal.ink);

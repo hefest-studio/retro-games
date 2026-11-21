@@ -11,7 +11,7 @@
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#f4dc4c', muted: '#a6a2b4', ink: '#f8f6ee', good: '#52d878', bad: '#f2584a', warn: '#f4dc4c' })
   };
   var W = 640, H = 400;
-  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'zheoda', strings: Z.STR, theme: 'modern', lives: 3, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'zheoda', leaderboard: 'zheoda', strings: Z.STR, theme: 'modern', lives: 3, themes: themes });
   Z.g = g;
   var pad = document.querySelector('.pad');
   g.input.bindDpad(pad);
@@ -102,6 +102,15 @@
     label: function () { var n = startLv(); return g.t('lvPick') + ' ' + n + ' · ' + g.t('lv_' + L.LEVELS[n - 1].name) + '  ' + M.starStr(prog.get(n)); },
     onSelect: function () { nextStart(1); g.audio.beep(700, 0.04); } });
   g.useStandardScreens({ lives: 3 });
+  // ---------- Площадка (движок v2.8): таблица лидеров «zheoda» и «Без рекламы» (товар no_ads) в меню и паузе ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «zheoda», GamePush — числовое поле игрока «zheoda» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/zheoda/platform.json (arcade-full). На сайте (без площадки) пунктов нет. После покупки межстраничной
+  // и стики нет, ролики за награду остаются по желанию игрока.
+  var LB = 'zheoda';
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
   // Реклама за награду (только площадки с рекламой): «ещё один шанс» раз за партию — 2 жизни, пещера заново;
   // бонус в паузе — +1 жизнь (раз за партию). Межстраничная — по входу в следующую пещеру с карты и на финалах (по нажатию).
   g.useRewardedContinue({ revive: function () { if (game) { game.reviveAd(); sync(); } } });
@@ -125,6 +134,9 @@
     DS.cam.x = span / 2 + Math.sin(DS.time * 0.15) * span / 2; DS.cam.y = Math.max(0, DS.rows - L.VIEW_H);
     DS.pl.x = DS.cam.x + 3; DS.pl.face = Math.cos(DS.time * 0.15) > 0 ? 1 : -1; DS.pl.vx = 0;
   };
+  // Меню заставки вмещает пункты площадки («Лидеры», «Без рекламы»; 21.11): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  // и меню поднимается, но не выше yMin; на сайте (без пунктов площадки) — как раньше.
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
   title.draw = function (ctx) {
     var th = this.th(), R = rnd(), P = R.P, retro = P.pixel;
     UI.drawWorld(ctx, DS, this, R, { noHero: false });
@@ -138,7 +150,7 @@
     UI.txt(this, this.t('subtitle'), W / 2, py0 + 92, { size: 13, align: 'center', color: th.muted, weight: 600 }, P);
     // героиня у меню
     R.hero(ctx, px0 + 70, py0 + 190, { w: L.PW, h: L.PH, vx: 0, ground: true, gs: 1, face: 1 }, this.time, DS);
-    menu.draw(this, W / 2, py0 + 134, 30);
+    var mf = menuFit(menu, py0 + 134, 30, py0 + 118, py0 + ph - 84); menu.draw(this, W / 2, mf[0], mf[1]);
     UI.txt(this, this.t('starsHint') + ' · ' + prog.total() + '/' + (M.LEVELS * 3), W / 2, py0 + ph - 62, { size: 11, align: 'center', color: th.muted, weight: 600 }, P);
     if (this.state.best) UI.txt(this, this.t('best') + ': ' + this.state.best, W / 2, py0 + ph - 44, { size: 12, align: 'center', color: th.muted, weight: 600 }, P);
     this.menu._drawHint('title');

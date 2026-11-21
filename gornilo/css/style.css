@@ -32,3 +32,6 @@ body[data-theme="retro"] .stick,body[data-theme="retro"] .stick i{border-radius:
   .pad button{position:fixed;right:10px;top:4px;width:44px;height:30px;font-size:12px}
   .stick{width:124px;height:124px}
 }
+/* сборка под площадку (<meta name="arcade-platform">): подсказка-подвал под ареной не помещается в окно 1280×720 без прокрутки
+   (Яндекс 1.10) — прячем, управление описано в «Как играть» площадки и в меню */
+html:has(meta[name="arcade-platform"]) .foot{display:none}

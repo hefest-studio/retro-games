@@ -240,5 +240,9 @@ test('баланс: вся игра на Лёгком без продолжен�
   console.log('     вся игра: Лёгкий ' + e + '/10, Трудный ' + h + '/10'); ok(e >= 5, 'Лёгкий ' + e); ok(h <= 3, 'Трудный ' + h);
 });
 
+// ---------- площадка (21.11): «Без рекламы» и таблицы лидеров — статика main.js + список для Консоли (promo/<slug>/platform.json) ----------
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'liven', boards: ['liven'], test, ok }); }
+
 console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed));
 process.exit(failed ? 1 : 0);

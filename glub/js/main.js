@@ -11,7 +11,7 @@
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#ffff55', muted: '#aaaaaa', ink: '#ffffff' })
   };
   var W = L.COLS * T, H = OY + L.ROWS * T;
-  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'glub', strings: Gb.STR, theme: 'modern', lives: L.LIVES, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'glub', leaderboard: 'glub', strings: Gb.STR, theme: 'modern', lives: L.LIVES, themes: themes });
   Gb.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
   var Store = Arcade.Store, TKEY = 'arcade.besttime.glub', SAVE = 'arcade.glub.save', CKEY = 'arcade.glub.crystals';
@@ -77,6 +77,15 @@
 
   // ---------- Стандартные экраны ----------
   g.useStandardScreens({ lives: L.LIVES });
+  // ---------- Площадка (движок v2.8): таблица лидеров «glub» и «Без рекламы» (товар no_ads) в меню и паузе ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «glub», GamePush — числовое поле игрока «glub» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/glub/platform.json (arcade-full). На сайте (без площадки) пунктов нет. После покупки межстраничной
+  // и стики нет, ролики за награду остаются по желанию игрока.
+  var LB = 'glub';
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
   // «Продолжить · N/8» — с последнего зажжённого маяка (сохранение — в облаке площадки)
   function contItem() { return { key: 'cont', before: 'play', label: function () { var s = loadSave(); return g.t('cont') + (s ? ' · ' + s.crystals.length + '/8' : ''); }, onSelect: function () { resume = loadSave(); this.goto('play'); } }; }
   function refreshMenu() { var has = !!loadSave(), items = g.menu.items('title'); if (has && items.indexOf('cont') < 0) g.menu.addItem(contItem()); if (!has && items.indexOf('cont') >= 0) g.menu.removeItem('cont'); var m = g.menu.get('title'); if (m) m.sel = 0; }

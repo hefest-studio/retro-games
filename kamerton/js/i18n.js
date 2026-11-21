@@ -27,7 +27,7 @@
   };
   K.STR.tr = {
     play: 'Yeni yolculuk', cont: 'Devam', restart: 'Son fenere dön', language: 'Dil', theme: 'Tema', sound: 'Ses', on: 'açık', off: 'kapalı',
-    score: 'Not', best: 'Rekor', win: 'KASABA UYANDI', gameover: 'KURMA BİTTİ',
+    score: 'Not', best: 'Rekor', win: 'KASABA UYANDI', gameover: 'KURGU BİTTİ',
     pause: 'DURAKLATILDI', resume: 'Devam', menu: 'Menü', tapstart: 'boşluk / dokun',
     title: 'BRASSHUSH', subtitle: 'Bir çırak saatçiler kasabasının kurmalı bebeklerini uyandırır',
     hint: '◀▶ — yürü · ▲▼ — merdiven · boşluk — zıpla · E — diyapazon / kol · Q — sonraki bebek · P — duraklat',
@@ -42,7 +42,7 @@
     title: 'BRASSHUSH', subtitle: 'Un aprendiz despierta a los muñecos de cuerda del pueblo relojero',
     hint: '◀▶ — andar · ▲▼ — escalera · espacio — saltar · E — diapasón / palanca · Q — otro muñeco · P — pausa',
     foot: 'Un cuento inquieto sin palabras: al anochecer, en el pueblo abandonado de los relojeros, un aprendiz encuentra un diapasón que despierta a los muñecos de cuerda. Un porteador, una bailarina, un gigante y soldaditos de hojalata van adonde tú no puedes: sujetan manivelas, pisan placas y te ocultan de los faroles de los vigilantes. Si se acaba la cuerda, vuelves al último farol.',
-    zonePick: 'Zona', zoneDone: 'ZONA', starNew: '¡nuevo récord de estrellas!', starsHint: '★ pasar · ★ ≤ 2 paradas · ★ sin paradas', cardNext: 'espacio / toca — seguir', hintTouch: '◀▶ — andar · ▲ — escalera · ⤒ — saltar · ✋ — diapasón / palanca · ⟲ — otro muñeco · II — pausa',
+    zonePick: 'Zona', zoneDone: 'ZONA', starNew: '¡nuevo récord de estrellas!', starsHint: '★ superar · ★ ≤ 2 paradas · ★ sin paradas', cardNext: 'espacio / toca — seguir', hintTouch: '◀▶ — andar · ▲ — escalera · ⤒ — saltar · ✋ — diapasón / palanca · ⟲ — otro muñeco · II — pausa',
       stops: 'paradas', zones: 'zonas', rwSkip: 'Anuncio: saltar la zona'
   };
   K.STR.pt = {
@@ -52,7 +52,7 @@
     title: 'BRASSHUSH', subtitle: 'Um aprendiz desperta os bonecos de corda da cidade dos relojoeiros',
     hint: '◀▶ — andar · ▲▼ — escada · espaço — pular · E — diapasão / alavanca · Q — outro boneco · P — pausa',
     foot: 'Um conto inquieto sem palavras: ao anoitecer, na cidade abandonada dos relojoeiros, um aprendiz encontra um diapasão que desperta os bonecos de corda. Um carregador, uma bailarina, um gigante e soldadinhos de lata vão aonde você não pode: seguram manivelas, pisam placas e escondem você das lanternas dos vigias. Se a corda acaba, você volta à última lanterna.',
-    zonePick: 'Zona', zoneDone: 'ZONA', starNew: 'novo recorde de estrelas!', starsHint: '★ passar · ★ ≤ 2 paradas · ★ sem paradas', cardNext: 'espaço / toque — seguir', hintTouch: '◀▶ — andar · ▲ — escada · ⤒ — pular · ✋ — diapasão / alavanca · ⟲ — outro boneco · II — pausa',
+    zonePick: 'Zona', zoneDone: 'ZONA', starNew: 'novo recorde de estrelas!', starsHint: '★ concluir · ★ ≤ 2 paradas · ★ sem paradas', cardNext: 'espaço / toque — seguir', hintTouch: '◀▶ — andar · ▲ — escada · ⤒ — pular · ✋ — diapasão / alavanca · ⟲ — outro boneco · II — pausa',
       stops: 'paradas', zones: 'zonas', rwSkip: 'Anúncio: pular a zona'
   };
 })(typeof window !== 'undefined' ? window : globalThis);

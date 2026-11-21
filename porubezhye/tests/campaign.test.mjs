@@ -1,6 +1,6 @@
 /* ПОРУБЕЖЬЕ · tests/campaign.test.mjs — движок кампаний на мини-картах (Node, без браузера; миссий полной версии здесь нет —
    только маленькие тестовые миссии-данные). Запуск: node porubezhye/tests/campaign.test.mjs
-   Проверяет: карту миссии (легенда, ресурсы, точки), общее ядро сценария js/scenario.js (триггеры с wait/if, цели after/hidden/opt/fail,
+   Проверяет: карту миссии (легенда, ресурсы, точки), общее ядро кампаний js/campaign-core.js (копия _shared/campaign-core.js) (триггеры с wait/if, цели after/hidden/opt/fail,
    звёзды, победа/поражение), условия и действия ПОРУБЕЖЬЯ (зоны, спавн, сценарный ИИ групп, смена клеток, обзор, мороз, allow),
    пролёты моста (вода у берега → настил → снова вода), мороз и тепло обеих рас, знамя Ярины, Тихона, дрова, перенос героев и прогресс;
    под миссии 4–7: место работ (сборка), засека (tough), Топотун (топот), третья сторона и отношения, колонна (convoy) и уход с карты
@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sb = { console, Math, Array, Map, Set, Object, JSON, Uint8Array, Int32Array, Float32Array, location: { search: '' } }; sb.window = sb; sb.globalThis = sb; vm.createContext(sb);
-for (const f of ['js/i18n.js', 'js/edition.js', 'js/missions/index.js', 'js/game.js', 'js/scenario.js', 'js/campaign.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sb, { filename: f });
+for (const f of ['js/i18n.js', 'js/edition.js', 'js/missions/index.js', 'js/game.js', 'js/campaign-core.js', 'js/campaign.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sb, { filename: f });
 const P = sb.PORUB, C = P.campaign, S = P.scenario, T = P.T, TR = P.TERR;
 
 let passed = 0, failed = 0;
@@ -227,8 +227,11 @@ test('скирмиш не тронут: карта 64×48 по умолчани�
   const g = P.create({ seed: 1, playerRace: 'wright' }); eq([g.MW, g.MH], [64, 48]); ok(g.ai, 'нет ИИ'); eq(g.cold, 0); eq(g.mission, undefined);
   const w = g.ents.find(e => e.type === 'worker'); eq(g.coldMove(w), 1);
 });
-test('общее ядро (кандидат в _shared): экспорт HefestScenario без знания об игре', () => {
-  ok(sb.HefestScenario === S); const src = fs.readFileSync(path.join(ROOT, 'js/scenario.js'), 'utf8'); ok(!/PORUB\.(Game|RACES|TERR|render)/.test(src), 'scenario.js знает об игре');
+test('общее ядро кампаний: js/campaign-core.js — копия _shared/campaign-core.js, HefestCampaign без знания об игре', () => {
+  ok(sb.HefestCampaign === S); const src = fs.readFileSync(path.join(ROOT, 'js/campaign-core.js'), 'utf8'); ok(!/PORUB|PRIISK/.test(src.replace(/^\/\*[\s\S]*?\*\//, '')), 'ядро знает об игре');
+  eq(src, fs.readFileSync(path.join(ROOT, '../_shared/campaign-core.js'), 'utf8'), 'js/campaign-core.js рассинхронизирован (bash build.sh)');
+  eq(fs.readFileSync(path.join(ROOT, 'js/campaign-ui-kit.js'), 'utf8'), fs.readFileSync(path.join(ROOT, '../_shared/campaign-ui-kit.js'), 'utf8'), 'js/campaign-ui-kit.js рассинхронизирован (bash build.sh)');
+  ok(!fs.existsSync(path.join(ROOT, 'js/scenario.js')), 'js/scenario.js должен уйти в ядро');
   const MS = S.create({ id: 'x', objectives: [{ id: 'a', done: { t: 'flag', key: 'k' } }], triggers: [{ id: 't', when: { t: 'time', gte: 1 }, do: [{ a: 'flag', key: 'k' }, { a: 'custom' }] }] });
   let t = 0, ended = null, custom = 0; const H = { now: () => t, cond: () => undefined, act: a => (a.a === 'custom' ? (custom++, true) : undefined), end: w => { ended = w; } };
   for (; t < 4; t += 0.25) S.step(MS, H, 0.25); eq(custom, 1); eq(ended, true);

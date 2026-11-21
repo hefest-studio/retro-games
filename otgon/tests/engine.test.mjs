@@ -342,5 +342,9 @@ test('бот с медленной реакцией (300–450 мс) тоже д
   ok(r.won && !r.stuck && r.home >= 7, JSON.stringify({ lv: r.lv, x: Math.round(r.x), home: r.home }));
 });
 
+// ---------- площадка (21.11): «Без рекламы» и таблицы лидеров — статика main.js + список для Консоли (promo/<slug>/platform.json) ----------
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'otgon', boards: [], test, ok }); }
+
 console.log(`\n${passed} прошло, ${failed} упало`);
 process.exit(failed ? 1 : 0);

@@ -434,5 +434,9 @@ test('чемпионат целиком (бот покупает в гараже
   ok(CH.every(r => r.log.slice(0, 5).includes('Q')), 'первая лига не проходится');
 });
 
+// ---------- площадка (21.11): «Без рекламы» и таблицы лидеров — статика main.js + список для Консоли (promo/<slug>/platform.json) ----------
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'taran', boards: ['taran'], test, ok }); }
+
 console.log(`\n${passed} прошло, ${failed} упало`);
 process.exit(failed ? 1 : 0);

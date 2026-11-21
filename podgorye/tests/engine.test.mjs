@@ -278,5 +278,9 @@ test('«человеческий» бот (реакция 150–250 мс, нет
   ok(won >= 0.6 * N, 'слишком сложно: ' + won + '/' + N);
 });
 
+// ---------- площадка (21.11): «Без рекламы» и таблицы лидеров — статика main.js + список для Консоли (promo/<slug>/platform.json) ----------
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'podgorye', boards: ['podgorye', 'podgoryeTime'], test, ok }); }
+
 console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed));
 process.exit(failed ? 1 : 0);

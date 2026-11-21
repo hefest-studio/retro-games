@@ -1,5 +1,6 @@
 /* ПОРУБЕЖЬЕ · js/campaign.js — движок миссий кампаний (без DOM): миссия = объект данных (файлы js/missions/<id>.js полной версии,
-   PORUB.registerMission). Общая часть (точки/зоны, триггеры с wait/if, цели, звёзды, прогресс) — js/scenario.js; здесь — правила
+   PORUB.registerMission). Общая часть (разбор карты, точки/зоны, триггеры с wait/if, цели, звёзды, прогресс, перенос флагов и героев) —
+   общее ядро кампаний _shared/campaign-core.js (копия js/campaign-core.js, подключается до этого файла; PORUB.scenario — оно же); здесь — правила
    ПОРУБЕЖЬЯ: карта миссии, стартовые силы обеих рас, условия и действия этой игры, сценарный ИИ групп, мороз «Зимнего вала», герои.
    Карта — ASCII: '.' трава, ',' вереск, '#' лес, '~' вода, '^' камни, '*' снег (вязнут), '=' лёд (проходим, строить нельзя),
    'a' янтарь, '$' смоляной ключ (левый верхний угол 2×2; остальные три клетки — земля), 't' сухостой (дрова);
@@ -27,7 +28,7 @@
 (function (root) {
   'use strict';
   var P = root.PORUB = root.PORUB || {};
-  var S = P.scenario, TR = P.TERR, T = P.T;
+  var S = P.scenario = root.HefestCampaign, TR = P.TERR, T = P.T;   // общее ядро кампаний (_shared/campaign-core.js)
   var KEY = 'arcade.porubezhye.campaign', CAMPS = ['wright', 'thicket', 'barrow'];
   function campOf(def) { return def && CAMPS.indexOf(def.camp) >= 0 ? def.camp : 'wright'; }
   function keyOf(camp) { return KEY + '.' + (CAMPS.indexOf(camp) >= 0 ? camp : 'wright'); }
@@ -56,20 +57,13 @@
   var NODE = { a: 'amber', $: 'resin', t: 'timber' };
   function isPoint(ch) { return /[A-Z0-9]/.test(ch); }
   function parseMap(def) {
-    var rows = def.map, legend = def.legend || {}, ground = def.ground || '.', h = rows.length, w = rows[0].length, terr = new Uint8Array(w * h), nodes = [];
-    for (var j = 0; j < h; j++) {
-      if (rows[j].length !== w) throw new Error('карта ' + def.id + ': строка ' + j + ' длиной ' + rows[j].length + ', ждали ' + w);
-      for (var i = 0; i < w; i++) {
-        var ch = rows[j][i], base = ch;
-        if (NODE[ch]) { nodes.push({ type: NODE[ch], tx: i, ty: j, amt: def.nodeAmt && def.nodeAmt[NODE[ch]] }); base = legend[ch] || ground; }
-        else if (isPoint(ch)) base = legend[ch] || ground;
-        if (TILE[base] == null) throw new Error('карта ' + def.id + ': неизвестная клетка «' + ch + '» (' + i + ',' + j + ')');
-        terr[j * w + i] = TILE[base];
-      }
-    }
+    var ground = def.ground || '.', nodes = [];
+    var m = S.parseMap(def.map, { tiles: TILE, legend: def.legend, ground: ground, id: def.id, isPoint: isPoint, under: function (ch) { return !!NODE[ch] || isPoint(ch); },
+      cell: function (k, i, j, ch) { if (NODE[ch]) nodes.push({ type: NODE[ch], tx: i, ty: j, amt: def.nodeAmt && def.nodeAmt[NODE[ch]] }); } });
+    var w = m.w, terr = m.t;
     // под смоляным ключом (2×2) — проходимая земля
     nodes.forEach(function (n) { if (n.type === 'resin') for (var y = 0; y < 2; y++) for (var x = 0; x < 2; x++) { var k = (n.ty + y) * w + n.tx + x; if (!P.PASS[terr[k]]) terr[k] = TILE[ground]; } });
-    return { w: w, h: h, terr: terr, nodes: nodes, points: S.scanPoints(rows, isPoint) };
+    return { w: w, h: m.h, terr: terr, nodes: nodes, points: m.points };
   }
 
   // ---------- Сборка мира миссии ----------
@@ -80,8 +74,8 @@
     var g = new P.Game({ map: map, playerRace: def.race || 'wright', aiRace: def.foe || (def.race === 'thicket' ? 'wright' : 'thicket'), thirdRace: th && (th.race || 'thicket'), endRule: 'none', key: 'm:' + def.id, seed: opts.seed || def.seed || 7, fogOff: !!opts.fogOff, onEvent: opts.onEvent });
     if (th) Object.keys(th.rel || {}).forEach(function (k) { g.setRel(2, +k, th.rel[k]); });
     var MS = S.create(def, Object.assign({}, S.carried(def, save), opts.flags || {}));
-    MS.points = map.points; MS.game = g; MS.groups = Object.create(null); MS.killed = Object.create(null); MS.spawned = Object.create(null);
-    MS.trained = Object.create(null); MS.gath = Object.create(null); MS.heroes = Object.create(null); MS.heroDead = Object.create(null);
+    MS.points = map.points; MS.game = g; MS.groups = Object.create(null);   // heroes, heroDead, spawned, killed — заводит ядро
+    MS.trained = Object.create(null); MS.gath = Object.create(null);
     MS.spanLost = 0; MS.aiT = 0; MS.coldK = def.cold ? Object.assign({}, def.cold) : null; MS.save = save;
     MS.escaped = Object.create(null); MS.sites = Object.create(null); Object.keys(def.sites || {}).forEach(function (id) { MS.sites[id] = Object.assign({ id: id, prog: 0, on: !def.sites[id].off, busy: false, hot: false }, def.sites[id]); });
     var H = MS.H = handler(MS);
@@ -118,20 +112,19 @@
     var p = S.pointOf(MS, s.at), tiles = g._freeAround(Math.floor(p.x), Math.floor(p.y), s.n || 1), out = [];
     for (var k = 0; k < (s.n || 1); k++) {
       var tl = tiles[k] || tiles[tiles.length - 1], u = g._addUnit(owner, s.type, (tl[0] + 0.5) * T, (tl[1] + 0.5) * T);
-      if (s.tag) { u.tag = s.tag; MS.spawned[s.tag] = (MS.spawned[s.tag] || 0) + 1; }
+      if (s.tag) { u.tag = s.tag; S.noteSpawn(MS, s.tag); }
       if (s.hp) { u.hp = Math.round(u.maxhp * s.hp); }
       if (s.speed) u.sm = s.speed;
       if (s.locked) u.locked = true;
       if (g.def(u).hero && owner === 0) {
         MS.heroes[s.type] = u.id;
-        var hs = MS.save.roster && MS.save.roster.heroes && MS.save.roster.heroes[s.type];
-        if (atStart && hs && hs.wounded) { u.hp = Math.round(u.maxhp * 0.6); u.wounded = true; }   // мягкая цена: герой пал в прошлой миссии — пришёл раненым
+        if (atStart && S.wounded(MS.save, s.type)) { u.hp = Math.round(u.maxhp * 0.6); u.wounded = true; }   // мягкая цена: герой пал в прошлой миссии — пришёл раненым
       }
       out.push(u);
     }
     return out;
   }
-  function setGroup(MS, gr) { var old = MS.groups[gr.tag] || {}; MS.groups[gr.tag] = Object.assign({ owner: 1, mode: 'hold', ri: 0, t: 0, alerted: old.alerted || false }, gr); }
+  function setGroup(MS, gr) { S.setGroup(MS, gr, { t: 0 }); }
 
   // ---------- Мороз ----------
   function applyCold(MS) {
@@ -164,78 +157,70 @@
   // ---------- Условия и действия ПОРУБЕЖЬЯ ----------
   function alive(g, owner) { return g.ents.filter(function (e) { return !e.dead && (owner == null || e.owner === owner); }); }
   function match(u, who) { if (Array.isArray(who)) return who.some(function (w) { return match(u, w); }); return !who || who === 'any' || u.type === who || u.tag === who; }
+  // привязка ядра к игре: время — game.t, исход — game.end; условия и действия — словари CONDS / ACTS (ctx — объект игры)
   function handler(MS) {
-    var g = function () { return MS.game; };
-    return {
-      now: function () { return MS.game.t; },
-      end: function (win) { var G = g(); MS.result = result(MS, win); G.end(win ? 0 : 1); },
-      cond: function (c) { return gameCond(MS, g(), c); },
-      act: function (a) { return gameAct(MS, g(), a); }
-    };
+    return S.handler({ ctx: MS.game, now: function () { return MS.game.t; },
+      end: function (win) { MS.result = result(MS, win); MS.game.end(win ? 0 : 1); }, conds: CONDS, acts: ACTS });
   }
-  function gameCond(MS, g, c) {
-    var o = c.owner == null ? 0 : c.owner, n;
-    switch (c.t) {
-      case 'zone': {
-        var inside = 0, total = 0;
-        g.ents.forEach(function (u) { if (u.dead || u.kind !== 'u' || u.owner !== o || !match(u, c.who)) return; total++; if (S.inZone(MS, c.zone, u.x / T, u.y / T)) inside++; });
-        return c.all ? total > 0 && inside === total : inside >= (c.n || 1);
-      }
-      case 'built': return g.count(o, 'b', c.type, function (b) { return b.done; }) >= (c.n || 1);
-      case 'builtIn': return g.count(o, 'b', c.type, function (b) { return b.done && S.inZone(MS, c.zone, b.x / T, b.y / T); }) >= (c.n || 1);
-      case 'units': n = alive(g, o).filter(function (u) { return u.kind === 'u' && (!c.type || u.type === c.type) && (!c.tag || u.tag === c.tag) && (!c.fighters || (!g.def(u).worker && !g.def(u).civil)); }).length; return (c.gte == null || n >= c.gte) && (c.lte == null || n <= c.lte) && (c.n == null || n >= c.n);
-      case 'trained': return (MS.trained[c.type] || 0) >= (c.n || 1);
-      case 'gathered': return (MS.gath[c.type || '*'] || 0) >= c.gte;
-      case 'res': return g.res[o][c.k] >= c.gte;
-      case 'killed': return [].concat(c.tag).reduce(function (s, t) { return s + (MS.killed[t] || 0); }, 0) >= (c.gte || 1);
-      case 'gone': return (MS.spawned[c.tag] || 0) > 0 && !g.ents.some(function (e) { return !e.dead && e.tag === c.tag; });
-      case 'alive': n = g.ents.filter(function (e) { return !e.dead && e.tag === c.tag; }).length; return (c.gte == null || n >= c.gte) && (c.lte == null || n <= c.lte);
-      case 'heroDead': return !!MS.heroDead[c.hero];
-      case 'lostB': return g.stats[0].lostB <= (c.lte || 0);
-      case 'lostU': return g.stats[0].lost - g.stats[0].lostB <= (c.lte || 0);
-      case 'spans': n = g.decks(o).filter(function (b) { return b.done; }).length; return (c.gte == null || n >= c.gte) && (c.lte == null || n <= c.lte);
-      case 'spanLost': return MS.spanLost <= (c.lte || 0);
-      case 'cold': return (c.gte == null || g.cold >= c.gte - 1e-6) && (c.lte == null || g.cold <= c.lte + 1e-6);
-      case 'seen': { var zc = S.zoneCenter(MS, c.zone); return g.tileVis(0, Math.floor(zc.x), Math.floor(zc.y)) === 2; }
-      case 'escaped': return (MS.escaped[c.tag] || 0) >= (c.gte || 1);
-      case 'site': { var st = MS.sites[c.id]; return !!st && st.prog >= (c.gte == null ? 1 : c.gte) - 1e-9; }
-      case 'wall': { var w = g.wall; if (!w) return false; return (c.gte == null || w.pos >= c.gte) && (c.lte == null || w.pos <= c.lte); }
-      case 'rel': return g.relOf(c.side == null ? 2 : c.side, c.with == null ? 0 : c.with) === c.is;
-      case 'near': {
-        var who = alive(g, o).filter(function (u) { return u.kind === 'u' && match(u, c.who); }), of = g.ents.filter(function (e) { return !e.dead && e.tag === c.of; }), r = (c.r || 3) * T;
-        return who.some(function (u) { return of.some(function (e) { return g.distTo(u, e) <= r; }); });
-      }
+  function num(n, c) { return (c.gte == null || n >= c.gte) && (c.lte == null || n <= c.lte); }
+  function own(c) { return c.owner == null ? 0 : c.owner; }
+  // общие time/obj/since/flag/heroDead/killed/all/any/not — в ядре
+  var CONDS = {
+    zone: function (g, c, MS) {
+      var o = own(c), inside = 0, total = 0;
+      g.ents.forEach(function (u) { if (u.dead || u.kind !== 'u' || u.owner !== o || !match(u, c.who)) return; total++; if (S.inZone(MS, c.zone, u.x / T, u.y / T)) inside++; });
+      return c.all ? total > 0 && inside === total : inside >= (c.n || 1);
+    },
+    built: function (g, c) { return g.count(own(c), 'b', c.type, function (b) { return b.done; }) >= (c.n || 1); },
+    builtIn: function (g, c, MS) { return g.count(own(c), 'b', c.type, function (b) { return b.done && S.inZone(MS, c.zone, b.x / T, b.y / T); }) >= (c.n || 1); },
+    units: function (g, c) { var n = alive(g, own(c)).filter(function (u) { return u.kind === 'u' && (!c.type || u.type === c.type) && (!c.tag || u.tag === c.tag) && (!c.fighters || (!g.def(u).worker && !g.def(u).civil)); }).length; return num(n, c) && (c.n == null || n >= c.n); },
+    trained: function (g, c, MS) { return (MS.trained[c.type] || 0) >= (c.n || 1); },
+    gathered: function (g, c, MS) { return (MS.gath[c.type || '*'] || 0) >= c.gte; },
+    res: function (g, c) { return g.res[own(c)][c.k] >= c.gte; },
+    gone: function (g, c, MS) { return (MS.spawned[c.tag] || 0) > 0 && !g.ents.some(function (e) { return !e.dead && e.tag === c.tag; }); },
+    alive: function (g, c) { return num(g.ents.filter(function (e) { return !e.dead && e.tag === c.tag; }).length, c); },
+    lostB: function (g, c) { return g.stats[0].lostB <= (c.lte || 0); },
+    lostU: function (g, c) { return g.stats[0].lost - g.stats[0].lostB <= (c.lte || 0); },
+    spans: function (g, c) { return num(g.decks(own(c)).filter(function (b) { return b.done; }).length, c); },
+    spanLost: function (g, c, MS) { return MS.spanLost <= (c.lte || 0); },
+    cold: function (g, c) { return (c.gte == null || g.cold >= c.gte - 1e-6) && (c.lte == null || g.cold <= c.lte + 1e-6); },
+    seen: function (g, c, MS) { var zc = S.zoneCenter(MS, c.zone); return g.tileVis(0, Math.floor(zc.x), Math.floor(zc.y)) === 2; },
+    escaped: function (g, c, MS) { return (MS.escaped[c.tag] || 0) >= (c.gte || 1); },
+    site: function (g, c, MS) { var st = MS.sites[c.id]; return !!st && st.prog >= (c.gte == null ? 1 : c.gte) - 1e-9; },
+    wall: function (g, c) { var w = g.wall; if (!w) return false; return (c.gte == null || w.pos >= c.gte) && (c.lte == null || w.pos <= c.lte); },
+    rel: function (g, c) { return g.relOf(c.side == null ? 2 : c.side, c.with == null ? 0 : c.with) === c.is; },
+    near: function (g, c) {
+      var who = alive(g, own(c)).filter(function (u) { return u.kind === 'u' && match(u, c.who); }), of = g.ents.filter(function (e) { return !e.dead && e.tag === c.of; }), r = (c.r || 3) * T;
+      return who.some(function (u) { return of.some(function (e) { return g.distTo(u, e) <= r; }); });
     }
-    return undefined;
-  }
-  function gameAct(MS, g, a) {
-    switch (a.a) {
-      case 'spawn': spawn(MS, a); return true;
-      case 'group': setGroup(MS, Object.assign({}, a, { a: undefined })); return true;
-      case 'despawn': g.ents.forEach(function (e) { if (!e.dead && e.tag === a.tag) g._kill(e, null, true); }); return true;
-      case 'tiles': { var to = TILE[a.to], from = a.from != null ? TILE[a.from] : null;
-        var cells = S.zoneCells(MS, a.zone, g.MW, g.MH).filter(function (c) { return from == null || g.terr[c[1] * g.MW + c[0]] === from; });
-        g.setTiles(cells, to); return true; }
-      case 'reveal': { var rp = S.pointOf(MS, a.at); g.flares.push({ x: rp.x * T, y: rp.y * T, r: a.r || 5, until: g.t + (a.s || 8) }); g._visT = 0; return true; }
-      case 'cold': MS.coldK = { from: g.cold, to: a.to, at0: g.t, at1: g.t + (a.over || 0) }; return true;
-      case 'res': g.res[a.owner || 0][a.k || 'a'] += a.n; return true;
-      case 'allow': if (a.build) { g.allowB = g.allowB || {}; a.build.forEach(function (b) { g.allowB[b] = true; }); } if (a.units) { g.allowU = g.allowU || {}; a.units.forEach(function (u) { g.allowU[u] = true; }); } return true;
-      case 'build': spawn(MS, Object.assign({ owner: 0 }, a, { a: undefined })); return true;
-      case 'site': { var ss = MS.sites[a.id]; if (!ss) throw new Error('нет места работ ' + a.id); if (a.on != null) ss.on = !!a.on; if (a.time) ss.time = a.time; if (a.prog != null) ss.prog = a.prog; return true; }
-      case 'rel': g.setRel(a.side == null ? 2 : a.side, a.with == null ? 0 : a.with, a.to); g.ents.forEach(function (e) { if (e.kind !== 'u' || e.dead) return; var tt = e.tgt && g.get(e.tgt); if (tt && !g.hostile(e.owner, tt.owner)) e.tgt = 0; var ot = e.ord.t === 'attack' && g.get(e.ord.id); if (ot && g.relOf(e.owner, ot.owner) === 'ally') g._order(e, { t: 'idle' }); }); return true;
-      case 'wall': { var wo = Object.assign({}, a); delete wo.a; g.setWall(wo); return true; }
-      case 'wallOff': g.setWall(null); return true;
-      case 'exit': g.ents.forEach(function (e) { if (!e.dead && e.kind === 'u' && e.tag === a.tag && S.inZone(MS, a.zone, e.x / T, e.y / T)) { e.tag = null; g._kill(e, null, true); MS.escaped[a.tag] = (MS.escaped[a.tag] || 0) + 1; /* ушёл — не «убит» */ } }); return true;
-      case 'ai': g.ai = new P.AI(g, a.owner == null ? 1 : a.owner); if (a.first != null) g.ai.nextWave = a.first; return true;
-      case 'camera': case 'ping': { var cp = S.pointOf(MS, a.at); MS.ui.push({ t: a.a, x: cp.x * T, y: cp.y * T }); return true; }
-    }
-    return undefined;
-  }
+  };
+  // общие wait/if/say/msg/objective/flag/win/lose — в ядре
+  var ACTS = {
+    spawn: function (g, a, MS) { spawn(MS, a); },
+    group: function (g, a, MS) { setGroup(MS, Object.assign({}, a, { a: undefined })); },
+    despawn: function (g, a) { g.ents.forEach(function (e) { if (!e.dead && e.tag === a.tag) g._kill(e, null, true); }); },
+    tiles: function (g, a, MS) { var to = TILE[a.to], from = a.from != null ? TILE[a.from] : null;
+      var cells = S.zoneCells(MS, a.zone, g.MW, g.MH).filter(function (c) { return from == null || g.terr[c.j * g.MW + c.i] === from; }).map(function (c) { return [c.i, c.j]; });
+      g.setTiles(cells, to); },
+    reveal: function (g, a, MS) { var rp = S.pointOf(MS, a.at); g.flares.push({ x: rp.x * T, y: rp.y * T, r: a.r || 5, until: g.t + (a.s || 8) }); g._visT = 0; },
+    cold: function (g, a, MS) { MS.coldK = { from: g.cold, to: a.to, at0: g.t, at1: g.t + (a.over || 0) }; },
+    res: function (g, a) { g.res[a.owner || 0][a.k || 'a'] += a.n; },
+    allow: function (g, a) { if (a.build) { g.allowB = g.allowB || {}; a.build.forEach(function (b) { g.allowB[b] = true; }); } if (a.units) { g.allowU = g.allowU || {}; a.units.forEach(function (u) { g.allowU[u] = true; }); } },
+    build: function (g, a, MS) { spawn(MS, Object.assign({ owner: 0 }, a, { a: undefined })); },
+    site: function (g, a, MS) { var ss = MS.sites[a.id]; if (!ss) throw new Error('нет места работ ' + a.id); if (a.on != null) ss.on = !!a.on; if (a.time) ss.time = a.time; if (a.prog != null) ss.prog = a.prog; },
+    rel: function (g, a) { g.setRel(a.side == null ? 2 : a.side, a.with == null ? 0 : a.with, a.to); g.ents.forEach(function (e) { if (e.kind !== 'u' || e.dead) return; var tt = e.tgt && g.get(e.tgt); if (tt && !g.hostile(e.owner, tt.owner)) e.tgt = 0; var ot = e.ord.t === 'attack' && g.get(e.ord.id); if (ot && g.relOf(e.owner, ot.owner) === 'ally') g._order(e, { t: 'idle' }); }); },
+    wall: function (g, a) { var wo = Object.assign({}, a); delete wo.a; g.setWall(wo); },
+    wallOff: function (g) { g.setWall(null); },
+    exit: function (g, a, MS) { g.ents.forEach(function (e) { if (!e.dead && e.kind === 'u' && e.tag === a.tag && S.inZone(MS, a.zone, e.x / T, e.y / T)) { e.tag = null; g._kill(e, null, true); MS.escaped[a.tag] = (MS.escaped[a.tag] || 0) + 1; /* ушёл — не «убит» */ } }); },
+    ai: function (g, a) { g.ai = new P.AI(g, a.owner == null ? 1 : a.owner); if (a.first != null) g.ai.nextWave = a.first; },
+    camera: function (g, a, MS) { var cp = S.pointOf(MS, a.at); MS.ui.push({ t: a.a, x: cp.x * T, y: cp.y * T }); },
+    ping: function (g, a, MS) { var cp = S.pointOf(MS, a.at); MS.ui.push({ t: a.a, x: cp.x * T, y: cp.y * T }); }
+  };
 
   // ---------- События мира ----------
   function onEvent(MS, t, d) {
     if (t === 'death') {
-      if (d.tag) MS.killed[d.tag] = (MS.killed[d.tag] || 0) + 1;
+      S.noteKill(MS, d.tag);
       if (d.hero && d.p === 0) { MS.heroDead[d.type] = true; MS.ui.push({ t: 'heroDown', who: d.type }); }
       if (d.type === 'span' && d.p === 0 && !d.silent) { MS.spanLost++; MS.ui.push({ t: 'spanLost' }); }
     } else if (t === 'trained' && d.p === 0) MS.trained[d.type] = (MS.trained[d.type] || 0) + 1;
@@ -292,8 +277,7 @@
 
   // ---------- Итог ----------
   function result(MS, win) {
-    var g = MS.game, st = g.stats[0], heroes = {};
-    Object.keys(MS.heroes).forEach(function (h) { heroes[h] = { alive: !MS.heroDead[h] }; });
+    var g = MS.game, st = g.stats[0], heroes = S.heroesOf(MS);
     return { id: MS.def.id, n: MS.def.n, camp: campOf(MS.def), win: !!win, reason: MS.reason, time: g.t, stars: S.stars(MS, MS.H, win), flags: Object.assign({}, MS.flags),
       heroes: heroes, lostU: st.lost - st.lostB, lostB: st.lostB, kills: st.kills, wood: st.wood };
   }
@@ -304,7 +288,7 @@
   function reset(store, camp) { return S.reset(store, keyOf(camp)); }
   function applyResult(data, res) { return S.applyResult(data, res); }
   // открыта ли миссия: играбельна и (номер ≤ открытых) — издание решает отдельно (Edition.playable, если есть)
-  function nodeState(def, data) { if (!playable(def)) return 'later'; if (data.missions[def.id]) return 'done'; return def.n <= data.unlocked ? 'open' : 'closed'; }
+  function nodeState(def, data) { if (!playable(def)) return 'later'; return S.nodeState(def, data); }
 
   P.campaign = { KEY: KEY, CAMPS: CAMPS, keyOf: keyOf, campOf: campOf, list: list, byId: byId, playable: playable, parseMap: parseMap, build: build,
     spawn: spawn, cond: function (g, c) { return S.cond(g.mission, g.mission.H, c); }, act: function (g, a) { S.act(g.mission, g.mission.H, a); },

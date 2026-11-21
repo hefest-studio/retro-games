@@ -401,5 +401,9 @@ const cw = CO.filter(r => r.won).length / CO.length;
 console.log('     бот (кооп, 6 партий): круг 1 — ' + CO.filter(r => r.passed >= 1).length + '/6, вся игра — ' + CO.filter(r => r.won).length + '/6, пик толпы ' + Math.max(...CO.map(r => r.peak)));
 test('кооп-партия: круг 1 — все, всю игру — не «на халяву» (≤ 85%), не застревает', () => { ok(CO.every(r => r.passed >= 1), 'кооп падает на 1-м'); ok(cw <= 0.85, 'кооп слишком лёгок: ' + cw); ok(!CO.some(r => r.stuck), 'зависание'); });
 
+// ---------- площадка (21.11): «Без рекламы» и таблицы лидеров — статика main.js + список для Консоли (promo/<slug>/platform.json) ----------
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'gornilo', boards: ['gornilo'], test, ok }); }
+
 console.log(`\n${passed} прошло, ${failed} упало`);
 process.exit(failed ? 1 : 0);

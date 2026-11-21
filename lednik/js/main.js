@@ -11,7 +11,7 @@
     modern: Object.assign({}, TH.modern, { bg: '#0d1a2e', panel: '#16253d', ink: '#f2f7ff', muted: '#a9bbd3', accent: '#7fd6ff', good: '#7be08f', bad: '#ff6b6b', warn: '#ffd34d', grid: '#24395a' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#55ffff', muted: '#aaaaaa', ink: '#ffffff', good: '#55ff55', bad: '#ff5555', warn: '#ffff55' })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: VW, height: VH, gameId: 'lednik', strings: LD.STR, theme: 'modern', lives: L.K.LIVES, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: VW, height: VH, gameId: 'lednik', leaderboard: 'lednik', strings: LD.STR, theme: 'modern', lives: L.K.LIVES, themes: themes });
   LD.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
   var ls = null; try { ls = global.localStorage; } catch (e) {}
@@ -127,6 +127,15 @@
 
   // ---------- стандартные экраны и меню ----------
   g.useStandardScreens({ lives: L.K.LIVES });
+  // ---------- Площадка (движок v2.8): таблица лидеров «lednik» и «Без рекламы» (товар no_ads) в меню и паузе ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «lednik», GamePush — числовое поле игрока «lednik» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/lednik/platform.json (arcade-full). На сайте (без площадки) пунктов нет. После покупки межстраничной
+  // и стики нет, ролики за награду остаются по желанию игрока.
+  var LB = 'lednik';
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
   var resetArm = 0, titleNote = null;
   g.menu.addItem({ key: 'reset', after: 'play', label: function () { return resetArm > g.time ? g.t('resetQ') : g.t('reset'); },
     onSelect: function () { if (resetArm > g.time) { prog = store.reset(); M.prog = prog; M.fresh = {}; resetArm = 0; titleNote = { text: g.t('resetDone'), a: 2 }; } else resetArm = g.time + 3; } });
@@ -155,6 +164,9 @@
 
   // ---------- титул ----------
   var title = g.scenes.title, menu = g.menu.get('title');
+  // Меню заставки вмещает пункты площадки («Лидеры», «Без рекламы»; 21.11): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  // и меню поднимается, но не выше yMin; на сайте (без пунктов площадки) — как раньше.
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
   title.draw = function (ctx) {
     var rtr = retro(), Wc = this.W, Hc = this.H, t = this.time, Pc = th();
     ctx.imageSmoothingEnabled = !rtr;
@@ -181,7 +193,7 @@
     R.fox(ctx, 24, 0, 1, Math.sin(t) > 0 ? t : 0, rtr, null);
     ctx.restore();
     if (Math.floor(t / 2) % 2) { var bx = 130 + ((t % 2) < 1 ? (t % 1) * 260 : (1 - (t % 1)) * 260); var B = { x: bx, y: Hc - 92, spin: t * 20 }; ctx.save(); if (rtr) { ctx.fillStyle = R.E.y; ctx.fillRect(Math.round(bx) - 4, Hc - 93, 8, 2); } else { ctx.translate(B.x, B.y); ctx.rotate(B.spin); R.boomShape(ctx, 0, 0, '#efe3c8', 2); } ctx.restore(); }
-    menu.draw(this, Wc / 2 + 40, 120, 24);
+    var mf = menuFit(menu, 120, 24, 102, 222); menu.draw(this, Wc / 2 + 40, mf[0], mf[1]);
     var line = [], st = LD.save.stats(prog);
     if (this.state.best) line.push(this.t('best') + ': ' + this.state.best);
     if (st.cleared) line.push('✓ ' + st.cleared + '/18  ★ ' + st.full);

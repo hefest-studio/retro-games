@@ -10,13 +10,22 @@
     modern: Object.assign({}, TH.modern, { bg: '#121216', panel: '#18181e', ink: '#f3eee4', muted: '#a3a9b3', accent: '#ff8f3f', grid: '#2a2a32' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#f89838', muted: '#a8a8a8' })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.SCREEN_H, gameId: 'gornilo', strings: GR.STR, theme: 'modern', lives: 3, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.SCREEN_H, gameId: 'gornilo', leaderboard: 'gornilo', strings: GR.STR, theme: 'modern', lives: 3, themes: themes });
   GR.g = g;
   var pad = document.querySelector('.pad');
   GR.ui.init(g);
   function pal() { return g.themeName === 'retro' ? GR.classic : GR.modern; }
 
   g.useStandardScreens({ lives: 3 });
+  // ---------- Площадка (движок v2.8): таблица лидеров «gornilo» и «Без рекламы» (товар no_ads) в меню и паузе ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «gornilo», GamePush — числовое поле игрока «gornilo» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/gornilo/platform.json (arcade-full). На сайте (без площадки) пунктов нет. После покупки межстраничной
+  // и стики нет, ролики за награду остаются по желанию игрока.
+  var LB = 'gornilo';
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
   g.usePlayers({
     bind: L.BIND, actions: ['aimL', 'aimR', 'aimU', 'aimD'], pad: pad,
     hint: { ru: [GR.STR.ru.hint1, GR.STR.ru.hint2], en: [GR.STR.en.hint1, GR.STR.en.hint2], tr: [GR.STR.tr.hint1, GR.STR.tr.hint2], es: [GR.STR.es.hint1, GR.STR.es.hint2], pt: [GR.STR.pt.hint1, GR.STR.pt.hint2] }
@@ -129,6 +138,9 @@
     onSelect: function () { setStart(prog.next(startLv(), 1)); } });
   title.press = function (a) { var it = menu.current(); if (it && it.key === 'level' && (a === 'left' || a === 'right')) { setStart(prog.next(startLv(), a === 'left' ? -1 : 1)); this.audio.beep(600, 0.03); } };
   title.update = function (dt) { demoT += Math.min(dt, 0.05); };
+  // Меню заставки вмещает пункты площадки («Лидеры», «Без рекламы»; 21.11): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  // и меню поднимается, но не выше yMin; на сайте (без пунктов площадки) — как раньше.
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
   title.draw = function (ctx) {
     var th = this.th(), P = pal(), W = this.W, H = this.H;
     GR.ui.render(this, ctx, demoState(), P, { bare: true });
@@ -137,7 +149,7 @@
     GR.ui.panel(ctx, px, py, pw, ph, P, P.accent);
     GR.ui.txt(this, this.t('title'), W / 2, py + 70, { size: 58, align: 'center', color: P.accent, weight: 900 }, P);
     GR.ui.txt(this, this.t('subtitle'), W / 2, py + 96, { size: 11, align: 'center', color: th.muted, weight: 600, shadow: false }, P);
-    menu.draw(this, W / 2, py + 142, 28);
+    var mf = menuFit(menu, py + 142, 28, py + 120, py + ph - 34); menu.draw(this, W / 2, mf[0], mf[1]);
     if (this.state.best) GR.ui.txt(this, this.t('best') + ': ' + this.state.best, W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600, shadow: false }, P);
     this.menu._drawHint('title');
   };

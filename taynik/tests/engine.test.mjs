@@ -483,5 +483,9 @@ test('«человеческий» бот (реакция 150–250 мс, оши
   eq(stuck, 0, 'бот не зависает');
 });
 
+// ---------- площадка (21.11): «Без рекламы» и таблицы лидеров — статика main.js + список для Консоли (promo/<slug>/platform.json) ----------
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'taynik', boards: ['taynik'], test, ok }); }
+
 console.log(`\n${passed} ok, ${failed} fail`);
 process.exit(failed ? 1 : 0);

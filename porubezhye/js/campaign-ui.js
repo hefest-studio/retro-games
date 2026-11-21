@@ -8,7 +8,7 @@
    Встраивание: main.js зовёт UI.install(g, host); host = { startMission(id), centerOn(x, y), note(text, col), VIEW, TOP, PY }. */
 (function (global) {
   'use strict';
-  var P = global.PORUB, C = P.campaign, R = P.render, T = P.T;
+  var P = global.PORUB, C = P.campaign, R = P.render, T = P.T, KU = global.HefestCampaignUI, K = global.HefestCampaign;   // KU, K — общие кит экранов и ядро кампаний (_shared/)
   var UI = P.campUI = {};
   var g = null, host = null, store = null, camp = 'wright', sel = 0, briefId = null, lastRes = null, finId = null, hot = [], hover = -1, resetArm = 0, say = null, flakes = [];
   var W = 1280, H = 720;
@@ -23,8 +23,8 @@
   function pal() { return R.pal(g.themeName); }
   function ret() { return g.themeName === 'retro'; }
   function text(s, x, y, o) { g.text(String(s), x, y, Object.assign({ size: 14, weight: 700 }, o || {})); }
-  function wrap(c, s, maxW, size, weight) { c.font = (weight || 600) + ' ' + size + 'px ' + g.th().font; var out = [], line = ''; String(s).split(' ').forEach(function (w) { var t = line ? line + ' ' + w : w; if (c.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t; }); if (line) out.push(line); return out; }
-  function fmt(s) { s = Math.max(0, Math.round(s || 0)); var m = Math.floor(s / 60), r = s % 60; return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r; }
+  function wrap(c, s, maxW, size, weight) { return KU.wrap(c, s, maxW, size, weight, g.th().font); }
+  function fmt(s) { return KU.fmtTime(s, true); }
   function persist() { C.save(store, camp, UI.data); }
   function missions(k) { return C.list(k || camp); }
   function playableHere(def) { var E = P.Edition; return C.playable(def) && (!E.playable || E.playable(P.EDITION, def.id)); }
@@ -55,9 +55,7 @@
     c.restore();
   }
   function star(c, x, y, r, filled) {
-    var p = pal(); c.beginPath();
-    for (var k = 0; k < 10; k++) { var a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r; c.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
-    c.closePath(); if (filled) { c.fillStyle = p.amberHi; c.fill(); } c.strokeStyle = filled ? p.copper : p.muted; c.lineWidth = 1.5; c.stroke();
+    var p = pal(); KU.starPath(c, x, y, r); if (filled) { c.fillStyle = p.amberHi; c.fill(); } c.strokeStyle = filled ? p.copper : p.muted; c.lineWidth = 1.5; c.stroke();
   }
   function portrait(c, who, x, y, r) {
     var p = pal(), w = WHO[who] || WHO.tale, col = p[w.col] || p.muted;
@@ -200,15 +198,7 @@
   // ---------- итог кампании (def.finale последней миссии) ----------
   // def.finale = { title, rows: [{ icon, label, flag, values: { v: текст } }], lines: [{ who, when, text }], epilogue, cont }
   // when — по флагам кампании: { t: 'flag', key, value } | all/any/not { of }
-  function fcond(w, flags) {
-    if (!w) return true;
-    if (w.t === 'flag') return w.value == null ? !!flags[w.key] : flags[w.key] === w.value;
-    if (w.t === 'all') return w.of.every(function (x) { return fcond(x, flags); });
-    if (w.t === 'any') return w.of.some(function (x) { return fcond(x, flags); });
-    if (w.t === 'not') return !fcond(w.of, flags);
-    if (w.t === 'stars') return UI.finStars().got >= (w.gte || 0);
-    return false;
-  }
+  function fcond(w, flags) { return K.flagCond(w, flags, function (x) { return x.t === 'stars' && UI.finStars().got >= (x.gte || 0); }); }   // + свой тип 'stars'
   UI.finStars = function () { var ms = missions(), got = 0; ms.forEach(function (m) { var rc = UI.data.missions[m.id]; if (rc) rc.stars.forEach(function (x) { if (x) got++; }); }); return { got: got, all: ms.length * 3 }; };
   UI.finLines = function (def) { var F = def.finale, fl = UI.data.flags || {}, out = []; ['yarina', 'tikhon'].forEach(function (who) { var ln = (F.lines || []).filter(function (l) { return l.who === who && fcond(l.when, fl); })[0]; if (ln) out.push(ln); }); return out; };
   function drawFinale(c) {
@@ -360,8 +350,6 @@
   UI.openBrief = function (id) { var d = C.byId(id); if (!d || !playableHere(d)) return false; camp = C.campOf(d); UI.camp = camp; UI.data = C.load(store, camp); briefId = id; g.goto('brief'); return true; };
 
   function inScreens() { return g._sceneName === 'camp' || g._sceneName === 'brief' || g._sceneName === 'result' || g._sceneName === 'finale'; }
-  function hitAt(q) { for (var i = hot.length - 1; i >= 0; i--) { var b = hot[i]; if (q.x >= b.x && q.x < b.x + b.w && q.y >= b.y && q.y < b.y + b.h) return i; } return -1; }
-  function pt(e) { var r = g.canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height }; }
   UI.install = function (game, h) {
     g = game; host = h;
     try { store = global.localStorage; } catch (e) { store = null; }
@@ -380,8 +368,8 @@
           else { if (a === 'start' || a === 'action') { if (hot[0]) hot[0].fn(); } else if (a === 'pause') g.goto('camp'); }
         } });
     });
-    g.canvas.addEventListener('pointerdown', function (e) { if (!inScreens()) return; var i = hitAt(pt(e)); if (i >= 0) { e.preventDefault(); var b = hot[i]; g.audio.beep(700, 0.03, 'triangle'); b.fn(); } });
-    g.canvas.addEventListener('pointermove', function (e) { if (!inScreens()) return; hover = hitAt(pt(e)); g.canvas.style.cursor = hover >= 0 ? 'pointer' : 'default'; });
+    KU.bindHot(g.canvas, { active: inScreens, list: function () { return hot; }, size: function () { return { w: W, h: H }; },
+      press: function (i, b) { g.audio.beep(700, 0.03, 'triangle'); b.fn(); }, hover: function (i) { hover = i; } });
   };
   UI.openFinale = function (id) { var d = C.byId(id); if (!d || !d.finale) return false; camp = C.campOf(d); UI.camp = camp; UI.data = C.load(store, camp); finId = id; g.goto('finale'); return true; };
   UI._test = { missions: missions, state: state, nodes: NODES, hot: function () { return hot; }, sel: function () { return sel; }, setSel: function (i) { sel = i; }, last: function () { return lastRes; }, fcond: fcond };

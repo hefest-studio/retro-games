@@ -16,7 +16,7 @@ export function loadGame(opts = {}) {
   sandbox.window = sandbox; sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
   const run = f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
-  for (const f of ['js/i18n.js', 'js/edition.js', 'js/game.js', 'js/campaign.js', 'js/missions/index.js']) run(f);
+  for (const f of ['js/i18n.js', 'js/edition.js', 'js/game.js', 'js/campaign-core.js', 'js/campaign.js', 'js/missions/index.js']) run(f);
   const P = sandbox.PRIISK;
   if (opts.build) { P.Edition.BUILD = opts.build; P.EDITION = P.Edition.resolve(opts.search || '', opts.build); }
   const missing = [];

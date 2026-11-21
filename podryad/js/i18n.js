@@ -108,9 +108,9 @@
     title: 'SKYHIRE', subtitle: 'Serbest pilot, Hefest atölyesinden iş alır',
     sub2: 'Hangarlı nişancı · 3 sektör × 3 görev · silahlar, modüller, kalkan',
     back: 'Katalog', diff: 'Zorluk', d_easy: 'Kolay', d_normal: 'Normal', d_hard: 'Zor',
-    cont: 'Devam', newc: 'Yeni sefer', contAt: 'sektör {s}, görev {m}', newWarn: 'eski kayıt silinecek',
+    cont: 'Devam', newc: 'Yeni kampanya', contAt: 'sektör {s}, görev {m}', newWarn: 'eski kayıt silinecek',
     sector: 'Sektör', mission: 'Görev', funds: 'Kasa', armor: 'Zırh', shield: 'Kalkan', gun: 'Silah', mods: 'Modüller',
-    megaS: 'Mega bombalar', cellsS: 'Kalkan hücreleri', left: 'S', right: 'Sğ', none: '—', lvl: 'sv', inHand: 'takılı',
+    megaS: 'Mega bombalar', cellsS: 'Kalkan hücreleri', left: 'S', right: 'Sğ', none: '—', lvl: 'sv.', inHand: 'takılı',
     hangar: 'HANGAR', buy: 'Al', sell: 'Sat', upgrade: 'Geliştir', max: 'maks.', noSlot: 'yuva yok', full: 'dolu',
     launch: 'KALKIŞ ▶', loseNext: 'Düşersen kaybedersin: {x}', loseNone: 'Düşersen kaybedecek bir şey yok',
     need: 'Onarım ve teçhizat için: ≈ ◈{n}', owned: 'var', slotL: 'sol', slotR: 'sağ', pcs: 'adet',
@@ -157,7 +157,7 @@
     back: 'Catálogo', diff: 'Dificultad', d_easy: 'Fácil', d_normal: 'Normal', d_hard: 'Difícil',
     cont: 'Continuar', newc: 'Nueva campaña', contAt: 'sector {s}, misión {m}', newWarn: 'se borrará la partida guardada',
     sector: 'Sector', mission: 'Misión', funds: 'Caja', armor: 'Blindaje', shield: 'Escudo', gun: 'Arma', mods: 'Módulos',
-    megaS: 'Megabombas', cellsS: 'Celdas de escudo', left: 'I', right: 'D', none: '—', lvl: 'nv', inHand: 'equipada',
+    megaS: 'Megabombas', cellsS: 'Celdas de escudo', left: 'I', right: 'D', none: '—', lvl: 'niv.', inHand: 'equipada',
     hangar: 'HANGAR', buy: 'Comprar', sell: 'Vender', upgrade: 'Mejorar', max: 'máx.', noSlot: 'sin ranura', full: 'lleno',
     launch: 'DESPEGAR ▶', loseNext: 'Si te derriban pierdes: {x}', loseNone: 'Nada que perder si te derriban',
     need: 'Para reparación y equipo: ≈ ◈{n}', owned: 'tienes', slotL: 'izq.', slotR: 'der.', pcs: 'uds.',
@@ -190,8 +190,8 @@
     d_go: 'Despega. Se cobra por derribos, objetivos en tierra y cajas recogidas.',
     s0: 'Cresta de Cobre', s1: 'Esclusas de Niebla', s2: 'Nido Oxidado',
     mn0: 'Reconocer la ruta', mn1: 'Depósitos del borde', mn2: 'El Capataz', mn3: 'Niebla de esclusa', mn4: 'Islas de bombeo', mn5: 'El Martillo de Esclusa',
-    mn6: 'Talleres oxidados', mn7: 'El nido del gremio', mn8: 'El Decano del Gremio',
-    b_zep: 'Dirigible remachado', b_crane: 'Grúa capataz', b_lock: 'Martillo de esclusa', b_elder: 'Decano del gremio',
+    mn6: 'Talleres oxidados', mn7: 'El nido del gremio', mn8: 'El Maestre del Gremio',
+    b_zep: 'Dirigible remachado', b_crane: 'Grúa capataz', b_lock: 'Martillo de esclusa', b_elder: 'Maestre del gremio',
     foot: '<b>SKYHIRE</b> · flechas / WASD — volar · disparo automático · X o Espacio — megabomba · C — celda de escudo · Q — cambiar arma · dedo — movimiento relativo · hangar: ↑↓, → comprar, ← vender · P / Esc — pausa · L idioma, T tema, M sonido.'
   };
   P.STR.pt = {
@@ -204,7 +204,7 @@
     back: 'Catálogo', diff: 'Dificuldade', d_easy: 'Fácil', d_normal: 'Normal', d_hard: 'Difícil',
     cont: 'Continuar', newc: 'Nova campanha', contAt: 'setor {s}, missão {m}', newWarn: 'o jogo salvo será apagado',
     sector: 'Setor', mission: 'Missão', funds: 'Caixa', armor: 'Blindagem', shield: 'Escudo', gun: 'Arma', mods: 'Módulos',
-    megaS: 'Megabombas', cellsS: 'Células de escudo', left: 'E', right: 'D', none: '—', lvl: 'nv', inHand: 'equipada',
+    megaS: 'Megabombas', cellsS: 'Células de escudo', left: 'E', right: 'D', none: '—', lvl: 'nív.', inHand: 'equipada',
     hangar: 'HANGAR', buy: 'Comprar', sell: 'Vender', upgrade: 'Melhorar', max: 'máx.', noSlot: 'sem encaixe', full: 'cheio',
     launch: 'DECOLAR ▶', loseNext: 'Se for abatido, perde: {x}', loseNone: 'Nada a perder se for abatido',
     need: 'Para reparo e equipamento: ≈ ◈{n}', owned: 'tem', slotL: 'esq.', slotR: 'dir.', pcs: 'un.',
@@ -237,8 +237,8 @@
     d_go: 'Decolar. Paga-se por abates, alvos em terra e caixas recolhidas.',
     s0: 'Crista de Cobre', s1: 'Eclusas de Névoa', s2: 'Ninho Enferrujado',
     mn0: 'Reconhecer a rota', mn1: 'Depósitos da borda', mn2: 'O Capataz', mn3: 'Névoa da eclusa', mn4: 'Ilhas de bombeamento', mn5: 'O Martelo da Eclusa',
-    mn6: 'Oficinas enferrujadas', mn7: 'O ninho da guilda', mn8: 'O Decano da Guilda',
-    b_zep: 'Dirigível rebitado', b_crane: 'Guindaste capataz', b_lock: 'Martelo da eclusa', b_elder: 'Decano da guilda',
+    mn6: 'Oficinas enferrujadas', mn7: 'O ninho da guilda', mn8: 'O Mestre da Guilda',
+    b_zep: 'Dirigível rebitado', b_crane: 'Guindaste capataz', b_lock: 'Martelo da eclusa', b_elder: 'Mestre da guilda',
     foot: '<b>SKYHIRE</b> · setas / WASD — voar · tiro automático · X ou Espaço — megabomba · C — célula de escudo · Q — trocar arma · dedo — movimento relativo · hangar: ↑↓, → comprar, ← vender · P / Esc — pausa · L idioma, T tema, M som.'
   };
 })(typeof window !== 'undefined' ? window : globalThis);

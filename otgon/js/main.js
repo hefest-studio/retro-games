@@ -53,6 +53,9 @@
 
   // ---------- Стандартные экраны + своя заставка с живым фоном ----------
   g.useStandardScreens({ get subtitle() { return g.t('subtitle'); }, lives: 0 });
+  // ---------- Площадка (движок v2.8): «Без рекламы» (товар no_ads) в меню и паузе; таблицы лидеров нет — в игре нет счёта
+  // (итог участка — сколько ветроногов дошло из десяти, у всех одинаковый максимум). Список для Консоли — promo/otgon/platform.json.
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
   var contItem = { key: 'cont', label: function () { var s = loadSave(); return g.t('cont') + (s ? ' · ' + (s.lv + 1) + '/' + L.LEGS.length : ''); }, onSelect: function () { O._resume = loadSave(); this.goto('play'); }, before: 'play' };
   // пункт «Участок N ★★☆» — с какого участка начинать «Новый путь» (со всем стадом): выбор/тап — следующий открытый, ← → — по кругу
   g.menu.addItem({ key: 'legpick', after: 'play', label: function () { var n = startLv(); return g.t('legPick') + ' ' + n + '/' + L.LEGS.length + '  ' + M.starStr(prog.get(n)); }, onSelect: function () { nextStart(1); } });

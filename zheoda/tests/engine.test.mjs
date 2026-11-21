@@ -316,5 +316,9 @@ test('языки: ru/en/tr/es/pt — одинаковые ключи; назва
   for (const lv of L.LEVELS) for (const l of ['tr', 'es', 'pt']) ok(Z.STR[l]['lv_' + lv.name], l + ' lv_' + lv.name);
 });
 
+// ---------- площадка (21.11): «Без рекламы» и таблицы лидеров — статика main.js + список для Консоли (promo/<slug>/platform.json) ----------
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'zheoda', boards: ['zheoda'], test, ok }); }
+
 console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed));
 process.exit(failed ? 1 : 0);
