@@ -23,3 +23,7 @@ a.back:hover { color: #f0a04b; }
   .foot { display: none; }
   .wrap { width: min(96vw, 980px, calc((100dvh - 40px) * 16 / 9)); margin-top: 32px; }
 }
+/* телефон лёжа: крестовина слева, ✋ справа — поле между ними, не под кнопками */
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 520px) {
+  .wrap { width: min(96vw, calc(100vw - 300px), calc((100dvh - 40px) * 16 / 9)); }
+}

@@ -9,14 +9,14 @@
 
   var PAL = {
     modern: { grass: ['#3e5b3a', '#425f3c', '#3a5637', '#455f3b'], heath: ['#4f5838', '#545a3a'], wood: '#1d3527', pine: ['#24432f', '#2d523a', '#36603f'], birch: '#d9d6c8', trunk: '#4a3626',
-      water: '#1e4656', waterHi: '#3b7286', shore: '#56603f', rock: '#6f6b62', rockHi: '#9a958a', fog: '#06080b',
+      water: '#1e4656', waterHi: '#3b7286', shore: '#56603f', rock: '#6f6b62', rockHi: '#9a958a', fog: '#06080b', ally: '#6cc4ff', neutral: '#e8d890',
       copper: '#cf7a36', copperHi: '#f0a560', wood2: '#8a5a33', woodHi: '#b07a48', cloth: '#3f6f93', clothHi: '#6b9cc0', skin: '#e2b48a', fur: '#6b4a2e', iron: '#5b5f66',
       moss: '#6f9a3a', mossHi: '#9cc25a', bark: '#5a3d24', barkHi: '#7c5636', lichen: '#c3c98e', eye: '#ffb43c', cap: '#b8432f', capDot: '#f2e6cf',
       amber: '#f0a020', amberHi: '#ffd36b', resin: '#7a4a10', resinHi: '#d8a040', myc: 'rgba(36,52,28,0.42)', mycLine: 'rgba(232,226,196,0.30)',
       sel: '#5fd38a', enemy: '#ff5d5d', hpGood: '#5fd38a', hpMid: '#ffc04a', hpBad: '#ff5d5d', panel: 'rgba(20,24,30,0.92)', line: '#2c3442', ink: '#eef2f8', muted: '#9aa4b5', accent: '#e8913a',
       snow: ['#dfe7ec', '#d6e0e7', '#e6edf1'], snowLo: '#b9c8d3', ice: '#a9cfe0', iceHi: '#e2f3fa', plank: '#8a6238', plankHi: '#b4864f', cranberry: '#a8323a', brass: '#c9a24a', frost: 'rgba(200,225,245,' },
     retro: { grass: ['#2e5a2a', '#2e5a2a', '#346430', '#2e5a2a'], heath: ['#5c5428', '#5c5428'], wood: '#123218', pine: ['#1a4a22', '#226a2a', '#1a4a22'], birch: '#e8e8d0', trunk: '#5a3818',
-      water: '#183a68', waterHi: '#4a78b8', shore: '#4a5a28', rock: '#787070', rockHi: '#b0a898', fog: '#000000',
+      water: '#183a68', waterHi: '#4a78b8', shore: '#4a5a28', rock: '#787070', rockHi: '#b0a898', fog: '#000000', ally: '#58c8f8', neutral: '#f8e070',
       copper: '#e07828', copperHi: '#ffb060', wood2: '#8c5420', woodHi: '#b87838', cloth: '#3870b0', clothHi: '#70a8e0', skin: '#f0b888', fur: '#704818', iron: '#606068',
       moss: '#68a830', mossHi: '#a8d850', bark: '#603818', barkHi: '#905828', lichen: '#d0d090', eye: '#ffc030', cap: '#c83020', capDot: '#f8f0d8',
       amber: '#f8a000', amberHi: '#ffe070', resin: '#784808', resinHi: '#e0a030', myc: 'rgba(24,40,16,0.5)', mycLine: 'rgba(240,232,200,0.35)',
@@ -48,6 +48,9 @@
   function shadow(c, x, y, rx, ry, ret) { oval(c, x, y, rx, ry, 'rgba(0,0,0,' + (ret ? 0.35 : 0.28) + ')', ret); }
   function hash(x, y) { var h = (x * 374761393 + y * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
   R.prims = { oval: oval, box: box, tri: tri };
+  // цвет стороны для обводки/мини-карты: своя, враг, союзник, нейтрал (третья сторона кампании — owner 2)
+  function sideCol(game, e, p) { if (e.owner === 0) return p.sel; if (e.owner < 0) return p.neutral; if (!game.relOf) return p.enemy; var r = game.relOf(0, e.owner); return r === 'ally' ? p.ally : r === 'neutral' ? p.neutral : p.enemy; }
+  R.sideCol = sideCol;
 
   // ---------- Земля (пререндер на всю карту, кэш по теме) ----------
   R.terrain = function (game, theme) {
@@ -154,6 +157,28 @@
       box(c, 9, -7, 11, 5, p.iron, ret, 2);                                                              // пушка
       box(c, -10, -20, 5, 10, p.iron, ret);                                                              // труба
       for (var i = 0; i < 3; i++) { var ph = (t * 0.8 + i / 3 + u.id * 0.13) % 1; oval(c, -8 - ph * 6, -22 - ph * 16, 2 + ph * 4, 2 + ph * 4, 'rgba(210,210,210,' + (0.5 - ph * 0.45) + ')', ret); }
+    } else if (D === 'stomper') { // Топотун Тихона: латунный котёл на трёх «шагах», две трубы, заклёпки, фонарь-глаз, пушка-«ступа»
+      var st2 = u.moving ? Math.sin(u.anim * 6) * 5 : 0;
+      line(c, -9, 6, -12 + st2, 19, p.iron, 5); line(c, 9, 6, 12 - st2, 19, p.iron, 5); line(c, 0, 7, 0, 19, p.iron, 4);
+      box(c, -16 + st2, 17, 9, 4, p.iron, ret); box(c, 7 - st2, 17, 9, 4, p.iron, ret); box(c, -4, 17, 8, 3, p.iron, ret);
+      box(c, -17, -14, 32, 22, p.brass, ret, 8); box(c, -17, -5, 32, 4, p.wood2, ret);
+      for (var rv = 0; rv < 5; rv++) oval(c, -13 + rv * 6, -10, 1.5, 1.5, p.copperHi, ret);
+      oval(c, 6, -2, 5, 5, ret ? '#ffd060' : '#ffd88a', ret); oval(c, 6, -2, 2.5, 2.5, '#fff4c8', ret);    // фонарь-глаз
+      box(c, 13, -9, 13, 7, p.iron, ret, 2); box(c, 24, -10, 4, 9, p.iron, ret);                          // пушка
+      box(c, -14, -26, 5, 13, p.iron, ret); box(c, -6, -23, 4, 10, p.copper, ret);                          // трубы
+      for (var j2 = 0; j2 < 4; j2++) { var ph2 = (t * 0.9 + j2 / 4 + u.id * 0.17) % 1; oval(c, -12 - ph2 * 7, -28 - ph2 * 18, 2.5 + ph2 * 5, 2.5 + ph2 * 5, 'rgba(225,225,225,' + (0.55 - ph2 * 0.5) + ')', ret); }
+    } else if (D === 'sled') { // сани с беженцами: полозья, короб, узлы, возница в тулупе
+      box(c, -16, 7, 32, 2, p.iron, ret); line(c, 16, 8, 20, 2, p.iron, 2);
+      box(c, -14, -3, 26, 10, p.wood2, ret, 2); box(c, -14, -3, 26, 2, p.woodHi, ret);
+      oval(c, -8, -6, 6, 5, p.cranberry, ret); oval(c, 0, -7, 5, 4, ret ? '#d8c890' : '#cdbb8a', ret); oval(c, -3, -11, 4, 3, p.cloth, ret); // узлы
+      oval(c, 9, -7, 5, 6, p.fur, ret); oval(c, 9, -15, 4, 4, p.skin, ret); box(c, 5, -20, 8, 4, p.fur, ret, 2); // возница
+      line(c, 13, -6, 24, -2, p.wood2, 2);
+    } else if (D === 'envoy') { // жук-посол: короед с веточкой-знаком мира и лишайниковой накидкой
+      var lg2 = u.moving ? Math.sin(u.anim * 16) * 2 : 0;
+      for (var l2 = -1; l2 <= 1; l2++) { line(c, l2 * 4, 0, l2 * 5 - 2, 8 + (l2 % 2 ? lg2 : -lg2), p.bark, 2); line(c, l2 * 4, 0, l2 * 5 + 2, -8 - (l2 % 2 ? lg2 : -lg2), p.bark, 2); }
+      oval(c, -1, 0, 9, 7, p.bark, ret); oval(c, -2, -1, 8, 6, p.lichen, ret); oval(c, -3, -2, 5, 3, p.mossHi, ret);
+      oval(c, 8, 0, 4, 4, p.bark, ret); box(c, 9, -3, 2, 2, p.eye, ret); box(c, 9, 1, 2, 2, p.eye, ret);
+      line(c, 10, -3, 16, -14, p.trunk, 2); oval(c, 14, -14, 3, 2, p.mossHi, ret); oval(c, 18, -12, 3, 2, p.moss, ret); oval(c, 15, -10, 2, 2, p.mossHi, ret); // веточка
     } else if (D === 'beetle') {
       var lg = u.moving ? Math.sin(u.anim * 16) * 2 : 0;
       for (var l = -1; l <= 1; l++) { line(c, l * 4, 0, l * 5 - 2, 8 + (l % 2 ? lg : -lg), p.bark, 2); line(c, l * 4, 0, l * 5 + 2, -8 - (l % 2 ? lg : -lg), p.bark, 2); }
@@ -315,7 +340,7 @@
     c.drawImage(terr, v.x, v.y, v.w, v.h, v.x, v.y, v.w, v.h);
     var x0 = Math.max(0, Math.floor(v.x / T)), y0 = Math.max(0, Math.floor(v.y / T)), x1 = Math.min(MW - 1, Math.floor((v.x + v.w) / T)), y1 = Math.min(MH - 1, Math.floor((v.y + v.h) / T));
     // грибница Чащи (видимая/разведанная)
-    for (var q = 0; q < 2; q++) { var M = game.myc[q]; if (!game.race(q).grow) continue;
+    for (var q = 0; q < (game.sides || 2); q++) { var M = game.myc[q]; if (!game.race(q).grow) continue;
       for (var y = y0; y <= y1; y++) for (var x = x0; x <= x1; x++) { if (!M[y * MW + x] || (q !== pl && game.tileVis(pl, x, y) < 2)) continue;
         c.fillStyle = p.myc; c.fillRect(x * T, y * T, T, T);
         var h = hash(x, y); c.fillStyle = p.mycLine;
@@ -325,7 +350,7 @@
       } }
     if (st.under) st.under(c, p, ret);   // кампания: зоны-подсказки, знамёна (в координатах мира)
     // выделение (под сущностями)
-    st.sel.forEach(function (e) { if (e.dead) return; var rr = e.kind === 'u' ? e.r + 3 : e.s * T * 0.6; c.strokeStyle = e.owner === pl ? p.sel : (e.owner < 0 ? '#e8d890' : p.enemy); c.lineWidth = 2;
+    st.sel.forEach(function (e) { if (e.dead) return; var rr = e.kind === 'u' ? e.r + 3 : e.s * T * 0.6; c.strokeStyle = sideCol(game, e, p); c.lineWidth = 2;
       if (ret) c.strokeRect(e.x - rr, e.y - rr * 0.6 + (e.kind === 'u' ? e.r * 0.5 : 0), rr * 2, rr * 1.2);
       else { c.beginPath(); c.ellipse(e.x, e.y + (e.kind === 'u' ? e.r * 0.55 : e.s * T * 0.2), rr, rr * 0.55, 0, 0, Math.PI * 2); c.stroke(); } });
     // сущности по глубине
@@ -338,11 +363,14 @@
       list.push(e); }
     var depth = function (e) { return e.kind === 'u' ? e.y : e.type === 'span' ? -1e9 + e.ty : (e.ty + e.s) * T - 6; }; // настил моста — под всеми
     list.sort(function (a, b) { return depth(a) - depth(b); });
+    // третья сторона (союзник/нейтрал): тонкое кольцо её цвета под юнитами — чтобы не путать с врагом той же расы
+    if (game.sides > 2) list.forEach(function (e) { if (e.kind !== 'u' || e.owner !== 2) return; c.strokeStyle = sideCol(game, e, p); c.globalAlpha = 0.8; c.lineWidth = 2;
+      if (ret) c.strokeRect(e.x - e.r - 2, e.y + e.r * 0.2, e.r * 2 + 4, e.r * 0.8); else { c.beginPath(); c.ellipse(e.x, e.y + e.r * 0.6, e.r + 2, e.r * 0.45, 0, 0, 6.29); c.stroke(); } c.globalAlpha = 1; });
     list.forEach(function (e) { if (e.kind === 'n') R.node(c, e, p, ret, t); else if (e.kind === 'b') R.building(c, e, p, ret, t, game); else R.unit(c, e, p, ret, t, game.races[e.owner]); });
     // выстрелы
     game.shots.forEach(function (s) { if (s.owner !== pl && game.tileVis(pl, Math.floor(s.x1 / T), Math.floor(s.y1 / T)) < 2) return; var k = s.t / s.dur;
       if (s.kind === 'shooter') { line(c, s.x0, s.y0 - 6, s.x1, s.y1, ret ? '#ffe080' : 'rgba(255,230,150,' + (1 - k) + ')', 2); oval(c, s.x0 + (s.x1 - s.x0) * 0.08, s.y0 - 6, 3, 3, '#fff2c0', ret); }
-      else if (s.kind === 'walker') { var bx = s.x0 + (s.x1 - s.x0) * k, by = s.y0 + (s.y1 - s.y0) * k - Math.sin(k * Math.PI) * 30; oval(c, bx, by, 4, 4, '#2a2a2a', ret); }
+      else if (s.kind === 'walker' || s.kind === 'stomper') { var bx = s.x0 + (s.x1 - s.x0) * k, by = s.y0 + (s.y1 - s.y0) * k - Math.sin(k * Math.PI) * 30; oval(c, bx, by, 4, 4, '#2a2a2a', ret); }
       else if (s.kind === 'shell') { for (var n = 0; n < 3; n++) { var tx = s.x0 + (s.x1 - s.x0) * k + n * 4 - 4, ty = s.y0 + (s.y1 - s.y0) * k - Math.sin(k * Math.PI) * 18 + n * 3; tri(c, tx, ty - 5, tx - 2, ty + 2, tx + 2, ty + 2, p.lichen, ret); } }
       else { oval(c, s.x1, s.y1, 6 * (1 - k) + 2, 6 * (1 - k) + 2, 'rgba(255,255,255,' + (0.7 * (1 - k)) + ')', ret); } });
     // эффекты (взрывы, кольца приказов)
@@ -388,9 +416,9 @@
     c.save(); c.imageSmoothingEnabled = false;
     c.drawImage(R.miniBase(game, theme, r.w), r.x, r.y, r.w, r.h);
     var sx = r.w / MW, sy = r.h / MH;
-    for (var q = 0; q < 2; q++) if (game.race(q).grow) { c.fillStyle = 'rgba(30,48,22,0.6)'; for (var i = 0; i < MW * MH; i++) if (game.myc[q][i] && (q === 0 || game.vis[0][i] === 2)) c.fillRect(r.x + (i % MW) * sx, r.y + ((i / MW) | 0) * sy, sx, sy); }
+    for (var q = 0; q < (game.sides || 2); q++) if (game.race(q).grow) { c.fillStyle = 'rgba(30,48,22,0.6)'; for (var i = 0; i < MW * MH; i++) if (game.myc[q][i] && (q === 0 || game.vis[0][i] === 2)) c.fillRect(r.x + (i % MW) * sx, r.y + ((i / MW) | 0) * sy, sx, sy); }
     game.ents.forEach(function (e) { if (e.dead || !game.visibleTo(e, 0)) return;
-      var col = e.kind === 'n' ? (e.type === 'amber' ? p.amber : e.type === 'timber' ? p.plankHi : p.resinHi) : (e.owner === 0 ? p.sel : p.enemy), s = e.kind === 'u' ? 3 : e.s * sx;
+      var col = e.kind === 'n' ? (e.type === 'amber' ? p.amber : e.type === 'timber' ? p.plankHi : p.resinHi) : sideCol(game, e, p), s = e.kind === 'u' ? 3 : e.s * sx;
       c.fillStyle = col; if (e.kind === 'u') c.fillRect(r.x + e.x * k - 1.5, r.y + e.y * k - 1.5, 3, 3); else c.fillRect(r.x + e.tx * sx, r.y + e.ty * sy, s, s); });
     if (!game.fogOff) { var fc = game._fogCv; if (fc) { c.globalAlpha = 0.85; c.imageSmoothingEnabled = !ret; c.drawImage(fc, r.x, r.y, r.w, r.h); c.globalAlpha = 1; } }
     pings.forEach(function (pg) { var a = (t - pg.t); if (a > 3) return; var rr = 4 + (a % 1) * 14; c.strokeStyle = p.enemy; c.lineWidth = 2; c.strokeRect(r.x + pg.x * k - rr, r.y + pg.y * k - rr, rr * 2, rr * 2); });

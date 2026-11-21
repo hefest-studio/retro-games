@@ -23,7 +23,10 @@
         walker:  { hp: 220, armor: 2, spd: 1.6, sight: 9, range: 6, dmg: 20, splash: 1.0, cd: 2.4, cost: { a: 125, r: 75 }, sup: 3, time: 28, r: 15, mech: true, from: 'boiler', ranged: true },
         // герои кампании (не обучаются): воевода Ярина — знамя ускоряет стройку рядом; изобретатель Тихон — строит и чинит вдвое быстрее
         yarina:  { hp: 200, armor: 1, spd: 2.6, sight: 9, range: 4.5, dmg: 11, cd: 1.0, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 10, hero: true, ranged: true, ability: 'banner' },
-        tikhon:  { hp: 130, spd: 2.5, sight: 7, range: 0.4, dmg: 5, cd: 1.2, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 10, hero: true, worker: true, craft: 2 }
+        tikhon:  { hp: 130, spd: 2.5, sight: 7, range: 0.4, dmg: 5, cd: 1.2, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 10, hero: true, worker: true, craft: 2 },
+        // кампания: Топотун Тихона — первый шагоход (герой-машина, чинится; F — топот: урон всем врагам рядом); сани с беженцами (не воюют, чинятся)
+        stomper: { hp: 560, armor: 3, spd: 1.7, sight: 9, range: 6, dmg: 24, splash: 1.2, cd: 2.2, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 17, mech: true, hero: true, ranged: true, ability: 'stomp' },
+        sled:    { hp: 170, spd: 1.5, sight: 5, range: 0, dmg: 0, cd: 9, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 13, mech: true, civil: true }
       },
       buildings: {
         hall:     { s: 4, hp: 1500, cost: { a: 400, r: 0 }, time: 70, sup: 10, sight: 9, trains: ['worker'], drop: true },
@@ -40,7 +43,9 @@
       units: {
         beetle:  { hp: 40, spd: 2.7, sight: 6, range: 0.4, dmg: 4, cd: 1.2, cost: { a: 50, r: 0 }, sup: 1, time: 11, r: 9, worker: true, regen: 0.4 },
         stinger: { hp: 60, spd: 3.3, sight: 7, range: 0.45, dmg: 6, cd: 0.75, cost: { a: 50, r: 10 }, sup: 1, time: 14, r: 10, regen: 0.8, req: 'den' },
-        shell:   { hp: 300, armor: 3, spd: 1.4, sight: 8, range: 3.5, dmg: 14, splash: 0.8, cd: 1.8, cost: { a: 100, r: 100 }, sup: 3, time: 26, r: 15, regen: 1.5, req: 'barrow', ranged: true }
+        shell:   { hp: 300, armor: 3, spd: 1.4, sight: 8, range: 3.5, dmg: 14, splash: 0.8, cd: 1.8, cost: { a: 100, r: 100 }, sup: 3, time: 26, r: 15, regen: 1.5, req: 'barrow', ranged: true },
+        // кампания: жук-посол (не воюет, не обучается)
+        envoy:   { hp: 90, spd: 2.4, sight: 6, range: 0, dmg: 0, cd: 9, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 10, regen: 0.5, civil: true }
       },
       buildings: {
         stump:  { s: 4, hp: 1400, cost: { a: 350, r: 0 }, time: 60, sup: 10, sight: 9, larva: true, drop: true, myc: 7, regen: 3, anywhere: true },
@@ -137,14 +142,17 @@
     this.rng = opts.rng || mulberry32(opts.seed || 1);
     this.onEvent = opts.onEvent || function () {};
     this.races = [opts.playerRace || 'wright', opts.aiRace || (opts.playerRace === 'thicket' ? 'wright' : 'thicket')];
+    if (opts.thirdRace) this.races.push(opts.thirdRace);   // кампания: третья сторона (owner 2 — союзник/нейтрал, отношения — setRel)
+    var NS = this.sides = this.races.length;
+    this.rel = null;               // отношения сторон { 'a,b': 'enemy'|'neutral'|'ally' }; null — все стороны враги (скирмиш)
     this.terr = M ? M.terr : genMap(opts.seed || 1); this.seedKey = M ? (opts.key || 'map') : (opts.seed || 1); this.terrRev = 0;
     var N = this.MW * this.MH;
     this.occ = new Int32Array(N);          // id+1 здания/месторождения на тайле
-    this.myc = [new Uint8Array(N), new Uint8Array(N)]; // грибница по сторонам
-    this.vis = [new Uint8Array(N), new Uint8Array(N)]; // 0 — не разведано, 1 — разведано, 2 — видно
+    this.myc = []; this.vis = [];  // грибница по сторонам; туман: 0 — не разведано, 1 — разведано, 2 — видно
+    for (var si = 0; si < NS; si++) { this.myc.push(new Uint8Array(N)); this.vis.push(new Uint8Array(N)); }
     this.ents = []; this.byId = new Map(); this.nextId = 1; this.t = 0;
-    this.res = [{ a: 150, r: 0, w: 0 }, { a: 150, r: 0, w: 0 }];
-    this.stats = [{ kills: 0, lost: 0, lostB: 0, built: 0, trained: 0, gathered: 0, wood: 0 }, { kills: 0, lost: 0, lostB: 0, built: 0, trained: 0, gathered: 0, wood: 0 }];
+    this.res = []; this.stats = [];
+    for (var sj = 0; sj < NS; sj++) { this.res.push({ a: 150, r: 0, w: 0 }); this.stats.push({ kills: 0, lost: 0, lostB: 0, built: 0, trained: 0, gathered: 0, wood: 0 }); }
     this.shots = []; this.winner = -1; this._visT = 0; this._mycDirty = true;
     this.fogOff = !!opts.fogOff; this.endRule = opts.endRule || 'blds';
     this.cold = 0;                 // мороз 0…1 (погода «Зимнего вала»): медленнее ходят вдали от тепла, медленнее добыча и стройка
@@ -152,6 +160,7 @@
     this.allowB = null;            // кампания: какие здания можно ставить (null — все из R.order)
     this.allowU = null;            // кампания: каких юнитов можно обучать (null — всех)
     this.flares = [];              // кампания: временный обзор игрока { x, y, r (клетки), until }
+    this.wall = null;              // кампания: ползущий Зимний вал { dir: 's'|'n'|'e'|'w', pos (клетки), speed, dps, stop } — см. setWall
     var addNode = function (type, tx, ty, amt) { var s = type === 'resin' ? 2 : 1; return self._addEnt({ kind: 'n', type: type, owner: -1, tx: tx, ty: ty, s: s, amt: amt || NODE_AMT[type], amt0: amt || NODE_AMT[type], hp: 1, maxhp: 1 }); };
     this.addNode = addNode;
     if (M) { (M.nodes || []).forEach(function (n) { addNode(n.type, n.tx, n.ty, n.amt); }); }
@@ -181,6 +190,10 @@
   G.def = function (e) { var R = RACES[this.races[e.owner]]; return e.kind === 'u' ? R.units[e.type] : R.buildings[e.type]; };
   G.race = function (p) { return RACES[this.races[p]]; };
   G.get = function (id) { return this.byId.get(id) || null; };
+  // отношения сторон: в скирмише (rel = null) все стороны — враги; кампания задаёт 'enemy' | 'neutral' | 'ally' (симметрично)
+  G.setRel = function (a, b, v) { this.rel = this.rel || {}; this.rel[a + ',' + b] = v; this.rel[b + ',' + a] = v; };
+  G.relOf = function (a, b) { if (a === b) return 'self'; if (a < 0 || b < 0) return 'none'; return (this.rel && this.rel[a + ',' + b]) || 'enemy'; };
+  G.hostile = function (a, b) { return a !== b && a >= 0 && b >= 0 && (!this.rel || (this.rel[a + ',' + b] || 'enemy') === 'enemy'); };
   // события: main.js (onEvent) + миссия кампании (mission.event), если она подключена
   G.emit = function (t, d) { this.onEvent(t, d); if (this.mission && this.mission.event) this.mission.event(t, d); };
   G._addEnt = function (e) {
@@ -322,7 +335,7 @@
   G.count = function (p, kind, type, pred) { var n = 0; for (var i = 0; i < this.ents.length; i++) { var e = this.ents[i]; if (!e.dead && e.owner === p && e.kind === kind && (!type || e.type === type) && (!pred || pred(e))) n++; } return n; };
   // Почему нельзя обучить юнита (null — можно)
   G.trainBlock = function (p, b, type) {
-    var R = this.race(p), D = R.units[type]; if (!D || D.hero || !b || b.dead || b.owner !== p || !b.done) return 'nobuild';
+    var R = this.race(p), D = R.units[type]; if (!D || D.hero || D.civil || !b || b.dead || b.owner !== p || !b.done) return 'nobuild';
     if (p === 0 && this.allowU && !this.allowU[type]) return 'nobuild';
     var BD = R.buildings[b.type];
     if (R.grow) { if (!BD.larva) return 'nobuild'; if (D.req && !this.hasDone(p, D.req)) return 'req'; if (b.larva < 1) return 'larva'; }
@@ -358,7 +371,7 @@
     return { ok: true };
   };
   G._recalcMyc = function () {
-    for (var p = 0; p < 2; p++) {
+    for (var p = 0; p < this.sides; p++) {
       var M = this.myc[p]; M.fill(0); if (!this.race(p).grow) continue;
       for (var i = 0; i < this.ents.length; i++) { var e = this.ents[i]; if (e.dead || e.kind !== 'b' || e.owner !== p) continue;
         var D = this.def(e); if (!D.myc || !e.planted) continue;
@@ -373,7 +386,7 @@
   // ---------- Приказы ----------
   // c: {t:'move'|'amove'|'attack'|'gather'|'build'|'repair'|'stop'|'train'|'rally'|'smart'|'cancel', ids, x, y, target, type, tx, ty}
   G.cmd = function (p, c) {
-    var self = this, units = (c.ids || []).map(function (id) { return self.get(id); }).filter(function (e) { return e && !e.dead && e.owner === p && e.kind === 'u'; });
+    var self = this, units = (c.ids || []).map(function (id) { return self.get(id); }).filter(function (e) { return e && !e.dead && e.owner === p && e.kind === 'u' && (!e.locked || c.sys); }); // locked — ведёт сценарий (сани, посол)
     switch (c.t) {
       case 'smart': return this._smart(p, units, c);
       case 'move': case 'amove': return this._groupMove(units, c.x, c.y, c.t);
@@ -385,6 +398,7 @@
       case 'train': return this._train(p, this.get(c.id), c.type);
       case 'cancel': return this._cancel(p, this.get(c.id));
       case 'banner': return this._banner(p, this.get(c.id));
+      case 'stomp': return this._stomp(p, this.get(c.id));
       case 'rally': { var b = this.get(c.id); if (!b || b.owner !== p || b.kind !== 'b') return false; var tgt = c.target ? this.get(c.target) : null; b.rally = { x: c.x, y: c.y, node: tgt && tgt.kind === 'n' ? tgt.id : 0 }; return true; }
     }
     return false;
@@ -393,7 +407,7 @@
   G._smart = function (p, units, c) {
     var self = this, tg = c.target ? this.get(c.target) : null, R = this.race(p), res = { kind: 'move' };
     if (tg && !tg.dead) {
-      if (tg.owner >= 0 && tg.owner !== p) { units.forEach(function (u) { self._order(u, { t: 'attack', id: tg.id }); }); return { kind: 'attack' }; }
+      if (this.hostile(p, tg.owner)) { units.forEach(function (u) { self._order(u, { t: 'attack', id: tg.id }); }); return { kind: 'attack' }; }
       if (tg.kind === 'n') {
         var any = false; units.forEach(function (u) { if (self.def(u).worker) { self._order(u, { t: 'gather', id: tg.id }); any = true; } });
         var rest = units.filter(function (u) { return !self.def(u).worker; }); if (rest.length) this._groupMove(rest, c.x, c.y, 'move');
@@ -444,6 +458,16 @@
     u.abT = this.t + BANNER.cd; this.banners.push({ x: u.x, y: u.y, r: BANNER.r * T, until: this.t + BANNER.life, owner: p, t0: this.t });
     this.emit('banner', { p: p, id: u.id, x: u.x, y: u.y }); return true;
   };
+  // Топот Топотуна Тихона (кампания): удар оземь — урон всем врагам в 2,6 клетки (зданиям — вполовину); перезарядка 25 с
+  var STOMP = { r: 2.6, dmg: 40, cd: 25 };
+  P.STOMP = STOMP;
+  G._stomp = function (p, u) {
+    if (!u || u.dead || u.owner !== p || this.def(u).ability !== 'stomp') return false;
+    if ((u.abT || 0) > this.t) { this.emit('deny', { p: p, why: 'stompCd' }); return false; }
+    u.abT = this.t + STOMP.cd; var self = this, R = STOMP.r * T, n = 0;
+    this.ents.slice().forEach(function (e) { if (e.dead || (e.kind !== 'u' && e.kind !== 'b') || !self.hostile(p, e.owner)) return; if (self.distTo(u, e) <= R) { self._damage(e, STOMP.dmg * (e.kind === 'b' ? 0.5 : 1), u); n++; } });
+    this.emit('stomp', { p: p, id: u.id, x: u.x, y: u.y, n: n }); return true;
+  };
   G.bannerAt = function (p, x, y) { for (var i = 0; i < this.banners.length; i++) { var b = this.banners[i]; if (b.owner === p && b.until > this.t && Math.hypot(b.x - x, b.y - y) <= b.r) return true; } return false; };
   // Тепло: Мастеровым — у своих готовых острога/избы/котельни (5 клеток) и у знамени; Чаще — на своей грибнице
   G.warm = function (u) {
@@ -456,7 +480,7 @@
     u.isWarm = w; return w;
   };
   // множители мороза: ход (вдали от тепла), работа (добыча), рост/стройка/обучение — у рас по-разному
-  G.coldMove = function (u) { return this.cold && !this.warm(u) ? 1 - 0.3 * this.cold : 1; };
+  G.coldMove = function (u) { var k = this.cold && !this.warm(u) ? 1 - 0.3 * this.cold : 1; return this.wall && this.inWall(u.x, u.y) ? k * 0.6 : k; };
   G.coldWork = function (u) { return this.cold ? 1 - 0.4 * this.cold * (this.warm(u) ? 0.4 : 1) : 1; };
   G.coldGrow = function (p) { return this.cold ? 1 - (this.race(p).grow ? 0.5 : 0.3) * this.cold : 1; };
   G.buildList = function (p) { var R = this.race(p), al = this.allowB; if (!al) return R.order.slice(0, 4); return R.order.concat(Object.keys(R.buildings).filter(function (k) { return R.buildings[k].extra && R.order.indexOf(k) < 0; })).filter(function (k) { return al[k]; }).slice(0, 4); };
@@ -502,6 +526,7 @@
     this._visT -= dt; if (this._visT <= 0) { this._visT = 0.2; this._updateVis(); }
     if (this.ai) this.ai.update(dt); if (this.ai0) this.ai0.update(dt);
     if (this.banners.length) { var tnow = this.t; this.banners = this.banners.filter(function (b) { return b.until > tnow; }); }
+    if (this.wall) this._wallStep(dt);                              // кампания: ползущий Зимний вал
     if (this.mission && this.mission.step) this.mission.step(dt);   // кампания: триггеры, цели, сценарный ИИ (js/campaign.js)
     // победа: у стороны не осталось зданий (в кампании endRule 'none' — исход решает миссия: G.end)
     if (this.endRule !== 'none' && this.winner < 0) for (var p = 0; p < 2; p++) if (this.count(p, 'b') === 0) { this.end(1 - p); break; }
@@ -565,17 +590,17 @@
     var reach = u.r + 10;
     switch (o.t) {
       case 'idle':
-        if (!D.worker || u.tgt) { this._autoEngage(u, D, dt, true); }
+        if (!D.civil && (!D.worker || u.tgt)) { this._autoEngage(u, D, dt, true); }
         break;
       case 'move':
         if (this._follow(u, D, dt, o.x, o.y, o.tx, o.ty)) this._order(u, { t: 'idle' });
         break;
       case 'amove':
-        if (this._autoEngage(u, D, dt, false)) break;
+        if (!D.civil && this._autoEngage(u, D, dt, false)) break;
         if (this._follow(u, D, dt, o.x, o.y, o.tx, o.ty)) this._order(u, { t: 'idle' });
         break;
       case 'attack': {
-        var tg = this.get(o.id); if (!tg || tg.dead || !this._canSee(u.owner, tg)) { this._order(u, { t: 'idle' }); break; }
+        var tg = this.get(o.id); if (!tg || tg.dead || D.civil || !this._canSee(u.owner, tg)) { this._order(u, { t: 'idle' }); break; }
         this._engage(u, D, dt, tg); break; }
       case 'gather': this._gather(u, D, dt, reach); break;
       case 'build': {
@@ -601,7 +626,7 @@
     if (o.t !== 'build' && o.t !== 'repair') u.work = false;
   };
   G._afterBuild = function (u) { var pg = u.prevGather; this._order(u, pg && this.get(pg) ? { t: 'gather', id: pg } : { t: 'idle' }); };
-  G._canSee = function (p, e) { return p === 1 || this.visibleTo(e, p) || (e.kind === 'b' && e.seen[p]); };
+  G._canSee = function (p, e) { return p !== 0 || this.visibleTo(e, p) || (e.kind === 'b' && e.seen[p]); };
   // Подойти к прямоугольнику здания/месторождения
   G._approachRect = function (u, D, dt, e) {
     if (!u.path || u.pathFor !== e.id) {
@@ -687,11 +712,12 @@
   };
   G._scan = function (u, D) {
     var best = null, bs = 1e9, sight = D.sight * T;
-    for (var i = 0; i < this.ents.length; i++) { var e = this.ents[i]; if (e.dead || e.owner < 0 || e.owner === u.owner) continue;
+    for (var i = 0; i < this.ents.length; i++) { var e = this.ents[i]; if (e.dead || !this.hostile(u.owner, e.owner)) continue;
       if (Math.abs(e.x - u.x) > sight + 80 || Math.abs(e.y - u.y) > sight + 80) continue;
       var d = this.distTo(u, e); if (d > sight) continue;
       if (u.owner === 0 && !this.visibleTo(e, 0)) continue;
-      var ed = this.def(e), sc = d + (e.kind === 'b' ? 4 * T : 0) + (e.kind === 'u' && ed.worker ? T : 0);
+      var ed = this.def(e); if (ed.civil && u.owner === 0) continue;   // кампания: игрок сам не бьёт мирных (посол) — только по приказу
+      var sc = d + (e.kind === 'b' ? 4 * T : 0) + (e.kind === 'u' && ed.worker ? T : 0);
       if (sc < bs) { bs = sc; best = e; } }
     return best;
   };
@@ -716,15 +742,16 @@
     this.shots.push({ x0: u.x, y0: u.y, x1: tg.x, y1: tg.y, t: 0, dur: D.ranged ? 0.18 : 0.12, kind: u.type, owner: u.owner });
     this._damage(tg, dmg(tg), u);
     if (D.splash) { var R = D.splash * T;
-      for (var i = 0; i < this.ents.length; i++) { var e = this.ents[i]; if (e === tg || e.dead || e.kind !== 'u' || e.owner === u.owner || e.owner < 0) continue;
+      for (var i = 0; i < this.ents.length; i++) { var e = this.ents[i]; if (e === tg || e.dead || e.kind !== 'u' || !this.hostile(u.owner, e.owner)) continue;
         if (Math.hypot(e.x - tg.x, e.y - tg.y) <= R + e.r) this._damage(e, dmg(e) * 0.5, u); } }
     this.emit('shot', { p: u.owner, type: u.type, x: u.x, y: u.y, tx: tg.x, ty: tg.y });
   };
   G._damage = function (e, n, by) {
-    if (e.dead) return; e.hp -= n; e.hitT = this.t;
+    if (e.dead) return; if (e.tough && by && !this.def(by).mech) n *= e.tough; // кампания: засека — пробивают только машины (шагоход)
+    e.hp -= n; e.hitT = this.t;
     this.emit('hurt', { p: e.owner, id: e.id, x: e.x, y: e.y, kind: e.kind });
     // ответный огонь: стоящий боец переключается на обидчика
-    if (e.kind === 'u' && by && !by.dead && e.ord.t === 'idle' && !e.tgt && !this.def(e).worker) e.tgt = by.id;
+    if (e.kind === 'u' && by && !by.dead && e.ord.t === 'idle' && !e.tgt && !this.def(e).worker && !this.def(e).civil) e.tgt = by.id;
     if (e.hp <= 0) this._kill(e, by);
   };
   G._kill = function (e, by, silent) {
@@ -765,6 +792,34 @@
     var best = null, bd = maxD || 14 * T, ox = from ? from.x : u.x, oy = from ? from.y : u.y;
     for (var i = 0; i < this.ents.length; i++) { var e = this.ents[i]; if (e.dead || e.kind !== 'n' || e.type !== type) continue; var d = Math.hypot(e.x - ox, e.y - oy); if (d < bd) { bd = d; best = e; } }
     return best;
+  };
+
+  // ---------- Зимний вал (кампания): граница льда ползёт по карте ----------
+  // dir 's' — с севера на юг (за валом клетки y < pos), 'n' — с юга на север (y >= pos), 'e' — с запада на восток (x < pos), 'w' — (x >= pos).
+  // Каждый пройденный ряд замерзает: трава, вереск, снег и вода → лёд (лес, камни и настил моста остаются). За валом — вдвое медленнее
+  // и мороз жжёт всех (dps; здания — так же). speed — клеток в секунду; stop — где вал встанет.
+  G.setWall = function (o) {
+    if (!o) { this.wall = null; return; }
+    var w = this.wall || {}; Object.assign(w, o); if (w.pos == null) w.pos = w.dir === 'n' ? this.MH : w.dir === 'w' ? this.MW : 0;
+    if (w.done == null) w.done = w.dir === 's' || w.dir === 'e' ? Math.floor(w.pos) : Math.ceil(w.pos); w.hurtT = w.hurtT || 0; this.wall = w;
+  };
+  G.inWall = function (x, y) {
+    var w = this.wall; if (!w) return false; var tx = x / T, ty = y / T;
+    return w.dir === 's' ? ty < w.pos : w.dir === 'n' ? ty >= w.pos : w.dir === 'e' ? tx < w.pos : tx >= w.pos;
+  };
+  G._wallStep = function (dt) {
+    var w = this.wall, self = this, fwd = w.dir === 's' || w.dir === 'e';
+    if (w.speed) { var np = w.pos + (fwd ? 1 : -1) * w.speed * dt; if (w.stop != null) np = fwd ? Math.min(np, w.stop) : Math.max(np, w.stop); w.pos = np; }
+    // ряды, через которые прошёл вал, — замерзают
+    var line = fwd ? Math.floor(w.pos) : Math.ceil(w.pos), horiz = w.dir === 's' || w.dir === 'n';
+    while (fwd ? w.done < line : w.done > line) {
+      var row = fwd ? w.done : w.done - 1, cells = [], n = horiz ? this.MW : this.MH;
+      for (var k = 0; k < n; k++) { var cx = horiz ? k : row, cy = horiz ? row : k; if (!this.inMap(cx, cy)) continue; var tt = this.terr[cy * this.MW + cx]; if (tt === TERR.GRASS || tt === TERR.HEATH || tt === TERR.SNOW || tt === TERR.WATER) cells.push([cx, cy]); }
+      if (cells.length) this.setTiles(cells, TERR.ICE);
+      w.done += fwd ? 1 : -1; this.emit('wallRow', { row: row });
+    }
+    w.hurtT -= dt; if (w.hurtT > 0 || !w.dps) return; w.hurtT = 0.5;
+    this.ents.forEach(function (e) { if (e.dead || e.owner < 0 || !self.inWall(e.x, e.y)) return; self._damage(e, w.dps * 0.5 * (e.kind === 'b' ? 1.5 : 1), null); });
   };
 
   // ---------- Туман войны ----------
@@ -845,7 +900,7 @@
     });
     // 6) оборона: враг у наших зданий — все бойцы туда
     var threat = null;
-    for (var i = 0; i < g.ents.length && !threat; i++) { var e = g.ents[i]; if (e.dead || e.kind !== 'u' || e.owner === p || e.owner < 0) continue;
+    for (var i = 0; i < g.ents.length && !threat; i++) { var e = g.ents[i]; if (e.dead || e.kind !== 'u' || !g.hostile(p, e.owner)) continue;
       for (var j = 0; j < blds.length; j++) if (Math.hypot(e.x - blds[j].x, e.y - blds[j].y) < 9 * T) { threat = e; break; } }
     if (threat) { var idle = army.filter(function (u) { return u.ord.t !== 'amove' || !u.wave; }); if (idle.length) g.cmd(p, { t: 'amove', ids: idle.map(function (u) { return u.id; }), x: threat.x, y: threat.y }); return; }
     // 7) волна

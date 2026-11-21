@@ -11,7 +11,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
 const box = { console, Math, JSON, Array, Object };
 box.window = box; box.globalThis = box; vm.createContext(box);
-for (const f of ['js/i18n.js', 'js/levels.js', 'js/game.js', 'js/render.js', 'js/audio.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), box, { filename: f });
+for (const f of ['js/i18n.js', 'js/levels.js', 'js/game.js', 'js/meta.js', 'js/render.js', 'js/audio.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), box, { filename: f });
 const K = box.KAMER, C = K.C, LV = K.LEVELS, KIND = K.KIND;
 
 let passed = 0, failed = 0;
@@ -214,7 +214,7 @@ test('страница: фавикон, «← Каталог» с data-catalog-b
   ok(/<link rel="icon"[^>]+data:image\/svg\+xml/.test(html), 'фавикон');
   ok(/class="back"[^>]*href="\.\.\/"[^>]*data-catalog-back="1"[^>]*data-en="← Catalog"/.test(html), 'ссылка в каталог');
   ok(/<canvas id="c" width="960" height="540"/.test(html), 'canvas');
-  eq([...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]), ['engine.js', 'js/music.js', 'js/i18n.js', 'js/levels.js', 'js/game.js', 'js/audio.js', 'js/render.js', 'js/main.js']);
+  eq([...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]), ['engine.js', 'js/music.js', 'js/i18n.js', 'js/levels.js', 'js/game.js', 'js/meta.js', 'js/audio.js', 'js/render.js', 'js/main.js']);
   ['data-d="L"', 'data-d="R"', 'data-d="U"', 'data-d="D"', 'id="bJump"', 'id="bAct"', 'id="bSw"', 'id="bPause"'].forEach(s => ok(html.includes(s), 'кнопка ' + s));
   ok(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8') === fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js не копия _shared');
   ok(!/(src|href)="https?:\/\/(?!arcade\.hefest\.ru)/.test(html), 'внешние ссылки');
@@ -236,6 +236,17 @@ test('правило имён: в папке игры нет чужих назв
   ok(!BAD.test('КАМЕРТОН') && !BAD.test('BRASSHUSH') && !BAD.test('Гефест') && !BAD.test('insider') && !BAD.test('besides') && !BAD.test('outside'), 'без ложных срабатываний');
 });
 
+// ---------- волна 4 (площадки): выбор зоны и звёзды ----------
+test('мета: 6 зон, звёзды (прошли / ≤ 2 остановок / без остановок), открытие — по звёздам или «дошёл» (пропуск), рекорд не падает', () => {
+  const M = K.meta, mem = {}, G = M.Progress({ get: k => (k in mem ? mem[k] : null), set: (k, v) => { mem[k] = v; } });
+  eq(M.LEVELS, K.LEVELS.length); eq(M.stars({ stops: 0 }).n, 3); eq(M.stars({ stops: 2 }).n, 2); eq(M.stars({ stops: 5 }).n, 1);
+  ok(!G.unlocked(2)); ok(G.record(1, 1)); ok(G.unlocked(2)); ok(!G.record(1, 1)); eq(mem['arcade.kamerton.stars.1'], '1');
+  ok(!G.unlocked(3)); ok(G.reached(3)); ok(G.unlocked(3), 'пропуск зоны 2 открывает 3'); ok(!G.reached(2), 'дальность не падает'); eq(G.maxUnlocked(), 3); eq(G.next(3, 1), 1);
+});
+test('старт с выбранной зоны: Game({ save:{ z, cp:0 } }) — у первого фонарика зоны, подмастерье управляем', () => {
+  for (let z = 1; z < K.LEVELS.length; z++) { const ev = []; const gm = K.Game({ save: { z, cp: 0, snap: null }, onEvent: t => ev.push(t) }).start(), S = gm.state();
+    eq(S.z, z); eq(S.cp, 0); eq(S.d.ctl, 'hero'); ok(ev.includes('zone')); }
+});
 if (process.env.QUICK){ console.log(`\n${passed} прошло, ${failed} упало (без бота)`); process.exit(failed ? 1 : 0); }
 const RUNS = [1, 2, 3, 4, 5, 6].map(sd => playBot(K, sd, { maxT: 3600 }));
 test('бот (реакция 150–250 мс, только клавиши ◀▶▲▼, прыжок, действие, переключение) проходит все 6 зон в 6 партиях, без зависаний', () => {

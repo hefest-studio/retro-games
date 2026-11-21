@@ -1,11 +1,11 @@
-# Гефест Arcade — фреймворк (v2.8) · engine.js + host.js + mouse.js + platform.js + aspect.js
+# Гефест Arcade — фреймворк (v2.9) · engine.js + host.js + mouse.js + platform.js + aspect.js
 
 `engine.js` — vanilla JS, **0 зависимостей**. Расширен из микро-движка (v1) в фреймворк с общими
 системами, которые игры дублировали. Критерии проходимость/играбельность/непресность — встроены.
 
 ## Системы
 - **Цикл:** фикс-шаг (детерминированно) + realtime; `g.scene(name,{realtime,enter,update(dt),draw(ctx),press(a)})`.
-- **Ввод (унифиц.):** клавиатура WASD/стрелки + тач-дпад `g.input.bindDpad(root)`; `g.input.dir`, `pressed`, `onPress`. Space=action, Enter=start, P/Esc=pause, M=mute, L=lang, T=theme. Ввод по игрокам (кооп) и `g.input.touchOnly` — раздел «v2.2» ниже.
+- **Ввод (унифиц.):** клавиатура WASD/стрелки + тач-дпад `g.input.bindDpad(root)`; `g.input.dir`, `pressed`, `onPress`. Space=action, Enter=start, P/Esc=pause, M=mute, L=lang, T=theme. Ввод по игрокам (кооп) и `g.input.touchOnly` — раздел «v2.2» ниже. **Геймпад (v2.9)** — раздел «Геймпад» ниже.
 - **i18n RU/EN (+ любые языки, v2.8):** `Arcade.createGame({strings:{ru,en,tr,…}})`, `g.t(key,fallback)`, `g.i18n.toggle()`, `g.i18n.has(key)`, `g.i18n.pick({ru,en,…})`; язык сохраняется (localStorage `arcade.lang`). Языки игры — ключи `strings` (подробно — раздел «v2.8» ниже).
   **Единое правило выбора языка (v2.3, во всех играх):** 1) параметр адреса `?lang=en|ru` — приоритет, сразу сохраняется в `arcade.lang`
   (EN-страницы каталога ссылаются на игры как `/<slug>/?lang=en`); 2) иначе сохранённый `arcade.lang`; 3) иначе `opts.lang` игры, иначе **ru**.
@@ -119,6 +119,64 @@ P1.onPress(name => …); // нажатие действия этого игро�
 | `soundFromEngine: true` | при старте игра следует звуку движка (кроме `?mute=`) | saga, saga-2 |
 | `bootKeep: true` | первый вход в title не сбрасывает игру (её мог запустить `?level=`) | saga, saga-2 |
 | `bootAdopt: true` | игра при загрузке уже в `play`/`sub` (`#demo=`/`#scene=`/`#wave=`) — движок сразу следует за ней | neon-yarost |
+
+## Геймпад (v2.9)
+Gamepad API, раскладка **standard** (её отдают браузер и Electron для большинства геймпадов: буквы ABXY, фигуры, портативные ПК, виртуальный
+геймпад клиента площадки). Опрос — в цикле движка каждый кадр; **без Gamepad API** (или если `getGamepads` запрещён политикой iframe) всё
+молча выключено, игра работает как раньше. Тест: `node _shared/tests/gamepad.test.mjs` (моки `navigator.getGamepads`).
+
+**«Бесплатно» для всех игр.** Кнопки и направления превращаются в **виртуальные клавиши**: `keydown`/`keyup` с `code`, `key`, `keyCode`
+на `document.body` (у события `arcadePad: true`, `isTrusted: false`). Их получают ввод движка (`g.input.dir/pressed/onPress`, `codes`,
+раскладки игроков), оболочки `host.js` и собственные обработчики игр — как от клавиатуры. Без DOM (Node) — прямо во ввод движка.
+
+| Кнопка (standard) | В меню и на экранах движка | В игре (сцена `play`) |
+|---|---|---|
+| D-pad, левый стик | ↑↓←→ (стрелки) | стрелки (или первые клавиши направлений раскладки игрока) |
+| A (нижняя) | Space — выбор / «дальше» | Space (действие) или 1-е действие раскладки |
+| B (правая) | Esc — назад; в стандартной паузе — «Продолжить» | KeyX или 2-е действие раскладки |
+| X / Y | — | KeyZ / KeyC (3-е / 4-е действие) |
+| LB / RB, LT / RT | — | KeyQ / KeyE, ShiftLeft / KeyF (5–8-е действие) |
+| Start | Enter; в паузе — «Продолжить» | P — пауза (play без своей `press` — пауза движком) |
+| Select (View/Back) | Esc | P — меню паузы |
+| Home | — | — (системная) |
+
+- **Стик:** радиальная мёртвая зона `deadzone` 0.25 для аналога (`g.gamepad.stick`); для направлений — гистерезис: нажатие при |ось| > 0.5,
+  отпускание < 0.35 (без дребезга у порога). D-pad и стик складываются.
+- **Автоповтор** как у клавиатуры: удержание → `keydown` с `repeat:true` через 320 мс, затем каждые 70 мс (кроме Start/Select и Esc/Enter/P).
+  Две кнопки на одну клавишу — одно нажатие (счётчик). `blur` окна — всё отпущено.
+- **Кооп:** порядок подключения — слот 0, 1, …; слот 0 → И1, остальные → И2 (`players: [1, 0]` — поменять). При `playerCount === 2`
+  геймпад И2 шлёт клавиши раскладки **p2** (`usePlayers`/`setPlayers`): направления — `bind.p2.left[0]` …, A/B/X/Y… — первые клавиши
+  действий p2 по порядку `actions` (нет клавиши — кнопка молчит). 1 игрок — все геймпады ведут И1.
+- **Подключение/отключение:** плашка «Геймпад подключён / отключён» вверху (2,2 с; строки `pad_on`/`pad_off` RU/EN/TR/ES/PT). Отключение
+  во время игры — **пауза** (`autoPause:false` — выключить), зажатые клавиши отпускаются.
+- **Устройство ввода:** `g.input.device` — `'keyboard' | 'mouse' | 'touch' | 'gamepad'` (последний ввод), `g.input.onDevice(fn)`,
+  `<html data-input="…">`; CSS-классы для разметки: `.arcade-pad-only` (видно только при геймпаде), `.arcade-kb-only` (скрыто при геймпаде).
+  Геймпад снимает `touchOnly`.
+- **Подсказки:** при геймпаде движок рисует в меню (title, pause, leaders, …) справа сверху «Ⓐ выбрать · Ⓑ назад/Продолжить»
+  (`hints:false` — выкл.), а `g.t('tapstart')` под финалами становится «A — дальше» (своё — ключ `tapstart_pad` в таблицах игры).
+  `g.padActive()`; `g.prompt(btn)` — подпись: при геймпаде значок кнопки, иначе клавиша, которую кнопка шлёт (`'Space'`, `'X'`, `'P'`, `'←'`);
+  `g.drawPrompt([['a','выбрать'],['b','назад']], x, y, { align, size, pill, device })` — значки на канве (круглые A/B/X/Y или фигуры,
+  «таблетки» LB/Start…; при клавиатуре — клавиши-колпачки). Стиль подписей — по id геймпада: буквы (по умолчанию), фигуры (вендор 054c),
+  буквы по месту (вендор 057e: нижняя — B); `style:'deck'` — принудительно буквы + L1/R1/L2/R2/View/Menu (обёртка ПК-издания).
+- **Вибрация по желанию игры:** `g.rumble({ ms:200, strong:0.6, weak:0.3, player })` → `true`, если хоть один геймпад принял
+  (`vibrationActuator.playEffect`, запасной — `hapticActuators[0].pulse`); нет поддержки или геймпада — `false` без ошибок.
+  Игрок может выключить: `g.gamepad.setRumble(false)` (`arcade.rumble = '0'`).
+
+```js
+g.gamepad.configure({
+  keys: { b: 'KeyE', select: 'KeyB' },   // клавиши кнопок в play (select/start — свои вместо P; null — кнопка молчит)
+  actions: { a: 'jump', b: 'fire' },     // кнопка → действие раскладки setPlayers/usePlayers
+  play: false,                           // в play кнопки и стик клавиш не шлют — игра читает геймпад сама (Start/Select — как обычно)
+  deadzone: 0.25, hints: true, autoPause: true, players: [0, 1], style: null
+});
+g.gamepad.pressed('a' [, slot]); g.gamepad.stick('left'|'right' [, slot]) /* {x,y} */; g.gamepad.trigger('right');
+g.gamepad.onButton((name, down, info) => …); g.gamepad.onConnect((info, on) => …); g.gamepad.count(); g.gamepad.list();
+g.gamepad.glyph('a') /* 'A' | '✕' */; g.rumble(150);
+```
+Свой ввод «с нуля» (как МАЯЧНИЦА: курсор стиком, A — клик) — `play:false` + `onButton` + `stick()` в `update`. Игры, где «второе
+действие» не X (KeyX), — одной строкой `configure({ keys:{…} })` или через раскладку `setPlayers` с `actions`.
+Ограничения: геймпад с нестандартной раскладкой (`mapping !== 'standard'`) читается по тем же индексам — может быть перепутан;
+Chrome отдаёт геймпад странице только после нажатия кнопки на нём; без фокуса окна опроса нет.
 
 ## v2.8: языки из таблиц игры, лидеры, «Без рекламы» в меню и паузе, свои игры, ярлык, оценка, событие облака (через `platform.js` 1.3)
 **Языки.** Языки игры = ключи `strings` (двухбуквенные; `ru` и `en` есть всегда; порядок: ru, en, далее как в таблицах). Игры RU/EN работают как раньше.
@@ -251,7 +309,7 @@ P1.onPress(name => …); // нажатие действия этого игро�
 После перевода: тесты `priisk/tests/engine.test.mjs` (блок «ArcadeMouse», стр. ~248–300) переписать под новый контракт или заменить ссылкой на `_shared/tests/mouse.test.mjs`;
 браузером проверить рамку, приказ ПКМ, мини-карту (перетаскивание), группы (долгое нажатие ≥ 480 мс = назначить), размещение зданий на таче, панораму двумя пальцами.
 
-Тесты v2.2–2.4, 2.8: `node _shared/tests/i18n.test.mjs` (правило языка, ссылка «← Каталог», языки из таблиц, кегль), `node _shared/tests/mouse.test.mjs` (мышь и тач), `node _shared/tests/input.test.mjs` (меню, игроки, конфликты, touchOnly, usePlayers), `node _shared/tests/host.test.mjs`.
+Тесты v2.2–2.4, 2.8, 2.9: `node _shared/tests/gamepad.test.mjs` (геймпад), `node _shared/tests/i18n.test.mjs` (правило языка, ссылка «← Каталог», языки из таблиц, кегль), `node _shared/tests/mouse.test.mjs` (мышь и тач), `node _shared/tests/input.test.mjs` (меню, игроки, конфликты, touchOnly, usePlayers), `node _shared/tests/host.test.mjs`.
 
 ## План игр (ремейки на фреймворке с паритетом фич — retro+modern, i18n, звук; неон→modern)
 Старые версии архивировать как `<game>/legacy.html` ПЕРЕД заменой; каждую новую — отдельным протестированным коммитом; аркада всегда рабочая. Эталон первым: **kaskad** или **hrum** (самые компактные: 628 / 759 строк).

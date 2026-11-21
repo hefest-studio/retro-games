@@ -149,7 +149,7 @@ try {
       // v1.2: лидерборд, флаги, серверное время, покупки, свои игры — методы SDK (мок) доступны через адаптер; движок 2.7
       const v12 = await page.evaluate(async () => ({ ver: Arcade.version, pf: Platform.version, lb: Platform.leaderboard.available, top: Array.isArray((await Platform.leaderboard.top()).entries),
         flags: Object.keys(await Arcade.last.flags.ready).length, st: Platform.serverTime(), pay: Platform.payments.available, games: (await Platform.games.list()).games.length }));
-      ok(v12.ver === '2.8.0' && v12.pf === '1.3.0' && v12.lb && v12.top && v12.flags >= 5 && v12.st > 0 && v12.pay && v12.games >= 1, 'v1.2: ' + JSON.stringify(v12));
+      ok(v12.ver === '2.9.0' && v12.pf === '1.3.0' && v12.lb && v12.top && v12.flags >= 5 && v12.st > 0 && v12.pay && v12.games >= 1, 'v1.2: ' + JSON.stringify(v12));
       await page.evaluate(() => Arcade.last.goto('play', { resume: true })); await wait(100);
       await page.keyboard.press('KeyP'); await wait(200);
       const s2 = await st(); ok(s2.log.lastIndexOf('stop') > s2.log.lastIndexOf('start'), 'P → нет gameplayStop: ' + s2.log.slice(-4).join(','));

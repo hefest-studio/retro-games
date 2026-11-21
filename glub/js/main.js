@@ -14,7 +14,14 @@
   var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'glub', strings: Gb.STR, theme: 'modern', lives: L.LIVES, themes: themes });
   Gb.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
-  var Store = Arcade.Store, TKEY = 'arcade.besttime.glub';
+  var Store = Arcade.Store, TKEY = 'arcade.besttime.glub', SAVE = 'arcade.glub.save', CKEY = 'arcade.glub.crystals';
+  // ---------- облако: сохранение у маяка («Продолжить»), рекорды времени и кристаллов, рекорд счёта ----------
+  g.persist(SAVE, 'last'); g.persist(TKEY, 'last'); g.persist(CKEY, 'max'); g.persist('arcade.best.glub', 'max');
+  function loadSave() { try { var o = JSON.parse(Store.get(SAVE, '') || 'null'); return o && o.v === 1 && Array.isArray(o.crystals) ? o : null; } catch (e) { return null; } }
+  function writeSave(o) { g.storeSet(SAVE, JSON.stringify(o)); }
+  function clearSave() { g.storeSet(SAVE, ''); }
+  function bestCrystals() { return parseInt(Store.get(CKEY, '0'), 10) || 0; }
+  var resume = null;
 
   function rnd() { return g.themeName === 'retro' ? Gb.classic : Gb.modern; }
   var game = null, toasts = [], playSince = 0, mapOpen = false, fade = 0, intro = 0, extraJump = false, lastTime = null;
@@ -34,10 +41,12 @@
     var P = rnd().P, CC = rnd().CC, sz = P.pixel ? 4 : 3, retro = P.pixel;
     switch (type) {
       case 'crystal':
+        if (d.n > bestCrystals()) g.storeSet(CKEY, String(d.n));
         toast(g.t('c' + d.cid) + ' · ' + d.n + '/8', CC[d.cid], px(d.x), py(d.y) - 20, true);
         g.particles.spawn(px(d.x), py(d.y), { color: CC[d.cid], count: 30, speed: 150, life: 0.9, size: sz }); break;
       case 'gateOpen': toast(g.t('gateOpen'), P.accent, W / 2, OY + 90, true); break;
-      case 'beacon': if (d.fresh) toast(g.t('beacon'), P.good, px(d.x), py(d.y) - 50); else toast(g.t('refill'), P.good, px(d.x), py(d.y) - 50);
+      case 'beacon': if (d.fresh && game) writeSave(game.snapshot());   // маяк зажжён — партия сохранена (облако площадки)
+        if (d.fresh) toast(g.t('beacon'), P.good, px(d.x), py(d.y) - 50); else toast(g.t('refill'), P.good, px(d.x), py(d.y) - 50);
         g.particles.spawn(px(d.x), py(d.y) - 30, { color: retro ? '#55ffff' : '#7ff6ff', count: 14, speed: 80, life: 0.6, size: sz }); break;
       case 'nugget': toast('+' + d.pts, P.accent, px(d.x), py(d.y) - 12); g.particles.spawn(px(d.x), py(d.y), { color: '#ffd35a', count: 8, speed: 70, life: 0.4, size: sz }); break;
       case 'tank': toast(g.t('tank'), P.good, px(d.x), py(d.y) - 20); break;
@@ -50,7 +59,7 @@
       case 'kill': toast('+' + d.pts, P.accent, px(d.x), py(d.y) - 16); g.particles.spawn(px(d.x), py(d.y), { color: retro ? '#aa5500' : '#d98b52', count: 16, speed: 110, life: 0.5, size: sz }); break;
       case 'room': fade = retro ? 0 : 0.5; toasts = toasts.filter(function (o) { return o.big; }); break;
       case 'win': {
-        var bt = bestTime(); if (!bt || d.time < bt) Store.set(TKEY, String(Math.round(d.time * 10) / 10));
+        var bt = bestTime(); if (!bt || d.time < bt) g.storeSet(TKEY, String(Math.round(d.time * 10) / 10)); clearSave();
         lastTime = d.time; sync(); setTimeout(function () { if (g._sceneName === 'play') g.win(); }, 1400); break;
       }
       case 'gameover': sync(); g.state.lives = 0; setTimeout(function () { if (g._sceneName === 'play') g.gameover(); }, 600); break;
@@ -58,7 +67,8 @@
     sync();
   }
   function newGame() {
-    game = Gb.Game({ onEvent: onEvent }); game.start(); Gb.current = game;
+    var sv = resume; resume = null; if (!sv) clearSave(); g.resetRun();
+    game = Gb.Game({ onEvent: onEvent, save: sv }); game.start(); Gb.current = game;
     toasts = []; mapOpen = false; fade = 0; intro = 3; lastTime = null; sync();
   }
   function moleAct() { if (g._sceneName === 'play' && game && !mapOpen && g.time - playSince > 0.15) game.mole(); }
@@ -67,6 +77,17 @@
 
   // ---------- Стандартные экраны ----------
   g.useStandardScreens({ lives: L.LIVES });
+  // «Продолжить · N/8» — с последнего зажжённого маяка (сохранение — в облаке площадки)
+  function contItem() { return { key: 'cont', before: 'play', label: function () { var s = loadSave(); return g.t('cont') + (s ? ' · ' + s.crystals.length + '/8' : ''); }, onSelect: function () { resume = loadSave(); this.goto('play'); } }; }
+  function refreshMenu() { var has = !!loadSave(), items = g.menu.items('title'); if (has && items.indexOf('cont') < 0) g.menu.addItem(contItem()); if (!has && items.indexOf('cont') >= 0) g.menu.removeItem('cont'); var m = g.menu.get('title'); if (m) m.sel = 0; }
+  // Реклама за награду (только площадки с рекламой): «водолаз не вернулся» — «ещё один шанс»: 1 жизнь у последнего маяка;
+  // бонус в паузе — +1 жизнь (раз за партию, если жизней меньше трёх). Без «ещё шанса» партия кончена — сохранение стирается.
+  g.useRewardedContinue({ revive: function () { if (game) game.reviveAd(); } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { return !!game && game.canBoost(); }, grant: function () { if (game) game.boost(); } });
+  var goEnter = g.scenes.gameover.enter;
+  g.scenes.gameover.enter = function (d) { clearSave(); if (goEnter) goEnter.call(this, d); };
+  g.onCloud(function () { if (g._sceneName === 'title') refreshMenu(); });
   var baseClear = Object.getPrototypeOf(g).clear;
   g.clear = function (c) { baseClear.call(this, c); rnd().bg(this.ctx, this); };
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
@@ -82,7 +103,8 @@
 
   // ---------- Титул: стартовый экран шахты + меню движка ----------
   var demo = Gb.Game({ rng: L.mulberry32(3) }).start(), DS = demo.state();
-  var title = g.scenes.title, menu = title._menu;
+  var title = g.scenes.title, menu = title._menu, tEnter = title.enter;
+  title.enter = function (d) { if (tEnter) tEnter.call(this, d); refreshMenu(); };
   title.update = function (dt) { DS.time += dt; DS.hero.face = Math.sin(DS.time * 0.4) > 0 ? 1 : -1; };
   title.draw = function (ctx) {
     var th = this.th(), R = rnd(), P = R.P, retro = P.pixel, Wc = this.W, Hc = this.H;
@@ -97,10 +119,10 @@
     var HH = { x: 0, y: 0, face: 1, ground: true, climb: false, walkT: 0, stun: 0 };
     R.hero(ctx, x0 + 46, y0 + 260, HH, this.time, {});
     R.mole(ctx, x0 + pw - 50, y0 + 252, -1, this.time, false);
-    menu.draw(this, Wc / 2, y0 + 160, 28);
+    menu.draw(this, Wc / 2, y0 + 152, 24);
     var bt = bestTime(), line = [];
     if (this.state.best) line.push(this.t('best') + ': ' + this.state.best);
-    if (bt) line.push(this.t('bestTime') + ': ' + Gb.ui.clock(bt));
+    if (bt) line.push(this.t('bestTime') + ': ' + Gb.ui.clock(bt)); else if (bestCrystals()) line.push(this.t('crystal') + ': ' + bestCrystals() + '/8');
     if (line.length) Gb.ui.txt(this, line.join(' · '), Wc / 2, y0 + ph - 14, { size: 11, align: 'center', color: th.muted, weight: 600 }, P);
     Gb.ui.txt(this, this.t('hint'), Wc / 2, Hc - 14, { size: retro ? 9 : 11, align: 'center', color: th.muted, weight: 600 }, P);
   };

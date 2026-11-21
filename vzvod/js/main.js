@@ -14,9 +14,31 @@
   var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.SCREEN_H, gameId: 'vzvod', strings: V.STR, theme: 'modern', lives: 1, themes: themes });
   V.g = g;
   V.ui.init(g);
+  // Реклама за награду (только площадки с рекламой): бонус в паузе — ящик из мастерской (+2 шестерни, +1 ракета), раз за миссию.
+  // «Ещё один шанс» не нужен: проигранную миссию кампания и так даёт переиграть.
+  g.useRewardedBonus({ key: 'rwCrate', scene: 'pause', label: function () { return g.t('rwCrate'); },
+    available: function () { return !!game && g._sceneName === 'pause' && game.state().phase === 'play'; },
+    grant: function () { if (game) { var S = game.state(); S.ammo.gear += 2; S.ammo.rocket += 1; } } });
   function pal() { return g.themeName === 'retro' ? V.classic : V.modern; }
   g.useStandardScreens({ lives: 1 });
 
+  // ---------- облако площадки: кампания и звёзды миссий (g.persist + g.storeSet), без площадки — как раньше (localStorage) ----------
+  var CS = { get: function (k, d) { return Store.get(k, d); }, set: function (k, v) { g.storeSet(k, v); } };
+  var STAR = 'arcade.vzvod.stars.', OPS = L.OPS;
+  g.persist(Camp.KEY, 'last'); g.persist('arcade.best.vzvod', 'max');
+  OPS.forEach(function (op, oi) { op.missions.forEach(function (m, mi) { g.persist(STAR + (oi + 1) + '_' + (mi + 1), 'max'); }); });
+  function starsOf(op, mi) { var v = parseInt(Store.get(STAR + (op + 1) + '_' + (mi + 1), '0'), 10); return v > 0 ? Math.min(3, v) : 0; }
+  function starsTotal() { var t = 0, n = 0; OPS.forEach(function (op, oi) { op.missions.forEach(function (m, mi) { t += starsOf(oi, mi); n += 3; }); }); return { t: t, n: n }; }
+  function starStr(n) { return '★★★'.slice(0, n) + '☆☆☆'.slice(0, 3 - n); }
+  // звёзды миссии: ★ выполнить; ★ никто не сломан; ★ с первой попытки
+  var tries = { key: '', n: 0 }, lastStars = null;
+  function recordStars(spec, res) {
+    var k = spec.op + '_' + spec.mi; if (tries.key !== k) tries = { key: k, n: 0 }; tries.n++;
+    if (!res.won) { lastStars = null; return; }
+    var broken = (res.units || []).some(function (u) { return !u.alive; }), n = 1 + (broken ? 0 : 1) + (tries.n === 1 ? 1 : 0), old = starsOf(spec.op, spec.mi);
+    if (n > old) g.storeSet(STAR + (spec.op + 1) + '_' + (spec.mi + 1), String(n));
+    lastStars = { n: n, isNew: n > old }; tries = { key: '', n: 0 };
+  }
   var camp = Camp.load(Store), prep = null, game = null, R = null, sure = false;
   var cam = { x: 0, y: 0 }, look = { x: 0, y: 0 }, toasts = [], bannerT = 0, endT = 0;
   var mouse = { x: L.W / 2, y: L.SCREEN_H / 2 }, rmb = false, spaceHeld = false, mode = 'move', touch = null, lastTap = { t: 0, x: 0, y: 0 }, burstT = 0;
@@ -27,43 +49,55 @@
   function refreshMenu() {
     g.menu.addItem({ key: 'play', index: 0,
       label: function () { return camp ? g.t('cont') + ' · ' + g.t('opShort') + ' ' + Camp.spec(camp).id : g.t('play'); },
-      onSelect: function () { if (!camp) newCamp(); toBrief(); } });
+      onSelect: function () { if (!camp) { newCamp(); toBrief(); g.goto('play'); return; } var seen = briefSeen === briefKey(); toBrief(); if (seen) g.goto('play'); } });   // брифинг этой миссии уже видели в этой сессии — сразу в бой   // новая кампания — сразу в бой (цель миссии — плашкой в игре), дальше — брифинги
     if (camp) g.menu.addItem({ key: 'newc', after: 'play', label: function () { return sure ? g.t('newcSure') : g.t('newc'); },
       onSelect: function () { if (!sure) { sure = true; g.audio.beep(300, 0.06); return; } sure = false; newCamp(); toBrief(); } });
     else g.menu.removeItem('newc');
   }
-  function newCamp() { camp = Camp.newCampaign(); camp.seed = 1 + Math.floor(Math.random() * 1e6); Camp.save(Store, camp); }
+  function newCamp() { camp = Camp.newCampaign(); camp.seed = 1 + Math.floor(Math.random() * 1e6); Camp.save(CS, camp); }
   function missionSeed() { return ((camp.seed || 1) + camp.missions * 101 + camp.op * 17 + camp.mi * 7) % 1000003; }
 
   // ---------- Брифинг ----------
+  var briefSeen = '';
+  function briefKey() { return camp ? camp.op + '_' + camp.mi + '_' + camp.missions : ''; }
   function toBrief() {
-    prep = Camp.prepare(camp); Camp.save(Store, camp);
+    prep = Camp.prepare(camp); Camp.save(CS, camp);
     var spec = Camp.spec(camp), squad = Camp.squadFor(camp).map(function (b) { return { id: b.id, name: V.ui.botName(g, b), rank: b.rank }; });
     game = V.Game({ spec: spec, seed: missionSeed(), squad: squad, onEvent: onEvent });
     R = { squad: squad.map(function (b) { return b.id; }) };
     g.state.score = camp.score;
-    g.goto('brief');
+    briefSeen = briefKey(); g.goto('brief');
   }
   g.scene('brief', {
     realtime: true,
     draw: function (ctx) { V.ui.brief(g, ctx, camp, pal(), prep, game ? game.state() : null); },
-    press: function (a) { if (a === 'start' || a === 'action') this.goto('play'); else if (a === 'pause') this.goto('title'); }
+    press: function (a) { if (a === 'start' || a === 'action') briefGo(); else if (a === 'pause') this.goto('title'); }
   });
   g.scene('debrief', {
     realtime: true,
-    draw: function (ctx) { V.ui.debrief(g, ctx, camp, pal(), R); },
+    draw: function (ctx) {
+      V.ui.debrief(g, ctx, camp, pal(), R);
+      if (lastStars) { var P = pal(); V.ui.txt(g, starStr(lastStars.n) + (lastStars.isNew ? '  ' + g.t('starNew') : ''), g.W - 44, 56, { size: 18, align: 'right', color: P.accent, weight: 900, shadow: false }, P); }
+    },
     press: function (a) { if (a === 'start' || a === 'action' || a === 'pause') afterDebrief(); }
   });
+  // межстраничная — между миссиями, по нажатию «в бой» на брифинге (естественная пауза, действие игрока; не перед первой миссией сессии)
+  var briefGoing = false, missionsThisSession = 0;
+  function briefGo() {
+    if (briefGoing || g._sceneName !== 'brief') return;
+    if (missionsThisSession > 0 && g.adReady()) { briefGoing = true; g.adBreak().then(function () { briefGoing = false; if (g._sceneName === 'brief') g.goto('play'); }); return; }
+    g.goto('play');
+  }
   function afterDebrief() {
-    if (camp.done) { g.state.score = camp.score; Camp.clear(Store); camp = null; game = null; g.win(); return; }
+    if (camp.done) { g.state.score = camp.score; Camp.clear(CS); camp = null; game = null; g.win(); return; }
     toBrief();
   }
   function endMission() {
     var S = game.state(), res = S.result;
     var rep = Camp.apply(camp, res, R.squad);
-    R.res = res; R.rep = rep; R.spec = S.spec;
+    R.res = res; R.rep = rep; R.spec = S.spec; recordStars(S.spec, res);
     g.state.score = camp.score; g.saveBest();
-    if (!camp.done) Camp.save(Store, camp);
+    if (!camp.done) Camp.save(CS, camp);
     g.goto('debrief');
   }
 
@@ -125,7 +159,7 @@
   cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   cv.addEventListener('pointerdown', function (e) {
     var sn = g._sceneName, p = toCanvas(e);
-    if (sn === 'brief') { e.preventDefault(); g.goto('play'); return; }
+    if (sn === 'brief') { e.preventDefault(); briefGo(); return; }
     if (sn === 'debrief') { e.preventDefault(); afterDebrief(); return; }
     if (sn !== 'play' || !game) return;
     e.preventDefault(); mouse = p;
@@ -203,7 +237,7 @@
     enter: function (d) {
       if (d && d.resume && game) return;
       if (!game) { if (!camp) newCamp(); toBrief(); return; }
-      game.start(); var S = game.state();
+      game.start(); var S = game.state(); missionsThisSession++; g.resetRun();   // бонус «за рекламу» — раз за миссию
       look = { x: 0, y: 0 }; var t = camTarget(S); cam.x = t.x; cam.y = t.y;
       toasts = []; bannerT = 3.2; burstT = 0; rmb = false; spaceHeld = false; touch = null; setMode('move'); syncScore();
     },
@@ -270,7 +304,7 @@
     V.ui.txt(this, this.t('title'), W / 2, py + 72, { size: 60, align: 'center', color: P.accent, weight: 900 }, P);
     V.ui.txt(this, this.t('subtitle'), W / 2, py + 98, { size: 11, align: 'center', color: th.muted, weight: 600, shadow: false }, P);
     menu.draw(this, W / 2, py + 150, 30);
-    if (this.state.best) V.ui.txt(this, this.t('best') + ': ' + this.state.best, W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600, shadow: false }, P);
+    var st = starsTotal(); V.ui.txt(this, this.t('starsHint') + ' · ' + st.t + '/' + st.n + (this.state.best ? '   ' + this.t('best') + ': ' + this.state.best : ''), W / 2, py + ph - 14, { size: 11, align: 'center', color: th.muted, weight: 600, shadow: false, maxWidth: pw - 20 }, P);
     V.ui.wrap(this, this.t('hintKeys'), W / 2, H - 58, 560, 16, { size: 11, align: 'center', color: P.ink, weight: 700, shadow: false }, P);
   };
   // финал — поверх заставки
@@ -278,7 +312,8 @@
   g.clear = function (c) { baseClear.call(this, c); if ((this._sceneName === 'win' || this._sceneName === 'gameover') && demo) V.ui.render(this, this.ctx, demo.state(), pal(), demoCam, { bare: true, time: this.time }); };
 
   refreshMenu();
+  g.onCloud(function () { if (g._sceneName === 'title') { camp = Camp.load(Store); refreshMenu(); } });   // облако слито — кампания с другого устройства
   g.start('title');
   V.app = { g: g, game: function () { return game; }, camp: function () { return camp; }, cam: cam, toBrief: toBrief, newCamp: newCamp,
-    setCamp: function (c) { camp = c; Camp.save(Store, c); }, endMission: endMission };   // для отладки/автотестов в браузере
+    setCamp: function (c) { camp = c; Camp.save(CS, c); }, endMission: endMission };   // для отладки/автотестов в браузере
 })(typeof window !== 'undefined' ? window : globalThis);

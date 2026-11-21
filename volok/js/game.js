@@ -148,6 +148,7 @@
       if (S.water && S.mx >= OBI.ice.x && S.mx < OBI.ice.x2) S.mx = OBI.ice.x - 200;
       S.sec = secOf(S.mx); S.cp = snapshot(); S.mode = 0; S.v = 0;
     }
+    function restoreCp() { var w = S.wrecks, cp = S.cp; restore(cp); S.wrecks = w; S.cp = cp; }
     function checkpoint(why) { S.cp = snapshot(); S.cp.why = why; emit('checkpoint', { why: why, sec: secOf(S.mx), save: S.cp }); }
 
     // ---------- Вспомогательное ----------
@@ -315,7 +316,7 @@
 
     // ---------- Шаг ----------
     function update(dt) {
-      if (S.phase === 'won') return;
+      if (S.phase === 'won' || S.phase === 'wrecked') return;   // wrecked — ждём решения игрока (площадка: «ещё один шанс»)
       S.t += dt; S.time += dt;
       var h = S.hero;
       if (S.phase === 'finale') { S.finT += dt; S.v *= Math.pow(0.4, dt); S.mx += S.v * dt; if (S.finT > 7) { S.phase = 'won'; emit('win', {}); } return; }
@@ -402,7 +403,11 @@
       BREAKS.forEach(function (bx2, i) { if (!S.breaks[i] && S.mx > bx2) { S.breaks[i] = 1; addLeak(); emit('break', {}); } });
 
       // ---- Авария → чекпоинт ----
-      if (S.hull <= 0) { S.wrecks++; emit('wreck', {}); var w = S.wrecks, cp = S.cp; restore(cp); S.wrecks = w; S.cp = cp; return; }
+      if (S.hull <= 0) {
+        S.wrecks++;
+        if (opts.holdWreck) { S.hull = 0; S.v = 0; S.phase = 'wrecked'; emit('wreck', { hold: true }); return; }   // сборка решает: откат или ремонт на месте
+        emit('wreck', {}); restoreCp(); return;
+      }
 
       // ---- Участки и решённые препятствия ----
       var ns = secOf(S.mx);
@@ -429,7 +434,17 @@
       route: function (f, x) { return route(S.hero, f, x); },
       target: function () { return targetAt(S.hero); },
       snapshot: snapshot, restore: function (s) { restore(s); return api; },
-      pileNear: pileNear, winchTask: winchTask, activeGate: activeGate, underIce: underIce, piles: PILES
+      pileNear: pileNear, winchTask: winchTask, activeGate: activeGate, underIce: underIce, piles: PILES,
+      // авария при holdWreck: откат на чекпоинт (как без площадки) или ремонт на месте («ещё один шанс» за рекламу)
+      restoreCp: function () { restoreCp(); return api; },
+      repairHere: function () {
+        if (S.phase !== 'wrecked') return false;
+        S.hull = 60; S.fires = []; S.leaks = []; S.P = Math.min(S.P, 70); S.overT = 0; S.air = 100; S.mastBroken = false; S.mastT = 0;
+        S.phase = 'play'; emit('repaired', {}); return true;
+      },
+      // бонус за рекламу в паузе: корпус целиком и полный бункер угля
+      canBoost: function () { return S.phase === 'play' && (S.hull < 90 || S.bunker.length < CAP.bunker); },
+      boost: function () { if (!api.canBoost()) return false; S.hull = 100; while (S.bunker.length < CAP.bunker) S.bunker.push('coal'); emit('boost', {}); return true; }
     };
     return api;
   }

@@ -9,9 +9,11 @@
   // ---------- DOM ----------
   function fit(g) {
     var c = g.canvas, pad = document.querySelector('.pad');
-    var padH = pad && getComputedStyle(pad).display !== 'none' ? pad.offsetHeight + 16 : 0;
+    var shown = pad && getComputedStyle(pad).display !== 'none', side = shown && getComputedStyle(pad).position === 'fixed';   // телефон лёжа — кнопки сбоку
+    var padH = shown && !side ? pad.offsetHeight + 16 : 0, padW = side ? pad.offsetWidth + 20 : 0;
+    var foot = document.getElementById('foot'), footH = foot && getComputedStyle(foot).display !== 'none' ? foot.offsetHeight + 28 : 0;
     var vw = Math.min(innerWidth, document.documentElement.clientWidth || innerWidth);
-    var availW = Math.min(vw - 16, 980), availH = innerHeight - padH - 64;
+    var availW = Math.min(vw - 16 - padW, 980), availH = innerHeight - padH - Math.max(side ? 36 : 64, 36 + footH);
     var w = Math.max(280, Math.floor(Math.min(availW, availH * g.W / g.H)));
     c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
   }
@@ -78,7 +80,7 @@
     if (o.kind === 'hives') return g.t('os_hives') + ' ' + (S.hives.length - (o.hivesLeft != null ? o.hivesLeft : S.hives.length)) + '/' + S.hives.length;
     if (o.kind === 'clear') return g.t('os_clear') + ': ' + (o.prog | 0);
     if (o.kind === 'escort') return g.t('os_escort') + ' ' + Math.round(o.prog * 100) + '%' + (S.vip ? ' ♥' + Math.max(0, S.vip.hp) : '');
-    return g.t('os_hold') + ' ' + Math.floor(o.prog) + '/' + o.need + (g.i18n.lang === 'ru' ? ' с' : ' s');
+    return g.t('os_hold') + ' ' + Math.floor(o.prog) + '/' + o.need + ' ' + g.t('sec');
   }
   function hud(g, ctx, S, P, info) {
     var L = V.logic, W = L.W, spec = S.spec;
@@ -199,7 +201,7 @@
     var ry = 254;
     txt(g, up(P, g.t('inRepair')) + ' (' + rep.length + ')', 400, ry - 18, { size: 12, color: P.warn, weight: 800 }, P);
     rep.slice(0, 6).forEach(function (b, i) {
-      txt(g, botName(g, b) + ' · ' + (b.wait > 0 ? g.t('soon') : g.t('waitFund')), 400, ry + 2 + i * 18, { size: 11, color: P.muted, weight: 700, shadow: false }, P);
+      txt(g, botName(g, b) + ' · ' + (b.wait > 0 ? g.t('afterMis') : g.t('waitFund')), 400, ry + 2 + i * 18, { size: 11, color: P.muted, weight: 700, shadow: false }, P);
     });
     if (rep.length > 6) txt(g, '…+' + (rep.length - 6), 400, ry + 2 + 6 * 18, { size: 11, color: P.muted, weight: 700, shadow: false }, P);
     var by = g.H - 104;

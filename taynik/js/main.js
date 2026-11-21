@@ -14,6 +14,15 @@
   K.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
   K.ui.init(g);
+  // ---------- облако и мета-прогрессия: выбор яруса, звёзды за ярус (js/meta.js) ----------
+  var Store = Arcade.Store, M = K.meta, START_KEY = 'arcade.taynik.start';
+  var prog = M.Progress({ get: function (k) { return Store.get(k, null); }, set: function (k, v) { g.storeSet(k, v); } });
+  g.persist(START_KEY, 'last'); g.persist('arcade.best.taynik', 'max');
+  for (var lvk = 1; lvk <= M.LEVELS; lvk++) g.persist(M.key(lvk), 'max');
+  function startLv() { var v = parseInt(Store.get(START_KEY, '1'), 10) || 1; return prog.unlocked(v) ? v : 1; }
+  function nextStart(dir) { g.storeSet(START_KEY, prog.next(startLv(), dir || 1)); }
+  var lvRec = { lost: 0, gems: 0, total: 0 }, runStart = 1, starNote = null, cardLv = 0;
+  function recordLv(n) { var r = M.stars(lvRec), isNew = prog.record(n, r.n); starNote = { lv: n, text: M.starStr(r.n) + (isNew ? '  ' + g.t('starNew') : ''), t: 3.2 }; }
 
   function rnd() { return g.themeName === 'retro' ? K.classic : K.modern; }
   var game = null, toasts = [], parts = [], playSince = 0;
@@ -47,19 +56,31 @@
       case 'hurt': burst(d.x, d.y, '#ff5d6c', 8, 80, 0.4); break;
       case 'die': burst(d.x, d.y, d.reason === 'acid' ? '#8cff6a' : '#ffb03a', 22, 130, 0.8); break;
       case 'extra': if (game) toast(g.t('t_extra'), P.good, game.state().hero.x, game.state().hero.y - 30); break;
-      case 'level': toasts = []; parts = []; break;
+      case 'level':
+        toasts = []; parts = []; lvRec = { lost: 0, gems: 0, total: game ? game.gemsTotal() : 0 };
+        if (d.level > runStart && g.adReady()) { cardLv = d.level; g.goto('card'); }   // межстраничная — по нажатию на карточке яруса (Яндекс 4.4)
+        break;
+      case 'clear': recordLv(d.level); break;
     }
+    if (type === 'die') lvRec.lost++;
+    if (type === 'treasure' && d.type === 'gem') lvRec.gems++;
     sync();
     if (type === 'win') g.win();
     else if (type === 'gameover') g.gameover();
   }
   function newGame() {
-    game = K.Game({ lives: 3, level: 1, onEvent: onEvent });
+    runStart = startLv(); starNote = null; g.resetRun();
+    game = K.Game({ lives: 3, level: runStart, onEvent: onEvent });
     game.start(); K.current = game; toasts = []; parts = []; sync();
   }
 
   // ---------- Стандартные экраны ----------
   g.useStandardScreens({ lives: 3 });
+  // Реклама за награду (только площадки с рекламой): «фонарь погас» — «ещё один шанс»: 1 жизнь у последнего зажжённого фонаря;
+  // бонус в паузе — полные заряды и сила (раз за партию).
+  g.useRewardedContinue({ revive: function () { if (game) game.reviveAd(); } });
+  g.useRewardedBonus({ key: 'rwBoost', scene: 'pause', label: function () { return g.t('rwBoost'); },
+    available: function () { return !!game && game.canBoost(); }, grant: function () { if (game) game.boost(); } });
   var pauseSc = g.scenes.pause, basePress = pauseSc.press;
   pauseSc.press = function (a) { if (a === 'pause') { this.goto('play', { resume: true }); return; } if (basePress) basePress.call(this, a); };
 
@@ -71,6 +92,9 @@
     demo = K.Game({ level: 3, rng: r }).start().state();
   }
   var title = g.scenes.title, menu = title._menu;
+  // пункт «Ярус N/6 ★★☆» — с какого яруса начинать: выбор/тап — следующий открытый, ← → — по кругу
+  g.menu.addItem({ key: 'lvpick', after: 'play', label: function () { var n = startLv(); return g.t('lvPick') + ' ' + n + '/' + M.LEVELS + '  ' + M.starStr(prog.get(n)); }, onSelect: function () { nextStart(1); } });
+  title.press = function (a) { var it = menu && menu.current(); if (it && it.key === 'lvpick' && (a === 'left' || a === 'right')) { nextStart(a === 'left' ? -1 : 1); this.audio.beep(600, 0.03); } };
   title.update = function (dt) {
     if (!demo) makeDemo();
     demo.time += dt;
@@ -94,8 +118,8 @@
     var hc = { x: R.x, y: hy - 4, vx: 0, mode: 'rope', face: 1 };
     ctx.save(); ctx.translate(hc.x, hc.y); ctx.scale(1.4, 1.4); ctx.translate(-hc.x, -hc.y); r.hero(ctx, hc, g.time); ctx.restore();
     K.ui.txt(this, this.t('subtitle'), W / 2, py + 126, { size: retro ? 9 : 10, align: 'center', color: th.muted, weight: 600 }, P);
-    menu.draw(this, W / 2, py + 164, 30);
-    if (this.state.best) K.ui.txt(this, this.t('best') + ': ' + this.state.best, W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600 }, P);
+    menu.draw(this, W / 2, py + 152, 24);
+    K.ui.txt(this, this.t('starsHint') + ' · ' + prog.total() + '/' + (M.LEVELS * 3) + (this.state.best ? '   ' + this.t('best') + ': ' + this.state.best : ''), W / 2, py + ph - 12, { size: 10, align: 'center', color: th.muted, weight: 600, maxWidth: pw - 20 }, P);
     K.ui.txt(this, this.t('hint'), W / 2, H - 16, { size: 10, align: 'center', color: th.muted, weight: 600 }, P);
   };
 
@@ -120,8 +144,27 @@
       parts = parts.filter(function (p) { return p.t > 0; });
       sync();
     },
-    draw: function (ctx) { if (game) K.ui.frame(this, ctx, game.state(), rnd(), { toasts: toasts, fx: parts }); else this.clear(); }
+    draw: function (ctx) {
+      if (game) K.ui.frame(this, ctx, game.state(), rnd(), { toasts: toasts, fx: parts }); else this.clear();
+      if (starNote && starNote.t > 0 && game) { starNote.t -= 1 / 60; var P = rnd().P; K.ui.txt(this, this.t('ready') + ' ' + starNote.lv + '  ' + starNote.text, this.W / 2, this.H - 24, { size: 14, align: 'center', color: P.accent, weight: 900, maxWidth: this.W - 40 }, P); }
+    }
   });
+  // ---------- Карточка «ярус пройден» (только когда площадка готова показать межстраничную): нажатие → реклама → дальше ----------
+  var cardGoing = false;
+  function cardGo() { if (cardGoing || g._sceneName !== 'card') return; cardGoing = true; g.adBreak().then(function () { cardGoing = false; if (g._sceneName === 'card') g.goto('play', { resume: true }); }); }
+  g.scene('card', {
+    enter: function () { cardGoing = false; },
+    press: function (a) { if (a === 'action' || a === 'start') cardGo(); else if (a === 'pause') this.goto('play', { resume: true }); },
+    draw: function (ctx) {
+      var th = this.th(), P = rnd().P, W = this.W, H = this.H;
+      if (game) K.ui.frame(this, ctx, game.state(), rnd(), {}); ctx.fillStyle = 'rgba(6,8,12,.7)'; ctx.fillRect(0, 0, W, H);
+      K.ui.txt(this, this.t('clear') + ' · ' + this.t('ready') + ' ' + (cardLv - 1), W / 2, H / 2 - 30, { size: 24, align: 'center', color: P.accent, weight: 900, maxWidth: W - 40 }, P);
+      if (starNote) K.ui.txt(this, starNote.text, W / 2, H / 2 + 4, { size: 20, align: 'center', color: th.ink, weight: 800, maxWidth: W - 40 }, P);
+      K.ui.txt(this, this.t('next') + ': ' + this.t('lv_' + cardLv) + ' · ' + this.t('tapstart'), W / 2, H / 2 + 40, { size: 12, align: 'center', color: th.muted, weight: 700, maxWidth: W - 40 }, P);
+    }
+  });
+  g.canvas.addEventListener('mousedown', function () { if (g._sceneName === 'card') cardGo(); });
+  g.canvas.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { e.preventDefault(); cardGo(); } }, { passive: false });
 
   // Z / X — тоже выстрел (пробел — действие движка)
   addEventListener('keydown', function (e) {

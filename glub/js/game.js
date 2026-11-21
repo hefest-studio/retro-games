@@ -577,7 +577,16 @@
       if (S.mole.state !== 'home') S.mole.state = 'home';
       emit('room', { room: ri, zone: rm.zone });
     }
-    function start() { enterRoom(S.room); S.beaconT['start'] = 0; return api; }
+    function start() { if (opts.save && restore(opts.save)) return api; enterRoom(S.room); S.beaconT['start'] = 0; return api; }
+    // сохранение у маяка (площадки: облако): прогресс партии без героя и врагов; восстановление — у этого маяка с полной энергией
+    var SAVE_KEYS = ['time', 'score', 'lives', 'dug', 'gate', 'got', 'crystals', 'visited', 'cp', 'beaconT', 'deaths', 'stuns', 'hurts', 'kills'];
+    function snapshot() { var o = { v: 1 }; SAVE_KEYS.forEach(function (k) { o[k] = JSON.parse(JSON.stringify(S[k])); }); return o; }
+    function restore(o) {
+      if (!o || o.v !== 1 || !o.cp || !W.rooms[o.cp.room] || !Array.isArray(o.crystals)) return false;
+      SAVE_KEYS.forEach(function (k) { if (o[k] != null) S[k] = JSON.parse(JSON.stringify(o[k])); });
+      S.hero = newHero(W, S.cp.room, S.cp.x, S.cp.y); S.hero.inv = SPAWN_INV; S.energy = EMAX; S.phase = 'play'; S.over = false; S.won = false;
+      enterRoom(S.cp.room); return true;
+    }
     function setInput(dx, dy, jump) { S.inp.dx = dx || 0; S.inp.dy = dy || 0; S.inp.jump = !!jump; }
 
     function hurt(dmg, srcX, why) {
@@ -730,7 +739,11 @@
     var api = {
       start: start, update: update, setInput: setInput, mole: mole, state: function () { return S; },
       canClimb: canClimbHere, world: W, _S: S,
-      _hurt: hurt, _enter: enterRoom, _die: die,
+      _hurt: hurt, _enter: enterRoom, _die: die, snapshot: snapshot,
+      // реклама за награду (площадки): «ещё один шанс» после «водолаз не вернулся» — 1 жизнь у последнего маяка; бонус — +1 жизнь
+      reviveAd: function () { if (S.phase !== 'over') return false; S.lives = 1; S.over = false; S.phase = 'play'; S.hero = newHero(W, S.cp.room, S.cp.x, S.cp.y); S.hero.inv = SPAWN_INV; S.energy = EMAX; enterRoom(S.cp.room); emit('respawn', { room: S.cp.room }); return true; },
+      canBoost: function () { return S.phase === 'play' && S.lives < LIVES; },
+      boost: function () { if (!api.canBoost()) return false; S.lives++; S.energy = EMAX; emit('tank', { x: S.hero.x, y: S.hero.y - 1 }); return true; },
       _place: function (ri, c, r) { S.hero = newHero(W, ri, c + 0.5, r); enterRoom(ri); },
       _giveCrystals: function (n) { for (var k = 0; k < n; k++) { var cr = W.crystals[k]; if (!S.got[cr.id]) { S.got[cr.id] = true; S.crystals.push(cr.cid); } } if (S.crystals.length >= CRYSTALS) S.gate = true; }
     };

@@ -30,6 +30,10 @@
       fullscreen: 'Во весь экран', fsExit: 'Выйти из полноэкранного режима', pauseBtn: 'Пауза',
       stats: 'Статистика плейтеста → файл', statsTitle: 'Статистика (локально)', statsHint: 'E — выгрузить файл',
       hintsL: 'подсказки', errorsL: 'ошибки', looksL: 'осмотры', fpsL: 'к/с', cacheL: 'кэш',
+      // геймпад (движок v2.9): {a} {b} … — значок кнопки по стилю геймпада (g.prompt)
+      padHint: 'стик — курсор · {a} — действие · {b} — отмена · {x} — подсказка · {y} — осмотр · {select} — набросок · {start} — пауза',
+      padFoot: '<b>' + TITLE_RU + '</b> · левый стик — курсор (D-pad — к соседнему предмету) · {a} — идти и действовать (удерживать на предмете из сумки — перетащить) · {b} — отмена, закрыть, к сумке · {x} — подсказка · {y} — осмотреть · {lb} / {rb} — герой (в главах с помощниками) или предмет · {lt} / {rt} — предмет · стик-кнопка — умение героя · {select} — набросок · {start} — пауза.',
+      padChHint: '↑ ↓ — выбрать · {a} — играть главу · {b} — назад', padCredSkip: '{a} — дальше',
       hint: 'клик — идти и действовать · долгий тап / ПКМ — осмотреть · H подсказка · B набросок · P пауза',
       hintTouch: 'тап — идти и действовать · долгий тап — осмотреть · предмет из сумки — перетащите на цель',
       foot: '<b>' + TITLE_RU + '</b> · клик / тап — идти и взаимодействовать (героиня подходит сама) · долгий тап / правая кнопка — осмотреть · предмет из сумки — тап по нему, затем по цели (или перетащить); на другой предмет — соединить · лампочка / H — подсказка-мысль · книжка / B — прохождение-набросок · P / Esc — пауза · F — во весь экран · L язык, M звук · D — отладка и статистика.'
@@ -55,6 +59,9 @@
       fullscreen: 'Full screen', fsExit: 'Exit full screen', pauseBtn: 'Pause',
       stats: 'Export playtest statistics', statsTitle: 'Statistics (local only)', statsHint: 'E — export file',
       hintsL: 'hints', errorsL: 'mistakes', looksL: 'looks', fpsL: 'fps', cacheL: 'cache',
+      padHint: 'stick — cursor · {a} — act · {b} — cancel · {x} — hint · {y} — look · {select} — sketchbook · {start} — pause',
+      padFoot: '<b>' + TITLE_EN + '</b> · left stick — cursor (D-pad — jump to the next thing) · {a} — walk and interact (hold on a bag item — drag it) · {b} — cancel, close, to the bag · {x} — hint · {y} — look closer · {lb} / {rb} — hero (in chapters with helpers) or item · {lt} / {rt} — item · stick click — hero ability · {select} — sketchbook · {start} — pause.',
+      padChHint: '↑ ↓ — choose · {a} — play chapter · {b} — back', padCredSkip: '{a} — continue',
       hint: 'click — walk & interact · long tap / right click — look · H hint · B sketchbook · P pause',
       hintTouch: 'tap — walk & interact · long tap — look · drag an item from the bag onto its target',
       foot: '<b>' + TITLE_EN + '</b> · click / tap — walk and interact (she walks up by herself) · long tap / right click — look closer · item from the bag — tap it, then the target (or drag it); onto another item — combine · bulb / H — hint · book / B — sketchbook walkthrough · P / Esc — pause · F — full screen · L language, M sound · D — debug & statistics.'
