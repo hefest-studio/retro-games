@@ -225,6 +225,22 @@ test('производительность: шаг логики в самой б
   ok(ms < 1, ms.toFixed(3) + ' мс');
 });
 
+// ---------- волна 4 (площадки): облачное хранилище слотов, языки ----------
+test('сохранения: P.SV_STORE (облако площадки) подменяет хранилище слотов и рекордов; пустая строка = нет слота', () => {
+  const mem = {}, st = { get: (k, d) => (k in mem && mem[k] !== '' ? mem[k] : d), set: (k, v) => { mem[k] = String(v); }, remove: k => { mem[k] = ''; } };
+  P.SV_STORE = st;
+  try {
+    const d = { v: P.SAVE_VERSION, time: 5, deaths: 0, anvil: 0, hpMax: 5, tanks: 2, ab: [], items: [], forges: [], bosses: [], opened: [], lifts: [], ups: [], visited: [], pct: 3, zone: 0 };
+    P.SV.save(2, d); ok(mem[P.SV.key(2)], 'записано через SV_STORE'); eq(P.SV.load(2).pct, 3);
+    P.SV.clear(2); eq(P.SV.load(2), null); P.SV.record(100, 40); eq(P.SV.records().pct, 40);
+  } finally { P.SV_STORE = null; }
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ПОДГОРЬЕ, EN/TR/ES/PT HEARTHDEEP', () => {
+  const S = P.STR, ks = Object.keys(S.en).sort().join(','); eq(Object.keys(S).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(S[l]).sort().join(','), ks, l);
+  eq(S.ru.title, 'ПОДГОРЬЕ'); for (const l of ['en', 'tr', 'es', 'pt']) eq(S[l].title, 'HEARTHDEEP', l);
+});
+
 if (process.env.QUICK) { console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed) + ' (без графа и ботов)'); process.exit(failed ? 1 : 0); }
 
 // ---------- граф проходимости по настоящей физике ----------

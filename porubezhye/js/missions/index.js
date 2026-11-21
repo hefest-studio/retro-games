@@ -7,8 +7,8 @@
 (function (root) {
   'use strict';
   var P = root.PORUB = root.PORUB || {};
-  // r1–r3 — «Острог на краю» (Мастеровые), миссии 1–3; w-plan — заготовки миссий 4–7 («в работе»). Всё — только в полной сборке.
-  var FILES = P.MISSION_FILES = { demo: [], full: ['r1', 'r2', 'r3', 'w-plan'] };
+  // r1–r7 — «Острог на краю» (Мастеровые); b-stump — общая карта битвы у Старого Пня (её же берёт кампания Чащи). Всё — только в полной сборке.
+  var FILES = P.MISSION_FILES = { demo: [], full: ['r1', 'r2', 'r3', 'r4', 'b-stump', 'r5', 'r6', 'r7'] };
   P.MISSIONS = P.MISSIONS || [];
   P.registerMission = function (def) {
     for (var i = 0; i < P.MISSIONS.length; i++) if (P.MISSIONS[i].id === def.id) { P.MISSIONS[i] = def; return def; }
@@ -20,6 +20,9 @@
     if (build === 'platform' && P.Edition && P.Edition.missionsForSale === false) return FILES.demo.slice();
     return build === 'full' || build === 'platform' ? FILES.demo.concat(FILES.full) : FILES.demo.slice();
   };
+  // общие карты битв (одна битва — в двух кампаниях, с разными целями): PORUB.registerBattle(id, { map, legend, ground, zones, forces })
+  P.BATTLES = P.BATTLES || {};
+  P.registerBattle = function (id, data) { P.BATTLES[id] = data; return data; };
   P.missionMissing = [];
   P.onMissionError = function (id) { P.missionMissing.push(id); if (root.console) console.warn('ПОРУБЕЖЬЕ: нет файла миссии ' + id); };
   var doc = root.document;

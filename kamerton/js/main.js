@@ -19,6 +19,19 @@
   function writeSave(o) { g.storeSet(SAVE, JSON.stringify(o)); }
   function clearSave() { try { localStorage.removeItem(SAVE); } catch (e) {} if (g.platform) g.storeSet(SAVE, ''); }
   g.persist(SAVE, 'last'); g.persist('arcade.best.kamerton', 'max');
+  // ---------- мета-прогрессия: выбор зоны, звёзды за зону (js/meta.js), всё — в облако площадки ----------
+  var Store = Arcade.Store, M = K.meta, START_KEY = 'arcade.kamerton.start';
+  var prog = M.Progress({ get: function (k) { return Store.get(k, null); }, set: function (k, v) { g.storeSet(k, v); } });
+  g.persist(START_KEY, 'last'); g.persist(M.REACH, 'max');
+  for (var lv = 1; lv <= M.LEVELS; lv++) g.persist(M.key(lv), 'max');
+  function startZ() { var v = parseInt(Store.get(START_KEY, '1'), 10) || 1; return prog.unlocked(v) ? v : 1; }
+  function nextStart(dir) { g.storeSet(START_KEY, prog.next(startZ(), dir || 1)); }
+  var zoneStops0 = 0, zoneEnded = false, starNote = null;
+  function recordZone(z, skipped) {   // z — номер пройденной зоны (1..6)
+    var S = game.state(), stops = S.deaths - zoneStops0; prog.reached(Math.min(M.LEVELS, z + 1));
+    if (skipped) { starNote = null; return; }
+    var r = M.stars({ stops: stops }), isNew = prog.record(z, r.n); starNote = { z: z, text: M.starStr(r.n) + (isNew ? '  ' + g.t('starNew') : ''), t: 3.4 };
+  }
   function debugStart() {
     var src = location.hash + location.search, m = /[#&?]z=(\d+)/.exec(src); if (!m) return null;
     var z = Math.min(ZN - 1, +m[1]), c = /[#&?]cp=(\d+)/.exec(src), cp = c ? Math.min(K.LEVELS[z].cps.length - 1, +c[1]) : 0;
@@ -32,16 +45,20 @@
     K.sfx(g, type, d);
     var S = game && game.state();
     if (type === 'checkpoint' && S) { var sv = game.saveData(); sv.deaths = S.deaths; sv.played = S.played; writeSave(sv); }
-    if (type === 'zone') { music(d.z); if (S) S._enterT = 1.2; RD.cam.z = -1; if (S && d.z > 0) g.adBreak(); }
+    if (type === 'zoneEnd' && S) { recordZone(d.z + 1, !!d.skip); zoneEnded = true; }
+    if (type === 'zone') {
+      music(d.z); if (S) { S._enterT = 1.2; zoneStops0 = S.deaths; } RD.cam.z = -1;
+      if (zoneEnded) { zoneEnded = false; if (g.adReady()) { cardZ = d.z; g.goto('card'); } }   // межстраничная — по нажатию на карточке зоны (Яндекс 4.4)
+    }
     if (type === 'win') {
-      clearSave(); var s2 = game.state();
+      recordZone(ZN, false); clearSave(); var s2 = game.state();
       g.state.score = Math.max(100, Math.round(8000 - s2.deaths * 50 - s2.played / 2)); g.state.level = ZN;
       music(ZN); setTimeout(function () { if (g._sceneName === 'play') g.win(); }, 2200);
     }
   }
   function newGame(save) {
     game = K.Game({ onEvent: onEvent, save: save || null }); K.current = game; game.start();
-    var S = game.state(); if (save) { S.deaths = save.deaths || 0; S.played = save.played || 0; }
+    var S = game.state(); if (save) { S.deaths = save.deaths || 0; S.played = save.played || 0; } zoneStops0 = S.deaths; zoneEnded = false;
     RD.cam.z = -1; S._enterT = 1.2; g.state.score = 0; g.state.level = S.z + 1;
   }
 
@@ -55,9 +72,13 @@
     var m = g.menu.get('title'); if (m) m.sel = 0;
   }
   g.menu.addItem({ key: 'restart', scene: 'pause', before: 'menu', label: function () { return g.t('restart'); }, onSelect: function () { if (game) game.restartCp(); this.goto('play', { resume: true }); } });
-  g.useRewardedContinue({ revive: function () { if (game) game.restartCp(); } });
+  // Реклама за награду (только площадки с рекламой): гибели-«поражения» нет (остановился завод → снова у фонарика), поэтому «ещё шанс» не нужен;
+  // бонус в паузе — пропустить зону, если головоломка не даётся (раз за партию; звёзд за пропущенную зону нет).
   g.useRewardedBonus({ key: 'rwSkip', scene: 'pause', label: function () { return g.t('rwSkip'); }, available: function () { return !!game && game.canSkip(); }, grant: function () { if (game) game.skipZone(); } });
   var title = g.scenes.title, menu = title._menu, oldEnter = title.enter;
+  // пункт «Зона N/6 ★★☆» — с какой зоны начинать «Новый путь»: выбор/тап — следующая открытая, ← → — по кругу
+  g.menu.addItem({ key: 'zonepick', after: 'play', label: function () { var n = startZ(); return g.t('zonePick') + ' ' + n + '/' + ZN + '  ' + M.starStr(prog.get(n)); }, onSelect: function () { nextStart(1); } });
+  title.press = function (a) { var it = menu && menu.current(); if (it && it.key === 'zonepick' && (a === 'left' || a === 'right')) { nextStart(a === 'left' ? -1 : 1); this.audio.beep(600, 0.03); } };
   title.enter = function (d) { if (oldEnter) oldEnter.call(this, d); refreshMenu(); K.stopAmbience(); };
   // живой фон заставки: мастерская, подмастерье будит носильщика и ведёт его к плите
   var demo = null, demoT = 0;
@@ -81,9 +102,9 @@
       c.globalAlpha = 0.25 + 0.15 * Math.sin(g.time * 4); c.fillStyle = p.core; c.beginPath(); c.arc(ex, ey - 4, 16, 0, Math.PI * 2); c.fill(); c.restore();
       g.text(g.t('title'), W / 2 + 14, py + 64, { size: 46, align: 'center', color: p.warm, weight: 700, font: th.font, maxWidth: pw - 110 });
       g.text(g.t('subtitle'), W / 2, py + 94, { size: 15, align: 'center', color: th.muted, weight: 400, font: th.font, maxWidth: pw - 40 });
-      menu.draw(g, W / 2, py + 138, 30);
-      if (g.state.best) g.text(g.t('best') + ': ' + g.state.best, W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600 });
-      g.text(g.t('hint'), W / 2, H - 13, { size: 12, align: 'center', color: th.muted, weight: 600, maxWidth: W - 30 });
+      menu.draw(g, W / 2, py + 128, 26);
+      g.text(g.t('starsHint') + ' · ' + prog.total() + '/' + (M.LEVELS * 3) + (g.state.best ? '   ' + g.t('best') + ': ' + g.state.best : ''), W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600, maxWidth: pw - 24 });
+      g.text(g.t(g.input.touchOnly ? 'hintTouch' : 'hint'), W / 2, g.input.touchOnly ? RD.BAR - 8 : H - 13, { size: 12, align: 'center', color: th.muted, weight: 600, maxWidth: W - 130 });
     } });
   };
 
@@ -94,7 +115,7 @@
     enter: function (d) {
       if (d && d.resume) return;
       var sv = K._resume || debugStart(); K._resume = null; g.resetRun();
-      if (!sv) clearSave();
+      if (!sv) { clearSave(); if (startZ() > 1) sv = { z: startZ() - 1, cp: 0, snap: null }; }
       newGame(sv);
     },
     press: function (a) { if (a === 'pause') this.pause(); },
@@ -114,8 +135,27 @@
       K.ambience(g, S, dt);
       g.state.level = S.z + 1;
     },
-    draw: function (ctx) { if (!game) { this.clear(); return; } RD.draw(ctx, game.state(), g, { game: game }); }
+    draw: function (ctx) {
+      if (!game) { this.clear(); return; } RD.draw(ctx, game.state(), g, { game: game });
+      if (starNote && starNote.t > 0) { starNote.t -= lastDt; var th = this.th(); this.text(g.t('zoneDone') + ' ' + starNote.z + '  ' + starNote.text, W / 2, RD.BAR + 30, { size: 20, align: 'center', color: th.accent, weight: 700, font: th.font, maxWidth: W - 140 }); }
+    }
   });
+  // ---------- Карточка «зона пройдена» (только когда площадка готова показать межстраничную): нажатие → реклама → дальше ----------
+  var cardZ = 0, cardGoing = false;
+  function cardGo() { if (cardGoing || g._sceneName !== 'card') return; cardGoing = true; g.adBreak().then(function () { cardGoing = false; if (g._sceneName === 'card') g.goto('play', { resume: true }); }); }
+  g.scene('card', {
+    enter: function () { cardGoing = false; },
+    press: function (a) { if (a === 'action' || a === 'start') cardGo(); else if (a === 'pause') this.goto('play', { resume: true }); },
+    draw: function (ctx) {
+      var th = this.th();
+      if (game) RD.draw(ctx, game.state(), g, { game: game, overlay: function (c) { c.fillStyle = 'rgba(8,6,12,0.62)'; c.fillRect(0, 0, W, H); } });
+      this.text(this.t('zoneDone') + ' ' + cardZ + '/' + ZN, W / 2, H / 2 - 30, { size: 34, align: 'center', color: th.accent, weight: 700, font: th.font, maxWidth: W - 160 });
+      if (starNote) this.text(starNote.text, W / 2, H / 2 + 12, { size: 26, align: 'center', color: th.ink, weight: 700, maxWidth: W - 160 });
+      this.text(this.t('cardNext'), W / 2, H / 2 + 56, { size: 15, align: 'center', color: th.muted, weight: 600, maxWidth: W - 160 });
+    }
+  });
+  g.canvas.addEventListener('mousedown', function () { if (g._sceneName === 'card') cardGo(); });
+  g.canvas.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { e.preventDefault(); cardGo(); } }, { passive: false });
   // Tab не уводит фокус из игры
   global.addEventListener('keydown', function (e) { if (e.code === 'Tab' && g._sceneName === 'play') e.preventDefault(); });
   // пауза: тёмная плашка поверх замершего кадра
@@ -159,7 +199,7 @@
   if (bp) { var tp = function (e) { e.preventDefault(); if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); }; bp.addEventListener('touchstart', tp, { passive: false }); bp.addEventListener('mousedown', tp); }
 
   var lastLang = null;
-  g.onCloud(function () { refreshMenu(); });
+  g.onCloud(function () { if (g._sceneName === 'title') refreshMenu(); });
   function syncDom() { if (lastLang === g.i18n.lang) return; lastLang = g.i18n.lang; var f = document.getElementById('foot'); if (f) f.textContent = g.t('foot') + ' ' + g.t('hint') + '.'; }
   syncDom(); setInterval(syncDom, 250);
 

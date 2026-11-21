@@ -14,6 +14,15 @@
   var g = Arcade.createGame({ canvas: '#c', width: VW, height: VH, gameId: 'podgorye', strings: P.STR, theme: 'modern', themes: themes });
   P.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
+  // ---------- облако площадки: слоты, рекорды, счёт (g.persist + g.storeSet); без площадки — как раньше (localStorage) ----------
+  P.SV_STORE = {
+    get: function (k, d) { try { var v = localStorage.getItem(k); return v == null || v === '' ? d : v; } catch (e) { return d; } },
+    set: function (k, v) { g.storeSet(k, v); },
+    remove: function (k) { try { localStorage.removeItem(k); } catch (e) {} if (g.platform) g.storeSet(k, ''); }
+  };
+  for (var si = 1; si <= SV.SLOTS; si++) g.persist(SV.key(si), 'last');
+  g.persist('arcade.besttime.podgorye', 'last'); g.persist('arcade.bestpct.podgorye', 'max'); g.persist('arcade.best.podgorye', 'max');
+  g.onCloud(function () { if (g._sceneName === 'slots') slotsData = SV.list(); });
   try { SV.legacy(); } catch (e) {}
 
   var W = P.WORLD(), game = null, slot = 1, banners = [], fx = [], shakeT = 0, lastWin = null, introT = 0;
@@ -30,7 +39,8 @@
     var retro = g.themeName === 'retro', s = game ? S() : null;
     switch (type) {
       case 'zone': g.setMusic(musicFor(d.zone)); if (s && s.t > 0.5 || introT <= 0) banner(g.t('z' + d.zone), '', { big: true, life: 2.6, front: true }); break;
-      case 'save': SV.save(slot, d.data); banner(g.t('saved'), '', { life: 1.8 }); burst(s.hero.x, s.hero.y - 1, retro ? '#ffff55' : '#ffd27a', 14, 5); break;
+      case 'save': SV.save(slot, d.data); banner(g.t('saved'), '', { life: 1.8 }); burst(s.hero.x, s.hero.y - 1, retro ? '#ffff55' : '#ffd27a', 14, 5);
+        if (g.adReady()) cardPending = 0.6; break;   // межстраничная — после сохранения у наковальни, по нажатию на карточке (Яндекс 4.4)
       case 'ability': banner(g.t('got') + ': ' + g.t('ab_' + d.ab), g.t('ab_' + d.ab + '_d'), { life: 5, icon: 'ab:' + d.ab, front: true }); burst(d.x, d.y - 1, retro ? '#ffff55' : '#ffe08a', 26, 7, 0.9); writeSlot(); break;
       case 'vessel': banner(g.t('vessel'), g.t('vessel_d'), { life: 3, icon: 'vessel' }); burst(d.x, d.y - 1, '#ff6a3a', 18, 6); writeSlot(); break;
       case 'tank': banner(g.t('tank'), g.t('tank_d'), { life: 3, icon: 'tank' }); burst(d.x, d.y - 1, '#9fe4ff', 18, 6); writeSlot(); break;
@@ -67,8 +77,32 @@
 
   // ---------- стандартные экраны ----------
   g.useStandardScreens({});
+  // Реклама за награду (только площадки с рекламой): бонус в паузе — здоровье и заряды до полного (раз за заход в игру).
+  // Гибели-«поражения» нет (фонарь погас → снова у наковальни), поэтому «ещё шанс» не нужен.
+  g.useRewardedBonus({ key: 'rwHeal', scene: 'pause', label: function () { return g.t('rwHeal'); },
+    available: function () { if (!game) return false; var s = S(); return s.phase === 'play' && (s.hp < s.prog.hpMax || s.spark < s.prog.tanks - 0.5); },
+    grant: function () { if (game) { var s = S(); s.hp = s.prog.hpMax; s.spark = s.prog.tanks; } } });
+  var cardPending = 0, cardGoing = false;
+  function cardGo() { if (cardGoing || g._sceneName !== 'card') return; cardGoing = true; g.adBreak().then(function () { cardGoing = false; if (g._sceneName === 'card') g.goto('play', { resume: true }); }); }
+  g.scene('card', {
+    enter: function () { cardGoing = false; },
+    press: function (a) { if (a === 'action' || a === 'start') cardGo(); else if (a === 'pause') this.goto('play', { resume: true }); },
+    draw: function (ctx) {
+      var retro = g.themeName === 'retro', th = this.th();
+      if (game) g.scenes.play.draw.call(this, ctx);
+      ctx.fillStyle = retro ? 'rgba(0,0,0,0.7)' : 'rgba(6,4,2,0.62)'; ctx.fillRect(0, 0, VW, VH);
+      this.text(this.t('saved'), VW / 2, VH / 2 - 10, { size: 22, align: 'center', color: th.accent, weight: 900, maxWidth: VW - 40 });
+      this.text(this.t('cardNext'), VW / 2, VH / 2 + 18, { size: 12, align: 'center', color: th.muted, weight: 700, maxWidth: VW - 40 });
+    }
+  });
+  g.canvas.addEventListener('mousedown', function () { if (g._sceneName === 'card') cardGo(); });
+  g.canvas.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { e.preventDefault(); cardGo(); } }, { passive: false });
   var title = g.scenes.title, tmenu = g.menu.get('title');
-  tmenu.items[0].onSelect = function () { g.goto('slots'); };
+  // «Играть»: есть сохранения — выбор слота; первый запуск (все слоты пусты) — сразу новая игра в слоте 1 (меньше экранов до игры)
+  tmenu.items[0].onSelect = function () {
+    if (SV.list().some(function (d) { return !!d; })) { g.goto('slots'); return; }
+    slot = 1; pendingLoad = null; pendingNew = true; g.goto('play');
+  };
   title.draw = function (ctx) {
     var retro = g.themeName === 'retro', th = this.th();
     UI.titleArt(g, ctx, this.time);
@@ -136,7 +170,7 @@
   g.scene('play', {
     realtime: true,
     enter: function (d) {
-      if (pendingNew || !game) { pendingNew = false; newGame(pendingLoad); pendingLoad = null; g.setMusic(musicFor(S().zone)); }
+      if (pendingNew || !game) { pendingNew = false; newGame(pendingLoad); pendingLoad = null; g.setMusic(musicFor(S().zone)); g.resetRun(); cardPending = 0; }
       playSince = g.time;
     },
     press: function (a) {
@@ -161,6 +195,7 @@
       if (anyHeld({ KeyX: 1 }) && held.lift && s.phase === 'lift') game.liftCancel();
       var n = Math.max(1, Math.min(4, Math.round(Math.min(dt, 0.066) / STEP)));
       for (var k = 0; k < n; k++) game.update(STEP);
+      if (cardPending > 0) { cardPending -= dt; if (cardPending <= 0 && S().phase === 'play' && g.adReady()) { cardPending = 0; g.goto('card'); return; } }
       for (var i = fx.length - 1; i >= 0; i--) { var p = fx[i]; p.life -= dt; if (p.life <= 0) { fx.splice(i, 1); continue; } p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 12 * dt; }
       sync();
     },
@@ -208,7 +243,8 @@
     var c = g.canvas, wrap = c.parentElement, padEl = document.querySelector('.pad');
     var padFixed = padEl && getComputedStyle(padEl).position === 'fixed';
     var padH = padEl && !padFixed && getComputedStyle(padEl).display !== 'none' ? padEl.offsetHeight + 16 : 0;
-    var w = Math.min(1280, (wrap && wrap.clientWidth) || g.W, (innerHeight - padH - 64) * g.W / g.H);
+    var foot = document.getElementById('foot'), footH = foot && getComputedStyle(foot).display !== 'none' ? foot.offsetHeight + 18 : 0;
+    var w = Math.min(1280, (wrap && wrap.clientWidth) || g.W, (innerHeight - padH - Math.max(64, 40 + footH)) * g.W / g.H);   // подпись под канвой тоже влезает
     w = Math.max(240, Math.floor(w)); c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
   }
   var lastLang = null, lastTheme = null;
@@ -217,6 +253,7 @@
       lastLang = g.i18n.lang; document.documentElement.lang = lastLang;
       var b = document.getElementById('backLink'); if (b) b.innerHTML = '&larr; ' + g.t('back');
       var f = document.getElementById('foot'); if (f) f.innerHTML = g.t('foot');   // строки — наши, из i18n.js
+      fit();   // высота подписи зависит от языка
     }
     if (g.themeName !== lastTheme) { lastTheme = g.themeName; document.body.setAttribute('data-theme', lastTheme); }
     requestAnimationFrame(domSync);

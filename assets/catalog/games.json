@@ -1070,7 +1070,7 @@
     {
       "slug": "glub",
       "title": "ГЛУБЬ",
-      "title_en": "GLUB",
+      "title_en": "LAMPDIVER",
       "subtitle": "Шахта Древнего Горна",
       "subtitle_en": "The Ancient Forge Mine",
       "year": 1985,
@@ -1101,7 +1101,7 @@
     {
       "slug": "taynik",
       "title": "ТАЙНИК",
-      "title_en": "TAYNIK",
+      "title_en": "ROPEWARD",
       "subtitle": "Лабиринт с верёвками",
       "subtitle_en": "Rope Maze",
       "year": 1983,
@@ -1821,7 +1821,7 @@
     {
       "slug": "vzvod",
       "title": "ВЗВОД",
-      "title_en": "VZVOD",
+      "title_en": "HIVEWRENCH",
       "subtitle": "Отряд ремонтников против Ржавого Улья",
       "subtitle_en": "Repair Squad vs the Rust Hive",
       "year": 1993,
@@ -2071,7 +2071,7 @@
     {
       "slug": "podgorye",
       "title": "ПОДГОРЬЕ",
-      "title_en": "PODGORYE",
+      "title_en": "HEARTHDEEP",
       "subtitle": "Разожги пять Спящих Горнов",
       "subtitle_en": "Kindle the Five Sleeping Forges",
       "year": 1994,

@@ -4,7 +4,7 @@
  * настройки: язык/тема/звук), сцены, сетка, частицы, HUD, счёт+рекорд (localStorage по игре).
  * Встроены критерии: проходимость (win/lose+финал, difficulty), играбельность (отклик, фидбек),
  * непресность (нарастание). Игры самодостаточны: build.sh копирует файл в игру. API — README.
- * (c) Студия «Гефест». v2.8.0 (v2.8: языки — из ключей strings игры (не только ru/en): ?lang= и язык площадки — любой язык таблиц, иначе en; L — по кругу, «Язык: XX»; data-<язык> с откатом на data-en; ссылка каталога — EN для всех, кроме RU; встроенные строки движка RU/EN/TR/ES/PT (прочие — EN); автоподбор кегля (text maxWidth: overlay, меню, подсказки); g.leaderboard с именованными таблицами + g.useLeaderboard() (окно площадки или своя сцена «Лидеры»); g.useNoAds({ scene:['title','pause'] }); g.useOwnGames() — «Наши игры» через SDK; g.useShortcut() — ярлык; g.useReview() — просьба об оценке после успеха, не чаще раза в N сессий; g.onCloud()/g.cloudReady — событие «облако слито» после g.persist; v2.7: с площадкой — тишина и пауза при любой потере фокуса (blur/pagehide, Яндекс 1.3); g.leaderboard, g.flags (удалённая конфигурация: частота/места рекламы, сложность), g.purchase()/g.useNoAds() — после покупки «Без рекламы» межстраничная и стики не показываются, g.serverTime()/g.daily(), g.requestReview(), g.addShortcut(), g.ownGames() — через platform.js 1.2; v2.6: реклама за награду g.rewarded() + «продолжить за рекламу» g.useRewardedContinue() и бонус g.useRewardedBonus() — только при площадке с рекламой; межстраничная реклама — по действию игрока при выходе с финала и g.adBreak() в паузах между уровнями; старт меню после инициализации площадки (язык SDK до меню, ready() — когда можно играть); автопауза при скрытой вкладке; без контекстного меню/выделения; g.persist()/g.storeSet() — ключи в облако; v2.5: необязательная связка с площадкой — window.Platform из _shared/platform.js: пауза и звук на время рекламы, язык площадки, рекорд в облако, gameplayStart/Stop по сценам, реклама в паузах win/gameover, скрытие внешних ссылок; без platform.js — всё как раньше; v2.4: ссылка «← Каталог» a[data-catalog-back] ведёт в каталог текущего языка — ../ или ../en/, dt первого кадра не отрицательный; v2.3: единое правило языка ?lang= → arcade.lang → ru, перевод DOM по data-en; v2.2: g.menu, g.input.player(i), g.usePlayers, touchOnly)
+ * (c) Студия «Гефест». v2.9.0 (v2.9: геймпад — Gamepad API, раскладка standard: D-pad/левый стик (мёртвая зона, гистерезис, автоповтор) и кнопки → виртуальные клавиши (игры без поддержки получают геймпад через свои клавиши и привязки), A — выбор/действие, B — назад/второе, Start — пауза, Select — меню; меню движка геймпадом; 2-й геймпад → И2 (usePlayers); g.gamepad (pressed/stick/trigger/onButton/onConnect/configure/glyph), g.rumble(), g.input.device + <html data-input>, g.prompt()/g.drawPrompt() — значки кнопок при геймпаде, клавиши — при клавиатуре; без Gamepad API — без ошибок; v2.8: языки — из ключей strings игры (не только ru/en): ?lang= и язык площадки — любой язык таблиц, иначе en; L — по кругу, «Язык: XX»; data-<язык> с откатом на data-en; ссылка каталога — EN для всех, кроме RU; встроенные строки движка RU/EN/TR/ES/PT (прочие — EN); автоподбор кегля (text maxWidth: overlay, меню, подсказки); g.leaderboard с именованными таблицами + g.useLeaderboard() (окно площадки или своя сцена «Лидеры»); g.useNoAds({ scene:['title','pause'] }); g.useOwnGames() — «Наши игры» через SDK; g.useShortcut() — ярлык; g.useReview() — просьба об оценке после успеха, не чаще раза в N сессий; g.onCloud()/g.cloudReady — событие «облако слито» после g.persist; v2.7: с площадкой — тишина и пауза при любой потере фокуса (blur/pagehide, Яндекс 1.3); g.leaderboard, g.flags (удалённая конфигурация: частота/места рекламы, сложность), g.purchase()/g.useNoAds() — после покупки «Без рекламы» межстраничная и стики не показываются, g.serverTime()/g.daily(), g.requestReview(), g.addShortcut(), g.ownGames() — через platform.js 1.2; v2.6: реклама за награду g.rewarded() + «продолжить за рекламу» g.useRewardedContinue() и бонус g.useRewardedBonus() — только при площадке с рекламой; межстраничная реклама — по действию игрока при выходе с финала и g.adBreak() в паузах между уровнями; старт меню после инициализации площадки (язык SDK до меню, ready() — когда можно играть); автопауза при скрытой вкладке; без контекстного меню/выделения; g.persist()/g.storeSet() — ключи в облако; v2.5: необязательная связка с площадкой — window.Platform из _shared/platform.js: пауза и звук на время рекламы, язык площадки, рекорд в облако, gameplayStart/Stop по сценам, реклама в паузах win/gameover, скрытие внешних ссылок; без platform.js — всё как раньше; v2.4: ссылка «← Каталог» a[data-catalog-back] ведёт в каталог текущего языка — ../ или ../en/, dt первого кадра не отрицательный; v2.3: единое правило языка ?lang= → arcade.lang → ru, перевод DOM по data-en; v2.2: g.menu, g.input.player(i), g.usePlayers, touchOnly)
  */
 (function (global) {
   'use strict';
@@ -62,22 +62,27 @@
   // Перевод TR/ES/PT — ИИ (обратный перевод на RU), носитель языка не вычитывал.
   var DEF_STR = {
     ru: { loading: 'Загрузка…', rw_title: 'ЕЩЁ ОДИН ШАНС?', rw_continue: 'Реклама: продолжить', rw_no: 'Нет, завершить', rw_fail: 'Реклама недоступна', rw_hint: 'один раз за партию', rw_got: 'Бонус получен!', noads: 'Без рекламы',
+      pad_ok: 'выбрать', pad_back: 'назад', pad_next: 'дальше', pad_on: 'Геймпад подключён', pad_off: 'Геймпад отключён',
       play: 'Играть', language: 'Язык', theme: 'Тема', sound: 'Звук', on: 'вкл', off: 'выкл', resume: 'Продолжить', menu: 'В меню', pause: 'ПАУЗА', win: 'ПОБЕДА!', gameover: 'КОНЕЦ ИГРЫ',
       score: 'Счёт', level: 'Ур.', best: 'Рекорд', tapstart: 'пробел / тап', title: 'ИГРА', players: 'Игроки', touch1p: 'тач — 1 игрок',
       ui_lb: 'Лидеры', ui_lb_empty: 'Пока нет результатов', ui_lb_me: 'Вы', ui_lb_anon: 'Игрок', ui_games: 'Наши игры', ui_back: 'Назад', ui_shortcut: 'Ярлык на рабочий стол', noads_done: 'Реклама отключена' },
     en: { loading: 'Loading…', rw_title: 'ONE MORE CHANCE?', rw_continue: 'Watch ad: continue', rw_no: 'No, finish', rw_fail: 'Ad not available', rw_hint: 'once per run', rw_got: 'Bonus received!', noads: 'No ads',
+      pad_ok: 'select', pad_back: 'back', pad_next: 'continue', pad_on: 'Gamepad connected', pad_off: 'Gamepad disconnected',
       play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off', resume: 'Resume', menu: 'Menu', pause: 'PAUSE', win: 'YOU WIN!', gameover: 'GAME OVER',
       score: 'Score', level: 'Lvl', best: 'Best', tapstart: 'space / tap', title: 'GAME', players: 'Players', touch1p: 'touch — 1 player',
       ui_lb: 'Leaderboard', ui_lb_empty: 'No results yet', ui_lb_me: 'You', ui_lb_anon: 'Player', ui_games: 'Our games', ui_back: 'Back', ui_shortcut: 'Add shortcut', noads_done: 'Ads disabled' },
     tr: { loading: 'Yükleniyor…', rw_title: 'BİR ŞANS DAHA?', rw_continue: 'Reklam izle: devam et', rw_no: 'Hayır, bitir', rw_fail: 'Reklam şu an yok', rw_hint: 'oyun başına bir kez', rw_got: 'Bonus alındı!', noads: 'Reklamsız',
+      pad_ok: 'seç', pad_back: 'geri', pad_next: 'devam', pad_on: 'Oyun kumandası bağlandı', pad_off: 'Oyun kumandası çıkarıldı',
       play: 'Oyna', language: 'Dil', theme: 'Tema', sound: 'Ses', on: 'açık', off: 'kapalı', resume: 'Devam et', menu: 'Ana menü', pause: 'DURAKLATILDI', win: 'KAZANDIN!', gameover: 'OYUN BİTTİ',
       score: 'Puan', level: 'Sv.', best: 'Rekor', tapstart: 'boşluk / dokun', title: 'OYUN', players: 'Oyuncular', touch1p: 'dokunmatik — 1 oyuncu',
       ui_lb: 'Liderler', ui_lb_empty: 'Henüz sonuç yok', ui_lb_me: 'Sen', ui_lb_anon: 'Oyuncu', ui_games: 'Diğer oyunlarımız', ui_back: 'Geri', ui_shortcut: 'Kısayol ekle', noads_done: 'Reklamlar kapatıldı' },
     es: { loading: 'Cargando…', rw_title: '¿OTRA OPORTUNIDAD?', rw_continue: 'Ver anuncio: continuar', rw_no: 'No, terminar', rw_fail: 'Anuncio no disponible', rw_hint: 'una vez por partida', rw_got: '¡Bonus obtenido!', noads: 'Sin anuncios',
+      pad_ok: 'elegir', pad_back: 'volver', pad_next: 'seguir', pad_on: 'Mando conectado', pad_off: 'Mando desconectado',
       play: 'Jugar', language: 'Idioma', theme: 'Tema', sound: 'Sonido', on: 'sí', off: 'no', resume: 'Continuar', menu: 'Menú principal', pause: 'PAUSA', win: '¡VICTORIA!', gameover: 'FIN DEL JUEGO',
       score: 'Puntos', level: 'Niv.', best: 'Récord', tapstart: 'espacio / toca', title: 'JUEGO', players: 'Jugadores', touch1p: 'táctil — 1 jugador',
       ui_lb: 'Clasificación', ui_lb_empty: 'Aún no hay resultados', ui_lb_me: 'Tú', ui_lb_anon: 'Jugador', ui_games: 'Nuestros juegos', ui_back: 'Volver', ui_shortcut: 'Añadir acceso directo', noads_done: 'Anuncios desactivados' },
     pt: { loading: 'Carregando…', rw_title: 'MAIS UMA CHANCE?', rw_continue: 'Ver anúncio: continuar', rw_no: 'Não, encerrar', rw_fail: 'Anúncio indisponível', rw_hint: 'uma vez por partida', rw_got: 'Bônus recebido!', noads: 'Sem anúncios',
+      pad_ok: 'escolher', pad_back: 'voltar', pad_next: 'continuar', pad_on: 'Controle conectado', pad_off: 'Controle desconectado',
       play: 'Jogar', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'ligado', off: 'desligado', resume: 'Continuar', menu: 'Menu principal', pause: 'PAUSA', win: 'VITÓRIA!', gameover: 'FIM DE JOGO',
       score: 'Pontos', level: 'Nív.', best: 'Recorde', tapstart: 'espaço / toque', title: 'JOGO', players: 'Jogadores', touch1p: 'toque — 1 jogador',
       ui_lb: 'Ranking', ui_lb_empty: 'Ainda sem resultados', ui_lb_me: 'Você', ui_lb_anon: 'Jogador', ui_games: 'Nossos jogos', ui_back: 'Voltar', ui_shortcut: 'Adicionar atalho', noads_done: 'Anúncios desativados' }
@@ -198,14 +203,56 @@
     var map = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left',
       ArrowRight: 'right', KeyD: 'right', Space: 'action', Enter: 'start', Escape: 'pause', KeyP: 'pause', KeyM: 'mute', KeyL: 'lang', KeyT: 'theme' };
     var self = this;
+    // v2.9: последнее устройство ввода — 'keyboard' | 'mouse' | 'touch' | 'gamepad' (подсказки кнопок, <html data-input>)
+    this.device = this.touchOnly ? 'touch' : 'keyboard'; this._devCbs = []; this._vk = Object.create(null);
     this._kd = function (e) {
       if (e.isTrusted !== false) self.touchOnly = false; // физическая клавиатура есть (синтетические события тач-кнопок не в счёт)
+      if (e.isTrusted !== false && !e.arcadePad) self._setDevice('keyboard');
       self._plKey(e, true);
       var a = map[e.code]; if (!a) return; if (!self.keys[a]) self._emit(a); self.keys[a] = true; self._setDir(); if (a !== 'mute' && a !== 'lang' && a !== 'theme') e.preventDefault();
     };
     this._ku = function (e) { self._plKey(e, false); var a = map[e.code]; if (!a) return; self.keys[a] = false; self._setDir(); };
     addEventListener('keydown', this._kd, { passive: false }); addEventListener('keyup', this._ku);
     addEventListener('blur', function () { self.codes = Object.create(null); self._touch = Object.create(null); });
+    addEventListener('pointerdown', function (e) { if (e && e.isTrusted !== false) self._setDevice(e.pointerType === 'touch' || e.pointerType === 'pen' ? 'touch' : 'mouse'); }, true);
+  }
+  // Устройство ввода (v2.9): g.input.device, g.input.onDevice(fn(device)); <html data-input="…"> — для CSS-подсказок
+  // (.arcade-pad-only видны только при геймпаде, .arcade-kb-only — скрыты при геймпаде).
+  Input.prototype._setDevice = function (d) {
+    if (this.device === d) return; this.device = d;
+    try { if (doc && doc.documentElement && doc.documentElement.setAttribute) doc.documentElement.setAttribute('data-input', d); } catch (e) {}
+    for (var i = 0; i < this._devCbs.length; i++) { try { this._devCbs[i](d); } catch (e) {} }
+  };
+  Input.prototype.onDevice = function (cb) { if (typeof cb === 'function') this._devCbs.push(cb); return this; };
+  // Виртуальная клавиша (геймпад, v2.9): то же, что физическая — keydown/keyup с e.code (и key/keyCode) на document.body, их получают
+  // движок, оболочки host.js и обработчики игр. Без DOM (Node) — прямо в ввод движка. Счётчик: две кнопки на один код — одно нажатие.
+  Input.prototype.virtKey = function (code, down, repeat) {
+    if (!code) return; var n = this._vk[code] | 0;
+    if (down && !repeat) { this._vk[code] = n + 1; if (n > 0) return; }
+    else if (down && repeat) { if (n <= 0) return; }
+    else { if (n <= 0) return; this._vk[code] = n - 1; if (n > 1) return; }
+    this._sendKey(down ? 'keydown' : 'keyup', code, !!repeat);
+  };
+  Input.prototype._sendKey = function (type, code, repeat) {
+    var key = keyOf(code), kc = keyCodeOf(code), target = doc && (doc.body || doc), ev = null;
+    if (target && typeof target.dispatchEvent === 'function' && typeof global.KeyboardEvent === 'function') {
+      try { ev = new global.KeyboardEvent(type, { code: code, key: key, repeat: repeat, bubbles: true, cancelable: true });
+        try { Object.defineProperty(ev, 'keyCode', { get: function () { return kc; } }); Object.defineProperty(ev, 'which', { get: function () { return kc; } }); } catch (e) {}
+        ev.arcadePad = true; target.dispatchEvent(ev); return; } catch (e) { if (ev) return; }
+    }
+    var fake = { type: type, code: code, key: key, keyCode: kc, which: kc, repeat: repeat, isTrusted: false, arcadePad: true, defaultPrevented: false,
+      preventDefault: function () { this.defaultPrevented = true; }, stopPropagation: function () {} };
+    if (type === 'keydown') this._kd(fake); else this._ku(fake);
+  };
+  Input.prototype._releaseVirt = function () { var self = this; Object.keys(this._vk).forEach(function (c) { if (self._vk[c] > 0) { self._vk[c] = 1; self.virtKey(c, false); } }); };
+  function keyOf(code) {
+    if (code === 'Space') return ' '; if (code === 'Escape' || code === 'Enter' || code === 'Tab' || /^Arrow/.test(code)) return code;
+    var m = /^Key([A-Z])$/.exec(code); if (m) return m[1].toLowerCase(); m = /^(?:Digit|Numpad)(\d)$/.exec(code); if (m) return m[1];
+    m = /^(Shift|Control|Alt|Meta)(Left|Right)$/.exec(code); if (m) return m[1]; return code;
+  }
+  function keyCodeOf(code) {
+    var T = { Space: 32, Enter: 13, Escape: 27, Tab: 9, ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40, ShiftLeft: 16, ShiftRight: 16, ControlLeft: 17, ControlRight: 17, AltLeft: 18, AltRight: 18, Slash: 191, Period: 190, Comma: 188, Backspace: 8 };
+    if (T[code]) return T[code]; var m = /^Key([A-Z])$/.exec(code); if (m) return m[1].charCodeAt(0); m = /^Digit(\d)$/.exec(code); if (m) return 48 + +m[1]; return 0;
   }
   Input.prototype._setDir = function () { this.dir.x = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0); this.dir.y = (this.keys.down ? 1 : 0) - (this.keys.up ? 1 : 0); };
   Input.prototype.onPress = function (cb) { this._press.push(cb); };
@@ -278,6 +325,141 @@
   Object.defineProperty(PlayerInput.prototype, 'dir', { get: function () {
     return { x: (this.pressed('right') ? 1 : 0) - (this.pressed('left') ? 1 : 0), y: (this.pressed('down') ? 1 : 0) - (this.pressed('up') ? 1 : 0) };
   } });
+
+  // ---------- Геймпад (v2.9): Gamepad API, раскладка standard ----------
+  // Опрос — в цикле движка (каждый кадр). Кнопки standard mapping: 0 A/нижняя, 1 B/правая, 2 X/левая, 3 Y/верхняя, 4 LB, 5 RB, 6 LT, 7 RT,
+  // 8 Select (View/Back), 9 Start (Menu), 10 L3, 11 R3, 12–15 D-pad ↑↓←→, 16 Home. Оси: 0/1 — левый стик, 2/3 — правый.
+  // D-pad и левый стик (с мёртвой зоной и гистерезисом) → стрелки; кнопки → виртуальные клавиши (Input.virtKey), поэтому игры без
+  // явной поддержки получают геймпад «бесплатно» через свои клавиши/привязки. Что куда — Engine._padRoute (по сцене и игроку).
+  var PAD_NAMES = ['a', 'b', 'x', 'y', 'lb', 'rb', 'lt', 'rt', 'select', 'start', 'ls', 'rs', 'up', 'down', 'left', 'right', 'home'];
+  var PAD_BTN_IX = { a: 0, b: 1, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7, select: 8, start: 9, ls: 10, rs: 11, up: 12, down: 13, left: 14, right: 15, home: 16 };
+  // клавиши кнопок в игре (сцена play) по умолчанию: A — действие (Space), остальные — частые вторые клавиши игр аркады
+  var PAD_KEYS = { a: 'Space', b: 'KeyX', x: 'KeyZ', y: 'KeyC', lb: 'KeyQ', rb: 'KeyE', lt: 'ShiftLeft', rt: 'KeyF', ls: null, rs: null };
+  var ARROW = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
+  var PAD_NOREPEAT = { start: 1, select: 1, home: 1 };
+  // Подписи кнопок по стилю: letters — буквы ABXY (по умолчанию; так же портативные ПК и виртуальный геймпад клиента площадки),
+  // shapes — фигуры (вендор 054c), alt — буквы, переставленные по месту (вендор 057e: нижняя — B, правая — A). Определяется по id.
+  var PAD_GLYPH = {
+    letters: { a: 'A', b: 'B', x: 'X', y: 'Y', lb: 'LB', rb: 'RB', lt: 'LT', rt: 'RT', select: 'Select', start: 'Start', ls: 'LS', rs: 'RS' },
+    shapes: { a: '✕', b: '○', x: '□', y: '△', lb: 'L1', rb: 'R1', lt: 'L2', rt: 'R2', select: 'Select', start: 'Start', ls: 'L3', rs: 'R3' },
+    alt: { a: 'B', b: 'A', x: 'Y', y: 'X', lb: 'L', rb: 'R', lt: 'ZL', rt: 'ZR', select: '−', start: '+', ls: 'LS', rs: 'RS' },
+    // deck — портативный ПК с буквами ABXY, бамперами L1/R1 и курками L2/R2 (обёртка издания включает сама: g.gamepad.configure({ style:'deck' }))
+    deck: { a: 'A', b: 'B', x: 'X', y: 'Y', lb: 'L1', rb: 'R1', lt: 'L2', rt: 'R2', select: 'View', start: 'Menu', ls: 'L3', rs: 'R3' }
+  };
+  var DIR_GLYPH = { up: '↑', down: '↓', left: '←', right: '→', home: 'Home' };
+  function padStyle(id) { var s = String(id || ''); if (/(^|vendor:?\s*)054c\b/i.test(s)) return 'shapes'; if (/(^|vendor:?\s*)057e\b/i.test(s)) return 'alt'; return 'letters'; }
+  // радиальная мёртвая зона: |v| < dz → 0, дальше — плавно 0…1
+  function deadzone(x, y, dz) { var m = Math.sqrt(x * x + y * y); if (!(m > dz)) return { x: 0, y: 0 }; var k = Math.min(1, (m - dz) / (1 - dz)) / m; return { x: x * k, y: y * k }; }
+  function Gamepads(eng, cfg) {
+    this.eng = eng; this.slots = []; this._by = Object.create(null); this._btnCbs = []; this._conCbs = [];
+    this.cfg = { deadzone: 0.25, on: 0.5, off: 0.35, repeatDelay: 320, repeatRate: 70, keys: Object.assign({}, PAD_KEYS), actions: null, play: true, hints: true, autoPause: true, players: [0, 1] };
+    this.configure(cfg);
+    var nav = global.navigator; this.supported = !!(nav && typeof nav.getGamepads === 'function');
+    var self = this;
+    if (typeof global.addEventListener === 'function') global.addEventListener('blur', function () { self.releaseAll(); });
+  }
+  // g.gamepad.configure({ keys:{ a:'Space', b:'KeyE', … }, actions:{ a:'fire', b:'jump' }, play:false, deadzone:0.25, hints:false,
+  //   autoPause:false, players:[1,0] }) — keys: клавиши кнопок в play; actions: кнопка → имя действия раскладки setPlayers/usePlayers;
+  //   play:false — в play кнопки и стик клавиш не шлют (игра читает геймпад сама), Start/Select — пауза как всегда.
+  Gamepads.prototype.configure = function (o) {
+    o = o || {}; var c = this.cfg;
+    Object.keys(o).forEach(function (k) { if (k === 'keys') Object.assign(c.keys, o.keys || {}); else if (o[k] !== undefined) c[k] = o[k]; });
+    return this;
+  };
+  Gamepads.prototype.poll = function () {
+    if (!this.supported) return;
+    var list; try { list = global.navigator.getGamepads() || []; } catch (e) { this.supported = false; return; } // Permissions-Policy в iframe и т. п.
+    var seen = Object.create(null), t = now(), i;
+    for (i = 0; i < list.length; i++) {
+      var gp = list[i]; if (!gp || gp.connected === false) continue;
+      seen[gp.index] = 1; var s = this._by[gp.index] || this._add(gp); s.gp = gp; this._read(s, t);
+    }
+    for (i = this.slots.length - 1; i >= 0; i--) if (!seen[this.slots[i].index]) this._remove(this.slots[i]);
+  };
+  Gamepads.prototype._add = function (gp) {
+    var s = { index: gp.index, id: String(gp.id || ''), style: padStyle(gp.id), gp: gp, st: {}, codes: {}, rep: {}, axes: [0, 0, 0, 0], used: false };
+    this._by[gp.index] = s; this.slots.push(s); this._fireCon(s, true); return s;
+  };
+  Gamepads.prototype._remove = function (s) {
+    var self = this; Object.keys(s.st).forEach(function (n) { if (s.st[n]) self._edge(s, n, false); });
+    var i = this.slots.indexOf(s); if (i >= 0) this.slots.splice(i, 1); delete this._by[s.index];
+    this._fireCon(s, false);
+  };
+  Gamepads.prototype._fireCon = function (s, on) { var info = this._info(s); for (var i = 0; i < this._conCbs.length; i++) { try { this._conCbs[i](info, on); } catch (e) {} } if (this.eng && this.eng._padConn) this.eng._padConn(info, on, s); };
+  Gamepads.prototype._info = function (s) { var slot = this.slots.indexOf(s); return { index: s.index, id: s.id, style: s.style, slot: slot, player: this.playerOf(s) }; };
+  Gamepads.prototype.playerOf = function (s) { var slot = this.slots.indexOf(s), p = this.cfg.players && this.cfg.players[slot]; return p == null ? (slot > 0 ? 1 : 0) : (p ? 1 : 0); };
+  Gamepads.prototype._read = function (s, t) {
+    var gp = s.gp, b = gp.buttons || [], ax = gp.axes || [], c = this.cfg, cur = {}, prev = s.st, n, i;
+    var btn = function (ix) { var x = b[ix]; if (x == null) return false; if (typeof x === 'object') return !!x.pressed || (+x.value || 0) > 0.5; return +x > 0.5; };
+    for (i = 0; i < PAD_NAMES.length; i++) { n = PAD_NAMES[i]; cur[n] = btn(PAD_BTN_IX[n]); }
+    var lx = +ax[0] || 0, ly = +ax[1] || 0; s.axes = [lx, ly, +ax[2] || 0, +ax[3] || 0];
+    // стик → направления с гистерезисом (нажатие > on, отпускание < off): дрожание у порога не «дребезжит»
+    var dirOn = function (v, was) { return was ? v > c.off : v > c.on; };
+    var sx = s.stick || (s.stick = {});
+    sx.left = dirOn(-lx, sx.left); sx.right = dirOn(lx, sx.right); sx.up = dirOn(-ly, sx.up); sx.down = dirOn(ly, sx.down);
+    cur.left = cur.left || sx.left; cur.right = cur.right || sx.right; cur.up = cur.up || sx.up; cur.down = cur.down || sx.down;
+    var active = false;
+    for (i = 0; i < PAD_NAMES.length; i++) { n = PAD_NAMES[i]; if (!!cur[n] !== !!prev[n]) { if (cur[n]) active = true; s.st[n] = cur[n]; this._edge(s, n, cur[n]); } }
+    if (active || Math.abs(lx) > c.on || Math.abs(ly) > c.on || Math.abs(s.axes[2]) > c.on || Math.abs(s.axes[3]) > c.on) this._activity(s);
+    // автоповтор как у клавиатуры: удержание кнопки/направления → keydown с repeat:true
+    for (n in s.rep) { var r = s.rep[n]; if (!s.st[n] || !s.codes[n]) { delete s.rep[n]; continue; } if (t >= r) { this.eng.input.virtKey(s.codes[n], true, true); s.rep[n] = Math.max(t, r + c.repeatRate); } }
+  };
+  Gamepads.prototype._activity = function (s) { s.used = true; var inp = this.eng.input; inp.touchOnly = false; inp._setDevice('gamepad'); };
+  Gamepads.prototype._edge = function (s, name, down) {
+    var info = null, i;
+    if (this._btnCbs.length) { info = this._info(s); for (i = 0; i < this._btnCbs.length; i++) { try { this._btnCbs[i](name, down, info); } catch (e) {} } }
+    var inp = this.eng.input;
+    if (down) {
+      var r = this.eng._padRoute(name, s);
+      if (r && typeof r === 'object' && r.fn) { try { r.fn.call(this.eng); } catch (e) {} return; }
+      if (typeof r === 'string') { s.codes[name] = r; inp.virtKey(r, true, false); if (!PAD_NOREPEAT[name] && r !== 'Escape' && r !== 'Enter' && r !== 'KeyP') s.rep[name] = now() + this.cfg.repeatDelay; }
+    } else {
+      var code = s.codes[name]; delete s.codes[name]; delete s.rep[name]; if (code) inp.virtKey(code, false);
+    }
+  };
+  // отпустить всё (окно без фокуса): виртуальные клавиши — keyup; при новом опросе зажатое снова даст keydown
+  Gamepads.prototype.releaseAll = function () {
+    var self = this; this.slots.forEach(function (s) { Object.keys(s.codes).forEach(function (n) { var c = s.codes[n]; delete s.codes[n]; self.eng.input.virtKey(c, false); }); s.st = {}; s.rep = {}; s.stick = {}; });
+  };
+  // --- публичное API: g.gamepad ---
+  Gamepads.prototype.count = function () { return this.slots.length; };
+  Gamepads.prototype.list = function () { var self = this; return this.slots.map(function (s) { return self._info(s); }); };
+  Gamepads.prototype._slot = function (slot) { return this.slots[slot | 0] || null; };
+  // pressed(name[, slot]) — кнопка зажата (на любом геймпаде, если slot не задан); name — a b x y lb rb lt rt select start ls rs up down left right home
+  Gamepads.prototype.pressed = function (name, slot) {
+    if (slot != null) { var s = this._slot(slot); return !!(s && s.st[name]); }
+    for (var i = 0; i < this.slots.length; i++) if (this.slots[i].st[name]) return true; return false;
+  };
+  // stick('left'|'right'[, slot]) → {x, y} в −1…1 с радиальной мёртвой зоной (cfg.deadzone)
+  Gamepads.prototype.stick = function (side, slot) {
+    var s = this._slot(slot); if (!s) return { x: 0, y: 0 }; var r = side === 'right' ? 2 : 0;
+    return deadzone(s.axes[r], s.axes[r + 1], this.cfg.deadzone);
+  };
+  // trigger('left'|'right'[, slot]) → 0…1 (аналоговые LT/RT, если есть)
+  Gamepads.prototype.trigger = function (side, slot) { var s = this._slot(slot), b = s && s.gp && s.gp.buttons && s.gp.buttons[side === 'right' ? 7 : 6]; return b ? (typeof b === 'object' ? +b.value || (b.pressed ? 1 : 0) : +b || 0) : 0; };
+  Gamepads.prototype.onButton = function (fn) { if (typeof fn === 'function') this._btnCbs.push(fn); return this; };
+  Gamepads.prototype.onConnect = function (fn) { if (typeof fn === 'function') this._conCbs.push(fn); return this; };
+  Gamepads.prototype.style = function (slot) { if (this.cfg.style && PAD_GLYPH[this.cfg.style]) return this.cfg.style; var s = this._slot(slot); return s ? s.style : 'letters'; }; // cfg.style — принудительный стиль подписей
+  // glyph(name[, slot]) — подпись кнопки текстом по стилю геймпада ('A', '✕', 'LB', '↑' …)
+  Gamepads.prototype.glyph = function (name, slot) { var st = PAD_GLYPH[this.style(slot)] || PAD_GLYPH.letters; return st[name] || DIR_GLYPH[name] || String(name).toUpperCase(); };
+  // Вибрация по желанию игры: rumble({ ms:200, strong:0.6, weak:0.3, player:0|1 }) → bool (true — хоть один геймпад принял). Нет
+  // поддержки (vibrationActuator / hapticActuators), выключено игроком (arcade.rumble = '0') или нет геймпада — false, без ошибок.
+  Gamepads.prototype.rumble = function (o) {
+    o = typeof o === 'number' ? { ms: o } : (o || {}); if (Store.get('arcade.rumble', '1') === '0') return false;
+    var ms = Math.max(0, Math.min(5000, o.ms == null ? 200 : +o.ms || 0)), st = Math.max(0, Math.min(1, o.strong == null ? 0.6 : +o.strong || 0)), wk = Math.max(0, Math.min(1, o.weak == null ? st * 0.5 : +o.weak || 0)), any = false, self = this;
+    this.slots.forEach(function (s) {
+      if (o.player != null && self.playerOf(s) !== (o.player ? 1 : 0)) return;
+      var gp = s.gp; if (!gp) return;
+      try {
+        var va = gp.vibrationActuator;
+        if (va && typeof va.playEffect === 'function') { var p = va.playEffect(va.type || 'dual-rumble', { startDelay: 0, duration: ms, strongMagnitude: st, weakMagnitude: wk }); if (p && p.then) p.then(null, function () {}); any = true; return; }
+        var ha = gp.hapticActuators && gp.hapticActuators[0];
+        if (ha && typeof ha.pulse === 'function') { var q = ha.pulse(Math.max(st, wk), ms); if (q && q.then) q.then(null, function () {}); any = true; }
+      } catch (e) {}
+    });
+    return any;
+  };
+  Gamepads.prototype.setRumble = function (on) { Store.set('arcade.rumble', on ? '1' : '0'); return !!on; };
 
   // ---------- Звук: 8-бит SFX + процедурная чиптюн-музыка (секвенсор на WebAudio) ----------
   // Политика автоплея: AudioContext создаётся/возобновляется ТОЛЬКО после первого жеста
@@ -554,6 +736,7 @@
     this.canvas.width = this.W; this.canvas.height = this.H; this.ctx = this.canvas.getContext('2d');
     this.input = new Input(); this.audio = new Audio(); this.particles = new Particles();
     this.menu = new MenuApi(this);
+    this.gamepad = new Gamepads(this, opts.gamepad); injectInputCss();
     this.musicAuto = opts.musicAuto !== false; // музыка по сценам: play — звучит, pause — пауза, прочие — стоп
     this.i18n = new I18n(opts.strings, opts.lang);
     if (doc && doc.readyState === 'loading' && doc.addEventListener) { var i18n = this.i18n; doc.addEventListener('DOMContentLoaded', function () { i18n.applyDom(); }); } // движок подключён в <head>
@@ -948,8 +1131,134 @@
       if (/^(#|javascript:)/i.test(h)) continue; a.style.display = 'none'; a.setAttribute('aria-hidden', 'true'); a.setAttribute('tabindex', '-1'); a.setAttribute('data-platform-hidden', '1'); } } catch (e) {}
   };
   Engine.prototype._adBreak = function () { try { this.adBreak(); } catch (e) {} };
+
+  // ---------- Геймпад (v2.9): маршрут кнопок по сцене, подключение, подсказки ----------
+  // Сцена play: стрелки (или клавиши направлений раскладки игрока), A/B/X/Y/LB/RB/LT/RT → первые клавиши действий раскладки
+  // setPlayers (в порядке actions, или cfg.actions), иначе cfg.keys (A — Space, B — KeyX, X — KeyZ, Y — KeyC, LB — KeyQ, RB — KeyE,
+  // LT — ShiftLeft, RT — KeyF); Start и Select — P (пауза). Второй геймпад при 2 игроках — раскладка И2 (нет клавиши — кнопка молчит).
+  // Меню и прочие сцены: стрелки, A — Space (выбор), B — Esc (назад), Start — Enter, Select — Esc; в паузе без своей press
+  // B и Start — «Продолжить». → строка e.code | { fn } | null.
+  Engine.prototype._padRoute = function (name, s) {
+    var sc = this._sceneName, play = sc === 'play', gp = this.gamepad, cfg = gp.cfg, inp = this.input, self = this;
+    var ps = this.scenes.pause, resume = { fn: function () { self.goto('play', { resume: true }); } };
+    if (name === 'home') return null;
+    if (name === 'start' || name === 'select') {
+      if (play && cfg.keys[name] !== undefined) return cfg.keys[name]; // своя клавиша игры (configure({ keys:{ select:'KeyB' } })), null — молчать
+      if (play) return this.current && !this.current.press && ps ? { fn: function () { self.pause(); } } : 'KeyP'; // play без своей press — пауза движком
+      if (sc === 'pause') return ps && !ps.press ? resume : 'KeyP';
+      return name === 'start' ? 'Enter' : 'Escape';
+    }
+    if (!play) {
+      if (ARROW[name]) return ARROW[name];
+      if (name === 'a') return 'Space';
+      if (name === 'b') return sc === 'pause' && ps && !ps.press ? resume : 'Escape';
+      return null;
+    }
+    if (cfg.play === false) return null;
+    var two = inp.playerCount === 2 && gp.playerOf(s) === 1, pl = inp._pl;
+    if (pl) {
+      var map = pl.bind[two ? 1 : 0] || {}, first = function (n) { var l = n && map[n]; return l && l.length ? l[0] : null; };
+      if (ARROW[name]) return first(name) || (two ? null : ARROW[name]);
+      var ix = { a: 0, b: 1, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7 }[name], an = (cfg.actions && cfg.actions[name]) || (ix != null ? pl.actions[ix] : null), c = first(an);
+      if (c) return c; if (two) return null;
+    }
+    if (ARROW[name]) return ARROW[name];
+    return cfg.keys[name] || null;
+  };
+  // подключение/отключение: сообщение (не в игре); отключение во время игры — пауза (cfg.autoPause), «Продолжить» — любым вводом
+  Engine.prototype._padConn = function (info, on, s) {
+    var play = this._sceneName === 'play';
+    if (!on && play && s.used && this.gamepad.cfg.autoPause && this.scenes.pause) this.pause();
+    if (!play || !on) this._padToast = { text: this.t(on ? 'pad_on' : 'pad_off'), t: 2.2, on: on };
+  };
+  Engine.prototype.rumble = function (o) { return this.gamepad.rumble(o); };
+  Engine.prototype.padActive = function () { return this.input.device === 'gamepad' && this.gamepad.count() > 0; };
+  // Подпись кнопки для подсказок (v2.9): последний ввод — геймпад → значок кнопки ('A', '✕', 'LB'…); иначе — клавиша, которую эта
+  // кнопка шлёт в игре ('Space', 'X', 'P', 'Esc', '←'…). name — кнопка геймпада (a b x y lb rb lt rt start select up down left right).
+  Engine.prototype.prompt = function (name) {
+    if (this.padActive()) return this.gamepad.glyph(name, 0);
+    var code = name === 'start' || name === 'select' ? 'KeyP' : ARROW[name] || this.gamepad.cfg.keys[name];
+    return keyLabel(code);
+  };
+  // Значки кнопок на канве: g.drawPrompt([['a', 'выбрать'], ['b', 'назад']], x, y, { align:'right', size:12, pill:true, device }) →
+  // ширина. Геймпад — круглые значки (буквы/фигуры по стилю) и «таблетки» (LB, Start…), клавиатура — клавиши-«колпачки».
+  Engine.prototype.drawPrompt = function (items, x, y, o) {
+    o = o || {}; var c = this.ctx, th = this.th(), sz = o.size || 12, r = Math.round(sz * 0.78), gap = Math.round(sz * 0.45), pad = !(o.device === 'keyboard') && (o.device === 'gamepad' || this.padActive());
+    var style = this.gamepad.style(0), font = th.font, self = this, parts = [], total = 0;
+    if (!c || typeof c.measureText !== 'function') return 0;
+    items.forEach(function (it) {
+      var name = it[0], label = it[1] == null ? '' : String(it[1]), face = pad && (name === 'a' || name === 'b' || name === 'x' || name === 'y');
+      var cap = pad ? self.gamepad.glyph(name, 0) : self.prompt(name);
+      c.font = '800 ' + Math.round(sz * 0.85) + 'px ' + font; var bw = face ? r * 2 : Math.max(r * 2, c.measureText(cap).width + r);
+      c.font = '700 ' + sz + 'px ' + font; var lw = label ? c.measureText(label).width + gap : 0;
+      parts.push({ name: name, cap: cap, face: face, bw: bw, lw: lw, label: label }); total += bw + lw + (parts.length > 1 ? gap * 2 : 0);
+    });
+    var x0 = o.align === 'right' ? x - total : o.align === 'center' ? x - total / 2 : x, cy = y - sz * 0.35;
+    c.save();
+    if (o.pill) { c.globalAlpha = 0.72; c.fillStyle = 'rgba(6,8,12,.86)'; roundRect(c, x0 - gap * 1.5, cy - r - gap, total + gap * 3, r * 2 + gap * 2, r + gap); c.fill(); c.globalAlpha = 1; }
+    var ink = o.pill ? '#eef2f8' : (o.color || th.ink), bg = o.pill ? '#10131a' : th.bg;
+    parts.forEach(function (p, i) {
+      if (i) x0 += gap * 2;
+      c.fillStyle = ink; c.strokeStyle = ink; c.lineWidth = Math.max(1.5, sz / 8);
+      if (p.face) { c.beginPath(); c.arc(x0 + r, cy, r, 0, Math.PI * 2); c.fill(); drawFace(c, style, p.name, p.cap, x0 + r, cy, r, bg, font); }
+      else if (pad && (p.name === 'start' || p.name === 'select') && style !== 'alt') { roundRect(c, x0, cy - r, p.bw, r * 2, r); c.fill(); drawSys(c, p.name, x0 + p.bw / 2, cy, r, bg); }
+      else { roundRect(c, x0, cy - r, p.bw, r * 2, pad ? r : Math.max(2, r * 0.35)); if (pad) c.fill(); else { c.globalAlpha = 0.9; c.stroke(); c.globalAlpha = 1; }
+        c.fillStyle = pad ? bg : ink; c.font = '800 ' + Math.round(sz * 0.8) + 'px ' + font; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(p.cap, x0 + p.bw / 2, cy + 0.5); }
+      x0 += p.bw;
+      if (p.label) { c.fillStyle = ink; c.font = '700 ' + sz + 'px ' + font; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(p.label, x0 + gap, cy + 0.5); x0 += p.lw; }
+    });
+    c.restore(); return total;
+  };
+  // подсказка геймпада в меню движка: справа сверху «A выбрать · B назад» (cfg.hints:false — выключить)
+  Engine.prototype._drawPadHints = function (dt) {
+    var ts = this._padToast; // «Геймпад подключён / отключён» — плашка вверху по центру, 2,2 с (не закрывает меню)
+    if (ts) { ts.t -= dt || 0; if (ts.t <= 0) this._padToast = null; else { var c = this.ctx, th = this.th(); c.save(); c.globalAlpha = Math.min(1, ts.t * 3);
+      c.font = '700 13px ' + th.font; var tw = c.measureText ? c.measureText(ts.text).width : 120; c.fillStyle = 'rgba(6,8,12,.86)'; roundRect(c, this.W / 2 - tw / 2 - 14, 8, tw + 28, 26, 13); c.fill();
+      this.text(ts.text, this.W / 2, 26, { size: 13, align: 'center', color: ts.on ? th.good : th.warn, weight: 700 }); c.restore(); } }
+    var sc = this.current, name = this._sceneName; if (!sc || !sc._menu || !this.gamepad.cfg.hints || !this.padActive()) return;
+    var items = [['a', this.t('pad_ok')]]; if (name !== 'title') items.push(['b', this.t(name === 'pause' ? 'resume' : 'pad_back')]);
+    this.drawPrompt(items, this.W - 14, this._padToast ? 58 : 24, { align: 'right', size: 12, pill: true }); // под плашкой подключения, если она видна
+  };
+  function roundRect(c, x, y, w, h, r) { r = Math.max(0, Math.min(r, w / 2, h / 2)); c.beginPath(); c.moveTo(x + r, y); c.lineTo(x + w - r, y); c.arcTo(x + w, y, x + w, y + r, r); c.lineTo(x + w, y + h - r); c.arcTo(x + w, y + h, x + w - r, y + h, r); c.lineTo(x + r, y + h); c.arcTo(x, y + h, x, y + h - r, r); c.lineTo(x, y + r); c.arcTo(x, y, x + r, y, r); c.closePath(); }
+  function drawFace(c, style, name, cap, x, y, r, bg, font) {
+    c.save(); c.strokeStyle = bg; c.fillStyle = bg; c.lineWidth = Math.max(1.4, r * 0.22); c.lineCap = 'round'; var k = r * 0.48;
+    if (style === 'shapes') {
+      c.beginPath();
+      if (name === 'a') { c.moveTo(x - k, y - k); c.lineTo(x + k, y + k); c.moveTo(x + k, y - k); c.lineTo(x - k, y + k); }
+      else if (name === 'b') c.arc(x, y, k, 0, Math.PI * 2);
+      else if (name === 'x') c.rect(x - k * 0.85, y - k * 0.85, k * 1.7, k * 1.7);
+      else { c.moveTo(x, y - k); c.lineTo(x + k, y + k * 0.75); c.lineTo(x - k, y + k * 0.75); c.closePath(); }
+      c.stroke();
+    } else { c.font = '900 ' + Math.round(r * 1.25) + 'px ' + font; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(cap, x, y + r * 0.06); }
+    c.restore();
+  }
+  function drawSys(c, name, x, y, r, bg) { // Start — три черты, Select — два квадрата
+    c.save(); c.strokeStyle = bg; c.fillStyle = bg; c.lineWidth = Math.max(1.2, r * 0.18); var k = r * 0.5;
+    if (name === 'start') { c.beginPath(); for (var i = -1; i <= 1; i++) { c.moveTo(x - k, y + i * k * 0.6); c.lineTo(x + k, y + i * k * 0.6); } c.stroke(); }
+    else { c.strokeRect(x - k * 0.9, y - k * 0.7, k * 1.1, k * 1.1); c.fillRect(x - k * 0.2, y - k * 0.2, k * 1.1, k * 1.1); }
+    c.restore();
+  }
+  function keyLabel(code) {
+    if (!code) return ''; var N = { Space: 'Space', Enter: 'Enter', Escape: 'Esc', Tab: 'Tab', ShiftLeft: 'Shift', ShiftRight: 'Shift', ControlLeft: 'Ctrl', ControlRight: 'Ctrl', AltLeft: 'Alt', AltRight: 'Alt', Slash: '/', Period: '.', Comma: ',' };
+    if (N[code]) return N[code]; if (/^Arrow/.test(code)) return DIR_GLYPH[code.slice(5).toLowerCase()] || code;
+    var m = /^(?:Key|Digit|Numpad)(\w)$/.exec(code); return m ? m[1] : code;
+  }
+  // CSS для подсказок в разметке: .arcade-pad-only — только при геймпаде, .arcade-kb-only — скрыть при геймпаде
+  function injectInputCss() {
+    try {
+      if (!doc || !doc.createElement || !doc.head || doc.getElementById('arcade-input-css')) return;
+      var st = doc.createElement('style'); st.id = 'arcade-input-css';
+      st.textContent = 'html:not([data-input="gamepad"]) .arcade-pad-only{display:none!important}html[data-input="gamepad"] .arcade-kb-only{display:none!important}';
+      doc.head.appendChild(st);
+    } catch (e) {}
+  }
+
   Engine.prototype.th = function () { return this.themesMap[this.themeName] || THEMES.modern; };
-  Engine.prototype.t = function (k, f) { return this.i18n.t(k, f); };
+  // v2.9: «пробел / тап» под финалами — при геймпаде «A — дальше» (если игра не задала своё tapstart_pad)
+  Engine.prototype.t = function (k, f) {
+    if (k === 'tapstart' && this.padActive && this.padActive()) return this.i18n.t('tapstart_pad', this.gamepad.glyph('a', 0) + ' — ' + this.i18n.t('pad_next'));
+    return this.i18n.t(k, f);
+  };
   Engine.prototype._applyPixel = function () { this.ctx.imageSmoothingEnabled = !this.th().pixel; };
   Engine.prototype.setTheme = function (name) { this.themeName = name; Store.set('arcade.theme', name); this._applyPixel(); };
   Engine.prototype.toggleTheme = function () { var order = ['modern', 'retro']; if (this.themesMap.neon && this._allowNeon) order.push('neon'); this.setTheme(order[(order.indexOf(this.themeName) + 1) % order.length]); return this.themeName; };
@@ -998,10 +1307,11 @@
       if (self._pfPause || self._adPause) { self._last = t; var pac = self.audio.ac; if (pac && pac.state === 'running') { try { pac.suspend(); } catch (e) {} } return; } // звук не должен «проснуться» во время показа (resume из жеста/другого колбэка) // пауза площадки / показ рекламы: кадр стоит
       var dt = (t - self._last) / 1000; self._last = t; if (dt > 0.25) dt = 0.25; else if (dt < 0) dt = 0; // метка rAF первого кадра бывает раньше performance.now() из start() — без отрицательного времени (иначе g.time < 0 и кадры спрайтов с индексом -1)
       self.time += dt; self.particles.update(dt);
+      try { self.gamepad.poll(); } catch (e) { if (global.console && console.error) console.error(e); } // геймпад (v2.9): кнопки → виртуальные клавиши до update сцены
       var sc = self.current; if (!sc) return;
       if (sc.realtime) { if (sc.update) sc.update.call(self, dt); }
       else { self._acc += dt; while (self._acc >= self.step) { self._acc -= self.step; if (sc.update) sc.update.call(self, self.step); } }
-      self.ctx.save(); if (sc.draw) sc.draw.call(self, self.ctx); self.particles.draw(self.ctx); self.ctx.restore();
+      self.ctx.save(); if (sc.draw) sc.draw.call(self, self.ctx); self._drawPadHints(dt); self.particles.draw(self.ctx); self.ctx.restore();
       var fm = self._flashMsg; if (fm) { fm.t -= dt; if (fm.t <= 0) self._flashMsg = null; else { var fth = self.th(); self.ctx.save(); self.ctx.globalAlpha = Math.min(1, fm.t * 3); self.ctx.fillStyle = 'rgba(6,8,12,.86)'; self.ctx.fillRect(0, self.H / 2 - 28, self.W, 44); self.text(fm.text, self.W / 2, self.H / 2, { size: 18, align: 'center', color: fth.good, maxWidth: self.W - 24 }); self.ctx.restore(); } }
     };
     this._raf = requestAnimationFrame(loop); return this;
@@ -1115,7 +1425,7 @@
 
   // Arcade.tracks[gameId] = track — так js/music.js игры регистрирует свою мелодию до createGame.
   var Arcade = (global.Arcade && global.Arcade.tracks) ? global.Arcade : {};
-  Object.assign(Arcade, { createGame: function (o) { var e = new Engine(o); Arcade.last = e; return e; }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, version: '2.8.0', catalogRoot: catalogRoot });
+  Object.assign(Arcade, { createGame: function (o) { var e = new Engine(o); Arcade.last = e; return e; }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, Gamepads: Gamepads, padNames: PAD_NAMES.slice(), padKeys: Object.assign({}, PAD_KEYS), padStyle: padStyle, deadzone: deadzone, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, version: '2.9.0', catalogRoot: catalogRoot });
   Arcade.tracks = Arcade.tracks || {};
   if (typeof module !== 'undefined' && module.exports) module.exports = Arcade;
   global.Arcade = Arcade;

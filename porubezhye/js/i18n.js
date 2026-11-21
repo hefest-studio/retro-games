@@ -49,6 +49,12 @@
       heroesT: 'Герои', wounded: 'ранен', heroDown: 'пал — вернётся раненым', objDone: 'Цель выполнена', objNew: 'Новая цель', objFail: 'Цель провалена',
       spanLost: 'Пролёт моста разрушен!', alertN: 'Чаща встревожена', reason0: 'Миссия провалена', missionN: 'Миссия', optional: 'необяз.', campDone: 'пройдено',
       chooseCamp: 'Кампании', comingCamp: 'позже', playHint: 'Enter — брифинг · ←→ — выбор · Esc — меню',
+      // миссии 4–7: Топотун Тихона, сани, посол, третья сторона, место сборки, колонна, Зимний вал, итог кампании
+      u_stomper: 'Топотун Тихона', d_stomper: 'Первый шагоход. Броня, пушка с разлётом, чинится. F — топот.', u_sled: 'Сани с беженцами', d_sled: 'Едут сами по пути колонны; при враге встают. Чинятся.',
+      u_envoy: 'Жук-посол', d_envoy: 'Посол чащи. Не воюет.', stomp: 'Топот', stompTip: 'Топот: удар оземь — урон всем врагам рядом. Перезарядка 25 с.', deny_stompCd: 'Топотун ещё не отдышался',
+      sideAlly: 'союзник', sideNeutral: 'нейтрал', sideFoe: 'враг', siteBusy: 'работа идёт', siteHot: 'враг рядом — работа стоит', siteIdle: 'нужен мастер у места работ', siteDone: 'Работа закончена!',
+      convoyStop: 'Колонна встала: враг на пути', convoyGo: 'Колонна тронулась', wallNote: 'Зимний вал ползёт!',
+      finBtn: 'Итог кампании', finT: 'Итог кампании', finStars: 'Звёзды кампании', finChoices: 'Решения', finCont: 'Продолжение — в кампании Чащи',
     },
     en: {
       play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
@@ -94,6 +100,11 @@
       heroesT: 'Heroes', wounded: 'wounded', heroDown: 'has fallen — will return wounded', objDone: 'Objective complete', objNew: 'New objective', objFail: 'Objective failed',
       spanLost: 'A bridge span is destroyed!', alertN: 'The thicket is alarmed', reason0: 'Mission failed', missionN: 'Mission', optional: 'optional', campDone: 'done',
       chooseCamp: 'Campaigns', comingCamp: 'later', playHint: 'Enter — briefing · ←→ — select · Esc — menu',
+      u_stomper: 'Tikhon’s Stomper', d_stomper: 'The first walker. Armour, splash cannon, repairable. F — stomp.', u_sled: 'Refugee sled', d_sled: 'Follows the convoy route on its own; halts when foes are near. Repairable.',
+      u_envoy: 'Beetle envoy', d_envoy: 'An envoy of the thicket. Does not fight.', stomp: 'Stomp', stompTip: 'Stomp: a blow to the ground hurts every foe nearby. Cooldown 25 s.', deny_stompCd: 'The Stomper is still catching its breath',
+      sideAlly: 'ally', sideNeutral: 'neutral', sideFoe: 'foe', siteBusy: 'in progress', siteHot: 'foes nearby — work halted', siteIdle: 'a craftsman is needed at the site', siteDone: 'Work complete!',
+      convoyStop: 'The convoy has halted: foes ahead', convoyGo: 'The convoy moves on', wallNote: 'The Winter Rampart is creeping!',
+      finBtn: 'Campaign summary', finT: 'Campaign summary', finStars: 'Campaign stars', finChoices: 'Choices', finCont: 'To be continued — in the Thicket campaign',
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

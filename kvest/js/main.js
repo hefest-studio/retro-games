@@ -9,6 +9,8 @@
    Ввод: мышь/тач по канве (тап = действие, долгий тап / ПКМ = осмотр, перетаскивание предметов пальцем — предмет приподнят над
    пальцем, крупная зона захвата; на маленьких экранах зоны увеличены), H — подсказка, B — набросок, D — отладка и статистика,
    E — выгрузить статистику (в отладке), F — во весь экран, P/Esc — пауза (в мини-игре и наброске Esc закрывает их).
+   Геймпад (движок v2.9, раздел «геймпад» ниже): левый стик — курсор, D-pad — к соседней цели, A — клик, B — отмена / к сумке, X — подсказка,
+   Y — осмотр, LB/RB — герой или предмет, LT/RT — предмет, L3/R3 — умение, Select — набросок, Start — пауза; подсказки — значками кнопок.
    Помощники (глава 3+): портреты героев над сценой (тап — переключить, тап по активному помощнику — умение), Tab — следующий герой,
    1/2/3 — герой по номеру, Q — умение (пёс — нюх, след тушью; чайка — взгляд сверху, обзор тушью; Тая под водой — прислушаться
    к колоколам: кольца-волны тушью). Под водой (глава 4+): шкала воздуха пузырьками, муть, звон — хук темы drawWater.
@@ -234,7 +236,7 @@
     this.text(chapterLabel(), W / 2, y0 + 110, { size: 13, align: 'center', color: th.muted, weight: 600 });
     menu.draw(this, W / 2, y0 + 156, 32);
     panel(ctx, 40, H - 32, W - 80, 24);
-    this.text(this.t(TOUCH ? 'hintTouch' : 'hint'), W / 2, H - 15, { size: 12, align: 'center', color: '#efe9dd', weight: 600 });
+    this.text(ctl(TOUCH ? 'hintTouch' : 'hint'), W / 2, H - 15, { size: 12, align: 'center', color: '#efe9dd', weight: 600 });
   };
 
   // ---------- финал главы + экран издания (демо / полная) ----------
@@ -312,7 +314,7 @@
         if (open && !r.done && r.total) { ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.10)'; ctx.fillRect(x0 + 78, y + 14, pw - 118, 3); ctx.fillStyle = th.accent; ctx.fillRect(x0 + 78, y + 14, (pw - 118) * r.solved / r.total, 3); ctx.restore(); }
         it._y = y + 6;
       });
-      this.text(this.t('chHint'), W / 2, y0 + ph - 14, { size: 11, align: 'center', color: th.muted, weight: 600 });
+      this.text(ctl('chHint'), W / 2, y0 + ph - 14, { size: 11, align: 'center', color: th.muted, weight: 600 });
     }
   });
 
@@ -339,7 +341,7 @@
         else self.text(self.t(l.key), W / 2, l.y, { size: l.size, align: 'center', color: l.accent ? th.accent : l.dim ? th.muted : th.ink, weight: l.accent ? 900 : l.dim ? 600 : 800 });
         ctx.restore();
       });
-      if (credT > 2) { ctx.save(); ctx.globalAlpha = 0.55; this.text(this.t('credSkip'), W - 24, H - 16, { size: 11, align: 'right', color: th.muted, weight: 600 }); ctx.restore(); }
+      if (credT > 2) { ctx.save(); ctx.globalAlpha = 0.55; this.text(ctl('credSkip'), W - 24, H - 16, { size: 11, align: 'right', color: th.muted, weight: 600 }); ctx.restore(); }
     }
   });
 
@@ -373,6 +375,7 @@
       if (m.cursor.item && !m.ui.drag) th.drawIcon(ctx, m.cursor.item, m.cursor.x + 22, m.cursor.y + 22, 28);
     }
     if (!mouseSeen) longPressRing(ctx, game.runtime());
+    if (padOn()) padDraw(ctx, m);
     if (m.ui.debug) debugPanel(ctx);
   }
   // тач: кольцо «долгого тапа» вокруг пальца (через 0,15 с после касания — понятно, что сейчас будет осмотр)
@@ -460,6 +463,106 @@
   cv.addEventListener('touchend', touchEnd, { passive: false });
   cv.addEventListener('touchcancel', touchEnd, { passive: false });
 
+  // ================= геймпад (движок v2.9) =================
+  // Курсор — левый стик (скорость растёт при удержании; правый стик — медленно и точно), D-pad — прыжок курсора к соседней цели
+  // (зона сцены, предмет в сумке, лампочка, книжка, портреты) в этом направлении. A — клик (нажатие/отпускание = мышь: держать на
+  // предмете из сумки и вести стиком — перетащить; держать на месте — осмотр, как долгий тап), B — отмена (предмет в руке,
+  // перетаскивание, мини-игра, набросок, обзор), иначе курсор к сумке и обратно; X — подсказка (H), Y — осмотр под курсором;
+  // LB/RB — герой (главы с помощниками) или предмет, LT/RT — предмет; L3/R3 — умение героя (Q); Select — набросок (B), Start — пауза.
+  // В меню, паузе, на экранах глав и финала — навигация движка (↑↓, A — выбрать, B — назад). Подсказки — значками (g.prompt).
+  var PADK = { hint: 'padHint', hintTouch: 'padHint', foot: 'padFoot', chHint: 'padChHint', credSkip: 'padCredSkip' };
+  function padOn() { return !!(g.padActive && g.padActive()); }
+  // строка подсказки управления: при геймпаде — вариант для геймпада, {a} {b} … → значок кнопки
+  function ctl(k) {
+    if (!padOn() || !PADK[k]) return g.t(k);
+    return String(g.t(PADK[k])).replace(/\{(\w+)\}/g, function (_, b) { return g.prompt(b); });
+  }
+  g.gamepad.configure({ play: false, keys: { select: 'KeyB' } });   // в play геймпад читает игра; Select → B (набросок), Start → пауза движка
+  var pc = { x: W / 2, y: H / 2, held: false, fast: 0, idle: 9 }, PAD_ZONE = 12;
+  function padReady() { return inPlay() && !(view.portrait && TOUCH) && performance.now() - playSince > 250; }
+  function padWake() {
+    var rt = game.runtime();
+    if (pc.idle > 1.5 && rt.hover && rt.hover.x >= 0) { pc.x = rt.hover.x; pc.y = rt.hover.y; }   // мышь двигала курсор — продолжаем оттуда
+    pc.idle = 0; mouseSeen = true; game.setTouchPad(PAD_ZONE); game.move(pc.x, pc.y);
+  }
+  function padItem(d) {
+    var st = game.state(), rt = game.runtime(), inv = (st.inv || []).filter(Boolean); if (!inv.length || rt.mode !== 'scene') return;
+    var i = inv.indexOf(rt.sel); i = i < 0 ? (d > 0 ? 0 : inv.length - 1) : (i + d + inv.length + 1) % (inv.length + 1);
+    rt.sel = i >= inv.length ? null : inv[i]; K.sfx(g, 'select');   // по кругу: предметы → «пустые руки»
+  }
+  function padBack() {
+    var rt = game.runtime();
+    if (rt.drag) { game.up(-100, -100); pc.held = false; return; }
+    if (rt.sel) { rt.sel = null; K.sfx(g, 'select'); return; }
+    if (rt.mode === 'mini') { game.closeMini(); K.sfx(g, 'page'); return; }
+    if (rt.mode === 'walk') { game.closeWalk(); K.sfx(g, 'page'); return; }
+    if (rt.overview) { game.tap(-100, -100); return; }
+    var L = A.LAYOUT, inBag = pc.y >= L.inv.y;
+    if (inBag) { pc.x = pc.bx || W / 2; pc.y = pc.by || H / 2; }
+    else { pc.bx = pc.x; pc.by = pc.y; var r = A.slotRect(0); pc.x = r[0] + r[2] / 2; pc.y = r[1] + r[3] / 2; }
+    game.move(pc.x, pc.y);
+  }
+  // цели для D-pad: центры видимых зон сцены, занятые ячейки сумки, лампочка/книжка, портреты героев, кнопки блокнота/мини-игры
+  function padTargets() {
+    var m = game.model(), L = A.LAYOUT, rt = game.runtime(), out = [], i;
+    if (rt.mode === 'walk') { var Lw = L.walk; [Lw.prev, Lw.next, Lw.close].forEach(function (b) { out.push({ x: b.x, y: b.y }); }); return out; }
+    if (rt.mode === 'mini') out.push({ x: L.close.x, y: L.close.y });
+    (m.scene && m.scene.hotspots || []).forEach(function (h) { var r = h.rect; if (r) out.push({ x: r[0] + r[2] / 2, y: Math.min(r[1] + r[3] / 2, L.inv.y - 8) }); });
+    if (rt.mode !== 'scene') return out;
+    var inv = game.state().inv || []; for (i = 0; i < L.inv.slots; i++) if (inv[i]) { var s = A.slotRect(i); out.push({ x: s[0] + s[2] / 2, y: s[1] + s[3] / 2 }); }
+    out.push({ x: L.hint.x, y: L.hint.y }, { x: L.book.x, y: L.book.y });
+    (game.portraits ? game.portraits() : []).forEach(function (id, k) { if (L.heroes) out.push({ x: L.heroes.x + k * L.heroes.gap, y: L.heroes.y }); });
+    return out;
+  }
+  function padJump(dir) {
+    var dx = dir === 'left' ? -1 : dir === 'right' ? 1 : 0, dy = dir === 'up' ? -1 : dir === 'down' ? 1 : 0, best = null, bs = 1e9;
+    padTargets().forEach(function (p) {
+      var vx = p.x - pc.x, vy = p.y - pc.y, along = vx * dx + vy * dy, side = Math.abs(vx * dy - vy * dx);
+      if (along < 8 || side > along * 1.6) return; var sc = along + side * 2; if (sc < bs) { bs = sc; best = p; }
+    });
+    if (best) { pc.x = best.x; pc.y = best.y; game.move(pc.x, pc.y); }
+  }
+  g.gamepad.onButton(function (name, down) {
+    if (!game) return;
+    if (!down && name === 'a' && pc.held) { pc.held = false; if (inPlay()) game.up(pc.x, pc.y); return; }
+    if (!padReady() || !down) return;
+    padWake(); var rt = game.runtime();
+    if (name === 'a') { pc.held = true; game.down(pc.x, pc.y); return; }
+    if (name === 'b') { padBack(); return; }
+    if (name === 'x') { game.hint(); K.sfx(g, 'hint'); return; }
+    if (name === 'y') { if (rt.mode === 'scene' && !rt.cut) game.look(pc.x, pc.y); return; }
+    if (name === 'lb' || name === 'rb') { if (game.multi) game.cycleHero(name === 'lb' ? -1 : 1); else padItem(name === 'lb' ? -1 : 1); return; }
+    if (name === 'lt' || name === 'rt') { padItem(name === 'lt' ? -1 : 1); return; }
+    if (name === 'ls' || name === 'rs') { if (game.multi) game.ability(); return; }
+    if (name === 'up' || name === 'down' || name === 'left' || name === 'right') padJump(name);
+  });
+  // стик → курсор: скорость ~ |v|^1.6 (точно у центра), разгон до ×3 за 0,7 с непрерывного движения
+  function padUpdate(dt) {
+    pc.idle += dt; if (!game || !padReady()) { pc.fast = 0; return; }
+    var a = g.gamepad.stick('left', 0), b = g.gamepad.stick('right', 0), ma = Math.hypot(a.x, a.y), mb = Math.hypot(b.x, b.y);
+    if (ma < 0.01 && mb < 0.01) { pc.fast = 0; return; }
+    if (pc.idle > 0.3) padWake(); else pc.idle = 0;
+    pc.fast = ma > 0.6 ? Math.min(1, pc.fast + dt / 0.7) : Math.max(0, pc.fast - dt * 2);
+    var sp = 260 * (1 + 2 * pc.fast) * Math.pow(ma, 1.6), sp2 = 140 * Math.pow(mb, 1.6);
+    pc.x += (ma ? a.x / ma * sp : 0) * dt + (mb ? b.x / mb * sp2 : 0) * dt; pc.y += (ma ? a.y / ma * sp : 0) * dt + (mb ? b.y / mb * sp2 : 0) * dt;
+    pc.x = Math.max(2, Math.min(W - 2, pc.x)); pc.y = Math.max(2, Math.min(H - 2, pc.y));
+    game.move(pc.x, pc.y);
+  }
+  (function () { var sc = g.scenes.play, up = sc.update; sc.update = function (dt) { padUpdate(dt); if (up) up.call(this, dt); }; })();
+  // значки кнопок у лампочки (X) и книжки (Select), у сумки (бамперы/курки), у курсора над целью (A)
+  function padDraw(ctx, m) {
+    var L = A.LAYOUT, rt = game.runtime(); if (rt.mode !== 'scene' || rt.cut || rt.cutQ.length) return;
+    ctx.save(); ctx.globalAlpha = 0.92;
+    g.drawPrompt([['x', '']], L.hint.x + L.hint.r * 0.55, L.hint.y - L.hint.r * 0.75, { size: 10, pill: true });
+    g.drawPrompt([['select', '']], L.book.x + L.book.r * 0.45, L.book.y - L.book.r * 0.85, { size: 10, pill: true });
+    if ((game.state().inv || []).some(Boolean)) {
+      var last = A.slotRect(L.inv.slots - 1);
+      g.drawPrompt(game.multi ? [['lt', ''], ['rt', '']] : [['lb', ''], ['rb', '']], last[0] + last[2] + 8, L.inv.slotY + L.inv.slotH / 2 + 4, { size: 10, pill: true });
+    }
+    if (m.cursor && m.cursor.kind && m.cursor.kind !== 'walk' && m.cursor.x >= 0 && !rt.drag) g.drawPrompt([['a', '']], m.cursor.x + 16, m.cursor.y - 14, { size: 10, pill: true });
+    ctx.restore();
+  }
+
   // ================= DOM: кнопки, раскладка, поворот, полноэкранный режим =================
   var $ = function (id) { return document.getElementById(id); };
   var bPause = $('bPause'), bFs = $('bFs'), back = $('backLink'), foot = $('foot'), rot = $('rotate');
@@ -516,7 +619,7 @@
     document.body.classList.toggle('rails', mode === 'rails'); document.body.classList.toggle('bar', mode === 'bar');
     if (mode === 'rails') { place(back, left - rail + 6, top + 4); place(bPause, left + cw + 8, top + 4); place(bFs, left + cw + 8, top + 50); }
     else { place(back, left, top - bar + 4); place(bPause, left + cw - 38, top - bar + 4); place(bFs, left + cw - 84, top - bar + 4); }
-    if (foot) { foot.hidden = !footH; foot.innerHTML = g.t(cw >= 1000 ? 'foot' : 'hint'); foot.dataset.lang = g.i18n.lang; foot.style.top = Math.round(top + ch + 6) + 'px'; foot.style.left = Math.round(left) + 'px'; foot.style.width = cw + 'px'; }
+    if (foot) { foot.hidden = !footH; foot.innerHTML = ctl(cw >= 1000 ? 'foot' : 'hint'); foot.dataset.lang = g.i18n.lang; foot.style.top = Math.round(top + ch + 6) + 'px'; foot.style.left = Math.round(left) + 'px'; foot.style.width = cw + 'px'; }
     view.mode = mode; view.css = cw; view.cssH = ch;
     if (game && TOUCH) game.setTouchPad(touchPad());
     applyScale();
@@ -550,13 +653,13 @@
     if (th && th.drawHero) { c.save(); c.translate(70, 50); c.scale(0.95, 0.95); th.drawHero(c, { x: 18, y: 160, dir: 1 }, 'think', t); c.restore(); }
   }
 
-  var lastLang = null, lastScene = null, lastFs = null;
+  var lastLang = null, lastScene = null, lastFs = null, lastPad = false;
   function domSync() {
-    if (g.i18n.lang !== lastLang) {
-      lastLang = g.i18n.lang; document.documentElement.lang = lastLang; document.title = g.t('docTitle');
+    if (g.i18n.lang !== lastLang || padOn() !== lastPad) {
+      lastLang = g.i18n.lang; lastPad = padOn(); document.documentElement.lang = lastLang; document.title = g.t('docTitle');
       cv.setAttribute('aria-label', g.t('title'));
       if (back) { back.innerHTML = '&larr; <span class="lbl"></span>'; back.querySelector('.lbl').textContent = g.t('back'); back.title = g.t('back'); back.setAttribute('aria-label', g.t('back')); }
-      if (foot) foot.innerHTML = g.t(view.css >= 1000 ? 'foot' : 'hint');   // строки — наши, из i18n.js
+      if (foot) foot.innerHTML = ctl(view.css >= 1000 ? 'foot' : 'hint');   // строки — наши, из i18n.js
       if (bPause) { bPause.setAttribute('aria-label', g.t('pauseBtn')); bPause.title = g.t('pauseBtn'); }
       if (rot) { var r1 = rot.querySelector('.r1'), r2 = rot.querySelector('.r2'); if (r1) r1.textContent = g.t('rotate'); if (r2) r2.textContent = g.t('rotateSub'); }
       lastFs = null;

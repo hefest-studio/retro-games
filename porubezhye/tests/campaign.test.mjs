@@ -2,7 +2,9 @@
    только маленькие тестовые миссии-данные). Запуск: node porubezhye/tests/campaign.test.mjs
    Проверяет: карту миссии (легенда, ресурсы, точки), общее ядро сценария js/scenario.js (триггеры с wait/if, цели after/hidden/opt/fail,
    звёзды, победа/поражение), условия и действия ПОРУБЕЖЬЯ (зоны, спавн, сценарный ИИ групп, смена клеток, обзор, мороз, allow),
-   пролёты моста (вода у берега → настил → снова вода), мороз и тепло обеих рас, знамя Ярины, Тихона, дрова, перенос героев и прогресс. */
+   пролёты моста (вода у берега → настил → снова вода), мороз и тепло обеих рас, знамя Ярины, Тихона, дрова, перенос героев и прогресс;
+   под миссии 4–7: место работ (сборка), засека (tough), Топотун (топот), третья сторона и отношения, колонна (convoy) и уход с карты
+   (exit/escaped), сопровождение (follow), ползущий Зимний вал, общая карта битвы (registerBattle), сцена итога кампании в UI. */
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -157,6 +159,69 @@ test('прогресс: сохранение/загрузка по кампан�
   const bad = { getItem() { throw new Error('denied'); }, setItem() { throw new Error('denied'); }, removeItem() { throw new Error('denied'); } };
   eq(C.load(bad, 'wright').unlocked, 1); eq(C.save(bad, 'wright', d), false); C.reset(bad, 'wright');
   const g = C.build(mini({ heroes: ['yarina'], carry: ['grove'] }), { save: d2, fogOff: true }), y = g.ents.find(e => e.type === 'yarina'); ok(y.wounded && Math.round(y.hp) === Math.round(y.maxhp * 0.6), 'ранена ' + y.hp); eq(g.mission.flags.grove, 'cut', 'carry');
+});
+// ---------- под миссии 4–7 ----------
+test('место работ: идёт, пока у места стоит who и рядом нет врага; помощники ускоряют; site { on, time }; условие site', () => {
+  const g = C.build(mini({ sites: { s: { at: 'S', r: 2.5, time: 20, who: 'yarina', help: 'worker', helpMax: 2, helpK: 0.5 } } })), MS = g.mission;
+  const y = g.ents.find(e => e.type === 'yarina'), sp = C.pointOf(MS, 'S');
+  g.ents.filter(e => e.type === 'worker').forEach(w => { w.x = 30 * T; w.y = 8 * T; w.ord = { t: 'idle' }; }); g.ents.filter(e => e.type === 'worker').forEach(w => { w.x = 2 * T; w.y = 9.5 * T; });
+  y.x = sp.x * T; y.y = sp.y * T; run(g, 5); const p1 = MS.sites.s.prog; ok(p1 > 0.2 && p1 < 0.3, 'без помощников ' + p1);
+  g.ents.filter(e => e.type === 'worker').forEach(w => { w.x = sp.x * T + T; w.y = sp.y * T; }); run(g, 5); ok(MS.sites.s.prog - p1 > 0.45, 'с помощниками ' + (MS.sites.s.prog - p1));
+  const foe = g._addUnit(1, 'stinger', sp.x * T + 2 * T, sp.y * T); foe.sm = 0.0001; const p2 = MS.sites.s.prog; run(g, 0.5); ok(MS.sites.s.hot && MS.sites.s.prog === p2, 'враг рядом — стоит');
+  g._kill(foe, null, true); y.x = 20 * T; run(g, 1); ok(!MS.sites.s.busy, 'без who — стоит');
+  y.x = sp.x * T; y.y = sp.y * T; C.act(g, { a: 'site', id: 's', time: 1 }); run(g, 1); ok(C.cond(g, { t: 'site', id: 's' }), 'не дошло ' + JSON.stringify(MS.sites.s) + ' ' + y.ord.t); ok(MS.ui.some(e => e.t === 'siteDone'), 'нет события');
+});
+test('засека (tough): немашины почти не берут, шагоход — в полную силу; Топотун: топот бьёт врагов рядом, перезарядка', () => {
+  const g = C.build(mini({ enemy: { start: [{ type: 'hollow', at: 'K', tag: 'bar', tough: 0.15 }] } })), b = g.ents.find(e => e.tag === 'bar');
+  const sh = g._addUnit(0, 'shooter', 0, 0), st = g._addUnit(0, 'stomper', b.x - 3 * T, b.y);
+  const h0 = b.hp; g._damage(b, 10, sh); ok(Math.abs(h0 - b.hp - 1.5) < 1e-6, 'пищаль ' + (h0 - b.hp)); const h1 = b.hp; g._damage(b, 10, st); eq(h1 - b.hp, 10, 'шагоход');
+  const f1 = g._addUnit(1, 'stinger', st.x + T, st.y), f2 = g._addUnit(1, 'stinger', st.x + 6 * T, st.y);
+  ok(g.cmd(0, { t: 'stomp', id: st.id }), 'топот'); ok(f1.hp < f1.maxhp && f2.hp === f2.maxhp, 'урон по радиусу'); ok(!g.cmd(0, { t: 'stomp', id: st.id }), 'без перезарядки');
+  ok(g.def(st).hero && g.def(st).mech, 'Топотун — герой-машина'); ok(g.trainBlock(0, g.ents.find(e => e.type === 'hall'), 'sled') === 'nobuild', 'сани не обучаются');
+});
+test('третья сторона: owner 2, отношения neutral/ally/enemy; нейтрала сами не бьют, A+клик — бьют; союзник бьётся с врагом; rel меняет', () => {
+  const g = C.build(mini({ third: { race: 'thicket', rel: { 0: 'neutral', 1: 'ally' }, start: [{ type: 'stinger', at: 'K', n: 1, tag: 'nb' }] } })), MS = g.mission;
+  eq(g.sides, 3); eq(g.relOf(2, 0), 'neutral'); eq(g.relOf(2, 1), 'ally'); eq(g.relOf(0, 1), 'enemy'); ok(!g.hostile(0, 2) && g.hostile(0, 1), 'враждебность');
+  const nb = g.ents.find(e => e.tag === 'nb'), sh = g._addUnit(0, 'shooter', nb.x - 3 * T, nb.y); run(g, 3); eq(nb.hp, nb.maxhp, 'нейтрала обстреляли сами');
+  g.cmd(0, { t: 'attack', ids: [sh.id], target: nb.id }); run(g, 2); ok(nb.hp < nb.maxhp, 'явный приказ не исполнен');
+  C.act(g, { a: 'rel', side: 2, with: 0, to: 'ally' }); C.act(g, { a: 'rel', side: 2, with: 1, to: 'enemy' }); ok(C.cond(g, { t: 'rel', side: 2, with: 0, is: 'ally' }));
+  ok(sh.ord.t !== 'attack' || !g.get(sh.ord.id) || g.get(sh.ord.id).owner !== 2, 'по союзнику продолжают бить');
+  const foe = g._addUnit(1, 'stinger', nb.x + 2 * T, nb.y); run(g, 6); ok(foe.dead || foe.hp < foe.maxhp, 'союзник не бьётся с врагом');
+});
+test('колонна (convoy): locked — игрок не управляет; идёт по точкам, встаёт при враге, трогается; exit → escaped (не «убит»); follow', () => {
+  const g = C.build(mini({ player: { res: { a: 0, r: 0 }, start: [{ type: 'hall', at: 'H' }, { type: 'sled', at: 'S', n: 2, tag: 'cv', locked: true }, { type: 'yarina', at: 'H' }] },
+    zones: { out: { at: 'K', r: 2 } }, groups: { cv: { owner: 0, mode: 'convoy', route: ['K'], stop: 4 } } })), MS = g.mission;
+  const sl = g.ents.filter(e => e.tag === 'cv'); ok(!g.cmd(0, { t: 'move', ids: sl.map(u => u.id), x: 40, y: 40 }) || sl.every(u => u.ord.t !== 'move' || u.ord.x !== 40), 'игрок управляет санями');
+  run(g, 3); ok(sl.some(u => u.ord.t === 'move'), 'колонна не пошла');
+  const foe = g._addUnit(1, 'stinger', sl[0].x + 2 * T, sl[0].y); foe.sm = 0.0001; run(g, 1); ok(MS.groups.cv.halted && sl.every(u => u.ord.t === 'idle'), 'не встала'); ok(MS.ui.some(e => e.t === 'convoyStop'));
+  g._kill(foe, null, true); run(g, 40); ok(MS.groups.cv.arrived, 'не дошла'); ok(sl.every(u => !u.dead && u.hp === u.maxhp), 'сани сами воевали');
+  C.act(g, { a: 'exit', tag: 'cv', zone: 'out' }); ok(C.cond(g, { t: 'escaped', tag: 'cv', gte: 2 }), 'не ушли'); ok(!C.cond(g, { t: 'killed', tag: 'cv' }), 'ушедшие посчитаны убитыми');
+  const g2 = C.build(mini({ third: { race: 'thicket', rel: { 0: 'neutral' }, start: [{ type: 'envoy', at: 'K', tag: 'env', locked: true }] }, groups: { env: { owner: 2, mode: 'follow', lead: 'yarina', r: 1.5 } } }));
+  const y = g2.ents.find(e => e.type === 'yarina'), en = g2.ents.find(e => e.tag === 'env'); run(g2, 12); ok(Math.hypot(en.x - y.x, en.y - y.y) < 3 * T, 'посол не идёт за Яриной');
+});
+test('Зимний вал: фронт ползёт, ряды за ним — лёд (вода тоже, лес остаётся), за валом медленнее и мороз жжёт; stop; условие wall', () => {
+  const g = C.build(mini()), MS = g.mission, w = g.ents.find(e => e.type === 'worker');
+  C.act(g, { a: 'wall', dir: 'e', pos: 0, speed: 2, dps: 10, stop: 12 }); run(g, 3); ok(Math.abs(g.wall.pos - 6) < 0.1, 'позиция ' + g.wall.pos); ok(C.cond(g, { t: 'wall', gte: 5.9 }));
+  eq(g.terrAt(3, 3), TR.ICE, 'трава не замёрзла'); eq(g.terrAt(0, 3), TR.WOOD, 'лес/кромка'); eq(g.terrAt(8, 3), TR.GRASS, 'впереди вала уже лёд');
+  w.x = 3 * T; w.y = 5 * T; ok(g.inWall(w.x, w.y) && g.coldMove(w) < 0.7, 'за валом не медленнее'); const h = w.hp; run(g, 1); ok(w.hp < h, 'мороз не жжёт');
+  run(g, 5); eq(g.wall.pos, 12, 'stop'); eq(g.terrAt(11, 3), TR.ICE, 'река не замёрзла'); C.act(g, { a: 'wallOff' }); eq(g.wall, null);
+});
+test('общая карта битвы: registerBattle → миссия с battle берёт карту, зоны и силы своей расы и расы врага (+ more); зеркально для Чащи', () => {
+  P.registerBattle('t-battle', { map: MAP, ground: '.', legend: { E: '*' }, zones: { east: { x: 13, y: 1, w: 10, h: 10 } },
+    forces: { wright: [{ type: 'hall', at: 'H' }, { type: 'shooter', at: 'S', n: 2 }], thicket: [{ type: 'stump', at: 'K' }, { type: 'stinger', at: 'E', n: 3 }] } });
+  P.registerMission({ id: 't-w', n: 1, camp: 'wright', race: 'wright', battle: 't-battle', zones: { mine: { at: 'S', r: 2 } }, player: { more: [{ type: 'yarina', at: 'S' }] }, objectives: [] });
+  P.registerMission({ id: 't-t', n: 1, camp: 'thicket', race: 'thicket', foe: 'wright', battle: 't-battle', objectives: [] });
+  const dw = C.byId('t-w'), dt = C.byId('t-t'); ok(C.playable(dw) && dw.map === MAP && dw.zones.east && dw.zones.mine, 'карта/зоны');
+  const gw = C.build(dw), gt = C.build(dt);
+  ok(gw.ents.some(e => e.owner === 0 && e.type === 'yarina') && gw.ents.filter(e => e.owner === 1 && e.type === 'stinger').length === 3, 'силы Мастеровых');
+  ok(gt.ents.some(e => e.owner === 0 && e.type === 'stump') && gt.ents.some(e => e.owner === 1 && e.type === 'hall'), 'силы Чащи — зеркально');
+  P.MISSIONS.splice(P.MISSIONS.indexOf(dw), 1); P.MISSIONS.splice(P.MISSIONS.indexOf(dt), 1); delete P.BATTLES['t-battle'];
+});
+test('UI кампании: сцена итога кампании (finale) и счётчики новых целей есть в campaign-ui.js; строки RU/EN новых механик', () => {
+  const ui = fs.readFileSync(path.join(ROOT, 'js/campaign-ui.js'), 'utf8');
+  ok(/finale: drawFinale/.test(ui) && /UI\.openFinale/.test(ui) && /case 'site'/.test(ui) && /case 'escaped'/.test(ui) && /drawWall/.test(ui), 'нет итога/счётчиков/вала');
+  for (const k of ['u_stomper', 'd_stomper', 'u_sled', 'u_envoy', 'stomp', 'stompTip', 'sideAlly', 'sideNeutral', 'siteBusy', 'siteHot', 'siteIdle', 'convoyStop', 'finT', 'finCont', 'finBtn', 'deny_stompCd'])
+    { ok(P.STR.ru[k] && P.STR.en[k], k); ok(!/[а-яё]/i.test(P.STR.en[k]), 'кириллица в EN: ' + k); }
 });
 test('скирмиш не тронут: карта 64×48 по умолчанию, ИИ на месте, мороза нет', () => {
   const g = P.create({ seed: 1, playerRace: 'wright' }); eq([g.MW, g.MH], [64, 48]); ok(g.ai, 'нет ИИ'); eq(g.cold, 0); eq(g.mission, undefined);

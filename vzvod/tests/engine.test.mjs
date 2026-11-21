@@ -336,6 +336,14 @@ test('правило имён: в папке игры нет чужих назв
   ok(!BAD.test('ВЗВОД') && !BAD.test('Гефест') && !BAD.test('болванчик') && !BAD.test('CONTRACT.md') && !BAD.test('пушка') && !BAD.test('ракета'), 'без ложных срабатываний');
 });
 
+// ---------- волна 4 (площадки): языки ----------
+test('языки: ru/en/tr/es/pt — одинаковые ключи (вкл. имена n_*); название RU ВЗВОД, EN/TR/ES/PT HIVEWRENCH; без «ru ? с : s» в коде', () => {
+  const ks = Object.keys(V.STR.en).sort().join(','); eq(Object.keys(V.STR).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(V.STR[l]).sort().join(','), ks, l);
+  eq(V.STR.ru.title, 'ВЗВОД'); for (const l of ['en', 'tr', 'es', 'pt']) eq(V.STR[l].title, 'HIVEWRENCH', l);
+  ok(!/i18n\.lang === 'ru'/.test(fs.readFileSync(path.join(ROOT, 'js/ui.js'), 'utf8')), 'язык — только через g.t');
+});
+
 // ---------- Бот-командир: проходимость и баланс (QUICK=1 — пропустить) ----------
 if (process.env.QUICK){ console.log(`\n${passed} прошло, ${failed} упало (без бота)`); process.exit(failed ? 1 : 0); }
 test('исполнимость: бот без урона проходит каждую из 18 миссий (3 сида) в настоящей физике', () => {

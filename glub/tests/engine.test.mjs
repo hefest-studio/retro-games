@@ -233,6 +233,24 @@ test('правило имён: в папке игры нет чужих назв
   ok(!BAD.test('mole(force)') && !BAD.test('digStart') && !BAD.test('монитор') && !BAD.test('CONTRACT.md') && !BAD.test('Гефест'), 'стоп-лист без ложных срабатываний на наши слова');
 });
 
+// ---------- волна 4 (площадки): сохранение у маяка, реклама за награду, языки ----------
+test('сохранение у маяка: snapshot → новая игра с save — кристаллы, жизни, время, маяк-чекпоинт; битое — игнор', () => {
+  const a = mk(); a.game._giveCrystals(3); a.S.lives = 2; a.S.time = 123; a.S.score = 4567;
+  const sn = JSON.parse(JSON.stringify(a.game.snapshot())); eq(sn.v, 1); eq(sn.crystals.length, 3);
+  const b = mk({ save: sn }); eq(b.S.crystals.length, 3); eq(b.S.lives, 2); eq(b.S.time, 123); eq(b.S.score, 4567); eq(b.S.room, sn.cp.room); eq(b.S.phase, 'play'); eq(b.S.energy, L.EMAX);
+  const c = mk({ save: { v: 9 } }); eq(c.S.crystals.length, 0, 'чужой формат — новая партия');
+});
+test('реклама: reviveAd после «водолаз не вернулся» — 1 жизнь у маяка; boost — +1 жизнь (не больше трёх)', () => {
+  const a = mk(); ok(!a.game.reviveAd(), 'в игре — нельзя'); a.S.lives = 1; a.game._die('test'); for (let i = 0; i < 200 && a.S.phase !== 'over'; i++) a.game.update(1 / 60);
+  eq(a.S.phase, 'over'); ok(a.game.reviveAd()); eq(a.S.phase, 'play'); eq(a.S.lives, 1); ok(!a.S.over);
+  ok(a.game.canBoost()); ok(a.game.boost()); eq(a.S.lives, 2); a.S.lives = L.LIVES; ok(!a.game.canBoost());
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ГЛУБЬ, EN/TR/ES/PT LAMPDIVER', () => {
+  const ks = Object.keys(Gb.STR.en).sort().join(','); eq(Object.keys(Gb.STR).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(Gb.STR[l]).sort().join(','), ks, l);
+  eq(Gb.STR.ru.title, 'ГЛУБЬ'); for (const l of ['en', 'tr', 'es', 'pt']) eq(Gb.STR[l].title, 'LAMPDIVER', l);
+});
+
 // ---------- партии бота (QUICK=1 — пропустить) ----------
 if (process.env.QUICK){ console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed) + ' (без бота)'); process.exit(failed ? 1 : 0); }
 test('исполнимость: бот без урона проходит всю игру в настоящей физике (крот, Печать, Сердце)', () => {

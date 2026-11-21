@@ -11,7 +11,8 @@
   function fit(g) {
     var c = g.canvas, wrap = c.parentElement;
     var pad = document.querySelector('.pad'), cs = pad && getComputedStyle(pad), padH = cs && cs.display !== 'none' && cs.position !== 'fixed' ? pad.offsetHeight + 16 : 0;
-    var availH = innerHeight - padH - (padH ? 70 : 40);
+    var foot = document.getElementById('foot') || document.querySelector('.foot'), footH = foot && getComputedStyle(foot).display !== 'none' ? foot.offsetHeight + 18 : 0;
+    var availH = innerHeight - padH - Math.max(padH ? 70 : 40, 40 + footH);   // подпись под канвой тоже влезает (без прокрутки на 1280×720)
     var w = Math.min(1000, (wrap && wrap.clientWidth) || g.W, availH * g.W / g.H);
     w = Math.max(280, Math.floor(w));
     c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';

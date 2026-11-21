@@ -15,6 +15,7 @@ const sandbox = { console, Math };
 sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 vm.runInContext(read('js/game.js'), sandbox, { filename: 'game.js' });
+vm.runInContext(read('js/meta.js'), sandbox, { filename: 'meta.js' });
 vm.runInContext(read('js/i18n.js'), sandbox, { filename: 'i18n.js' });
 vm.runInContext(read('js/music.js'), sandbox, { filename: 'music.js' });
 const K = sandbox.TAYNIK, L = K.logic;
@@ -438,7 +439,7 @@ test('страница: engine.js = _shared, фавикон, «← Катало�
   ok(/data-catalog-back/.test(html) && /href="\.\.\/"/.test(html), 'ссылка в каталог');
   ['U', 'D', 'L', 'R', 'A'].forEach(d => ok(html.includes('data-d="' + d + '"'), 'кнопка ' + d));
   const order = [...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]);
-  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/ui.js', 'js/modern.js', 'js/classic.js', 'js/main.js']);
+  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/meta.js', 'js/audio.js', 'js/ui.js', 'js/modern.js', 'js/classic.js', 'js/main.js']);
 });
 
 test('Правило имён: в файлах игры нет чужих названий игр, компаний и персонажей', () => {
@@ -448,6 +449,27 @@ test('Правило имён: в файлах игры нет чужих наз
   const files = walk(ROOT).filter(f => !f.endsWith('engine.js') && !f.endsWith('engine.test.mjs') && /\.(js|mjs|html|css|md)$/.test(f));
   ok(files.length >= 13, 'файлов проверено: ' + files.length);
   for (const f of files){ const m = fs.readFileSync(f, 'utf8').match(BAD); ok(!m, path.relative(ROOT, f) + ': «' + (m && m[0]) + '»'); }
+});
+
+// ---------- волна 4 (площадки): выбор яруса, звёзды, реклама за награду, языки ----------
+test('мета: 6 ярусов, звёзды (люк / без потерь / все камни), открытие по порядку, рекорд не падает', () => {
+  const M = K.meta, mem = {}, G = M.Progress({ get: k => (k in mem ? mem[k] : null), set: (k, v) => { mem[k] = v; } });
+  eq(M.LEVELS, L.LEVELS.length); eq(M.stars({ lost: 0, gems: 5, total: 5 }).n, 3); eq(M.stars({ lost: 1, gems: 5, total: 5 }).n, 2); eq(M.stars({ lost: 2, gems: 1, total: 5 }).n, 1);
+  ok(!G.unlocked(2)); ok(G.record(1, 1)); ok(G.unlocked(2)); ok(!G.record(1, 1)); eq(mem['arcade.taynik.stars.1'], '1'); eq(G.next(2, 1), 1);
+});
+test('старт с яруса N: Game({ level: N }) грузит этот ярус; gemsTotal — число камней яруса', () => {
+  for (let n = 1; n <= 6; n++){ const ev = []; const g = K.Game({ level: n, rng: mulberry32(n), onEvent: t => ev.push(t) }).start(); eq(g.state().level, n); ok(ev.includes('level')); ok(g.gemsTotal() > 0, 'камни ' + n + ': ' + g.gemsTotal()); }
+});
+test('реклама: reviveAd после «фонарь погас» — 1 жизнь у фонаря, игра идёт; boost — полные заряды и сила', () => {
+  const g = K.Game({ lives: 1, rng: mulberry32(2) }).start(), S = g.state();
+  ok(!g.reviveAd(), 'в игре — нельзя'); g._die('acid'); for (let i = 0; i < 400 && S.phase !== 'over'; i++) g.step(); eq(S.phase, 'over');
+  ok(g.reviveAd()); eq(S.phase, 'play'); eq(S.lives, 1); ok(!S.over);
+  S.ammo = 0; S.energy = 10; ok(g.canBoost()); ok(g.boost()); eq(S.ammo, L.AMMO_MAX); eq(S.energy, L.ENERGY); ok(!g.canBoost());
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ТАЙНИК, EN/TR/ES/PT ROPEWARD', () => {
+  const ks = Object.keys(K.STR.en).sort().join(','); eq(Object.keys(K.STR).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(K.STR[l]).sort().join(','), ks, l);
+  eq(K.STR.ru.title, 'ТАЙНИК'); for (const l of ['en', 'tr', 'es', 'pt']) eq(K.STR[l].title, 'ROPEWARD', l);
 });
 
 // ---------- баланс (бот) ----------

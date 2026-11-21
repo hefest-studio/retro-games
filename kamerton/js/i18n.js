@@ -11,6 +11,7 @@
       title: 'КАМЕРТОН', subtitle: 'Подмастерье будит заводных кукол в городе часовщиков',
       hint: '◀▶ — идти · ▲▼ — лестница · пробел — прыжок · E — камертон / рычаг · Q — к другой кукле · P — пауза',
       foot: 'Тревожная сказка без слов: в сумерках заброшенного города часовщиков подмастерье находит камертон, который будит заводных кукол. Носильщик, плясунья, тяжеловес и оловянные солдатики ходят там, куда самому не пройти: держат вороты, жмут плиты, заслоняют фонари смотрителей. Остановился завод — и снова у последнего фонарика.',
+      zonePick: 'Зона', zoneDone: 'ЗОНА', starNew: 'новый рекорд звёзд!', starsHint: '★ пройти · ★ ≤ 2 остановок · ★ без остановок', cardNext: 'пробел / тап — дальше', hintTouch: '◀▶ — идти · ▲ — лестница · ⤒ — прыжок · ✋ — камертон / рычаг · ⟲ — к другой кукле · II — пауза',
       stops: 'остановки', zones: 'зоны', rwSkip: 'Реклама: пропустить зону'
     },
     en: {
@@ -20,6 +21,7 @@
       title: 'BRASSHUSH', subtitle: 'An apprentice wakes the wind-up dolls of the clockmakers’ town',
       hint: '◀▶ — walk · ▲▼ — ladder · space — jump · E — tuning fork / lever · Q — next doll · P — pause',
       foot: 'An uneasy tale without words: at dusk, in the abandoned town of clockmakers, an apprentice finds a tuning fork that wakes the wind-up dolls. A porter, a dancer, a giant and tin soldiers go where you cannot: they hold cranks, press plates and shade you from the watchmen’s lanterns. When the spring runs down, you are back at the last lantern.',
+      zonePick: 'Zone', zoneDone: 'ZONE', starNew: 'new star record!', starsHint: '★ pass · ★ ≤ 2 stops · ★ no stops', cardNext: 'space / tap — go on', hintTouch: '◀▶ — walk · ▲ — ladder · ⤒ — jump · ✋ — fork / lever · ⟲ — next doll · II — pause',
       stops: 'stops', zones: 'zones', rwSkip: 'Watch ad: skip this zone'
     }
   };
@@ -30,7 +32,8 @@
     title: 'BRASSHUSH', subtitle: 'Bir çırak saatçiler kasabasının kurmalı bebeklerini uyandırır',
     hint: '◀▶ — yürü · ▲▼ — merdiven · boşluk — zıpla · E — diyapazon / kol · Q — sonraki bebek · P — duraklat',
     foot: 'Sözsüz, tedirgin bir masal: terk edilmiş saatçiler kasabasında bir çırak, kurmalı bebekleri uyandıran bir diyapazon bulur. Hamal, dansçı, dev ve teneke askerler senin geçemediğin yerlere gider: kolları tutar, plakalara basar, bekçilerin fenerlerinden seni gizler. Yay boşalınca son fenere dönersin.',
-    stops: 'duruş', zones: 'bölge', rwSkip: 'Reklam: bölgeyi atla'
+    zonePick: 'Bölge', zoneDone: 'BÖLGE', starNew: 'yeni yıldız rekoru!', starsHint: '★ geç · ★ ≤ 2 duruş · ★ duruşsuz', cardNext: 'boşluk / dokun — devam', hintTouch: '◀▶ — yürü · ▲ — merdiven · ⤒ — zıpla · ✋ — diyapazon / kol · ⟲ — sonraki bebek · II — duraklat',
+      stops: 'duruş', zones: 'bölge', rwSkip: 'Reklam: bölgeyi atla'
   };
   K.STR.es = {
     play: 'Nuevo camino', cont: 'Continuar', restart: 'Al último farol', language: 'Idioma', theme: 'Tema', sound: 'Sonido', on: 'sí', off: 'no',
@@ -39,7 +42,8 @@
     title: 'BRASSHUSH', subtitle: 'Un aprendiz despierta a los muñecos de cuerda del pueblo relojero',
     hint: '◀▶ — andar · ▲▼ — escalera · espacio — saltar · E — diapasón / palanca · Q — otro muñeco · P — pausa',
     foot: 'Un cuento inquieto sin palabras: al anochecer, en el pueblo abandonado de los relojeros, un aprendiz encuentra un diapasón que despierta a los muñecos de cuerda. Un porteador, una bailarina, un gigante y soldaditos de hojalata van adonde tú no puedes: sujetan manivelas, pisan placas y te ocultan de los faroles de los vigilantes. Si se acaba la cuerda, vuelves al último farol.',
-    stops: 'paradas', zones: 'zonas', rwSkip: 'Anuncio: saltar la zona'
+    zonePick: 'Zona', zoneDone: 'ZONA', starNew: '¡nuevo récord de estrellas!', starsHint: '★ pasar · ★ ≤ 2 paradas · ★ sin paradas', cardNext: 'espacio / toca — seguir', hintTouch: '◀▶ — andar · ▲ — escalera · ⤒ — saltar · ✋ — diapasón / palanca · ⟲ — otro muñeco · II — pausa',
+      stops: 'paradas', zones: 'zonas', rwSkip: 'Anuncio: saltar la zona'
   };
   K.STR.pt = {
     play: 'Nova jornada', cont: 'Continuar', restart: 'Voltar à última lanterna', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'lig.', off: 'desl.',
@@ -48,6 +52,7 @@
     title: 'BRASSHUSH', subtitle: 'Um aprendiz desperta os bonecos de corda da cidade dos relojoeiros',
     hint: '◀▶ — andar · ▲▼ — escada · espaço — pular · E — diapasão / alavanca · Q — outro boneco · P — pausa',
     foot: 'Um conto inquieto sem palavras: ao anoitecer, na cidade abandonada dos relojoeiros, um aprendiz encontra um diapasão que desperta os bonecos de corda. Um carregador, uma bailarina, um gigante e soldadinhos de lata vão aonde você não pode: seguram manivelas, pisam placas e escondem você das lanternas dos vigias. Se a corda acaba, você volta à última lanterna.',
-    stops: 'paradas', zones: 'zonas', rwSkip: 'Anúncio: pular a zona'
+    zonePick: 'Zona', zoneDone: 'ZONA', starNew: 'novo recorde de estrelas!', starsHint: '★ passar · ★ ≤ 2 paradas · ★ sem paradas', cardNext: 'espaço / toque — seguir', hintTouch: '◀▶ — andar · ▲ — escada · ⤒ — pular · ✋ — diapasão / alavanca · ⟲ — outro boneco · II — pausa',
+      stops: 'paradas', zones: 'zonas', rwSkip: 'Anúncio: pular a zona'
   };
 })(typeof window !== 'undefined' ? window : globalThis);

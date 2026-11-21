@@ -40,9 +40,12 @@
   if (ED.attach) ED.attach(g);
   function buyLabel() { var pr = ED.price ? ED.price() : ''; return g.t('more') + (pr ? ' · ' + pr : ''); }
   function moreGo() { if (!(ED.canBuy && ED.canBuy())) { openMore(); return; } ED.buy(g).then(function (ok) { g.audio.beep(ok ? 1000 : 200, ok ? 0.15 : 0.06, 'triangle'); if (ok) g.goto('title'); }); }
-  if (!(ED.campaignHidden && ED.campaignHidden((P.MISSIONS || []).length)))
-    g.menu.addItem({ key: 'campaign', after: 'race', label: function () { var t = campTag(); return g.t('campaign') + (t ? ' · ' + g.t(t) : ''); },
-      onSelect: function () { if (campOpen()) CU.openCamp(); else g.goto('edition'); } });
+  var campItem = { key: 'campaign', after: 'race', label: function () { var t = campTag(); return g.t('campaign') + (t ? ' · ' + g.t(t) : ''); },
+    onSelect: function () { if (campOpen()) CU.openCamp(); else g.goto('edition'); } };
+  function campHidden() { return !!(ED.campaignHidden && ED.campaignHidden((P.MISSIONS || []).length)); }
+  if (!campHidden()) g.menu.addItem(campItem);
+  // издание «для площадок»: покупка/каталог становятся известны позже — пункт «Кампания» сверяется на заставке (появится/уйдёт)
+  function syncCampItem() { if (!ED.campaignHidden) return; var has = g.menu.items('title').indexOf('campaign') >= 0, hid = campHidden(); if (hid && has) g.menu.removeItem('campaign'); else if (!hid && !has) g.menu.addItem(campItem); }
   // кампания играбельна: есть js/campaign-ui.js и миссии, а издание не ставит пометку (в демо — «в полной версии» → экран издания)
   function campOpen() { return !!CU && CU.available() && !campTag(); }
   var pendingMission = null;
@@ -76,8 +79,9 @@
   g.clear = function (c) {
     baseClear.call(this, c); syncTheme();
     if (this._sceneName === 'play') return;
+    if (this._sceneName === 'title') syncCampItem();
     if (!preview) preview = new P.Game({ seed: 1, noAI: true });
-    if (this._sceneName === 'camp' || this._sceneName === 'brief' || this._sceneName === 'result') { var cimg = R.terrain(preview, this.themeName); this.ctx.save(); this.ctx.globalAlpha = 0.35; this.ctx.drawImage(cimg, 200, 300, 1280, 720, 0, 0, W, H); this.ctx.restore(); this.ctx.fillStyle = 'rgba(6,8,12,0.7)'; this.ctx.fillRect(0, 0, W, H); return; }
+    if (this._sceneName === 'camp' || this._sceneName === 'brief' || this._sceneName === 'result' || this._sceneName === 'finale') { var cimg = R.terrain(preview, this.themeName); this.ctx.save(); this.ctx.globalAlpha = 0.35; this.ctx.drawImage(cimg, 200, 300, 1280, 720, 0, 0, W, H); this.ctx.restore(); this.ctx.fillStyle = 'rgba(6,8,12,0.7)'; this.ctx.fillRect(0, 0, W, H); return; }
     var ctx = this.ctx, img = R.terrain(preview, this.themeName), sh = Math.sin(this.time * 0.05) * 120;
     ctx.save(); ctx.globalAlpha = 0.55; ctx.drawImage(img, 300 + sh, 200, 1280, 720, 0, 0, W, H); ctx.globalAlpha = 1;
     ctx.fillStyle = 'rgba(6,8,12,0.55)'; ctx.fillRect(0, 0, W, H);
@@ -124,6 +128,7 @@
       if (!inView(d.x, d.y) && g.time - attackNoteT > 8) { attackNoteT = g.time; note(g.t('underAttack'), 'bad'); pings.push({ x: d.x, y: d.y, t: g.time }); g.audio.beep(330, 0.12, 'square'); g.audio.beep(250, 0.16, 'square'); }
     }
     else if (type === 'wave' && d.p === 1) { note(g.t('waveN') + ' · ' + d.size, 'warn'); }
+    else if (type === 'stomp' && d.p === 0) { g.audio.beep(70, 0.3, 'sawtooth', 0.7); g.audio.beep(140, 0.15, 'square', 0.4); addFx({ kind: 'ring', x: d.x, y: d.y, dur: 0.6, c1: p.brass }); addFx({ kind: 'boom', x: d.x, y: d.y, dur: 0.6, r: P.STOMP.r * T, seed: 1, c1: '#e8e0d0', c2: p.brass }); }
     else if (type === 'banner' && d.p === 0) { note(g.t('bannerUp'), 'good'); g.audio.beep(520, 0.08, 'triangle'); g.audio.beep(780, 0.12, 'triangle'); addFx({ kind: 'ring', x: d.x, y: d.y, dur: 0.8, c1: p.copperHi }); }
     else if (type === 'end') endT = 0;
   }
@@ -148,7 +153,7 @@
     if (mode && mode.t === 'build') { tryPlace(w, mods.shift); return; }
     if (mode && mode.t === 'amove') {
       var us = selUnits(), tg = game.entAt(w.x, w.y, 0);
-      if (tg && tg.owner === 1) { game.cmd(0, { t: 'attack', ids: ids(us), target: tg.id }); }
+      if (tg && tg.owner > 0) { game.cmd(0, { t: 'attack', ids: ids(us), target: tg.id }); }   // A + клик — атака и по нейтралу/союзнику (явный приказ)
       else game.cmd(0, { t: 'amove', ids: ids(us), x: w.x, y: w.y });
       addFx({ kind: 'ring', x: w.x, y: w.y, dur: 0.5, c1: p.enemy }); g.audio.beep(520, 0.04);
       if (!mods.shift) mode = null; return;
@@ -205,6 +210,9 @@
       // способность героини: знамя Ярины (F)
       var yar = us.filter(function (u) { return game.def(u).ability === 'banner'; })[0];
       if (yar) { var cdl = Math.max(0, (yar.abT || 0) - game.t); set(7, { glyph: cdl > 0 ? String(Math.ceil(cdl)) : '⚑', label: g.t('banner'), tip: g.t('bannerTip'), dis: cdl > 0, act: function () { game.cmd(0, { t: 'banner', id: yar.id }); } }); }
+      // Топотун Тихона (кампания): топот (F), если в выборе нет Ярины
+      var stp = !yar && us.filter(function (u) { return game.def(u).ability === 'stomp'; })[0];
+      if (stp) { var cds = Math.max(0, (stp.abT || 0) - game.t); set(7, { glyph: cds > 0 ? String(Math.ceil(cds)) : '✹', label: g.t('stomp'), tip: g.t('stompTip'), dis: cds > 0, act: function () { game.cmd(0, { t: 'stomp', id: stp.id }); } }); }
     }
     if (b) {
       var BD = Rc.buildings[b.type], list = (Rc.grow ? (BD.larva ? Object.keys(Rc.units) : []) : (BD.trains || [])).filter(function (k) { return !Rc.units[k].hero && (!game.allowU || game.allowU[k]); });
@@ -255,7 +263,7 @@
     if (mode && mode.t === 'amove') { m.setCursor('amove'); return; }
     var w = toWorld(m); hover = game.entAt(w.x, w.y, 0);
     var us = selUnits(), workers = us.filter(function (u) { return game.def(u).worker; });
-    if (hover && hover.owner === 1 && us.length) m.setCursor('attack');
+    if (hover && game.hostile(0, hover.owner) && us.length) m.setCursor('attack');
     else if (hover && hover.kind === 'n' && workers.length) m.setCursor('gather');
     else if (hover && hover.owner === 0 && workers.length && pr() === 'wright' && (hover.kind === 'b' ? (!hover.done || hover.hp < hover.maxhp) : (game.def(hover).mech && hover.hp < hover.maxhp))) m.setCursor('repair');
     else if (hover) m.setCursor('select');
@@ -330,13 +338,15 @@
     for (var n = 1; n <= 9; n++) { var gl = (groups[n] || []).filter(function (e) { return !e.dead; }); if (!gl.length) continue; var gx = 360 + (n - 1) * 46;
       R.prims.box(ctx, gx, 4, 42, 20, ret ? '#2a2230' : 'rgba(255,255,255,0.07)', ret, 5); txt(n + '·' + gl.length, gx + 21, 19, { align: 'center', size: 12, color: p.ink }); }
     var s = game.supply(0), rs = game.res[0], mm = Math.floor(game.t / 60), ss = Math.floor(game.t % 60);
-    var rx = W - 560;
+    var rx = W - 560, econ = !(game.mission && game.mission.def.noEcon);   // кампания: миссия без хозяйства (отряд, колонна) — без ресурсов и провизии
+    if (econ) {
     R.prims.oval(ctx, rx, 14, 6, 6, p.amber, ret); txt(Math.floor(rs.a), rx + 12, 19, { color: p.amberHi }); txt(g.t('amber'), rx + 60, 19, { color: th.muted, size: 11, weight: 600 });
     R.prims.oval(ctx, rx + 140, 14, 6, 6, p.resinHi, ret); txt(Math.floor(rs.r), rx + 152, 19, { color: p.resinHi }); txt(g.t('resin'), rx + 196, 19, { color: th.muted, size: 11, weight: 600 });
     R.prims.box(ctx, rx + 270, 9, 10, 10, s.used >= s.cap ? p.hpBad : p.woodHi, ret, 2); txt(s.used + '/' + s.cap, rx + 286, 19, { color: s.used >= s.cap ? p.hpBad : th.ink }); txt(g.t('sup'), rx + 342, 19, { color: th.muted, size: 11, weight: 600 });
+    }
     txt((mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss, rx + 450, 19, { color: th.ink });
     // уведомления
-    var ny = TOP + 22; notices = notices.filter(function (nt) { return g.time - nt.t < 3.5; });
+    var ny = TOP + 22 + (CU && game.mission && CU.hudBottom ? Math.max(0, CU.hudBottom - TOP + 4) : 0); notices = notices.filter(function (nt) { return g.time - nt.t < 3.5; });   // кампания: уведомления — под панелью целей
     notices.forEach(function (nt) { var a = Math.min(1, 3.5 - (g.time - nt.t)); ctx.globalAlpha = a; var col = nt.col === 'bad' ? p.hpBad : (nt.col === 'warn' ? p.hpMid : p.hpGood);
       ctx.font = '800 15px ' + font; var wv = ctx.measureText(nt.text).width + 24; R.prims.box(ctx, W / 2 - wv / 2, ny - 16, wv, 22, 'rgba(0,0,0,0.55)', ret, 6); txt(nt.text, W / 2, ny, { align: 'center', size: 15, weight: 800, color: col }); ny += 26; ctx.globalAlpha = 1; });
     // подсказка режима
@@ -364,8 +374,8 @@
     if (e.kind !== 'n') R.icon(ctx, game, e.owner, e.kind, e.type, SELP.x + 10, SELP.y + 10, 100, g.themeName);
     else { ctx.save(); ctx.translate(SELP.x + 60 - e.x, SELP.y + 60 - e.y); R.node(ctx, e, p, ret, g.time); ctx.restore(); }
     var X = SELP.x + 124, Y = SELP.y + 30;
-    txt(nm(e), X, Y, { size: 18, weight: 800, color: e.owner === 1 ? p.enemy : p.ink });
-    var desc = e.kind === 'n' ? '' : g.t('d_' + e.type); if (e.owner === 1) desc = g.t('r_' + game.races[1]) + ' · ' + desc;
+    txt(nm(e), X, Y, { size: 18, weight: 800, color: e.owner > 0 ? R.sideCol(game, e, p) : p.ink });
+    var desc = e.kind === 'n' ? '' : g.t('d_' + e.type); if (e.owner > 0) desc = g.t('r_' + game.races[e.owner]) + (e.owner === 2 ? ' (' + g.t(game.relOf(0, 2) === 'ally' ? 'sideAlly' : game.relOf(0, 2) === 'neutral' ? 'sideNeutral' : 'sideFoe') + ')' : '') + ' · ' + desc;
     txt(desc, X, Y + 20, { size: 12, color: th.muted, weight: 600 });
     if (e.kind === 'n') { txt(g.t('left') + ': ' + Math.floor(e.amt), X, Y + 46, { color: p.amberHi }); return; }
     txt(g.t('hp') + ': ' + Math.ceil(e.hp) + ' / ' + e.maxhp, X, Y + 46, { color: p.ink, size: 13 });

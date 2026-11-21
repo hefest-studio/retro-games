@@ -9,6 +9,7 @@
   P.SAVE_VERSION = VERSION;
   function key(i) { return 'arcade.podgorye.slot' + i; }
   function defStore() {
+    if (P.SV_STORE) return P.SV_STORE;   // сборка игры подставляет хранилище с облаком площадки (g.storeSet), см. main.js
     return {
       get: function (k, d) { try { var v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } },
       set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} },

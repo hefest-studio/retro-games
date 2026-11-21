@@ -712,7 +712,12 @@
       setInput: function (i) { S.input.l = !!i.l; S.input.r = !!i.r; S.input.u = !!i.u; S.input.d = !!i.d; },
       fire: function () { S.wantFire = true; },
       state: function () { return S; },
-      _loadLevel: loadLevel, _damage: damage, _die: die
+      _loadLevel: loadLevel, _damage: damage, _die: die,
+      // реклама за награду (площадки): «ещё один шанс» после «фонарь погас» — 1 жизнь у последнего фонаря; бонус — полные заряды и сила
+      reviveAd: function () { if (S.phase !== 'over') return false; S.lives = 1; S.over = false; respawn(); return true; },
+      canBoost: function () { return S.phase === 'play' && (S.ammo < AMMO_MAX || S.energy < ENERGY); },
+      boost: function () { if (!api.canBoost()) return false; S.ammo = AMMO_MAX; S.energy = ENERGY; emit('boost', {}); return true; },
+      gemsTotal: function () { return S.items.filter(function (it) { return it.type === 'gem'; }).length; }
     };
     return api;
   };

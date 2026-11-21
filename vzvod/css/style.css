@@ -19,3 +19,10 @@ body[data-theme="retro"] .pad button{border-radius:2px}
 .foot{color:var(--mut);font-size:11px;margin:16px 12px 12px;text-align:center;max-width:840px}
 .foot b{color:var(--ink)}
 @media(min-width:900px) and (hover:hover){.pad{display:none}}
+/* телефон «лёжа»: кнопки режимов — колонкой справа поверх поля, канва — на всю высоту, подпись скрыта (без прокрутки) */
+@media (max-height:520px) and (orientation:landscape){
+  .wrap{margin-top:28px;justify-content:flex-start;padding-left:max(12px,env(safe-area-inset-left))}
+  .foot{display:none}
+  .pad{position:fixed;right:max(8px,env(safe-area-inset-right));top:6px;bottom:6px;width:auto;margin:0;display:grid;grid-template-columns:repeat(2,84px);grid-auto-rows:minmax(40px,1fr);gap:6px;align-content:center}
+  .pad button{min-width:0;height:auto;padding:0 4px;font-size:12px}
+}

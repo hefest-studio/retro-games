@@ -10,7 +10,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
 const box = { console, Math, JSON, Array, Object };
 box.window = box; box.globalThis = box; vm.createContext(box);
-for (const f of ['js/game.js', 'js/i18n.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), box, { filename: f });
+for (const f of ['js/game.js', 'js/meta.js', 'js/i18n.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), box, { filename: f });
 const V = box.VOLOK, L = V.logic, ST = L.ST, OBI = L.OBI;
 
 let passed = 0, failed = 0;
@@ -269,7 +269,7 @@ test('страница: фавикон студии, «← Каталог» с d
   ok(/<link rel="icon"[^>]+data:image\/svg\+xml/.test(html), 'фавикон');
   ok(/class="back"[^>]*href="\.\.\/"[^>]*data-en="← Catalog"/.test(html), 'ссылка в каталог');
   ok(/<canvas id="c" width="960" height="540"/.test(html), 'canvas');
-  eq([...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]), ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/icons.js', 'js/audio.js', 'js/render.js', 'js/main.js']);
+  eq([...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]), ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/meta.js', 'js/icons.js', 'js/audio.js', 'js/render.js', 'js/main.js']);
   ['U', 'D', 'L', 'R', 'A'].forEach(d => ok(html.includes('data-d="' + d + '"'), 'кнопка ' + d));
   ok(/id="bPause"/.test(html), 'пауза');
   eq(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js не копия _shared');
@@ -290,6 +290,29 @@ test('правило имён: в папке игры нет чужих назв
   // ловит ориентиры жанра (в base64), не ловит наши имена и обычные слова
   ['RkFSOiBMb25lIFNhaWxz', 'RkFSOiBDaGFuZ2luZyBUaWRlcw==', 'T2tvbW90aXZl', 'TG9uZSBTYWlscw==', '0J7QutC+0LzQvtGC0LjQsg=='].forEach(b => ok(BAD.test(u(b)), 'стоп-лист ловит ориентир жанра'));
   ok(!BAD.test('ВОЛОК') && !BAD.test('KETTLEWAKE') && !BAD.test('Гефест') && !BAD.test('зимовье') && !BAD.test('how far the hut') && !BAD.test('farther'), 'без ложных срабатываний');
+});
+
+// ---------- волна 4 (площадки): звёзды участков, авария с «ещё одним шансом», бонус, языки ----------
+test('мета: 6 участков, звёзды (прошли / без аварий / без пожара), открытие по порядку, рекорд не падает', () => {
+  const M = V.meta, mem = {}, G = M.Progress({ get: k => (k in mem ? mem[k] : null), set: (k, v) => { mem[k] = v; } });
+  eq(M.LEVELS, L.SEC.length - 1); eq(M.stars({ wrecks: 0, fires: 0 }).n, 3); eq(M.stars({ wrecks: 1, fires: 0 }).n, 2); eq(M.stars({ wrecks: 2, fires: 3 }).n, 1);
+  ok(!G.unlocked(2)); ok(G.record(1, 2)); ok(G.unlocked(2)); ok(!G.record(1, 1)); eq(mem['arcade.volok.stars.1'], '2'); eq(G.next(1, 1), 2); eq(G.next(2, 1), 1); eq(G.total(), 2);
+});
+test('авария при holdWreck: игра ждёт (wrecked), repairHere — ремонт на месте без отката, restoreCp — откат к чекпоинту', () => {
+  const g = V.Game({ rng: mulberry32(3), holdWreck: true, snapshot: at(20000) }).start(), S = g.state();
+  const x0 = S.mx; S.hull = 0; g.update(DT); eq(S.phase, 'wrecked'); eq(S.wrecks, 1); const mx = S.mx; g.update(DT); eq(S.mx, mx, 'стоит');
+  ok(g.repairHere()); eq(S.phase, 'play'); eq(S.hull, 60); eq(S.mx, mx, 'на месте'); ok(!g.repairHere(), 'второй раз — нет');
+  S.hull = 0; g.update(DT); eq(g.state().phase, 'wrecked'); g.restoreCp(); const S2 = g.state(); eq(S2.phase, 'play'); eq(S2.wrecks, 2); ok(Math.abs(S2.mx - x0) < 1, 'откат к чекпоинту');
+  const g2 = V.Game({ rng: mulberry32(3), snapshot: at(20000) }).start(); g2.state().hull = 0; g2.update(DT); eq(g2.state().phase, 'play', 'без holdWreck — сразу откат, как раньше');
+});
+test('бонус за рекламу: корпус 100 и полный бункер угля; недоступен, когда всё полно', () => {
+  const g = V.Game({ rng: mulberry32(3), snapshot: at(5000) }).start(), S = g.state(); S.hull = 40;
+  ok(g.canBoost()); ok(g.boost()); eq(S.hull, 100); eq(S.bunker.length, L.CAP.bunker); ok(!g.canBoost()); ok(!g.boost());
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ВОЛОК, EN/TR/ES/PT KETTLEWAKE', () => {
+  const ks = Object.keys(V.STR.en).sort().join(','); eq(Object.keys(V.STR).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(V.STR[l]).sort().join(','), ks, l);
+  eq(V.STR.ru.title, 'ВОЛОК'); for (const l of ['en', 'tr', 'es', 'pt']) eq(V.STR[l].title, 'KETTLEWAKE', l);
 });
 
 // ---------- Проходимость: «человеческий» бот ----------

@@ -194,7 +194,7 @@
         ctx.fillStyle = '#b8332e'; rr(ctx, x - 5, it.y - 12, 10, 12, 2); ctx.fill();
         ctx.fillStyle = '#e05a4a'; ctx.fillRect(x - 4, it.y - 11, 2, 9);
         ctx.strokeStyle = '#9aa4b2'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x + 4, it.y - 10); ctx.lineTo(x + 9, it.y - 15); ctx.stroke();
-        ctx.fillStyle = '#fff'; ctx.font = '700 6px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('+', x, it.y - 3);
+        ctx.fillStyle = '#fff'; ctx.fillRect(x - 2, it.y - 6.5, 4, 1.2); ctx.fillRect(x - 0.6, it.y - 8, 1.2, 4);   // «+» на канистре — рисунком, не текстом
         break;
       case 'map':
         ctx.save(); ctx.translate(x, y + b);

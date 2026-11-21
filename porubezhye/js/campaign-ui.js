@@ -1,19 +1,21 @@
 /* ПОРУБЕЖЬЕ · js/campaign-ui.js — экраны и интерфейс кампании поверх движка Гефест Arcade (логика миссий — js/campaign.js):
    карта кампании ('camp': вкладки трёх родов, узлы миссий — открыта / пройдена / закрыта / «в работе»), брифинг ('brief': мини-карта
    с отметками, цели пиктограммами, звёзды, герои, 1–3 фразы), итог ('result': звёзды, время, потери, решения, «Дальше»), а в бою —
-   цели со счётчиками, таймер миссии, мороз, реплики героев, отметки зон и знамён, снег. Прогресс — localStorage (try/catch).
+   цели со счётчиками, таймер миссии, мороз, реплики героев, отметки зон и знамён, снег; места сборки (кольцо с прогрессом), Зимний вал
+   (ледяная кромка), экран итога кампании ('finale': по def.finale последней миссии — решения по флагам, звёзды, реплики героев,
+   «Продолжение — в кампании …»). Прогресс — localStorage (try/catch).
    Подключается, только если в сборке есть играбельные миссии (полная версия); в демо пункт «Кампания» ведёт на экран издания.
    Встраивание: main.js зовёт UI.install(g, host); host = { startMission(id), centerOn(x, y), note(text, col), VIEW, TOP, PY }. */
 (function (global) {
   'use strict';
   var P = global.PORUB, C = P.campaign, R = P.render, T = P.T;
   var UI = P.campUI = {};
-  var g = null, host = null, store = null, camp = 'wright', sel = 0, briefId = null, lastRes = null, hot = [], hover = -1, resetArm = 0, say = null, flakes = [];
+  var g = null, host = null, store = null, camp = 'wright', sel = 0, briefId = null, lastRes = null, finId = null, hot = [], hover = -1, resetArm = 0, say = null, flakes = [];
   var W = 1280, H = 720;
   // узлы карты кампании: снизу (острог у южной границы) — к Зимнему валу на севере
   var NODES = [[150, 520], [262, 450], [380, 492], [470, 400], [372, 318], [500, 236], [380, 160]];
   var WHO = { yarina: { col: 'copper', ru: 'Я', en: 'Y', name: 'u_yarina' }, tikhon: { col: 'brass', ru: 'Т', en: 'T', name: 'u_tikhon' },
-    thicket: { col: 'moss', ru: 'Ч', en: 'T', name: 'r_thicket' }, tale: { col: 'muted', ru: '✶', en: '✶', name: null }, worker: { col: 'cloth', ru: 'П', en: 'A', name: 'u_worker' } };
+    thicket: { col: 'moss', ru: 'Ч', en: 'T', name: 'r_thicket' }, envoy: { col: 'lichen', ru: 'П', en: 'E', name: 'u_envoy' }, stomper: { col: 'brass', ru: '⚙', en: '⚙', name: 'u_stomper' }, tale: { col: 'muted', ru: '✶', en: '✶', name: null }, worker: { col: 'cloth', ru: 'П', en: 'A', name: 'u_worker' } };
   var RACE_OF = { wright: 'r_wright', thicket: 'r_thicket', barrow: 'r_barrow' };
 
   function lang() { return g.i18n.lang; }
@@ -132,6 +134,8 @@
       }
     }
     button(c, 40, 640, 220, 40, '← ' + g.t('toMenu'), function () { g.goto('title'); });
+    var fin = ms.filter(function (m) { return m.finale && d.missions[m.id]; })[0];
+    if (fin) button(c, 270, 640, 200, 40, '✶ ' + g.t('finBtn'), function () { finId = fin.id; g.goto('finale'); }, { size: 13 });
     button(c, 480, 640, 220, 40, resetArm > t ? g.t('resetSure') : g.t('reset'), function () { if (resetArm > (g.time || 0)) { UI.data = C.reset(store, camp); resetArm = 0; sel = 0; } else resetArm = (g.time || 0) + 3; }, { size: 13 });
     text(g.t('playHint'), 970, 668, { size: 12, color: p.muted, align: 'center', weight: 600 });
   }
@@ -187,9 +191,45 @@
     var y = 340; rows.forEach(function (rw) { text(rw[0], W / 2 - 14, y, { size: 15, align: 'right', color: p.muted, weight: 600 }); text(rw[1], W / 2 + 14, y, { size: 16 }); y += 26; });
     if (r.win && def.flagText) Object.keys(def.flagText).forEach(function (k) { var v = r.flags[k]; if (v != null && def.flagText[k][v]) { y += 8; wrap(c, '◆ ' + tx(def.flagText[k][v]), 760, 14).forEach(function (ln) { text(ln, W / 2, y, { size: 14, align: 'center', color: p.amberHi, weight: 600 }); y += 20; }); } });
     var next = r.win && missions(C.campOf(def)).filter(function (m) { return m.n === def.n + 1 && playableHere(m); })[0];
-    if (r.win && next) { button(c, W / 2 - 330, 586, 240, 48, g.t('next') + ' ▸', function () { briefId = next.id; g.goto('brief'); }, { primary: true, size: 17 }); button(c, W / 2 - 80, 586, 190, 48, g.t('toMap'), function () { g.goto('camp'); }); button(c, W / 2 + 120, 586, 190, 48, g.t('retry'), function () { host.startMission(r.id); }); }
+    if (r.win && def.finale) { button(c, W / 2 - 330, 586, 240, 48, g.t('finBtn') + ' ▸', function () { finId = def.id; g.goto('finale'); }, { primary: true, size: 17 }); button(c, W / 2 - 80, 586, 190, 48, g.t('toMap'), function () { g.goto('camp'); }); button(c, W / 2 + 120, 586, 190, 48, g.t('retry'), function () { host.startMission(r.id); }); }
+    else if (r.win && next) { button(c, W / 2 - 330, 586, 240, 48, g.t('next') + ' ▸', function () { briefId = next.id; g.goto('brief'); }, { primary: true, size: 17 }); button(c, W / 2 - 80, 586, 190, 48, g.t('toMap'), function () { g.goto('camp'); }); button(c, W / 2 + 120, 586, 190, 48, g.t('retry'), function () { host.startMission(r.id); }); }
     else if (r.win) { button(c, W / 2 - 220, 586, 220, 48, g.t('toMap'), function () { g.goto('camp'); }, { primary: true, size: 17 }); button(c, W / 2 + 10, 586, 200, 48, g.t('retry'), function () { host.startMission(r.id); }); }
     else { button(c, W / 2 - 220, 586, 220, 48, g.t('retry'), function () { host.startMission(r.id); }, { primary: true, size: 17 }); button(c, W / 2 + 10, 586, 200, 48, g.t('toMap'), function () { g.goto('camp'); }); }
+  }
+
+  // ---------- итог кампании (def.finale последней миссии) ----------
+  // def.finale = { title, rows: [{ icon, label, flag, values: { v: текст } }], lines: [{ who, when, text }], epilogue, cont }
+  // when — по флагам кампании: { t: 'flag', key, value } | all/any/not { of }
+  function fcond(w, flags) {
+    if (!w) return true;
+    if (w.t === 'flag') return w.value == null ? !!flags[w.key] : flags[w.key] === w.value;
+    if (w.t === 'all') return w.of.every(function (x) { return fcond(x, flags); });
+    if (w.t === 'any') return w.of.some(function (x) { return fcond(x, flags); });
+    if (w.t === 'not') return !fcond(w.of, flags);
+    if (w.t === 'stars') return UI.finStars().got >= (w.gte || 0);
+    return false;
+  }
+  UI.finStars = function () { var ms = missions(), got = 0; ms.forEach(function (m) { var rc = UI.data.missions[m.id]; if (rc) rc.stars.forEach(function (x) { if (x) got++; }); }); return { got: got, all: ms.length * 3 }; };
+  UI.finLines = function (def) { var F = def.finale, fl = UI.data.flags || {}, out = []; ['yarina', 'tikhon'].forEach(function (who) { var ln = (F.lines || []).filter(function (l) { return l.who === who && fcond(l.when, fl); })[0]; if (ln) out.push(ln); }); return out; };
+  function drawFinale(c) {
+    var def = C.byId(finId), p = pal(); hot = []; if (!def || !def.finale) { g.goto('camp'); return; }
+    var F = def.finale, fl = UI.data.flags || {}, x0 = 110, y0 = 34, pw = 1060, ph = 652; panel(c, x0, y0, pw, ph);
+    text(g.t('finT').toUpperCase() + (campTitle(C.campOf(def)) ? ' · ' + campTitle(C.campOf(def)) : ''), W / 2, y0 + 40, { size: 14, align: 'center', color: p.muted });
+    text(tx(F.title), W / 2, y0 + 82, { size: 32, weight: 900, align: 'center', color: g.th().accent });
+    var fs = UI.finStars(); star(c, W / 2 - 70, y0 + 116, 14, fs.got > 0); text(g.t('finStars') + ': ' + fs.got + ' / ' + fs.all, W / 2 - 48, y0 + 122, { size: 16 });
+    // решения по флагам
+    var y = y0 + 160; text(g.t('finChoices'), x0 + 40, y, { size: 14, color: p.muted }); y += 4;
+    (F.rows || []).forEach(function (rw) { var v = fl[rw.flag], tv = rw.values && (rw.values[v] || rw.values['*']); if (!tv) return; y += 29; icon(c, rw.icon || 'flag', x0 + 40, y - 21, 24); text(tx(rw.label) + ':', x0 + 76, y - 3, { size: 14, color: p.muted, weight: 700 }); text(tx(tv), x0 + 300, y - 3, { size: 15, weight: 700, color: p.amberHi, maxWidth: pw - 340 }); });
+    // реплики героев
+    y += 18;
+    UI.finLines(def).forEach(function (ln) { var lines = wrap(c, tx(ln.text), pw - 190, 15); portrait(c, ln.who, x0 + 66, y + 22, 22); text(g.t(WHO[ln.who].name), x0 + 104, y + 10, { size: 12, color: p.accent });
+      lines.slice(0, 3).forEach(function (l, k) { text(l, x0 + 104, y + 30 + k * 20, { size: 15, weight: 600 }); }); y += 28 + Math.min(3, lines.length) * 20; });
+    if (F.epilogue) { y += 14; wrap(c, tx(F.epilogue), pw - 120, 14).slice(0, 3).forEach(function (l) { text(l, W / 2, y, { size: 14, align: 'center', color: p.muted, weight: 600 }); y += 19; }); }
+    var cy = Math.min(y + 2, y0 + ph - 116), ct = '✶ ' + (F.cont ? tx(F.cont) : g.t('finCont')) + ' ✶'; c.font = '800 17px ' + g.th().font; var cw = Math.min(pw - 60, c.measureText(ct).width + 48);
+    R.prims.box(c, W / 2 - cw / 2, cy, cw, 36, ret() ? '#2a3a20' : 'rgba(111,154,58,0.22)', ret(), 8);
+    text(ct, W / 2, cy + 24, { size: 17, weight: 800, align: 'center', color: p.mossHi });
+    button(c, W / 2 - 230, y0 + ph - 70, 220, 46, g.t('toMap'), function () { g.goto('camp'); }, { primary: true, size: 16 });
+    button(c, W / 2 + 10, y0 + ph - 70, 220, 46, g.t('toMenu'), function () { g.goto('title'); });
   }
 
   // ---------- в бою ----------
@@ -202,12 +242,19 @@
       case 'spans': return G.decks(0).filter(function (b) { return b.done; }).length;
       case 'units': return G.ents.filter(function (e) { return !e.dead && e.kind === 'u' && e.owner === (cn.owner || 0) && (!cn.type || e.type === cn.type) && (!cn.tag || e.tag === cn.tag); }).length;
       case 'killed': return MS.killed[cn.tag] || 0;
+      case 'escaped': return MS.escaped[cn.tag] || 0;
+      case 'site': return Math.floor(((MS.sites[cn.id] || {}).prog || 0) * 100);
+      case 'alive': return G.ents.filter(function (e) { return !e.dead && e.tag === cn.tag; }).length;
       case 'built': return G.count(cn.owner || 0, 'b', cn.type, function (b) { return b.done; });
       case 'zone': return G.ents.filter(function (u) { return !u.dead && u.kind === 'u' && u.owner === (cn.owner || 0) && (!cn.who || u.type === cn.who || u.tag === cn.who) && C.inZone(MS, cn.zone, u.x / T, u.y / T); }).length;
     }
     return 0;
   }
-  function objLabel(G, MS, ob) { var s = tx(ob.def.text), cn = ob.def.count; if (cn && ob.state === 'active') s += ' (' + Math.min(cn.n, countOf(G, MS, cn)) + '/' + cn.n + ')'; return s; }
+  function objLabel(G, MS, ob) {
+    var s = tx(ob.def.text), cn = ob.def.count; if (!cn || ob.state !== 'active') return s;
+    if (cn.t === 'site') { var st = MS.sites[cn.id] || {}; return s + ' (' + countOf(G, MS, cn) + '% · ' + (st.hot ? g.t('siteHot') : st.busy ? g.t('siteBusy') : st.idle ? tx(st.idle) : g.t('siteIdle')) + ')'; }
+    return s + ' (' + Math.min(cn.n, countOf(G, MS, cn)) + '/' + cn.n + ')';
+  }
   UI.drain = function (G) {
     var MS = G.mission; if (!MS) return;
     MS.ui.forEach(function (e) {
@@ -217,6 +264,9 @@
       else if (e.t === 'heroDown') host.note(g.t('u_' + e.who) + ' — ' + g.t('heroDown'), 'bad');
       else if (e.t === 'spanLost') { host.note(g.t('spanLost'), 'bad'); g.audio.beep(110, 0.25, 'sawtooth', 0.5); }
       else if (e.t === 'alert') host.note(g.t('alertN'), 'warn');
+      else if (e.t === 'siteDone') { host.note(g.t('siteDone'), 'good'); g.audio.beep(660, 0.1, 'triangle'); g.audio.beep(990, 0.14, 'triangle'); }
+      else if (e.t === 'convoyStop') { host.note(g.t('convoyStop'), 'warn'); g.audio.beep(300, 0.08, 'square'); }
+      else if (e.t === 'convoyGo') host.note(g.t('convoyGo'), 'good');
       else if (e.t === 'camera') host.centerOn(e.x, e.y);
       else if (e.t === 'ping') host.ping(e.x, e.y);
     });
@@ -229,11 +279,30 @@
       G.banners.forEach(function (b) { var k = Math.max(0, (b.until - G.t) / 30); c.strokeStyle = p.copperHi; c.globalAlpha = 0.35 + 0.4 * k; c.lineWidth = 2; if (!rt) c.setLineDash([8, 6]); c.beginPath(); c.arc(b.x, b.y, b.r, 0, 7); c.stroke(); c.setLineDash([]); c.globalAlpha = 0.12; c.fillStyle = p.copper; c.fill(); c.globalAlpha = 1;
         R.prims.box(c, b.x - 1, b.y - 34, 3, 34, p.iron, rt); R.prims.box(c, b.x + 2, b.y - 34 + Math.sin(t * 4) * 1.5, 16, 10, p.copper, rt); });
       if (!MS) return;
+      drawWall(c, G, p, rt, t);
+      Object.keys(MS.sites || {}).forEach(function (id) { var st = MS.sites[id]; if (!st.on) return; var q = C.pointOf(MS, st.at), x = q.x * T, y = q.y * T, r = (st.r || 2.5) * T;
+        c.globalAlpha = 0.85; c.strokeStyle = 'rgba(0,0,0,0.5)'; c.lineWidth = 6; c.beginPath(); c.arc(x, y, r, 0, 7); c.stroke();
+        c.strokeStyle = st.hot ? p.hpBad : st.prog >= 1 ? p.hpGood : p.brass; c.lineWidth = 4; c.beginPath(); c.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0.02, st.prog)); c.stroke(); c.globalAlpha = 1;
+        if (!rt) c.setLineDash([4, 6]); c.strokeStyle = p.brass; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, r - 6, 0, 7); c.stroke(); c.setLineDash([]);
+        if (st.prog < 1) text(Math.floor(st.prog * 100) + '%', x, y - r - 6, { size: 13, align: 'center', color: st.hot ? p.hpBad : p.brass, weight: 800 }); });
       var ob = MS.objs.filter(function (o) { return o.state === 'active' && o.def.hint && o.def.hint.zone; })[0]; if (!ob) return;
       var z = ob.def.hint.zone, zc = C.zoneCenter(MS, z), zr = C.zoneRadius(MS, z), pulse = 1 + Math.sin(t * 3) * 0.04;
       c.strokeStyle = p.amberHi; c.lineWidth = 2.5; c.globalAlpha = 0.8; if (!rt) c.setLineDash([10, 8]); c.beginPath(); c.arc(zc.x * T, zc.y * T, zr * T * pulse, 0, 7); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
     };
   };
+  // Зимний вал: за кромкой — белёсая пелена, по кромке — ледяные зубцы (в координатах мира)
+  function drawWall(c, G, p, rt, t) {
+    var w = G.wall; if (!w) return; var MWp = G.MW * T, MHp = G.MH * T, pos = w.pos * T, horiz = w.dir === 's' || w.dir === 'n', fwd = w.dir === 's' || w.dir === 'e';
+    c.save(); c.fillStyle = rt ? 'rgba(200,224,248,0.35)' : 'rgba(225,240,252,0.32)';
+    if (horiz) c.fillRect(0, fwd ? 0 : pos, MWp, fwd ? pos : MHp - pos); else c.fillRect(fwd ? 0 : pos, 0, fwd ? pos : MWp - pos, MHp);
+    var L = horiz ? MWp : MHp, step = rt ? 24 : 20, sg = fwd ? 1 : -1;
+    for (var k = 0; k < L; k += step) { var hh = 10 + ((k * 7919) % 17) + Math.sin(t * 2 + k * 0.05) * 2, a = k, b = pos, col = (k / step) % 2 ? p.iceHi : p.ice;
+      c.fillStyle = col; c.beginPath();
+      if (horiz) { c.moveTo(a + step / 2, b + sg * hh); c.lineTo(a, b); c.lineTo(a + step, b); } else { c.moveTo(b + sg * hh, a + step / 2); c.lineTo(b, a); c.lineTo(b, a + step); }
+      c.closePath(); c.fill(); }
+    c.strokeStyle = rt ? '#e0f8ff' : 'rgba(240,250,255,0.9)'; c.lineWidth = 2; c.beginPath(); if (horiz) { c.moveTo(0, pos); c.lineTo(MWp, pos); } else { c.moveTo(pos, 0); c.lineTo(pos, MHp); } c.stroke();
+    c.restore();
+  }
   // снег — в координатах мира поверх сущностей, но ПОД туманом (в неразведанном его не видно); cam — камера main.js
   UI.over = function (G, cam, V) {
     return function (c) {
@@ -253,6 +322,7 @@
     snow(c, G, V);
     // цели
     var rows = MS.objs.filter(function (o) { return o.state === 'active' || (o.state === 'done' && G.t - o.t < 8); });
+    UI.hudBottom = rows.length ? V.sy + 8 + 12 + rows.length * 22 : 0;   // main.js ставит уведомления ниже панели целей
     if (rows.length) {
       c.font = '700 13px ' + g.th().font; var wm = 0; rows.forEach(function (o) { wm = Math.max(wm, c.measureText(objLabel(G, MS, o)).width); });
       var bw = Math.min(520, wm + 50), bh = 12 + rows.length * 22, bx = V.sx + 8, by = V.sy + 8;
@@ -289,15 +359,15 @@
   UI.openCamp = function () { UI.data = C.load(store, camp); sel = firstOpen(); g.goto('camp'); };
   UI.openBrief = function (id) { var d = C.byId(id); if (!d || !playableHere(d)) return false; camp = C.campOf(d); UI.camp = camp; UI.data = C.load(store, camp); briefId = id; g.goto('brief'); return true; };
 
-  function inScreens() { return g._sceneName === 'camp' || g._sceneName === 'brief' || g._sceneName === 'result'; }
+  function inScreens() { return g._sceneName === 'camp' || g._sceneName === 'brief' || g._sceneName === 'result' || g._sceneName === 'finale'; }
   function hitAt(q) { for (var i = hot.length - 1; i >= 0; i--) { var b = hot[i]; if (q.x >= b.x && q.x < b.x + b.w && q.y >= b.y && q.y < b.y + b.h) return i; } return -1; }
   function pt(e) { var r = g.canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height }; }
   UI.install = function (game, h) {
     g = game; host = h;
     try { store = global.localStorage; } catch (e) { store = null; }
     UI.store = store; UI.camp = camp; UI.data = C.load(store, camp);
-    var draws = { camp: drawCamp, brief: drawBrief, result: drawResult };
-    ['camp', 'brief', 'result'].forEach(function (name) {
+    var draws = { camp: drawCamp, brief: drawBrief, result: drawResult, finale: drawFinale };
+    ['camp', 'brief', 'result', 'finale'].forEach(function (name) {
       g.scene(name, { realtime: true,
         enter: function () { hover = -1; resetArm = 0; UI.data = C.load(store, camp); g.audio.beep(520, 0.04); },
         update: function () {},
@@ -313,5 +383,6 @@
     g.canvas.addEventListener('pointerdown', function (e) { if (!inScreens()) return; var i = hitAt(pt(e)); if (i >= 0) { e.preventDefault(); var b = hot[i]; g.audio.beep(700, 0.03, 'triangle'); b.fn(); } });
     g.canvas.addEventListener('pointermove', function (e) { if (!inScreens()) return; hover = hitAt(pt(e)); g.canvas.style.cursor = hover >= 0 ? 'pointer' : 'default'; });
   };
-  UI._test = { missions: missions, state: state, nodes: NODES, hot: function () { return hot; }, sel: function () { return sel; }, setSel: function (i) { sel = i; }, last: function () { return lastRes; } };
+  UI.openFinale = function (id) { var d = C.byId(id); if (!d || !d.finale) return false; camp = C.campOf(d); UI.camp = camp; UI.data = C.load(store, camp); finId = id; g.goto('finale'); return true; };
+  UI._test = { missions: missions, state: state, nodes: NODES, hot: function () { return hot; }, sel: function () { return sel; }, setSel: function (i) { sel = i; }, last: function () { return lastRes; }, fcond: fcond };
 })(typeof window !== 'undefined' ? window : globalThis);
