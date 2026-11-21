@@ -27,6 +27,12 @@
    Под кампанию Чащи: '_' на карте — вырубка (game.felled); def.night / def.wind / def.thaw, player.spore; спавн smoke / quiet; условия regrown, smokes,
    myc, night, felled, lost { type }, stat { k }; действия night, wind, spore, thaw, smoke, quiet, fell, mend; def.xcarry — флаги другой кампании
    (opts.xsave или хранилище C.store), def.finale.who — чьи реплики в итоге.
+   Под кампанию Курганного рода «Голос камня» и общий финал «Весна»: 'k' — каменная россыпь, 'o' — рудная жила (2×2); def.chill = { at, dps } (буран:
+   при морозе ≥ at вдали от тепла стынут), def.stoneRest = { hps } («камень хранит тепло»: окаменевшие не стынут, вал их не жжёт, раны затягиваются);
+   def.fourth = { race, rel, start } — четвёртая сторона (owner 3); спавн здания asleep (идол спит: не бьёт, враги не замечают); места работ — owner;
+   условия awake { tag, gte } (разбуженных идолов), stone { zone, who, n } (окаменевших в зоне), hp { tag, lte, gte } (доля прочности здания);
+   действия sleep { tag }, hurt { tag, n } (урон зданию мимо брони и tough), tough { tag, k }, crush { zone, dmg, owner } (обвал: урон всем стороны owner
+   в зоне), chill { at, dps } (null — снять), stoneRest { hps }; группа mode: goto (дойти до target и стоять там).
    Прогресс — localStorage 'arcade.porubezhye.campaign.<camp>' (через переданное хранилище, try/catch). Экспорт: PORUB.campaign. */
 (function (root) {
   'use strict';
@@ -57,7 +63,7 @@
 
   // ---------- Карта ----------
   var TILE = { '.': TR.GRASS, ',': TR.HEATH, '#': TR.WOOD, '~': TR.WATER, '^': TR.ROCK, '*': TR.SNOW, '=': TR.ICE, ':': TR.BRIDGE, '_': TR.HEATH };   // '_' — вырубка (кампания Чащи: рой-опылитель растит там лес)
-  var NODE = { a: 'amber', $: 'resin', t: 'timber' };
+  var NODE = { a: 'amber', $: 'resin', t: 'timber', k: 'stone', o: 'ore' }, BIG = { resin: 1, ore: 1 };   // k, o — камень и руда Курганного рода
   function isPoint(ch) { return /[A-Z0-9]/.test(ch); }
   function parseMap(def) {
     var ground = def.ground || '.', nodes = [], felled = [];
@@ -65,7 +71,7 @@
       cell: function (k, i, j, ch, base) { if (NODE[ch]) nodes.push({ type: NODE[ch], tx: i, ty: j, amt: def.nodeAmt && def.nodeAmt[NODE[ch]] }); if (ch === '_' || base === '_') felled.push(k); } });
     var w = m.w, terr = m.t;
     // под смоляным ключом (2×2) — проходимая земля
-    nodes.forEach(function (n) { if (n.type === 'resin') for (var y = 0; y < 2; y++) for (var x = 0; x < 2; x++) { var k = (n.ty + y) * w + n.tx + x; if (!P.PASS[terr[k]]) terr[k] = TILE[ground]; } });
+    nodes.forEach(function (n) { if (BIG[n.type]) for (var y = 0; y < 2; y++) for (var x = 0; x < 2; x++) { var k = (n.ty + y) * w + n.tx + x; if (!P.PASS[terr[k]]) terr[k] = TILE[ground]; } });
     return { w: w, h: m.h, terr: terr, nodes: nodes, points: m.points, felled: felled };
   }
 
@@ -73,9 +79,11 @@
   // opts: { save (данные кампании), flags (доп. флаги — тесты), seed, fogOff, onEvent }
   function build(def, opts) {
     opts = opts || {}; resolve(def);
-    var map = parseMap(def), save = opts.save || S.newSave(), th = def.third || null;
-    var g = new P.Game({ map: map, playerRace: def.race || 'wright', aiRace: def.foe || (def.race === 'thicket' ? 'wright' : 'thicket'), thirdRace: th && (th.race || 'thicket'), endRule: 'none', key: 'm:' + def.id, seed: opts.seed || def.seed || 7, fogOff: !!opts.fogOff, onEvent: opts.onEvent });
+    var map = parseMap(def), save = opts.save || S.newSave(), th = def.third || null, fo = th && def.fourth || null;
+    var g = new P.Game({ map: map, playerRace: def.race || 'wright', aiRace: def.foe || (def.race === 'thicket' ? 'wright' : 'thicket'), thirdRace: th && (th.race || 'thicket'), fourthRace: fo && (fo.race || 'thicket'), endRule: 'none', key: 'm:' + def.id, seed: opts.seed || def.seed || 7, fogOff: !!opts.fogOff, onEvent: opts.onEvent });
     if (th) Object.keys(th.rel || {}).forEach(function (k) { g.setRel(2, +k, th.rel[k]); });
+    if (fo) Object.keys(fo.rel || {}).forEach(function (k) { g.setRel(3, +k, fo.rel[k]); });
+    if (def.chill) g.chill = Object.assign({}, def.chill); if (def.stoneRest) g.stoneRest = Object.assign({}, def.stoneRest);
     var MS = S.create(def, Object.assign({}, S.carried(def, save), xcarried(def, opts.xsave), opts.flags || {}));   // xcarry — флаги другой кампании ('wright.envoy')
     MS.points = map.points; MS.game = g; MS.groups = Object.create(null);   // heroes, heroDead, spawned, killed — заводит ядро
     MS.trained = Object.create(null); MS.gath = Object.create(null); MS.lostT = Object.create(null);
@@ -84,13 +92,13 @@
     var H = MS.H = handler(MS);
     // ресурсы и что можно строить/обучать
     var pr = def.player || {}, er = def.enemy || {};
-    g.res[0] = Object.assign({ a: 0, r: 0, w: 0 }, pr.res || {}); g.res[1] = Object.assign({ a: 0, r: 0, w: 0 }, er.res || {}); if (th) g.res[2] = { a: 0, r: 0, w: 0 };
+    g.res[0] = Object.assign({ a: 0, r: 0, w: 0 }, pr.res || {}); g.res[1] = Object.assign({ a: 0, r: 0, w: 0 }, er.res || {}); if (th) g.res[2] = { a: 0, r: 0, w: 0 }; if (fo) g.res[3] = { a: 0, r: 0, w: 0 };
     if (pr.build) { g.allowB = {}; pr.build.forEach(function (b) { g.allowB[b] = true; }); }
     if (pr.units) { g.allowU = {}; pr.units.forEach(function (u) { g.allowU[u] = true; }); }
     if (pr.spore) g.sporeCfg = Object.assign({}, P.SPORE, pr.spore === true ? {} : pr.spore);   // споры (кампания Чащи)
     if (def.wind) g.wind = norm(def.wind);
     if (def.thaw) g.thaw = Object.assign({}, def.thaw === true ? {} : def.thaw);
-    spawnList(MS, pr.start, 0); spawnList(MS, er.start, 1); if (th) spawnList(MS, th.start, 2);
+    spawnList(MS, pr.start, 0); spawnList(MS, er.start, 1); if (th) spawnList(MS, th.start, 2); if (fo) spawnList(MS, fo.start, 3);
     Object.keys(def.groups || {}).forEach(function (tag) { setGroup(MS, Object.assign({ tag: tag }, def.groups[tag])); });
     applyCold(MS); applyNight(MS);
     g._recalcMyc(); g._updateVis();
@@ -111,7 +119,8 @@
       var c = S.cornerOf(MS, s.at), b = g._addBuilding(owner, s.type, c.i + (s.dx || 0), c.j + (s.dy || 0), s.done !== false);
       if (s.tag) b.tag = s.tag; if (s.hp) b.hp = Math.round(b.maxhp * s.hp); if (s.tough) b.tough = s.tough;   // tough: доля урона от немашин
       if (s.smoke) { b.smoke = s.smoke; g._mycDirty = true; }
-      if (s.quiet) b.quiet = true;   // сами не бьют (только приказом)   // дым котельни (радиус, клетки) — кампания Чащи
+      if (s.quiet) b.quiet = true;   // сами не бьют (только приказом)
+      if (s.asleep) { b.asleep = true; b.quiet = true; }   // идол спит (кампания Курганного рода): не бьёт, враги не замечают; будит F Ведогора   // дым котельни (радиус, клетки) — кампания Чащи
       if (b.done && R.grow && g.def(b).larva) b.larva = P.consts.LARVA_MAX;
       if (b.done && g.def(b).deck) g._deck(b, true);
       if (!b.done && R.grow) b.planted = true;
@@ -168,14 +177,14 @@
       var st = MS.sites[id]; st.busy = false; st.hot = false; if (!st.on || st.prog >= 1) return;
       var c = S.pointOf(MS, st.at), cx = c.x * T, cy = c.y * T, r = (st.r || 2.5) * T, calm = (st.calm == null ? 4 : st.calm) * T;
       var near = function (u) { return Math.hypot(u.x - cx, u.y - cy) <= r && (u.ord.t === 'idle' || u.ord.t === 'repair' || u.ord.t === 'build'); };
-      var mine = g.ents.filter(function (u) { return !u.dead && u.kind === 'u' && u.owner === 0; });
+      var so = st.owner || 0, mine = g.ents.filter(function (u) { return !u.dead && u.kind === 'u' && u.owner === so; });   // owner — чьё место (союзник в «Весне»)
       var main = mine.filter(function (u) { return match(u, st.who || 'tikhon') && near(u); })[0];
       if (!main) return;
-      st.hot = g.ents.some(function (e) { return !e.dead && e.kind === 'u' && g.hostile(0, e.owner) && Math.hypot(e.x - cx, e.y - cy) <= calm; });
+      st.hot = g.ents.some(function (e) { return !e.dead && e.kind === 'u' && g.hostile(so, e.owner) && !g.def(e).civil && Math.hypot(e.x - cx, e.y - cy) <= calm; });
       if (st.hot) return;
       var help = Math.min(st.helpMax == null ? 2 : st.helpMax, mine.filter(function (u) { return u !== main && match(u, st.help || 'worker') && near(u); }).length);
       st.busy = true; main.work = true;
-      st.prog = Math.min(1, st.prog + dt / (st.time || 120) * (1 + (st.helpK == null ? 0.35 : st.helpK) * help) * g.coldGrow(0) * (g.bannerAt(0, cx, cy) ? P.BANNER.mul : 1));
+      st.prog = Math.min(1, st.prog + dt / (st.time || 120) * (1 + (st.helpK == null ? 0.35 : st.helpK) * help) * (st.noCold ? 1 : g.coldGrow(so)) * (g.bannerAt(so, cx, cy) ? P.BANNER.mul : 1));
       if (st.prog >= 1) MS.ui.push({ t: 'siteDone', id: id });
     });
   }
@@ -224,6 +233,11 @@
     myc: function (g, c, MS) { var M = g.myc[own(c)], n = 0; S.zoneCells(MS, c.zone, g.MW, g.MH).forEach(function (q) { if (M[q.j * g.MW + q.i]) n++; }); return n >= (c.gte || 1); },
     night: function (g, c) { return (c.gte == null || g.night >= c.gte - 1e-6) && (c.lte == null || g.night <= c.lte + 1e-6); },
     felled: function (g, c, MS) { var n = 0; if (c.zone) S.zoneCells(MS, c.zone, g.MW, g.MH).forEach(function (q) { var k = q.j * g.MW + q.i; if (g.felled[k] && P.PASS[g.terr[k]]) n++; }); else n = g.felledLeft(); return num(n, c); },
+    // кампания Курганного рода: awake { tag, gte } — разбуженных идолов (здания с тегом, не спят); stone { zone, who, n } — окаменевших в зоне;
+    // hp { tag, lte, gte } — доля прочности первого здания/юнита с тегом
+    awake: function (g, c) { var tags = [].concat(c.tag); return num(g.ents.filter(function (b) { return !b.dead && b.kind === 'b' && tags.indexOf(b.tag) >= 0 && !b.asleep; }).length, c.gte == null && c.lte == null ? { gte: 1 } : c); },
+    stone: function (g, c, MS) { var o = own(c); return g.ents.filter(function (u) { return !u.dead && u.kind === 'u' && u.owner === o && u.stone && match(u, c.who) && (!c.zone || S.inZone(MS, c.zone, u.x / T, u.y / T)); }).length >= (c.n || 1); },
+    hp: function (g, c) { var e = g.ents.filter(function (x) { return !x.dead && x.tag === c.tag; })[0]; return !!e && num(e.hp / e.maxhp, c); },
     near: function (g, c) {
       var who = alive(g, own(c)).filter(function (u) { return u.kind === 'u' && match(u, c.who); }), of = g.ents.filter(function (e) { return !e.dead && e.tag === c.of; }), r = (c.r || 3) * T;
       return who.some(function (u) { return of.some(function (e) { return g.distTo(u, e) <= r; }); });
@@ -257,6 +271,13 @@
     thaw: function (g, a) { if (a.on === false) { g.thaw = null; return; } var o = Object.assign({}, a); delete o.a; delete o.on; g.thaw = Object.assign({}, g.thaw || {}, o); },
     smoke: function (g, a) { g.ents.forEach(function (b) { if (!b.dead && b.kind === 'b' && b.tag === a.tag) b.smoke = a.r || 0; }); g._mycDirty = true; },
     fell: function (g, a, MS) { var cells = []; S.zoneCells(MS, a.zone, g.MW, g.MH).forEach(function (q) { var k = q.j * g.MW + q.i, t = g.terr[k]; if ((t === TR.GRASS || t === TR.HEATH || t === TR.WOOD) && !g.occ[k]) { g.felled[k] = 1; cells.push([q.i, q.j]); } }); g.setTiles(cells, TR.HEATH); g.terrRev++; },
+    // кампания Курганного рода
+    sleep: function (g, a) { var tags = [].concat(a.tag); g.ents.forEach(function (b) { if (!b.dead && b.kind === 'b' && tags.indexOf(b.tag) >= 0) { b.asleep = true; b.quiet = true; } }); },
+    hurt: function (g, a) { g.ents.forEach(function (e) { if (!e.dead && e.tag === a.tag && e.kind !== 'n') { e.hp -= a.n; e.hitT = g.t; if (e.hp <= 0) g._kill(e, null); } }); },
+    tough: function (g, a) { g.ents.forEach(function (e) { if (!e.dead && e.tag === a.tag) e.tough = a.k; }); },
+    crush: function (g, a, MS) { var o = a.owner == null ? 1 : a.owner; g.ents.slice().forEach(function (e) { if (e.dead || e.kind !== 'u' || e.owner !== o || !S.inZone(MS, a.zone, e.x / T, e.y / T)) return; g._damage(e, a.dmg || 200, null); }); },
+    chill: function (g, a) { g.chill = a.dps ? { at: a.at || 0, dps: a.dps } : null; },
+    stoneRest: function (g, a) { g.stoneRest = a.hps ? { hps: a.hps } : null; },
     exit: function (g, a, MS) { g.ents.forEach(function (e) { if (!e.dead && e.kind === 'u' && e.tag === a.tag && S.inZone(MS, a.zone, e.x / T, e.y / T)) { e.tag = null; g._kill(e, null, true); MS.escaped[a.tag] = (MS.escaped[a.tag] || 0) + 1; /* ушёл — не «убит» */ } }); },
     ai: function (g, a) { g.ai = new P.AI(g, a.owner == null ? 1 : a.owner); if (a.first != null) g.ai.nextWave = a.first; },
     camera: function (g, a, MS) { var cp = S.pointOf(MS, a.at); MS.ui.push({ t: a.a, x: cp.x * T, y: cp.y * T }); },
@@ -284,6 +305,8 @@
     var ids = function (l) { return l.map(function (u) { return u.id; }); };
     if (gr.mode === 'convoy') return convoyStep(MS, gr, mem);
     if (gr.mode === 'follow') return followStep(MS, gr, mem);
+    if (gr.mode === 'goto') { var gp = S.pointOf(MS, gr.target), far = mem.filter(function (u) { return u.ord.t === 'idle' && !u.tgt && Math.hypot(u.x - gp.x * T, u.y - gp.y * T) > (gr.r || 2.5) * T; });   // дойти до target и стоять
+      if (far.length) g.cmd(gr.owner, { t: gr.calm ? 'move' : 'amove', ids: ids(far), x: gp.x * T, y: gp.y * T, sys: true }); return; }
     if (!gr.alerted && mem.some(function (u) { return g.t - u.hitT < 2; })) { gr.alerted = true; if (gr.mode === 'hold') MS.ui.push({ t: 'alert', tag: gr.tag, race: g.races[gr.owner] }); } // «встревожена» — только стража на посту
     if (gr.mode === 'hold') {
       if (gr.alerted && idle.length) { var hit = mem.filter(function (u) { return g.t - u.hitT < 3; })[0]; if (hit) g.cmd(gr.owner, { t: 'amove', ids: ids(idle), x: hit.x, y: hit.y, sys: true }); }

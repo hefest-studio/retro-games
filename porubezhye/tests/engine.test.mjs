@@ -155,6 +155,73 @@ test('Мастеровые: здание строится только пока 
   const gt = mk('thicket'); const u = my(gt, 0, 'u')[0]; u.hp = 10; const st = my(gt, 0, 'b')[0]; st.hp = 500; run(gt, 10);
   ok(u.hp > 13 && st.hp > 520, 'Чаща не заживает'); ok(my(g, 0, 'u')[1].hp === 40, 'Мастеровые не должны заживать сами');
 });
+// ---------- Курганный род (третья раса) ----------
+test('Курганный род: у своей базы — камень и руда, у соперника — янтарь и смола (места те же); каменщики носят камень и руду в курган; чужое не копают', () => {
+  const g = mk('barrow'); const ws = my(g, 0, 'u'), k = my(g, 0, 'b')[0];
+  eq(k.type, 'kurgan'); eq(ws[0].type, 'mason'); eq(ws.length, 5);
+  eq(nodes(g, 'stone').length, 10); eq(nodes(g, 'ore').length, 2); eq(nodes(g, 'amber').length, 10); eq(nodes(g, 'resin').length, 2);
+  nodes(g, 'stone').forEach(n => ok(nodes(g, 'amber').some(a => a.tx === MW - n.tx - 1 && a.ty === P.MH - n.ty - 1), 'нет зеркальной россыпи для ' + n.tx + ',' + n.ty));
+  const st = nearest(nodes(g, 'stone'), ws[0].x, ws[0].y), ore = nearest(nodes(g, 'ore'), ws[0].x, ws[0].y), am = nearest(nodes(g, 'amber'), ws[0].x, ws[0].y);
+  eq(g.cmd(0, { t: 'gather', ids: [ws[0].id], target: am.id }), false, 'Курганный род копает янтарь');
+  ok(g.cmd(0, { t: 'gather', ids: ws.slice(0, 3).map(u => u.id), target: st.id })); ok(g.cmd(0, { t: 'gather', ids: ws.slice(3).map(u => u.id), target: ore.id }));
+  const a0 = g.res[0].a; run(g, 60);
+  ok(g.res[0].a - a0 >= 60, 'камня за минуту мало: ' + (g.res[0].a - a0)); ok(g.res[0].r >= 20, 'руды за минуту мало: ' + g.res[0].r);
+  const gw = mk('wright'); eq(gw.cmd(0, { t: 'gather', ids: [my(gw, 0, 'u')[0].id], target: nearest(nodes(gw, 'amber'), 0, 0).id }), true);
+  eq(nodes(gw, 'stone').length, 0, 'Мастеровым против Чащи камня не положено');
+});
+test('Курганный род: пращная учит пращников, каменотёсня — валунов (нужна пращная); очаг: +8 провизии и тепло в мороз; здания — каменные (броня)', () => {
+  const g = mk('barrow', { aiRace: 'wright' }); g.res[0].a = 2000; g.res[0].r = 500; const k = my(g, 0, 'b')[0];
+  const free = (s0) => { for (let y = 12; y < 40; y++) for (let x = 4; x < 40; x++) { let f = true; for (let dy = 0; dy < s0; dy++) for (let dx = 0; dx < s0; dx++) if (!g.passable(x + dx, y + dy)) f = false; if (f && g.canPlace(0, s0 === 3 ? 'slingery' : 'hearth', x, y).ok) return [x, y]; } return null; };
+  eq(g.canPlace(0, 'stoneworks', ...free(3)).why, 'req', 'каменотёсня без пращной');
+  const sl = g._addBuilding(0, 'slingery', ...free(3), true);
+  eq(g.canPlace(0, 'stoneworks', ...free(3)).ok, true, 'каменотёсня с пращной');
+  ok(g.cmd(0, { t: 'train', id: sl.id, type: 'slinger' })); run(g, P.RACES.barrow.units.slinger.time + 0.3); eq(my(g, 0, 'u', 'slinger').length, 1);
+  eq(g.trainBlock(0, sl, 'boulder'), 'nobuild');
+  const h = g._addBuilding(0, 'hearth', ...free(2), true); eq(g.supply(0).cap, 18, 'очаг не дал +8');
+  g.cold = 0.8; const m = my(g, 0, 'u', 'mason')[0]; m.x = h.x + T * 2; m.y = h.y; m.warmT = 0; ok(g.warm(m), 'у очага холодно');
+  m.x = 40 * T; m.y = 30 * T; m.warmT = 0; ok(!g.warm(m), 'вдали от очага тепло');
+  const e = g._addUnit(1, 'shooter', h.x + 3 * T, h.y); const hp0 = h.hp; g._hit(e, P.RACES.wright.units.shooter, h); eq(hp0 - h.hp, 8 - 2, 'каменная броня здания');
+});
+test('окаменение: стоящий пращник каменеет через 2,5 с (броня +3), приказ — 0,7 с «стряхивает камень»; каменщик не каменеет', () => {
+  const g = mk('barrow', { aiRace: 'wright' }); for (let y = 16; y < 26; y++) for (let x = 26; x < 40; x++) g.terr[y * MW + x] = P.TERR.GRASS;
+  const s = g._addUnit(0, 'slinger', 30 * T, 20 * T), m = my(g, 0, 'u', 'mason')[0];
+  run(g, 1.5); ok(!s.stone, 'окаменел раньше времени'); run(g, 1.2); ok(s.stone, 'не окаменел'); ok(!m.stone, 'каменщик окаменел');
+  const sh = g._addUnit(1, 'shooter', 50 * T, 40 * T), hp0 = s.hp; g._hit(sh, P.RACES.wright.units.shooter, s); eq(hp0 - s.hp, 8 - 3, 'броня камня');
+  g.cmd(0, { t: 'move', ids: [s.id], x: 34 * T, y: 20 * T }); const x0 = s.x; run(g, 0.5); ok(!s.stone, 'камень не спал'); ok(Math.abs(s.x - x0) < 1, 'сдвинулся без задержки');
+  run(g, 2); ok(s.x > x0 + T, 'не пошёл после задержки');
+});
+test('раскат: валун-страж с 5 клеток катится по прямой и сшибает врага (урон и разлёт), потом перезарядка', () => {
+  const g = mk('barrow', { aiRace: 'wright' }); for (let y = 16; y < 26; y++) for (let x = 24; x < 44; x++) g.terr[y * MW + x] = P.TERR.GRASS;
+  const b = g._addUnit(0, 'boulder', 26 * T, 20 * T), e = g._addUnit(1, 'shooter', 32 * T, 20 * T), e2 = g._addUnit(1, 'shooter', 32 * T, 20.8 * T); e.ord = { t: 'idle' };
+  let rolled = 0; g.onEvent = (t, d) => { if (t === 'roll' && d.hit) rolled++; };
+  g.cmd(0, { t: 'attack', ids: [b.id], target: e.id }); run(g, 0.2); ok(b.roll, 'не покатился');
+  run(g, 1.6); eq(rolled, 1, 'удар раската'); ok(e.dead || e.hp <= e.maxhp - P.ROLL.dmg, 'урон раската: ' + e.hp); ok(e2.dead || e2.hp < e2.maxhp, 'нет разлёта');
+  ok(b.rollCd > g.t, 'нет перезарядки');
+});
+test('идол: спит — не бьёт, враги его не замечают; F Ведогора будит (бьёт рунами), враг у идола глушит песнь; без идолов — свои бойцы рядом сразу каменеют', () => {
+  const g = mk('barrow'); for (let y = 16; y < 26; y++) for (let x = 26; x < 40; x++) g.terr[y * MW + x] = P.TERR.GRASS;
+  const idol = g._addBuilding(0, 'idol', 30, 20, true); idol.asleep = true; idol.quiet = true;
+  const e = g._addUnit(1, 'beetle', 34 * T, 21 * T); e.ord = { t: 'idle' };
+  run(g, 3); eq(e.hp, e.maxhp, 'спящий идол бьёт'); eq(g._scan(e, g.def(e)) === idol, false, 'враг заметил спящего идола');
+  const v = g._addUnit(0, 'vedogor', 29 * T, 23 * T); v.ord = { t: 'idle' };
+  eq(g.cmd(0, { t: 'wake', id: v.id }), false, 'враг у идола — песнь не глушится'); ok(idol.asleep, 'проснулся при враге рядом');
+  e.x = 40 * T; e.y = 30 * T; v.abT = 0;
+  ok(g.cmd(0, { t: 'wake', id: v.id }), 'не будит'); ok(!idol.asleep, 'не проснулся'); eq(g.cmd(0, { t: 'wake', id: v.id }), false, 'перезарядка');
+  v.x = 8 * T; v.y = 40 * T; e.x = 35 * T; e.y = 21 * T; e.ord = { t: 'idle' }; run(g, 4); ok(e.dead || e.hp < e.maxhp, 'идол не бьёт');
+  const g2 = mk('barrow'); const v2 = g2._addUnit(0, 'vedogor', 30 * T, 20 * T), s2 = g2._addUnit(0, 'slinger', 31 * T, 21 * T); g2.cmd(0, { t: 'move', ids: [s2.id], x: 31 * T, y: 23 * T });
+  ok(g2.cmd(0, { t: 'wake', id: v2.id })); ok(s2.stone, 'голос камня не окаменил');
+});
+test('буран (chill) и «камень хранит тепло» (stoneRest): вдали от тепла стынут, окаменевшие — нет и заживают; Зимний вал окаменевших не жжёт', () => {
+  const g = mk('barrow'); g.cold = 0.9; g.chill = { at: 0.7, dps: 2 }; g.stoneRest = { hps: 3 };
+  const a = g._addUnit(0, 'slinger', 40 * T, 30 * T), b = g._addUnit(0, 'slinger', 42 * T, 30 * T); g.cmd(0, { t: 'move', ids: [a.id], x: 40 * T, y: 34 * T });
+  b.stillT = 3; run(g, 0.3); b.hp = 30; run(g, 3); ok(a.hp < a.maxhp, 'на ходу в буран не стынет'); ok(b.stone && b.hp > 30, 'камень не греет: ' + b.hp);
+  g.setWall({ dir: 's', pos: 40, speed: 0, dps: 10 }); const hp1 = b.hp; run(g, 2); ok(b.hp >= hp1, 'вал жжёт окаменевшего');
+  const h = g._addBuilding(0, 'hearth', 38, 33, true); a.warmT = 0; run(g, 0.6); const hp2 = a.hp; run(g, 1); ok(a.hp >= hp2 || g.warm(a), 'у очага стынет');
+});
+test('четвёртая сторона (общий финал): races из четырёх, отношения задаются попарно', () => {
+  const g = P.create({ seed: 1, playerRace: 'barrow', aiRace: 'wright', thirdRace: 'wright', fourthRace: 'thicket', noAI: true });
+  eq(g.races.join(), 'barrow,wright,wright,thicket'); eq(g.sides, 4); g.setRel(3, 0, 'ally'); eq(g.hostile(0, 3), false); eq(g.hostile(1, 3), true);
+});
 test('бой: стрелок сам открывает огонь по врагу в обзоре; ПКМ по врагу — атака; урон с бронёй', () => {
   const g = mk('wright'); const s = g._addUnit(0, 'shooter', 30 * T, 20 * T), e = g._addUnit(1, 'beetle', 34 * T, 20 * T);
   run(g, 3); ok(e.hp < e.maxhp, 'стрелок не стреляет');
@@ -243,7 +310,7 @@ test('i18n: у RU и EN одинаковый набор ключей', () => {
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/i18n.js'), 'utf8'), sb);
   const S = sb.PORUB.STR, a = Object.keys(S.ru).sort(), b = Object.keys(S.en).sort();
   eq(a.join(), b.join());
-  for (const r of ['wright', 'thicket']) { const R = P.RACES[r]; Object.keys(R.units).forEach(k => ok(S.ru['u_' + k] && S.en['d_' + k], k)); Object.keys(R.buildings).forEach(k => ok(S.ru['b_' + k] && S.en['d_' + k], k)); }
+  for (const r of ['wright', 'thicket', 'barrow']) { const R = P.RACES[r]; Object.keys(R.units).forEach(k => ok(S.ru['u_' + k] && S.en['d_' + k], k)); Object.keys(R.buildings).forEach(k => ok(S.ru['b_' + k] && S.en['d_' + k], k)); }
 });
 test('правило имён: в папке прототипа нет чужих названий игр/компаний/рас/юнитов (регистронезависимо, с транслитом)', () => {
   // стоп-лист хранится в base64, чтобы сами названия не попадали в текст репозитория (общий список + известные RTS, их расы и юниты)

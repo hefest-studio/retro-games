@@ -19,4 +19,12 @@ a.back:hover{color:var(--accent)}
 .pad button:active{filter:brightness(1.4)}
 .foot{color:var(--mut);font-size:11px;margin:6px 12px 12px;text-align:center;max-width:520px}
 .foot b{color:var(--ink)}
-@media(min-width:760px){.pad{display:none}}
+@media(min-width:900px) and (hover:hover){.pad{display:none}}
+/* телефон «лёжа»: ◀ ▶ слева внизу, огонь справа внизу — поверх полей по бокам портретной канвы; подпись скрыта */
+@media (max-height:520px) and (orientation:landscape){
+  .wrap{margin-top:26px}
+  .foot{display:none}
+  .pad{position:fixed;left:8px;right:8px;bottom:8px;width:auto;max-width:none;margin:0;grid-template-columns:64px 64px 1fr 96px;pointer-events:none}
+  .pad button{pointer-events:auto}
+  .pad button.fire{grid-column:4}
+}

@@ -16,11 +16,15 @@
   var NODES = [[150, 520], [262, 450], [380, 492], [470, 400], [372, 318], [500, 236], [380, 160]];
   // карта кампании Чащи: от Старого Пня в глубине бора (запад) — к реке с островами и к Зимнему валу на севере
   var NODES_T = [[120, 470], [240, 520], [330, 430], [470, 470], [560, 360], [420, 300], [300, 180]];
-  function nodesOf(k) { return k === 'thicket' ? NODES_T : NODES; }
+  // карта Курганного рода: от южных курганов вверх по перевалам — к Сердцу вала на севере; 8-й узел — общий финал «Весна»
+  var NODES_K = [[110, 500], [230, 440], [360, 500], [480, 420], [380, 330], [250, 270], [400, 190], [560, 120]];
+  function nodesOf(k) { return k === 'thicket' ? NODES_T : k === 'barrow' ? NODES_K : NODES; }
   var WHO = { yarina: { col: 'copper', ru: 'Я', en: 'Y', name: 'u_yarina' }, tikhon: { col: 'brass', ru: 'Т', en: 'T', name: 'u_tikhon' },
     thicket: { col: 'moss', ru: 'Ч', en: 'T', name: 'r_thicket' }, envoy: { col: 'lichen', ru: 'П', en: 'E', name: 'u_envoy' }, stomper: { col: 'brass', ru: '⚙', en: '⚙', name: 'u_stomper' }, tale: { col: 'muted', ru: '✶', en: '✶', name: null }, worker: { col: 'cloth', ru: 'П', en: 'A', name: 'u_worker' },
     matushka: { col: 'bark', ru: 'М', en: 'M', name: 'u_matushka' }, shmel: { col: 'amber', ru: 'Ш', en: 'S', name: 'u_shmel' }, wright: { col: 'copper', ru: 'М', en: 'W', name: 'r_wright' },
-    frost: { col: 'iceHi', ru: '❄', en: '❄', name: 'u_frostling' }, firefly: { col: 'lichen', ru: '✦', en: '✦', name: 'u_firefly' } };
+    frost: { col: 'iceHi', ru: '❄', en: '❄', name: 'u_frostling' }, firefly: { col: 'lichen', ru: '✦', en: '✦', name: 'u_firefly' },
+    vedogor: { col: 'feltHi', ru: 'В', en: 'V', name: 'u_vedogor' }, zoryanka: { col: 'ochre', ru: 'З', en: 'Z', name: 'u_zoryanka' }, barrow: { col: 'stoneHi', ru: 'К', en: 'B', name: 'r_barrow' },
+    herder: { col: 'lichen', ru: 'П', en: 'H', name: 'u_herder' } };
   var RACE_OF = { wright: 'r_wright', thicket: 'r_thicket', barrow: 'r_barrow' };
 
   function lang() { return g.i18n.lang; }
@@ -43,6 +47,7 @@
     if (P.RACES.wright.buildings[kind]) { c.restore(); c.save(); R.icon(c, probe, 0, 'b', kind, x - 2, y - 2, s + 4, g.themeName); c.restore(); return; }
     if (P.RACES.thicket.buildings[kind]) { var pb = UI._probe2 || (UI._probe2 = new P.Game({ seed: 1, noAI: true, playerRace: 'thicket' })); c.restore(); c.save(); R.icon(c, pb, 0, 'b', kind, x - 2, y - 2, s + 4, g.themeName); c.restore(); return; }
     if (P.RACES.wright.units[kind]) { c.restore(); c.save(); R.icon(c, probe, 0, 'u', kind, x - 2, y - 4, s + 6, g.themeName); c.restore(); return; }
+    if (P.RACES.barrow.buildings[kind] || P.RACES.barrow.units[kind]) { var pk = UI._probe3 || (UI._probe3 = new P.Game({ seed: 1, noAI: true, playerRace: 'barrow' })); var isB = !!P.RACES.barrow.buildings[kind]; c.restore(); c.save(); R.icon(c, pk, 0, isB ? 'b' : 'u', kind, x - 2, y - (isB ? 2 : 4), s + (isB ? 4 : 6), g.themeName); c.restore(); return; }
     if (P.RACES.thicket.units[kind]) { var pt = UI._probe2 || (UI._probe2 = new P.Game({ seed: 1, noAI: true, playerRace: 'thicket' })); c.restore(); c.save(); R.icon(c, pt, 0, 'u', kind, x - 2, y - 4, s + 6, g.themeName); c.restore(); return; }
     if (kind === 'amber') { O.tri(c, 12, 2, 4, 20, 20, 20, p.amber, rt); O.tri(c, 12, 2, 10, 20, 15, 20, p.amberHi, rt); }
     else if (kind === 'resin') { O.oval(c, 12, 15, 9, 6, p.resin, rt); O.oval(c, 10, 13, 4, 2, p.resinHi, rt); }
@@ -63,6 +68,12 @@
     else if (kind === 'moon') { O.oval(c, 12, 12, 9, 9, p.lichen, rt); O.oval(c, 16, 9, 7, 7, ret() ? '#1a1520' : '#1b2230', rt); O.oval(c, 5, 18, 2, 2, '#e8ff80', rt); }
     else if (kind === 'isle') { O.box(c, 0, 14, 24, 9, p.water, rt); O.oval(c, 12, 14, 9, 5, p.grass[0], rt); O.tri(c, 12, 2, 7, 13, 17, 13, p.pine[1], rt); }
     else if (kind === 'wall') { O.box(c, 0, 4, 24, 8, p.iceHi, rt); for (var wz = 0; wz < 4; wz++) O.tri(c, 3 + wz * 6, 20, wz * 6, 12, 6 + wz * 6, 12, p.ice, rt); }
+    else if (kind === 'stone') { O.box(c, 3, 11, 9, 9, p.stone, rt, 2); O.box(c, 11, 5, 10, 9, p.stoneHi, rt, 2); O.box(c, 12, 14, 9, 7, p.stoneLo, rt, 2); }
+    else if (kind === 'ore') { O.oval(c, 12, 14, 10, 8, p.stone, rt); O.box(c, 6, 10, 12, 3, p.ore, rt); O.box(c, 9, 15, 9, 2, p.rune, rt); }
+    else if (kind === 'rune') { O.box(c, 6, 2, 12, 20, p.stone, rt, 4); O.box(c, 11, 6, 2, 13, p.rune, rt); c.strokeStyle = p.rune; c.lineWidth = 2; c.beginPath(); c.moveTo(12, 11); c.lineTo(8, 6); c.moveTo(12, 11); c.lineTo(16, 6); c.stroke(); }   // руна-«ёлочка», не крест
+    else if (kind === 'fire') { O.tri(c, 12, 2, 4, 20, 20, 20, p.ember, rt); O.tri(c, 12, 9, 8, 20, 16, 20, '#fff0b0', rt); O.box(c, 3, 20, 18, 3, p.stoneLo, rt); }
+    else if (kind === 'path') { c.strokeStyle = p.ochre; c.lineWidth = 3; c.setLineDash([4, 3]); c.beginPath(); c.moveTo(2, 20); c.quadraticCurveTo(12, 2, 22, 14); c.stroke(); c.setLineDash([]); }
+    else if (kind === 'spring') { O.oval(c, 12, 15, 8, 6, p.mossHi, rt); O.tri(c, 12, 2, 8, 12, 16, 12, p.moss, rt); O.oval(c, 6, 8, 3, 3, p.amberHi, rt); O.oval(c, 18, 7, 3, 3, '#f4b0c8', rt); }
     else if (kind === 'larvae') { for (var lz = 0; lz < 3; lz++) O.oval(c, 6 + lz * 6, 12 + (lz % 2) * 4, 4, 3, '#efe6c4', rt); }
     c.restore();
   }
@@ -87,6 +98,7 @@
   // ---------- карта кампании ----------
   function drawRegion(c, x0, y0, w, h) {
     if (camp === 'thicket') return drawRegionT(c, x0, y0, w, h);
+    if (camp === 'barrow') return drawRegionK(c, x0, y0, w, h);
     var p = pal(), rt = ret(), O = R.prims;
     O.box(c, x0, y0, w, h, rt ? '#2e4a28' : '#3b5537', rt, 14);
     c.save(); c.beginPath(); c.rect(x0, y0, w, h); c.clip();
@@ -118,6 +130,19 @@
     O.oval(c, x0 + 120, y0 + 474, 30, 16, p.bark, rt); O.oval(c, x0 + 120, y0 + 466, 26, 10, p.barkHi, rt); O.oval(c, x0 + 100, y0 + 456, 7, 5, p.cap, rt);
     c.restore();
   }
+  // карта Курганного рода: горы и перевалы, курганы с кольцами камней на юге, серпантин троп, на севере — Зимний вал и его сердце
+  function drawRegionK(c, x0, y0, w, h) {
+    var p = pal(), rt = ret(), O = R.prims;
+    O.box(c, x0, y0, w, h, rt ? '#3a3848' : '#45424f', rt, 14);
+    c.save(); c.beginPath(); c.rect(x0, y0, w, h); c.clip();
+    for (var m = 0; m < 9; m++) { var mx = x0 - 40 + m * 90, my = y0 + 170 + (m % 3) * 70; O.tri(c, mx + 60, my - 110, mx, my + 40, mx + 120, my + 40, m % 2 ? p.stone : p.stoneLo, rt); O.tri(c, mx + 60, my - 110, mx + 44, my - 70, mx + 76, my - 70, p.snow[0], rt); }
+    O.box(c, x0, y0, w, 100, p.snow[1], rt); for (var i = 0; i < 14; i++) O.tri(c, x0 + 20 + i * 46, y0 + 6 + (i % 3) * 8, x0 + i * 46 - 6, y0 + 92, x0 + 46 + i * 46, y0 + 92, i % 2 ? p.ice : p.iceHi, rt);
+    O.oval(c, x0 + 560, y0 + 70, 34, 24, rt ? '#58a8f8' : 'rgba(80,160,240,0.7)', rt);   // сердце вала
+    O.box(c, x0, y0 + h - 130, w, 130, rt ? '#3a5a2a' : '#45603a', rt);
+    [[110, 520], [300, 560], [470, 540]].forEach(function (q) { O.oval(c, x0 + q[0], y0 + q[1], 40, 20, rt ? '#4a6a30' : '#55703f', rt); for (var k = 0; k < 5; k++) O.box(c, x0 + q[0] - 30 + k * 14, y0 + q[1] - 34, 7, 16, p.stoneHi, rt, 2); });
+    c.strokeStyle = p.ochre; c.globalAlpha = 0.45; c.lineWidth = 3; c.beginPath(); c.moveTo(x0 + 60, y0 + h); c.bezierCurveTo(x0 + 400, y0 + 420, x0 + 120, y0 + 300, x0 + 420, y0 + 160); c.stroke(); c.globalAlpha = 1;
+    c.restore();
+  }
   function drawCamp(c) {
     var p = pal(), t = g.time || 0; hot = [];
     text(g.t('chooseCamp').toUpperCase(), 40, 50, { size: 26, weight: 900, color: g.th().accent });
@@ -131,10 +156,10 @@
     var x0 = 40, y0 = 78, mw = 660, mh = 540; drawRegion(c, x0, y0, mw, mh);
     var ms = missions(), d = UI.data;
     // тропа
-    var NOD = nodesOf(camp); c.strokeStyle = camp === 'thicket' ? p.mossHi : p.woodHi; c.lineWidth = 3; c.setLineDash([8, 7]); c.beginPath(); NOD.slice(0, Math.max(1, ms.length)).forEach(function (q, i) { if (i) c.lineTo(x0 + q[0], y0 + q[1]); else c.moveTo(x0 + q[0], y0 + q[1]); }); c.stroke(); c.setLineDash([]);
+    var NOD = nodesOf(camp); c.strokeStyle = camp === 'thicket' ? p.mossHi : camp === 'barrow' ? p.rune : p.woodHi; c.lineWidth = 3; c.setLineDash([8, 7]); c.beginPath(); NOD.slice(0, Math.max(1, ms.length)).forEach(function (q, i) { if (i) c.lineTo(x0 + q[0], y0 + q[1]); else c.moveTo(x0 + q[0], y0 + q[1]); }); c.stroke(); c.setLineDash([]);
     ms.forEach(function (m, i) {
       var q = NOD[i] || NOD[NOD.length - 1], nx = x0 + q[0], ny = y0 + q[1], st = state(m), on = i === sel;
-      var col = st === 'done' ? p.hpGood : st === 'open' ? (camp === 'thicket' ? p.amber : p.copper) : 'rgba(120,120,120,0.85)';
+      var col = st === 'done' ? p.hpGood : st === 'open' ? (camp === 'thicket' ? p.amber : camp === 'barrow' ? (m.joint ? p.mossHi : p.feltHi) : p.copper) : 'rgba(120,120,120,0.85)';
       if (on) { c.strokeStyle = p.amberHi; c.lineWidth = 3; c.beginPath(); c.arc(nx, ny, 26 + Math.sin(t * 4) * 2, 0, 7); c.stroke(); }
       R.prims.oval(c, nx, ny, 20, 20, 'rgba(0,0,0,0.55)', ret()); R.prims.oval(c, nx, ny, 17, 17, col, ret());
       if (st === 'later' || st === 'closed') lock(c, nx, ny + 2); else text(String(m.n), nx, ny + 7, { size: 18, weight: 900, align: 'center', color: '#15110c' });
@@ -161,7 +186,7 @@
       }
     }
     button(c, 40, 640, 220, 40, '← ' + g.t('toMenu'), function () { g.goto('title'); });
-    var fin = ms.filter(function (m) { return m.finale && d.missions[m.id]; })[0];
+    var fin = ms.filter(function (m) { return m.finale && d.missions[m.id]; }).pop();   // последний пройденный итог (у Курганного рода — кампания, затем общий финал)
     if (fin) button(c, 270, 640, 200, 40, '✶ ' + g.t('finBtn'), function () { finId = fin.id; g.goto('finale'); }, { size: 13 });
     button(c, 480, 640, 220, 40, resetArm > t ? g.t('resetSure') : g.t('reset'), function () { if (resetArm > (g.time || 0)) { UI.data = C.reset(store, camp); resetArm = 0; sel = 0; } else resetArm = (g.time || 0) + 3; }, { size: 13 });
     text(g.t('playHint'), 970, 668, { size: 12, color: p.muted, align: 'center', weight: 600 });
@@ -177,7 +202,7 @@
     var cx = cv.getContext('2d'), img = cx.createImageData(mp.w, mp.h), p = pal();
     var hex = function (s) { var n = parseInt(s.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }, cols = [p.grass[0], p.wood, p.water, p.rock, p.heath[0], p.snow[0], p.ice, p.plank].map(hex);
     for (var i = 0; i < mp.w * mp.h; i++) { var q = cols[mp.terr[i]]; img.data[i * 4] = q[0]; img.data[i * 4 + 1] = q[1]; img.data[i * 4 + 2] = q[2]; img.data[i * 4 + 3] = 255; }
-    mp.nodes.forEach(function (n) { var q = hex(n.type === 'amber' ? p.amber : n.type === 'timber' ? p.plankHi : p.resinHi); for (var s = 0; s < (n.type === 'resin' ? 2 : 1); s++) for (var r = 0; r < (n.type === 'resin' ? 2 : 1); r++) { var k = (n.ty + s) * mp.w + n.tx + r; img.data[k * 4] = q[0]; img.data[k * 4 + 1] = q[1]; img.data[k * 4 + 2] = q[2]; } });
+    mp.nodes.forEach(function (n) { var big = n.type === 'resin' || n.type === 'ore', q = hex(n.type === 'amber' ? p.amber : n.type === 'timber' ? p.plankHi : n.type === 'stone' ? p.stoneHi : n.type === 'ore' ? p.oreHi : p.resinHi); for (var s = 0; s < (big ? 2 : 1); s++) for (var r = 0; r < (big ? 2 : 1); r++) { var k = (n.ty + s) * mp.w + n.tx + r; img.data[k * 4] = q[0]; img.data[k * 4 + 1] = q[1]; img.data[k * 4 + 2] = q[2]; } });
     cx.putImageData(img, 0, 0); UI._minis[key] = { cv: cv, mp: mp }; return UI._minis[key];
   }
   function drawBrief(c) {
@@ -228,25 +253,30 @@
   // def.finale = { title, rows: [{ icon, label, flag, values: { v: текст } }], lines: [{ who, when, text }], epilogue, cont }
   // when — по флагам кампании: { t: 'flag', key, value } | all/any/not { of }
   function fcond(w, flags) { return K.flagCond(w, flags, function (x) { return x.t === 'stars' && UI.finStars(C.byId(finId)).got >= (x.gte || 0); }); }   // + свой тип 'stars'
-  UI.finStars = function (def) { var ms = missions(def ? C.campOf(def) : null), got = 0;   // def — миссия с итогом (её кампания)
-    ms.forEach(function (m) { var rc = UI.data.missions[m.id]; if (rc) rc.stars.forEach(function (x) { if (x) got++; }); }); return { got: got, all: ms.length * 3 }; };
+  // звёзды: итог кампании — её миссии (без общего финала); общий эпилог (def.joint) — все миссии всех трёх кампаний (из их сохранений)
+  UI.finStars = function (def) {
+    var got = 0, all = 0, camps = def && def.joint ? C.CAMPS : [def ? C.campOf(def) : camp];
+    camps.forEach(function (k) { var data = k === C.campOf(def) || !def ? UI.data : C.load(C.store || store, k);
+      missions(k).filter(function (m) { return def && def.joint ? true : !m.joint; }).forEach(function (m) { all += 3; var rc = data.missions[m.id]; if (rc) rc.stars.forEach(function (x, i) { if (x && i < 3) got++; }); }); });
+    return { got: got, all: all }; };
   UI.finLines = function (def) { var F = def.finale, fl = Object.assign({}, UI.xflags(def), UI.data.flags || {}), out = []; (F.who || ['yarina', 'tikhon']).forEach(function (who) { var ln = (F.lines || []).filter(function (l) { return l.who === who && fcond(l.when, fl); })[0]; if (ln) out.push(ln); }); return out; };
   // флаги другой кампании для итога (def.xcarry): из её сохранения
   UI.xflags = function (def) { return C.xcarried(def, null); };   // хранилище — C.store (ставит install; в тестах — своё)
   function drawFinale(c) {
     var def = C.byId(finId), p = pal(); hot = []; if (!def || !def.finale) { g.goto('camp'); return; }
     var F = def.finale, fl = Object.assign({}, UI.xflags(def), UI.data.flags || {}), x0 = 110, y0 = 34, pw = 1060, ph = 652; panel(c, x0, y0, pw, ph);
-    text(g.t('finT').toUpperCase() + (campTitle(C.campOf(def)) ? ' · ' + campTitle(C.campOf(def)) : ''), W / 2, y0 + 40, { size: 14, align: 'center', color: p.muted });
+    text(def.joint ? g.t('finJoint').toUpperCase() : g.t('finT').toUpperCase() + (campTitle(C.campOf(def)) ? ' · ' + campTitle(C.campOf(def)) : ''), W / 2, y0 + 40, { size: 14, align: 'center', color: p.muted });
     text(tx(F.title), W / 2, y0 + 82, { size: 32, weight: 900, align: 'center', color: g.th().accent });
-    var fs = UI.finStars(def); star(c, W / 2 - 70, y0 + 116, 14, fs.got > 0); text(g.t('finStars') + ': ' + fs.got + ' / ' + fs.all, W / 2 - 48, y0 + 122, { size: 16 });
+    var fs = UI.finStars(def); star(c, W / 2 - 70, y0 + 116, 14, fs.got > 0); text(g.t(def.joint ? 'finStarsAll' : 'finStars') + ': ' + fs.got + ' / ' + fs.all, W / 2 - 48, y0 + 122, { size: 16 });
+    var crowd = (F.rows || []).length > 6 && (F.who || []).length > 2;   // общий эпилог: решений и голосов больше — плотнее
     // решения по флагам
     var y = y0 + 160; text(g.t('finChoices'), x0 + 40, y, { size: 14, color: p.muted }); y += 4;
-    var rstep = (F.rows || []).length > 6 ? 26 : 29; (F.rows || []).forEach(function (rw) { var v = fl[rw.flag], tv = rw.values && (rw.values[v] || rw.values['*']); if (!tv) return; y += rstep; icon(c, rw.icon || 'flag', x0 + 40, y - 21, 24); text(tx(rw.label) + ':', x0 + 76, y - 3, { size: 14, color: p.muted, weight: 700 }); text(tx(tv), x0 + 300, y - 3, { size: 15, weight: 700, color: p.amberHi, maxWidth: pw - 340 }); });
+    var rstep = crowd ? 23 : (F.rows || []).length > 6 ? 26 : 29; (F.rows || []).forEach(function (rw) { var v = fl[rw.flag], tv = rw.values && (rw.values[v] || rw.values['*']); if (!tv) return; y += rstep; icon(c, rw.icon || 'flag', x0 + 40, y - 21, 24); text(tx(rw.label) + ':', x0 + 76, y - 3, { size: 14, color: p.muted, weight: 700 }); text(tx(tv), x0 + 300, y - 3, { size: 15, weight: 700, color: p.amberHi, maxWidth: pw - 340 }); });
     // реплики героев
-    y += 18;
-    UI.finLines(def).forEach(function (ln) { var lines = wrap(c, tx(ln.text), pw - 190, 15); portrait(c, ln.who, x0 + 66, y + 22, 22); text(g.t(WHO[ln.who].name), x0 + 104, y + 10, { size: 12, color: p.accent });
-      lines.slice(0, 3).forEach(function (l, k) { text(l, x0 + 104, y + 30 + k * 20, { size: 15, weight: 600 }); }); y += 28 + Math.min(3, lines.length) * 20; });
-    if (F.epilogue) { y += 14; wrap(c, tx(F.epilogue), pw - 120, 14).slice(0, 3).forEach(function (l) { text(l, W / 2, y, { size: 14, align: 'center', color: p.muted, weight: 600 }); y += 19; }); }
+    y += crowd ? 14 : 18; var lf = crowd ? 14 : 15, ls = crowd ? 18 : 20;
+    UI.finLines(def).forEach(function (ln) { var lines = wrap(c, tx(ln.text), pw - 190, lf); portrait(c, ln.who, x0 + 66, y + 20, crowd ? 19 : 22); text(g.t(WHO[ln.who].name), x0 + 104, y + 10, { size: 12, color: p.accent });
+      lines.slice(0, 3).forEach(function (l, k) { text(l, x0 + 104, y + 28 + k * ls, { size: lf, weight: 600 }); }); y += (crowd ? 24 : 28) + Math.min(3, lines.length) * ls; });
+    if (F.epilogue) { y += crowd ? 10 : 14; wrap(c, tx(F.epilogue), pw - 120, crowd ? 13 : 14).slice(0, 3).forEach(function (l) { text(l, W / 2, y, { size: crowd ? 13 : 14, align: 'center', color: p.muted, weight: 600 }); y += crowd ? 17 : 19; }); }
     var cy = Math.min(y + 2, y0 + ph - 116), ct = '✶ ' + (F.cont ? tx(F.cont) : g.t('finCont')) + ' ✶'; c.font = '800 17px ' + g.th().font; var cw = Math.min(pw - 60, c.measureText(ct).width + 48);
     R.prims.box(c, W / 2 - cw / 2, cy, cw, 36, ret() ? '#2a3a20' : 'rgba(111,154,58,0.22)', ret(), 8);
     text(ct, W / 2, cy + 24, { size: 17, weight: 800, align: 'center', color: p.mossHi });
@@ -273,6 +303,9 @@
       case 'wallTo': return G.wall ? Math.floor(G.wall.pos) : 0;
       case 'felledLeft': { var nf = 0; (cn.zones || []).forEach(function (z) { C.zoneCellsOf(MS, z, G).forEach(function (k) { if (G.felled[k] && P.PASS[G.terr[k]]) nf++; }); }); return nf; }
       case 'smokesOut': { var now = G.ents.filter(function (b) { return !b.dead && b.kind === 'b' && b.smoke; }).length; if (MS._smoke0 == null) MS._smoke0 = now; return MS._smoke0 - now; }
+      case 'awake': return G.ents.filter(function (b) { return !b.dead && b.kind === 'b' && [].concat(cn.tag).indexOf(b.tag) >= 0 && !b.asleep; }).length;
+      case 'stone': return G.ents.filter(function (u) { return !u.dead && u.kind === 'u' && u.owner === 0 && u.stone && (!cn.zone || C.inZone(MS, cn.zone, u.x / T, u.y / T)); }).length;
+      case 'hpPct': { var he = G.ents.filter(function (x) { return !x.dead && x.tag === cn.tag; })[0]; return he ? Math.ceil(he.hp / he.maxhp * 100) : 0; }
       case 'zone': return G.ents.filter(function (u) { return !u.dead && u.kind === 'u' && u.owner === (cn.owner || 0) && (!cn.who || u.type === cn.who || u.tag === cn.who) && C.inZone(MS, cn.zone, u.x / T, u.y / T); }).length;
     }
     return 0;
@@ -280,17 +313,17 @@
   function objLabel(G, MS, ob) {
     var s = tx(ob.def.text), cn = ob.def.count; if (!cn || ob.state !== 'active') return s;
     if (cn.t === 'site') { var st = MS.sites[cn.id] || {}; return s + ' (' + countOf(G, MS, cn) + '% · ' + (st.hot ? g.t('siteHot') : st.busy ? g.t('siteBusy') : st.idle ? tx(st.idle) : g.t('siteIdle')) + ')'; }
-    var cv = countOf(G, MS, cn), nn = cn.t === 'smokesOut' ? MS._smoke0 : cn.n; if (cn.t === 'felledLeft') return s + ' (' + g.t('left') + ': ' + cv + ')'; if (cn.t === 'wallTo') return s + ' (' + g.t('wallRow') + ' ' + cv + ' → ' + cn.to + ')'; return s + ' (' + Math.min(nn, cv) + '/' + nn + ')';
+    var cv = countOf(G, MS, cn), nn = cn.t === 'smokesOut' ? MS._smoke0 : cn.n; if (cn.t === 'hpPct') return s + ' (' + cv + '%)'; if (cn.t === 'felledLeft') return s + ' (' + g.t('left') + ': ' + cv + ')'; if (cn.t === 'wallTo') return s + ' (' + g.t('wallRow') + ' ' + cv + ' → ' + cn.to + ')'; return s + ' (' + Math.min(nn, cv) + '/' + nn + ')';
   }
   UI.drain = function (G) {
     var MS = G.mission; if (!MS) return;
     MS.ui.forEach(function (e) {
-      if (e.t === 'say') { say = { who: e.who, text: tx(e.text), until: g.time + (e.life || 6) }; g.audio.beep(e.who === 'thicket' ? 300 : 640, 0.05, 'triangle'); }
+      if (e.t === 'say') { say = { who: e.who, text: tx(e.text), until: g.time + (e.life || 6) }; g.audio.beep(e.who === 'thicket' ? 300 : e.who === 'vedogor' ? 220 : 640, 0.05, 'triangle'); }
       else if (e.t === 'msg') host.note(tx(e.text), e.col || 'warn');
       else if (e.t === 'obj') { var ob = MS.byObj[e.id]; if (!ob) return; if (e.state === 'done') { host.note(g.t('objDone') + ': ' + tx(ob.def.text), 'good'); g.audio.beep(990, 0.1, 'triangle'); } else if (e.state === 'active' && ob.t > 0.5) host.note(g.t('objNew') + ': ' + tx(ob.def.text), 'warn'); else if (e.state === 'failed') host.note(g.t('objFail') + ': ' + tx(ob.def.text), 'bad'); }
       else if (e.t === 'heroDown') host.note(g.t('u_' + e.who) + ' — ' + g.t('heroDown'), 'bad');
       else if (e.t === 'spanLost') { host.note(g.t('spanLost'), 'bad'); g.audio.beep(110, 0.25, 'sawtooth', 0.5); }
-      else if (e.t === 'alert') host.note(g.t(e.race === 'wright' ? 'alertW' : 'alertN'), 'warn');   // тревога у стражи: чаща / острог
+      else if (e.t === 'alert') host.note(g.t(e.race === 'wright' ? 'alertW' : e.race === 'barrow' ? 'alertK' : 'alertN'), 'warn');   // тревога у стражи: чаща / острог
       else if (e.t === 'siteDone') { host.note(g.t('siteDone'), 'good'); g.audio.beep(660, 0.1, 'triangle'); g.audio.beep(990, 0.14, 'triangle'); }
       else if (e.t === 'convoyStop') { host.note(g.t('convoyStop'), 'warn'); g.audio.beep(300, 0.08, 'square'); }
       else if (e.t === 'convoyGo') host.note(g.t('convoyGo'), 'good');
@@ -387,6 +420,7 @@
     var p = pal(), rt = ret();
     if (G.cold > 0.01) { icon(c, 'frost', 236, 4, 18); txt(g.t('cold'), 258, 19, { color: p.iceHi, size: 12 }); R.prims.box(c, 306, 10, 50, 9, 'rgba(255,255,255,0.12)', rt, 3); R.prims.box(c, 306, 10, 50 * G.cold, 9, G.cold > 0.66 ? p.hpBad : p.iceHi, rt, 3); }
     if (G.wind) { var wx0 = 380, ang = Math.atan2(G.wind.y, G.wind.x); txt(g.t('wind'), wx0, 19, { color: p.lichen, size: 12 }); c.save(); c.translate(wx0 + 56, 14); c.rotate(ang); c.strokeStyle = p.lichen; c.lineWidth = 2; c.beginPath(); c.moveTo(-9, 0); c.lineTo(9, 0); c.lineTo(4, -4); c.moveTo(9, 0); c.lineTo(4, 4); c.stroke(); c.restore(); }
+    if (G.chill && G.cold >= (G.chill.at || 0) - 1e-6) { txt(g.t('chillN'), 236 + (G.cold > 0.01 ? 130 : 0), 19, { color: p.hpBad, size: 11 }); }
     if (G.night > 0.01) { icon(c, 'moon', 236 + (G.cold > 0.01 ? 140 : 0) + (G.wind ? 110 : 0), 4, 18); }
     if (G.mission && G.mission.def.wood) { var rx = W - 680; icon(c, 'timber', rx - 4, 4, 18); txt(Math.floor(G.res[0].w), rx + 18, 19, { color: p.plankHi }); txt(g.t('wood'), rx + 62, 19, { color: g.th().muted, size: 11, weight: 600 }); }
   };

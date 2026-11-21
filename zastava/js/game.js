@@ -509,6 +509,16 @@
       setFire: function (v) { fire = !!v; },
       action: function () { return playerFire(); },
       state: function () { return S; },
+      // Реклама за награду (площадки): «ещё один шанс» после гибели заставы — 1 лафет на той же волне; если ржавь дошла до земли,
+      // строй отодвигается на 4 шага вверх. Бонус в паузе — +1 лафет (не больше 5).
+      reviveAd: function () {
+        if (!S.over || S.won) return false;
+        if (S.invaded && S.fleet) S.fleet.y = Math.max(S.prm.startY, S.fleet.y - DROP * 4);
+        S.over = false; S.invaded = false; S.lives = 1; S.bullets = []; S.shot = null;
+        S.player.dead = false; S.player.grace = 1.5; S.player.x = W / 2; S.phase = 'play'; S.fireT = 1.2; return true;
+      },
+      canBoost: function () { return !S.over && S.lives < 5; },
+      boost: function () { if (!api.canBoost()) return false; S.lives++; return true; },
       _S: S,
       // для тестов
       _setupWave: function (n) { S.wave = n; setupWave(); return S; },

@@ -671,7 +671,7 @@
     {
       "slug": "razrez",
       "title": "РАЗРЕЗ",
-      "title_en": "RAZREZ",
+      "title_en": "SLICEWARD",
       "subtitle": "Захват поля",
       "subtitle_en": "Field Capture",
       "year": 1984,
@@ -794,7 +794,7 @@
     {
       "slug": "fitil",
       "title": "ФИТИЛЬ",
-      "title_en": "FITIL",
+      "title_en": "FUSEWICK",
       "subtitle": "Лабиринт подрывника",
       "subtitle_en": "Sapper's Maze",
       "year": 1990,
@@ -857,7 +857,7 @@
     {
       "slug": "yuz",
       "title": "ЮЗ",
-      "title_en": "YUZ",
+      "title_en": "BENCHSKID",
       "subtitle": "Гонки на мини-машинках",
       "subtitle_en": "Micro-car Racing",
       "year": 1991,
@@ -919,7 +919,7 @@
     {
       "slug": "pereprava",
       "title": "ПЕРЕПРАВА",
-      "title_en": "PEREPRAVA",
+      "title_en": "BEETLEFORD",
       "subtitle": "Переход дороги и реки",
       "subtitle_en": "Road and River Crossing",
       "year": 1981,
@@ -949,7 +949,7 @@
     {
       "slug": "zastava",
       "title": "ЗАСТАВА",
-      "title_en": "ZASTAVA",
+      "title_en": "ANVILWATCH",
       "subtitle": "Нашествие ржави",
       "subtitle_en": "Rust Invasion",
       "year": 1978,
@@ -1195,7 +1195,7 @@
     {
       "slug": "ugolyok",
       "title": "УГОЛЁК",
-      "title_en": "UGOLYOK",
+      "title_en": "STOKELING",
       "subtitle": "Робот-кочегар в угольной шахте",
       "subtitle_en": "Stoker Robot in a Coal Mine",
       "year": 1984,

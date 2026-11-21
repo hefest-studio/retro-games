@@ -1,16 +1,24 @@
 /* ПРИИСК · js/main.js — сборка: движок Гефест Arcade (меню/пауза/темы/язык/звук/рекорд) + логика (game.js)
    + рендер (render.js) + мышь/тач (mouse.js). Камера, выделение, приказы, группы Ctrl+1…9 (запасной Alt+1…9) и кнопки групп,
-   курсоры, звук, музыка по сценам (js/music.js: меню / поле / бой). */
+   курсоры, звук, музыка по сценам (js/music.js: меню / поле / бой).
+   Издания вне сайта (необязательно): PRIISK.Edition — хуки обёртки (приложение для ПК кладёт свой js/edition.js в ПРИВАТНОЙ
+   сборке): storage (прогресс и рекорд файлами), quit («Выход»), fullscreen (окно ↔ полный экран), lang(языки) (язык по
+   умолчанию), strings (доп. строки), release (без отладочных параметров адреса). На сайте хуков нет — всё как раньше. */
 (function (global) {
   'use strict';
   var P = global.PRIISK, L = P.logic, R = P.render, LY = R.LAYOUT, T = R.TILE, CMP = P.campaign;
   var TH = Arcade.themes || {};
+  var E = P.Edition || {}, LS = E.storage || null, BEST = 'arcade.best.priisk';
+  if (E.strings) Object.keys(E.strings).forEach(function (l) { if (P.STR[l]) Object.keys(E.strings[l]).forEach(function (k) { P.STR[l][k] = E.strings[l][k]; }); });
+  if (LS) { var b0 = parseFloat(LS.getItem(BEST)) || 0; if (b0 > Arcade.Store.getNum(BEST, 0)) Arcade.Store.set(BEST, String(b0)); }   // рекорд из файла — до createGame
   var g = Arcade.createGame({ canvas: '#c', width: LY.W, height: LY.H, gameId: 'priisk', strings: P.STR, theme: 'modern', lives: 1, musicAuto: false,
+    lang: E.lang ? E.lang(Object.keys(P.STR)) : undefined,
     themes: { modern: Object.assign({}, TH.modern, { bg: '#101318', accent: '#e0a53a' }), retro: Object.assign({}, TH.retro, { bg: '#000000', accent: '#ffff55' }) } });
   P.g = g;
   g.useStandardScreens({ title: 'ПРИИСК', subtitle: 'Две артели · одно медное плато', lives: 1 });
   g.menu.setHint(function () { return [g.t('hint1'), { text: g.t('hint2'), dim: true }]; }, 'title');
   g.menu.addItem({ scene: 'pause', key: 'restart', after: 'resume', label: function () { return g.t('restart'); }, onSelect: function () { if (S.mission) startMission(S.mission); else g.goto('play'); } });
+  if (E.fullscreen) g.menu.addItem({ key: 'fullscreen', after: 'sound', label: function () { return g.t('fullscreen') + ': ' + (E.fullscreen.on() ? g.t('on') : g.t('off')); }, onSelect: function () { E.fullscreen.toggle(); } });
 
   var S = { groups: null, W: null, cam: { x: 0, y: 0 }, sel: new Set(), hover: null, placing: null, box: null, marks: [], msgs: [], th: 'modern', t: function (k) { return g.t(k); }, panelHover: null };
   var groups = {}, lastGroup = { n: 0, t: 0 }, acc = 0, endT = 0, lowWas = false, shotT = 0, worldN = 0, mmDrag = false;
@@ -40,7 +48,7 @@
   function newGame() {
     S.mission = null; CU.detach(S);
     var seed = (Date.now() % 100000) + 1, q = new URLSearchParams(location.search);
-    if (q.get('seed')) seed = parseInt(q.get('seed'), 10) || 1;
+    if (q.get('seed') && !E.release) seed = parseInt(q.get('seed'), 10) || 1;
     S.W = L.newWorld({ seed: seed }); S.W.seedKey = ++worldN + ':' + seed; R.setButtons(); R.fitMinimap(S.W);
     S.sel = new Set(); S.placing = null; S.marks = []; S.msgs = []; endT = 0; acc = 0; fightT = -99;
     for (var k in groups) delete groups[k];
@@ -397,7 +405,14 @@
   if (bp) bp.addEventListener('click', function () { if (g._sceneName === 'play') { mouse.cancel(); g.pause(); } else if (g._sceneName === 'pause') g.goto('play', { resume: true }); });
   // курсор вне игры — обычный
   var CU = P.campUI.install(g, { S: S, msg: msg, beep: beep, centerOn: centerOn, startMission: startMission, mouse: mouse });
-  var origGoto = g.goto; g.goto = function (name, d) { if (name !== 'play') { mouse.cancel(); S.box = null; mouse.setCursor('normal'); } musicScene(name, d); return origGoto.call(this, name, d); };
+  var origGoto = g.goto; g.goto = function (name, d) { if (name !== 'play') { mouse.cancel(); S.box = null; mouse.setCursor('normal'); } musicScene(name, d); var r = origGoto.call(this, name, d);
+    if (LS && (name === 'win' || name === 'gameover') && g.state.best > (parseFloat(LS.getItem(BEST)) || 0)) LS.setItem(BEST, String(g.state.best));   // рекорд скирмиша — и в файл
+    return r; };
+  // «Выход» — последним пунктом главного меню (после «Кампании») и паузы
+  if (E.quit) {
+    g.menu.addItem({ key: 'quit', label: function () { return g.t('quit'); }, onSelect: function () { E.quit(); } });
+    g.menu.addItem({ key: 'quit', scene: 'pause', label: function () { return g.t('quit'); }, onSelect: function () { E.quit(); } });
+  }
 
   function fit() {
     var foot = document.getElementById('foot'), fh = foot && getComputedStyle(foot).display !== 'none' ? foot.offsetHeight + 4 : 4;
@@ -407,5 +422,5 @@
   setInterval(function () { if (document.body.dataset.theme !== g.themeName) document.body.dataset.theme = g.themeName; }, 250);
   g.start('title');
   // ?mission=m1 (в полной сборке и m2…) — сразу брифинг миссии (для плейтеста; прогресс не трогается; издание решает, доступна ли)
-  var qm = new URLSearchParams(location.search).get('mission'); if (qm && CMP.byId(qm) && P.Edition.playable(P.EDITION, qm)) CU.openBrief(qm);
+  var qm = E.release ? null : new URLSearchParams(location.search).get('mission'); if (qm && CMP.byId(qm) && P.Edition.playable(P.EDITION, qm)) CU.openBrief(qm);
 })(window);

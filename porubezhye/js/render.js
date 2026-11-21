@@ -1,6 +1,6 @@
 /* ПОРУБЕЖЬЕ · js/render.js — отрисовка мира, мини-карты и сущностей в двух темах.
    modern — мягкие формы, градиенты, тени, плавный туман; retro — «пиксельные» ступенчатые формы, ограниченная палитра, блочный туман.
-   Мир: северный порубежный край — бор, вереск, озёра, медь и дерево у Мастеровых, мох, кора и янтарные глаза у Чащи. */
+   Мир: северный порубежный край — бор, вереск, озёра, медь и дерево у Мастеровых, мох, кора и янтарные глаза у Чащи, камень, войлок и бирюзовые руны у Курганного рода. */
 (function (global) {
   'use strict';
   var P = global.PORUB = global.PORUB || {};
@@ -14,14 +14,16 @@
       moss: '#6f9a3a', mossHi: '#9cc25a', bark: '#5a3d24', barkHi: '#7c5636', lichen: '#c3c98e', eye: '#ffb43c', cap: '#b8432f', capDot: '#f2e6cf',
       amber: '#f0a020', amberHi: '#ffd36b', resin: '#7a4a10', resinHi: '#d8a040', myc: 'rgba(36,52,28,0.42)', mycLine: 'rgba(232,226,196,0.30)',
       sel: '#5fd38a', enemy: '#ff5d5d', hpGood: '#5fd38a', hpMid: '#ffc04a', hpBad: '#ff5d5d', panel: 'rgba(20,24,30,0.92)', line: '#2c3442', ink: '#eef2f8', muted: '#9aa4b5', accent: '#e8913a',
-      snow: ['#dfe7ec', '#d6e0e7', '#e6edf1'], snowLo: '#b9c8d3', ice: '#a9cfe0', iceHi: '#e2f3fa', plank: '#8a6238', plankHi: '#b4864f', cranberry: '#a8323a', brass: '#c9a24a', frost: 'rgba(200,225,245,' },
+      snow: ['#dfe7ec', '#d6e0e7', '#e6edf1'], snowLo: '#b9c8d3', ice: '#a9cfe0', iceHi: '#e2f3fa', plank: '#8a6238', plankHi: '#b4864f', cranberry: '#a8323a', brass: '#c9a24a', frost: 'rgba(200,225,245,',
+      stone: '#8b8894', stoneHi: '#b9b5c2', stoneLo: '#5c5966', felt: '#6c4a86', feltHi: '#9b74b2', rune: '#5fe0cf', ochre: '#c99a3a', ore: '#b05a3c', oreHi: '#e08a5a', ember: '#ffb04a' },
     retro: { grass: ['#2e5a2a', '#2e5a2a', '#346430', '#2e5a2a'], heath: ['#5c5428', '#5c5428'], wood: '#123218', pine: ['#1a4a22', '#226a2a', '#1a4a22'], birch: '#e8e8d0', trunk: '#5a3818',
       water: '#183a68', waterHi: '#4a78b8', shore: '#4a5a28', rock: '#787070', rockHi: '#b0a898', fog: '#000000', ally: '#58c8f8', neutral: '#f8e070',
       copper: '#e07828', copperHi: '#ffb060', wood2: '#8c5420', woodHi: '#b87838', cloth: '#3870b0', clothHi: '#70a8e0', skin: '#f0b888', fur: '#704818', iron: '#606068',
       moss: '#68a830', mossHi: '#a8d850', bark: '#603818', barkHi: '#905828', lichen: '#d0d090', eye: '#ffc030', cap: '#c83020', capDot: '#f8f0d8',
       amber: '#f8a000', amberHi: '#ffe070', resin: '#784808', resinHi: '#e0a030', myc: 'rgba(24,40,16,0.5)', mycLine: 'rgba(240,232,200,0.35)',
       sel: '#58f858', enemy: '#f83838', hpGood: '#58f858', hpMid: '#f8d838', hpBad: '#f83838', panel: 'rgba(16,12,20,0.95)', line: '#3a2e40', ink: '#f3e9da', muted: '#8a7f6e', accent: '#ea6a12',
-      snow: ['#e8e8f0', '#d8d8e8', '#e8e8f0'], snowLo: '#a8b0c8', ice: '#88c0e8', iceHi: '#e0f8ff', plank: '#905828', plankHi: '#c08848', cranberry: '#b82838', brass: '#d8b040', frost: 'rgba(208,232,255,' }
+      snow: ['#e8e8f0', '#d8d8e8', '#e8e8f0'], snowLo: '#a8b0c8', ice: '#88c0e8', iceHi: '#e0f8ff', plank: '#905828', plankHi: '#c08848', cranberry: '#b82838', brass: '#d8b040', frost: 'rgba(208,232,255,',
+      stone: '#888098', stoneHi: '#c0b8c8', stoneLo: '#585068', felt: '#704890', feltHi: '#a878c8', rune: '#58f0d8', ochre: '#d8a038', ore: '#b85838', oreHi: '#f09058', ember: '#ffb838' }
   };
   R.PAL = PAL;
   R.pal = function (theme) { return PAL[theme] || PAL.modern; };
@@ -242,6 +244,48 @@
       for (var ic = 0; ic < 5; ic++) { var ia = -Math.PI * 0.85 + ic * Math.PI * 0.42; tri(c, Math.cos(ia) * 13, Math.sin(ia) * 11 - 2, Math.cos(ia) * 6 - 3, Math.sin(ia) * 5, Math.cos(ia) * 6 + 3, Math.sin(ia) * 5, p.ice, ret); }
       oval(c, -2, -1, 5, 3, p.iceHi, ret); box(c, 3, -2, 3, 3, ret ? '#2878d8' : '#3a8ad8', ret); box(c, 3, 3, 3, 2, ret ? '#2878d8' : '#3a8ad8', ret);
     }
+    else if (D === 'mason' || D === 'zoryanka') { // каменщик / резчица Зорянка: приземистые, войлочный капюшон-колпак, каменные наплечники; у Зорянки — охряный платок и резец
+      var zo = D === 'zoryanka';
+      box(c, -6, 2 + bob * 0.3, 5, 6, p.stoneLo, ret); box(c, 1, 2 - bob * 0.3, 5, 6, p.stoneLo, ret);          // обмотки
+      oval(c, 0, -1, 8, 8, zo ? p.feltHi : p.felt, ret);                                                   // войлочная рубаха
+      box(c, -5, -2, 10, 8, p.stone, ret, 2); box(c, -5, 2, 10, 1, p.stoneLo, ret);                         // каменный фартук
+      oval(c, -8, -5, 4, 3, p.stoneHi, ret); oval(c, 8, -5, 4, 3, p.stoneHi, ret);                         // наплечники
+      oval(c, 1, -10, 5, 5, p.skin, ret);
+      tri(c, 1, -22, -6, -10, 8, -10, zo ? p.ochre : p.felt, ret); box(c, -6, -11, 14, 2, p.rune, ret);  // колпак с рунной лентой
+      if (zo) { box(c, -7, -8, 4, 9, p.ochre, ret, 2); }                                                   // концы платка
+      if (u.work) { c.save(); c.translate(6, -2); c.rotate(Math.sin(u.anim * 11) * 0.9 - 0.5); line(c, 0, 0, 0, -10, p.wood2, 2); box(c, -3, -13, 6, 4, p.stoneLo, ret); c.restore(); }
+      if (u.carry) { if (u.carry.type === 'stone') { box(c, -14, -8, 9, 8, p.stone, ret, 2); box(c, -13, -8, 4, 3, p.stoneHi, ret); } else if (u.carry.type === 'ore') { oval(c, -9, -4, 5, 4, p.ore, ret); oval(c, -10, -5, 2, 2, p.rune, ret); } else oval(c, -8, -4, 4, 4, u.carry.type === 'timber' ? p.plankHi : p.amber, ret); }
+    } else if (D === 'slinger') { // пращник: войлочный плащ до земли, рунный пояс, праща над головой
+      tri(c, 0, -12, -9, 9, 9, 9, p.felt, ret); box(c, -6, 0, 12, 2, p.rune, ret);
+      oval(c, 1, -11, 5, 5, p.skin, ret); oval(c, 1, -15, 6, 3, p.feltHi, ret);                            // голова, шапочка
+      var sa = u.anim * (u.cd > 0.2 ? 14 : 4); line(c, 4, -8, 4 + Math.cos(sa) * 9, -18 + Math.sin(sa) * 4, p.trunk, 1.5); oval(c, 4 + Math.cos(sa) * 9, -18 + Math.sin(sa) * 4, 2.5, 2.5, p.stoneHi, ret);
+    } else if (D === 'boulder') { // валун-страж: круглый валун на коротких каменных ножках, вырезанное лицо и рунный пояс
+      var rl = u.roll ? u.anim * 14 : 0, sw2 = u.moving && !u.roll ? Math.sin(u.anim * 6) * 2 : 0;
+      if (!u.roll) { box(c, -10, 8 + sw2 * 0.5, 7, 6, p.stoneLo, ret); box(c, 3, 8 - sw2 * 0.5, 7, 6, p.stoneLo, ret); }
+      oval(c, 0, -1, 15, 13, p.stone, ret); oval(c, -4, -5, 8, 6, p.stoneHi, ret);
+      c.save(); c.rotate(rl); box(c, -15, -2, 30, 3, p.rune, ret); c.restore();                           // рунный пояс (крутится при раскате)
+      if (!u.roll) { box(c, 4, -7, 3, 3, p.rune, ret); box(c, 9, -7, 3, 3, p.rune, ret); box(c, 5, 2, 7, 2, p.stoneLo, ret); }   // глаза-руны, рот
+      oval(c, -9, 5, 3, 2, p.stoneLo, ret); oval(c, 6, 8, 2, 2, p.stoneLo, ret);
+      if (u.roll) for (var dz = 0; dz < 3; dz++) oval(c, -16 - dz * 6, 10 - dz, 3 - dz * 0.6, 2, 'rgba(180,170,150,' + (0.6 - dz * 0.18) + ')', ret);   // пыль
+    } else if (D === 'vedogor') { // старейшина Ведогор: длинный войлочный плащ, белая борода, посох с рунным камнем
+      tri(c, 0, -14, -11, 10, 10, 10, p.felt, ret); tri(c, 0, -10, -5, 10, 6, 10, p.feltHi, ret);
+      oval(c, 1, -13, 5, 5, p.skin, ret); tri(c, 1, -2, -3, -11, 6, -11, '#ece8e0', ret);                 // борода
+      oval(c, 1, -17, 6, 3, p.stoneHi, ret);                                                             // каменный обруч
+      line(c, 9, 10, 9, -22, p.wood2, 2); oval(c, 9, -25, 4, 4, p.stone, ret); oval(c, 9, -25, 2, 2, p.rune, ret);
+      if (!ret) { c.fillStyle = 'rgba(95,224,207,0.18)'; c.beginPath(); c.arc(9, -25, 8, 0, 7); c.fill(); }
+    } else if (D === 'herder') { // пастух с козой: овчинный тулуп, посох; рядом белая коза
+      box(c, -4, 2 + bob * 0.3, 3, 6, p.fur, ret); box(c, 1, 2 - bob * 0.3, 3, 6, p.fur, ret);
+      oval(c, 0, -1, 6, 7, ret ? '#c8b088' : '#c9b48e', ret); oval(c, 0, -10, 4, 4, p.skin, ret); box(c, -4, -15, 8, 4, p.felt, ret, 2);
+      line(c, -7, 8, -7, -14, p.wood2, 2);
+      oval(c, 11, 4, 6, 4, '#ece6da', ret); oval(c, 16, 1, 3, 3, '#ece6da', ret); line(c, 16, -1, 18, -5, p.stoneLo, 1.5); box(c, 8, 7, 2, 4, p.stoneLo, ret); box(c, 13, 7, 2, 4, p.stoneLo, ret);
+    } else if (D === 'cart') { // волокуша с очагом: полозья, каменная жаровня с огнём, тягловый каменщик
+      box(c, -18, 8, 34, 2, p.trunk, ret); line(c, 16, 9, 22, 2, p.trunk, 2);
+      box(c, -15, -2, 24, 10, p.wood2, ret, 2); oval(c, -3, -3, 9, 5, p.stone, ret); oval(c, -3, -4, 6, 3, p.stoneLo, ret);
+      var fl2 = Math.sin(u.anim * 9) * 2; tri(c, -3, -16 + fl2, -8, -4, 2, -4, p.ember, ret); tri(c, -3, -11 + fl2, -5, -4, -1, -4, '#fff0b0', ret);
+      if (!ret) { c.fillStyle = 'rgba(255,170,70,0.14)'; c.beginPath(); c.arc(-3, -6, 26, 0, 7); c.fill(); }
+    }
+    if (u.stone) { oval(c, 0, -2, u.r + 1, u.r + 2, ret ? 'rgba(150,146,160,0.55)' : 'rgba(150,146,160,0.45)', ret); line(c, -4, -8, 1, -2, p.stoneLo, 1); line(c, 1, -2, -2, 4, p.stoneLo, 1); line(c, 4, -6, 7, 0, p.stoneLo, 1); }   // окаменел
+    if (u.chilled && !ret) { c.fillStyle = 'rgba(200,230,255,0.25)'; c.beginPath(); c.arc(0, -2, u.r + 3, 0, 7); c.fill(); }   // стынет в буран
     if (u.rootT > (u._gt || 0)) { line(c, -10, 8, -4, 2, p.bark, 2); line(c, 10, 8, 4, 1, p.bark, 2); line(c, -6, 10, 6, 10, p.trunk, 2); }   // опутан корнями
     c.restore();
   };
@@ -333,6 +377,55 @@
         for (var stn = 0; stn < 3; stn++) { var sx3 = cx - 24 + stn * 22; box(c, sx3, cy - 30 + (stn === 1 ? -6 : 0), 10, 26, p.rock, ret, 3); box(c, sx3 + 2, cy - 28 + (stn === 1 ? -6 : 0), 3, 20, p.rockHi, ret); }
         oval(c, cx + 20, cy + 14, 5, 4, p.cap, ret); oval(c, cx - 22, cy + 18, 6, 3, p.lichen, ret);
         break;
+      // ---- Курганный род: камень, войлок, бирюзовые руны ----
+      case 'kurgan': // курган: травяной холм, кольцо стоячих камней, каменные двери с рунами, дымок очага из макушки
+        shadow(c, cx + 6, Y + S - 6, S * 0.5, 10, ret);
+        oval(c, cx, cy + 14, S * 0.5, S * 0.36, ret ? '#5a4a30' : '#5e4d35', ret); oval(c, cx - 4, cy + 6, S * 0.4, S * 0.27, ret ? '#6a5a38' : '#715d40', ret); oval(c, cx - 8, cy - 2, S * 0.28, S * 0.15, ret ? '#4a6a30' : '#5a7442', ret);   // земляной холм с травяной макушкой
+        for (var ks = 0; ks < 7; ks++) { var ka = Math.PI * (0.05 + ks / 6 * 0.9), kx = cx - Math.cos(ka) * S * 0.44, ky = cy + 18 - Math.sin(ka) * S * 0.3; box(c, kx - 5, ky - 22, 10, 24, p.stone, ret, 3); box(c, kx - 3, ky - 20, 3, 18, p.stoneHi, ret); }
+        box(c, cx - 14, cy + 4, 28, 26, p.stoneLo, ret, 3); box(c, cx - 10, cy + 8, 20, 22, '#1c1820', ret, 2); box(c, cx - 16, cy + 1, 32, 5, p.stone, ret, 2);   // дверной проём
+        box(c, cx - 1, cy + 11, 3, 14, p.rune, ret); line(c, cx, cy + 15, cx - 6, cy + 10, p.rune, 2); line(c, cx, cy + 15, cx + 6, cy + 10, p.rune, 2);   // руна-«ёлочка»
+        for (var kf = 0; kf < 3; kf++) { var kp = (t * 0.4 + kf / 3 + b.id * 0.1) % 1; oval(c, cx - 4 + Math.sin(kp * 5) * 4, cy - 28 - kp * 30, 3 + kp * 6, 3 + kp * 6, 'rgba(210,205,200,' + (0.45 - kp * 0.4) + ')', ret); }
+        break;
+      case 'hearth': // очаг: кольцо камней с огнём и каменный заслон от ветра
+        shadow(c, cx + 4, Y + S - 4, S * 0.48, 7, ret);
+        box(c, X + 4, Y + 6, S - 8, 16, p.stone, ret, 4); box(c, X + 6, Y + 8, S - 12, 4, p.stoneHi, ret, 2);
+        for (var hs2 = 0; hs2 < 8; hs2++) { var ha = hs2 / 8 * Math.PI * 2; oval(c, cx + Math.cos(ha) * 15, cy + 10 + Math.sin(ha) * 8, 5, 4, hs2 % 2 ? p.stone : p.stoneLo, ret); }
+        if (b.done) { var hf = Math.sin(t * 8 + b.id) * 2; tri(c, cx, cy - 8 + hf, cx - 8, cy + 10, cx + 8, cy + 10, p.ember, ret); tri(c, cx, cy - 1 + hf, cx - 4, cy + 10, cx + 4, cy + 10, '#fff0b0', ret);
+          if (!ret) { c.fillStyle = 'rgba(255,170,70,0.12)'; c.beginPath(); c.arc(cx, cy + 4, S * 0.8, 0, 7); c.fill(); } }
+        break;
+      case 'slingery': // пращная: каменная ограда, навес из войлока, мишени-камни на столбах
+        shadow(c, cx + 6, Y + S - 4, S * 0.5, 8, ret);
+        box(c, X + 4, cy - 2, S - 8, S / 2 - 4, p.stone, ret, 3); for (var sr = 0; sr < 4; sr++) box(c, X + 6 + sr * (S - 12) / 4, cy + 4, (S - 12) / 4 - 2, 6, p.stoneHi, ret, 1);
+        tri(c, cx, Y + 6, X + 6, cy - 2, X + S - 6, cy - 2, p.felt, ret); box(c, X + 8, cy - 6, S - 16, 3, p.rune, ret);
+        for (var sp3 = 0; sp3 < 2; sp3++) { var spx = X + 16 + sp3 * (S - 32); line(c, spx, cy + 26, spx, cy + 8, p.trunk, 2); oval(c, spx, cy + 6, 5, 5, p.stoneHi, ret); oval(c, spx, cy + 6, 2, 2, p.ore, ret); }
+        break;
+      case 'stoneworks': // каменотёсня: навес на каменных столбах, большой валун в работе, рунная плита
+        shadow(c, cx + 6, Y + S - 4, S * 0.5, 8, ret);
+        box(c, X + 6, Y + 12, 8, S - 20, p.stoneLo, ret); box(c, X + S - 14, Y + 12, 8, S - 20, p.stoneLo, ret); box(c, X + 2, Y + 6, S - 4, 10, p.felt, ret, 3);
+        oval(c, cx, cy + 14, 22, 18, p.stone, ret); oval(c, cx - 6, cy + 8, 10, 8, p.stoneHi, ret); box(c, cx - 22, cy + 13, 44, 3, p.rune, ret);
+        box(c, X + S - 30, cy + 22, 18, 12, p.stoneHi, ret, 2); line(c, X + 16, cy + 30, X + 26, cy + 14, p.wood2, 2); box(c, X + 23, cy + 10, 6, 5, p.iron, ret);
+        break;
+      case 'wall': // каменная стена: тёсаные блоки
+        shadow(c, cx + 3, Y + S - 3, S * 0.5, 4, ret);
+        box(c, X + 1, Y + 4, S - 2, S - 6, p.stone, ret, 2); box(c, X + 1, Y + 4, S - 2, 4, p.stoneHi, ret, 2);
+        box(c, X + 1, Y + 15, S - 2, 1, p.stoneLo, ret); box(c, cx, Y + 8, 1, 7, p.stoneLo, ret); box(c, X + 8, Y + 16, 1, 10, p.stoneLo, ret); box(c, X + S - 9, Y + 16, 1, 10, p.stoneLo, ret);
+        break;
+      case 'idol': { // идол: стоячий камень с вырезанным ликом; спит — тусклый, проснулся — светятся руны
+        var aw = !b.asleep;
+        shadow(c, cx + 5, Y + S - 4, S * 0.42, 7, ret);
+        box(c, cx - 14, Y - 14, 28, S + 8, p.stoneLo, ret, 8); box(c, cx - 11, Y - 11, 22, S + 2, p.stone, ret, 6); box(c, cx - 8, Y - 8, 6, S - 6, p.stoneHi, ret, 3);
+        box(c, cx - 7, Y + 4, 5, 4, aw ? p.rune : p.stoneLo, ret); box(c, cx + 3, Y + 4, 5, 4, aw ? p.rune : p.stoneLo, ret); box(c, cx - 5, Y + 16, 11, 3, aw ? p.rune : p.stoneLo, ret);
+        box(c, cx - 11, Y + 30, 22, 3, aw ? p.rune : p.stoneLo, ret);
+        if (aw && !ret) { c.fillStyle = 'rgba(95,224,207,' + (0.12 + 0.06 * Math.sin(t * 3)) + ')'; c.beginPath(); c.arc(cx, Y + 10, 26, 0, 7); c.fill(); }
+        if (!aw) { c.globalAlpha = 0.85; oval(c, cx + 12, Y - 14, 4, 3, '#e8f0f8', ret); oval(c, cx + 18, Y - 20, 3, 2, '#e8f0f8', ret); c.globalAlpha = 1; }   // «спит»
+        break; }
+      case 'iceheart': { // сердце Зимнего вала: гроздь ледяных кристаллов с голубым пульсом
+        var ip = 0.5 + 0.5 * Math.sin(t * 2);
+        shadow(c, cx + 6, Y + S - 8, S * 0.5, 12, ret);
+        if (!ret) { c.fillStyle = 'rgba(150,210,255,' + (0.12 + 0.12 * ip) + ')'; c.beginPath(); c.arc(cx, cy, S * 0.7, 0, 7); c.fill(); }
+        [[-36, 20, 16, 50], [30, 18, 14, 44], [-14, 12, 18, 70], [14, 8, 16, 62], [0, 20, 22, 90]].forEach(function (q, i) { tri(c, cx + q[0], cy + q[1] - q[3], cx + q[0] - q[2], cy + q[1], cx + q[0] + q[2], cy + q[1], i % 2 ? p.ice : p.iceHi, ret); tri(c, cx + q[0], cy + q[1] - q[3], cx + q[0] - q[2] * 0.3, cy + q[1], cx + q[0] + q[2] * 0.4, cy + q[1], '#f4fbff', ret); });
+        oval(c, cx, cy + 6, 10 + ip * 3, 8 + ip * 2, ret ? '#58a8f8' : 'rgba(80,160,240,0.85)', ret);
+        break; }
     }
     c.restore();
     if (!b.done && !game.race(b.owner).grow) { // леса стройки
@@ -352,6 +445,17 @@
       for (var lg = 0; lg < nl; lg++) { var ly = cy + 6 - lg * 6, lx = cx - 12 + (lg % 2) * 3; box(c, lx, ly - 3, 24, 6, p.trunk, ret, 3); oval(c, lx + 24, ly, 3, 3, p.woodHi, ret); oval(c, lx + 24, ly, 1.5, 1.5, p.wood2, ret); }
       box(c, cx - 10, cy + 3 - nl * 6, 20, 3, p.snow[0], ret, 2);
       box(c, cx + 8, cy - 16, 6, 14, p.trunk, ret); oval(c, cx + 11, cy - 16, 4, 2, p.snow[0], ret);
+      return;
+    }
+    if (n.type === 'stone') { // каменная россыпь: тёсаные глыбы (Курганный род)
+      shadow(c, cx + 3, cy + 10, 15, 5, ret); var ns = Math.max(1, Math.ceil(f * 4));
+      [[-8, 4, 10, 9], [5, 5, 11, 8], [-2, -4, 10, 9], [8, -5, 7, 7]].slice(0, ns).forEach(function (q) { box(c, cx + q[0] - q[2] / 2, cy + q[1] - q[3] / 2, q[2], q[3], p.stone, ret, 2); box(c, cx + q[0] - q[2] / 2, cy + q[1] - q[3] / 2, q[2], 3, p.stoneHi, ret, 1); });
+      return;
+    }
+    if (n.type === 'ore') { // рудная жила 2×2: скала с рыжими и бирюзовыми прожилками
+      shadow(c, cx + 4, cy + 18, 28, 8, ret);
+      oval(c, cx, cy + 6, 27, 18, p.stoneLo, ret); oval(c, cx - 4, cy, 22, 14, p.stone, ret); oval(c, cx - 9, cy - 5, 9, 6, p.stoneHi, ret);
+      var nv = Math.max(1, Math.ceil(f * 4)); for (var ov = 0; ov < nv; ov++) { line(c, cx - 16 + ov * 9, cy + 10 - ov * 3, cx - 8 + ov * 9, cy - 2 - ov * 2, ov % 2 ? p.rune : p.ore, 3); oval(c, cx - 8 + ov * 9, cy - 2 - ov * 2, 2.5, 2.5, ov % 2 ? p.rune : p.oreHi, ret); }
       return;
     }
     if (n.type === 'amber') {
@@ -403,7 +507,7 @@
     var depth = function (e) { return e.kind === 'u' ? e.y : e.type === 'span' ? -1e9 + e.ty : (e.ty + e.s) * T - 6; }; // настил моста — под всеми
     list.sort(function (a, b) { return depth(a) - depth(b); });
     // третья сторона (союзник/нейтрал): тонкое кольцо её цвета под юнитами — чтобы не путать с врагом той же расы
-    if (game.sides > 2) list.forEach(function (e) { if (e.kind !== 'u' || e.owner !== 2) return; c.strokeStyle = sideCol(game, e, p); c.globalAlpha = 0.8; c.lineWidth = 2;
+    if (game.sides > 2) list.forEach(function (e) { if (e.kind !== 'u' || e.owner < 2) return; c.strokeStyle = sideCol(game, e, p); c.globalAlpha = 0.8; c.lineWidth = 2;
       if (ret) c.strokeRect(e.x - e.r - 2, e.y + e.r * 0.2, e.r * 2 + 4, e.r * 0.8); else { c.beginPath(); c.ellipse(e.x, e.y + e.r * 0.6, e.r + 2, e.r * 0.45, 0, 0, 6.29); c.stroke(); } c.globalAlpha = 1; });
     list.forEach(function (e) { if (e.kind === 'n') R.node(c, e, p, ret, t); else if (e.kind === 'b') R.building(c, e, p, ret, t, game); else { e._gt = game.t; R.unit(c, e, p, ret, t, game.races[e.owner]); } });
     // споры в полёте (кампания Чащи): пушистые семена по дуге
@@ -413,6 +517,8 @@
     game.shots.forEach(function (s) { if (s.owner !== pl && game.tileVis(pl, Math.floor(s.x1 / T), Math.floor(s.y1 / T)) < 2) return; var k = s.t / s.dur;
       if (s.kind === 'shooter') { line(c, s.x0, s.y0 - 6, s.x1, s.y1, ret ? '#ffe080' : 'rgba(255,230,150,' + (1 - k) + ')', 2); oval(c, s.x0 + (s.x1 - s.x0) * 0.08, s.y0 - 6, 3, 3, '#fff2c0', ret); }
       else if (s.kind === 'walker' || s.kind === 'stomper') { var bx = s.x0 + (s.x1 - s.x0) * k, by = s.y0 + (s.y1 - s.y0) * k - Math.sin(k * Math.PI) * 30; oval(c, bx, by, 4, 4, '#2a2a2a', ret); }
+      else if (s.kind === 'slinger' || s.kind === 'vedogor') { var sx2 = s.x0 + (s.x1 - s.x0) * k, sy2 = s.y0 + (s.y1 - s.y0) * k - Math.sin(k * Math.PI) * 22; oval(c, sx2, sy2 - 6, 3, 3, s.kind === 'vedogor' ? p.rune : p.stoneHi, ret); }
+      else if (s.kind === 'idol') { line(c, s.x0, s.y0 - 24, s.x1, s.y1, ret ? '#58f0d8' : 'rgba(95,224,207,' + (1 - k) + ')', 3); }
       else if (s.kind === 'shell') { for (var n = 0; n < 3; n++) { var tx = s.x0 + (s.x1 - s.x0) * k + n * 4 - 4, ty = s.y0 + (s.y1 - s.y0) * k - Math.sin(k * Math.PI) * 18 + n * 3; tri(c, tx, ty - 5, tx - 2, ty + 2, tx + 2, ty + 2, p.lichen, ret); } }
       else { oval(c, s.x1, s.y1, 6 * (1 - k) + 2, 6 * (1 - k) + 2, 'rgba(255,255,255,' + (0.7 * (1 - k)) + ')', ret); } });
     // эффекты (взрывы, кольца приказов)
@@ -460,7 +566,7 @@
     var sx = r.w / MW, sy = r.h / MH;
     for (var q = 0; q < (game.sides || 2); q++) if (game.race(q).grow) { c.fillStyle = 'rgba(30,48,22,0.6)'; for (var i = 0; i < MW * MH; i++) if (game.myc[q][i] && (q === 0 || game.vis[0][i] === 2)) c.fillRect(r.x + (i % MW) * sx, r.y + ((i / MW) | 0) * sy, sx, sy); }
     game.ents.forEach(function (e) { if (e.dead || !game.visibleTo(e, 0)) return;
-      var col = e.kind === 'n' ? (e.type === 'amber' ? p.amber : e.type === 'timber' ? p.plankHi : p.resinHi) : sideCol(game, e, p), s = e.kind === 'u' ? 3 : e.s * sx;
+      var col = e.kind === 'n' ? (e.type === 'amber' ? p.amber : e.type === 'timber' ? p.plankHi : e.type === 'stone' ? p.stoneHi : e.type === 'ore' ? p.oreHi : p.resinHi) : sideCol(game, e, p), s = e.kind === 'u' ? 3 : e.s * sx;
       c.fillStyle = col; if (e.kind === 'u') c.fillRect(r.x + e.x * k - 1.5, r.y + e.y * k - 1.5, 3, 3); else c.fillRect(r.x + e.tx * sx, r.y + e.ty * sy, s, s); });
     if (!game.fogOff) { var fc = game._fogCv; if (fc) { c.globalAlpha = 0.85; c.imageSmoothingEnabled = !ret; c.drawImage(fc, r.x, r.y, r.w, r.h); c.globalAlpha = 1; } }
     pings.forEach(function (pg) { var a = (t - pg.t); if (a > 3) return; var rr = 4 + (a % 1) * 14; c.strokeStyle = p.enemy; c.lineWidth = 2; c.strokeRect(r.x + pg.x * k - rr, r.y + pg.y * k - rr, rr * 2, rr * 2); });

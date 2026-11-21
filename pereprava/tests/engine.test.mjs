@@ -308,5 +308,20 @@ test('«человеческий» бот (реакция 150–250 мс): ур�
   eq(stuck, 0, 'бот не зависает');
 });
 
+// ---------- площадка (21.11, волна 5): реклама за награду, языки, «Без рекламы» и таблица лидеров ----------
+test('реклама: reviveAd после последней жизни — 1 жизнь в той же смене (доставленное сохранено); boost — +1 жизнь (до 5)', () => {
+  const { game, S } = arena(1, { lives: 1 }); ok(!game.reviveAd(), 'в игре — нельзя');
+  S.bays[0].filled = true; S.filled = 1; S.phase = 'dead'; S.phaseT = 0.01; S.lives = 0; game.update(h);
+  eq(S.phase, 'over'); ok(game.reviveAd()); eq(S.lives, 1); eq(S.phase, 'play'); ok(!S.over); eq(S.filled, 1, 'доставленное осталось');
+  ok(game.canBoost()); ok(game.boost()); eq(S.lives, 2); S.lives = L.MAX_LIVES; ok(!game.canBoost());
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ПЕРЕПРАВА, EN/TR/ES/PT BEETLEFORD', () => {
+  const T = K.STR, ks = Object.keys(T.en).sort().join(','); eq(Object.keys(T).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(T[l]).sort().join(','), ks, l);
+  eq(T.ru.title, 'ПЕРЕПРАВА'); for (const l of ['en', 'tr', 'es', 'pt']) eq(T[l].title, 'BEETLEFORD', l);
+});
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'pereprava', boards: ['pereprava'], test, ok }); }
+
 console.log(`\n${passed} ok, ${failed} fail`);
 process.exit(failed ? 1 : 0);

@@ -8,8 +8,9 @@
   'use strict';
   var P = root.PORUB = root.PORUB || {};
   // r1–r7 — «Острог на краю» (Мастеровые); b-stump — общая карта битвы у Старого Пня (её же берёт кампания Чащи, c3);
-  // c1–c7 — «Пока растёт грибница» (Живая чаща). Всё — только в полной сборке.
-  var FILES = P.MISSION_FILES = { demo: [], full: ['r1', 'r2', 'r3', 'r4', 'b-stump', 'r5', 'r6', 'r7', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7'] };
+  // c1–c7 — «Пока растёт грибница» (Живая чаща); k1–k7 — «Голос камня» (Курганный род); f1 — общий финал трёх родов «Весна».
+  // Всё — только в полной сборке.
+  var FILES = P.MISSION_FILES = { demo: [], full: ['r1', 'r2', 'r3', 'r4', 'b-stump', 'r5', 'r6', 'r7', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'k1', 'k2', 'k3', 'k4', 'k5', 'k6', 'k7', 'f1'] };
   P.MISSIONS = P.MISSIONS || [];
   P.registerMission = function (def) {
     for (var i = 0; i < P.MISSIONS.length; i++) if (P.MISSIONS[i].id === def.id) { P.MISSIONS[i] = def; return def; }

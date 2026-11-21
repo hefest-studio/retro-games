@@ -55,9 +55,15 @@
 | брод | sığlık | vado | vau | ЛЕДНИК, ОТГОН, ВОЛОК |
 | завод (у заводной куклы) | kurgu / yay | cuerda | corda | КАМЕРТОН |
 | рядом (крот у героя) | yanında | cerca | por perto | ГЛУБЬ |
+| шар (враг поля) | küre (не «top» — ловит проверка 8.2.2) | bola | bola | РАЗРЕЗ |
+| лафет (пушка игрока) | kule (не «top») | cañón | canhão | ЗАСТАВА |
+| смена (уровень) | vardiya | turno | turno | ПЕРЕПРАВА |
+| занос | drift | derrape | derrapagem | ЮЗ |
+| подрывник / РЕЛЕ | lağımcı / RÖLE | zapador / RELÉ | sapador / RELÉ | ФИТИЛЬ |
+| маяк (сохранение) | işaret | baliza | farol | УГОЛЁК |
 
 ## Названия
 Внутри языка название одно везде (Яндекс 5.1.3): RU — своё, EN/TR/ES/PT — EN-название (CASCADE, BUMPERWRIGHT, MASONRY, KETTLECLANK,
 FORGEPIT, SPARKWARD, STEAMRAM, DUSKHOOK, GEODELVE, SKYHIRE, RIVETFALL, WINDSHANKS, RIMETRAIL, BRASSHUSH, KETTLEWAKE, ROPEWARD,
-LAMPDIVER, HEARTHDEEP, HIVEWRENCH). Имена персонажей — транслитерация (Iskra, Burash, Druza, Svetlyak, Ognyovka, Burik); прозвища
+LAMPDIVER, HEARTHDEEP, HIVEWRENCH; волна 5 — SLICEWARD, ANVILWATCH, BEETLEFORD, BENCHSKID, FUSEWICK, STOKELING). Имена персонажей — транслитерация (Iskra, Burash, Druza, Svetlyak, Ognyovka, Burik); прозвища
 болванчиков ВЗВОДА — на языке игрока (TR Vida, Somun…; ES Tornillo, Tuerca…; PT Parafuso, Porca…), не длиннее 8–9 букв.

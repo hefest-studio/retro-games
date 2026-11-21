@@ -11,11 +11,14 @@
   // ---------- DOM ----------
   function fit(g) {
     var c = g.canvas, wrap = c.parentElement;
-    var pad = document.querySelector('.pad'), padH = pad && getComputedStyle(pad).display !== 'none' ? pad.offsetHeight + 20 : 0;
-    var availH = innerHeight - padH - 70;
+    var pad = document.querySelector('.pad'), cs = pad && getComputedStyle(pad), padH = cs && cs.display !== 'none' && cs.position !== 'fixed' ? pad.offsetHeight + 20 : 0;
+    var foot = $('foot'), footH = foot && getComputedStyle(foot).display !== 'none' ? 0 : -30;   // без подписи (телефон «лёжа») — канва выше
+    var availH = innerHeight - padH - 70 - footH;
     var w = Math.min(g.W * 1.6, (wrap && wrap.clientWidth) || g.W, availH * g.W / g.H);
     w = Math.max(240, Math.floor(w));
     c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
+    var se = document.scrollingElement || document.documentElement, over = se.scrollHeight - innerHeight;   // страховка от прокрутки (площадки)
+    if (over > 0 && w > 240) { w = Math.max(240, Math.floor(w - over * g.W / g.H) - 2); c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px'; }
   }
   var lastLang = null, lastTheme = null;
   function sync(g) {
@@ -24,6 +27,7 @@
       lastLang = lang; document.documentElement.lang = lang;
       var b = $('backLink'); if (b) b.innerHTML = '&larr; ' + g.t('back');
       var f = $('foot'); if (f) f.innerHTML = g.t('foot');   // строки — наши, из i18n.js
+      fit(g);
     }
     if (theme !== lastTheme) { lastTheme = theme; document.body.setAttribute('data-theme', theme); }
   }

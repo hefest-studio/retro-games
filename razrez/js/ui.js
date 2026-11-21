@@ -38,7 +38,7 @@
       txt(g, up(g.t('level')) + ' ' + st.level + '/' + st.maxLevel, 16, 28, { size: 16, color: P.ink }, P);
       // полоса захвата с меткой цели
       var bx = 150, bw = 260, by = 16, bh = 12, f = Math.min(1, st.pct / 100);
-      txt(g, up(g.t('captured')), bx - 10, 27, { size: 12, align: 'right', color: P.muted, weight: 700 }, P);
+      txt(g, up(g.t('captured')), bx - 10, 27, { size: 12, align: 'right', color: P.muted, weight: 700, maxWidth: 52 }, P);
       if (P.pixel) { ctx.fillStyle = P.bar; ctx.fillRect(bx, by, bw, bh); ctx.fillStyle = P.barFill; ctx.fillRect(bx, by, Math.round(bw * f / 2) * 2, bh); }
       else {
         ctx.fillStyle = P.bar; roundRect(ctx, bx, by, bw, bh, 6); ctx.fill();
@@ -71,8 +71,8 @@
         ctx.fillStyle = P.panel; roundRect(ctx, x, y, w, h, 16); ctx.fill(); ctx.restore();
         ctx.strokeStyle = col; ctx.lineWidth = 2; roundRect(ctx, x + 1, y + 1, w - 2, h - 2, 15); ctx.stroke();
       }
-      txt(g, title, L.W / 2, y + 48, { size: 28, align: 'center', color: col }, P);
-      txt(g, sub, L.W / 2, y + 78, { size: P.pixel ? 12 : 14, align: 'center', color: P.muted, weight: 600 }, P);
+      txt(g, title, L.W / 2, y + 48, { size: 28, align: 'center', color: col, maxWidth: w - 24 }, P);
+      txt(g, sub, L.W / 2, y + 78, { size: P.pixel ? 12 : 14, align: 'center', color: P.muted, weight: 600, maxWidth: w - 24 }, P);
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

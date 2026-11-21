@@ -646,6 +646,18 @@
       cp: { room: W.start.room, x: W.start.c + 0.5, y: W.start.r, id: null }, beaconSeen: {},
       deaths: 0, why: {}, nextLife: LIFE_EVERY, inp: { dx: 0, dy: 0, jump: false }, upLock: false, finalBonus: 0, roomsClear: 0
     };
+    // Сохранение у маяка (площадки: «Продолжить», облако): opts.save — снимок snapshot(); чужой формат — новая партия
+    var SV = opts.save;
+    if (SV && SV.v === 1 && SV.cp && W.rooms[SV.cp.room]) {
+      ['score', 'lives', 'time', 'coal', 'deaths', 'nextLife', 'roomsClear'].forEach(function (k) { if (typeof SV[k] === 'number') S[k] = SV[k]; });
+      S.keys = Object.assign({}, SV.keys); S.got = Object.assign({}, SV.got); S.visited = Object.assign({}, SV.visited); S.beaconSeen = Object.assign({}, SV.beaconSeen);
+      S.gate = S.coal >= S.total; S.cp = { room: SV.cp.room, x: SV.cp.x, y: SV.cp.y, id: SV.cp.id }; S.lives = Math.max(1, S.lives);
+      S.room = S.cp.room; S.hero = newHero(W, S.cp.room, S.cp.x, S.cp.y); S.hero.inv = SPAWN_INV;
+    }
+    function snapshot() {
+      return { v: 1, score: S.score, lives: S.lives, time: Math.round(S.time * 10) / 10, coal: S.coal, deaths: S.deaths, nextLife: S.nextLife, roomsClear: S.roomsClear,
+        keys: Object.assign({}, S.keys), got: Object.assign({}, S.got), visited: Object.assign({}, S.visited), beaconSeen: Object.assign({}, S.beaconSeen), cp: Object.assign({}, S.cp) };
+    }
     function addScore(p) {
       S.score += p;
       while (S.score >= S.nextLife) { S.nextLife += LIFE_EVERY; S.lives++; emit('life', { lives: S.lives }); }
@@ -679,7 +691,7 @@
             S.cp = { room: S.room, x: ix, y: it.r, id: it.id };
             var first = !S.beaconSeen[it.id] && rm.kind !== 'S'; S.beaconSeen[it.id] = true;
             if (first) addScore(PTS.beacon);
-            emit('beacon', { x: ix, y: iy, first: first });
+            emit('beacon', { x: ix, y: iy, first: first, fresh: true });
           }
           return;
         }
@@ -734,7 +746,12 @@
     var api = {
       start: start, update: update, setInput: setInput, state: function () { return S; },
       canClimb: canClimbHere, world: W, roomLeft: roomLeft, _S: S,
-      _die: die, _enter: enterRoom,
+      _die: die, _enter: enterRoom, snapshot: snapshot,
+      // Реклама за награду (площадки): «ещё один шанс» после последней жизни — 1 жизнь у последнего маяка (собранное остаётся);
+      // бонус в паузе — +1 жизнь (если жизней меньше трёх).
+      reviveAd: function () { if (!S.over || S.won) return false; S.over = false; S.lives = 1; S.phase = 'dead'; S.phaseT = 0; respawn(); return true; },
+      canBoost: function () { return !S.over && !S.won && S.lives < LIVES; },
+      boost: function () { if (!api.canBoost()) return false; S.lives++; return true; },
       _place: function (ri, c, r) { S.hero = newHero(W, ri, c + 0.5, r); enterRoom(ri); },
       _giveKey: function (k) { S.keys[k] = true; },
       _giveCoal: function (n) { for (var k = 0; k < W.coal.length && n > 0; k++) { var cq = W.coal[k]; if (!S.got[cq.id]) { S.got[cq.id] = true; S.coal++; n--; } } if (S.coal >= S.total) S.gate = true; }

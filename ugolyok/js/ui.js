@@ -15,6 +15,8 @@
     var w = Math.min(1000, (wrap && wrap.clientWidth) || g.W, availH * g.W / g.H);
     w = Math.max(280, Math.floor(w));
     c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
+    var se = document.scrollingElement || document.documentElement, over = se.scrollHeight - innerHeight;   // страховка от прокрутки (площадки)
+    if (over > 0 && w > 280) { w = Math.max(280, Math.floor(w - over * g.W / g.H) - 2); c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px'; }
   }
   var lastLang = null, lastTheme = null;
   function sync(g) {
@@ -23,6 +25,7 @@
       lastLang = lang; document.documentElement.lang = lang;
       var b = $('backLink'); if (b) b.innerHTML = '&larr; ' + g.t('back');
       var f = $('foot'); if (f) f.innerHTML = g.t('foot');   // строки — наши, из i18n.js
+      fit(g);
       var pb = $('bPause'); if (pb) pb.title = g.t('pause');
     }
     if (theme !== lastTheme) { lastTheme = theme; document.body.setAttribute('data-theme', theme); }
@@ -86,8 +89,8 @@
     if (!title) return;
     var w = 460, h = 64, x = (g.W - w) / 2, y = OY + 112;
     panel(ctx, x, y, w, h, P, col);
-    txt(g, up(P, title), g.W / 2, y + 28, { size: P.pixel ? 15 : 19, align: 'center', color: col }, P);
-    if (sub) txt(g, up(P, sub), g.W / 2, y + 49, { size: P.pixel ? 8 : 11, align: 'center', color: P.muted, weight: 600 }, P);
+    txt(g, up(P, title), g.W / 2, y + 28, { size: P.pixel ? 15 : 19, align: 'center', color: col, maxWidth: w - 20 }, P);
+    if (sub) txt(g, up(P, sub), g.W / 2, y + 49, { size: P.pixel ? 8 : 11, align: 'center', color: P.muted, weight: 600, maxWidth: w - 20 }, P);
   }
   function toasts(g, ctx, list, P) {
     for (var i = 0; i < list.length; i++) {
@@ -147,7 +150,7 @@
         ctx.strokeStyle = P.accent; ctx.lineWidth = 2; ctx.strokeRect(x - 2, y - 2, w + 4, h + 4);
       }
     });
-    txt(g, g.t('mapLegend'), x0, y0 + gh + 22, { size: 10, color: P.muted, weight: 600 }, P);
+    txt(g, g.t('mapLegend'), x0, y0 + gh + 22, { size: 10, color: P.muted, weight: 600, maxWidth: gw - 120 }, P);
     txt(g, g.t('mapHint'), x0 + gw, y0 + gh + 22, { size: 10, align: 'right', color: P.muted, weight: 600 }, P);
   }
 

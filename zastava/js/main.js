@@ -10,7 +10,7 @@
     modern: Object.assign({}, TH.modern, { bg: '#0a0b14', panel: '#17141f', ink: '#f1ece6', muted: '#a49cae', accent: '#ff8a3d', grid: '#2a2438' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#fc9838', muted: '#a8a8a8' })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.H, gameId: 'zastava', strings: Z.STR, theme: 'modern', lives: 3, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.H, gameId: 'zastava', leaderboard: 'zastava', strings: Z.STR, theme: 'modern', lives: 3, themes: themes });
   Z.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
   Z.ui.init(g);
@@ -49,11 +49,13 @@
   function onEvent(type, d) {
     Z.sfx(g, type, d); visual(type, d);
     sync();
+    if (type === 'wave' && d.wave > 1 && g._sceneName === 'play' && g.adReady()) { cardW = d.wave - 1; g.goto('card'); }   // межстраничная — по нажатию на карточке волны (Яндекс 4.4)
     if (type === 'win') g.win();
     else if (type === 'gameover') { g.state.lives = 0; setTimeout(function () { if (g._sceneName === 'play' && game && game.state().over) g.gameover(); }, 1100); }
   }
 
   function newGame() {
+    g.resetRun();
     game = Z.Game({ lives: 3, wave: 1, difficulty: diff, onEvent: onEvent });
     game.start(); Z.current = game; toasts = []; fx = []; sync();
   }
@@ -70,6 +72,37 @@
     goDraw.call(this, ctx);
     if (game && game.state().invaded) Z.ui.txt(this, Z.ui.up(rnd().P, this.t('invaded')), this.W / 2, this.H / 2 + 46, { size: 13, align: 'center', color: this.th().bad, weight: 800 }, rnd().P);
   };
+
+  // ---------- Площадка (движок v2.8/2.9): таблица лидеров «zastava», «Без рекламы» (no_ads) в меню и паузе, реклама за награду ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «zastava», GamePush — числовое поле игрока «zastava» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/zastava/platform.json (arcade-full). На сайте (без площадки) пунктов нет.
+  var LB = 'zastava';
+  g.persist('arcade.best.zastava', 'max');
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
+  // «Ещё один шанс» (раз за партию): 1 лафет на той же волне (строй отодвигается, если дошёл до земли); бонус в паузе — +1 лафет
+  g.useRewardedContinue({ revive: function () { if (game) { game.reviveAd(); sync(); } } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { return !!game && game.canBoost(); }, grant: function () { if (game) { game.boost(); sync(); } } });
+  // Меню вмещает пункты площадки («Лидеры», «Без рекламы»): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
+  // ---------- Карточка «волна отбита» (только когда площадка готова показать межстраничную): нажатие → реклама → дальше ----------
+  var cardW = 0, cardGoing = false;
+  function cardGo() { if (cardGoing || g._sceneName !== 'card') return; cardGoing = true; g.adBreak().then(function () { cardGoing = false; if (g._sceneName === 'card') g.goto('play', { resume: true }); }); }
+  g.scene('card', {
+    enter: function () { cardGoing = false; },
+    press: function (a) { if (a === 'action' || a === 'start') cardGo(); else if (a === 'pause') this.goto('play', { resume: true }); },
+    draw: function (ctx) {
+      var th = this.th(), P = rnd().P;
+      if (game) rnd().draw(ctx, game.state(), this, { toasts: [], fx: [] }); else this.clear();
+      ctx.fillStyle = 'rgba(6,6,14,.74)'; ctx.fillRect(0, 0, this.W, this.H);
+      Z.ui.txt(this, Z.ui.up(P, this.t('clear')), this.W / 2, this.H / 2 - 30, { size: 30, align: 'center', color: th.accent, weight: 900, maxWidth: this.W - 40 }, P);
+      Z.ui.txt(this, this.t('level') + ' ' + cardW + '/' + L.WAVES.length + (game ? ' · ' + this.t('score') + ': ' + game.state().score : ''), this.W / 2, this.H / 2 + 8, { size: 16, align: 'center', color: th.ink, weight: 700, maxWidth: this.W - 40 }, P);
+      Z.ui.txt(this, this.t('cardNext'), this.W / 2, this.H / 2 + 46, { size: 14, align: 'center', color: th.muted, weight: 600, maxWidth: this.W - 40 }, P);
+    }
+  });
 
   // ---------- Титул: демо-волна «играет сама» ----------
   var demo = null, demoSeed = 5, demoWaves = [1, 3, 5, 2, 6, 4, 10], demoTgt = 0;
@@ -106,7 +139,7 @@
       Z.ui.roundRect(ctx, px, py, pw, ph, 18); ctx.fill(); ctx.restore();
       ctx.strokeStyle = '#3a2f48'; ctx.lineWidth = 1; Z.ui.roundRect(ctx, px + 0.5, py + 0.5, pw - 1, ph - 1, 18); ctx.stroke();
     }
-    Z.ui.txt(this, this.t('title'), W / 2, py + 62, { size: 48, align: 'center', color: P.accent, weight: 900 }, P);
+    Z.ui.txt(this, this.t('title'), W / 2, py + 62, { size: 48, align: 'center', color: P.accent, weight: 900, maxWidth: pw - 30 }, P);
     // ряд паразитов под заголовком
     var types = ['drill', 'gear', 'tick', 'gear', 'drill'], fr = Math.floor(this.time * 2) % 2;
     for (var i = 0; i < 5; i++) {
@@ -115,10 +148,10 @@
         for (var rr = 0; rr < SP.length; rr++) for (var c = 0; c < SP[rr].length; c++) { var ch = SP[rr].charAt(c); if (ch === '.') continue; ctx.fillStyle = ch === '#' ? col : ch === 'o' ? '#ff5555' : ch === 'w' ? '#fff' : '#000'; ctx.fillRect(ax - 13 + c * 2, ay - 9 + rr * 2, 2, 2); } }
       else Z.modern.alien[types[i]](ctx, ax, ay, fr, this.time + i);
     }
-    Z.ui.txt(this, this.t('subtitle'), W / 2, py + 132, { size: 13, align: 'center', color: th.muted, weight: 600 }, P);
-    menu.draw(this, W / 2, py + 176, 32);
+    Z.ui.txt(this, this.t('subtitle'), W / 2, py + 132, { size: 13, align: 'center', color: th.muted, weight: 600, maxWidth: pw - 20 }, P);
+    var mf = menuFit(menu, py + 176, 32, py + 160, py + ph - 34); menu.draw(this, W / 2, mf[0], mf[1]);
     if (this.state.best) Z.ui.txt(this, this.t('best') + ': ' + this.state.best, W / 2, py + ph - 16, { size: 12, align: 'center', color: th.muted, weight: 600 }, P);
-    Z.ui.txt(this, this.t('hint'), W / 2, H - 34, { size: 11, align: 'center', color: th.muted, weight: 600 }, P);
+    Z.ui.txt(this, this.t(this.input.touchOnly ? 'hintTouch' : 'hint'), W / 2, H - 34, { size: 11, align: 'center', color: th.muted, weight: 600, maxWidth: W - 20 }, P);
   };
 
   // ---------- Игровая сцена ----------
@@ -165,7 +198,8 @@
     if (live()) { e.preventDefault(); if (!touch.moved && Date.now() - touch.at < 300) game.action(); }
     touch = null; touchX = null;
   }, { passive: false });
-  cv.addEventListener('mousedown', function () { if (live()) game.action(); });
+  cv.addEventListener('mousedown', function () { if (live()) game.action(); else if (g._sceneName === 'card') cardGo(); });
+  cv.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { e.preventDefault(); cardGo(); } }, { passive: false });
 
   g.start('title');
   Z.app = { g: g, game: function () { return game; } };   // для отладки/автотестов в браузере

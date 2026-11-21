@@ -436,5 +436,23 @@ test('бот-игроки вдвоём: оба доезжают, игра не �
   ok(fin >= 3, 'кооп: ' + fin + '/4');
 });
 
+// ---------- площадка (21.11, волна 5): реклама за награду, языки, «Без рекламы» и таблица лидеров ----------
+test('реклама: reviveAd в конце чемпионата не на 1-м месте — перезаезд последней трассы, её очки отменены; boost — турбо и щит в гонке', () => {
+  const game = Y.Game({ players: 1, tracks: 1, rng: mulberry32(4) }).start(), S = game._S, me = S.cars.find(c => c.human);
+  ok(!game.reviveAd(), 'до финала — нельзя'); ok(!game.canBoost(), 'на отсчёте — нельзя');
+  S.phase = 'race'; ok(game.canBoost()); ok(game.boost()); ok(me.boost > 0 && me.shield > 0, 'турбо и щит');
+  S.champ[me.id] = 6; S.phase = 'results'; S.standings = S.cars.map((c, k) => ({ id: c.id, pts: 0, wins: 0, human: c.human, place: c.human ? 2 : (k === 0 ? 1 : k + 1) }));
+  ok(game.next()); ok(S.over && !S.won, 'чемпионат окончен не первым');
+  ok(game.reviveAd()); ok(!S.over); eq(S.phase, 'count'); eq(S.champ[me.id], 0, 'очки последнего заезда отменены'); eq(S.ti, 0);
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ЮЗ, EN/TR/ES/PT BENCHSKID; порядковые места', () => {
+  const T = Y.STR, ks = Object.keys(T.en).sort().join(','); eq(Object.keys(T).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(T[l]).sort().join(','), ks, l);
+  eq(T.ru.title, 'ЮЗ'); for (const l of ['en', 'tr', 'es', 'pt']) eq(T[l].title, 'BENCHSKID', l);
+  eq(Y.ordinal('tr', 3), '3.'); eq(Y.ordinal('es', 3), '3.º'); eq(Y.ordinal('pt', 3), '3º'); eq(Y.ordinal('en', 3), '3rd');
+});
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'yuz', boards: ['yuz'], test, ok }); }
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
