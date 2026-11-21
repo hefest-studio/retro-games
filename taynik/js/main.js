@@ -10,7 +10,7 @@
     modern: Object.assign({}, TH.modern, { bg: '#0b0d12', panel: '#141a22', ink: '#eef2f8', muted: '#8d98a8', accent: '#ff8a3d', grid: '#232a35' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#fc9838', muted: '#a4a4a4' })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.H, gameId: 'taynik', strings: K.STR, theme: 'modern', lives: 3, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.H, gameId: 'taynik', leaderboard: 'taynik', strings: K.STR, theme: 'modern', lives: 3, themes: themes });
   K.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
   K.ui.init(g);
@@ -76,6 +76,15 @@
 
   // ---------- Стандартные экраны ----------
   g.useStandardScreens({ lives: 3 });
+  // ---------- Площадка (движок v2.8): таблица лидеров «taynik» и «Без рекламы» (товар no_ads) в меню и паузе ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «taynik», GamePush — числовое поле игрока «taynik» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/taynik/platform.json (arcade-full). На сайте (без площадки) пунктов нет. После покупки межстраничной
+  // и стики нет, ролики за награду остаются по желанию игрока.
+  var LB = 'taynik';
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
   // Реклама за награду (только площадки с рекламой): «фонарь погас» — «ещё один шанс»: 1 жизнь у последнего зажжённого фонаря;
   // бонус в паузе — полные заряды и сила (раз за партию).
   g.useRewardedContinue({ revive: function () { if (game) game.reviveAd(); } });
@@ -102,6 +111,9 @@
     demo.cam.x = (lv.pw - L.VW) * (0.5 + 0.5 * Math.sin(k));
     demo.cam.y = (lv.ph - L.VH) * (0.5 + 0.5 * Math.sin(k * 1.7 + 1));
   };
+  // Меню заставки вмещает пункты площадки («Лидеры», «Без рекламы»; 21.11): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  // и меню поднимается, но не выше yMin; на сайте (без пунктов площадки) — как раньше.
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
   title.draw = function (ctx) {
     if (!demo) makeDemo();
     var th = this.th(), r = rnd(), P = r.P, retro = P.pixel, W = this.W, H = this.H;
@@ -118,7 +130,7 @@
     var hc = { x: R.x, y: hy - 4, vx: 0, mode: 'rope', face: 1 };
     ctx.save(); ctx.translate(hc.x, hc.y); ctx.scale(1.4, 1.4); ctx.translate(-hc.x, -hc.y); r.hero(ctx, hc, g.time); ctx.restore();
     K.ui.txt(this, this.t('subtitle'), W / 2, py + 126, { size: retro ? 9 : 10, align: 'center', color: th.muted, weight: 600 }, P);
-    menu.draw(this, W / 2, py + 152, 24);
+    var mf = menuFit(menu, py + 152, 24, py + 142, py + ph - 30); menu.draw(this, W / 2, mf[0], mf[1]);
     K.ui.txt(this, this.t('starsHint') + ' · ' + prog.total() + '/' + (M.LEVELS * 3) + (this.state.best ? '   ' + this.t('best') + ': ' + this.state.best : ''), W / 2, py + ph - 12, { size: 10, align: 'center', color: th.muted, weight: 600, maxWidth: pw - 20 }, P);
     K.ui.txt(this, this.t('hint'), W / 2, H - 16, { size: 10, align: 'center', color: th.muted, weight: 600 }, P);
   };

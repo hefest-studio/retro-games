@@ -10,7 +10,7 @@
     modern: Object.assign({}, TH.modern, { bg: '#0b1018', panel: '#141b24', ink: '#eef3ee', muted: '#9fb0a6', accent: '#6fd38c', grid: '#1e2a24', good: '#6fd38c', bad: '#ff6a6a', warn: '#ffcf5a' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: E.Gl, muted: E.l, ink: E.w, good: E.Gl, bad: E.R, warn: E.y })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: VW, height: VH, gameId: 'ten', strings: TEN.STR, theme: 'modern', lives: L.K.LIVES, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: VW, height: VH, gameId: 'ten', leaderboard: 'ten', strings: TEN.STR, theme: 'modern', lives: L.K.LIVES, themes: themes });
   TEN.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
 
@@ -105,6 +105,15 @@
 
   // ---------- Стандартные экраны ----------
   g.useStandardScreens({ lives: L.K.LIVES });
+  // ---------- Площадка (движок v2.8): таблица лидеров «ten» и «Без рекламы» (товар no_ads) в меню и паузе ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «ten», GamePush — числовое поле игрока «ten» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/ten/platform.json (arcade-full). На сайте (без площадки) пунктов нет. После покупки межстраничной
+  // и стики нет, ролики за награду остаются по желанию игрока.
+  var LB = 'ten';
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
   g.menu.addItem({ key: 'restart', scene: 'pause', before: 'menu', label: function () { return g.t('restart'); },
     onSelect: function () { if (game) { game.restartScene(); sync(); } if (game && S().over) g.gameover(); else g.goto('play', { resume: true }); } });
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
@@ -130,6 +139,9 @@
   g.menu.addItem({ key: 'level', scene: 'title', after: 'play', label: function () { var n = startLv(); return g.t('lvPick') + ' ' + n + '  ' + M.starStr(prog.get(n)); },
     onSelect: function () { setStart(prog.next(startLv(), 1)); } });
   title.press = function (a) { var it = menu && menu.current(); if (it && it.key === 'level' && (a === 'left' || a === 'right')) { setStart(prog.next(startLv(), a === 'left' ? -1 : 1)); this.audio.beep(600, 0.03); } };
+  // Меню заставки вмещает пункты площадки («Лидеры», «Без рекламы»; 21.11): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  // и меню поднимается, но не выше yMin; на сайте (без пунктов площадки) — как раньше.
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
   title.draw = function (ctx) {
     var rt = retro(), Wc = this.W, Hc = this.H, th = this.th(), time = this.time;
     var bg = R.bgLayers(1, rt);
@@ -155,7 +167,7 @@
     var gx = 560 + Math.sin(time * 0.6) * 40, gf = Math.cos(time * 0.6) > 0 ? 1 : -1;
     R.cone(ctx, gx, hy - 28, (gf > 0 ? 0.3 : Math.PI - 0.3) + Math.sin(time * 1.3) * 0.2, 150, 0.3, rt, false);
     R.enemy(ctx, { k: 'guard', x: gx, y: hy, face: gf, sx: 0, state: 'idle', cd: 0 }, time, rt, false);
-    menu.draw(this, Wc / 2, 156, 28);
+    var mf = menuFit(menu, 156, 28, 140, 272); menu.draw(this, Wc / 2, mf[0], mf[1]);
     var best = this.state.best;
     if (best) this.text(this.t('best') + ': ' + best, Wc / 2, 292, { size: 12, align: 'center', color: th.muted, weight: 700 });
     this.text(this.t('hint'), Wc / 2, Hc - 12, { size: rt ? 10 : 11, align: 'center', color: th.muted, weight: 600 });

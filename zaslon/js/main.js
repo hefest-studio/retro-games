@@ -10,7 +10,7 @@
     modern: Object.assign({}, TH.modern, { bg: '#060914', panel: '#121a2c', ink: '#eef2f8', muted: '#8d9ab3', accent: '#ff7a1a', grid: '#1c2740' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#fc9838', muted: '#a49484' })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: C.W, height: C.H, gameId: 'zaslon', strings: Z.STR, theme: 'modern', lives: 3, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: C.W, height: C.H, gameId: 'zaslon', leaderboard: 'zaslon', strings: Z.STR, theme: 'modern', lives: 3, themes: themes });
   Z.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
 
@@ -103,6 +103,15 @@
 
   // ---------- Стандартные экраны + параллакс на всех экранах ----------
   g.useStandardScreens({ lives: 3 });
+  // ---------- Площадка (движок v2.8): таблица лидеров «zaslon» и «Без рекламы» (товар no_ads) в меню и паузе ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «zaslon», GamePush — числовое поле игрока «zaslon» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/zaslon/platform.json (arcade-full). На сайте (без площадки) пунктов нет. После покупки межстраничной
+  // и стики нет, ролики за награду остаются по желанию игрока.
+  var LB = 'zaslon';
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
   var baseClear = Object.getPrototypeOf(g).clear;
   g.clear = function (c) { baseClear.call(this, c); rnd().bg(this.ctx, this, this.time * 40, 1); };
 
@@ -111,6 +120,9 @@
   g.menu.addItem({ key: 'level', scene: 'title', after: 'play', label: function () { var n = startLv(); return g.t('lvPick') + ' ' + n + '  ' + M.starStr(prog.get(n)); },
     onSelect: function () { setStart(prog.next(startLv(), 1)); } });
   title.press = function (a) { var it = menu && menu.current(); if (it && it.key === 'level' && (a === 'left' || a === 'right')) { setStart(prog.next(startLv(), a === 'left' ? -1 : 1)); this.audio.beep(600, 0.03); } };
+  // Меню заставки вмещает пункты площадки («Лидеры», «Без рекламы»; 21.11): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  // и меню поднимается, но не выше yMin; на сайте (без пунктов площадки) — как раньше.
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
   title.draw = function (ctx) {
     var r = rnd(), P = r.P, retro = P.pixel, W = this.W, H = this.H, t = this.time;
     r.bg(ctx, this, t * 50, 1 + ((t / 9) | 0) % 5);
@@ -120,7 +132,7 @@
     // «заслон» под заголовком — светящаяся полоса
     Z.ui.barrier(ctx, W / 2 - 120, py + 80, 240, 1, t, P);
     Z.ui.txt(this, this.t('subtitle'), W / 2, py + 108, { size: 12, align: 'center', color: P.muted, weight: 600 }, P);
-    menu.draw(this, W / 2, py + 148, 28);
+    var mf = menuFit(menu, py + 148, 28, py + 134, py + 288); menu.draw(this, W / 2, mf[0], mf[1]);
     // ряд врагов
     var kinds = ['mite', 'dart', 'weaver', 'carrier', 'hulk'];
     for (var i = 0; i < kinds.length; i++) {

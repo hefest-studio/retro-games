@@ -6,7 +6,7 @@
    после победы в миссии 1 — экран 'edition' «Продолжение — в полной версии». Файлы миссий подключает js/missions/index.js. */
 (function (global) {
   'use strict';
-  var P = global.PRIISK, L = P.logic, C = P.campaign, R = P.render, LY = R.LAYOUT, T = R.TILE, E = P.Edition;
+  var P = global.PRIISK, L = P.logic, C = P.campaign, R = P.render, LY = R.LAYOUT, T = R.TILE, E = P.Edition, KU = global.HefestCampaignUI;   // KU — общий кит экранов кампании (_shared/)
   var UI = P.campUI = {};
   var g = null, host = null, store = null, hot = [], hover = -1, sel = 0, briefId = null, lastRes = null, resetArm = 0, flakes = [];
   // Узлы карты кампании без файла миссии в этой сборке (или закрытые изданием) — заглушки с названиями миссий 2–10
@@ -46,8 +46,8 @@
   function th() { return g.themeName === 'retro' ? 'retro' : 'modern'; }
   function font() { return pal().font; }
   function text(c, s, x, y, o) { o = o || {}; R.txt(c, s, x, y, { color: o.color || pal().ink, font: font(), size: o.size || 13, weight: o.weight || 700, align: o.align, base: o.base }); }
-  function wrap(c, s, maxW, size, weight) { c.font = (weight || 600) + ' ' + size + 'px ' + font(); var words = String(s).split(' '), out = [], line = ''; words.forEach(function (w) { var t = line ? line + ' ' + w : w; if (c.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t; }); if (line) out.push(line); return out; }
-  function fmtTime(s) { s = Math.round(s || 0); var m = Math.floor(s / 60), r = s % 60; return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r; }
+  function wrap(c, s, maxW, size, weight) { return KU.wrap(c, s, maxW, size, weight, font()); }
+  function fmtTime(s) { return KU.fmtTime(s); }
   function data() { return UI.data; }
   function persist() { C.save(store, UI.data); }
   function lockText() { return camp === 'sizye' ? 'lockedFullSubS' : 'lockedFullSub'; }
@@ -83,9 +83,7 @@
     c.restore();
   }
   function star(c, x, y, r, filled, pl) {
-    pl = pl || pal(); c.beginPath();
-    for (var k = 0; k < 10; k++) { var a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r; c.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
-    c.closePath(); if (filled) { c.fillStyle = pl.warn; c.fill(); } c.strokeStyle = filled ? pl.ownDk[0] : pl.muted; c.lineWidth = 1.5; c.stroke();
+    pl = pl || pal(); KU.starPath(c, x, y, r); if (filled) { c.fillStyle = pl.warn; c.fill(); } c.strokeStyle = filled ? pl.ownDk[0] : pl.muted; c.lineWidth = 1.5; c.stroke();
   }
   function portrait(c, who, x, y, r) {
     var pl = pal(), w = WHO[who] || WHO.foe;
@@ -103,9 +101,7 @@
     c.strokeStyle = o.primary ? pl.own[0] : pl.line; c.lineWidth = 1.5; if (pl.pixel) c.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1); else { R.roundRect(c, x + 0.5, y + 0.5, w - 1, h - 1, 6); c.stroke(); }
     text(c, label, x + w / 2, y + h / 2 + 5, { size: o.size || 14, weight: 800, align: 'center', color: o.primary ? (on ? pl.panel : pl.ink) : pl.ink });
   }
-  function pt(e) { var r = g.canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) * g.W / r.width, y: (e.clientY - r.top) * g.H / r.height }; }
   function inScreens() { return g._sceneName === 'camp' || g._sceneName === 'brief' || g._sceneName === 'result' || g._sceneName === 'edition' || g._sceneName === 'finale'; }
-  function hitAt(p) { for (var i = hot.length - 1; i >= 0; i--) { var b = hot[i]; if (p.x >= b.x && p.x < b.x + b.w && p.y >= b.y && p.y < b.y + b.h) return i; } return -1; }
 
   // ---------- карта кампании ----------
   function missionList(k) {
@@ -681,8 +677,8 @@
     ['camp', 'brief', 'result', 'edition', 'finale'].forEach(function (name) {
       g.scene(name, { realtime: true, enter: function () { hover = -1; resetArm = 0; sel2 = 0; if (name === 'camp' || name === 'edition') backFromBoth(); UI.data = C.load(store, camp); g.audio.beep(520, 0.05); }, update: function () {}, draw: function (c) { draw[name](c); }, press: sceneKeys(name) });
     });
-    g.canvas.addEventListener('pointerdown', function (e) { if (!inScreens()) return; var i = hitAt(pt(e)); if (i >= 0) { e.preventDefault(); var b = hot[i]; if (b.node != null && sel !== b.node) { sel = b.node; g.audio.beep(600, 0.03); return; } g.audio.beep(700, 0.03); b.fn(); } });
-    g.canvas.addEventListener('pointermove', function (e) { if (!inScreens()) return; hover = hitAt(pt(e)); g.canvas.style.cursor = hover >= 0 ? 'pointer' : 'default'; });
+    KU.bindHot(g.canvas, { active: inScreens, list: function () { return hot; }, size: function () { return { w: g.W, h: g.H }; },
+      press: function (i, b) { if (b.node != null && sel !== b.node) { sel = b.node; g.audio.beep(600, 0.03); return; } g.audio.beep(700, 0.03); b.fn(); }, hover: function (i) { hover = i; } });
     return UI;
   };
   UI._test = { missionList: missionList, nodeState: nodeState, nodes: NODES, nodesS: NODES_S, epNode: EP_NODE, epi: epi, epiState: epiState, setCamp: setCamp, camp: function () { return camp; }, hot: function () { return hot; }, sel: function (v) { if (v != null) sel = v; return sel; } };

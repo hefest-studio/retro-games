@@ -11,7 +11,7 @@
     modern: Object.assign({}, TH.modern, { bg: '#101318', panel: '#161a22', ink: '#eef2f8', muted: '#9aa4b5', accent: '#8bd450', grid: '#222838' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#98e058', muted: '#a8a8a8' })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.SCREEN_H, gameId: 'vzvod', strings: V.STR, theme: 'modern', lives: 1, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.SCREEN_H, gameId: 'vzvod', leaderboard: 'vzvod', strings: V.STR, theme: 'modern', lives: 1, themes: themes });
   V.g = g;
   V.ui.init(g);
   // Реклама за награду (только площадки с рекламой): бонус в паузе — ящик из мастерской (+2 шестерни, +1 ракета), раз за миссию.
@@ -21,6 +21,15 @@
     grant: function () { if (game) { var S = game.state(); S.ammo.gear += 2; S.ammo.rocket += 1; } } });
   function pal() { return g.themeName === 'retro' ? V.classic : V.modern; }
   g.useStandardScreens({ lives: 1 });
+  // ---------- Площадка (движок v2.8): таблица лидеров «vzvod» и «Без рекламы» (товар no_ads) в меню и паузе ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «vzvod», GamePush — числовое поле игрока «vzvod» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/vzvod/platform.json (arcade-full). На сайте (без площадки) пунктов нет. После покупки межстраничной
+  // и стики нет, ролики за награду остаются по желанию игрока.
+  var LB = 'vzvod';
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
 
   // ---------- облако площадки: кампания и звёзды миссий (g.persist + g.storeSet), без площадки — как раньше (localStorage) ----------
   var CS = { get: function (k, d) { return Store.get(k, d); }, set: function (k, v) { g.storeSet(k, v); } };

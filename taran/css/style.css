@@ -35,3 +35,6 @@ body[data-theme="retro"] .pad button{border-radius:3px}
   .pad>*{pointer-events:auto}
   .pad .mid{position:fixed;right:10px;top:4px;width:44px;height:30px}
 }
+/* сборка под площадку (<meta name="arcade-platform">): подсказка-подвал под трассой не помещается в окно 1280×720 без прокрутки
+   (Яндекс 1.10) — прячем, управление описано в «Как играть» площадки и в меню */
+html:has(meta[name="arcade-platform"]) .foot{display:none}

@@ -37,3 +37,6 @@ a.back:hover{color:var(--accent)}
   .acts{grid-template-columns:50px 58px;grid-template-rows:50px 58px;gap:6px}
   .acts .sp{width:44px;height:44px}.acts .hook,.acts .atk{width:50px;height:50px}.acts .jump{width:58px;height:58px}
 }
+/* сборка под площадку (<meta name="arcade-platform">): подсказка-подвал под холстом даёт прокрутку в окне 1280×720
+   (Яндекс 1.10) — прячем, управление описано в «Как играть» площадки и в меню */
+html:has(meta[name="arcade-platform"]) .foot{display:none}

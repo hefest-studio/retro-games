@@ -9,7 +9,7 @@
     modern: { bg: '#171a2e', panel: '#2a2030', ink: '#f3e6cc', muted: '#b9a283', accent: '#e0a24a', good: '#8fdcff', bad: '#d0705a', warn: '#e0a24a', grid: '#3a2e36', font: 'Georgia, "Times New Roman", serif', pixel: false, glow: false, radius: 6 },
     retro: { bg: '#000044', panel: '#220022', ink: '#ffeedd', muted: '#ddaa44', accent: '#ffaa22', good: '#55ffff', bad: '#ff5555', warn: '#ffaa22', grid: '#331144', font: '"Courier New", ui-monospace, monospace', pixel: true, glow: false, radius: 0 }
   };
-  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'kamerton', strings: K.STR, theme: 'modern', themes: THEMES });
+  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'kamerton', leaderboard: 'kamerton', strings: K.STR, theme: 'modern', themes: THEMES });
   K.g = g;
   var pad = document.querySelector('.pad');
   g.input.bindDpad(pad);
@@ -64,6 +64,15 @@
 
   // ---------- стандартные экраны: «Продолжить», пауза «К последнему фонарику» ----------
   g.useStandardScreens({ get subtitle() { return g.t('subtitle'); }, lives: 0 });
+  // ---------- Площадка (движок v2.8): таблица лидеров «kamerton» и «Без рекламы» (товар no_ads) в меню и паузе ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «kamerton», GamePush — числовое поле игрока «kamerton» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/kamerton/platform.json (arcade-full). На сайте (без площадки) пунктов нет. После покупки межстраничной
+  // и стики нет, ролики за награду остаются по желанию игрока.
+  var LB = 'kamerton';
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
   function contItem() { return { key: 'cont', label: function () { var s = loadSave(); return g.t('cont') + (s ? ' · ' + (s.z + 1) + '/' + ZN : ''); }, onSelect: function () { K._resume = loadSave(); this.goto('play'); }, before: 'play' }; }
   function refreshMenu() {
     var has = !!loadSave(), items = g.menu.items('title');
@@ -91,6 +100,9 @@
     else { inp.x = h.x < 1700 ? 1 : 0; if (demoT > 22) demoReset(); }
     demo.setInput(inp); demo.update(dt); RD.updateCam(demo.state(), demo, dt);
   };
+  // Меню заставки вмещает пункты площадки («Лидеры», «Без рекламы»; 21.11): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  // и меню поднимается, но не выше yMin; на сайте (без пунктов площадки) — как раньше.
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
   title.draw = function (ctx) {
     var th = this.th();
     RD.draw(ctx, demo.state(), g, { game: demo, hud: false, overlay: function (c, p, flat) {
@@ -102,7 +114,7 @@
       c.globalAlpha = 0.25 + 0.15 * Math.sin(g.time * 4); c.fillStyle = p.core; c.beginPath(); c.arc(ex, ey - 4, 16, 0, Math.PI * 2); c.fill(); c.restore();
       g.text(g.t('title'), W / 2 + 14, py + 64, { size: 46, align: 'center', color: p.warm, weight: 700, font: th.font, maxWidth: pw - 110 });
       g.text(g.t('subtitle'), W / 2, py + 94, { size: 15, align: 'center', color: th.muted, weight: 400, font: th.font, maxWidth: pw - 40 });
-      menu.draw(g, W / 2, py + 128, 26);
+      var mf = menuFit(menu, py + 128, 26, py + 116, py + ph - 36); menu.draw(g, W / 2, mf[0], mf[1]);
       g.text(g.t('starsHint') + ' · ' + prog.total() + '/' + (M.LEVELS * 3) + (g.state.best ? '   ' + g.t('best') + ': ' + g.state.best : ''), W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600, maxWidth: pw - 24 });
       g.text(g.t(g.input.touchOnly ? 'hintTouch' : 'hint'), W / 2, g.input.touchOnly ? RD.BAR - 8 : H - 13, { size: 12, align: 'center', color: th.muted, weight: 600, maxWidth: W - 130 });
     } });
@@ -166,7 +178,7 @@
       var pw = 380, ph = 270, px = (W - pw) / 2, py = (H - ph) / 2;
       c.fillStyle = flat ? '#110022' : 'rgba(22,15,20,0.92)'; c.fillRect(px, py, pw, ph); c.strokeStyle = p.brass; c.lineWidth = 2; c.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
       c.fillStyle = p.brass; c.fillRect(W / 2 - 12, py + 24, 7, 28); c.fillRect(W / 2 + 5, py + 24, 7, 28);
-      if (pm) pm.draw(g, W / 2, py + 96, 32);
+      if (pm) { var pf = menuFit(pm, py + 96, 32, py + 70, py + ph - 40); pm.draw(g, W / 2, pf[0], pf[1]); }   // с «Без рекламы» пунктов больше — сжать (21.11)
       var S = game.state(); g.text('◷ ' + S.deaths + '   ' + (S.z + 1) + '/' + ZN, W / 2, py + ph - 14, { size: 13, align: 'center', color: th.muted, weight: 600 });
     } });
   };

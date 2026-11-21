@@ -275,5 +275,9 @@ test('заслон под давлением: прорывы растут к п�
   ok(B[1]>B[0]*3, 'заслон не под давлением');
 });
 
+// ---------- площадка (21.11): «Без рекламы» и таблицы лидеров — статика main.js + список для Консоли (promo/<slug>/platform.json) ----------
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'zaslon', boards: ['zaslon'], test, ok }); }
+
 console.log((failed? 'FAIL ':'OK ')+passed+'/'+(passed+failed));
 process.exit(failed?1:0);

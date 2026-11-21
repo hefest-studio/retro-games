@@ -11,7 +11,7 @@
     modern: Object.assign({}, TH.modern, { bg: '#17110f', panel: '#211815', ink: '#f7efe2', muted: '#b9aa98', accent: '#e8b04a', grid: '#3a2c24', good: '#7bd389', bad: '#ff6b5a', warn: '#ffd166' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#ffff55', muted: '#aaaaaa', ink: '#ffffff', good: '#55ff55', bad: '#ff5555', warn: '#ffff55' })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: VW, height: VH, gameId: 'chaynik', strings: CH.STR, theme: 'modern', lives: L.K.LIVES, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: VW, height: VH, gameId: 'chaynik', leaderboard: 'chaynik', strings: CH.STR, theme: 'modern', lives: L.K.LIVES, themes: themes });
   CH.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
 
@@ -124,6 +124,15 @@
 
   // ---------- стандартные экраны ----------
   g.useStandardScreens({ lives: L.K.LIVES });
+  // ---------- Площадка (движок v2.8): таблица лидеров «chaynik» и «Без рекламы» (товар no_ads) в меню и паузе ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «chaynik», GamePush — числовое поле игрока «chaynik» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/chaynik/platform.json (arcade-full). На сайте (без площадки) пунктов нет. После покупки межстраничной
+  // и стики нет, ролики за награду остаются по желанию игрока.
+  var LB = 'chaynik';
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
   g.menu.addItem({ key: 'restart', scene: 'pause', before: 'menu', label: function () { return g.t('restart'); },
     onSelect: function () { if (game) { game.restartLevel(); sync(); } if (game && game.state().phase === 'over') toOver(); else g.goto('play', { resume: true }); } });
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
@@ -164,6 +173,9 @@
   g.menu.addItem({ key: 'level', scene: 'title', after: 'play', label: function () { var n = startLv(); return g.t('lvPick') + ' ' + n + '  ' + M.starStr(prog.get(n)); },
     onSelect: function () { setStart(prog.next(startLv(), 1)); } });
   title.press = function (a) { var it = menu.current && menu.current(); if (it && it.key === 'level' && (a === 'left' || a === 'right')) { setStart(prog.next(startLv(), a === 'left' ? -1 : 1)); this.audio.beep(600, 0.03); } };
+  // Меню заставки вмещает пункты площадки («Лидеры», «Без рекламы»; 21.11): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  // и меню поднимается, но не выше yMin; на сайте (без пунктов площадки) — как раньше.
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
   title.draw = function (ctx) {
     var rt = retro(), t = this.time, th = this.th(); R.setRetro(rt);
     // кухня: кафель, стол, окно
@@ -188,7 +200,7 @@
     if (idle === 3) { ctx.fillStyle = rt ? R.E.Cc : '#cfe6ff'; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'left'; ctx.fillText('z z z', kx + 30, ky - 74 - (t * 10 % 10)); }
     // Заварник с Крышкой удирает справа
     R.porcelain(ctx, 'teapot', VW - 110 + Math.sin(t * 1.5) * 10, ky, { cracks: 0, temp: 0, inv: 0, dead: false, cd: 1 }, t, { stage: 2 });
-    menu.draw(this, VW / 2, 158, 28);
+    var mf = menuFit(menu, 158, 28, 142, 262); menu.draw(this, VW / 2, mf[0], mf[1]);
     if (this.state.best) this.text(this.t('best') + ': ' + this.state.best, VW / 2, VH - 80, { size: 12, align: 'center', color: th.muted, weight: 700 });
     this.text(this.t('hint'), VW / 2, VH - 14, { size: rt ? 10 : 11, align: 'center', color: rt ? R.E.w : '#f7efe2', weight: 600 });
   };

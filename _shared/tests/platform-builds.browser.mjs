@@ -61,6 +61,8 @@ async function openPage(browser, base, platform, ctxOpts, errors, external, mock
   });
   await page.addInitScript((m) => {
     window.__sdkMock = m; window.__sdkLog = [];
+    // игры с промежуточной сценой после «Играть» (гараж ТАРАНА, комикс ТЕНИ) — довести до play
+    window.__toPlay = (g) => { for (let k = 0; k < 10 && g._sceneName !== 'play'; k++) { const c = g.current; if (g._sceneName === 'cut') c.press.call(g, 'pause'); else if (c && c._menu) { const go = c._menu.items.find((x) => x.key === 'go'); if (go) go.onSelect.call(g); else g._selectMenu(); } else break; } };
     // журнал сцен с первого кадра: какая сцена и какой язык были на первом экране меню
     window.__firstMenu = null;
     // проба «строка вылезла за холст»: fillText на главном canvas (не фон 16:9) — ширина по measureText с учётом выравнивания и масштаба
@@ -86,7 +88,7 @@ const layoutProbe = () => {
 };
 
 const LANGS = ['ru', 'en', 'tr', 'es', 'pt'];
-const MOCK_LB = { score: [], kaskad: [{ id: 'a', name: 'Ая', score: 900 }], kaskadDaily: [{ id: 'b', name: 'Бо', score: 40 }], otboynikWave: [{ id: 'a', name: 'Ая', score: 7 }], kladka: [{ id: 'c', name: 'Ви', score: 5000 }], mednitsa: [{ id: 'd', name: 'Гу', score: 12 }] };
+const MOCK_LB = { score: [], kaskad: [{ id: 'a', name: 'Ая', score: 900 }], kaskadDaily: [{ id: 'b', name: 'Бо', score: 40 }], otboynikWave: [{ id: 'a', name: 'Ая', score: 7 }], kladka: [{ id: 'c', name: 'Ви', score: 5000 }], mednitsa: [{ id: 'd', name: 'Гу', score: 12 }], chaynik: [{ id: 'e', name: 'Да', score: 77 }], gornilo: [{ id: 'e', name: 'Да', score: 77 }], zaslon: [{ id: 'e', name: 'Да', score: 77 }], taran: [{ id: 'e', name: 'Да', score: 77 }], ten: [{ id: 'e', name: 'Да', score: 77 }], zheoda: [{ id: 'e', name: 'Да', score: 77 }], podryad: [{ id: 'e', name: 'Да', score: 77 }], liven: [{ id: 'e', name: 'Да', score: 77 }], lednik: [{ id: 'e', name: 'Да', score: 77 }], kamerton: [{ id: 'e', name: 'Да', score: 77 }], volok: [{ id: 'e', name: 'Да', score: 77 }], taynik: [{ id: 'e', name: 'Да', score: 77 }], glub: [{ id: 'e', name: 'Да', score: 77 }], podgorye: [{ id: 'e', name: 'Да', score: 77 }], podgoryeTime: [{ id: 'e', name: 'Да', score: 77 }], vzvod: [{ id: 'e', name: 'Да', score: 77 }] };
 const browser = await chromium.launch();
 try {
   for (const b of builds) {
@@ -110,6 +112,7 @@ try {
       const cm = await page.evaluate(() => { const c = document.querySelector('canvas'), e1 = new MouseEvent('contextmenu', { bubbles: true, cancelable: true }), e2 = new Event('selectstart', { bubbles: true, cancelable: true }); c.dispatchEvent(e1); document.body.dispatchEvent(e2); return [e1.defaultPrevented, e2.defaultPrevented, getComputedStyle(document.body).userSelect]; });
       ok(cm[0] && cm[1] && cm[2] === 'none', 'контекстное меню/выделение: ' + cm);
       await page.keyboard.press('Enter'); await wait(400);
+      for (let k = 0; k < 8 && (await st()).scene !== 'play'; k++) { await page.keyboard.press('Enter'); await wait(400); }   // промежуточные сцены (гараж ТАРАНА, комикс ТЕНИ) — Enter до play
       const s1 = await st(); ok(s1.scene === 'play', 'Enter → не play: ' + s1.scene); ok(s1.log.lastIndexOf('start') > s1.log.indexOf('ready'), 'Enter → нет gameplayStart: ' + s1.log.join(','));
       // полноэкранная (как в паузе между уровнями) — через движок; вторая подряд — отказ (частотное ограничение адаптера)
       const ad1 = await page.evaluate(async () => { const g = Arcade.last, p = g.adBreak(); await new Promise(r => setTimeout(r, 40)); const mid = g._adPause; return { mid, r: await p, after: g._adPause }; });
@@ -133,12 +136,12 @@ try {
       ok(rw.mid.pause && rw.mid.pf && rw.frozen && rw.mid.ac !== 'running', 'во время ролика игра не на паузе/звук не выключен: ' + JSON.stringify(rw));
       ok(rw.after.scene === 'play' && rw.after.used && rw.after.ads === 1, 'после ролика: ' + JSON.stringify(rw.after));
       ok(rw.second === 'gameover', 'второй раз за партию — сразу gameover: ' + rw.second);
-      const skip = await page.evaluate(async () => { const g = Arcade.last; window.__sdkMock.rewarded = 'skip'; g.goto('title'); g.scenes.title._menu.items[0].onSelect.call(g); g.gameover(); const sc = g._sceneName; g._selectMenu();
+      const skip = await page.evaluate(async () => { const g = Arcade.last; window.__sdkMock.rewarded = 'skip'; g.goto('title'); g.scenes.title._menu.items[0].onSelect.call(g); window.__toPlay(g); g.gameover(); const sc = g._sceneName; g._selectMenu();
         await new Promise(r => setTimeout(r, 260)); const res = { sc, used: g._contUsed, scene: g._sceneName }; window.__sdkMock.rewarded = 'ok'; return res; });
       ok(skip.sc === 'continue' && !skip.used && skip.scene !== 'play', 'пропуск ролика не должен продолжать игру: ' + JSON.stringify(skip));
       }
       // скрытая вкладка → пауза
-      const hid = await page.evaluate(async () => { const g = Arcade.last; g.goto('title'); g.scenes.title._menu.items[0].onSelect.call(g); Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+      const hid = await page.evaluate(async () => { const g = Arcade.last; g.goto('title'); g.scenes.title._menu.items[0].onSelect.call(g); window.__toPlay(g); Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
         document.dispatchEvent(new Event('visibilitychange')); const s = g._sceneName; Object.defineProperty(document, 'hidden', { configurable: true, get: () => false }); document.dispatchEvent(new Event('visibilitychange')); return s; });
       ok(hid === 'pause', 'скрытая вкладка → не пауза: ' + hid);
       // v2.7 / Яндекс 1.3: любая потеря фокуса (blur окна — клик по странице площадки вокруг iframe, другое окно) → тишина и пауза; focus → звук можно вернуть
@@ -170,7 +173,7 @@ try {
         }
         if (g._shop) {
           g.goto('title'); await new Promise(x => setTimeout(x, 50)); g.goto('title');
-          const ti = g.scenes.title._menu.items.find(x => x.key === 'noads'); g.scenes.title._menu.items[0].onSelect.call(g); g.pause();
+          const ti = g.scenes.title._menu.items.find(x => x.key === 'noads'); g.scenes.title._menu.items[0].onSelect.call(g); window.__toPlay(g); g.pause();
           const pi = g.scenes.pause._menu.items.find(x => x.key === 'noads');
           r.shop = { title: ti && ti.label(), pause: pi && pi.label(), before: g.adReady() };
           pi.onSelect.call(g); await new Promise(x => setTimeout(x, 300)); g.goto('pause'); const pa = g.menu.items('pause'); g.goto('title');
@@ -214,7 +217,7 @@ try {
         const P = await openPage(browser, base, platform, { viewport: { width: w, height: h }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, errors, external, { adMs: 30, lang, lb: MOCK_LB });
         const r = await P.page.evaluate(async () => { const g = Arcade.last, out = { fm: window.__firstMenu, html: document.documentElement.lang, lang: g.i18n.lang, title: document.title };
           const m = g.menu.get('title'); out.label = m.items[m.indexOf('lang')].label(); out.playLbl = m.items[0].label();
-          g.scenes.title._menu.items[0].onSelect.call(g); await new Promise(x => setTimeout(x, 200)); g.pause(); await new Promise(x => setTimeout(x, 100));
+          g.scenes.title._menu.items[0].onSelect.call(g); window.__toPlay(g); await new Promise(x => setTimeout(x, 200)); g.pause(); await new Promise(x => setTimeout(x, 100));
           if (g._lbUi) { g.goto('leaders', { board: g._lbUi.boards[0].id }); await new Promise(x => setTimeout(x, 150)); }
           g.goto('gameover'); await new Promise(x => setTimeout(x, 100)); g.goto('title'); await new Promise(x => setTimeout(x, 100));
           out.over = window.__overflow.slice(0, 5); return out; });
@@ -232,7 +235,7 @@ try {
       for (const [w, h] of [[390, 844], [844, 390], [768, 1024], [1024, 768]]) {   // телефон портрет/ландшафт, планшет портрет/ландшафт
         const P = await openPage(browser, base, platform, { viewport: { width: w, height: h }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, errors, external, { adMs: 50, lang: 'ru' });
         const L0 = await P.page.evaluate(layoutProbe);
-        await P.page.evaluate(() => { const g = Arcade.last; g.scenes.title._menu.items[0].onSelect.call(g); }); await wait(300);
+        await P.page.evaluate(() => { const g = Arcade.last; g.scenes.title._menu.items[0].onSelect.call(g); window.__toPlay(g); }); await wait(300);
         const L1 = await P.page.evaluate(layoutProbe);
         for (const L of [L0, L1]) {
           ok(L.sh <= L.ih + 1 && L.sw <= L.iw + 1, `${w}×${h}: прокрутка страницы ` + JSON.stringify(L));

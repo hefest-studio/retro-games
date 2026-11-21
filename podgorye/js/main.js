@@ -11,7 +11,7 @@
     modern: Object.assign({}, TH.modern, { bg: '#120c08', panel: '#1c140e', ink: '#f6ece0', muted: '#b8a48e', accent: '#f0a64a', grid: '#2a1e16', good: '#9ce08a', bad: '#ff7a5a', warn: '#ffd36a' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', ink: '#ffffff', muted: '#aaaaaa', accent: '#ffff55', good: '#55ff55', bad: '#ff5555', warn: '#ffff55' })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: VW, height: VH, gameId: 'podgorye', strings: P.STR, theme: 'modern', themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: VW, height: VH, gameId: 'podgorye', leaderboard: 'podgorye', strings: P.STR, theme: 'modern', themes: themes });
   P.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
   // ---------- облако площадки: слоты, рекорды, счёт (g.persist + g.storeSet); без площадки — как раньше (localStorage) ----------
@@ -62,7 +62,7 @@
       case 'splash': burst(s.hero.x, s.hero.y - 0.3, retro ? '#55ffff' : '#9fe4ff', 10, 5); break;
       case 'shatter': burst(d.x, d.y, '#cfefff', 8, 5); break;
       case 'slam': if (d.x != null) shakeT = 0.2; break;
-      case 'win': lastWin = d; var rec = SV.record(d.time, d.pct); lastWin.rec = rec; writeSlot(); sync(); setTimeout(function () { if (g._sceneName === 'play') g.win(); }, 600); break;
+      case 'win': lastWin = d; var rec = SV.record(d.time, d.pct); lastWin.rec = rec; if (rec && rec.time) lbTime(); writeSlot(); sync(); setTimeout(function () { if (g._sceneName === 'play') g.win(); }, 600); break;
     }
     sync();
   }
@@ -77,6 +77,19 @@
 
   // ---------- стандартные экраны ----------
   g.useStandardScreens({});
+  // ---------- Площадка (движок v2.8): таблица лидеров «podgorye» и «Без рекламы» (товар no_ads) в меню и паузе ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «podgorye», GamePush — числовое поле игрока «podgorye» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/podgorye/platform.json (arcade-full). На сайте (без площадки) пунктов нет. После покупки межстраничной
+  // и стики нет, ролики за награду остаются по желанию игрока.
+  var LB = 'podgorye';
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  // Две таблицы: «podgorye» — лучший процент карты (счёт игры = % мира; уходит сам из g.saveBest), «podgoryeTime» — лучшее время
+  // прохождения в мс (Консоль: тип «время», сортировка по возрастанию — меньше лучше); отправляется на победе и после слияния облака.
+  var LB_TIME = 'podgoryeTime';
+  function lbTime() { var t = SV.records().time; if (t > 0) g.leaderboard.submit(Math.round(t * 1000), { board: LB_TIME }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('bestPct'); } }, { id: LB_TIME, label: function () { return g.t('bestTime'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) { lbBest(); lbTime(); } });   // облако слито: рекорд с другого устройства — в таблицу
   // Реклама за награду (только площадки с рекламой): бонус в паузе — здоровье и заряды до полного (раз за заход в игру).
   // Гибели-«поражения» нет (фонарь погас → снова у наковальни), поэтому «ещё шанс» не нужен.
   g.useRewardedBonus({ key: 'rwHeal', scene: 'pause', label: function () { return g.t('rwHeal'); },
@@ -103,6 +116,9 @@
     if (SV.list().some(function (d) { return !!d; })) { g.goto('slots'); return; }
     slot = 1; pendingLoad = null; pendingNew = true; g.goto('play');
   };
+  // Меню заставки вмещает пункты площадки («Лидеры», «Без рекламы»; 21.11): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  // и меню поднимается, но не выше yMin; на сайте (без пунктов площадки) — как раньше.
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
   title.draw = function (ctx) {
     var retro = g.themeName === 'retro', th = this.th();
     UI.titleArt(g, ctx, this.time);
@@ -111,7 +127,7 @@
     this.text(this.t('title'), VW / 2, y0 + 50, { size: retro ? 40 : 46, align: 'center', color: th.accent, weight: 900 });
     this.text(this.t('subtitle'), VW / 2, y0 + 74, { size: 11, align: 'center', color: th.ink, weight: 700 });
     this.text(this.t('sub2'), VW / 2, y0 + 90, { size: 9, align: 'center', color: th.muted, weight: 600 });
-    tmenu.draw(this, VW / 2, y0 + 124, 26);
+    var mf = menuFit(tmenu, y0 + 124, 26, y0 + 106, y0 + ph - 30); tmenu.draw(this, VW / 2, mf[0], mf[1]);
     var rc = SV.records(), line = [];
     if (rc.time) line.push(this.t('bestTime') + ': ' + UI.clock(rc.time));
     if (rc.pct) line.push(this.t('bestPct') + ': ' + rc.pct + '%');
@@ -146,7 +162,7 @@
     ctx.fillStyle = retro ? 'rgba(0,0,0,0.75)' : 'rgba(6,4,2,0.66)'; ctx.fillRect(0, 0, VW, VH);
     if (game) UI.worldMap(g, ctx, S(), 34, null);
     this.text(this.t('pause'), 50, VH - 66, { size: 14, color: th.warn, weight: 900 });
-    pmenu.draw(this, VW / 2, VH - 70, 22);
+    var pf = menuFit(pmenu, VH - 70, 22, VH - 92, VH - 22); pmenu.draw(this, VW / 2, pf[0], pf[1]);   // с «Без рекламы» пунктов больше — сжать (21.11)
   };
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
   g.scenes.win.draw = function (ctx) {

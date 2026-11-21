@@ -12,7 +12,7 @@
     modern: Object.assign({}, TH.modern, { bg: '#121216', panel: '#18181e', ink: '#f3eee4', muted: '#a3a9b3', accent: '#ef5b3f', grid: '#2a2a32' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#f86848', muted: '#a8a8a8' })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.H, gameId: 'taran', strings: T.STR, theme: 'modern', lives: 1, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.H, gameId: 'taran', leaderboard: 'taran', strings: T.STR, theme: 'modern', lives: 1, themes: themes });
   T.g = g; T._lbl = function (h) { return g.t(h ? 'p2' : 'p1'); };
   var pad = document.querySelector('.pad');
   T.ui.init(g);
@@ -48,6 +48,15 @@
   function saveChamp() { if (champ) sset(champKey(champ.players), champ.done ? null : C.serialize(champ)); }
 
   g.useStandardScreens({ lives: 1 });
+  // ---------- Площадка (движок v2.8): таблица лидеров «taran» и «Без рекламы» (товар no_ads) в меню и паузе ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «taran», GamePush — числовое поле игрока «taran» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/taran/platform.json (arcade-full). На сайте (без площадки) пунктов нет. После покупки межстраничной
+  // и стики нет, ролики за награду остаются по желанию игрока.
+  var LB = 'taran';
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
   g.usePlayers({
     bind: L.BIND, actions: ['fire', 'rocket', 'drop', 'nitro'], pad: pad, touch: { L: 'left', R: 'right', U: 'up', D: 'down' },
     hint: { ru: [T.STR.ru.hint1, T.STR.ru.hint2], en: [T.STR.en.hint1, T.STR.en.hint2], tr: [T.STR.tr.hint1, T.STR.tr.hint2], es: [T.STR.es.hint1, T.STR.es.hint2], pt: [T.STR.pt.hint1, T.STR.pt.hint2] }
@@ -77,7 +86,7 @@
   var extra = {
     team: { key: 'team', label: function () { return g.t('team') + ': ' + g.t(opt.team === 'duel' ? 't_duel' : 't_coop'); }, onSelect: function () { opt.team = opt.team === 'duel' ? 'coop' : 'duel'; saveOpt(); } },
     track: { key: 'track', label: function () { var t = L.TRACKS[opt.track]; return g.t('trackSel') + ': ' + (opt.track + 1) + '. ' + g.t('tr_' + t.id) + ' · ' + (lapRecord(t.id) ? T.ui.fmtT(lapRecord(t.id)) : g.t('noRec')); }, onSelect: function () { opt.track = (opt.track + 1) % L.TRACKS.length; saveOpt(); } },
-    newChamp: { key: 'newChamp', label: function () { return g.t('newChamp'); }, onSelect: function () { champ = C.newChamp({ players: nP(), team: opt.team }); saveChamp(); openGarage(); } }
+    newChamp: { key: 'newChamp', label: function () { return g.t('newChamp'); }, onSelect: function () { g.resetRun(); champ = C.newChamp({ players: nP(), team: opt.team }); saveChamp(); openGarage(); } }
   };
   function syncMenu() {
     var m = g.menu.get('title'); if (!m) return;
@@ -94,6 +103,7 @@
   var raceOpts = null, kind = 'champ', game = null, toasts = [], shakeT = 0, R = null, seed = 1;
   var TT_CFG = { body: 1, up: { armor: 3, tires: 3, engine: 3, weapon: 1 }, rear: 'oil' };
   function startPlay() {
+    g.resetRun();   // «раз за партию» (ещё шанс, бонус в паузе) — заново с каждым чемпионатом/заездом с заставки (21.11)
     if (opt.mode === 'time' || opt.mode === 'daily') {
       kind = 'time'; dailyDay = opt.mode === 'daily' ? today() : 0;
       raceOpts = { track: dailyDay ? dailyTrack(dailyDay) : opt.track, players: nP(), humans: [TT_CFG, TT_CFG], rivals: [], mode: 'time', laps: L.LAPS };

@@ -3,6 +3,7 @@
    Запуск:  node tools/promo-build.mjs <slug> [--langs ru,en] [--no-video] [--port 8401] [--out promo/<slug>]
             <slug> — игра в корне репо (kaskad) или прототип вне каталога: _proto/<имя> (промо — promo/<имя>/, игра — /_proto/<имя>/)
             node tools/promo-build.mjs <slug> --check   — только проверка текстов promo.json (длины, дубли, запрещённые слова), без браузера и без записи
+            node tools/promo-build.mjs <slug> --listings — только <lang>/listing.md из promo.json (после правки текстов; кадры не трогает)
    Запрещённые слова (tools/lib/banned-words.mjs): в названиях — «demo/демо», «trial», «бета», «free/бесплатно», «best/лучший», «top/топ»
             (Яндекс 1.15, 8.2.2) → ошибка; в описаниях и подписях — слова 1.15 → ошибка, 8.2.2 → предупреждение.
    Нужно:   promo/<slug>/promo.json — названия по языкам, тексты, теги, категории, подписи к скриншотам, палитра;
@@ -111,8 +112,24 @@ async function grabCanvas(page) {
   return page.evaluate(() => { const g = Arcade.last; return { url: g.canvas.toDataURL('image/png'), w: g.canvas.width, h: g.canvas.height, W: g.W, H: g.H, theme: g.themeName }; });
 }
 
+// Раскладка альбомного скриншота 1280×720 по размеру снимка canvas (w0×h0); n — номер кадра (1…4). Чистая функция: её исходник
+// подставляется в компоновщик (браузер) и проверяется тестом tools/promo/promo-build.test.mjs.
+//  r ≥ 1,7 (16:9 ± 5 %) → 'full': кадр на весь размер (cover, по центру), без полос; подпись — внутри кадра на подложке;
+//  1,45 ≤ r < 1,7 (16:10, 3:2) → 'fit': кадр по высоте по центру, бока — размытый фон из того же кадра; подпись — внутри кадра;
+//  r < 1,45 (4:3, квадрат, портрет) → 'side': кадр по высоте у края (отступ 70), название/подпись/крупный план — на свободной стороне.
+export function landscapeLayout(w0, h0, n, W, H) {
+  W = W || 1280; H = H || 720; var r = w0 / h0, k, fw, fh, margin = 28;
+  if (r >= 1.7) { k = Math.max(W / w0, H / h0); fw = Math.round(w0 * k); fh = Math.round(h0 * k);
+    return { mode: 'full', frame: { x: Math.round((W - fw) / 2), y: Math.round((H - fh) / 2), w: fw, h: fh }, margin: margin, plateLeft: n % 2 === 1 }; }
+  if (r >= 1.45) { k = H / h0; fw = Math.round(w0 * k); fh = H; var kb = Math.max(W / w0, H / h0), bw = Math.round(w0 * kb), bh = Math.round(h0 * kb);
+    return { mode: 'fit', frame: { x: Math.round((W - fw) / 2), y: 0, w: fw, h: fh }, bg: { x: Math.round((W - bw) / 2), y: Math.round((H - bh) / 2), w: bw, h: bh }, margin: margin, plateLeft: n % 2 === 1 }; }
+  k = H / h0; fw = Math.round(w0 * k); fh = H; var gx = n % 2 ? W - fw - 70 : 70;
+  return { mode: 'side', frame: { x: gx, y: 0, w: fw, h: fh }, side: n % 2 ? [40, gx - 40] : [gx + fw + 40, W - 40] };
+}
+const LAYOUT_SRC = landscapeLayout.toString();
+
 // ---------- компоновка в браузере (canvas): скриншоты с подписью, иконки, обложки ----------
-const COMPOSE = String.raw`
+export const COMPOSE = String.raw`
 window.Compose = (function(){
   function load(src){ return new Promise(function(r,j){ var i=new Image(); i.onload=function(){r(i)}; i.onerror=j; i.src=src; }); }
   function rgba(hex,a){ var n=parseInt(String(hex).replace('#',''),16); return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')'; }
@@ -135,15 +152,43 @@ window.Compose = (function(){
     caption(x,o.caption,W/2,top/2,W-60,Math.min(40,Math.max(26,top*0.3)),o.P);
     if (band-top>30) { x.fillStyle=rgba(o.P.accent,0.85); x.fillRect(W/2-60,top+ih+(band-top)/2-3,120,6); }
     return { url:c.toDataURL('image/png'), share:(iw*ih)/(W*H) }; }
-  async function landscape(o){ var img=await load(o.shot), W=1280, H=720, r=canvas(W,H), c=r[0], x=r[1]; bg(x,W,H,o.P,o.n);
-    var k=H/img.height, iw=Math.round(img.width*k), ih=H, gx=o.n%2? W-iw-70 : 70; x.imageSmoothingEnabled=!o.pixel; x.drawImage(img,gx,0,iw,ih);
-    var side = o.n%2 ? [40, gx-40] : [gx+iw+40, W-40], cw=side[1]-side[0], cx=side[0]+cw/2;
+  // Альбомный кадр 1280×720. Раскладка — landscapeLayout (общая с тестом tools/promo/promo-build.test.mjs):
+  //  full — кадр 16:9 (±5 %) на весь размер, без полос и сдвига; fit — почти 16:9 (≥ 1,45): кадр по высоте по центру, по бокам — тот же
+  //  кадр размытым фоном (без пустых полос); в обоих — подпись и название внутри кадра на тёмной подложке у нижнего края — слева или
+  //  справа, где кадр под ней спокойнее (меньше разброс яркости: обычно там нет героя и врагов), поровну — по очереди; side — узкий кадр (портретная или квадратная игра): как раньше, кадр сбоку,
+  //  название, подпись и крупный план на свободной стороне.
+  var landscapeLayout = ${LAYOUT_SRC};
+  function plate(x,o,L,W,H){ // подложка с названием и подписью внутри кадра
+    var pad=22, maxW=Math.min(L.frame.w, W)-2*L.margin-2*pad, tsz=28, csz=32;
+    x.font='800 '+csz+'px Inter'; var ls=wrap(x,o.caption,Math.min(maxW, 760)); if (ls.length>2){ csz=27; x.font='800 '+csz+'px Inter'; ls=wrap(x,o.caption,Math.min(maxW,760)); }
+    var cw=0; ls.forEach(function(l){ cw=Math.max(cw,x.measureText(l).width); });
+    var tz=fitText(x,o.title,Math.min(maxW,760),tsz,900); var tw=x.measureText(o.title).width;
+    var bw=Math.min(maxW,Math.max(cw,tw))+2*pad, bh=pad*2+tz*1.1+8+ls.length*csz*1.22, by=H-L.margin-bh;
+    var xl=Math.max(L.frame.x,0)+L.margin, xr=Math.min(L.frame.x+L.frame.w,W)-L.margin-bw;
+    // сторона подложки: где под ней «спокойнее» кадр (меньше разброс яркости — нет героя/врагов/предметов); поровну — по очереди
+    var busy=function(x0){ var d=x.getImageData(Math.round(x0),Math.round(by),Math.round(bw),Math.round(bh)).data, n=0, s1=0, s2=0; for(var i=0;i<d.length;i+=16){ var v=d[i]*0.3+d[i+1]*0.59+d[i+2]*0.11; s1+=v; s2+=v*v; n++; } var m=s1/n; return s2/n-m*m; };
+    var bl=busy(xl), br=busy(xr), bx=Math.abs(bl-br)<Math.max(bl,br)*0.15+1 ? (L.plateLeft?xl:xr) : (bl<br?xl:xr);
+    x.save(); x.fillStyle='rgba(8,8,14,.72)'; x.fillRect(bx,by,bw,bh); x.fillStyle=rgba(o.P.accent,0.95); x.fillRect(bx,by,6,bh); x.restore();
+    x.textAlign='left'; x.textBaseline='middle'; x.font='900 '+tz+'px Inter'; x.fillStyle=o.P.accent2||o.P.accent; x.fillText(o.title,bx+pad,by+pad+tz*0.55);
+    x.font='800 '+csz+'px Inter'; x.fillStyle=o.P.ink; ls.forEach(function(l,i){ x.fillText(l,bx+pad,by+pad+tz*1.1+8+csz*0.61+i*csz*1.22); });
+    return { x:bx, y:by, w:bw, h:bh };
+  }
+  async function landscape(o){ var img=await load(o.shot), W=1280, H=720, r=canvas(W,H), c=r[0], x=r[1], L=landscapeLayout(img.width,img.height,o.n,W,H);
+    if (L.mode!=='side') {
+      x.fillStyle='#000'; x.fillRect(0,0,W,H);
+      if (L.mode==='fit') { x.save(); x.filter='blur(18px) brightness(.55)'; x.drawImage(img,L.bg.x,L.bg.y,L.bg.w,L.bg.h); x.restore(); }
+      x.imageSmoothingEnabled=!o.pixel; x.drawImage(img,L.frame.x,L.frame.y,L.frame.w,L.frame.h); x.imageSmoothingEnabled=true;
+      var pl=plate(x,o,L,W,H), vis=Math.min(L.frame.w,W)*Math.min(L.frame.h,H);
+      return { url:c.toDataURL('image/png'), share:(vis-pl.w*pl.h)/(W*H), mode:L.mode, plate:pl, frame:L.frame }; }
+    bg(x,W,H,o.P,o.n);
+    var iw=L.frame.w, ih=L.frame.h, gx=L.frame.x; x.imageSmoothingEnabled=!o.pixel; x.drawImage(img,gx,0,iw,ih);
+    var side = L.side, cw=side[1]-side[0], cx=side[0]+cw/2;
     title(x,o.title,cx,150,cw,74,o.P); caption(x,o.caption,cx,250,cw,38,o.P);
     // крупный план фрагмента геймплея — элемент игры на свободном месте (Яндекс 5.1.1.2: свободное место — элементы игры или текст)
     if (o.detail) { var d=o.detail, dw=Math.min(cw,520), dh=Math.round(dw*d[3]/d[2]); if (dh>330){ dh=330; dw=Math.round(dh*d[2]/d[3]); }
       var dx=cx-dw/2, dy=330+(360-dh)/2; x.save(); x.shadowColor='rgba(0,0,0,.6)'; x.shadowBlur=24; x.fillStyle='#000'; x.fillRect(dx,dy,dw,dh); x.restore();
       x.drawImage(img,d[0]*img.width,d[1]*img.height,d[2]*img.width,d[3]*img.height,dx,dy,dw,dh); x.strokeStyle=rgba(o.P.accent,0.9); x.lineWidth=4; x.strokeRect(dx,dy,dw,dh); var extra=dw*dh; }
-    return { url:c.toDataURL('image/png'), share:(iw*ih+(extra||0))/(W*H) }; }
+    return { url:c.toDataURL('image/png'), share:(iw*ih+(extra||0))/(W*H), mode:'side', frame:L.frame }; }
   async function icon(o){ var S=o.size, r=canvas(S,S), c=r[0], x=r[1]; x.save(); x.scale(S/1024,S/1024); PromoArt.icon(x,1024,o.P); x.restore(); return { url:c.toDataURL('image/png') }; }
   async function cover(o){ var W=o.w, H=o.h, r=canvas(W,H), c=r[0], x=r[1]; var res=PromoArt.cover(x,W,H,o.P,{ lang:o.lang }) || {};
     var area=res.title || { x:W/2, y:H*0.2, w:W*0.8, size:H*0.17 }; title(x,o.title,area.x,area.y,area.w,area.size,o.P,area.align); return { url:c.toDataURL('image/png') }; }
@@ -205,8 +250,9 @@ export async function buildPromo(slug, opts = {}) {
         const rp = await comp.evaluate((o) => Compose.portrait(o), { shot: cap.url, P: P.palette, caption: caps[i % caps.length], n: i + 1, pixel: pix });
         const fp = path.join(out, lang, `shot-portrait-${i + 1}.png`); await writeDataUrl(fp, rp.url); add(fp, { share: rp.share, scenario: sc.name });
         const rl = await comp.evaluate((o) => Compose.landscape(o), { shot: cap.url, P: P.palette, caption: caps[i % caps.length], title: D, n: i + 1, detail: sc.detail || null, pixel: pix });
-        const fl = path.join(out, lang, `shot-landscape-${i + 1}.png`); await writeDataUrl(fl, rl.url); add(fl, { share: rl.share, scenario: sc.name });
+        const fl = path.join(out, lang, `shot-landscape-${i + 1}.png`); await writeDataUrl(fl, rl.url); add(fl, { share: rl.share, scenario: sc.name, layout: rl.mode });
         if (rp.share < 0.7) report.checks.push(`${lang} shot-portrait-${i + 1}: геймплей ${Math.round(rp.share * 100)}% < 70% (Яндекс 5.1.1.2)`);
+        if (rl.mode !== 'side' && (rl.plate.x < 0 || rl.plate.y < 0 || rl.plate.x + rl.plate.w > 1280 || rl.plate.y + rl.plate.h > 720)) report.checks.push(`${lang} shot-landscape-${i + 1}: подпись выходит за кадр`);
         if (rl.share < 0.7) report.checks.push(`${lang} shot-landscape-${i + 1}: геймплей ${Math.round(rl.share * 100)}% кадра, остальное — название, подпись и крупный план игры (Яндекс 5.1.1.2 допускает «элементы игры или поясняющий текст»; риск для десктопных скриншотов портретной игры)`);
       }
     }
@@ -231,6 +277,9 @@ export async function buildPromo(slug, opts = {}) {
       }
     }
   } finally { await browser.close(); srv.close(); }
+  if (opts.video === false) { // --no-video: прежние ролики остаются на месте — переносим их строки из старого отчёта
+    try { const prev = JSON.parse(fs.readFileSync(path.join(out, 'report.json'), 'utf8')); (prev.files || []).filter((f) => /\.mp4$/.test(f.file) && fs.existsSync(path.join(ROOT, f.file))).forEach((f) => report.files.push(f)); } catch (e) {}
+  }
   if (!HAS_IM) report.checks.push('нет ImageMagick (convert): PNG остались 32-битными RGBA — для Яндекса нужен PNG-24/JPEG');
   report.sources = ['https://yandex.ru/dev/games/doc/ru/console/add-new-game/draft', 'https://yandex.ru/dev/games/doc/ru/concepts/requirements', 'https://yandex.ru/dev/games/doc/ru/requirements/5/1/1/2', 'https://yandex.ru/dev/games/doc/ru/requirements/5/1/3', 'https://docs.gamepush.com/docs/distribution/'];
   fs.writeFileSync(path.join(out, 'report.json'), JSON.stringify(report, null, 2) + '\n');
@@ -245,6 +294,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     else if (a[i] === '--port') opts.port = +a[++i];
     else if (a[i] === '--out') opts.out = a[++i];
     else if (a[i] === '--check') opts.check = true;
+    else if (a[i] === '--listings') opts.listings = true;
     else slug = a[i];
   }
   if (slug) slug = slug.replace(/\/+$/, '');
@@ -254,6 +304,12 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const P = JSON.parse(fs.readFileSync(path.join(PROMO_DIR, game, 'promo.json'), 'utf8')), probs = checkTexts(P), warn = scanPromo(P).warnings;
     warn.forEach((w) => console.log('  ! проверить слово: ' + w)); probs.forEach((p) => console.log('  ✗ ' + p));
     console.log((probs.length ? 'FAIL' : 'OK  ') + ' promo/' + game + '/promo.json: ошибок ' + probs.length + ', предупреждений ' + warn.length); process.exit(probs.length ? 1 : 0);
+  }
+  if (opts.listings) { // только тексты для форм: <lang>/listing.md из promo.json (без браузера; после правки текстов, когда кадры не менялись)
+    const P = JSON.parse(fs.readFileSync(path.join(PROMO_DIR, game, 'promo.json'), 'utf8')), probs = checkTexts(P); if (probs.length) die('тексты promo.json:\n  ' + probs.join('\n  '));
+    const out = path.resolve(opts.out || path.join(PROMO_DIR, game));
+    for (const lang of opts.langs || Object.keys(P.names)) { fs.mkdirSync(path.join(out, lang), { recursive: true }); fs.writeFileSync(path.join(out, lang, 'listing.md'), listingMd(P, lang)); console.log('  ' + path.relative(ROOT, path.join(out, lang, 'listing.md'))); }
+    process.exit(0);
   }
   console.log('промо ' + game + (game !== slug ? ' (' + slug + ')' : '') + ':');
   const r = await buildPromo(slug, opts);

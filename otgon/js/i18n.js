@@ -37,7 +37,7 @@
     score: 'Varan', best: 'Rekor', win: 'YAZ OTLAĞI', gameover: 'SÜRÜ DAĞILDI',
     pause: 'DURAKLATILDI', resume: 'Devam', menu: 'Menü', tapstart: 'boşluk / dokun',
     title: 'WINDSHANKS', subtitle: 'Uzun bacaklı yünlü sürü kuzey geçitlerinden geçiyor',
-    legPick: 'Etap', rwBack: 'Reklam: kaçanı geri getir', starNew: 'yeni yıldız rekoru!', starsHint: '★ var · ★ kayıpsız · ★ tüm sürü',
+    legPick: 'Etap', rwBack: 'Reklam: kaçanı geri getir', starNew: 'yeni yıldız rekoru!', starsHint: '★ ulaş · ★ kayıpsız · ★ sürü eksiksiz',
     back: 'Katalog', leg: 'etap', camp: 'GECE KAMPI', home: 'vardı', of: '/',
     campHint: '◀ ▶ — seç · ▲ ▼ — işareti değiştir · Enter / ateşe dokun — yola çık',
     hint: 'Oklar/WASD: yürü · Shift: koş · Boşluk: ıslık · E: değnek · P: duraklat · T: tema · L: dil',

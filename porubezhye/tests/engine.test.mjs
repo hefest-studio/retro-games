@@ -211,7 +211,7 @@ test('партия ИИ против ИИ заканчивается побед�
 test('страница: порядок скриптов, ссылка на каталог, engine.js — копия _shared', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const order = [...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(), 'engine.js,js/music.js,js/i18n.js,js/edition.js,js/missions/index.js,js/game.js,js/scenario.js,js/campaign.js,js/render.js,js/mouse.js,js/campaign-ui.js,js/main.js');
+  eq(order.join(), 'engine.js,js/music.js,js/i18n.js,js/edition.js,js/missions/index.js,js/game.js,js/campaign-core.js,js/campaign.js,js/render.js,js/mouse.js,js/campaign-ui-kit.js,js/campaign-ui.js,js/main.js');
   ok(/class="back"[^>]*href="\.\.\/"/.test(html), '«← Каталог» должен вести на ../');
   ok(/class="back"[^>]*data-en="← Catalog"/.test(html), 'нет «← Каталог»');
   ok(/rel="icon"/.test(html), 'нет фавикона');

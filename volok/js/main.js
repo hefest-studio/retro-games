@@ -5,7 +5,7 @@
   var V = global.VOLOK, L = V.logic, RD = V.render;
   var W = 960, H = 540, SAVE = 'volok.save';
 
-  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'volok', strings: V.STR, theme: 'modern' });   // языки — ключи V.STR (RU/EN/TR/ES/PT)
+  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'volok', leaderboard: 'volok', strings: V.STR, theme: 'modern' });   // языки — ключи V.STR (RU/EN/TR/ES/PT)
   V.g = g;
   var pad = document.querySelector('.pad');
   g.input.bindDpad(pad);
@@ -59,6 +59,15 @@
 
   // ---------- Стандартные экраны + свой титул с живым фоном ----------
   g.useStandardScreens({ get subtitle() { return g.t('subtitle'); }, lives: 0 });
+  // ---------- Площадка (движок v2.8): таблица лидеров «volok» и «Без рекламы» (товар no_ads) в меню и паузе ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «volok», GamePush — числовое поле игрока «volok» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/volok/platform.json (arcade-full). На сайте (без площадки) пунктов нет. После покупки межстраничной
+  // и стики нет, ролики за награду остаются по желанию игрока.
+  var LB = 'volok';
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
   g.menu.addItem({ key: 'cont', label: function () { var s = loadSave(); return g.t('cont') + (s ? ' · ' + (L.secOf(s.mx) + 1) + '/6' : ''); },
     onSelect: function () { V._resume = loadSave(); this.goto('play'); }, before: 'play' });
   var title = g.scenes.title, menu = title._menu;
@@ -84,6 +93,9 @@
   var demo = V.Game({ snapshot: { mx: 33200, water: true, prog: { floatsWood: 2, floats: 100, launch: 100, barrier: 100, rubble: 140 }, solved: { barrier: 1, hill: 1, rubble: 1, ford: 1, shore: 1 }, breaks: { 0: 1, 1: 1, 2: 1 }, F: 80, P: 70, bunker: ['wood', 'wood', 'coal'] } }).start();
   (function () { var s = demo.state(); s._piles = demo.piles; s.mode = 1; s.sailUp = true; s.hero.x = 180; s.hero.lv = 0; })();
   title.update = function (dt) { var s = demo.state(); s.F = 80; s.P = 70; s.mode = 1; s.sailUp = true; if (s.mx > 35200) { s.mx = 33200; RD.resetCam(); } demo.update(dt); };
+  // Меню заставки вмещает пункты площадки («Лидеры», «Без рекламы»; 21.11): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  // и меню поднимается, но не выше yMin; на сайте (без пунктов площадки) — как раньше.
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
   title.draw = function (ctx) {
     var th = this.th(), retro = this.themeName === 'retro', s = demo.state();
     RD.draw(ctx, s, g, { title: true, dt: 1 / 60 });
@@ -93,7 +105,7 @@
     else { ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 30; ctx.fillStyle = 'rgba(30,22,16,.88)'; ctx.beginPath(); rr(ctx, px, py, pw, ph, 18); ctx.fill(); ctx.restore(); ctx.strokeStyle = '#7c3f1c'; ctx.lineWidth = 1.5; ctx.beginPath(); rr(ctx, px + 0.5, py + 0.5, pw - 1, ph - 1, 18); ctx.stroke(); }
     this.text(this.t('title'), W / 2, py + 64, { size: 50, align: 'center', color: retro ? '#f8a040' : '#f0a04b', weight: 900 });
     this.text(this.t('subtitle'), W / 2, py + 96, { size: 14, align: 'center', color: th.muted, weight: 600 });
-    menu.draw(this, W / 2, py + 132, 26);
+    var mf = menuFit(menu, py + 132, 26, py + 118, py + ph - 36); menu.draw(this, W / 2, mf[0], mf[1]);
     this.text(this.t('starsHint') + ' · ' + prog.total() + '/' + (M.LEVELS * 3) + (this.state.best ? '   ' + this.t('best') + ': ' + this.state.best : ''), W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600, maxWidth: pw - 24 });
     this.text(this.t(this.input.touchOnly ? 'hintTouch' : 'hint'), W / 2, this.input.touchOnly ? 20 : H - 14, { size: 12, align: 'center', color: '#e8dcc6', weight: 600, maxWidth: W - 120 });
   };

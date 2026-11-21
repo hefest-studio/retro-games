@@ -259,5 +259,9 @@ test('смерть как подсказка: бот гибнет редко (�
   ok(mins.every(m => m >= 5 && m <= 12), 'вне 5–12 мин'); ok(RUNS.every(r => r.deaths <= 15), 'много остановок');
 });
 
+// ---------- площадка (21.11): «Без рекламы» и таблицы лидеров — статика main.js + список для Консоли (promo/<slug>/platform.json) ----------
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'kamerton', boards: ['kamerton'], test, ok }); }
+
 console.log(`\n${passed} прошло, ${failed} упало`);
 process.exit(failed ? 1 : 0);

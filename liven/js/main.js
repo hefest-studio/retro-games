@@ -13,7 +13,7 @@
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#ffff55', muted: '#aaaaaa', ink: '#ffffff' })
   };
   var W = 640, H = 600;
-  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'liven', strings: LV.STR, theme: 'modern', lives: K.LIVES, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'liven', leaderboard: 'liven', strings: LV.STR, theme: 'modern', lives: K.LIVES, themes: themes });
   LV.g = g;
 
   // ---------- настройки и рекорды по сложности ----------
@@ -24,7 +24,7 @@
   g.loadBest = function () { return Store.getNum(bestKey(), 0); };
   g.saveBest = function () {   // рекорды по сложностям + общий; на площадке — и в облако (g.storeSet + g.persist 'max')
     var b = this.loadBest(); if (this.state.score > b) { g.storeSet(bestKey(), this.state.score); this._newBest = true; }
-    if (this.state.score > Store.getNum('arcade.best.liven', 0)) { g.storeSet('arcade.best.liven', this.state.score); if (this.platform) this.platform.save('best.liven', this.state.score); } // общий — для каталога
+    if (this.state.score > Store.getNum('arcade.best.liven', 0)) { g.storeSet('arcade.best.liven', this.state.score); if (this.platform) this.platform.save('best.liven', this.state.score); this.leaderboard.submit(this.state.score, { board: 'liven' }); } // общий (и в таблицу liven) — для каталога
     this.state.best = Math.max(b, this.state.score);
   };
   L.DIFFS.forEach(function (d) { g.persist(bestKey(d), 'max'); }); g.persist('arcade.best.liven', 'max');
@@ -85,6 +85,15 @@
 
   // ---------- меню ----------
   g.useStandardScreens({ lives: K.LIVES });
+  // ---------- Площадка (движок v2.8): таблица лидеров «liven» и «Без рекламы» (товар no_ads) в меню и паузе ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «liven», GamePush — числовое поле игрока «liven» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/liven/platform.json (arcade-full). На сайте (без площадки) пунктов нет. После покупки межстраничной
+  // и стики нет, ролики за награду остаются по желанию игрока.
+  var LB = 'liven';
+  function lbBest() { var b = Store.getNum('arcade.best.liven', 0); if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
   g.menu.addItem({ key: 'diff', after: 'play', label: function () { return g.t('diff') + ': ' + g.t('d_' + diff); }, onSelect: function () { diff = L.DIFFS[(L.DIFFS.indexOf(diff) + 1) % 3]; Store.set(DKEY, diff); g.state.best = g.loadBest(); } });
   g.menu.addItem({ key: 'form', after: 'diff', label: function () { return g.t('form') + ': ' + g.t('f_' + form) + ' (' + g.t('fdesc_' + form) + ')'; }, onSelect: function () { form = form === 'fan' ? 'blade' : 'fan'; Store.set(FKEY, form); } });
   // пункт «Этап N ★★☆»: выбор/тап — следующий открытый, ← → — по кругу
@@ -124,6 +133,9 @@
   var title = g.scenes.title, menu = g.menu.get('title');
   title.press = function (a) { var it = menu && menu.current(); if (it && it.key === 'level' && (a === 'left' || a === 'right')) { setStart(prog.next(startLv(), a === 'left' ? -1 : 1)); this.audio.beep(600, 0.03); } };
   title.update = function (dt) { demoT += dt; demo.update(dt); RN.update(dt); if (demoT > 9) newDemo(); };
+  // Меню заставки вмещает пункты площадки («Лидеры», «Без рекламы»; 21.11): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  // и меню поднимается, но не выше yMin; на сайте (без пунктов площадки) — как раньше.
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
   title.draw = function (ctx) {
     var C = P(), retro = C.retro, th = this.th();
     ctx.fillStyle = retro ? '#000000' : '#07080f'; ctx.fillRect(0, 0, W, H);
@@ -138,7 +150,7 @@
     RN.ringer(ctx, C, 'brass', W / 2 + tw + 4, y0 + 46, 0.8, this.time, 0);
     RN.txt(this, this.t('subtitle'), W / 2, y0 + 92, { size: retro ? 10 : 12, align: 'center', color: th.ink, weight: 700 }, C);
     RN.txt(this, this.t('sub2'), W / 2, y0 + 112, { size: retro ? 9 : 11, align: 'center', color: th.muted, weight: 600 }, C);
-    menu.draw(this, W / 2, y0 + 156, 30);
+    var mf = menuFit(menu, y0 + 156, 30, y0 + 134, y0 + ph - 60); menu.draw(this, W / 2, mf[0], mf[1]);
     var bl = L.DIFFS.map(function (d) { return g.t('d_' + d) + ' ' + Store.getNum(bestKey(d), 0); }).join(' · ');
     RN.txt(this, this.t('starsHint') + ' · ' + prog.total() + '/' + (M.LEVELS * 3), W / 2, y0 + ph - 38, { size: 11, align: 'center', color: th.muted, weight: 700 }, C);
     RN.txt(this, this.t('best') + ': ' + bl, W / 2, y0 + ph - 18, { size: 11, align: 'center', color: th.muted, weight: 700 }, C);

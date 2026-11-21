@@ -313,5 +313,9 @@ test('баланс: «человеческий» бот проходит акт 
   ok(!BAL.some(r => r.stuck), 'бот застрял: сиды ' + BAL.filter(r => r.stuck).map(r => r.seed + ' ' + r.stuckAt).join('; '));
 });
 
+// ---------- площадка (21.11): «Без рекламы» и таблицы лидеров — статика main.js + список для Консоли (promo/<slug>/platform.json) ----------
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'ten', boards: ['ten'], test, ok }); }
+
 console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed));
 process.exit(failed ? 1 : 0);

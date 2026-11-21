@@ -14,7 +14,7 @@
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#55ffff', muted: '#aaaaaa', ink: '#ffffff' })
   };
   var W = 640, H = 640;
-  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'podryad', strings: P.STR, theme: 'modern', lives: 1, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'podryad', leaderboard: 'podryad', strings: P.STR, theme: 'modern', lives: 1, themes: themes });
   P.g = g;
 
   // ---------- кампания и сложность ----------
@@ -35,7 +35,7 @@
   function C() { return g.themeName === 'retro' ? RN.PR : RN.PM; }
   function saveCamp() { if (camp) E.save(CS, camp); }
   function syncScore() { if (camp) { g.state.score = camp.earned; g.state.level = camp.mi + 1; } }
-  g.saveBest = function () { syncScore(); if (this.state.score > this.state.best) { this.state.best = this.state.score; g.storeSet('arcade.best.podryad', this.state.best); this._newBest = true; if (this.platform) this.platform.save('best.podryad', this.state.best); } };
+  g.saveBest = function () { syncScore(); if (this.state.score > this.state.best) { this.state.best = this.state.score; g.storeSet('arcade.best.podryad', this.state.best); this._newBest = true; if (this.platform) this.platform.save('best.podryad', this.state.best); this.leaderboard.submit(this.state.best, { board: 'podryad' }); } };
 
   // ---------- фазы сцены play ----------
   var pendingFail = false;
@@ -122,6 +122,15 @@
 
   // ---------- меню ----------
   g.useStandardScreens({ lives: 1 });
+  // ---------- Площадка (движок v2.8): таблица лидеров «podryad» и «Без рекламы» (товар no_ads) в меню и паузе ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «podryad», GamePush — числовое поле игрока «podryad» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/podryad/platform.json (arcade-full). На сайте (без площадки) пунктов нет. После покупки межстраничной
+  // и стики нет, ролики за награду остаются по желанию игрока.
+  var LB = 'podryad';
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
   function newCampaign() { camp = E.create(diff); saveCamp(); phase = 'hangar'; sel = rows.length - 1; game = null; debrief = null; syncScore(); }
   g.menu.addItem({ key: 'play', index: 0, label: function () {
     return camp ? g.t('cont') + ' · ' + g.t('contAt').replace('{s}', Math.floor(camp.mi / 3) + 1).replace('{m}', camp.mi % 3 + 1) : g.t('play');
@@ -163,6 +172,9 @@
     demoT += dt; var s = demo.state(); demo.setInput(Math.sin(demoT * 0.7) * 0.8, s.P.y > 520 ? -0.3 : 0); demo.update(dt); RN.update(dt);
     if (demoT > 24 || s.phase !== 'play') newDemo();
   };
+  // Меню заставки вмещает пункты площадки («Лидеры», «Без рекламы»; 21.11): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  // и меню поднимается, но не выше yMin; на сайте (без пунктов площадки) — как раньше.
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
   title.draw = function (ctx) {
     var Cc = C(), retro = Cc.retro, th = this.th();
     ctx.fillStyle = retro ? '#000000' : '#0b1014'; ctx.fillRect(0, 0, W, H);
@@ -176,7 +188,7 @@
     RN.hero(ctx, Cc, W / 2 + (retro ? 160 : 176), y0 + 44, { scale: 1.3, mods: ['homer', 'homer'], noShadow: true }, this.time);
     RN.txt(this, this.t('subtitle'), W / 2, y0 + 92, { size: retro ? 11 : 13, align: 'center', color: th.ink, weight: 700 }, Cc);
     RN.txt(this, this.t('sub2'), W / 2, y0 + 112, { size: retro ? 9 : 11, align: 'center', color: th.muted, weight: 600 }, Cc);
-    menu.draw(this, W / 2, y0 + 156, 32);
+    var mf = menuFit(menu, y0 + 156, 32, y0 + 134, y0 + ph - 62); menu.draw(this, W / 2, mf[0], mf[1]);
     RN.txt(this, this.t('stars') + ': ' + prog.total() + '/' + (M.LEVELS * 3) + '  ·  ' + this.t('starsHint'), W / 2, y0 + ph - 40, { size: 11, align: 'center', color: th.muted, weight: 700, maxWidth: pw - 24 }, Cc);
     RN.txt(this, this.t('best') + ': ' + P.money(this.state.best) + (camp ? '   ·   ' + this.t('funds') + ': ' + P.money(camp.money) + ' · ' + this.t('d_' + camp.diff) : ''), W / 2, y0 + ph - 20, { size: 11, align: 'center', color: th.muted, weight: 700 }, Cc);
     RN.txt(this, this.input.touchOnly ? this.t('hintTouch') : this.t('hintKeys'), W / 2, H - 24, { size: retro ? 9 : 10, align: 'center', color: th.muted, weight: 600 }, Cc);
