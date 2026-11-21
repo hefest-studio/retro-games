@@ -14,8 +14,13 @@
   var W = 1280, H = 720;
   // узлы карты кампании: снизу (острог у южной границы) — к Зимнему валу на севере
   var NODES = [[150, 520], [262, 450], [380, 492], [470, 400], [372, 318], [500, 236], [380, 160]];
+  // карта кампании Чащи: от Старого Пня в глубине бора (запад) — к реке с островами и к Зимнему валу на севере
+  var NODES_T = [[120, 470], [240, 520], [330, 430], [470, 470], [560, 360], [420, 300], [300, 180]];
+  function nodesOf(k) { return k === 'thicket' ? NODES_T : NODES; }
   var WHO = { yarina: { col: 'copper', ru: 'Я', en: 'Y', name: 'u_yarina' }, tikhon: { col: 'brass', ru: 'Т', en: 'T', name: 'u_tikhon' },
-    thicket: { col: 'moss', ru: 'Ч', en: 'T', name: 'r_thicket' }, envoy: { col: 'lichen', ru: 'П', en: 'E', name: 'u_envoy' }, stomper: { col: 'brass', ru: '⚙', en: '⚙', name: 'u_stomper' }, tale: { col: 'muted', ru: '✶', en: '✶', name: null }, worker: { col: 'cloth', ru: 'П', en: 'A', name: 'u_worker' } };
+    thicket: { col: 'moss', ru: 'Ч', en: 'T', name: 'r_thicket' }, envoy: { col: 'lichen', ru: 'П', en: 'E', name: 'u_envoy' }, stomper: { col: 'brass', ru: '⚙', en: '⚙', name: 'u_stomper' }, tale: { col: 'muted', ru: '✶', en: '✶', name: null }, worker: { col: 'cloth', ru: 'П', en: 'A', name: 'u_worker' },
+    matushka: { col: 'bark', ru: 'М', en: 'M', name: 'u_matushka' }, shmel: { col: 'amber', ru: 'Ш', en: 'S', name: 'u_shmel' }, wright: { col: 'copper', ru: 'М', en: 'W', name: 'r_wright' },
+    frost: { col: 'iceHi', ru: '❄', en: '❄', name: 'u_frostling' }, firefly: { col: 'lichen', ru: '✦', en: '✦', name: 'u_firefly' } };
   var RACE_OF = { wright: 'r_wright', thicket: 'r_thicket', barrow: 'r_barrow' };
 
   function lang() { return g.i18n.lang; }
@@ -36,6 +41,7 @@
     var p = pal(), rt = ret(), O = R.prims; c.save(); c.translate(x, y); var k = s / 24; c.scale(k, k);
     var probe = UI._probe || (UI._probe = new P.Game({ seed: 1, noAI: true }));
     if (P.RACES.wright.buildings[kind]) { c.restore(); c.save(); R.icon(c, probe, 0, 'b', kind, x - 2, y - 2, s + 4, g.themeName); c.restore(); return; }
+    if (P.RACES.thicket.buildings[kind]) { var pb = UI._probe2 || (UI._probe2 = new P.Game({ seed: 1, noAI: true, playerRace: 'thicket' })); c.restore(); c.save(); R.icon(c, pb, 0, 'b', kind, x - 2, y - 2, s + 4, g.themeName); c.restore(); return; }
     if (P.RACES.wright.units[kind]) { c.restore(); c.save(); R.icon(c, probe, 0, 'u', kind, x - 2, y - 4, s + 6, g.themeName); c.restore(); return; }
     if (P.RACES.thicket.units[kind]) { var pt = UI._probe2 || (UI._probe2 = new P.Game({ seed: 1, noAI: true, playerRace: 'thicket' })); c.restore(); c.save(); R.icon(c, pt, 0, 'u', kind, x - 2, y - 4, s + 6, g.themeName); c.restore(); return; }
     if (kind === 'amber') { O.tri(c, 12, 2, 4, 20, 20, 20, p.amber, rt); O.tri(c, 12, 2, 10, 20, 15, 20, p.amberHi, rt); }
@@ -52,6 +58,12 @@
     else if (kind === 'home') { O.tri(c, 12, 2, 2, 11, 22, 11, p.copper, rt); O.box(c, 5, 11, 14, 11, p.woodHi, rt); O.box(c, 10, 15, 4, 7, '#2a1a0c', rt); }
     else if (kind === 'flag') { O.box(c, 6, 3, 2, 18, p.iron, rt); O.box(c, 8, 3, 11, 7, p.copper, rt); }
     else if (kind === 'eye') { O.oval(c, 12, 12, 10, 6, p.ink, rt); O.oval(c, 12, 12, 4, 4, p.water, rt); }
+    else if (kind === 'smoke') { O.box(c, 6, 14, 12, 8, p.iron, rt, 2); O.oval(c, 9, 10, 5, 4, '#8a8690', rt); O.oval(c, 14, 6, 6, 4, '#a8a4ac', rt); O.oval(c, 18, 2, 4, 3, '#c0bcc4', rt); }
+    else if (kind === 'spore') { for (var sd = 0; sd < 5; sd++) { var sa = sd / 5 * 6.28; O.oval(c, 12 + Math.cos(sa) * 6, 10 + Math.sin(sa) * 5, 3, 3, sd % 2 ? p.lichen : '#f4f0dc', rt); } c.strokeStyle = p.moss; c.lineWidth = 2; c.beginPath(); c.moveTo(12, 12); c.lineTo(12, 22); c.stroke(); }
+    else if (kind === 'moon') { O.oval(c, 12, 12, 9, 9, p.lichen, rt); O.oval(c, 16, 9, 7, 7, ret() ? '#1a1520' : '#1b2230', rt); O.oval(c, 5, 18, 2, 2, '#e8ff80', rt); }
+    else if (kind === 'isle') { O.box(c, 0, 14, 24, 9, p.water, rt); O.oval(c, 12, 14, 9, 5, p.grass[0], rt); O.tri(c, 12, 2, 7, 13, 17, 13, p.pine[1], rt); }
+    else if (kind === 'wall') { O.box(c, 0, 4, 24, 8, p.iceHi, rt); for (var wz = 0; wz < 4; wz++) O.tri(c, 3 + wz * 6, 20, wz * 6, 12, 6 + wz * 6, 12, p.ice, rt); }
+    else if (kind === 'larvae') { for (var lz = 0; lz < 3; lz++) O.oval(c, 6 + lz * 6, 12 + (lz % 2) * 4, 4, 3, '#efe6c4', rt); }
     c.restore();
   }
   function star(c, x, y, r, filled) {
@@ -74,6 +86,7 @@
 
   // ---------- карта кампании ----------
   function drawRegion(c, x0, y0, w, h) {
+    if (camp === 'thicket') return drawRegionT(c, x0, y0, w, h);
     var p = pal(), rt = ret(), O = R.prims;
     O.box(c, x0, y0, w, h, rt ? '#2e4a28' : '#3b5537', rt, 14);
     c.save(); c.beginPath(); c.rect(x0, y0, w, h); c.clip();
@@ -89,6 +102,22 @@
     O.box(c, x0 + 70, y0 + h - 70, 40, 26, p.woodHi, rt, 3); O.tri(c, x0 + 90, y0 + h - 92, x0 + 64, y0 + h - 68, x0 + 116, y0 + h - 68, p.copper, rt);
     c.restore();
   }
+  // карта кампании Чащи: густой бор, Старый Пень на западе, река Студёная с островами на востоке, Зимний вал на севере
+  function drawRegionT(c, x0, y0, w, h) {
+    var p = pal(), rt = ret(), O = R.prims;
+    O.box(c, x0, y0, w, h, rt ? '#24401f' : '#2f4a2c', rt, 14);
+    c.save(); c.beginPath(); c.rect(x0, y0, w, h); c.clip();
+    O.box(c, x0, y0, w, 90, p.snow[1], rt); for (var i = 0; i < 14; i++) O.tri(c, x0 + 20 + i * 46, y0 + 4 + (i % 3) * 8, x0 + i * 46 - 6, y0 + 80, x0 + 46 + i * 46, y0 + 80, i % 2 ? p.ice : p.iceHi, rt);
+    O.box(c, x0, y0 + 80, w, 40, rt ? '#b8c8d8' : 'rgba(220,230,238,0.45)', rt);
+    c.strokeStyle = p.water; c.lineWidth = 22; c.beginPath(); c.moveTo(x0 + w - 150, y0 + 120); c.bezierCurveTo(x0 + w - 60, y0 + 260, x0 + w - 200, y0 + 380, x0 + w - 90, y0 + h); c.stroke();
+    c.strokeStyle = p.waterHi; c.lineWidth = 3; c.stroke();
+    [[w - 120, 250], [w - 150, 340], [w - 120, 430]].forEach(function (q) { O.oval(c, x0 + q[0], y0 + q[1], 14, 9, p.grass[0], rt); O.tri(c, x0 + q[0], y0 + q[1] - 16, x0 + q[0] - 7, y0 + q[1] - 2, x0 + q[0] + 7, y0 + q[1] - 2, p.pine[1], rt); });
+    for (var b = 0; b < 44; b++) { var bx = x0 + 20 + ((b * 83) % (w - 220)), by = y0 + 130 + ((b * 47) % (h - 150)); O.tri(c, bx, by - 18, bx - 11, by + 4, bx + 11, by + 4, p.pine[b % 3], rt); }
+    // Старый Пень и грибница вокруг
+    c.strokeStyle = rt ? '#d8d0a0' : 'rgba(232,226,196,0.35)'; c.lineWidth = 1.5; for (var r0 = 0; r0 < 7; r0++) { c.beginPath(); c.moveTo(x0 + 120, y0 + 470); c.quadraticCurveTo(x0 + 120 + Math.cos(r0) * 60, y0 + 470 + Math.sin(r0 * 2) * 40, x0 + 120 + Math.cos(r0 * 0.9) * 110, y0 + 470 + Math.sin(r0 * 1.3) * 70); c.stroke(); }
+    O.oval(c, x0 + 120, y0 + 474, 30, 16, p.bark, rt); O.oval(c, x0 + 120, y0 + 466, 26, 10, p.barkHi, rt); O.oval(c, x0 + 100, y0 + 456, 7, 5, p.cap, rt);
+    c.restore();
+  }
   function drawCamp(c) {
     var p = pal(), t = g.time || 0; hot = [];
     text(g.t('chooseCamp').toUpperCase(), 40, 50, { size: 26, weight: 900, color: g.th().accent });
@@ -102,10 +131,10 @@
     var x0 = 40, y0 = 78, mw = 660, mh = 540; drawRegion(c, x0, y0, mw, mh);
     var ms = missions(), d = UI.data;
     // тропа
-    c.strokeStyle = p.woodHi; c.lineWidth = 3; c.setLineDash([8, 7]); c.beginPath(); NODES.slice(0, Math.max(1, ms.length)).forEach(function (q, i) { if (i) c.lineTo(x0 + q[0], y0 + q[1]); else c.moveTo(x0 + q[0], y0 + q[1]); }); c.stroke(); c.setLineDash([]);
+    var NOD = nodesOf(camp); c.strokeStyle = camp === 'thicket' ? p.mossHi : p.woodHi; c.lineWidth = 3; c.setLineDash([8, 7]); c.beginPath(); NOD.slice(0, Math.max(1, ms.length)).forEach(function (q, i) { if (i) c.lineTo(x0 + q[0], y0 + q[1]); else c.moveTo(x0 + q[0], y0 + q[1]); }); c.stroke(); c.setLineDash([]);
     ms.forEach(function (m, i) {
-      var q = NODES[i] || NODES[NODES.length - 1], nx = x0 + q[0], ny = y0 + q[1], st = state(m), on = i === sel;
-      var col = st === 'done' ? p.hpGood : st === 'open' ? p.copper : 'rgba(120,120,120,0.85)';
+      var q = NOD[i] || NOD[NOD.length - 1], nx = x0 + q[0], ny = y0 + q[1], st = state(m), on = i === sel;
+      var col = st === 'done' ? p.hpGood : st === 'open' ? (camp === 'thicket' ? p.amber : p.copper) : 'rgba(120,120,120,0.85)';
       if (on) { c.strokeStyle = p.amberHi; c.lineWidth = 3; c.beginPath(); c.arc(nx, ny, 26 + Math.sin(t * 4) * 2, 0, 7); c.stroke(); }
       R.prims.oval(c, nx, ny, 20, 20, 'rgba(0,0,0,0.55)', ret()); R.prims.oval(c, nx, ny, 17, 17, col, ret());
       if (st === 'later' || st === 'closed') lock(c, nx, ny + 2); else text(String(m.n), nx, ny + 7, { size: 18, weight: 900, align: 'center', color: '#15110c' });
@@ -198,18 +227,21 @@
   // ---------- итог кампании (def.finale последней миссии) ----------
   // def.finale = { title, rows: [{ icon, label, flag, values: { v: текст } }], lines: [{ who, when, text }], epilogue, cont }
   // when — по флагам кампании: { t: 'flag', key, value } | all/any/not { of }
-  function fcond(w, flags) { return K.flagCond(w, flags, function (x) { return x.t === 'stars' && UI.finStars().got >= (x.gte || 0); }); }   // + свой тип 'stars'
-  UI.finStars = function () { var ms = missions(), got = 0; ms.forEach(function (m) { var rc = UI.data.missions[m.id]; if (rc) rc.stars.forEach(function (x) { if (x) got++; }); }); return { got: got, all: ms.length * 3 }; };
-  UI.finLines = function (def) { var F = def.finale, fl = UI.data.flags || {}, out = []; ['yarina', 'tikhon'].forEach(function (who) { var ln = (F.lines || []).filter(function (l) { return l.who === who && fcond(l.when, fl); })[0]; if (ln) out.push(ln); }); return out; };
+  function fcond(w, flags) { return K.flagCond(w, flags, function (x) { return x.t === 'stars' && UI.finStars(C.byId(finId)).got >= (x.gte || 0); }); }   // + свой тип 'stars'
+  UI.finStars = function (def) { var ms = missions(def ? C.campOf(def) : null), got = 0;   // def — миссия с итогом (её кампания)
+    ms.forEach(function (m) { var rc = UI.data.missions[m.id]; if (rc) rc.stars.forEach(function (x) { if (x) got++; }); }); return { got: got, all: ms.length * 3 }; };
+  UI.finLines = function (def) { var F = def.finale, fl = Object.assign({}, UI.xflags(def), UI.data.flags || {}), out = []; (F.who || ['yarina', 'tikhon']).forEach(function (who) { var ln = (F.lines || []).filter(function (l) { return l.who === who && fcond(l.when, fl); })[0]; if (ln) out.push(ln); }); return out; };
+  // флаги другой кампании для итога (def.xcarry): из её сохранения
+  UI.xflags = function (def) { return C.xcarried(def, null); };   // хранилище — C.store (ставит install; в тестах — своё)
   function drawFinale(c) {
     var def = C.byId(finId), p = pal(); hot = []; if (!def || !def.finale) { g.goto('camp'); return; }
-    var F = def.finale, fl = UI.data.flags || {}, x0 = 110, y0 = 34, pw = 1060, ph = 652; panel(c, x0, y0, pw, ph);
+    var F = def.finale, fl = Object.assign({}, UI.xflags(def), UI.data.flags || {}), x0 = 110, y0 = 34, pw = 1060, ph = 652; panel(c, x0, y0, pw, ph);
     text(g.t('finT').toUpperCase() + (campTitle(C.campOf(def)) ? ' · ' + campTitle(C.campOf(def)) : ''), W / 2, y0 + 40, { size: 14, align: 'center', color: p.muted });
     text(tx(F.title), W / 2, y0 + 82, { size: 32, weight: 900, align: 'center', color: g.th().accent });
-    var fs = UI.finStars(); star(c, W / 2 - 70, y0 + 116, 14, fs.got > 0); text(g.t('finStars') + ': ' + fs.got + ' / ' + fs.all, W / 2 - 48, y0 + 122, { size: 16 });
+    var fs = UI.finStars(def); star(c, W / 2 - 70, y0 + 116, 14, fs.got > 0); text(g.t('finStars') + ': ' + fs.got + ' / ' + fs.all, W / 2 - 48, y0 + 122, { size: 16 });
     // решения по флагам
     var y = y0 + 160; text(g.t('finChoices'), x0 + 40, y, { size: 14, color: p.muted }); y += 4;
-    (F.rows || []).forEach(function (rw) { var v = fl[rw.flag], tv = rw.values && (rw.values[v] || rw.values['*']); if (!tv) return; y += 29; icon(c, rw.icon || 'flag', x0 + 40, y - 21, 24); text(tx(rw.label) + ':', x0 + 76, y - 3, { size: 14, color: p.muted, weight: 700 }); text(tx(tv), x0 + 300, y - 3, { size: 15, weight: 700, color: p.amberHi, maxWidth: pw - 340 }); });
+    var rstep = (F.rows || []).length > 6 ? 26 : 29; (F.rows || []).forEach(function (rw) { var v = fl[rw.flag], tv = rw.values && (rw.values[v] || rw.values['*']); if (!tv) return; y += rstep; icon(c, rw.icon || 'flag', x0 + 40, y - 21, 24); text(tx(rw.label) + ':', x0 + 76, y - 3, { size: 14, color: p.muted, weight: 700 }); text(tx(tv), x0 + 300, y - 3, { size: 15, weight: 700, color: p.amberHi, maxWidth: pw - 340 }); });
     // реплики героев
     y += 18;
     UI.finLines(def).forEach(function (ln) { var lines = wrap(c, tx(ln.text), pw - 190, 15); portrait(c, ln.who, x0 + 66, y + 22, 22); text(g.t(WHO[ln.who].name), x0 + 104, y + 10, { size: 12, color: p.accent });
@@ -231,11 +263,16 @@
       case 'trained': return MS.trained[cn.type] || 0;
       case 'spans': return G.decks(0).filter(function (b) { return b.done; }).length;
       case 'units': return G.ents.filter(function (e) { return !e.dead && e.kind === 'u' && e.owner === (cn.owner || 0) && (!cn.type || e.type === cn.type) && (!cn.tag || e.tag === cn.tag); }).length;
-      case 'killed': return MS.killed[cn.tag] || 0;
-      case 'escaped': return MS.escaped[cn.tag] || 0;
+      case 'killed': return [].concat(cn.tag).reduce(function (n, tg) { return n + (MS.killed[tg] || 0); }, 0);
+      case 'escaped': return [].concat(cn.tag).reduce(function (n, tg) { return n + (MS.escaped[tg] || 0); }, 0);
       case 'site': return Math.floor(((MS.sites[cn.id] || {}).prog || 0) * 100);
       case 'alive': return G.ents.filter(function (e) { return !e.dead && e.tag === cn.tag; }).length;
       case 'built': return G.count(cn.owner || 0, 'b', cn.type, function (b) { return b.done; });
+      case 'zonesB': return (cn.zones || []).filter(function (z) { return G.count(cn.owner || 0, 'b', cn.type, function (b) { return b.done && C.inZone(MS, z, b.x / T, b.y / T); }) > 0; }).length;   // в скольких зонах есть готовое здание
+      case 'regrown': return G.stats[cn.owner || 0].regrown || 0;
+      case 'wallTo': return G.wall ? Math.floor(G.wall.pos) : 0;
+      case 'felledLeft': { var nf = 0; (cn.zones || []).forEach(function (z) { C.zoneCellsOf(MS, z, G).forEach(function (k) { if (G.felled[k] && P.PASS[G.terr[k]]) nf++; }); }); return nf; }
+      case 'smokesOut': { var now = G.ents.filter(function (b) { return !b.dead && b.kind === 'b' && b.smoke; }).length; if (MS._smoke0 == null) MS._smoke0 = now; return MS._smoke0 - now; }
       case 'zone': return G.ents.filter(function (u) { return !u.dead && u.kind === 'u' && u.owner === (cn.owner || 0) && (!cn.who || u.type === cn.who || u.tag === cn.who) && C.inZone(MS, cn.zone, u.x / T, u.y / T); }).length;
     }
     return 0;
@@ -243,7 +280,7 @@
   function objLabel(G, MS, ob) {
     var s = tx(ob.def.text), cn = ob.def.count; if (!cn || ob.state !== 'active') return s;
     if (cn.t === 'site') { var st = MS.sites[cn.id] || {}; return s + ' (' + countOf(G, MS, cn) + '% · ' + (st.hot ? g.t('siteHot') : st.busy ? g.t('siteBusy') : st.idle ? tx(st.idle) : g.t('siteIdle')) + ')'; }
-    return s + ' (' + Math.min(cn.n, countOf(G, MS, cn)) + '/' + cn.n + ')';
+    var cv = countOf(G, MS, cn), nn = cn.t === 'smokesOut' ? MS._smoke0 : cn.n; if (cn.t === 'felledLeft') return s + ' (' + g.t('left') + ': ' + cv + ')'; if (cn.t === 'wallTo') return s + ' (' + g.t('wallRow') + ' ' + cv + ' → ' + cn.to + ')'; return s + ' (' + Math.min(nn, cv) + '/' + nn + ')';
   }
   UI.drain = function (G) {
     var MS = G.mission; if (!MS) return;
@@ -253,7 +290,7 @@
       else if (e.t === 'obj') { var ob = MS.byObj[e.id]; if (!ob) return; if (e.state === 'done') { host.note(g.t('objDone') + ': ' + tx(ob.def.text), 'good'); g.audio.beep(990, 0.1, 'triangle'); } else if (e.state === 'active' && ob.t > 0.5) host.note(g.t('objNew') + ': ' + tx(ob.def.text), 'warn'); else if (e.state === 'failed') host.note(g.t('objFail') + ': ' + tx(ob.def.text), 'bad'); }
       else if (e.t === 'heroDown') host.note(g.t('u_' + e.who) + ' — ' + g.t('heroDown'), 'bad');
       else if (e.t === 'spanLost') { host.note(g.t('spanLost'), 'bad'); g.audio.beep(110, 0.25, 'sawtooth', 0.5); }
-      else if (e.t === 'alert') host.note(g.t('alertN'), 'warn');
+      else if (e.t === 'alert') host.note(g.t(e.race === 'wright' ? 'alertW' : 'alertN'), 'warn');   // тревога у стражи: чаща / острог
       else if (e.t === 'siteDone') { host.note(g.t('siteDone'), 'good'); g.audio.beep(660, 0.1, 'triangle'); g.audio.beep(990, 0.14, 'triangle'); }
       else if (e.t === 'convoyStop') { host.note(g.t('convoyStop'), 'warn'); g.audio.beep(300, 0.08, 'square'); }
       else if (e.t === 'convoyGo') host.note(g.t('convoyGo'), 'good');
@@ -270,6 +307,12 @@
         R.prims.box(c, b.x - 1, b.y - 34, 3, 34, p.iron, rt); R.prims.box(c, b.x + 2, b.y - 34 + Math.sin(t * 4) * 1.5, 16, 10, p.copper, rt); });
       if (!MS) return;
       drawWall(c, G, p, rt, t);
+      // дым котелен: серая пелена (кампания Чащи)
+      (G.smokes || []).forEach(function (sm) { c.globalAlpha = 0.22; c.fillStyle = rt ? '#585060' : '#5a565e'; c.beginPath(); c.arc(sm.x, sm.y, sm.r * T, 0, 7); c.fill(); c.globalAlpha = 0.5; c.strokeStyle = '#8a8690'; c.lineWidth = 2; if (!rt) c.setLineDash([6, 8]); c.stroke(); c.setLineDash([]); c.globalAlpha = 1; });
+      // прицел спор: досягаемость (по ветру — дальше)
+      var md = host.mode && host.mode(); if (md && md.t === 'spore') { var sb = G.get(md.id); if (sb) { c.strokeStyle = p.lichen; c.lineWidth = 2; c.globalAlpha = 0.75; if (!rt) c.setLineDash([8, 6]); c.beginPath();
+        for (var a = 0; a <= 64; a++) { var an = a / 64 * Math.PI * 2, dx = Math.cos(an), dy = Math.sin(an), rr = G.sporeRange(sb, sb.x / T - 1 + dx * 10, sb.y / T - 1 + dy * 10).max * T, px = sb.x + dx * rr, py = sb.y + dy * rr; if (a) c.lineTo(px, py); else c.moveTo(px, py); }
+        c.stroke(); c.setLineDash([]); c.globalAlpha = 1; } }
       Object.keys(MS.sites || {}).forEach(function (id) { var st = MS.sites[id]; if (!st.on) return; var q = C.pointOf(MS, st.at), x = q.x * T, y = q.y * T, r = (st.r || 2.5) * T;
         c.globalAlpha = 0.85; c.strokeStyle = 'rgba(0,0,0,0.5)'; c.lineWidth = 6; c.beginPath(); c.arc(x, y, r, 0, 7); c.stroke();
         c.strokeStyle = st.hot ? p.hpBad : st.prog >= 1 ? p.hpGood : p.brass; c.lineWidth = 4; c.beginPath(); c.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0.02, st.prog)); c.stroke(); c.globalAlpha = 1;
@@ -296,6 +339,13 @@
   // снег — в координатах мира поверх сущностей, но ПОД туманом (в неразведанном его не видно); cam — камера main.js
   UI.over = function (G, cam, V) {
     return function (c) {
+      if (G.night > 0.01) {   // ночь (кампания Чащи): тёмная пелена, светляки и Матушка светятся
+        c.save(); c.fillStyle = 'rgba(6,10,28,' + (0.62 * G.night) + ')'; c.fillRect(cam.x, cam.y, V.w, V.h);
+        c.globalCompositeOperation = 'lighter';
+        G.ents.forEach(function (e) { if (e.dead || e.kind !== 'u' || !(G.def(e).glow || G.def(e).myc) || (e.owner !== 0 && !G.visibleTo(e, 0))) return; if (e.x < cam.x - 200 || e.x > cam.x + V.w + 200 || e.y < cam.y - 200 || e.y > cam.y + V.h + 200) return;
+          var r = (G.def(e).glow ? 5 : 2.5) * T, gr = c.createRadialGradient(e.x, e.y, 0, e.x, e.y, r); gr.addColorStop(0, 'rgba(120,140,60,' + (0.35 * G.night) + ')'); gr.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = gr; c.fillRect(e.x - r, e.y - r, r * 2, r * 2); });
+        c.restore();
+      }
       var n = Math.round(G.cold * 160); if (n <= 0) return;
       while (flakes.length < n) flakes.push({ x: Math.random() * V.w, y: Math.random() * V.h, s: 0.6 + Math.random() * 1.6, v: 30 + Math.random() * 50, ph: Math.random() * 6 });
       var t = g.time, rt = ret(); c.fillStyle = 'rgba(240,246,255,0.75)';
@@ -336,6 +386,8 @@
   UI.topbar = function (c, G, txt) {
     var p = pal(), rt = ret();
     if (G.cold > 0.01) { icon(c, 'frost', 236, 4, 18); txt(g.t('cold'), 258, 19, { color: p.iceHi, size: 12 }); R.prims.box(c, 306, 10, 50, 9, 'rgba(255,255,255,0.12)', rt, 3); R.prims.box(c, 306, 10, 50 * G.cold, 9, G.cold > 0.66 ? p.hpBad : p.iceHi, rt, 3); }
+    if (G.wind) { var wx0 = 380, ang = Math.atan2(G.wind.y, G.wind.x); txt(g.t('wind'), wx0, 19, { color: p.lichen, size: 12 }); c.save(); c.translate(wx0 + 56, 14); c.rotate(ang); c.strokeStyle = p.lichen; c.lineWidth = 2; c.beginPath(); c.moveTo(-9, 0); c.lineTo(9, 0); c.lineTo(4, -4); c.moveTo(9, 0); c.lineTo(4, 4); c.stroke(); c.restore(); }
+    if (G.night > 0.01) { icon(c, 'moon', 236 + (G.cold > 0.01 ? 140 : 0) + (G.wind ? 110 : 0), 4, 18); }
     if (G.mission && G.mission.def.wood) { var rx = W - 680; icon(c, 'timber', rx - 4, 4, 18); txt(Math.floor(G.res[0].w), rx + 18, 19, { color: p.plankHi }); txt(g.t('wood'), rx + 62, 19, { color: g.th().muted, size: 11, weight: 600 }); }
   };
   UI.finish = function (G) {
@@ -353,7 +405,7 @@
   UI.install = function (game, h) {
     g = game; host = h;
     try { store = global.localStorage; } catch (e) { store = null; }
-    UI.store = store; UI.camp = camp; UI.data = C.load(store, camp);
+    UI.store = store; C.store = store; UI.camp = camp; UI.data = C.load(store, camp);
     var draws = { camp: drawCamp, brief: drawBrief, result: drawResult, finale: drawFinale };
     ['camp', 'brief', 'result', 'finale'].forEach(function (name) {
       g.scene(name, { realtime: true,

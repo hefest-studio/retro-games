@@ -66,6 +66,11 @@
       if (t === TR.SNOW) { c.fillStyle = p.snowLo; for (var sk = 0; sk < 3; sk++) { var sx0 = hash(x * 5 + sk, y * 7), sy0 = hash(x * 3, y * 9 + sk); c.fillRect(X + ((sx0 * (T - 6)) | 0), Y + ((sy0 * (T - 4)) | 0), ret ? 6 : 5, ret ? 3 : 2); } }
       if (t === TR.ICE) { c.fillStyle = p.iceHi; if (h > 0.3) c.fillRect(X + ((h * 14) | 0), Y + 6 + ((h * 13) | 0), ret ? 12 : 11, 2);
         c.strokeStyle = ret ? '#5890c0' : 'rgba(70,120,150,0.45)'; c.lineWidth = 1; if (h > 0.6) { c.beginPath(); c.moveTo(X + 3, Y + h * T); c.lineTo(X + T / 2, Y + T / 2); c.lineTo(X + T - 4, Y + (1 - h) * T); c.stroke(); } }
+      if (game.felled && game.felled[y * MW + x] && (t === TR.HEATH || t === TR.GRASS)) { // вырубка: пни и щепа (кампания Чащи)
+        oval(c, X + 10 + h * 8, Y + 20, 6, 3, ret ? '#3a2410' : 'rgba(40,26,14,0.45)', ret); box(c, X + 5 + h * 8, Y + 11, 10, 9, p.trunk, ret, 2); oval(c, X + 10 + h * 8, Y + 11, 5, 2, ret ? '#b08850' : '#b8925c', ret);
+        c.fillStyle = ret ? '#c09050' : 'rgba(200,160,100,0.6)'; c.fillRect(X + 20 - h * 6, Y + 24, 5, 2); c.fillRect(X + 6, Y + 26 - h * 4, 4, 2); }
+      if (game.young && game.young[y * MW + x] && t !== TR.WOOD) { // подрост на бывшей вырубке: две-три молодые ёлочки (кампания Чащи)
+        for (var yg = 0; yg < 3; yg++) { var ygx = X + 6 + ((hash(x * 3 + yg, y) * 20) | 0), ygy = Y + 12 + ((hash(x, y * 5 + yg) * 16) | 0); tri(c, ygx, ygy - 12, ygx - 5, ygy, ygx + 5, ygy, p.pine[(yg + 1) % 3], ret); box(c, ygx - 1, ygy, 2, 3, p.trunk, ret); } }
       if (t === TR.GRASS || t === TR.HEATH || t === TR.WOOD) { // травинки/вереск
         for (var k = 0; k < 4; k++) { var hx = hash(x * 7 + k, y * 3), hy = hash(x * 5, y * 11 + k);
           c.fillStyle = t === TR.HEATH ? (ret ? '#a07858' : 'rgba(176,128,96,0.45)') : (ret ? '#3c7034' : 'rgba(110,150,90,0.35)');
@@ -204,7 +209,40 @@
       for (var d = 0; d < 5; d++) oval(c, -8 + d * 4, -5 + (d % 2) * 5, 2, 2, p.lichen, ret);           // лишайник
       oval(c, -5, -10, 4, 3, p.cap, ret); box(c, -6, -8, 2, 4, p.capDot, ret);                            // грибы на спине
       oval(c, 4, -9, 3, 2, p.cap, ret); oval(c, -6, -11, 1, 1, p.capDot, ret);
+    } else if (D === 'matushka') { // Матушка-Пень: старый пень на корнях-ножках, моховой платок, янтарные глаза, росток на макушке
+      var wk = u.moving ? Math.sin(u.anim * 5) * 3 : 0;
+      for (var rl = -2; rl <= 2; rl++) line(c, rl * 4, 6, rl * 6 + (rl % 2 ? wk : -wk), 15, p.bark, 3);
+      box(c, -12, -14, 24, 22, p.bark, ret, 6); box(c, -9, -12, 6, 18, p.barkHi, ret, 3);
+      oval(c, 0, -15, 12, 5, p.barkHi, ret); for (var rg = 2; rg > 0; rg--) oval(c, 0, -15, rg * 4, rg * 1.6, rg % 2 ? (ret ? '#b08850' : '#b8925c') : (ret ? '#906838' : '#9a764a'), ret);
+      tri(c, 0, -8, -14, 2, 14, 2, p.moss, ret); oval(c, -8, -2, 5, 4, p.mossHi, ret);                   // моховой платок
+      box(c, 2, -8, 3, 3, p.eye, ret); box(c, 7, -8, 3, 3, p.eye, ret);                                   // глаза
+      line(c, 0, -17, 0, -26, p.moss, 2); oval(c, -4, -26, 4, 2, p.mossHi, ret); oval(c, 4, -28, 4, 2, p.mossHi, ret);   // росток
+      oval(c, -12, 4, 4, 3, p.cap, ret); oval(c, -13, 3, 1, 1, p.capDot, ret);
+    } else if (D === 'shmel') { // Шмель: крупный мшистый клубок в янтарную полоску, листья-крылышки, жало
+      var hop2 = u.moving ? Math.abs(Math.sin(u.anim * 10)) * -4 : 0, fl = Math.sin(u.anim * 30) * 3;
+      c.translate(0, hop2);
+      oval(c, -4, -12 - fl * 0.3, 7, 4, ret ? '#c8e8a0' : 'rgba(210,240,180,0.75)', ret); oval(c, 4, -12 + fl * 0.3, 7, 4, ret ? '#c8e8a0' : 'rgba(210,240,180,0.75)', ret);   // крылышки
+      line(c, -8, 0, -16, -4, p.moss, 3); tri(c, -16, -10, -19, -3, -13, -3, p.amberHi, ret);
+      oval(c, 0, 0, 11, 9, p.moss, ret); box(c, -6, -8, 4, 16, p.amber, ret); box(c, 2, -8, 3, 16, p.amber, ret);
+      oval(c, -3, -3, 5, 3, p.mossHi, ret); box(c, 6, -3, 3, 3, p.eye, ret); box(c, 6, 2, 3, 2, p.eye, ret);
+    } else if (D === 'firefly') { // светляк: тёмное тельце, светящееся брюшко, прозрачные крылья
+      var gl = 0.6 + 0.4 * Math.sin(u.anim * 4 + u.id), fy = Math.sin(u.anim * 3) * 2;
+      c.translate(0, -6 + fy);
+      if (!ret) { c.fillStyle = 'rgba(220,255,140,' + (0.18 * gl) + ')'; c.beginPath(); c.arc(-4, 2, 14, 0, 7); c.fill(); }
+      oval(c, -5, 2, 6, 5, ret ? (gl > 0.6 ? '#e8ff70' : '#a8d040') : 'rgba(220,255,120,' + (0.6 + 0.4 * gl) + ')', ret);
+      oval(c, 3, 0, 5, 4, p.bark, ret); box(c, 6, -2, 2, 2, p.eye, ret);
+      oval(c, 0, -6, 6, 3, ret ? '#d8e8f0' : 'rgba(230,240,255,0.55)', ret);
+    } else if (D === 'swarm') { // рой-опылитель: облачко крошечных пчёлок с пыльцой
+      for (var bz = 0; bz < 7; bz++) { var ba = u.anim * (2 + bz * 0.3) + bz * 0.9, bxx = Math.cos(ba) * (5 + (bz % 3) * 3), byy = Math.sin(ba * 1.3) * (4 + (bz % 2) * 3) - 6;
+        oval(c, bxx, byy, 2.5, 2, bz % 2 ? p.amber : p.amberHi, ret); box(c, bxx - 1, byy - 1, 2, 1, p.bark, ret); }
+      oval(c, 0, 4, 5, 2, ret ? '#f8e070' : 'rgba(255,230,120,0.5)', ret);
+    } else if (D === 'frostling') { // стужевик: снежный клубень с ледяными гранями и голубыми глазами
+      var sq = u.moving ? Math.sin(u.anim * 8) * 1.5 : 0;
+      oval(c, 0, 2, 10 + sq, 8 - sq, ret ? '#d0e8f8' : 'rgba(225,240,252,0.92)', ret);
+      for (var ic = 0; ic < 5; ic++) { var ia = -Math.PI * 0.85 + ic * Math.PI * 0.42; tri(c, Math.cos(ia) * 13, Math.sin(ia) * 11 - 2, Math.cos(ia) * 6 - 3, Math.sin(ia) * 5, Math.cos(ia) * 6 + 3, Math.sin(ia) * 5, p.ice, ret); }
+      oval(c, -2, -1, 5, 3, p.iceHi, ret); box(c, 3, -2, 3, 3, ret ? '#2878d8' : '#3a8ad8', ret); box(c, 3, 3, 3, 2, ret ? '#2878d8' : '#3a8ad8', ret);
     }
+    if (u.rootT > (u._gt || 0)) { line(c, -10, 8, -4, 2, p.bark, 2); line(c, 10, 8, 4, 1, p.bark, 2); line(c, -6, 10, 6, 10, p.trunk, 2); }   // опутан корнями
     c.restore();
   };
 
@@ -240,6 +278,7 @@
         oval(c, X + S - 14, Y + 14, 8, 8, ret ? '#e8e0c8' : '#e6dcc4', ret); oval(c, X + S - 14, Y + 14, 5, 5, p.copper, ret); oval(c, X + S - 14, Y + 14, 2, 2, '#2a1a0c', ret);  // мишень
         break;
       case 'boiler':
+        if (b.smoke && b.done) for (var sp = 0; sp < 5; sp++) { var sph = (t * 0.35 + sp / 5 + b.id * 0.1) % 1; oval(c, cx - 14 + Math.sin(sph * 6 + sp) * 10, Y - 10 - sph * 70, 8 + sph * 18, 6 + sph * 14, ret ? (sp % 2 ? '#686068' : '#787078') : 'rgba(96,92,98,' + (0.6 - sph * 0.5) + ')', ret); }   // дым котельни (кампания Чащи)
         shadow(c, cx + 6, Y + S - 4, S * 0.5, 8, ret);
         box(c, X + 4, cy - 2, S - 8, S / 2 - 2, ret ? '#8a3c28' : '#8e4a36', ret, 3);                     // кирпичное основание
         for (var bi = 0; bi < 3; bi++) box(c, X + 4, cy + 4 + bi * 9, S - 8, 1, 'rgba(40,16,8,0.5)', ret);
@@ -366,7 +405,10 @@
     // третья сторона (союзник/нейтрал): тонкое кольцо её цвета под юнитами — чтобы не путать с врагом той же расы
     if (game.sides > 2) list.forEach(function (e) { if (e.kind !== 'u' || e.owner !== 2) return; c.strokeStyle = sideCol(game, e, p); c.globalAlpha = 0.8; c.lineWidth = 2;
       if (ret) c.strokeRect(e.x - e.r - 2, e.y + e.r * 0.2, e.r * 2 + 4, e.r * 0.8); else { c.beginPath(); c.ellipse(e.x, e.y + e.r * 0.6, e.r + 2, e.r * 0.45, 0, 0, 6.29); c.stroke(); } c.globalAlpha = 1; });
-    list.forEach(function (e) { if (e.kind === 'n') R.node(c, e, p, ret, t); else if (e.kind === 'b') R.building(c, e, p, ret, t, game); else R.unit(c, e, p, ret, t, game.races[e.owner]); });
+    list.forEach(function (e) { if (e.kind === 'n') R.node(c, e, p, ret, t); else if (e.kind === 'b') R.building(c, e, p, ret, t, game); else { e._gt = game.t; R.unit(c, e, p, ret, t, game.races[e.owner]); } });
+    // споры в полёте (кампания Чащи): пушистые семена по дуге
+    (game.sporeFly || []).forEach(function (f) { var k = Math.max(0, Math.min(1, (game.t - f.t0) / (f.t1 - f.t0))), sx = f.x0 + (f.x1 - f.x0) * k, sy = f.y0 + (f.y1 - f.y0) * k - Math.sin(k * Math.PI) * 60;
+      for (var sd = 0; sd < 4; sd++) { var a = t * 3 + sd * 1.6; oval(c, sx + Math.cos(a) * 6, sy + Math.sin(a) * 4, 3, 3, sd % 2 ? p.lichen : '#f4f0dc', ret); } line(c, sx, sy, sx, sy + 6, p.moss, 1); });
     // выстрелы
     game.shots.forEach(function (s) { if (s.owner !== pl && game.tileVis(pl, Math.floor(s.x1 / T), Math.floor(s.y1 / T)) < 2) return; var k = s.t / s.dur;
       if (s.kind === 'shooter') { line(c, s.x0, s.y0 - 6, s.x1, s.y1, ret ? '#ffe080' : 'rgba(255,230,150,' + (1 - k) + ')', 2); oval(c, s.x0 + (s.x1 - s.x0) * 0.08, s.y0 - 6, 3, 3, '#fff2c0', ret); }

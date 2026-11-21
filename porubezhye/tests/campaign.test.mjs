@@ -4,7 +4,9 @@
    звёзды, победа/поражение), условия и действия ПОРУБЕЖЬЯ (зоны, спавн, сценарный ИИ групп, смена клеток, обзор, мороз, allow),
    пролёты моста (вода у берега → настил → снова вода), мороз и тепло обеих рас, знамя Ярины, Тихона, дрова, перенос героев и прогресс;
    под миссии 4–7: место работ (сборка), засека (tough), Топотун (топот), третья сторона и отношения, колонна (convoy) и уход с карты
-   (exit/escaped), сопровождение (follow), ползущий Зимний вал, общая карта битвы (registerBattle), сцена итога кампании в UI. */
+   (exit/escaped), сопровождение (follow), ползущий Зимний вал, общая карта битвы (registerBattle), сцена итога кампании в UI;
+   под кампанию Чащи: ходячая грибница и лечение Матушки, корни, гул, дым котелен, споры и ветер, ночь и светляк, рой и вырубки,
+   корни под льдом (вал отступает), юниты кампании не обучаются в скирмише, xcarry (флаги другой кампании). */
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -222,6 +224,45 @@ test('UI кампании: сцена итога кампании (finale) и с
   ok(/finale: drawFinale/.test(ui) && /UI\.openFinale/.test(ui) && /case 'site'/.test(ui) && /case 'escaped'/.test(ui) && /drawWall/.test(ui), 'нет итога/счётчиков/вала');
   for (const k of ['u_stomper', 'd_stomper', 'u_sled', 'u_envoy', 'stomp', 'stompTip', 'sideAlly', 'sideNeutral', 'siteBusy', 'siteHot', 'siteIdle', 'convoyStop', 'finT', 'finCont', 'finBtn', 'deny_stompCd'])
     { ok(P.STR.ru[k] && P.STR.en[k], k); ok(!/[а-яё]/i.test(P.STR.en[k]), 'кириллица в EN: ' + k); }
+});
+// ---------- механики кампании Чащи (миссии — только в полной версии; здесь — мини-карта) ----------
+const tmini = (extra) => mini(Object.assign({ camp: 'thicket', race: 'thicket', foe: 'wright', player: { res: { a: 500, r: 100 }, start: [{ type: 'stump', at: 'H' }, { type: 'matushka', at: 'S' }, { type: 'shmel', at: 'S' }, { type: 'stinger', at: 'S', n: 2 }, { type: 'beetle', at: 'S', n: 2 }] } }, extra || {}));
+test('Чаща: ходячая грибница Матушки (и тепло), лечение рядом; корни (враги не ходят), гул (свои быстрее); юниты кампании не обучаются в скирмише', () => {
+  const g = C.build(tmini(), { fogOff: true }), m = g.ents.find(e => e.type === 'matushka'), st = g.ents.find(e => e.type === 'stinger');
+  g._recalcMyc(); const mk0 = Math.floor(m.y / T) * g.MW + Math.floor(m.x / T); ok(g.myc[0][mk0], 'под Матушкой нет грибницы');
+  st.x = m.x + T; st.y = m.y; st.hp = 20; run(g, 2); ok(st.hp > 20 + 2 * 0.8 + 3, 'Матушка не лечит: ' + st.hp.toFixed(1));
+  const f = g._addUnit(1, 'shooter', m.x + 2 * T, m.y); ok(g.cmd(0, { t: 'roots', id: m.id }) && f.rootT > g.t, 'корни'); const fx = f.x; g.cmd(1, { t: 'move', ids: [f.id], x: f.x + 6 * T, y: f.y }); run(g, 1); ok(Math.abs(f.x - fx) < 1, 'опутанный ходит');
+  const sh = g.ents.find(e => e.type === 'shmel'); ok(g.cmd(0, { t: 'buzz', id: sh.id }) && sh.hasteT > g.t, 'гул'); ok(!g.cmd(0, { t: 'buzz', id: sh.id }), 'гул без перезарядки');
+  const sk = P.create({ seed: 1, playerRace: 'thicket', noAI: true }), stump = sk.ents.find(e => e.type === 'stump' && e.owner === 0);
+  eq(sk.trainBlock(0, stump, 'firefly'), 'nobuild', 'светляк в скирмише'); eq(sk.trainBlock(0, stump, 'swarm'), 'nobuild', 'рой в скирмише');
+});
+test('Чаща: дым котельни (грибница гибнет, бойцы чахнут); споры по ветру (дупло на суше / пропали в воде); ночь и светляк; рой растит подрост на вырубке; лёд тает под грибницей и вал отступает', () => {
+  // дым
+  const g = C.build(tmini({ enemy: { start: [{ type: 'boiler', at: 'K', smoke: 3, tag: 'b', quiet: true }] } }), { fogOff: true }), bo = g.ents.find(e => e.tag === 'b');
+  const st = g.ents.find(e => e.type === 'stinger'); st.x = bo.x - 2 * T; st.y = bo.y; st.ord = { t: 'idle' }; const h0 = st.hp; g._recalcMyc(); ok(g.smokeAt(0, st.x, st.y), 'дыма нет'); run(g, 3); ok(st.hp < h0 - 2, 'в дыму не чахнет');
+  ok(C.cond(g, { t: 'smokes', gte: 1 }), 'условие smokes'); C.act(g, { a: 'smoke', tag: 'b', r: 0 }); run(g, 1); ok(C.cond(g, { t: 'smokes', lte: 0 }) && !g.smokeAt(0, st.x, st.y), 'дым не погас');
+  // споры: без sporeCfg нельзя; с ним — по ветру дальше; суша — дупло, вода — пропали
+  const s2 = C.build(tmini({ player: Object.assign({ spore: { range: 8, wind: 4 } }, tmini().player) }), { fogOff: true }), stump = s2.ents.find(e => e.type === 'stump');
+  C.act(s2, { a: 'wind', x: 1, y: 0 }); const east = s2.sporeRange(stump, stump.tx + 10, stump.ty), west = s2.sporeRange(stump, stump.tx - 8, stump.ty); ok(east.max > west.max + 3, 'ветер');
+  ok(s2.cmd(0, { t: 'spore', id: stump.id, tx: 6, ty: 6 }), 'споры не полетели'); run(s2, 3); ok(s2.ents.some(e => e.type === 'hollow' && e.spored && e.planted), 'дупло из спор');
+  stump.sporeT = 0; ok(s2.cmd(0, { t: 'spore', id: stump.id, tx: 11, ty: 3 }), 'вторые споры'); run(s2, 3); eq(s2.stats[0].sporeLost, 1, 'в воде не пропали');
+  // ночь: обзор меньше, светляк видит в полную силу
+  const n = C.build(tmini({ night: { from: 1, to: 1 } }), { fogOff: true }), fly = n._addUnit(0, 'firefly', 3 * T, 3 * T), b2 = n.ents.find(e => e.type === 'stinger');
+  ok(n.night === 1 && n.sightOf(b2, n.def(b2)) < n.def(b2).sight * 0.5 && n.sightOf(fly, n.def(fly)) === n.def(fly).sight, 'ночь'); run(n, 1); ok(fly.hp === fly.maxhp && fly.ord.t === 'idle', 'светляк');
+  // вырубка и рой
+  const v = C.build(tmini({ map: MAP.map((r, i) => i === 4 ? r.slice(0, 14) + '__' + r.slice(16) : r) }), { fogOff: true }); ok(v.felledLeft() === 2, 'вырубка из карты: ' + v.felledLeft());
+  const sw = v._addUnit(0, 'swarm', 14.5 * T, 5.5 * T); run(v, 2 * P.POLLEN.t + 1); ok(v.felledLeft() === 0 && v.young[4 * v.MW + 14] && C.cond(v, { t: 'regrown', gte: 2 }), 'подрост не вырос');
+  // корни под льдом
+  const w = C.build(tmini({ thaw: { need: 4, full: 8, push: 1 } }), { fogOff: true }), m = w.ents.find(e => e.type === 'matushka');
+  const cells = []; for (let y = 1; y < 11; y++) for (let x = 1; x < 23; x++) if (w.terr[y * w.MW + x] === TR.GRASS) cells.push([x, y]); w.setTiles(cells, TR.ICE);
+  C.act(w, { a: 'wall', dir: 's', pos: Math.floor(m.y / T) - 1, speed: 0, dps: 0 }); const p0 = w.wall.pos; run(w, 5);
+  eq(w.terrAt(Math.floor(m.x / T), Math.floor(m.y / T) + 1), TR.GRASS, 'лёд под грибницей не тает'); ok(w.wall.pos < p0 - 0.5, 'вал не отступил: ' + p0 + ' → ' + w.wall.pos);
+});
+test('xcarry: флаги другой кампании (wright.*) — из переданного сохранения или хранилища C.store; не играли — флагов нет', () => {
+  const d = tmini({ xcarry: { wright: ['envoy'] } }), sv = S.newSave(); sv.missions.r6 = { stars: [true] }; sv.flags.envoy = 'released';
+  eq(C.build(d, { xsave: { wright: sv } }).mission.flags['wright.envoy'], 'released'); eq(C.build(d, {}).mission.flags['wright.envoy'], undefined);
+  const mem = new Map(), store = { getItem: k => mem.has(k) ? mem.get(k) : null, setItem: (k, v) => mem.set(k, String(v)), removeItem: k => mem.delete(k) };
+  C.save(store, 'wright', sv); C.store = store; try { eq(C.build(d, {}).mission.flags['wright.envoy'], 'released', 'из хранилища'); } finally { C.store = undefined; }
 });
 test('скирмиш не тронут: карта 64×48 по умолчанию, ИИ на месте, мороза нет', () => {
   const g = P.create({ seed: 1, playerRace: 'wright' }); eq([g.MW, g.MH], [64, 48]); ok(g.ai, 'нет ИИ'); eq(g.cold, 0); eq(g.mission, undefined);

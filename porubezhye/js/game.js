@@ -45,7 +45,17 @@
         stinger: { hp: 60, spd: 3.3, sight: 7, range: 0.45, dmg: 6, cd: 0.75, cost: { a: 50, r: 10 }, sup: 1, time: 14, r: 10, regen: 0.8, req: 'den' },
         shell:   { hp: 300, armor: 3, spd: 1.4, sight: 8, range: 3.5, dmg: 14, splash: 0.8, cd: 1.8, cost: { a: 100, r: 100 }, sup: 3, time: 26, r: 15, regen: 1.5, req: 'barrow', ranged: true },
         // кампания: жук-посол (не воюет, не обучается)
-        envoy:   { hp: 90, spd: 2.4, sight: 6, range: 0, dmg: 0, cd: 9, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 10, regen: 0.5, civil: true }
+        envoy:   { hp: 90, spd: 2.4, sight: 6, range: 0, dmg: 0, cd: 9, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 10, regen: 0.5, civil: true },
+        // кампания Чащи «Пока растёт грибница» (camp — только в миссиях, где разрешены allowU; в скирмише их нет):
+        // Матушка-Пень — подвижное сердце рода: под ней грибница (myc, клетки) и тепло, рядом раны заживают быстрее (heal); F — корни
+        matushka: { hp: 320, armor: 2, spd: 1.5, sight: 9, range: 3, dmg: 10, splash: 0.6, cd: 1.6, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 15, regen: 2.5, hero: true, ranged: true, ability: 'roots', myc: 3.5, heal: { r: 3.5, hps: 3 } },
+        // Шмель — молодой жалильщик-вожак; F — гул (отряд рядом быстрее)
+        shmel:   { hp: 140, armor: 1, spd: 3.5, sight: 8, range: 0.45, dmg: 9, cd: 0.6, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 11, regen: 1.2, hero: true, ability: 'buzz' },
+        // светляк — живой маяк: не воюет (passive), ночью видит в полную силу (glow)
+        firefly: { hp: 30, spd: 3.4, sight: 8, range: 0, dmg: 0, cd: 9, cost: { a: 25, r: 0 }, sup: 1, time: 8, r: 8, regen: 0.6, glow: true, passive: true, camp: true },
+        // рой-опылитель: стоит у вырубки — там снова вырастает лес (pollen)
+        swarm:   { hp: 45, spd: 2.6, sight: 6, range: 0, dmg: 0, cd: 9, cost: { a: 50, r: 20 }, sup: 1, time: 12, r: 10, regen: 0.8, pollen: true, passive: true, camp: true }
+        // + frostling (стужевик) — ниже, общий для обеих рас
       },
       buildings: {
         stump:  { s: 4, hp: 1400, cost: { a: 350, r: 0 }, time: 60, sup: 10, sight: 9, larva: true, drop: true, myc: 7, regen: 3, anywhere: true },
@@ -56,7 +66,17 @@
       order: ['hollow', 'den', 'barrow', 'stump']
     }
   };
+  // стужевик — живой холод Зимнего вала (кампания; сторона врага любой расы): мороз и вал ему не помеха (frost)
+  var FROSTLING = { hp: 70, spd: 2.4, sight: 7, range: 0.45, dmg: 7, cd: 1.0, cost: { a: 0, r: 0 }, sup: 0, time: 1, r: 10, frost: true, camp: true };
+  RACES.thicket.units.frostling = FROSTLING; RACES.wright.units.frostling = FROSTLING;
   var LARVA_MAX = 3, LARVA_EVERY = 8, SUP_MAX = 60, QUEUE_MAX = 5;
+  // механики кампании Чащи: дым котелен, споры, корни, гул, опыление, корни под льдом
+  var SMOKE = { dps: 1.2 };                                             // в дыму (b.smoke — радиус, клетки) бойцы Чащи чахнут и не заживают
+  var SPORE = { range: 11, wind: 5, cost: 60, cd: 20, fly: 2.5 };       // споры: дальность + ветер (по направлению ветра — дальше)
+  var ROOTS = { r: 3.2, s: 4, cd: 30 };                                 // корни Матушки: враги рядом не ходят s секунд
+  var BUZZ = { r: 5, s: 6, cd: 30, mul: 1.5 };                          // гул Шмеля: свои рядом быстрее
+  var POLLEN = { t: 6, r: 2.5 };                                        // рой-опылитель: клетка вырубки → лес раз в t секунд
+  var THAW = { t: 4, push: 0.35, need: 6, back: 3, front: 1 };          // корни под льдом: лёд под грибницей тает за t с; у кромки вала — толкают вал
   // timber — сухостой (дрова, ресурс кампании): rk — ключ ресурса в res[p]
   var GATHER = { amber: { amt: 5, t: 1.6 }, resin: { amt: 4, t: 2.2 }, timber: { amt: 4, t: 3.0 } };
   var NODE_AMT = { amber: 1200, resin: 3000, timber: 300 };
@@ -152,7 +172,7 @@
     for (var si = 0; si < NS; si++) { this.myc.push(new Uint8Array(N)); this.vis.push(new Uint8Array(N)); }
     this.ents = []; this.byId = new Map(); this.nextId = 1; this.t = 0;
     this.res = []; this.stats = [];
-    for (var sj = 0; sj < NS; sj++) { this.res.push({ a: 150, r: 0, w: 0 }); this.stats.push({ kills: 0, lost: 0, lostB: 0, built: 0, trained: 0, gathered: 0, wood: 0 }); }
+    for (var sj = 0; sj < NS; sj++) { this.res.push({ a: 150, r: 0, w: 0 }); this.stats.push({ kills: 0, lost: 0, lostB: 0, built: 0, trained: 0, gathered: 0, wood: 0, regrown: 0 }); }
     this.shots = []; this.winner = -1; this._visT = 0; this._mycDirty = true;
     this.fogOff = !!opts.fogOff; this.endRule = opts.endRule || 'blds';
     this.cold = 0;                 // мороз 0…1 (погода «Зимнего вала»): медленнее ходят вдали от тепла, медленнее добыча и стройка
@@ -161,6 +181,12 @@
     this.allowU = null;            // кампания: каких юнитов можно обучать (null — всех)
     this.flares = [];              // кампания: временный обзор игрока { x, y, r (клетки), until }
     this.wall = null;              // кампания: ползущий Зимний вал { dir: 's'|'n'|'e'|'w', pos (клетки), speed, dps, stop } — см. setWall
+    // кампания Чащи: ночь 0…1 (обзор меньше, кроме glow), ветер для спор { x, y } (единичный вектор, null — штиль),
+    // споры (sporeCfg: null — нельзя; полёты — sporeFly), корни под льдом (thaw: null — нет), вырубки (felled — маска клеток), дымы (smokes)
+    this.night = 0; this.wind = null; this.sporeCfg = null; this.sporeFly = []; this.thaw = null; this._thawT = null; this._thawAcc = 0;
+    this.felled = new Uint8Array(N); if (M && M.felled) M.felled.forEach(function (k) { self.felled[k] = 1; });
+    this.young = new Uint8Array(N);   // подрост: вырубка, где рой-опылитель вырастил молодой лес (проходим, рисуется ёлочками)
+    this.smokes = [];
     var addNode = function (type, tx, ty, amt) { var s = type === 'resin' ? 2 : 1; return self._addEnt({ kind: 'n', type: type, owner: -1, tx: tx, ty: ty, s: s, amt: amt || NODE_AMT[type], amt0: amt || NODE_AMT[type], hp: 1, maxhp: 1 }); };
     this.addNode = addNode;
     if (M) { (M.nodes || []).forEach(function (n) { addNode(n.type, n.tx, n.ty, n.amt); }); }
@@ -185,6 +211,8 @@
   P.create = function (o) { return new Game(o); };
   P.RACES = RACES; P.T = T; P.MW = MW; P.MH = MH; P.TERR = TERR; P.PASS = PASS; P.BUILD = BUILD; P.TSPD = TSPD; P.RKEY = RKEY; P.mulberry32 = mulberry32; P.Heap = Heap;
   P.consts = { LARVA_MAX: LARVA_MAX, LARVA_EVERY: LARVA_EVERY, SUP_MAX: SUP_MAX, QUEUE_MAX: QUEUE_MAX, GATHER: GATHER, NODE_AMT: NODE_AMT };
+  P.SMOKE = SMOKE; P.SPORE = SPORE; P.ROOTS = ROOTS; P.BUZZ = BUZZ; P.POLLEN = POLLEN; P.THAW = THAW;
+  function calmD(D) { return !!(D.civil || D.passive); }   // не воюет: мирные (посол, сани) и «тихие» юниты кампании (светляк, рой)
 
   var G = Game.prototype;
   G.def = function (e) { var R = RACES[this.races[e.owner]]; return e.kind === 'u' ? R.units[e.type] : R.buildings[e.type]; };
@@ -323,7 +351,7 @@
   G.supply = function (p) {
     var used = 0, cap = 0, R = this.race(p);
     for (var i = 0; i < this.ents.length; i++) { var e = this.ents[i]; if (e.dead || e.owner !== p) continue;
-      if (e.kind === 'u') used += R.units[e.type].sup;
+      if (e.kind === 'u') { if (!e.locked) used += R.units[e.type].sup; }   // сценарные (locked: выводки, сани) провизию не едят
       else if (e.kind === 'b') { if (e.done) cap += R.buildings[e.type].sup || 0;
         for (var q = 0; q < e.queue.length; q++) used += R.units[e.queue[q].type].sup;
         for (var c = 0; c < e.cocoons.length; c++) used += R.units[e.cocoons[c].type].sup; } }
@@ -337,6 +365,7 @@
   G.trainBlock = function (p, b, type) {
     var R = this.race(p), D = R.units[type]; if (!D || D.hero || D.civil || !b || b.dead || b.owner !== p || !b.done) return 'nobuild';
     if (p === 0 && this.allowU && !this.allowU[type]) return 'nobuild';
+    if (D.camp && !(this.allowU && this.allowU[type])) return 'nobuild';   // юниты кампании — только там, где миссия их разрешила
     var BD = R.buildings[b.type];
     if (R.grow) { if (!BD.larva) return 'nobuild'; if (D.req && !this.hasDone(p, D.req)) return 'req'; if (b.larva < 1) return 'larva'; }
     else { if ((BD.trains || []).indexOf(type) < 0) return 'nobuild'; if (b.queue.length >= QUEUE_MAX) return 'queue'; }
@@ -379,7 +408,19 @@
         for (var y = Math.floor(cy - rad); y <= Math.ceil(cy + rad); y++) for (var x = Math.floor(cx - rad); x <= Math.ceil(cx + rad); x++) {
           if (!this.inMap(x, y)) continue; var dx = x + 0.5 - cx, dy = y + 0.5 - cy;
           if (dx * dx + dy * dy <= rad * rad && PASS[this.terr[y * this.MW + x]]) M[y * this.MW + x] = 1; } }
+      // ходячая грибница (Матушка-Пень, def.myc у юнита): круг под ней
+      for (var u0 = 0; u0 < this.ents.length; u0++) { var w = this.ents[u0]; if (w.dead || w.kind !== 'u' || w.owner !== p) continue; var WD = this.def(w); if (!WD.myc) continue;
+        var ux = w.x / T, uy = w.y / T, ur = WD.myc;
+        for (var y3 = Math.floor(uy - ur); y3 <= Math.ceil(uy + ur); y3++) for (var x3 = Math.floor(ux - ur); x3 <= Math.ceil(ux + ur); x3++) {
+          if (!this.inMap(x3, y3)) continue; var ddx = x3 + 0.5 - ux, ddy = y3 + 0.5 - uy; if (ddx * ddx + ddy * ddy <= ur * ur && PASS[this.terr[y3 * this.MW + x3]]) M[y3 * this.MW + x3] = 1; } }
     }
+    // дым котелен (b.smoke — радиус, клетки): в дыму грибница чужой стороны гибнет
+    var sm = this.smokes = [];
+    for (var si = 0; si < this.ents.length; si++) { var sb = this.ents[si]; if (!sb.dead && sb.kind === 'b' && sb.smoke && sb.done) sm.push({ x: sb.x, y: sb.y, r: sb.smoke, owner: sb.owner, id: sb.id }); }
+    for (var sk = 0; sk < sm.length; sk++) { var S0 = sm[sk], scx = S0.x / T, scy = S0.y / T;
+      for (var q = 0; q < this.sides; q++) { if (!this.race(q).grow || !this.hostile(q, S0.owner)) continue; var MQ = this.myc[q];
+        for (var y4 = Math.floor(scy - S0.r); y4 <= Math.ceil(scy + S0.r); y4++) for (var x4 = Math.floor(scx - S0.r); x4 <= Math.ceil(scx + S0.r); x4++) {
+          if (this.inMap(x4, y4) && Math.hypot(x4 + 0.5 - scx, y4 + 0.5 - scy) <= S0.r) MQ[y4 * this.MW + x4] = 0; } } }
     this._mycDirty = false;
   };
 
@@ -399,6 +440,9 @@
       case 'cancel': return this._cancel(p, this.get(c.id));
       case 'banner': return this._banner(p, this.get(c.id));
       case 'stomp': return this._stomp(p, this.get(c.id));
+      case 'roots': return this._roots(p, this.get(c.id));
+      case 'buzz': return this._buzz(p, this.get(c.id));
+      case 'spore': return this._spore(p, this.get(c.id), c.tx, c.ty);
       case 'rally': { var b = this.get(c.id); if (!b || b.owner !== p || b.kind !== 'b') return false; var tgt = c.target ? this.get(c.target) : null; b.rally = { x: c.x, y: c.y, node: tgt && tgt.kind === 'n' ? tgt.id : 0 }; return true; }
     }
     return false;
@@ -468,6 +512,59 @@
     this.ents.slice().forEach(function (e) { if (e.dead || (e.kind !== 'u' && e.kind !== 'b') || !self.hostile(p, e.owner)) return; if (self.distTo(u, e) <= R) { self._damage(e, STOMP.dmg * (e.kind === 'b' ? 0.5 : 1), u); n++; } });
     this.emit('stomp', { p: p, id: u.id, x: u.x, y: u.y, n: n }); return true;
   };
+  // Корни Матушки-Пня (кампания Чащи): враги в ROOTS.r клетки опутаны — ROOTS.s секунд не ходят (бить могут); перезарядка ROOTS.cd
+  G._roots = function (p, u) {
+    if (!u || u.dead || u.owner !== p || this.def(u).ability !== 'roots') return false;
+    if ((u.abT || 0) > this.t) { this.emit('deny', { p: p, why: 'rootsCd' }); return false; }
+    u.abT = this.t + ROOTS.cd; var self = this, n = 0;
+    this.ents.forEach(function (e) { if (e.dead || e.kind !== 'u' || !self.hostile(p, e.owner) || Math.hypot(e.x - u.x, e.y - u.y) > ROOTS.r * T + e.r) return; e.rootT = self.t + ROOTS.s; e.path = null; n++; });
+    this.emit('roots', { p: p, id: u.id, x: u.x, y: u.y, n: n }); return true;
+  };
+  // Гул Шмеля: свои юниты в BUZZ.r клетках (и он сам) BUZZ.s секунд ходят в BUZZ.mul раза быстрее
+  G._buzz = function (p, u) {
+    if (!u || u.dead || u.owner !== p || this.def(u).ability !== 'buzz') return false;
+    if ((u.abT || 0) > this.t) { this.emit('deny', { p: p, why: 'buzzCd' }); return false; }
+    u.abT = this.t + BUZZ.cd; var self = this, n = 0;
+    this.ents.forEach(function (e) { if (e.dead || e.kind !== 'u' || e.owner !== p || Math.hypot(e.x - u.x, e.y - u.y) > BUZZ.r * T) return; e.hasteT = self.t + BUZZ.s; n++; });
+    this.emit('buzz', { p: p, id: u.id, x: u.x, y: u.y, n: n }); return true;
+  };
+  // Споры (кампания Чащи, game.sporeCfg): готовое дупло или Пень пускает споры в клетку (tx, ty — левый верх дупла 2×2);
+  // дальность — range, по ветру дальше на wind × cos(угла к ветру); в полёте fly с; упали на сушу — растёт дупло (без грибницы),
+  // некуда — пропали (половина цены назад). Перезарядка — у каждого здания своя.
+  G.sporeRange = function (b, tx, ty) {
+    var cfg = this.sporeCfg || SPORE, dx = tx + 1 - b.x / T, dy = ty + 1 - b.y / T, d = Math.hypot(dx, dy) || 1, w = this.wind;
+    var k = w ? Math.max(0, (dx * w.x + dy * w.y) / d) : 0; return { d: d, max: (cfg.range || SPORE.range) + (cfg.wind == null ? SPORE.wind : cfg.wind) * k };
+  };
+  G.sporeFrom = function (b) { return !!(b && !b.dead && b.kind === 'b' && b.done && this.sporeCfg && this.race(b.owner).grow && (b.type === 'hollow' || b.type === 'stump')); };
+  G._spore = function (p, b, tx, ty) {
+    if (!b || b.owner !== p || !this.sporeFrom(b)) return false;
+    var cfg = this.sporeCfg, cost = { a: cfg.cost == null ? SPORE.cost : cfg.cost, r: 0 };
+    if ((b.sporeT || 0) > this.t) { this.emit('deny', { p: p, why: 'sporeCd' }); return false; }
+    var rg = this.sporeRange(b, tx, ty); if (rg.d > rg.max) { this.emit('deny', { p: p, why: 'sporeFar' }); return false; }
+    if (!this.afford(p, cost)) { this.emit('deny', { p: p, why: 'amber' }); return false; }
+    this.pay(p, cost); b.sporeT = this.t + (cfg.cd == null ? SPORE.cd : cfg.cd);
+    var fl = { owner: p, from: b.id, x0: b.x, y0: b.y - 20, x1: (tx + 1) * T, y1: (ty + 1) * T, t0: this.t, t1: this.t + (cfg.fly == null ? SPORE.fly : cfg.fly), tx: tx, ty: ty, cost: cost.a };
+    this.sporeFly.push(fl); this.emit('spore', { p: p, id: b.id, x: fl.x1, y: fl.y1 }); return fl;
+  };
+  // куда сесть спорам: клетки 2×2 — суша под стройку, свободно, без чужих юнитов (ищем рядом, до 1 клетки)
+  G._sporeSpot = function (p, tx, ty) {
+    for (var r = 0; r <= 1; r++) for (var dy = -r; dy <= r; dy++) for (var dx = -r; dx <= r; dx++) { if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      var x0 = tx + dx, y0 = ty + dy, ok = true;
+      for (var y = y0; y < y0 + 2 && ok; y++) for (var x = x0; x < x0 + 2; x++) if (!this.passable(x, y) || !BUILD[this.terr[y * this.MW + x]] || x < 1 || y < 1 || x > this.MW - 2 || y > this.MH - 2) { ok = false; break; }
+      for (var i = 0; i < this.ents.length && ok; i++) { var e = this.ents[i]; if (!e.dead && e.kind === 'u' && e.owner !== p && e.x > x0 * T - 4 && e.x < (x0 + 2) * T + 4 && e.y > y0 * T - 4 && e.y < (y0 + 2) * T + 4) ok = false; }
+      if (ok) return [x0, y0]; }
+    return null;
+  };
+  G._sporeStep = function () {
+    for (var i = this.sporeFly.length - 1; i >= 0; i--) { var f = this.sporeFly[i]; if (this.t < f.t1) continue; this.sporeFly.splice(i, 1);
+      var at = this._sporeSpot(f.owner, f.tx, f.ty);
+      if (at) { var b = this._addBuilding(f.owner, 'hollow', at[0], at[1], false); b.planted = true; b.spored = true; this._mycDirty = true; this.emit('sporeLand', { p: f.owner, id: b.id, x: b.x, y: b.y }); }
+      else { this.res[f.owner].a += Math.floor(f.cost / 2); this.stats[f.owner].sporeLost = (this.stats[f.owner].sporeLost || 0) + 1; this.emit('sporeLost', { p: f.owner, x: f.x1, y: f.y1 }); } }
+  };
+  // дым: точка (x, y) в дыму котельни стороны, враждебной p
+  G.smokeAt = function (p, x, y) { for (var i = 0; i < this.smokes.length; i++) { var s = this.smokes[i]; if (this.hostile(p, s.owner) && Math.hypot(s.x - x, s.y - y) <= s.r * T) return true; } return false; };
+  // обзор с учётом ночи: светляки (glow) видят в полную силу, здания — чуть меньше теряют
+  G.sightOf = function (e, D) { var s = D.sight * (e.kind === 'b' && !e.done ? 0.6 : 1); if (this.night > 0 && !D.glow) s *= 1 - (e.kind === 'b' ? 0.45 : 0.6) * this.night; return s; };
   G.bannerAt = function (p, x, y) { for (var i = 0; i < this.banners.length; i++) { var b = this.banners[i]; if (b.owner === p && b.until > this.t && Math.hypot(b.x - x, b.y - y) <= b.r) return true; } return false; };
   // Тепло: Мастеровым — у своих готовых острога/избы/котельни (5 клеток) и у знамени; Чаще — на своей грибнице
   G.warm = function (u) {
@@ -480,7 +577,7 @@
     u.isWarm = w; return w;
   };
   // множители мороза: ход (вдали от тепла), работа (добыча), рост/стройка/обучение — у рас по-разному
-  G.coldMove = function (u) { var k = this.cold && !this.warm(u) ? 1 - 0.3 * this.cold : 1; return this.wall && this.inWall(u.x, u.y) ? k * 0.6 : k; };
+  G.coldMove = function (u) { if (this.def(u).frost) return 1; var k = this.cold && !this.warm(u) ? 1 - 0.3 * this.cold : 1; return this.wall && this.inWall(u.x, u.y) ? k * 0.6 : k; };
   G.coldWork = function (u) { return this.cold ? 1 - 0.4 * this.cold * (this.warm(u) ? 0.4 : 1) : 1; };
   G.coldGrow = function (p) { return this.cold ? 1 - (this.race(p).grow ? 0.5 : 0.3) * this.cold : 1; };
   G.buildList = function (p) { var R = this.race(p), al = this.allowB; if (!al) return R.order.slice(0, 4); return R.order.concat(Object.keys(R.buildings).filter(function (k) { return R.buildings[k].extra && R.order.indexOf(k) < 0; })).filter(function (k) { return al[k]; }).slice(0, 4); };
@@ -527,6 +624,8 @@
     if (this.ai) this.ai.update(dt); if (this.ai0) this.ai0.update(dt);
     if (this.banners.length) { var tnow = this.t; this.banners = this.banners.filter(function (b) { return b.until > tnow; }); }
     if (this.wall) this._wallStep(dt);                              // кампания: ползущий Зимний вал
+    if (this.sporeFly.length) this._sporeStep();                    // кампания Чащи: споры долетели
+    if (this.thaw) this._thawStep(dt);                              // кампания Чащи: корни под льдом
     if (this.mission && this.mission.step) this.mission.step(dt);   // кампания: триггеры, цели, сценарный ИИ (js/campaign.js)
     // победа: у стороны не осталось зданий (в кампании endRule 'none' — исход решает миссия: G.end)
     if (this.endRule !== 'none' && this.winner < 0) for (var p = 0; p < 2; p++) if (this.count(p, 'b') === 0) { this.end(1 - p); break; }
@@ -535,7 +634,7 @@
   G._bld = function (b, dt) {
     var D = this.def(b), R = this.race(b.owner);
     if (!b.done) {
-      if (R.grow && b.planted) { this._progress(b, dt / D.time * this.coldGrow(b.owner)); }
+      if (R.grow && b.planted) { this._progress(b, dt / D.time * this.coldGrow(b.owner) * (b.spored && this.sporeCfg && this.sporeCfg.grow ? this.sporeCfg.grow : 1)); }   // из спор — sporeCfg.grow
       return; // люди: прогресс двигают рабочие (_unit build)
     }
     if (D.regen && b.hp < b.maxhp) b.hp = Math.min(b.maxhp, b.hp + D.regen * dt);
@@ -586,21 +685,26 @@
   G._unit = function (u, dt) {
     var D = this.def(u), o = u.ord;
     u.cd = Math.max(0, u.cd - dt); u.anim += dt;
-    if (D.regen && u.hp < u.maxhp) u.hp = Math.min(u.maxhp, u.hp + D.regen * dt);
+    // дым котелен: бойцы Чащи в дыму не заживают и чахнут (кампания)
+    if (this.smokes.length && this.race(u.owner).grow) { u.smokeT = (u.smokeT || 0) - dt; if (u.smokeT <= 0) { u.smokeT = 0.25; u.inSmoke = this.smokeAt(u.owner, u.x, u.y); } } else u.inSmoke = false;
+    if (u.inSmoke) { u.hp -= SMOKE.dps * dt; u.hitT = this.t; if (u.hp <= 0) { this._kill(u, null); return; } }
+    else if (D.regen && u.hp < u.maxhp) u.hp = Math.min(u.maxhp, u.hp + D.regen * dt);
+    if (D.heal) { var hr = D.heal.r * T; for (var hi = 0; hi < this.ents.length; hi++) { var hu = this.ents[hi]; if (hu === u || hu.dead || hu.kind !== 'u' || hu.owner !== u.owner || hu.hp >= hu.maxhp || hu.inSmoke) continue; if (Math.abs(hu.x - u.x) < hr && Math.abs(hu.y - u.y) < hr && Math.hypot(hu.x - u.x, hu.y - u.y) <= hr) hu.hp = Math.min(hu.maxhp, hu.hp + D.heal.hps * dt); } }
+    if (D.pollen) this._pollen(u, dt);
     var reach = u.r + 10;
     switch (o.t) {
       case 'idle':
-        if (!D.civil && (!D.worker || u.tgt)) { this._autoEngage(u, D, dt, true); }
+        if (!calmD(D) && (!D.worker || u.tgt)) { this._autoEngage(u, D, dt, true); }
         break;
       case 'move':
         if (this._follow(u, D, dt, o.x, o.y, o.tx, o.ty)) this._order(u, { t: 'idle' });
         break;
       case 'amove':
-        if (!D.civil && this._autoEngage(u, D, dt, false)) break;
+        if (!calmD(D) && this._autoEngage(u, D, dt, false)) break;
         if (this._follow(u, D, dt, o.x, o.y, o.tx, o.ty)) this._order(u, { t: 'idle' });
         break;
       case 'attack': {
-        var tg = this.get(o.id); if (!tg || tg.dead || D.civil || !this._canSee(u.owner, tg)) { this._order(u, { t: 'idle' }); break; }
+        var tg = this.get(o.id); if (!tg || tg.dead || calmD(D) || !this._canSee(u.owner, tg)) { this._order(u, { t: 'idle' }); break; }
         this._engage(u, D, dt, tg); break; }
       case 'gather': this._gather(u, D, dt, reach); break;
       case 'build': {
@@ -662,8 +766,9 @@
   };
   G._stepTo = function (u, D, dt, x, y) {
     var dx = x - u.x, dy = y - u.y, d = Math.hypot(dx, dy); if (d < 0.01) return;
+    if (u.rootT > this.t) return;                                   // опутан корнями Матушки
     var tt = this.terr[Math.floor(u.y / T) * this.MW + Math.floor(u.x / T)];
-    var v = D.spd * T * dt * (TSPD[tt] || 1) * this.coldMove(u) * (u.sm || 1), k = Math.min(1, v / d), nx = u.x + dx * k, ny = u.y + dy * k;
+    var v = D.spd * T * dt * (TSPD[tt] || 1) * this.coldMove(u) * (u.sm || 1) * (u.hasteT > this.t ? BUZZ.mul : 1), k = Math.min(1, v / d), nx = u.x + dx * k, ny = u.y + dy * k;
     u.fx = dx / d; u.fy = dy / d; u.moving = true;
     this._place(u, nx, ny);
   };
@@ -711,11 +816,12 @@
     return true;
   };
   G._scan = function (u, D) {
-    var best = null, bs = 1e9, sight = D.sight * T;
+    var best = null, bs = 1e9, sight = this.sightOf(u, D) * T;
     for (var i = 0; i < this.ents.length; i++) { var e = this.ents[i]; if (e.dead || !this.hostile(u.owner, e.owner)) continue;
       if (Math.abs(e.x - u.x) > sight + 80 || Math.abs(e.y - u.y) > sight + 80) continue;
       var d = this.distTo(u, e); if (d > sight) continue;
       if (u.owner === 0 && !this.visibleTo(e, 0)) continue;
+      if (e.quiet || (u.ignoreId === e.id && u.ignoreT > this.t)) continue;   // кампания: «тихое» здание (котельня Чащи) — сами не бьют, только по приказу
       var ed = this.def(e); if (ed.civil && u.owner === 0) continue;   // кампания: игрок сам не бьёт мирных (посол) — только по приказу
       var sc = d + (e.kind === 'b' ? 4 * T : 0) + (e.kind === 'u' && ed.worker ? T : 0);
       if (sc < bs) { bs = sc; best = e; } }
@@ -733,6 +839,8 @@
     if (!u.path || u.chaseT <= 0) {
       u.chaseT = 0.6;
       var tiles = tg.kind === 'u' ? this.pathToTile(Math.floor(u.x / T), Math.floor(u.y / T), Math.floor(tg.x / T), Math.floor(tg.y / T)) : this.pathToRect(Math.floor(u.x / T), Math.floor(u.y / T), tg, 1);
+      // цель недостижима (за водой) и ближе не подойти — бросить её на время (иначе юнит «залипает» у берега)
+      if (tiles && !tiles.found && tiles.length <= 2) { u.ignoreId = tg.id; u.ignoreT = this.t + 8; u.tgt = 0; u.path = null; if (u.ord.t === 'attack') this._order(u, { t: 'idle' }); return; }
       u.path = tiles ? this._smooth(u, tiles, tg.kind === 'u' ? tg.x : null, tg.kind === 'u' ? tg.y : null) : null; u.pathFor = 'chase'; u.lastD = 1e9;
     }
     if (!u.path || !u.path.length || this._walkPath(u, D, dt)) { this._stepTo(u, D, dt, tg.x, tg.y); }
@@ -751,7 +859,7 @@
     e.hp -= n; e.hitT = this.t;
     this.emit('hurt', { p: e.owner, id: e.id, x: e.x, y: e.y, kind: e.kind });
     // ответный огонь: стоящий боец переключается на обидчика
-    if (e.kind === 'u' && by && !by.dead && e.ord.t === 'idle' && !e.tgt && !this.def(e).worker && !this.def(e).civil) e.tgt = by.id;
+    if (e.kind === 'u' && by && !by.dead && e.ord.t === 'idle' && !e.tgt && !this.def(e).worker && !calmD(this.def(e))) e.tgt = by.id;
     if (e.hp <= 0) this._kill(e, by);
   };
   G._kill = function (e, by, silent) {
@@ -819,7 +927,43 @@
       w.done += fwd ? 1 : -1; this.emit('wallRow', { row: row });
     }
     w.hurtT -= dt; if (w.hurtT > 0 || !w.dps) return; w.hurtT = 0.5;
-    this.ents.forEach(function (e) { if (e.dead || e.owner < 0 || !self.inWall(e.x, e.y)) return; self._damage(e, w.dps * 0.5 * (e.kind === 'b' ? 1.5 : 1), null); });
+    this.ents.forEach(function (e) { if (e.dead || e.owner < 0 || !self.inWall(e.x, e.y) || (e.kind === 'u' && self.def(e).frost)) return; self._damage(e, w.dps * 0.5 * (e.kind === 'b' ? 1.5 : 1), null); });
+  };
+
+  // ---------- Рой-опылитель (кампания Чащи): у вырубки снова растёт лес ----------
+  // стоящий (idle) рой раз в POLLEN.t с (мороз замедляет) превращает ближайшую клетку вырубки (felled) в радиусе POLLEN.r в подрост
+  // (young: молодой лес — проходим, чтобы рой и бойцы не запирали сами себя)
+  G._pollen = function (u, dt) {
+    if (u.ord.t !== 'idle') { u.pollT = 0; return; }
+    u.pollT = (u.pollT || 0) + dt * this.coldGrow(u.owner); if (u.pollT < POLLEN.t) return; u.pollT = 0;
+    var cx = Math.floor(u.x / T), cy = Math.floor(u.y / T), R = Math.ceil(POLLEN.r), best = null, bd = 1e9;
+    for (var y = cy - R; y <= cy + R; y++) for (var x = cx - R; x <= cx + R; x++) {
+      if (!this.inMap(x, y)) continue; var k = y * this.MW + x;
+      if (!this.felled[k] || this.occ[k] || !PASS[this.terr[k]]) continue;
+      var d = Math.hypot(x + 0.5 - u.x / T, y + 0.5 - u.y / T); if (d > POLLEN.r || d >= bd) continue;
+      bd = d; best = [x, y, k]; }
+    if (!best) return;
+    this.felled[best[2]] = 0; this.young[best[2]] = 1; this.terrRev++; u.work = true;
+    this.stats[u.owner].regrown++; this.emit('regrow', { p: u.owner, x: (best[0] + 0.5) * T, y: (best[1] + 0.5) * T });
+  };
+  G.felledLeft = function () { var n = 0; for (var i = 0; i < this.felled.length; i++) if (this.felled[i] && PASS[this.terr[i]]) n++; return n; };
+
+  // ---------- Корни под льдом (кампания Чащи, game.thaw) ----------
+  // раз в 0,5 с: лёд под грибницей Чащи (вне вала) тает за THAW.t с → трава; у кромки вала (ряды pos − back … pos + front)
+  // клеток грибницы ≥ need — вал отступает (до push клеток/с, растёт с числом клеток), отступивший вал снова замерзает при наступлении
+  G._thawStep = function (dt) {
+    this._thawAcc += dt; if (this._thawAcc < 0.5) return; var step = this._thawAcc; this._thawAcc = 0;
+    var o = this.thaw, need = o.need == null ? THAW.need : o.need, tt = o.t == null ? THAW.t : o.t, N = this.MW * this.MH, TA = this._thawT || (this._thawT = new Float32Array(N)), cells = [], w = this.wall;
+    for (var p = 0; p < this.sides; p++) { if (!this.race(p).grow) continue; var M = this.myc[p];
+      for (var k = 0; k < N; k++) { if (!M[k] || this.terr[k] !== TERR.ICE) { if (TA[k] && !M[k]) TA[k] = 0; continue; }
+        var x = k % this.MW, y = (k / this.MW) | 0; if (w && this.inWall((x + 0.5) * T, (y + 0.5) * T)) continue;
+        TA[k] += step; if (TA[k] >= tt) { TA[k] = 0; cells.push([x, y]); } } }
+    if (cells.length) { this.setTiles(cells, TERR.GRASS); this.emit('thaw', { n: cells.length }); }
+    if (!w || w.dir !== 's') return;
+    var f = Math.floor(w.pos), n = 0, M0 = this.myc[0], back = o.back == null ? THAW.back : o.back, front = o.front == null ? THAW.front : o.front;
+    for (var yy = Math.max(0, f - back); yy <= Math.min(this.MH - 1, f + front); yy++) for (var xx = 0; xx < this.MW; xx++) if (M0[yy * this.MW + xx]) n++;
+    w.crack = n;
+    if (n >= need && w.pos > (o.min || 0)) { var push = (o.push == null ? THAW.push : o.push) * Math.min(1, n / (o.full || 20)) * step; w.pos = Math.max(o.min || 0, w.pos - push); w.done = Math.min(w.done, Math.floor(w.pos)); this.emit('wallPush', { pos: w.pos, n: n }); }
   };
 
   // ---------- Туман войны ----------
@@ -828,7 +972,7 @@
       var V = this.vis[p];
       for (var i = 0; i < V.length; i++) if (V[i] === 2) V[i] = 1;
       for (var k = 0; k < this.ents.length; k++) { var e = this.ents[k]; if (e.dead || e.owner !== p) continue;
-        var D = this.def(e), sr = D.sight * (e.kind === 'b' && !e.done ? 0.6 : 1), cx = e.x / T, cy = e.y / T;
+        var D = this.def(e), sr = this.sightOf(e, D), cx = e.x / T, cy = e.y / T;
         for (var y = Math.floor(cy - sr); y <= Math.ceil(cy + sr); y++) for (var x = Math.floor(cx - sr); x <= Math.ceil(cx + sr); x++) {
           if (!this.inMap(x, y)) continue; var dx = x + 0.5 - cx, dy = y + 0.5 - cy; if (dx * dx + dy * dy <= sr * sr) V[y * this.MW + x] = 2; } }
       if (p === 0 && this.flares.length) { var tn = this.t; this.flares = this.flares.filter(function (f) { return f.until > tn; });
