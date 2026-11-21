@@ -27,6 +27,12 @@ a.back:hover{color:var(--accent)}
 .foot{color:var(--mut);font-size:11px;margin:6px 12px 12px;text-align:center;max-width:900px}
 .foot b{color:var(--ink)}
 @media(min-width:900px) and (hover:hover){.pad{display:none}}
+/* узкий телефон стоя (≤ 440 px): кнопки компактнее, чтобы «Прыжок» у правого края не уходил за экран (QA-прогон: макет шире экрана) */
+@media (max-width:440px){
+  .pad{gap:6px}
+  .dpad{grid-template-columns:44px 44px 44px;grid-template-rows:42px 42px 42px;gap:3px}
+  .acts{gap:5px}.acts .sm{width:36px;height:34px}.acts .md{width:48px;height:48px}.acts .big{width:58px;height:58px}
+}
 /* телефон «лёжа»: кнопки по бокам поверх полей, канва — на всю высоту */
 @media (max-height:520px) and (orientation:landscape){
   .wrap{margin-top:26px}

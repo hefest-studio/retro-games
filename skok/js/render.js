@@ -423,14 +423,26 @@
       g.text(g.t('b_' + S.LV.boss), VW / 2, y + 18, { size: 10, align: 'center', color: th.ink, weight: 800 });
     }
   }
+  // строки плашки — переносом по словам в ширину плашки (длинная вводная фраза и EN/TR/ES/PT не вылезают за холст);
+  // выделенная (последняя) строка после переноса может занять несколько строк — выделяются все её части (hiFrom)
+  function wrapLine(ctx, l, maxW) {
+    var out = [], cur = '';
+    String(l).split(' ').forEach(function (w) { var nx = cur ? cur + ' ' + w : w; if (cur && ctx.measureText(nx).width > maxW) { out.push(cur); cur = w; } else cur = nx; });
+    if (cur) out.push(cur); return out;
+  }
   function banner(g, ctx, b, retro) {
     var th = g.th(), a = Math.min(1, b.a * 2), y = 70;
+    if (b.lines && !b._wrapped) {
+      ctx.save(); ctx.font = '800 11px ' + th.font; var out = [], from = 0;
+      b.lines.forEach(function (l, i) { if (i === b.lines.length - 1) from = out.length; out.push.apply(out, wrapLine(ctx, l, VW - 140)); });
+      ctx.restore(); b.lines = out; b.hiFrom = from; b._wrapped = true;
+    }
     ctx.globalAlpha = a;
     if (retro) { rect(ctx, 60, y, VW - 120, 60 + (b.lines ? b.lines.length * 16 : 0), E.k); ctx.strokeStyle = E.y; ctx.lineWidth = 2; ctx.strokeRect(61, y + 1, VW - 122, 58 + (b.lines ? b.lines.length * 16 : 0)); }
     else { ctx.fillStyle = 'rgba(20,12,10,.72)'; ctx.fillRect(60, y, VW - 120, 60 + (b.lines ? b.lines.length * 16 : 0)); rect(ctx, 60, y, VW - 120, 2, b.color || th.accent); }
     g.text(b.title, VW / 2, y + 28, { size: 20, align: 'center', color: b.color || th.accent, weight: 900 });
     if (b.sub) g.text(b.sub, VW / 2, y + 48, { size: 11, align: 'center', color: th.ink, weight: 700 });
-    if (b.lines) b.lines.forEach(function (l, i) { g.text(l, VW / 2, y + 70 + i * 16, { size: 11, align: 'center', color: i === b.lines.length - 1 && b.hiLast ? th.warn : th.muted, weight: 800 }); });
+    if (b.lines) b.lines.forEach(function (l, i) { g.text(l, VW / 2, y + 70 + i * 16, { size: 11, align: 'center', color: b.hiLast && i >= b.hiFrom ? th.warn : th.muted, weight: 800, maxWidth: VW - 132, minSize: 9 }); });
     ctx.globalAlpha = 1;
   }
 

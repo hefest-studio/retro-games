@@ -5,6 +5,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import os from 'node:os';
+import { Worker, isMainThread, parentPort } from 'node:worker_threads';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
@@ -14,6 +16,29 @@ vm.createContext(sandbox);
 for (const f of ['js/music.js', 'js/i18n.js', 'js/levels.js', 'js/save.js', 'js/game.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const SK = sandbox.SKOK, L = SK.logic, K = L.K, T = L.T, MAP = SK.MAP, LV_ = SK.levels;
 const { passability, playLevel } = await import('./bot.mjs');
+
+// Графы проходимости (4 костюма × все уровни) и 40 партий бота — самая долгая часть файла. Каждая задача — чистая функция уровня
+// и seed'а, поэтому их можно считать в отдельных потоках: результат тот же, что подряд. Этот же файл — и поток-исполнитель.
+// Потоков — по числу ядер (BOT_THREADS=1 — подряд, как раньше).
+const job = ([kind, a, b]) => kind === 'pass' ? passability(SK, LV_.build(a), b) : playLevel(SK, a, b);
+if (!isMainThread){
+  parentPort.on('message', ([i, j]) => parentPort.postMessage([i, job(j)]));
+  await new Promise(() => {});   // поток живёт, пока его не закроет главный
+}
+function runJobs(jobs){
+  const n = Math.max(1, Math.min(jobs.length, +process.env.BOT_THREADS || (os.availableParallelism ? os.availableParallelism() : os.cpus().length)));
+  if (n === 1) return Promise.resolve(jobs.map(job));
+  return new Promise((resolve, reject) => {
+    const out = new Array(jobs.length); let next = 0, done = 0; const pool = [];
+    const feed = (w) => { if (next < jobs.length){ const i = next++; w.postMessage([i, jobs[i]]); } };
+    for (let k = 0; k < n; k++){
+      const w = new Worker(new URL(import.meta.url)); pool.push(w);
+      w.on('message', ([i, r]) => { out[i] = r; if (++done === jobs.length){ pool.forEach(x => x.terminate()); resolve(out); } else feed(w); });
+      w.on('error', (e) => { pool.forEach(x => x.terminate()); reject(e); });
+      feed(w);
+    }
+  });
+}
 
 let passed = 0, failed = 0;
 function test(name, fn){ try { fn(); passed++; console.log('ok   ' + name); } catch (e) { failed++; console.log('FAIL ' + name + ' — ' + (e && e.stack ? e.stack.split('\n').slice(0, 2).join(' | ') : e)); } }
@@ -304,11 +329,14 @@ test('фартук не меняет физику (граф без костюм�
   for (let i = 0; i < 200; i++){ const inp = { dx: i < 120 ? 1 : 0, dy: 0, jump: (i % 50) < 25 }; L.heroStep(W, a, inp, DT, null); L.heroStep(W, b, inp, DT, null); }
   eq(a.x, b.x); eq(a.y, b.y);
 });
-for (const suit of [null, 'boots', 'wings', 'armor']){
+const SUITS = [null, 'boots', 'wings', 'armor'], PASS_IDS = LV_.ids.filter(id => !LV_.build(id).ambush);
+const JOBS = [...SUITS.flatMap(suit => PASS_IDS.map(id => ['pass', id, suit])), ...Array.from({ length: 40 }, (_, i) => ['play', '1-1', i + 1])];
+const RES = await runJobs(JOBS), resOf = (kind, a, b) => RES[JOBS.findIndex(j => j[0] === kind && j[1] === a && j[2] === b)];
+for (const suit of SUITS){
   test('проходимость: каждый уровень (часовня / арена крепости) проходим ' + (suit ? 'в костюме «' + suit + '»' : 'без костюма') + '; ключ и тайная дверь достижимы', () => {
-    for (const id of LV_.ids){
-      const LV = LV_.build(id); if (LV.ambush) continue;
-      const r = passability(SK, LV, suit);
+    for (const id of PASS_IDS){
+      const LV = LV_.build(id);
+      const r = resOf('pass', id, suit);
       ok(r.exit, id + ': выход недостижим (узлов ' + r.reached + '/' + r.nodes + ')');
       if (LV.door){ ok(r.key, id + ': ключ'); ok(r.door, id + ': дверь от ключа'); }
     }
@@ -316,7 +344,7 @@ for (const suit of [null, 'boots', 'wings', 'armor']){
 }
 // «Человеческий» бот (tests/bot.mjs): реакция 150–250 мс, разброс нажатий ±2–3 кадра, иногда не замечает врага.
 test('бот-«человек» проходит 1-1 почти всегда (≥ 85% из 40 партий, 5 жизней)', () => {
-  const N = 40, R = []; for (let s = 1; s <= N; s++) R.push(playLevel(SK, '1-1', s));
+  const N = 40, R = []; for (let s = 1; s <= N; s++) R.push(resOf('play', '1-1', s));
   const won = R.filter(r => r.won).length, deaths = R.reduce((a, r) => a + r.deaths, 0), tm = R.filter(r => r.won).map(r => r.time);
   console.log('     1-1: ' + won + '/' + N + '; смертей всего ' + deaths + '; время, с: ' + Math.min(...tm).toFixed(0) + '–' + Math.max(...tm).toFixed(0));
   ok(won >= 0.85 * N, 'слишком сложно: ' + won + '/' + N); ok(!R.some(r => r.stuck), 'застрял: ' + R.filter(r => r.stuck).map(r => r.seed));

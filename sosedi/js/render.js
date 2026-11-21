@@ -65,6 +65,8 @@
   function txt(c, s, x, y, o) {
     o = o || {}; c.font = (o.w || 800) + ' ' + (o.size || 12) + 'px ' + (retro ? '"Courier New", ui-monospace, monospace' : 'Inter, system-ui, -apple-system, "Segoe UI", sans-serif');
     c.textAlign = o.align || 'left'; c.textBaseline = o.base || 'alphabetic';
+    // o.clampW: надпись по центру у края экрана сдвигается внутрь, чтобы не обрезалась (всплывающие «ПОМОГИТЕ!», «… — утащили в балаган!»)
+    if (o.clampW && c.textAlign === 'center') { var hw = c.measureText(s).width / 2 + 4; x = hw * 2 >= o.clampW ? o.clampW / 2 : Math.max(hw, Math.min(o.clampW - hw, x)); }
     if (o.stroke) { c.lineWidth = o.lw || 3; c.strokeStyle = o.stroke; c.lineJoin = 'round'; c.strokeText(s, x, y); }
     c.fillStyle = o.color || '#fff'; c.fillText(s, x, y);
   }

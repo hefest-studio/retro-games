@@ -129,8 +129,10 @@
     var seed = opt.seed || 1, W, side = opt.side || P.SKIRMISH_SIDE || null; // side: сторона игрока ('copper' | 'sizye'); без неё — классика
     // foe: 'sizye' — за Медный Ключ против ИИ Сизых на их механике (ветряки, канатка); без него соседи — на котельных (классика)
     var foe = side !== 'sizye' && (opt.foe || (opt.side == null ? P.SKIRMISH_FOE : null)) === 'sizye';
-    for (var attempt = 0; attempt < 40; attempt++) {
-      W = emptyWorld(MAP_W, MAP_H, seed + attempt * 7919);
+    var tpl = opt.map && SK_DEF[opt.map]; // opt.map: карта скирмиша ('gen' или без него — генерируемое плато; 'pass' | 'isles' | 'veins')
+    if (tpl) { W = emptyWorld(tpl.w, tpl.h, seed); W.start = skStart(tpl); W.map = opt.map; skTemplate(W, opt.map); }
+    else for (var attempt = 0; attempt < 40; attempt++) {
+      W = emptyWorld(MAP_W, MAP_H, seed + attempt * 7919); W.start = START;
       genTerrain(W);
       if (side === 'sizye') ridgeNearBase(W, 0); // Сизым нужны гребни для ветряков — у их базы две короткие гряды
       if (foe && opt.ridges !== false) ridgeNearBase(W, 1); // opt.ridges: false — проверка «гребней мало» (ИИ ищет дальние)
@@ -141,15 +143,96 @@
     W.oreMax = 520;
     var startCopper = opt.copper != null ? opt.copper : 2500;
     for (var o = 0; o < 2; o++) {
-      var hq = START[o].hq; addBuilding(W, o, 'hq', hq.x, hq.y);
+      var hq = W.start[o].hq; addBuilding(W, o, 'hq', hq.x, hq.y);
       W.players[o].copper = startCopper;
       var ex = o === 0 ? hq.x + 4 : hq.x - 2, ey = o === 0 ? hq.y - 2 : hq.y + 4, sz = facOf(W, o) === 'sizye';
-      addUnit(W, o, sz ? 'skiff' : 'crawler', ex + 0.5, ey + 0.5);
-      for (var r = 0; r < 3; r++) addUnit(W, o, sz ? 'ranger' : 'rifleman', ex + 1.5 + (r % 2), ey + 1.5 + (r >> 1));
+      // на карте-шаблоне отряд соседа — точное зеркало нашего (через центр карты), чтобы старт был одинаковым
+      var at = function (x, y) { return tpl && o === 1 ? { x: W.w - (W.start[0].hq.x + 4 + x), y: W.h - (W.start[0].hq.y - 2 + y) } : { x: ex + x, y: ey + y }; }, a0 = at(0.5, 0.5);
+      addUnit(W, o, sz ? 'skiff' : 'crawler', a0.x, a0.y);
+      for (var r = 0; r < 3; r++) { var ar = at(1.5 + (r % 2), 1.5 + (r >> 1)); addUnit(W, o, sz ? 'ranger' : 'rifleman', ar.x, ar.y); }
     }
-    if (opt.ai !== false) W.ai = facOf(W, 1) === 'sizye' ? newSzAI(W, 1) : newAI(W, 1);
+    // opt.level: 'easy' | 'normal' | 'hard' — уровень ИИ (без него — «Обычный», как раньше)
+    if (opt.ai !== false) W.ai = makeAI(W, 1, opt.level);
     updateVis(W);
     return W;
+  }
+  // ---------- Карты скирмиша ----------
+  // 'gen' — генерируемое плато 64×48 (как раньше, сид — случайный или заданный); три рукотворные карты — шаблоны без случайности
+  // (сид влияет только на бой: разброс урона и т. п.). Шаблоны центрально-симметричны: клетка (i,j) и (w-1-i, h-1-j) одинаковы,
+  // базы — в противоположных углах на симметричных местах, у каждой базы — короткие гряды под ветряки Сизых (как в скирмише за
+  // Сизых на генерируемой карте), поэтому карта честная для обеих сторон и для обеих механик.
+  //   pass  — «Перевал»: 64×48, наискось через всё плато — хребет, через него один извилистый перевал шириной 3 клетки;
+  //           у каждой базы своя жила, ещё одна — у устья перевала, дальняя — у края своей половины.
+  //   isles — «Острова»: 64×48, замёрзшее озеро (непроходимо) и острова: два острова баз, большой средний с богатой жилой,
+  //           два малых с жилами; к среднему — мосты, к малым — переправа по льду; канатке Сизых вода не мешает.
+  //   veins — «Четыре жилы»: большая карта 96×64, четыре богатые жилы по полю (по две ближе к каждой стороне), жилы у баз,
+  //           озеро в центре и гряды с проходами.
+  var SK_MAPS = ['gen', 'pass', 'isles', 'veins'];
+  var SK_DEF = {
+    pass:  { w: 64, h: 48, hq: { x: 5, y: 37 } },
+    isles: { w: 64, h: 48, hq: { x: 5, y: 37 } },
+    veins: { w: 96, h: 64, hq: { x: 6, y: 53 } }
+  };
+  function skStart(def) { var h = def.hq; return [{ hq: { x: h.x, y: h.y } }, { hq: { x: def.w - h.x - 3, y: def.h - h.y - 3 } }]; }
+  // нарисовать карту-шаблон: fn(i, j) → { t, ore } для половины; вторая половина — зеркало через центр
+  function skTemplate(W, id) {
+    var w = W.w, h = W.h, k, i, j, T = W.t, O = W.ore;
+    function set(i, j, t) { if (i < 1 || j < 1 || i >= w - 1 || j >= h - 1) return; T[j * w + i] = t; T[(h - 1 - j) * w + (w - 1 - i)] = t; }
+    function ore(cx, cy, r, base, top) { // поле меди (и зеркальное): к центру богаче
+      for (var j = Math.floor(cy - r); j <= cy + r; j++) for (var i = Math.floor(cx - r); i <= cx + r; i++) {
+        var d = Math.hypot(i + 0.5 - cx, j + 0.5 - cy); if (d > r || i < 1 || j < 1 || i >= w - 1 || j >= h - 1) continue;
+        var v = Math.round(base + (1 - d / r) * top); O[j * w + i] = v; O[(h - 1 - j) * w + (w - 1 - i)] = v;
+      }
+    }
+    function fill(t, pred) { for (var j = 1; j < h - 1; j++) for (var i = 1; i < w - 1; i++) if (pred(i + 0.5, j + 0.5)) set(i, j, t); }
+    function seg(x0, y0, x1, y1, t, th) { // отрезок толщиной th
+      fill(t, function (x, y) { var dx = x1 - x0, dy = y1 - y0, l = dx * dx + dy * dy, s = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / l)); return Math.hypot(x - x0 - dx * s, y - y0 - dy * s) < th; });
+    }
+    var cx = w / 2, cy = h / 2;
+    if (id === 'pass') {
+      // хребет наискось; перевал — извилистая щель шириной 3 клетки через середину
+      fill(ROCK, function (x, y) { var u = (x - cx) + (y - cy) * 0.35; return Math.abs(u) < 4.6; });
+      fill(GROUND, function (x, y) { var u = (x - cx) + (y - cy) * 0.35, c = cy + 2.2 * Math.sin(u / 2.6); return Math.abs(u) < 5 && Math.abs(y - c) < 1.6; });
+      seg(14, 22, 20, 18, ROCK, 0.8); seg(24, 34, 22, 41, ROCK, 0.8); seg(8, 26, 12, 27, ROCK, 0.7); seg(18, 9, 22, 13, ROCK, 0.7); // каменные гряды на своей половине
+      [[16, 30], [9, 18], [25, 13], [20, 44]].forEach(function (p) { set(p[0], p[1], ROCK); });
+      ore(14, 41, 3.2, 220, 300); ore(23, 26, 2.8, 260, 280); ore(8, 12, 3.2, 240, 300); ore(26, 6, 2.4, 220, 260);
+    } else if (id === 'isles') {
+      fill(WATER, function () { return true; });
+      fill(GROUND, function (x, y) { return Math.hypot((x - 8) / 13, (y - 39) / 9.5) < 1; });                  // остров базы
+      fill(GROUND, function (x, y) { return Math.hypot((x - cx) / 9.5, (y - cy) / 6.5) < 1; });                 // средний остров
+      fill(GROUND, function (x, y) { return Math.hypot((x - 12) / 6, (y - 13) / 5) < 1; });                     // малый остров у базы
+      seg(17, 33.5, 24.5, 27.5, BRIDGE, 1.1);                                                                    // мост к среднему
+      seg(9, 30.5, 11, 18, ICE, 1.6);                                                                            // переправа по льду к малому
+      seg(17.5, 12.5, 23.5, 20, ICE, 1.4);                                                                       // лёд от малого к среднему
+      seg(14, 36, 17.5, 35, GROUND, 1.2);                                                                        // подход к мосту
+      [[30, 22], [33, 25], [3, 34], [14, 44]].forEach(function (p) { set(p[0], p[1], ROCK); });
+      ore(14, 42, 3.4, 220, 300); ore(7.5, 45, 2.3, 220, 260); ore(cx, cy, 3.6, 300, 220); ore(11.5, 12.5, 2.8, 240, 280);
+    } else if (id === 'veins') {
+      fill(WATER, function (x, y) { return Math.hypot((x - cx) / 6, (y - cy) / 4.5) < 1; });                    // озеро в центре
+      seg(20, 30, 34, 22, ROCK, 1.1); seg(38, 50, 46, 40, ROCK, 1.1); seg(12, 36, 18, 33, ROCK, 0.9); seg(56, 56, 60, 48, ROCK, 0.9);
+      seg(30, 8, 40, 14, ROCK, 1.0); seg(48, 22, 52, 30, ROCK, 0.9); seg(64, 36, 70, 40, ROCK, 0.9);
+      fill(GROUND, function (x, y) { return Math.hypot(x - 27, y - 26.3) < 1.6 || Math.hypot(x - 42, y - 45) < 1.6; }); // проходы в грядах
+      [[24, 52], [34, 32], [12, 24], [44, 6], [60, 58], [8, 44]].forEach(function (p) { set(p[0], p[1], ROCK); });
+      ore(15, 57, 3.2, 220, 300);                       // у базы
+      ore(28, 44, 3.6, 300, 220); ore(44, 18, 3.6, 300, 220); // две богатые жилы на своей стороне (и две зеркальные — у соседа)
+      ore(8, 30, 2.6, 220, 260);                        // дальняя у края
+    }
+    for (j = 0; j < h; j++) for (i = 0; i < w; i++) if (i === 0 || j === 0 || i === w - 1 || j === h - 1) T[j * w + i] = ROCK;
+    for (k = 0; k < w * h; k++) if (T[k] !== GROUND) O[k] = 0;
+    // площадки баз: земля без меди (контора, стартовый отряд, первые постройки)
+    var hx = W.start[0].hq.x + 1, hy = W.start[0].hq.y + 1;
+    for (j = hy - 4; j <= hy + 4; j++) for (i = hx - 4; i <= hx + 6; i++) { set(i, j, GROUND); if (i > 0 && j > 0 && i < w - 1 && j < h - 1) { O[j * w + i] = 0; O[(h - 1 - j) * w + (w - 1 - i)] = 0; } }
+    ridgeNearBase(W, 0); ridgeNearBase(W, 1); // гряды под ветряки — у обеих баз
+  }
+  // проверка карты: от конторы до конторы соседа можно дойти, почти вся медь достижима (с соседней клетки)
+  function skReach(W) {
+    var a = W.start[0].hq, b = W.start[1].hq, seen = new Uint8Array(W.w * W.h), q = [], s0 = nearestPassable(W, a.x + 1, a.y + 4, 4);
+    if (!s0) return { ok: false };
+    q.push(s0.j * W.w + s0.i); seen[q[0]] = 1;
+    for (var hh = 0; hh < q.length; hh++) { var k = q[hh], i = k % W.w, j = (k / W.w) | 0; for (var d = 0; d < 8; d++) { var x = i + DX[d], y = j + DY[d]; if (!inb(W, x, y)) continue; var n = y * W.w + x; if (!seen[n] && walkable(W.t[n]) && (d < 4 || (walkable(W.t[j * W.w + x]) && walkable(W.t[y * W.w + i])))) { seen[n] = 1; q.push(n); } } }
+    var ore = 0, reach = 0; for (k = 0; k < W.w * W.h; k++) if (W.ore[k]) { ore++; if (seen[k] || nbSeen(W, seen, k)) reach++; }
+    var t1 = false; for (j = b.y - 1; j <= b.y + 4; j++) for (i = b.x - 1; i <= b.x + 4; i++) if (inb(W, i, j) && seen[j * W.w + i]) t1 = true;
+    return { ok: t1 && reach === ore && ore > 40, ore: ore, reach: reach, hq: t1 };
   }
   function patch(W, cx, cy, rad, fn) {
     for (var j = Math.floor(cy - rad - 1); j <= cy + rad + 1; j++) for (var i = Math.floor(cx - rad - 1); i <= cx + rad + 1; i++) {
@@ -517,7 +600,7 @@
     if (W.winner >= 0) return;
     W.time += dt;
     production(W, 0, dt); production(W, 1, dt);
-    if (W.ai) { if (W.ai.race) raceStep(W, dt); else if (W.ai.sz) szAiStep(W, dt); else aiStep(W, dt); }
+    if (W.ai) { if (W.ai.race) raceStep(W, dt); else if (W.ai.sz) szAiStep(W, dt); else if (W.ai.hard) hardStep(W, dt, W.ai); else aiStep(W, dt); }
     heroStep(W, dt);
     for (var n = 0; n < W.units.length; n++) unitStep(W, W.units[n], dt);
     for (n = 0; n < W.blds.length; n++) bldStep(W, W.blds[n], dt);
@@ -1415,7 +1498,7 @@
   }
   function aiStep(W, dt, AI) {
     var A = AI || W.ai, o = A.o, p = W.players[o];
-    A.t -= dt; if (A.t > 0) return; A.t = 1;
+    A.t -= dt; if (A.t > 0) return; A.t = A.tick || 1; // A.tick, haul, noIron, defR, waveGap/Grow/Max — ручки «Лёгкого» (у «Обычного» их нет)
     var hq = has(W, o, 'hq'); if (!hq) return;
     // стройка: по списку, потом котельные при нехватке пара
     if (!p.build) {
@@ -1428,17 +1511,17 @@
     // рудовозы: держим два
     var haulers = W.units.filter(function (u) { return u.owner === o && u.type === 'hauler'; }).length;
     var smelter = has(W, o, 'smelter'), works = has(W, o, 'works');
-    if (smelter && works && haulers + p.veh.filter(function (t) { return t === 'hauler'; }).length < 2) queueUnit(W, o, 'hauler');
+    if (smelter && works && haulers + p.veh.filter(function (t) { return t === 'hauler'; }).length < (A.haul || 2)) queueUnit(W, o, 'hauler');
     // армия (оставляем запас меди на стройку)
-    var reserve = A.idx < A.order.length ? BLDS[A.order[A.idx]].cost : 0;
-    var armyN = W.units.filter(function (u) { return u.owner === o && u.type !== 'hauler' && !u.wave; }).length, cap = A.waveSize + 4;
+    var reserve = (A.idx < A.order.length ? BLDS[A.order[A.idx]].cost : 0) + (A.hoard || 0); // A.hoard — «Лёгкий» держит медь про запас
+    var armyN = W.units.filter(function (u) { return u.owner === o && u.type !== 'hauler' && !u.wave; }).length, cap = A.waveSize + (A.capPlus || 4);
     var rifles = W.units.filter(function (u) { return u.owner === o && u.type === 'rifleman' && !u.wave; }).length;
     if (has(W, o, 'bunk') && p.inf.length < 1 && armyN < cap && (!works || rifles < 4) && p.copper >= 100 + reserve) queueUnit(W, o, 'rifleman');
-    if (works && p.veh.length < 2 && armyN < cap) { var vt = (A.flip++ % 3 === 2) ? 'ironwagon' : 'crawler'; if (p.copper >= UNITS[vt].cost + reserve) queueUnit(W, o, vt); }
+    if (works && p.veh.length < 2 && armyN < cap) { var vt = (A.flip++ % 3 === 2) && !A.noIron ? 'ironwagon' : 'crawler'; if (p.copper >= UNITS[vt].cost + reserve) queueUnit(W, o, vt); }
     var army = W.units.filter(function (u) { return u.owner === o && u.type !== 'hauler'; });
     // оборона: кого-то бьют у базы — все свободные туда
     var hit = null; W.blds.concat(W.units).forEach(function (e) { if (e.owner === o && W.time - e.hitT < 2 && alive(W.byId[e.hitBy])) hit = W.byId[e.hitBy]; });
-    if (hit && Math.hypot(center(hit).x - hq.tx, center(hit).y - hq.ty) < 18) {
+    if (hit && Math.hypot(center(hit).x - hq.tx, center(hit).y - hq.ty) < (A.defR || 18)) {
       var free = army.filter(function (u) { return u.order.t !== 'attack' && !u.wave; }).map(function (u) { return u.id; });
       if (free.length) commandAttack(W, free, hit.id);
     }
@@ -1447,11 +1530,19 @@
     if (W.time >= A.nextWave && idle.length >= A.waveSize) {
       var tgt = has(W, 1 - o, 'hq') || W.blds.filter(function (b) { return b.owner !== o; })[0];
       if (tgt) { idle.forEach(function (u) { u.wave = true; }); commandMove(W, idle.map(function (u) { return u.id; }), tgt.tx + 1, tgt.ty + 1, true); }
-      A.waves++; A.nextWave = W.time + 150; A.waveSize = Math.min(14, A.waveSize + 2);
+      A.waves++; A.nextWave = W.time + (A.waveGap || 150); A.waveSize = Math.min(A.waveMax || 14, A.waveSize + (A.waveGrow || 2));
       W.events.push({ t: 'wave', owner: o, n: idle.length });
     }
+    // пат: медь не идёт 2 минуты и рудовоз купить не на что — все, кто есть, на контору соседа (партия не стоит вечно;
+    // до 7-й минуты не бывает, обычную партию не меняет)
+    if (stalled(W, A, o) && idle.length) { var tq = has(W, 1 - o, 'hq'); if (tq) { idle.forEach(function (u) { u.wave = true; }); commandMove(W, idle.map(function (u) { return u.id; }), tq.tx + 1, tq.ty + 1, true); } }
     // ушедшие в волну, оставшиеся без дела, — добивают ближайшее
     army.forEach(function (u) { if (u.wave && u.order.t === 'idle') { var tg = has(W, 1 - o, 'hq'); if (tg) commandMove(W, [u.id], tg.tx + 1, tg.ty + 1, true); } });
+  }
+  // пат скирмиша: медь не прибывает 120 с и её меньше, чем на рудовоз (рудовозы потеряны или жилы выработаны); в миссиях — никогда
+  function stalled(W, A, o) {
+    var p = W.players[o]; if (A.minedV !== p.mined) { A.minedV = p.mined; A.minedT = W.time; }
+    return !W.mission && W.time > 300 && W.time - (A.minedT || 0) > 120 && p.copper < UNITS.hauler.cost;
   }
   function aiSpot(W, o, type, hq) {
     var d = BLDS[type], cx = hq.tx + 1, cy = hq.ty + 1;
@@ -1464,6 +1555,205 @@
       if (ok) return { i: i, j: j };
     }
     return null;
+  }
+
+  // ---------- Уровни сложности ИИ скирмиша: Лёгкий / Обычный / Трудный ----------
+  // «Обычный» — ИИ выше без изменений (newAI/aiStep, у Сизых — newSzAI/szAiStep): у объекта ИИ нет поля lvl, ручки по умолчанию.
+  // «Лёгкий» — тот же ИИ с ручками: думает раз в 2 с, один рудовоз (тот, что пришёл с плавильней), без броневозов, держит 300 меди про запас, армия — волна +1,
+  // первая волна на 7-й минуте (Сизые — на 12-й), волны растут на 1 и не больше 6 (Сизые — 8), обороняется только у самых зданий.
+  // «Трудный» (котельные — hardStep, Сизые — szAiStep + hardMicro) — без бонусов по меди и обзору сверх «Обычного»; лучше макро
+  // и микро: плавильня — у ближней жилы, ранняя вторая плавильня у следующей жилы (экспансия), рудовозов 3–5 с раздачей по
+  // жилам, пехота и техника строятся параллельно, пар — заранее; разведчик в начале и память об увиденной армии соседа; отряд
+  // собирается у сборного пункта и выходит, когда сильнее увиденного; в походе держит строй (передние ждут отставших),
+  // подкрепления догоняют, проигранный бой — отход; фокус огня (все бьют самую «дешёвую» для своего оружия цель в досягаемости,
+  // по зданиям не стреляют, пока рядом есть вооружённые враги); оборона — все домашние и, если волна недалеко, она тоже.
+  var AI_LEVELS = ['easy', 'normal', 'hard'];
+  var EASY = { lvl: 'easy', tick: 2, haul: 1, noIron: true, defR: 10, nextWave: 420, waveSize: 3, waveGrow: 1, waveGap: 200, waveMax: 6, capPlus: 1, hoard: 300 };
+  var EASY_SZ = { lvl: 'easy', tick: 2, nextWave: 720, waveSize: 3, waveGrow: 1, waveGap: 200, waveMax: 8 };
+  var HARD_SZ = { lvl: 'hard', micro: true, waveGap: 100 }; // ИИ-Сизые «Трудный»: фокус огня, волны чаще (ранняя первая волна и забои раньше — слабее на «Перевале»)
+  function makeAI(W, o, lvl) {
+    var sz = facOf(W, o) === 'sizye';
+    if (lvl === 'easy') return Object.assign(sz ? newSzAI(W, o) : newAI(W, o), sz ? EASY_SZ : EASY);
+    if (lvl === 'hard') return sz ? Object.assign(newSzAI(W, o), HARD_SZ) : newHardAI(W, o);
+    return sz ? newSzAI(W, o) : newAI(W, o);
+  }
+  // шаг любого ИИ скирмиша (тесты «ИИ против ИИ» зовут его для владельца 0)
+  function aiTick(W, dt, A) { if (A.sz) szAiStep(W, dt, A); else if (A.hard) hardStep(W, dt, A); else aiStep(W, dt, A); }
+
+  // кластеры меди (8-связность): центр, число клеток — для выбора жил
+  function oreFields(W) {
+    var seen = new Uint8Array(W.w * W.h), out = [];
+    for (var k = 0; k < W.w * W.h; k++) {
+      if (!W.ore[k] || seen[k]) continue;
+      var q = [k], sx = 0, sy = 0; seen[k] = 1;
+      for (var h = 0; h < q.length; h++) {
+        var c = q[h], i = c % W.w, j = (c / W.w) | 0; sx += i + 0.5; sy += j + 0.5;
+        for (var d = 0; d < 8; d++) { var a = i + DX[d], b = j + DY[d]; if (!inb(W, a, b)) continue; var m = b * W.w + a; if (!seen[m] && W.ore[m]) { seen[m] = 1; q.push(m); } }
+      }
+      if (q.length >= 4) out.push({ x: sx / q.length, y: sy / q.length, n: q.length });
+    }
+    return out;
+  }
+  function oreLeft(W, x, y, r) { var s = 0; for (var j = Math.floor(y - r); j <= y + r; j++) for (var i = Math.floor(x - r); i <= x + r; i++) s += oreAt(W, i, j); return s; }
+  function newHardAI(W, o) {
+    return { o: o, hard: true, lvl: 'hard', t: 0, mt: 0, idx: 0, order: ['boiler', 'smelter', 'bunk', 'boiler', 'works', 'smelter', 'boiler'],
+      flip: 0, waves: 0, wave: [], scout: 0, scoutDone: false, seen: Object.create(null), lastDef: -99, fields: null, rally: null, hf: Object.create(null) };
+  }
+  function armedUnit(u) { return u.kind === 'unit' && !!UNITS[u.type].weapon; }
+  function armyValue(list) { var v = 0; list.forEach(function (u) { v += UNITS[u.type].cost || 300; }); return v; }
+  function centroid(list) { var x = 0, y = 0; list.forEach(function (u) { x += u.x; y += u.y; }); return { x: x / list.length, y: y / list.length }; }
+  // жила, у которой ещё нет своей плавильни (ближайшая к конторе, с запасом)
+  function hardFreeField(W, A, o, hc) {
+    var sm = W.blds.filter(function (b) { return b.owner === o && b.type === 'smelter'; }), best = null, bd = 1e9;
+    A.fields.forEach(function (f) {
+      if (sm.some(function (b) { var c = center(b); return Math.hypot(c.x - f.x, c.y - f.y) < 9; }) || oreLeft(W, f.x, f.y, 4) < 1500) return;
+      var d = Math.hypot(f.x - hc.x, f.y - hc.y); if (d < bd) { bd = d; best = f; }
+    });
+    return best;
+  }
+  // место плавильни: площадка (док) как можно ближе к жиле, в пределах стройки от своих зданий, с кольцом свободной земли
+  function hardSmelterSpot(W, A, o, hq) {
+    var f = hardFreeField(W, A, o, center(hq)); if (!f) return aiSpot(W, o, 'smelter', hq);
+    var d = BLDS.smelter, best = null, bv = 1e9, x0 = W.w, y0 = W.h, x1 = 0, y1 = 0;
+    W.blds.forEach(function (b) { if (b.owner !== o) return; x0 = Math.min(x0, b.tx - BUILD_GAP - d.w); y0 = Math.min(y0, b.ty - BUILD_GAP - d.h); x1 = Math.max(x1, b.tx + b.w + BUILD_GAP); y1 = Math.max(y1, b.ty + b.h + BUILD_GAP); });
+    for (var j = Math.max(1, y0); j <= Math.min(W.h - 2, y1); j++) for (var i = Math.max(1, x0); i <= Math.min(W.w - 2, x1); i++) {
+      if (!canPlace(W, o, 'smelter', i, j)) continue;
+      var ok = true;
+      for (var y = j - 1; y <= j + d.h && ok; y++) for (var x = i - 1; x <= i + d.w; x++) { if (!inb(W, x, y) || W.occ[y * W.w + x]) { ok = false; break; } }
+      if (!ok) continue;
+      var v = Math.hypot(i + 1.5 - f.x, j + 2.5 - f.y); if (v < bv) { bv = v; best = { i: i, j: j }; }
+    }
+    return best || aiSpot(W, o, 'smelter', hq);
+  }
+  // раздать рудовозы по жилам у своих плавилен (поровну; выработанная жила — рудовоз на другую)
+  function hardHaulers(W, A, o) {
+    var sm = W.blds.filter(function (b) { return b.owner === o && b.type === 'smelter'; });
+    var served = A.fields.filter(function (f) { return oreLeft(W, f.x, f.y, 4) > 200 && sm.some(function (b) { var c = center(b); return Math.hypot(c.x - f.x, c.y - f.y) < 11; }); });
+    if (!served.length) return;
+    var load = served.map(function () { return 0; }), hs = W.units.filter(function (u) { return u.owner === o && u.type === 'hauler'; });
+    hs.forEach(function (u) { var fi = A.hf[u.id]; if (fi != null && served.indexOf(A.fields[fi]) >= 0) load[served.indexOf(A.fields[fi])]++; });
+    hs.forEach(function (u) {
+      var fi = A.hf[u.id], f = fi != null ? A.fields[fi] : null;
+      if (f && served.indexOf(f) >= 0 && u.order.t === 'harvest') return;
+      if (u.order.t === 'harvest' && u.order.s !== 'seek' && u.order.s !== 'go' && u.order.s !== 'dig') return; // везёт — не трогаем
+      var k = 0; for (var n = 1; n < served.length; n++) if (load[n] < load[k]) k = n;
+      load[k]++; A.hf[u.id] = A.fields.indexOf(served[k]);
+      commandHarvest(W, [u.id], Math.floor(served[k].x), Math.floor(served[k].y));
+    });
+  }
+  // увиденная армия соседа (обзор своих юнитов и зданий; запись живёт 120 с)
+  function hardLook(W, A, o) {
+    var mine = W.units.filter(function (u) { return u.owner === o; }), bl = W.blds.filter(function (b) { return b.owner === o; });
+    W.units.forEach(function (e) {
+      if (e.owner === o || !hostile(W, e.owner, o) || !armedUnit(e) || e.hp <= 0) return;
+      var seen = mine.some(function (u) { return Math.hypot(u.x - e.x, u.y - e.y) <= UNITS[u.type].sight; }) || bl.some(function (b) { return distTo(e, b) <= BLDS[b.type].sight + 1; });
+      if (seen) A.seen[e.id] = { v: UNITS[e.type].cost, t: W.time };
+    });
+    var est = 0; for (var id in A.seen) { var r = A.seen[id]; if (W.time - r.t > 120 || !alive(W.byId[id])) delete A.seen[id]; else est += r.v; }
+    return est;
+  }
+  function hardStep(W, dt, A) {
+    var o = A.o, p = W.players[o], foe = 1 - o;
+    A.mt -= dt; if (A.mt <= 0) { A.mt = 0.25; hardMicro(W, A); }
+    A.t -= dt; if (A.t > 0) return; A.t = 0.5;
+    var hq = has(W, o, 'hq'); if (!hq) return;
+    var hc = center(hq), ehq = has(W, foe, 'hq'), ec = ehq ? center(ehq) : { x: W.w - hc.x, y: W.h - hc.y };
+    if (!A.fields) A.fields = oreFields(W);
+    if (!A.rally) { var dl = Math.hypot(ec.x - hc.x, ec.y - hc.y) || 1, rp = nearestPassable(W, Math.floor(hc.x + (ec.x - hc.x) / dl * 7), Math.floor(hc.y + (ec.y - hc.y) / dl * 7), 6); A.rally = rp ? { x: rp.i + 0.5, y: rp.j + 0.5 } : { x: hc.x, y: hc.y + 3 }; }
+    // стройка: по списку; пар — заранее (котельная вне очереди, если следующее здание уведёт в минус)
+    var nextB = A.idx < A.order.length ? A.order[A.idx] : null;
+    if (!p.build) {
+      var want = nextB;
+      if (want && BLDS[want].power < 0 && p.pOut - p.pUse + BLDS[want].power < 0) want = 'boiler';
+      if (!want && p.pUse + 15 > p.pOut) want = 'boiler';
+      if (!want && W.time > 480 && p.copper > 1600 && count(W, o, 'smelter') < 3 && hardFreeField(W, A, o, hc)) want = 'smelter';
+      if (want && reqMet(W, o, want) && p.copper >= BLDS[want].cost && startBuild(W, o, want) && want === nextB) A.idx++;
+    } else if (p.build.ready) {
+      var t = p.build.type, sp = t === 'smelter' ? hardSmelterSpot(W, A, o, hq) : aiSpot(W, o, t, hq);
+      if (!sp || !placeBuild(W, o, sp.i, sp.j)) cancelBuild(W, o);
+    }
+    var reserve = !p.build && nextB ? BLDS[nextB].cost : 0;
+    // экономика: рудовозы по числу плавилен (3 на первую, +2 на каждую следующую, не больше 6)
+    var smN = count(W, o, 'smelter'), works = working(W, o, 'works');
+    var haulN = W.units.filter(function (u) { return u.owner === o && u.type === 'hauler'; }).length + p.veh.filter(function (x) { return x === 'hauler'; }).length;
+    var haulWant = smN ? Math.min(6, 1 + smN * 2) : 0;
+    var army = W.units.filter(function (u) { return u.owner === o && armedUnit(u); });
+    A.wave = A.wave.filter(function (id) { return alive(W.byId[id]); });
+    var waveU = A.wave.map(function (id) { return W.byId[id]; });
+    var home = army.filter(function (u) { return A.wave.indexOf(u.id) < 0 && u.id !== A.scout; });
+    // угроза: вооружённые враги у наших зданий
+    var mine = W.blds.filter(function (b) { return b.owner === o; });
+    var threat = W.units.filter(function (e) { return hostile(W, e.owner, o) && e.hp > 0 && armedUnit(e) && mine.some(function (b) { return distTo(e, b) < 11; }); });
+    if (works && p.veh.length < 2) {
+      var vt = haulN < haulWant && (threat.length < 2 || haulN < 2) ? 'hauler' : (A.flip % 3 === 2 ? 'ironwagon' : 'crawler');
+      if (p.copper >= UNITS[vt].cost + (vt === 'hauler' ? 0 : Math.min(reserve, 300)) && queueUnit(W, o, vt) && vt !== 'hauler') A.flip++;
+    }
+    var rifles = home.filter(function (u) { return u.type === 'rifleman'; }).length;
+    if (has(W, o, 'bunk') && p.inf.length < 2 && rifles < (works ? 7 : 10) && p.copper >= 100 + reserve * (works ? 0.3 : 1)) queueUnit(W, o, 'rifleman');
+    if (A.fields.length) hardHaulers(W, A, o);
+    var est = hardLook(W, A, o);
+    // разведка: один стрелок к жиле у соседа и к его конторе, потом домой
+    if (!A.scoutDone && !A.scout && W.time > 40) { var sc = home.filter(function (u) { return u.type === 'rifleman' && u.order.t === 'idle'; })[0]; if (sc) { A.scout = sc.id; A.scoutT = W.time; commandMove(W, [sc.id], ec.x + (hc.x - ec.x) * 0.25, ec.y + (hc.y - ec.y) * 0.25); } }
+    if (A.scout) { var su = W.byId[A.scout]; if (!alive(su)) { A.scout = 0; A.scoutDone = true; } else if (su.order.t !== 'move' || W.time - A.scoutT > 70) { A.scout = 0; A.scoutDone = true; commandMove(W, [su.id], A.rally.x, A.rally.y); } }
+    // оборона: все домашние к угрозе; волна недалеко и угроза серьёзная — тоже домой
+    if (threat.length) {
+      A.lastDef = W.time;
+      home.forEach(function (u) { if (u.order.t !== 'attack') { var best = null, bd = 1e9; threat.forEach(function (e) { var d = Math.hypot(e.x - u.x, e.y - u.y); if (d < bd) { bd = d; best = e; } }); if (best) commandAttack(W, [u.id], best.id); } });
+      if (waveU.length && armyValue(threat) > armyValue(home) * 0.8) {
+        var wc0 = centroid(waveU);
+        if (Math.hypot(wc0.x - hc.x, wc0.y - hc.y) < 24) { waveU.forEach(function (u) { if (u.order.t !== 'attack') commandAttack(W, [u.id], threat[0].id); }); A.wave = []; waveU = []; }
+      }
+      return;
+    }
+    // дома: собираться у сборного пункта
+    home.forEach(function (u) { if (u.order.t === 'idle' && Math.hypot(u.x - A.rally.x, u.y - A.rally.y) > 4) commandMove(W, [u.id], A.rally.x, A.rally.y, true); });
+    if (!ehq) return;
+    // волна: выйти, когда отряд сильнее увиденного (и не слабее порога по времени)
+    var guards = home.filter(function (u) { return u.type === 'rifleman'; }).slice(0, W.time > 600 ? 2 : 1);
+    var go = home.filter(function (u) { return guards.indexOf(u) < 0 && u.order.t !== 'attack'; });
+    var need = stalled(W, A, o) ? 0 : Math.max(W.time < 360 ? 1800 : 2300 + Math.min(4, A.waves) * 300, est * 1.25); // без дохода — все в бой
+    if (!waveU.length && W.time > 240 && go.length && armyValue(go) >= need) {
+      A.wave = go.map(function (u) { return u.id; }); waveU = go.slice(); A.waves++;
+      commandMove(W, A.wave, ec.x, ec.y, true); W.events.push({ t: 'wave', owner: o, n: go.length });
+      return;
+    }
+    // подкрепления догоняют волну
+    if (waveU.length && go.length >= 3 && armyValue(go) >= 900) { go.forEach(function (u) { A.wave.push(u.id); waveU.push(u); }); commandMove(W, go.map(function (u) { return u.id; }), ec.x, ec.y, true); }
+    if (!waveU.length) return;
+    // волна в походе: ядро (без отставших дальше 14 клеток), строй, отход, удар по конторе
+    var c1 = centroid(waveU), core = waveU.filter(function (u) { return Math.hypot(u.x - c1.x, u.y - c1.y) < 14; }); if (!core.length) core = waveU;
+    var wc = centroid(core), wd = Math.hypot(ec.x - wc.x, ec.y - wc.y);
+    var near = W.units.filter(function (e) { return hostile(W, e.owner, o) && e.hp > 0 && armedUnit(e) && Math.hypot(e.x - wc.x, e.y - wc.y) < 10; });
+    if (near.length && armyValue(core) < armyValue(near) * 0.45 && wd > 12) { // бой проигран — отход к сборному пункту
+      commandMove(W, A.wave, A.rally.x, A.rally.y); A.wave = []; return;
+    }
+    waveU.forEach(function (u) {
+      var o2 = u.order; if (o2.t === 'attack') return;
+      var ud = Math.hypot(ec.x - u.x, ec.y - u.y), foes = near.length || W.units.some(function (e) { return hostile(W, e.owner, o) && e.hp > 0 && armedUnit(e) && Math.hypot(e.x - u.x, e.y - u.y) < 8; });
+      if (!foes && wd < 13) { commandAttack(W, [u.id], ehq.id); return; } // защитников нет — по конторе
+      if (!foes && core.indexOf(u) >= 0 && ud < wd - 4) { if (o2.t !== 'idle') { u.path = []; u.order = { t: 'idle' }; } return; } // впереди строя — ждать
+      if (o2.t === 'idle' || (o2.t === 'amove' && Math.hypot(o2.x - ec.x, o2.y - ec.y) > 4)) commandMove(W, [u.id], ec.x, ec.y, true);
+    });
+  }
+  // фокус огня (4 раза в секунду): каждый вооружённый бьёт самую «дешёвую» для своего оружия цель в досягаемости
+  // (прочность / множитель урона; вооружённые — раньше безоружных); по зданию не стреляет, если рядом вооружённый враг.
+  function hardMicro(W, A) {
+    var o = A.o;
+    W.units.forEach(function (u) {
+      if (u.owner !== o || !armedUnit(u) || u.hp <= 0) return;
+      var d = UNITS[u.type], od = u.order;
+      if (od.t !== 'attack' && od.t !== 'amove' && od.t !== 'idle') return;
+      var cur = od.t === 'attack' ? W.byId[od.target] : null, best = null, bs = 1e9, reach = d.range + (cur && cur.kind === 'bld' ? 1.5 : 0.3);
+      for (var n = 0; n < W.units.length; n++) {
+        var e = W.units[n]; if (!hostile(W, e.owner, o) || e.hp <= 0 || ((e.calm || e.riding) && !carExposed(W, e))) continue;
+        var dist = Math.hypot(e.x - u.x, e.y - u.y) - UNITS[e.type].r; if (dist > reach) continue;
+        var s = e.hp / MULT[d.weapon][UNITS[e.type].cls] * (UNITS[e.type].weapon ? 1 : 1.8) + dist * 2;
+        if (s < bs) { bs = s; best = e; }
+      }
+      if (!best || best === cur) return;
+      if (cur && cur.kind === 'unit' && alive(cur)) { var cd = Math.hypot(cur.x - u.x, cur.y - u.y) - UNITS[cur.type].r, cs = cur.hp / MULT[d.weapon][UNITS[cur.type].cls] * (UNITS[cur.type].weapon ? 1 : 1.8) + cd * 2; if (cd <= d.range && cs <= bs * 1.25) return; }
+      u.order = { t: 'attack', target: best.id, then: od.t === 'attack' ? od.then : od.t === 'amove' ? od : null, leash: od.t === 'attack' ? od.leash : od.t === 'idle' ? { x: u.x, y: u.y } : null }; u.path = []; u.repath = 0;
+    });
   }
 
   // ---------- Артель Сизого Перевала: своя сторона (ветряки, канатная дорога, лёгкая техника) ----------
@@ -1512,7 +1802,7 @@
   }
   // две короткие гряды у базы владельца o (скирмиш за Сизых): места под ветряки, проход к базе не закрывают
   function ridgeNearBase(W, o) {
-    var h = START[o].hq, sx = o === 0 ? 1 : -1, sy = o === 0 ? -1 : 1, cells = [];
+    var h = (W.start || START)[o].hq, sx = o === 0 ? 1 : -1, sy = o === 0 ? -1 : 1, cells = [];
     for (var a = -2; a <= 2; a++) cells.push([h.x + 1 + a, h.y + 1 + sy * 5]);
     for (var b = 2; b <= 4; b++) cells.push([h.x + 1 + sx * 6, h.y + 1 + sy * b]);
     cells.forEach(function (c) { if (c[0] > 0 && c[1] > 0 && c[0] < W.w - 1 && c[1] < W.h - 1) { var k = c[1] * W.w + c[0]; W.t[k] = ROCK; W.ore[k] = 0; } });
@@ -1787,7 +2077,8 @@
   }
   function szAiStep(W, dt, AI) {
     var A = AI || W.ai, o = A.o, p = W.players[o];
-    A.t -= dt; if (A.t > 0) return; A.t = 1;
+    if (A.micro) { A.mt = (A.mt || 0) - dt; if (A.mt <= 0) { A.mt = 0.25; hardMicro(W, A); } } // «Трудный»: фокус огня
+    A.t -= dt; if (A.t > 0) return; A.t = A.tick || 1;
     var hqB = has(W, o, 'hq'); if (!hqB) return; var hq = center(hqB);
     var mine = W.blds.filter(function (b) { return b.owner === o; }), n = function (t) { return mine.filter(function (b) { return b.type === t; }).length; };
     var faces = mine.filter(function (b) { return b.type === 'face' && !b.dry; }), linked = faces.filter(function (b) { return b.link; });
@@ -1810,7 +2101,7 @@
       else if (unlinked) { want = 'pylon'; goal = center(unlinked); from = szTermComp(W, o); } // сбитая опора: канат от Станции к забою заново
       else if (surplus < 4 && millSpot) want = 'mill';
       else if (surplus < 4 && A.farPy < 5 && szFarRidge(W, o, hq)) { want = 'pylon'; goal = szFarRidge(W, o, hq); A.farPy++; } // гребней у базы нет — опоры к дальнему
-      else if (!linked.length || (linked.length < 2 && n('hut')) || (linked.length < 3 && n('sail')) || (linked.length < 4 && W.time > 300) || (linked.length < 5 && W.time > 600 && p.copper > 700)) cable(); // канат к жиле
+      else if (!linked.length || (linked.length < 2 && n('hut')) || (linked.length < 3 && n('sail')) || (linked.length < 4 && W.time > (A.face4 || 300)) || (linked.length < 5 && W.time > (A.face5 || 600) && p.copper > 700)) cable(); // канат к жиле
       if (!want && !n('hut')) want = 'hut';
       if (!want && surplus < 8 && millSpot) want = 'mill';
       if (!want && !n('sail') && linked.length) want = 'sail';
@@ -1855,9 +2146,11 @@
     if ((W.time >= A.nextWave || counter) && go.length >= A.waveSize) {
       var tgt = has(W, 1 - o, 'hq') || W.blds.filter(function (b) { return b.owner !== o; })[0];
       if (tgt) { go.forEach(function (u) { u.wave = true; }); commandMove(W, go.map(function (u) { return u.id; }), tgt.tx + 1, tgt.ty + 1, true); }
-      idle = go; A.waves++; A.nextWave = W.time + 140; A.waveSize = Math.min(14, A.waveSize + 2);
+      idle = go; A.waves++; A.nextWave = W.time + (A.waveGap || 140); A.waveSize = Math.min(A.waveMax || 14, A.waveSize + (A.waveGrow || 2));
       W.events.push({ t: 'wave', owner: o, n: idle.length });
     }
+    // пат (как у ИИ котельных): медь не идёт 2 минуты и денег нет — все домашние на контору соседа
+    if (stalled(W, A, o)) { var tq = has(W, 1 - o, 'hq'), rest = home.filter(function (u) { return !u.wave && u.order.t !== 'attack'; }); if (tq && rest.length) { rest.forEach(function (u) { u.wave = true; }); commandMove(W, rest.map(function (u) { return u.id; }), tq.tx + 1, tq.ty + 1, true); } }
     army.forEach(function (u) { if (u.wave && u.order.t === 'idle') { var tg = has(W, 1 - o, 'hq'); if (tg) commandMove(W, [u.id], tg.tx + 1, tg.ty + 1, true); } });
   }
   // здание, которое выпускает юнитов (барак, мастерская, зимовьё, верфь — любое, у кого есть юниты «from»): ему ставят точку сбора
@@ -1879,7 +2172,7 @@
     addFire: addFire, fireAt: fireAt, nearestFire: nearestFire, depotAt: depotAt, waterSource: waterSource, commandDouse: commandDouse, commandFill: commandFill, nearWater: nearWater,
     canCapture: canCapture, commandCapture: commandCapture, captureNow: captureNow, guarded: guarded,
     sees: sees, addLift: addLift, liftById: liftById, liftAt: liftAt, commandLift: commandLift, liftStep: liftStep, liftWaiting: liftWaiting, riders: riders, regionOf: regionOf, liftRoute: liftRoute, liftReach: liftReach, LIFT: LIFT,
-    newSzAI: newSzAI, szAiStep: szAiStep, szMillSpot: szMillSpot, szFarRidge: szFarRidge, producer: producer, onHigh: onHigh,
+    SK_MAPS: SK_MAPS, SK_DEF: SK_DEF, skReach: skReach, newSzAI: newSzAI, szAiStep: szAiStep, AI_LEVELS: AI_LEVELS, makeAI: makeAI, aiTick: aiTick, newHardAI: newHardAI, hardStep: hardStep, hardMicro: hardMicro, oreFields: oreFields, szMillSpot: szMillSpot, szFarRidge: szFarRidge, producer: producer, onHigh: onHigh,
     facOf: facOf, sideLists: sideLists, setSides: setSides, ridgeRocks: ridgeRocks, sheltered: sheltered, millOut: millOut, setWind: setWind, cableNodes: cableNodes, cableLinks: cableLinks, cableRoute: cableRoute, cableAnchor: cableAnchor, launchCar: launchCar, oreNear: oreNear,
     SPAN: SPAN, MILL: MILL, FACE: FACE, CAR: CAR, INF_FAC: INF_FAC, SZ_BUILD_LIST: SZ_BUILD_LIST, SZ_UNIT_LIST: SZ_UNIT_LIST, DIRS: DIRS, talkAbility: talkAbility, cableAbility: cableAbility, FERRY: FERRY, ferryStep: ferryStep, ferryCfg: ferryCfg, carExposed: carExposed, ropeStep: ropeStep, nearOwnBld: nearOwnBld,
     initBoss: initBoss, setBoss: setBoss, partAlive: partAlive, partOf: partOf, partPts: partPts, partToward: partToward, hitPart: hitPart, bossSteam: bossSteam, passBig: passBig, distTo: distTo, waterCap: waterCap

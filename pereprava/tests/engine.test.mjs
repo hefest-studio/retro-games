@@ -6,6 +6,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import os from 'node:os';
+import { Worker, isMainThread, parentPort } from 'node:worker_threads';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
@@ -18,6 +20,33 @@ vm.runInContext(read('js/i18n.js'), sandbox, { filename: 'i18n.js' });
 vm.runInContext(read('js/music.js'), sandbox, { filename: 'music.js' });
 const K = sandbox.PEREPRAVA, L = K.logic;
 const { playPereprava, findPath, mulberry32 } = await import('./bot.mjs');
+
+// Партии ботов (3 «идеальные» + 40 «человеческих») — самая долгая часть файла (≈5 мин подряд). Партия детерминирована seed'ом
+// (свой rng игры и бота), поэтому её можно сыграть в отдельном потоке — результат тот же, что последовательно. Этот же файл —
+// и поток-исполнитель: получает [seed, opts], отвечает итогом партии. Потоков — по числу ядер (BOT_THREADS=1 — подряд, как раньше).
+if (!isMainThread){
+  parentPort.on('message', ([id, seed, o]) => parentPort.postMessage([id, playPereprava(K, seed, o)]));
+  await new Promise(() => {});   // поток живёт, пока его не закроет главный
+}
+function playMany(jobs){
+  const n = Math.max(1, Math.min(jobs.length, +process.env.BOT_THREADS || (os.availableParallelism ? os.availableParallelism() : os.cpus().length)));
+  if (n === 1) return Promise.resolve(jobs.map(([seed, o]) => playPereprava(K, seed, o)));
+  return new Promise((resolve, reject) => {
+    const out = new Array(jobs.length); let next = 0, done = 0; const pool = [];
+    const feed = (w) => { if (next < jobs.length){ const i = next++; w.postMessage([i, jobs[i][0], jobs[i][1]]); } };
+    for (let k = 0; k < n; k++){
+      const w = new Worker(new URL(import.meta.url)); pool.push(w);
+      w.on('message', ([i, r]) => { out[i] = r; if (++done === jobs.length){ pool.forEach(x => x.terminate()); resolve(out); } else feed(w); });
+      w.on('error', (e) => { pool.forEach(x => x.terminate()); reject(e); });
+      feed(w);
+    }
+  });
+}
+const FAST0 = !!process.env.FAST;
+const BOTS = FAST0 ? null : await playMany([
+  ...[1, 2, 3].map(s => [s, { perfect: true }]),
+  ...Array.from({ length: 40 }, (_, i) => [i + 1, {}]),
+]);
 
 let passed = 0, failed = 0;
 const FAST = !!process.env.FAST;   // FAST=1 — без долгих прогонов ботов (для отладки)
@@ -261,7 +290,7 @@ test('проходимость: на каждом уровне есть безо
 });
 test('идеальный бот проходит все 10 смен (3 партии)', () => {
   if (FAST) return;
-  for (const s of [1, 2, 3]){ const r = playPereprava(K, s, { perfect: true }); ok(r.won, `партия ${s}: дошёл до ${r.level}, ${JSON.stringify(r.causes)}`); }
+  for (const s of [1, 2, 3]){ const r = BOTS[s - 1]; ok(r.won, `партия ${s}: дошёл до ${r.level}, ${JSON.stringify(r.causes)}`); }
 });
 
 // ---------- обвязка ----------
@@ -301,7 +330,7 @@ test('Правило имён: в файлах игры нет чужих наз
 test('«человеческий» бот (реакция 150–250 мс): уровень 1 ≥ 90 %, вся игра ~20–40 % (40 партий)', () => {
   if (FAST) return;
   const N = 40; let l1 = 0, won = 0, stuck = 0;
-  for (let s = 1; s <= N; s++){ const r = playPereprava(K, s); if (r.passed >= 1) l1++; if (r.won) won++; if (r.stuck) stuck++; }
+  for (let s = 1; s <= N; s++){ const r = BOTS[2 + s]; if (r.passed >= 1) l1++; if (r.won) won++; if (r.stuck) stuck++; }
   console.log(`     уровень 1: ${(100 * l1 / N).toFixed(0)} %, вся игра: ${(100 * won / N).toFixed(0)} %, зависаний: ${stuck}`);
   ok(l1 / N >= 0.9, 'уровень 1: ' + l1 / N);
   ok(won / N >= 0.15 && won / N <= 0.45, 'вся игра: ' + won / N);

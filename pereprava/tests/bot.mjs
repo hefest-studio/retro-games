@@ -41,6 +41,10 @@ export function findPath(K, cfg, hero0, t0, okBay, maxT, opts = {}){
   while (heap.size){
     const n = heap.pop();
     if (++nodes > maxNodes) return null;
+    // robust: «постоять robust тиков» из узла — одно и то же для всех прыжков из него; считаем один раз (мир — чистая функция
+    // времени, sim детерминирован, поэтому результат поиска тот же, что при пересчёте на каждый прыжок)
+    let late = null;
+    const lateWait = () => { if (!late){ const h2 = L.cloneHero(n.h); late = { h: h2, w: sim(h2, n.t, robust) }; } return late; };
     for (const act of ACTS){
       const h = L.cloneHero(n.h);
       if (act !== 'wait' && !L.hopStart(cfg, h, act)) continue;
@@ -50,7 +54,7 @@ export function findPath(K, cfg, hero0, t0, okBay, maxT, opts = {}){
         const bi = L.bayAt(h.x);
         if (!(bi >= 0 && okBay(bi))) continue;
         if (robust){   // и при опоздании на robust тиков тоже в ту же ячейку
-          const h2 = L.cloneHero(n.h), w = sim(h2, n.t, robust); if (w.res) continue;
+          const lw = lateWait(), w = lw.w; if (w.res) continue; const h2 = L.cloneHero(lw.h);
           L.hopStart(cfg, h2, act); const s2 = sim(h2, w.t, hopK); if (s2.res !== 'bay' || L.bayAt(h2.x) !== bi) continue;
         }
         const path = [{ tick: n.tick, dir: act }]; let p = n;
@@ -60,7 +64,7 @@ export function findPath(K, cfg, hero0, t0, okBay, maxT, opts = {}){
       if (s.res || tick > maxTick) continue;
       if (robust && act !== 'wait'){
         // опоздание: подождать robust тиков, прыгнуть и устоять после приземления
-        const h2 = L.cloneHero(n.h), w = sim(h2, n.t, robust); if (w.res) continue;
+        const lw = lateWait(), w = lw.w; if (w.res) continue; const h2 = L.cloneHero(lw.h);
         if (!L.hopStart(cfg, h2, act)) continue;
         const s2 = sim(h2, w.t, hopK + 3); if (s2.res) continue;
       }

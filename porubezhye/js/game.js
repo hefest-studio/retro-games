@@ -190,13 +190,97 @@
     return true;
   }
 
+  // ---------- Карты скирмиша: генерируемая (gen, по умолчанию — как раньше) + три рисованные, все центрально-симметричные ----------
+  // Раскладка: { id, w, h, terr, bases: [база 0, база 1], amber: [[[x, y]…] — списки россыпей стороны 0], resin: [[x, y] — жилы 2×2 стороны 0] };
+  // сторона 1 получает зеркальные (w − x − s, h − y − s). Базы и ближние месторождения у всех карт — на тех же местах, что у gen.
+  var MAP_IDS = ['gen', 'grove', 'pass', 'wide'];
+  function Canvas(w, h, fill) {
+    var terr = new Uint8Array(w * h), o = { w: w, h: h, terr: terr }; if (fill) terr.fill(fill);
+    o.set = function (x, y, v) { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < w && y < h) { terr[y * w + x] = v; terr[(h - 1 - y) * w + (w - 1 - x)] = v; } };
+    o.get = function (x, y) { return x >= 0 && y >= 0 && x < w && y < h ? terr[y * w + x] : TERR.WOOD; };
+    o.disk = function (cx, cy, r, v, only) { for (var y = Math.floor(cy - r); y <= Math.ceil(cy + r); y++) for (var x = Math.floor(cx - r); x <= Math.ceil(cx + r); x++) if ((x + 0.5 - cx) * (x + 0.5 - cx) + (y + 0.5 - cy) * (y + 0.5 - cy) <= r * r && (only == null || o.get(x, y) === only)) o.set(x, y, v); };
+    o.rect = function (x0, y0, x1, y1, v) { for (var y = y0; y <= y1; y++) for (var x = x0; x <= x1; x++) o.set(x, y, v); };
+    // просека/дорога: ломаная pts, ширина wd клеток
+    o.lane = function (pts, wd, v) { for (var i = 1; i < pts.length; i++) { var a = pts[i - 1], b = pts[i], n = Math.ceil(Math.max(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1])) * 2) || 1;
+      for (var k = 0; k <= n; k++) { var x = a[0] + (b[0] - a[0]) * k / n, y = a[1] + (b[1] - a[1]) * k / n, x0 = Math.round(x - wd / 2), y0 = Math.round(y - wd / 2); o.rect(x0, y0, x0 + wd - 1, y0 + wd - 1, v); } } };
+    o.edge = function () { for (var x = 0; x < w; x++) for (var y = 0; y < h; y++) if (x === 0 || y === 0 || x === w - 1 || y === h - 1) terr[y * w + x] = TERR.WOOD; };
+    return o;
+  }
+  // базы и месторождения стоят на чистой земле (клетка вокруг — тоже), край — лес
+  function finishL(L, c) {
+    var clr = function (x, y, s, pad) { for (var yy = y - pad; yy < y + s + pad; yy++) for (var xx = x - pad; xx < x + s + pad; xx++) { var t = c.get(xx, yy); if (t !== TERR.GRASS && t !== TERR.HEATH) c.set(xx, yy, TERR.GRASS); } };
+    clr(L.bases[0].tx, L.bases[0].ty, 4, 2);
+    L.amber.forEach(function (list) { list.forEach(function (a) { clr(a[0], a[1], 1, 1); }); });
+    L.resin.forEach(function (r) { clr(r[0], r[1], 2, 1); });
+    c.edge(); L.terr = c.terr; return L;
+  }
+  // связность раскладки: от базы 0 можно дойти до базы 1 и до каждого месторождения (обеих сторон)
+  function connectedL(L) {
+    var w = L.w, h = L.h, terr = L.terr, seen = new Uint8Array(w * h), q = [], b0 = L.bases[0], s = (b0.ty + 5) * w + b0.tx + 5;
+    if (!PASS[terr[s]]) return false; seen[s] = 1; q.push(s);
+    while (q.length) { var c = q.pop(), x = c % w, y = (c / w) | 0;
+      for (var d = 0; d < 4; d++) { var nx = x + [1, -1, 0, 0][d], ny = y + [0, 0, 1, -1][d]; if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue; var n = ny * w + nx; if (!seen[n] && PASS[terr[n]]) { seen[n] = 1; q.push(n); } } }
+    var near = function (x, y, s) { for (var yy = y - 1; yy <= y + s; yy++) for (var xx = x - 1; xx <= x + s; xx++) if (xx >= 0 && yy >= 0 && xx < w && yy < h && seen[yy * w + xx]) return true; return false; };
+    var b1 = L.bases[1]; if (!near(b1.tx, b1.ty, 4)) return false;
+    var all = []; L.amber.forEach(function (list) { list.forEach(function (a) { all.push([a[0], a[1], 1]); }); }); L.resin.forEach(function (r) { all.push([r[0], r[1], 2]); });
+    for (var i = 0; i < all.length; i++) { var a = all[i]; if (!near(a[0], a[1], a[2]) || !near(w - a[0] - a[2], h - a[1] - a[2], a[2])) return false; }
+    return true;
+  }
+  var MAPS = {
+    // генерируемая карта 64×48 (сид — новый рисунок боров, озёр и камней) — та же, что была единственной
+    gen: function (seed) { return { id: 'gen', w: MW, h: MH, terr: genMap(seed), bases: BASES, amber: [AMBER0, EXP0.amber], resin: [RESIN0, EXP0.resin] }; },
+    // «Чаща»: сплошной бор, поляны у баз, у дальних месторождений и в центре, между ними — узкие просеки (2–3 клетки)
+    grove: function (seed) {
+      var c = Canvas(MW, MH, TERR.WOOD), rng = mulberry32((seed || 1) * 131 + 7);
+      c.disk(8, 8, 10.5, TERR.GRASS); c.disk(11, 35.5, 6.2, TERR.GRASS); c.disk(32, 24, 5.5, TERR.GRASS); c.disk(31, 8, 3.2, TERR.GRASS);
+      c.lane([[14, 13], [21, 17], [28, 22]], 3, TERR.GRASS);              // от базы к центру
+      c.lane([[7, 16], [8, 23], [10, 30]], 2, TERR.GRASS);                // от базы к своему дальнему месторождению
+      c.lane([[16, 35], [22, 32], [28, 27]], 2, TERR.GRASS);              // от дальнего месторождения к центру
+      c.lane([[17, 5], [31, 8], [43, 9], [50, 12]], 2, TERR.GRASS);       // северная просека: мимо лесной поляны к чужому дальнему месторождению
+      for (var h = 0; h < 110; h++) { var hx = 1 + Math.floor(rng() * (MW - 2)), hy = 1 + Math.floor(rng() * (MH - 2)); if (c.get(hx, hy) === TERR.GRASS) c.set(hx, hy, TERR.HEATH); }
+      return finishL({ id: 'grove', w: MW, h: MH, bases: BASES, amber: [AMBER0, EXP0.amber], resin: [RESIN0, EXP0.resin] }, c);
+    },
+    // «Перевал»: поперёк карты — река с ледяными бродами (центр и два края), вдоль неё каменные гряды с проходами, снежные поля (вязнут)
+    pass: function (seed) {
+      var c = Canvas(MW, MH, TERR.GRASS), rng = mulberry32((seed || 1) * 977 + 3), x, y;
+      for (x = 0; x < MW; x++) { var yc = (MH - 1) / 2 + 2.4 * Math.sin((x - (MW - 1) / 2) * 0.17);
+        for (y = Math.floor(yc - 3.2); y <= Math.ceil(yc + 3.2); y++) { var d = Math.abs(y - yc); c.set(x, y, d <= 1.7 ? TERR.WATER : d <= 2.6 ? TERR.ICE : TERR.SNOW); } }
+      for (x = 0; x < MW; x++) for (y = 0; y < MH; y++) { var ford = (x >= 29 && x <= 34) || (x >= 8 && x <= 11); if (ford && c.get(x, y) === TERR.WATER) c.set(x, y, TERR.ICE); }
+      c.rect(17, 14, 28, 15, TERR.ROCK); c.rect(35, 14, 46, 15, TERR.ROCK);       // гряды со своей стороны реки (зеркально — с чужой), проход в центре
+      c.rect(17, 12, 18, 13, TERR.ROCK); c.rect(45, 12, 46, 13, TERR.ROCK);
+      [[22, 19, 3.6], [42, 19, 3], [13, 22, 2.6], [52, 21, 2.4], [30, 11, 2.2]].forEach(function (s) { c.disk(s[0], s[1], s[2], TERR.SNOW, TERR.GRASS); });
+      [[25, 4, 2.4], [48, 4, 2], [3, 24, 2.2], [20, 9, 1.6]].forEach(function (s) { c.disk(s[0], s[1], s[2], TERR.WOOD); });
+      for (var k = 0; k < 8; k++) { var rx = 4 + Math.floor(rng() * (MW - 8)), ry = 3 + Math.floor(rng() * 16); if (Math.hypot(rx - 8, ry - 8) > 12 && Math.hypot(rx - 42, ry - 6) > 5) c.set(rx, ry, TERR.ROCK); }
+      for (var h = 0; h < 120; h++) { var hx = 1 + Math.floor(rng() * (MW - 2)), hy = 1 + Math.floor(rng() * (MH - 2)); if (c.get(hx, hy) === TERR.GRASS) c.set(hx, hy, TERR.HEATH); }
+      return finishL({ id: 'pass', w: MW, h: MH, bases: BASES, amber: [AMBER0, [[39, 4], [41, 5], [43, 4], [42, 7]]], resin: [RESIN0, [45, 6]] }, c);
+    },
+    // «Раздолье»: большая карта 88×66, у каждой стороны база и ещё 4 месторождения на карте (по два ближе к каждой стороне)
+    wide: function (seed) {
+      var W2 = 88, H2 = 66, B2 = [{ tx: 6, ty: 6 }, { tx: W2 - 10, ty: H2 - 10 }];
+      var L = { id: 'wide', w: W2, h: H2, bases: B2, amber: [AMBER0, [[8, 50], [9, 52], [11, 53], [13, 53]], [[40, 5], [42, 6], [44, 5], [43, 8]]], resin: [RESIN0, [5, 53], [46, 7]] };
+      var clear = [[8, 8, 11], [10, 52, 6], [43, 7, 5], [W2 / 2, H2 / 2, 6]];
+      for (var attempt = 0; attempt < 40; attempt++) {
+        var c = Canvas(W2, H2, TERR.GRASS), rng = mulberry32((seed || 1) * 4099 + attempt * 61);
+        var inClear = function (x, y) { for (var i = 0; i < clear.length; i++) { var q = clear[i]; if (Math.hypot(x - q[0], y - q[1]) < q[2] || Math.hypot(x - (W2 - q[0]), y - (H2 - q[1])) < q[2]) return true; } return false; };
+        for (var b = 0; b < 46; b++) { var cx = 2 + Math.floor(rng() * (W2 - 4)), cy = 2 + Math.floor(rng() * (H2 / 2 + 4)), rr = 1.2 + rng() * 2.8;
+          for (var dx = -4; dx <= 4; dx++) for (var dy = -4; dy <= 4; dy++) if (dx * dx + dy * dy <= rr * rr * (0.7 + rng() * 0.5) && !inClear(cx + dx, cy + dy)) c.set(cx + dx, cy + dy, TERR.WOOD); }
+        [[28, 20, 2.8], [60, 14, 2.2], [24, 38, 2.4]].forEach(function (Lk) { c.disk(Lk[0], Lk[1], Lk[2], TERR.WATER); });
+        for (var k = 0; k < 14; k++) { var rx = 3 + Math.floor(rng() * (W2 - 6)), ry = 3 + Math.floor(rng() * (H2 / 2)); if (!inClear(rx, ry)) c.set(rx, ry, TERR.ROCK); }
+        for (var h = 0; h < 220; h++) { var hx = 1 + Math.floor(rng() * (W2 - 2)), hy = 1 + Math.floor(rng() * (H2 - 2)); if (c.get(hx, hy) === TERR.GRASS) c.set(hx, hy, TERR.HEATH); }
+        finishL(L, c); if (connectedL(L)) return L;
+      }
+      throw new Error('map: нет связной карты');
+    }
+  };
+  function skirmLayout(id, seed) { var L = (MAPS[id] || MAPS.gen)(seed); if (L.id !== 'gen' && !connectedL(L)) throw new Error('map ' + L.id + ': не связна'); return L; }
+
   // ---------- Игра ----------
   // opts.map — карта миссии (кампания): { w, h, terr: Uint8Array, nodes: [{ type, tx, ty, amt }] } — без случайной карты,
   // стартовых баз и ИИ скирмиша (их ставит js/campaign.js). opts.endRule: 'blds' (по умолчанию: нет зданий — поражение) | 'none'.
   function Game(opts) {
     opts = opts || {};
-    var self = this, M = opts.map || null;
-    this.T = T; this.MW = M ? M.w : MW; this.MH = M ? M.h : MH;
+    var self = this, M = opts.map || null, L = M ? null : skirmLayout(opts.mapId, opts.seed || 1);   // L — раскладка карты скирмиша
+    this.T = T; this.MW = M ? M.w : L.w; this.MH = M ? M.h : L.h; this.mapId = L ? L.id : null; this.bases = L ? L.bases : null;
     this.rng = opts.rng || mulberry32(opts.seed || 1);
     this.onEvent = opts.onEvent || function () {};
     this.races = [opts.playerRace || 'wright', opts.aiRace || (opts.playerRace === 'thicket' ? 'wright' : 'thicket')];
@@ -204,7 +288,7 @@
     if (opts.thirdRace && opts.fourthRace) this.races.push(opts.fourthRace);   // общий финал «Весна»: четвёртая сторона (owner 3)
     var NS = this.sides = this.races.length;
     this.rel = null;               // отношения сторон { 'a,b': 'enemy'|'neutral'|'ally' }; null — все стороны враги (скирмиш)
-    this.terr = M ? M.terr : genMap(opts.seed || 1); this.seedKey = M ? (opts.key || 'map') : (opts.seed || 1); this.terrRev = 0;
+    this.terr = M ? M.terr : L.terr; this.seedKey = M ? (opts.key || 'map') : L.id === 'gen' ? (opts.seed || 1) : L.id + ':' + (opts.seed || 1); this.terrRev = 0;
     var N = this.MW * this.MH;
     this.occ = new Int32Array(N);          // id+1 здания/месторождения на тайле
     this.myc = []; this.vis = [];  // грибница по сторонам; туман: 0 — не разведано, 1 — разведано, 2 — видно
@@ -235,20 +319,20 @@
     else {
       // месторождения: у своей базы и у ближней к ней россыпи — своего рода (Мастеровые и Чаща — янтарь и смола, Курганный род — камень и руда);
       // места те же (центральная симметрия), так что старт честный при любой паре рас
-      var NA = [RACES[this.races[0]].nodes, RACES[this.races[1]].nodes];
-      [AMBER0, EXP0.amber].forEach(function (list) { list.forEach(function (a) { addNode(NA[0].a, a[0], a[1]); var m = mir(a[0], a[1]); addNode(NA[1].a, m[0], m[1]); }); });
-      [RESIN0, EXP0.resin].forEach(function (r) { addNode(NA[0].r, r[0], r[1]); var m = mir(r[0], r[1], 2); addNode(NA[1].r, m[0], m[1]); });
+      var NA = [RACES[this.races[0]].nodes, RACES[this.races[1]].nodes], mr = function (x, y, s) { s = s || 1; return [L.w - x - s, L.h - y - s]; };
+      L.amber.forEach(function (list) { list.forEach(function (a) { addNode(NA[0].a, a[0], a[1]); var m = mr(a[0], a[1]); addNode(NA[1].a, m[0], m[1]); }); });
+      L.resin.forEach(function (r) { addNode(NA[0].r, r[0], r[1]); var m = mr(r[0], r[1], 2); addNode(NA[1].r, m[0], m[1]); });
       // стартовые базы
       for (var p = 0; p < 2; p++) {
-        var R = RACES[this.races[p]], B = BASES[p];
+        var R = RACES[this.races[p]], B = L.bases[p];
         var main = this._addBuilding(p, R.main, B.tx, B.ty, true);
         for (var i = 0; i < 5; i++) { var sp = this._spawnPoint(main, i); this._addUnit(p, R.worker, sp.x, sp.y); }
         if (R.grow) main.larva = LARVA_MAX;
       }
     }
     this._recalcMyc();
-    this.ai = opts.noAI || M ? null : new AI(this, 1);
-    if (opts.aiBoth) this.ai0 = new AI(this, 0);
+    this.ai = opts.noAI || M ? null : new AI(this, 1, opts.ai);          // opts.ai / opts.ai0 — сложность ИИ: 'easy' | 'normal' (по умолчанию) | 'hard'
+    if (opts.aiBoth) this.ai0 = new AI(this, 0, opts.ai0);
     this._updateVis();
   }
   P.Game = Game;
@@ -256,6 +340,7 @@
   P.RACES = RACES; P.T = T; P.MW = MW; P.MH = MH; P.TERR = TERR; P.PASS = PASS; P.BUILD = BUILD; P.TSPD = TSPD; P.RKEY = RKEY; P.mulberry32 = mulberry32; P.Heap = Heap;
   P.consts = { LARVA_MAX: LARVA_MAX, LARVA_EVERY: LARVA_EVERY, SUP_MAX: SUP_MAX, QUEUE_MAX: QUEUE_MAX, GATHER: GATHER, NODE_AMT: NODE_AMT };
   P.SMOKE = SMOKE; P.SPORE = SPORE; P.ROOTS = ROOTS; P.BUZZ = BUZZ; P.POLLEN = POLLEN; P.THAW = THAW; P.PETRIFY = PETRIFY; P.ROLL = ROLL; P.WAKE = WAKE;
+  P.MAP_IDS = MAP_IDS; P.skirmLayout = skirmLayout; P.connectedL = connectedL;
   P.nodeOf = function (race, k) { return (RACES[race] || RACES.wright).nodes[k]; };   // какое месторождение даёт расе ресурс k ('a' | 'r')
   function calmD(D) { return !!(D.civil || D.passive); }   // не воюет: мирные (посол, сани) и «тихие» юниты кампании (светляк, рой)
 
@@ -1083,17 +1168,30 @@
   G.tileVis = function (p, tx, ty) { return this.fogOff ? 2 : this.vis[p][ty * this.MW + tx]; };
 
   // ---------- ИИ: развивается по плану и нападает волнами ----------
-  function AI(game, p) {
-    this.g = game; this.p = p; this.t = 0; this.think = 0.5; this.wave = 0; this.nextWave = 300; this.waveSize = 5; this.lastWaveT = -1e9;
+  // Сложность ИИ скирмиша. normal — прежний ИИ без изменений (отпечатки партий ИИ против ИИ совпадают, tests/difficulty.mjs);
+  // easy — реже думает, меньше рабочих, позже и мельче волны, одна казарма; hard — см. AI.prototype._hard* (без бонусов ресурсов).
+  var AI_LEVELS = {
+    easy:   { think: 1.6, workers: 9, resinW: 2, wave0: 420, size0: 4, sizeStep: 2, sizeMax: 12, gap: 140, prodMax: 1, mains: 1, planK: 1.5, queue: 1 },
+    normal: { think: 1, workers: 14, resinW: 0, wave0: 300, size0: 5, sizeStep: 3, sizeMax: 24, gap: 100, prodMax: 3, mains: 3, planK: 1, queue: 2 },
+    hard:   { think: 0.5, workers: 20, resinW: 0, mainsGrow: 6, wave0: 230, size0: 8, sizeStep: 4, sizeMax: 30, gap: 75, prodMax: 5, mains: 4, planK: 1, queue: 2 }
+  };
+  P.AI_LEVELS = AI_LEVELS;
+  function AI(game, p, level) {
+    this.level = AI_LEVELS[level] ? level : 'normal'; var C = this.cfg = AI_LEVELS[this.level]; this.hard = this.level === 'hard';
+    this.g = game; this.p = p; this.t = 0; this.think = 0.5; this.wave = 0; this.nextWave = C.wave0; this.waveSize = C.size0; this.lastWaveT = -1e9;
     var R = game.race(p);
     var O = R.order;   // [дом, казарма, тяжёлое, главное] — у каждой расы свои
-    this.plan = R.grow
+    this.plan = this.hard ? (R.grow   // трудный: быстрее встаёт на ноги, раньше тяжёлое здание, больше казарм
+      ? [{ at: 22, type: 'hollow' }, { at: 40, type: 'den' }, { at: 100, type: 'hollow' }, { at: 140, type: 'barrow' }, { at: 200, type: 'hollow' }, { at: 260, type: 'hollow' }, { at: 330, type: 'hollow' }]
+      : [{ at: 20, type: O[0] }, { at: 42, type: O[1] }, { at: 95, type: O[1] }, { at: 120, type: O[0] }, { at: 160, type: O[2] }, { at: 210, type: O[0] }, { at: 250, type: O[1] }, { at: 290, type: O[0] }, { at: 350, type: O[0] }, { at: 420, type: O[0] }])
+      : R.grow
       ? [{ at: 30, type: 'hollow' }, { at: 55, type: 'den' }, { at: 150, type: 'hollow' }, { at: 190, type: 'barrow' }, { at: 300, type: 'hollow' }, { at: 420, type: 'hollow' }]
       : [{ at: 30, type: O[0] }, { at: 60, type: O[1] }, { at: 150, type: O[0] }, { at: 200, type: O[2] }, { at: 280, type: O[1] }, { at: 330, type: O[0] }, { at: 450, type: O[0] }];
+    if (C.planK !== 1) this.plan.forEach(function (s) { s.at = Math.round(s.at * C.planK); });
     this.done = 0; this.log = [];
   }
   P.AI = AI;
-  AI.prototype.update = function (dt) { this.t += dt; this.think -= dt; if (this.think > 0) return; this.think = 1; this._think(); };
+  AI.prototype.update = function (dt) { this.t += dt; this.think -= dt; if (this.think > 0) return; this.think = this.cfg.think; this._think(); };
   AI.prototype._mine = function () { var p = this.p; return this.g.ents.filter(function (e) { return !e.dead && e.owner === p; }); };
   AI.prototype._think = function () {
     var g = this.g, p = this.p, R = g.race(p), me = this._mine(), self = this;
@@ -1103,7 +1201,7 @@
     var sup = g.supply(p);
     // 1) рабочие: простаивающих — на добычу (смола — 3 рабочих, когда нужна)
     var NA = R.nodes.a, NR = R.nodes.r;   // янтарь/смола или камень/руда
-    var wantResin = g.hasDone(p, R.order[1]) || this.t > 120 ? (R.grow ? 3 : 4) : 0;
+    var C = this.cfg, wantResin = g.hasDone(p, R.order[1]) || this.t > 120 ? (C.resinW || (R.grow ? 3 : 4)) + (this.hard ? (g.res[p].r > 260 ? -2 : (g.res[p].r < 120 && g.hasDone(p, R.order[2])) || g.res[p].a > 600 ? 2 : 0) : 0) : 0;
     var onResin = workers.filter(function (u) { var n = u.ord.t === 'gather' && g.get(u.ord.id); return n && n.type === NR; }).length;
     workers.forEach(function (u) {
       if (u.ord.t !== 'idle') return;
@@ -1115,11 +1213,25 @@
     // 2) рабочие до 14
     if (main) {
       var queued = R.grow ? main.cocoons.filter(function (c) { return c.type === R.worker; }).length : main.queue.length;
-      if (workers.length + queued < 14 && (R.grow ? main.larva > (army.length < 2 && this.t > 200 ? 1 : 0) : main.queue.length < 2)) g.cmd(p, { t: 'train', id: main.id, type: R.worker });
+      if (workers.length + queued < C.workers && (R.grow ? main.larva > (army.length < 2 && this.t > 200 ? 1 : 0) : main.queue.length < C.queue)) g.cmd(p, { t: 'train', id: main.id, type: R.worker });
+      if (this.hard) this._hardWorkers(blds, workers, main);
     }
     // 3) провизия
     var pendingSup = blds.filter(function (b) { return !b.done && R.buildings[b.type].sup; }).length;
-    if (sup.cap < SUP_MAX && sup.used + 4 >= sup.cap && !pendingSup && g.afford(p, R.buildings[R.supply].cost)) this._place(R.supply, workers, main);
+    if (sup.cap < SUP_MAX && sup.used + (this.hard ? 7 : 4) >= sup.cap && (!pendingSup || (this.hard && pendingSup < 2 && sup.used >= 24)) && g.afford(p, R.buildings[R.supply].cost)) this._place(R.supply, workers, main);
+    var trainArmy = function () {
+      blds.forEach(function (b) {
+        if (!b.done) return; var BD = R.buildings[b.type];
+        if (R.grow && BD.larva) {
+          if (b.larva < 1 || workers.length < 8) return;
+          var t = g.hasDone(p, 'barrow') && army.filter(function (u) { return u.type === 'shell'; }).length * (self.hard ? 2 : 3) < army.length ? 'shell' : 'stinger';
+          if (!g.trainBlock(p, b, t)) g.cmd(p, { t: 'train', id: b.id, type: t });
+        } else if (BD.trains && b.type !== R.main && b.queue.length < C.queue) {
+          var ut = BD.trains[0]; if (!g.trainBlock(p, b, ut)) g.cmd(p, { t: 'train', id: b.id, type: ut });
+        }
+      });
+    };
+    if (this.hard && this.t > 150) trainArmy();
     // 4) план стройки
     var step = this.plan[this.done];
     if (step && this.t >= step.at) {
@@ -1128,31 +1240,24 @@
     }
     // лишний янтарь — ещё одно здание бойцов (до 3)
     var prodType = R.order[1], prodN = blds.filter(function (b) { return b.type === prodType; }).length;
-    if (!R.grow && this.done >= 2 && g.res[p].a > 400 && prodN < 3 && !blds.some(function (b) { return b.type === prodType && !b.done; })) this._place(prodType, workers, main);
+    if (!R.grow && this.done >= 2 && g.res[p].a > (this.hard ? 450 : 400) && prodN < C.prodMax && !blds.some(function (b) { return b.type === prodType && !b.done; })) this._place(prodType, workers, main);
     var nMain = blds.filter(function (b) { return b.type === R.main; }).length;   // Чаща: второй и третий Пень — больше личинок (янтарь не копится без дела)
-    if (R.grow && this.done >= 3 && nMain < 3 && g.res[p].a > 350 + 250 * nMain && !blds.some(function (b) { return b.type === R.main && !b.done; })) this._place(R.main, workers, main);
-    // 5) армия
-    blds.forEach(function (b) {
-      if (!b.done) return; var BD = R.buildings[b.type];
-      if (R.grow && BD.larva) {
-        if (b.larva < 1 || workers.length < 8) return;
-        var t = g.hasDone(p, 'barrow') && army.filter(function (u) { return u.type === 'shell'; }).length * 3 < army.length ? 'shell' : 'stinger';
-        if (!g.trainBlock(p, b, t)) g.cmd(p, { t: 'train', id: b.id, type: t });
-      } else if (BD.trains && b.type !== R.main && b.queue.length < 2) {
-        var ut = BD.trains[0]; if (!g.trainBlock(p, b, ut)) g.cmd(p, { t: 'train', id: b.id, type: ut });
-      }
-    });
+    if (R.grow && this.done >= (this.hard ? 2 : 3) && nMain < (C.mainsGrow || C.mains) && g.res[p].a > (this.hard ? 250 + 100 * nMain : 350 + 250 * nMain) && (!this.hard || blds.filter(function (b) { return b.type === R.main && !b.done; }).length < 2) && (this.hard || !blds.some(function (b) { return b.type === R.main && !b.done; }))) { var at = this.hard && nMain === 1 ? this._expandSpot(blds) : null; if (!this._place(R.main, workers, main, at) && at) this._place(R.main, workers, main); }
+    if (this.hard) this._hardMacro(blds, workers, main);
+    // 5) армия (трудный ИИ обучает бойцов раньше стройки — см. выше)
+    if (!this.hard) trainArmy();
     // 6) оборона: враг у наших зданий — все бойцы туда
     var threat = null;
     for (var i = 0; i < g.ents.length && !threat; i++) { var e = g.ents[i]; if (e.dead || e.kind !== 'u' || !g.hostile(p, e.owner)) continue;
       for (var j = 0; j < blds.length; j++) if (Math.hypot(e.x - blds[j].x, e.y - blds[j].y) < 9 * T) { threat = e; break; } }
+    if (this.hard) { this._hardScout(workers); this._focus(army); if (this._hardArmy(army, threat, main)) return; }
     if (threat) { var idle = army.filter(function (u) { return u.ord.t !== 'amove' || !u.wave; }); if (idle.length) g.cmd(p, { t: 'amove', ids: idle.map(function (u) { return u.id; }), x: threat.x, y: threat.y }); return; }
     // 7) волна
     if (this.t >= this.nextWave && army.length >= this.waveSize) {
       var target = this._target(); if (target) {
         var ids = army.map(function (u) { u.wave = true; return u.id; });
         g.cmd(p, { t: 'amove', ids: ids, x: target.x, y: target.y });
-        this.wave++; this.lastWaveT = this.t; this.nextWave = this.t + 100; this.waveSize = Math.min(24, this.waveSize + 3);
+        this.wave++; this.lastWaveT = this.t; this.nextWave = this.t + C.gap; this.waveSize = Math.min(C.sizeMax, this.waveSize + C.sizeStep);
         g.emit('wave', { p: p, n: this.wave, size: ids.length });
       }
     } else if (this.wave > 0) {
@@ -1168,9 +1273,9 @@
     return best;
   };
   // Поиск места: спираль вокруг главного здания, с зазором в 1 клетку, чтобы не замуровать базу
-  AI.prototype._place = function (type, workers, main) {
+  AI.prototype._place = function (type, workers, main, at) {   // at — {x, y}: искать место вокруг этой точки (трудный ИИ: новое месторождение)
     var g = this.g, p = this.p, R = g.race(p), D = R.buildings[type];
-    var c = main || this._mine().filter(function (e) { return e.kind === 'b'; })[0]; if (!c) return false;
+    var c = at || main || this._mine().filter(function (e) { return e.kind === 'b'; })[0]; if (!c) return false;
     var cx = Math.floor(c.x / T), cy = Math.floor(c.y / T), dirX = p ? -1 : 1, dirY = p ? -1 : 1;
     for (var r = 3; r < 14; r++) {
       var cand = [];
@@ -1187,6 +1292,116 @@
       }
     }
     return false;
+  };
+  // ---------- Трудный ИИ: макро (второе месторождение, вторая мастерская тяжёлых), разведка, сила вместо счёта, фокус огня, отход ----------
+  // Ресурсов он не получает больше других — только играет плотнее: думает дважды в секунду, держит до 20 рабочих.
+  function powOf(g, e) { var D = g.def(e); return D.worker || calmD(D) ? 0 : (D.sup || 1) * (0.35 + 0.65 * e.hp / e.maxhp) * (D.petrify ? 1.35 : 1); }   // Курганный род в обороне каменеет — крепче
+  AI.prototype._pow = function (list) { var g = this.g, s = 0; for (var i = 0; i < list.length; i++) s += powOf(g, list[i]); return s; };
+  AI.prototype._foes = function (kind) { var g = this.g, p = this.p; return g.ents.filter(function (e) { return !e.dead && e.kind === kind && g.hostile(p, e.owner); }); };
+  // ближайшая к базе ещё не занятая жила своего рода (вдали от своих складов)
+  AI.prototype._expandSpot = function (blds) {
+    var g = this.g, p = this.p, R = g.race(p), drops = blds.filter(function (b) { return R.buildings[b.type].drop; }), home = drops[0]; if (!home) return null;
+    var best = null, bd = 1e9;
+    g.ents.forEach(function (n) { if (n.dead || n.kind !== 'n' || n.type !== R.nodes.r || n.amt < 600) return;
+      if (drops.some(function (b) { return Math.hypot(b.x - n.x, b.y - n.y) < 11 * T; })) return;
+      if (g.ents.some(function (b) { return !b.dead && b.kind === 'b' && g.hostile(p, b.owner) && Math.hypot(b.x - n.x, b.y - n.y) < 14 * T; })) return;
+      var d = Math.hypot(n.x - home.x, n.y - home.y); if (d < bd) { bd = d; best = n; } });
+    return best ? { x: best.x, y: best.y } : null;
+  };
+  AI.prototype._hardWorkers = function (blds, workers, main) {
+    var g = this.g, p = this.p, R = g.race(p), C = this.cfg; if (R.grow) return;
+    var queued = 0; blds.forEach(function (b) { if (b.type === R.main) queued += b.queue.length; });
+    blds.forEach(function (b) { if (b === main || !b.done || b.type !== R.main || b.queue.length >= 1) return; if (workers.length + queued < C.workers) { g.cmd(p, { t: 'train', id: b.id, type: R.worker }); queued++; } });
+  };
+  AI.prototype._hardMacro = function (blds, workers, main) {
+    var g = this.g, p = this.p, R = g.race(p), O = R.order, res = g.res[p];
+    var n = function (type, any) { return blds.filter(function (b) { return b.type === type && (any || b.done); }).length; };
+    var building = function (type) { return blds.some(function (b) { return b.type === type && !b.done; }); };
+    // второе месторождение: склад-главное здание у ближней свободной жилы
+    if (!R.grow && this.t > 270 && n(R.main, true) < 2 && res.a >= R.buildings[R.main].cost.a + 60 && !building(R.main)) { var spot = this._expandSpot(blds); if (spot) this._place(R.main, workers, main, spot); }
+    // вторая мастерская тяжёлых бойцов, когда смолы/руды в избытке
+    if (n(O[2]) >= 1 && n(O[2], true) < 2 && res.r > 220 && g.afford(p, R.buildings[O[2]].cost) && !building(O[2])) this._place(O[2], workers, main);
+  };
+  // разведка: с ~60-й секунды рабочий обходит ближнюю свободную жилу (там потом второе месторождение — стройка в тумане невозможна)
+  // и чужую базу (снимает туман своей стороны), потом возвращается к добыче
+  AI.prototype._hardScout = function (workers) {
+    var g = this.g, p = this.p;
+    if (this.scoutDone || this.t < 60) return;
+    var sc = this.scoutId && g.get(this.scoutId);
+    if (!this.scoutId) {
+      var w = workers.filter(function (u) { return !u.carry && u.ord.t === 'gather'; })[0], eb = this._target(), ex = this._expandSpot(this._mine().filter(function (e) { return e.kind === 'b'; }));
+      if (!w || !eb) return;
+      this.scoutId = w.id; this.scoutT = this.t; this.scoutBack = w.ord.id; this.scoutWay = (ex ? [ex] : []).concat([{ x: eb.x, y: eb.y }]);
+      g.cmd(p, { t: 'move', ids: [w.id], x: this.scoutWay[0].x, y: this.scoutWay[0].y }); return;
+    }
+    if (!sc) { this.scoutDone = true; return; }
+    var wp = this.scoutWay[0];
+    if (wp && Math.hypot(sc.x - wp.x, sc.y - wp.y) < 6 * T) { this.scoutWay.shift(); wp = this.scoutWay[0]; if (wp) g.cmd(p, { t: 'move', ids: [sc.id], x: wp.x, y: wp.y }); }
+    else if (wp && sc.ord.t === 'idle') g.cmd(p, { t: 'move', ids: [sc.id], x: wp.x, y: wp.y });
+    if (!wp || this.t - this.scoutT > 110 || sc.hp < sc.maxhp * 0.6) {
+      this.scoutDone = true; var back = g.get(this.scoutBack) || g._nearestNode(sc, g.race(p).nodes.a, 60 * T);
+      if (back) g.cmd(p, { t: 'gather', ids: [sc.id], target: back.id }); else g.cmd(p, { t: 'stop', ids: [sc.id] });
+    }
+  };
+  // фокус огня: каждый бой — по самому слабому врагу в досягаемости, без перебора урона (кто уже «добит» — следующий)
+  AI.prototype._focus = function (army) {
+    var g = this.g, p = this.p, foes = this._foes('u').filter(function (e) { return !calmD(g.def(e)); }), plan = {};
+    if (!foes.length) return;
+    army.forEach(function (u) {
+      if (!u.tgt || u.roll || (u.ord.t !== 'amove' && u.ord.t !== 'idle')) return; var D = g.def(u), reach = Math.max(D.range * T, 4) + (D.ranged ? 1.2 * T : 0.9 * T) + u.r;
+      var best = null, bs = 1e9;
+      for (var i = 0; i < foes.length; i++) { var e = foes[i]; if (e.dead) continue; var d = Math.hypot(e.x - u.x, e.y - u.y) - e.r; if (d > reach) continue;
+        var ed = g.def(e), left = e.hp - (plan[e.id] || 0); if (left <= 0) continue;
+        var sc = left + (ed.worker ? 120 : 0) + d * 0.3; if (sc < bs) { bs = sc; best = e; } }
+      if (best) { u.tgt = best.id; plan[best.id] = (plan[best.id] || 0) + Math.max(1, D.dmg - (g.def(best).armor || 0) - (best.stone ? PETRIFY.armor : 0)) * 2; }
+    });
+  };
+  AI.prototype._stage = function (main) {   // место сбора: от главного здания к центру карты
+    var g = this.g, cx = g.MW * T / 2, cy = g.MH * T / 2, L = Math.hypot(cx - main.x, cy - main.y) || 1;
+    return { x: main.x + (cx - main.x) / L * 6 * T, y: main.y + (cy - main.y) / L * 6 * T };
+  };
+  AI.prototype._hardArmy = function (army, threat, main) {
+    var g = this.g, p = this.p, C = this.cfg;
+    var group = army.filter(function (u) { return u.wave; }), home = army.filter(function (u) { return !u.wave; });
+    var ids = function (l) { return l.map(function (u) { return u.id; }); };
+    var cen = function (l) { var x = 0, y = 0; l.forEach(function (u) { x += u.x; y += u.y; }); return { x: x / l.length, y: y / l.length }; };
+    // оборона: дома — все, кто дома; сильная угроза — отзываем и ударную группу
+    if (threat) {
+      var tp = this._pow(this._foes('u').filter(function (e) { return Math.hypot(e.x - threat.x, e.y - threat.y) < 10 * T; }));
+      var def = home.filter(function (u) { return u.ord.t !== 'amove' || !u.tgt; });
+      if (group.length && tp > this._pow(home) * 1.1 && tp > 4) { group.forEach(function (u) { u.wave = false; }); def = def.concat(group); this.nextWave = this.t + 25; }
+      if (def.length) g.cmd(p, { t: 'amove', ids: ids(def), x: threat.x, y: threat.y });
+      return true;
+    }
+    if (group.length) {
+      var c = cen(group), gp = this._pow(group);
+      var local = this._pow(this._foes('u').filter(function (e) { return Math.hypot(e.x - c.x, e.y - c.y) < 10 * T; }));
+      var towers = this._foes('b').filter(function (b) { return g.def(b).atk && !b.asleep && Math.hypot(b.x - c.x, b.y - c.y) < 9 * T; }).length;
+      // отход: впереди заметно сильнее — к месту сбора, к подкреплению
+      if ((local + towers * 3 > gp * 1.5 + 2 || gp < 3.5) && main) { var st = this._stage(main); group.forEach(function (u) { u.wave = false; }); g.cmd(p, { t: 'move', ids: ids(group), x: st.x, y: st.y }); this.nextWave = this.t + 20; this.retreats = (this.retreats || 0) + 1; return true; }
+      // подкрепление: собравшиеся дома идут к группе
+      var fresh = home.filter(function (u) { return u.ord.t === 'idle' || u.ord.t === 'move'; });
+      if (this._pow(fresh) >= 6 && local < gp) { fresh.forEach(function (u) { u.wave = true; }); g.cmd(p, { t: 'amove', ids: ids(fresh), x: c.x, y: c.y }); }
+      // группа без дела — к ближайшему чужому зданию (от группы, а не от своей базы)
+      var tg = this._targetFrom(c); if (tg) { var idle = group.filter(function (u) { return u.ord.t === 'idle' && !u.tgt; }); if (idle.length) g.cmd(p, { t: 'amove', ids: ids(idle), x: tg.x, y: tg.y }); }
+      return true;
+    }
+    // сбор и запуск: копим силу у места сбора; идём, когда сила не меньше той, что видели у врага (или войско почти предельное)
+    if (main) { var st2 = this._stage(main); var far = home.filter(function (u) { return u.ord.t === 'idle' && Math.hypot(u.x - st2.x, u.y - st2.y) > 5 * T; }); if (far.length) g.cmd(p, { t: 'move', ids: ids(far), x: st2.x, y: st2.y }); }
+    var hp = this._pow(home), foe = this._pow(this._foes('u'));
+    if (this.scoutDone && this.t >= this.nextWave && hp >= this.waveSize && (hp >= foe * (this.t < 360 ? 1.8 : 1.3) || hp >= 50 || (this.t - Math.max(this.lastWaveT, 120) > 260 && hp >= foe))) {
+      var target = this._target(); if (target) {
+        home.forEach(function (u) { u.wave = true; }); g.cmd(p, { t: 'amove', ids: ids(home), x: target.x, y: target.y });
+        this.wave++; this.lastWaveT = this.t; this.nextWave = this.t + C.gap; this.waveSize = Math.min(C.sizeMax, this.waveSize + C.sizeStep);
+        g.emit('wave', { p: p, n: this.wave, size: home.length });
+      }
+    }
+    return true;
+  };
+  AI.prototype._targetFrom = function (pt) {
+    var g = this.g, p = this.p, best = null, bd = 1e9;
+    g.ents.forEach(function (e) { if (e.dead || e.kind !== 'b' || !g.hostile(p, e.owner)) return; var d = Math.hypot(e.x - pt.x, e.y - pt.y); if (d < bd) { bd = d; best = e; } });
+    return best;
   };
   AI.prototype._margin = function (tx, ty, s) {
     var g = this.g;

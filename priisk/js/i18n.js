@@ -168,4 +168,9 @@
     epilogueT: 'Epilogue', epilogueSub: 'both campaigns', epilogueEnd: 'Epilogue: outcome', finaleChoicesB: 'What the artels decided',
     epilogueHint: 'Play the other campaign too — if they come to terms there as well, one more road opens'
   });
+  // скирмиш: уровень ИИ и карта (пункты меню)
+  Object.assign(P.STR.ru, { level: 'Сложность', lvEasy: 'лёгкая', lvNormal: 'обычная', lvHard: 'трудная', map: 'Карта',
+    mapGen: 'Плато · случайное', mapGenSeed: 'Плато · №', mapPass: 'Перевал', mapIsles: 'Острова', mapVeins: 'Четыре жилы' });
+  Object.assign(P.STR.en, { level: 'Difficulty', lvEasy: 'easy', lvNormal: 'normal', lvHard: 'hard', map: 'Map',
+    mapGen: 'Plateau · random', mapGenSeed: 'Plateau · #', mapPass: 'The Pass', mapIsles: 'The Isles', mapVeins: 'Four Lodes' });
 })(typeof window !== 'undefined' ? window : globalThis);

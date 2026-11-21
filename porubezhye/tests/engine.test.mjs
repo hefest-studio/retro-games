@@ -274,6 +274,29 @@ test('партия ИИ против ИИ заканчивается побед�
   ok(g.winner >= 0 && g.t >= 6 * 60, 'итог ' + g.winner + ' за ' + g.t);
 });
 
+// ---------- Сложность ИИ и карты скирмиша (полные серии — tests/difficulty.mjs и tests/maps.mjs) ----------
+test('сложность ИИ: по умолчанию «Обычный», opts.ai / opts.ai0 задают уровень, неизвестный — «Обычный», P.AI без уровня (кампания) — «Обычный»', () => {
+  eq(P.create({ seed: 1 }).ai.level, 'normal'); eq(P.create({ seed: 1, ai: 'hard' }).ai.level, 'hard'); eq(P.create({ seed: 1, ai: 'zzz' }).ai.level, 'normal');
+  const g = P.create({ seed: 1, aiBoth: true, ai: 'easy', ai0: 'hard' }); eq(g.ai.level, 'easy'); eq(g.ai0.level, 'hard');
+  eq(new P.AI(mk(), 1).level, 'normal'); ok(P.AI_LEVELS.easy && P.AI_LEVELS.normal && P.AI_LEVELS.hard, 'уровни');
+  eq(P.AI_LEVELS.normal.workers, 14); eq(P.AI_LEVELS.normal.wave0, 300); eq(P.AI_LEVELS.normal.think, 1);   // «Обычный» — прежние числа
+});
+test('трудный ИИ без бонусов: к 4-й минуте рабочих больше, чем у обычного, разведчик сходил; лёгкий — меньше; ресурсы на старте у всех 150', () => {
+  const w = lvl => { const g = P.create({ seed: 2, playerRace: 'wright', aiRace: 'wright', ai: lvl }); eq(g.res[1].a, 150); run(g, 240, 0.1); return { n: my(g, 1, 'u').filter(u => g.def(u).worker).length, ai: g.ai }; };
+  const e = w('easy'), n = w('normal'), h = w('hard');
+  console.log('     рабочих к 4-й мин: лёгкий ' + e.n + ', обычный ' + n.n + ', трудный ' + h.n);
+  ok(h.n > n.n && n.n > e.n, 'рабочие ' + [e.n, n.n, h.n]); ok(h.ai.scoutId && h.ai.scoutDone !== undefined, 'разведка');
+});
+test('карты скирмиша: gen (по умолчанию, как раньше), grove, pass, wide (88×66) — центрально-симметричны, базы на местах', () => {
+  eq(P.MAP_IDS.join(), 'gen,grove,pass,wide'); eq(P.create({ seed: 3 }).mapId, 'gen');
+  for (const id of P.MAP_IDS) { const g = P.create({ seed: 1, mapId: id, noAI: true }), W = g.MW, H = g.MH;
+    for (let i = 0; i < W * H; i++) eq(g.terr[i], g.terr[W * H - 1 - i], id + ': асимметрия');
+    const b0 = my(g, 0, 'b')[0], b1 = my(g, 1, 'b')[0]; eq(b0.tx + ',' + b0.ty, '6,6'); eq(b1.tx + ',' + b1.ty, (W - 10) + ',' + (H - 10)); }
+  eq(P.create({ seed: 1, mapId: 'wide', noAI: true }).MW, 88);
+  const main = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
+  ok(/key: 'foe'/.test(main) && /key: 'ailvl'/.test(main) && /key: 'map'/.test(main) && /porubezhye\.foe/.test(main) && /porubezhye\.ai'/.test(main) && /porubezhye\.map/.test(main), 'пункты меню скирмиша');
+});
+
 // ---------- Страница и правило имён ----------
 test('страница: порядок скриптов, ссылка на каталог, engine.js — копия _shared', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');

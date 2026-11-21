@@ -244,7 +244,10 @@
     // всплывающие надписи
     (V.anims ? V.anims.floats : []).forEach(function (f) {
       var al = Math.min(1, f.t / 0.4), y = LY.HUD + f.y * LY.TS + LY.TS / 2 - (1.4 - f.t) * 26;
-      ctx.globalAlpha = al; txt(g, f.text, f.x * LY.TS + LY.TS / 2, y, { size: f.big ? 17 : 13, align: 'center', color: f.color, weight: 900 }, P); ctx.globalAlpha = 1;
+      // у края карты надпись сдвигается внутрь холста («Не хватает очков действия» у бойца в крайнем столбце не обрезается)
+      var fs = f.big ? 17 : 13, fx = f.x * LY.TS + LY.TS / 2; ctx.font = '900 ' + fs + 'px ' + P.font;
+      var hw = ctx.measureText(P.pixel ? String(f.text).toUpperCase() : String(f.text)).width / 2 + 4; fx = Math.max(hw, Math.min(g.W - hw, fx));
+      ctx.globalAlpha = al; txt(g, f.text, fx, y, { size: fs, align: 'center', color: f.color, weight: 900 }, P); ctx.globalAlpha = 1;
     });
     if (V.banner && V.banner.t > 0) {
       var a = Math.min(1, V.banner.t / 0.3); ctx.globalAlpha = a;

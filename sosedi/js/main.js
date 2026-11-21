@@ -108,7 +108,7 @@
     // всплывающие надписи
     toasts.forEach(function (o) {
       var a = Math.min(1, o.t / 0.4), x = (o.x - c2.x) * R.Z, y = (o.y - c2.y) * R.Z + HUD - (1.3 - o.t) * 18;
-      ctx.globalAlpha = a; R.txt(ctx, o.text, x, y, { size: o.big ? 12 : 10, align: 'center', color: o.color, stroke: retro() ? '#000' : 'rgba(0,0,0,.75)', lw: 3, w: 900 }); ctx.globalAlpha = 1;
+      ctx.globalAlpha = a; R.txt(ctx, o.text, x, y, { size: o.big ? 12 : 10, align: 'center', color: o.color, stroke: retro() ? '#000' : 'rgba(0,0,0,.75)', lw: 3, w: 900, clampW: VW }); ctx.globalAlpha = 1;
     });
     R.hud(g, ctx, s, M);
     if (banner) {

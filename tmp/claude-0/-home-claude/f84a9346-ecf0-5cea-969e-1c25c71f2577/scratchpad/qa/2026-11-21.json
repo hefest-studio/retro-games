@@ -1,0 +1,612 @@
+{
+ "started": "2026-11-21T17:24:23.815Z",
+ "args": {
+  "port": 8463,
+  "only": "",
+  "skip": "tests,browser,catalog",
+  "jobs": 2,
+  "timeout": 600,
+  "slow": 120,
+  "input": 10,
+  "pages": 2,
+  "out": "/tmp/claude-0/-home-claude/f84a9346-ecf0-5cea-969e-1c25c71f2577/scratchpad/qa"
+ },
+ "slugs": 75,
+ "items": [
+  {
+   "area": "static",
+   "target": "каталог",
+   "check": "games.json ↔ папки игр",
+   "status": "ok",
+   "detail": "75 игр"
+  },
+  {
+   "area": "static",
+   "target": "engine.js",
+   "check": "копии = _shared/engine.js (v2.9.0)",
+   "status": "ok",
+   "detail": "75 игр, v2.9.0"
+  },
+  {
+   "area": "static",
+   "target": "общие файлы",
+   "check": "host/mouse/campaign/platform = _shared",
+   "status": "ok",
+   "detail": "совпадают"
+  },
+  {
+   "area": "static",
+   "target": "sitemap.xml",
+   "check": "формат и полнота (/, /en/, все игры)",
+   "status": "ok",
+   "detail": "77 адресов"
+  },
+  {
+   "area": "static",
+   "target": "robots.txt",
+   "check": "User-agent, не закрыт, Sitemap",
+   "status": "ok",
+   "detail": "ok"
+  },
+  {
+   "area": "static",
+   "target": "index.html",
+   "check": "счётчики игр = 75",
+   "status": "fail",
+   "detail": "расходятся с games.json: «Показано 1–15 из 69»"
+  },
+  {
+   "area": "static",
+   "target": "en/index.html",
+   "check": "счётчики игр = 75",
+   "status": "ok",
+   "detail": "совпадают"
+  },
+  {
+   "area": "static",
+   "target": "README.md",
+   "check": "счётчики игр = 75",
+   "status": "ok",
+   "detail": "совпадают"
+  },
+  {
+   "area": "static",
+   "target": "games.json",
+   "check": "RU/EN-поля карточек",
+   "status": "ok",
+   "detail": "75 карточек"
+  },
+  {
+   "area": "static",
+   "target": "hrum",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "ruslo",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "krot",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "staratel",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "obval",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "kaskad",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "rubezh",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "proryv",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "rubikon",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "vihr",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "saga",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "neon-yarost",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "saga-2",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "bolt",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "kolobok",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "plashch",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "redut",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "zvero-otryad",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "zvero-otryad-2",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "roy",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "razrez",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "podkop",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "kladka",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "zaslon",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "fitil",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "katakomby",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "yuz",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "puzyr",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "pereprava",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "zastava",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "sputnik",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "eskadrilya",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "nalyot",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "glub",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "taynik",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "zheoda",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "udalets",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "ugolyok",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "grom",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "druzhina",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "chertog",
+   "check": "запрещённые слова",
+   "status": "warn",
+   "detail": "предупреждения: js/i18n.js:23 «скоро» (Яндекс 1.15) — \"Плита подняла решётку — она скоро опустится!\"; js/i18n.js:51 «soon» (Яндекс 1.15) — \"The plate raised a gate — it will drop soon!\""
+  },
+  {
+   "area": "static",
+   "target": "dozor",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "rikoshet",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "liven",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "oruzheynik",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "shustrik",
+   "check": "запрещённые слова",
+   "status": "warn",
+   "detail": "предупреждения: js/i18n.js:52 «in Steam» (Яндекс 8.4) — \"Fox in Steam Armor\""
+  },
+  {
+   "area": "static",
+   "target": "podryad",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "dospeh",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "lednik",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "gornilo",
+   "check": "запрещённые слова",
+   "status": "warn",
+   "detail": "предупреждения: js/i18n.js:34 «trial» (Яндекс 1.15) — \"The Hefest apprentices’ trial · twin-stick · 1–2 players\""
+  },
+  {
+   "area": "static",
+   "target": "tsep",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "ten",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "skok",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "posokh",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "chaynik",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "list",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "taran",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "vzvod",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "paroviki",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "otsek",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "sosedi",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "oskolok",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "operatsiya",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "lazutchik",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "sborka",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "podgorye",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "kvest",
+   "check": "запрещённые слова",
+   "status": "fail",
+   "detail": "js/edition.js:12 «demo» (Яндекс 1.15) — \"demo\"; js/edition.js:16 «demo» (Яндекс 1.15) — \"demo\"; js/edition.js:19 «demo» (Яндекс 1.15) — \"demo\"; js/edition.js:29 «demo» (Яндекс 1.15) — \"demo\""
+  },
+  {
+   "area": "static",
+   "target": "desant",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "otboynik",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "priisk",
+   "check": "запрещённые слова",
+   "status": "fail",
+   "detail": "index.html:4 «демо» (Яндекс 1.15) — \"К — стратегия в реальном времени студии «Гефест» (демо): две артели старателей делят медное плато. Скирмиш целиком и пер\"; index.html:3 «демо» (Яндекс 1.15) — \"ПРИИСК · Стратегия в реальном времени — демо\"; js/edition.js:14 «demo» (Яндекс 1.15) — \"demo\"; js/edition.js:18 «demo» (Яндекс 1.15) — \"demo\"; js/edition.js:21 «demo» (Яндекс 1.15) — \"demo\"; js/edition.js:34 «demo» (Яндекс 1.15) — \"demo\"; js/edition.js:34 «demo» (Яндекс 1.15) — \"demo\"; js/edition.js:39 «demo» (Яндекс 1.15) — \"demo\""
+  },
+  {
+   "area": "static",
+   "target": "porubezhye",
+   "check": "запрещённые слова",
+   "status": "fail",
+   "detail": "index.html:4 «демо» (Яндекс 1.15) — \"Е — стратегия в реальном времени студии «Гефест» (демо: скирмиш за три рода): Мастеровые, Живая чаща и Курганный род — я\"; index.html:3 «демо» (Яндекс 1.15) — \"ПОРУБЕЖЬЕ · Стратегия в реальном времени — демо\"; js/edition.js:12 «demo» (Яндекс 1.15) — \"demo\"; js/edition.js:16 «demo» (Яндекс 1.15) — \"demo\"; js/edition.js:19 «demo» (Яндекс 1.15) — \"demo\"; js/edition.js:27 «demo» (Яндекс 1.15) — \"demo\"; js/i18n.js:10 «демо» (Яндекс 1.15) — \"Медь, мох и камень · стратегия в реальном времени · демо\"; js/i18n.js:38 «демо» (Яндекс 1.15) — \"В демо открыт скирмиш за все три рода. Сюжетные кампании Мастеровых, Жив\""
+  },
+  {
+   "area": "static",
+   "target": "volok",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "otgon",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "poluustav",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  },
+  {
+   "area": "static",
+   "target": "kamerton",
+   "check": "запрещённые слова",
+   "status": "ok",
+   "detail": ""
+  }
+ ],
+ "tests": [],
+ "browser": {},
+ "timings": {
+  "static": 8.2,
+  "total": 8.3
+ },
+ "finished": "2026-11-21T17:24:32.069Z"
+}
