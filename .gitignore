@@ -22,3 +22,6 @@ reports/
 tmp/qa/
 */tmp/qa/
 saga/tmp/
+
+# отчёты регулярного QA-прогона (node tools/qa-run.mjs)
+qa-report/

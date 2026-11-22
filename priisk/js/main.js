@@ -47,9 +47,13 @@
   }
   function newGame() {
     S.mission = null; CU.detach(S);
-    var seed = (Date.now() % 100000) + 1, q = new URLSearchParams(location.search);
+    // карта и уровень ИИ — пункты меню (campaign-ui.js): плато — случайный сид или сид прошлой партии ('gen:last'), три рукотворные
+    var seed = (Date.now() % 100000) + 1, q = new URLSearchParams(location.search), mp = P.SKIRMISH_MAP || 'gen';
+    if (mp === 'gen:last' && P.SKIRMISH_SEED) seed = P.SKIRMISH_SEED;
     if (q.get('seed') && !E.release) seed = parseInt(q.get('seed'), 10) || 1;
-    S.W = L.newWorld({ seed: seed }); S.W.seedKey = ++worldN + ':' + seed; R.setButtons(); R.fitMinimap(S.W);
+    var map = mp.split(':')[0];
+    S.W = L.newWorld({ seed: seed, map: map, level: P.SKIRMISH_LEVEL }); S.W.seedKey = ++worldN + ':' + seed; S.sk = { map: map, level: P.SKIRMISH_LEVEL || 'normal', seed: seed }; R.setButtons(); R.fitMinimap(S.W);
+    if (map === 'gen') { P.SKIRMISH_SEED = seed; try { if (CU.store) CU.store.setItem('arcade.priisk.seed', String(seed)); } catch (e) {} }   // «Плато · №…» — сыграть этот сид ещё раз
     S.sel = new Set(); S.placing = null; S.marks = []; S.msgs = []; endT = 0; acc = 0; fightT = -99;
     for (var k in groups) delete groups[k];
     var hq = L.has(S.W, 0, 'hq'); centerOn(hq.tx + 1.5, hq.ty + 1.5);
@@ -387,7 +391,9 @@
       for (i = S.msgs.length - 1; i >= 0; i--) { S.msgs[i].life -= dt; if (S.msgs[i].life <= 0) S.msgs.splice(i, 1); }
       updateCursor();
       g.state.score = W.players[0].score;
-      if (W.winner >= 0) { endT += dt; if (endT > 2.2) { mouse.cancel(); mouse.setCursor('normal'); if (W.mission) { CU.finish(W); S.W = null; return; } if (W.winner === 0) g.win(); else g.gameover(); S.W = null; } }
+      if (W.winner >= 0) { endT += dt; if (endT > 2.2) { mouse.cancel(); mouse.setCursor('normal'); if (W.mission) { CU.finish(W); S.W = null; return; }
+        if (W.winner === 0 && P.achieve) P.achieve.skirmish(W, { map: S.sk && S.sk.map, level: S.sk && S.sk.level, store: CU.store });   // достижения скирмиша (на сайте — no-op)
+        if (W.winner === 0) g.win(); else g.gameover(); S.W = null; } }
     },
     draw: function (ctx) {
       if (!S.W) { g.clear(); return; }

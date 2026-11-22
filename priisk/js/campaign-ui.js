@@ -646,6 +646,7 @@
   UI.finish = function (W) {
     var res = W.mission.result || C.result(W); lastRes = res; setCamp(C.campOf(C.byId(res.id)));
     UI.data = C.applyResult(C.load(store, camp), res); persist();
+    if (P.achieve) P.achieve.mission(res, C.byId(res.id), UI.data, C.list(camp));   // достижения (на сайте — no-op)
     g.goto('result');
   };
   UI.openBrief = function (id) { setCamp(C.campOf(C.byId(id))); briefId = id; g.goto('brief'); };
@@ -667,12 +668,28 @@
     if (qf) foe = qf[1]; P.SKIRMISH_FOE = foe;
     g.menu.addItem({ key: 'foe', after: 'side', label: function () { return g.t('foe') + ': ' + g.t(P.SKIRMISH_SIDE === 'sizye' ? 'sideCopper' : P.SKIRMISH_FOE === 'sizye' ? 'foeSizye' : 'foeClassic'); },
       onSelect: function () { if (P.SKIRMISH_SIDE === 'sizye') { g.audio.beep(200, 0.05); return; } P.SKIRMISH_FOE = P.SKIRMISH_FOE === 'sizye' ? 'classic' : 'sizye'; try { store.setItem('arcade.priisk.foe', P.SKIRMISH_FOE); } catch (e) {} g.audio.beep(P.SKIRMISH_FOE === 'sizye' ? 520 : 660, 0.05); } });
+    // скирмиш: уровень ИИ (Лёгкий / Обычный — как раньше / Трудный) и карта (плато со случайным сидом, плато с сидом прошлой партии,
+    // три рукотворные). Запоминаются (arcade.priisk.level / .map, сид прошлой партии — .seed). Для проверки: ?level=easy|normal|hard,
+    // ?map=gen|pass|isles|veins (в издании release — нет)
+    var srch = global.location ? global.location.search : '', LV = L.AI_LEVELS, MAPS = L.SK_MAPS;
+    var lvl = 'normal', ql = !E.release && /[?&]level=(easy|normal|hard)\b/.exec(srch);
+    try { var sl = store.getItem('arcade.priisk.level'); if (LV.indexOf(sl) >= 0) lvl = sl; } catch (e) {}
+    if (ql) lvl = ql[1]; P.SKIRMISH_LEVEL = lvl;
+    g.menu.addItem({ key: 'level', after: 'foe', label: function () { return g.t('level') + ': ' + g.t({ easy: 'lvEasy', normal: 'lvNormal', hard: 'lvHard' }[P.SKIRMISH_LEVEL]); },
+      onSelect: function () { P.SKIRMISH_LEVEL = LV[(LV.indexOf(P.SKIRMISH_LEVEL) + 1) % LV.length]; try { store.setItem('arcade.priisk.level', P.SKIRMISH_LEVEL); } catch (e) {} g.audio.beep([440, 560, 680][LV.indexOf(P.SKIRMISH_LEVEL)], 0.05); } });
+    var mp = 'gen', qm = !E.release && /[?&]map=(gen|pass|isles|veins)\b/.exec(srch);
+    try { var sm = store.getItem('arcade.priisk.map'); if (MAPS.indexOf(sm) >= 0 || sm === 'gen:last') mp = sm; P.SKIRMISH_SEED = parseInt(store.getItem('arcade.priisk.seed'), 10) || 0; } catch (e) {}
+    if (mp === 'gen:last' && !P.SKIRMISH_SEED) mp = 'gen';
+    if (qm) mp = qm[1]; P.SKIRMISH_MAP = mp;
+    function mapList() { var l = MAPS.slice(); if (P.SKIRMISH_SEED) l.splice(1, 0, 'gen:last'); return l; }
+    g.menu.addItem({ key: 'map', after: 'level', label: function () { var m = P.SKIRMISH_MAP; return g.t('map') + ': ' + (m === 'gen:last' ? g.t('mapGenSeed') + P.SKIRMISH_SEED : g.t({ gen: 'mapGen', pass: 'mapPass', isles: 'mapIsles', veins: 'mapVeins' }[m])); },
+      onSelect: function () { var l = mapList(); P.SKIRMISH_MAP = l[(l.indexOf(P.SKIRMISH_MAP) + 1) % l.length]; try { store.setItem('arcade.priisk.map', P.SKIRMISH_MAP); } catch (e) {} g.audio.beep(600, 0.05); } });
     // клавиши героев Сизых: Q — Корней, E — Митяй, R — Агафья (у Медного Ключа Q/E/R ловит main.js)
     global.addEventListener('keydown', function (e) {
       var hk = AB_KEYS[e.code], S = host.S; if (!hk || e.ctrlKey || e.metaKey || e.altKey || g._sceneName !== 'play' || !S.W || !S.W.mission || !S.W.mission.heroes[hk]) return;
       UI.useAbility(S, hk); e.preventDefault();
     });
-    g.menu.addItem({ key: 'campaign', after: 'foe', label: function () { return g.t('campaign'); }, onSelect: function () { var d = data(); sel = Math.max(0, Math.min(d.unlocked, C.list(camp).length || 1) - 1); g.goto('camp'); } });
+    g.menu.addItem({ key: 'campaign', after: 'map', label: function () { return g.t('campaign'); }, onSelect: function () { var d = data(); sel = Math.max(0, Math.min(d.unlocked, C.list(camp).length || 1) - 1); g.goto('camp'); } });
     var draw = { camp: drawCamp, brief: drawBrief, result: drawResult, edition: drawEdition, finale: drawFinale };
     ['camp', 'brief', 'result', 'edition', 'finale'].forEach(function (name) {
       g.scene(name, { realtime: true, enter: function () { hover = -1; resetArm = 0; sel2 = 0; if (name === 'camp' || name === 'edition') backFromBoth(); UI.data = C.load(store, camp); g.audio.beep(520, 0.05); }, update: function () {}, draw: function (c) { draw[name](c); }, press: sceneKeys(name) });

@@ -57,6 +57,9 @@ const st = (p) => p.evaluate(() => {
     screen: U.getScreen(), gfx: U.prefs.gfx, glang: U.prefs.lang, muted: U.prefs.muted, level: G.levelIndex, active: G.activeId,
     paused: window.SAGA_GAME.isPaused(), titleVis: vis('title'), pauseVis: vis('pause'), introVis: vis('levelIntro'), storyVis: vis('story'), levelsVis: vis('levels') };
 });
+// Ожидание состояния вместо фиксированной паузы: оболочка передаёт язык/звук игре на ближайшем кадре, а под нагрузкой машины
+// (параллельные тесты, QA-прогон) кадр приходит позже 150 мс. Ждём, пока условие выполнится (до 3 с), — проверка та же.
+async function until(p, pred, ms = 3000) { const end = Date.now() + ms; let s = await st(p); while (!pred(s) && Date.now() < end) { await wait(50); s = await st(p); } return s; }
 const PROGRESS = JSON.stringify({ maxLevel: 3, completed: { 0: 1, 1: 1, 2: 1 }, best: { 0: 41, 1: 77, 2: 95 } });
 
 try {
@@ -119,31 +122,32 @@ try {
     await p.keyboard.press('KeyT'); await wait(150);
   });
   await test('L → язык движка = язык игры; и обратно', async () => {
-    await p.keyboard.press('KeyL'); await wait(150); let s = await st(p);
+    await p.keyboard.press('KeyL'); let s = await until(p, (x) => x.lang === 'en' && x.glang === 'en');
     ok(s.lang === 'en' && s.glang === 'en', JSON.stringify(s));
-    await p.evaluate(() => window.SAGA_UI.toggleLang()); await wait(150); s = await st(p);
+    await p.evaluate(() => window.SAGA_UI.toggleLang()); s = await until(p, (x) => x.lang === 'ru' && x.glang === 'ru');
     ok(s.lang === 'ru' && s.glang === 'ru', 'игра→движок ' + JSON.stringify(s));
   });
   await test('M → звук движка выкл = звук игры выкл, повтор — вкл', async () => {
-    await p.keyboard.press('KeyM'); await wait(150); let s = await st(p);
+    await p.keyboard.press('KeyM'); let s = await until(p, (x) => !x.sound && x.muted);
     ok(!s.sound && s.muted, JSON.stringify(s));
-    await p.keyboard.press('KeyM'); await wait(150); s = await st(p);
+    await p.keyboard.press('KeyM'); s = await until(p, (x) => x.sound && !x.muted);
     ok(s.sound && !s.muted, JSON.stringify(s));
   });
   await test('финал саги → экран win движка, рекорд arcade.best.saga', async () => {
-    await p.evaluate(() => { const G = window.SAGA_GAME.state; G.session.score = 4321; window.SAGA_UI.debug.showFinale(); }); await wait(300);
-    const s = await st(p);
+    await p.evaluate(() => { const G = window.SAGA_GAME.state; G.session.score = 4321; window.SAGA_UI.debug.showFinale(); });
+    const s = await until(p, (x) => x.scene === 'win' && x.best === 4321);
     ok(s.scene === 'win' && s.best === 4321, JSON.stringify(s));
     ok((await p.evaluate(() => localStorage.getItem('arcade.best.saga'))) === '4321', 'не сохранён');
-    await p.keyboard.press('Enter'); await wait(250);
-    const s2 = await st(p); ok(s2.scene === 'title' && s2.screen === 'title', JSON.stringify(s2));
+    await p.keyboard.press('Enter');
+    const s2 = await until(p, (x) => x.scene === 'title' && x.screen === 'title'); ok(s2.scene === 'title' && s2.screen === 'title', JSON.stringify(s2));
   });
   await test('пауза → «В меню» → игра в титуле', async () => {
-    await p.keyboard.press('Enter'); await wait(250); await p.keyboard.press('Enter'); await wait(300); // брифинг → игра
-    let s = await st(p); ok(s.screen === 'playing', 'игра ' + JSON.stringify(s));
-    await p.keyboard.press('Escape'); await wait(150);
-    await p.keyboard.press('ArrowDown'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await wait(250);
-    s = await st(p); ok(s.scene === 'title' && s.screen === 'title' && !s.paused, JSON.stringify(s));
+    await p.keyboard.press('Enter'); await until(p, (x) => x.screen === 'levelIntro' || x.screen === 'playing'); await wait(100);
+    await p.keyboard.press('Enter'); // брифинг → игра
+    let s = await until(p, (x) => x.screen === 'playing'); ok(s.screen === 'playing', 'игра ' + JSON.stringify(s));
+    await p.keyboard.press('Escape'); await until(p, (x) => x.scene === 'pause'); await wait(50);
+    await p.keyboard.press('ArrowDown'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter');
+    s = await until(p, (x) => x.scene === 'title' && x.screen === 'title' && !x.paused); ok(s.scene === 'title' && s.screen === 'title' && !s.paused, JSON.stringify(s));
   });
   await close();
 

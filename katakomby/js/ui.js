@@ -11,7 +11,10 @@
   function fit(g) {
     var c = g.canvas, pad = document.querySelector('.pad');
     var padH = pad && getComputedStyle(pad).display !== 'none' ? pad.offsetHeight + 16 : 0;
-    var availW = Math.min(innerWidth - 16, 960), availH = innerHeight - padH - 64;
+    // ширина окна — clientWidth, а не innerWidth: на телефоне innerWidth — ширина «раздутого» макета (если что-то шире экрана),
+    // и холст, подогнанный под неё, сам держит макет широким — края игры обрезаются (QA-прогон: «холст шире экрана»)
+    var vw = Math.min(innerWidth, document.documentElement.clientWidth || innerWidth), vh = Math.min(innerHeight, (global.visualViewport && global.visualViewport.height) || innerHeight);
+    var availW = Math.min(vw - 16, 960), availH = vh - padH - 64;
     var w = Math.max(280, Math.floor(Math.min(availW, availH * g.W / g.H)));
     c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
   }

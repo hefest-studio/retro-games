@@ -1,8 +1,8 @@
 /* ПОРУБЕЖЬЕ · tests/browser.mjs — демо в браузере (Playwright): движок кампании подключён, но миссий нет; меню (Играть, Раса, «Кампания · в полной версии»), экран
    «Кампания — в полной версии» («Вернуться в меню», «Узнать больше» → ../), старт по Enter, пауза P, тема T, язык L,
-   третья раса (Курганный род) в скирмише демо, 0 ошибок консоли. Скриншоты (если указана папка): porubezhye-{retro,modern}.png — геймплей рас-соперников
+   третья раса (Курганный род) в скирмише демо, пункты скирмиша «Соперник» / «ИИ» / «Карта» (по кругу, сохраняются, старт с выбором), 0 ошибок консоли. Скриншоты (если указана папка): porubezhye-{retro,modern}.png — геймплей рас-соперников
    (партия на автопилоте у игрока, ~5-я минута, кроп по canvas 1280×720), porubezhye-barrow-{retro,modern}.png — то же за Курганный род,
-   и porubezhye-edition-{retro,modern}.png.
+   porubezhye-edition-{retro,modern}.png, выбор в меню porubezhye-menu-{map,ai}-* и карты porubezhye-map-{pass,wide,grove}-*.
    Запуск из корня репо: node porubezhye/tests/browser.mjs [папка-для-скриншотов]
    Сервер: если на PORT (по умолчанию 8352) уже отвечает http.server над репо — используется он, иначе поднимается свой. */
 import { createRequire } from 'node:module';
@@ -45,7 +45,8 @@ try {
     ok(await page.evaluate(() => PORUB.Edition.BUILD === 'demo' && PORUB.EDITION === 'demo' && PORUB.MISSIONS.length === 0), 'издание');
     ok(await page.evaluate(() => !!PORUB.campUI && !PORUB.campUI.available() && !!PORUB.g.scenes.camp), 'движок кампании подключён, миссий в демо нет');
     const items = await page.evaluate(() => PORUB.g.menu.items('title'));
-    ok(items[0] === 'play' && items[1] === 'race' && items[2] === 'campaign', 'меню: ' + items);
+    ok(items[0] === 'play' && items[1] === 'race' && items[2] === 'campaign' && items.slice(3, 6).join() === 'foe,ailvl,map', 'меню: ' + items);
+    ok(/Соперник: случайно/.test(await label('foe')) && /ИИ: Обычный/.test(await label('ailvl')) && /Карта: Генерируемая/.test(await label('map')), 'по умолчанию: ' + [await label('foe'), await label('ailvl'), await label('map')]);
     const l = await label('campaign'); ok(/Кампания · в полной версии/.test(l), l);
   });
   await test('«Кампания» (клавиатура) → экран «Кампания — в полной версии»; «Узнать больше» → ../ в новой вкладке; Esc → меню', async () => {
@@ -102,7 +103,7 @@ try {
     ok(/Раса: Курганный род/.test(await lab()), await lab());
     await page.evaluate(() => { const m = PORUB.g.menu.get('title'); m.sel = 0; }); await page.keyboard.press('Enter'); await wait(400); ok(await scene() === 'play', 'сцена ' + await scene());
     const st = await page.evaluate(() => { const G = PORUB.debug.game; return { r: G.races.join(), k: G.ents.filter(e => e.owner === 0 && e.type === 'kurgan').length, m: G.ents.filter(e => e.owner === 0 && e.type === 'mason').length, stone: G.ents.filter(e => e.type === 'stone').length, ore: G.ents.filter(e => e.type === 'ore').length }; });
-    ok(/^barrow,(wright|thicket)$/.test(st.r) && st.k === 1 && st.m === 5 && st.stone === 10 && st.ore === 2, JSON.stringify(st));
+    ok(/^barrow,(wright|thicket|barrow)$/.test(st.r) && st.k === 1 && st.m === 5 && st.stone === (st.r === 'barrow,barrow' ? 20 : 10) && st.ore === (st.r === 'barrow,barrow' ? 4 : 2), JSON.stringify(st));
     if (SHOTS) {
       await page.evaluate(() => {
         const D = PORUB.debug, G = D.game, A0 = new PORUB.AI(G, 0); let fightT = -1;
@@ -112,6 +113,40 @@ try {
       });
       await wait(400); ok(await scene() === 'play', 'партия закончилась до кадра'); await shot('-barrow');
     }
+  });
+  await test('скирмиш: «Соперник», «ИИ», «Карта» — по кругу (Enter), сохраняются после перезагрузки, подсказка о выбранном пункте; скриншоты выбора', async () => {
+    await page.evaluate(() => PORUB.g.goto('title')); await wait(200);
+    const pick = async (key, re) => { for (let i = 0; i < 6 && !re.test(await label(key)); i++) { await page.evaluate(k => { const m = PORUB.g.menu.get('title'); m.sel = m.indexOf(k); }, key); await page.keyboard.press('Enter'); await wait(100); } ok(re.test(await label(key)), key + ': ' + await label(key)); };
+    const seen = { foe: [], ailvl: [], map: [] };
+    for (const k of Object.keys(seen)) for (let i = 0; i < 5; i++) { seen[k].push(await label(k)); await page.evaluate(kk => { const m = PORUB.g.menu.get('title'); m.sel = m.indexOf(kk); }, k); await page.keyboard.press('Enter'); await wait(60); }
+    ok(new Set(seen.foe).size === 4 && new Set(seen.ailvl).size === 3 && new Set(seen.map).size === 4, JSON.stringify(seen));
+    await pick('foe', /Соперник: Курганный род/); await pick('ailvl', /ИИ: Трудный/); await pick('map', /Карта: Ледяной перевал/);
+    const hint = await page.evaluate(() => { const m = PORUB.g.menu.get('title'); m.sel = m.indexOf('map'); return PORUB.g.menu._hints.title()[0]; });
+    ok(/брод/.test(hint), 'подсказка карты: ' + hint);
+    await wait(150); await shot('-menu-map');
+    await page.evaluate(() => { const m = PORUB.g.menu.get('title'); m.sel = m.indexOf('ailvl'); }); await wait(150); await shot('-menu-ai');
+    await page.reload(); await wait(600);
+    ok(/Курганный род/.test(await label('foe')) && /Трудный/.test(await label('ailvl')) && /Ледяной перевал/.test(await label('map')), 'после перезагрузки: ' + [await label('foe'), await label('ailvl'), await label('map')]);
+    ok(await page.evaluate(() => JSON.stringify(PORUB.debug.skirm)) === '{"foe":"barrow","ai":"hard","map":"pass"}', 'настройки');
+  });
+  await test('старт с выбором: соперник — Курганный род, ИИ «Трудный», карта «Ледяной перевал»; затем «Раздолье» 88×66; скриншоты карт', async () => {
+    await page.evaluate(() => { const m = PORUB.g.menu.get('title'); m.sel = 0; }); await page.keyboard.press('Enter'); await wait(500); ok(await scene() === 'play', 'сцена ' + await scene());
+    const st = await page.evaluate(() => { const G = PORUB.debug.game; return { foe: G.races[1], lvl: G.ai.level, map: G.mapId, w: G.MW, h: G.MH }; });
+    ok(st.foe === 'barrow' && st.lvl === 'hard' && st.map === 'pass' && st.w === 64, JSON.stringify(st));
+    // автопилот у игрока sec секунд; для кадра — туман снят, камера на характерное место карты (брод, просека)
+    const auto = (sec, fx, fy) => page.evaluate(([s, x, y]) => { const D = PORUB.debug, G = D.game, A0 = new PORUB.AI(G, 0); for (let t = 0; t < s && G.winner < 0; t += 0.1) { A0.update(0.1); G.update(0.1); }
+      G.fogOff = true; D.cam.x = Math.max(0, Math.min(G.MW * 32 - D.view.w, x * 32 - D.view.w / 2)); D.cam.y = Math.max(0, Math.min(G.MH * 32 - D.view.h, y * 32 - D.view.h / 2)); }, [sec, fx, fy]);
+    await auto(150, 24, 21); await wait(300); await shot('-map-pass');
+    await page.evaluate(() => PORUB.g.goto('title')); await wait(200);
+    for (let i = 0; i < 4 && !/Раздолье/.test(await label('map')); i++) { await page.evaluate(() => { const m = PORUB.g.menu.get('title'); m.sel = m.indexOf('map'); }); await page.keyboard.press('Enter'); await wait(80); }
+    await page.evaluate(() => { const m = PORUB.g.menu.get('title'); m.sel = 0; }); await page.keyboard.press('Enter'); await wait(500);
+    const st2 = await page.evaluate(() => { const G = PORUB.debug.game; return { map: G.mapId, w: G.MW, h: G.MH }; }); ok(st2.map === 'wide' && st2.w === 88 && st2.h === 66, JSON.stringify(st2));
+    await auto(60, 44, 30); await wait(300); await shot('-map-wide');
+    for (let i = 0; i < 4 && !/Лесная чаща/.test(await label('map')); i++) { await page.evaluate(() => { PORUB.g.goto('title'); const m = PORUB.g.menu.get('title'); m.sel = m.indexOf('map'); }); await wait(100); await page.keyboard.press('Enter'); await wait(80); }
+    await page.evaluate(() => { const m = PORUB.g.menu.get('title'); m.sel = 0; }); await page.keyboard.press('Enter'); await wait(500);
+    ok(await page.evaluate(() => PORUB.debug.game.mapId) === 'grove', 'чаща'); await auto(150, 22, 18); await wait(300); await shot('-map-grove');
+    // вернуть настройки по умолчанию (случайный соперник, «Обычный», генерируемая карта)
+    await page.evaluate(() => { ['porubezhye.foe', 'porubezhye.ai', 'porubezhye.map'].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} }); });
   });
   await test('ошибок в браузере нет', async () => { ok(errors.length === 0, errors.join(' | ')); });
   await ctx.close();

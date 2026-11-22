@@ -1256,6 +1256,9 @@
   function init() {
     if (!AC) { state.supported = false; return false; }
     if (state.initialised) { return ready(); }
+    /* до первого жеста игрока AudioContext не создаём (браузер всё равно держит его спящим и пишет предупреждение в консоль):
+       музыка запоминается в state.desired и стартует в onUnlocked() после ensureAudio() на первом нажатии/касании */
+    if (typeof navigator !== 'undefined' && navigator.userActivation && !navigator.userActivation.hasBeenActive) { return false; }
     state.initialised = true;
     var ctx;
     try { ctx = new AC(); } catch (e) { state.supported = false; return false; }

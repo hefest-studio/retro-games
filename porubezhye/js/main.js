@@ -17,9 +17,13 @@
   global.PORUB.g = g;
   var RACES3 = ['wright', 'thicket', 'barrow'];   // три рода: Мастеровые, Живая чаща, Курганный род
   var race = RACES3.indexOf(Store.get(RACE_KEY, 'wright')) >= 0 ? Store.get(RACE_KEY, 'wright') : 'wright';
-  // соперник в скирмише: Мастеровым — Чаща, Чаще — Мастеровые (как было); Курганному роду — по очереди оба (и они — Курганному роду через раз)
-  var foeN = 0;
-  function foeOf(r) { foeN++; if (r === 'barrow') return foeN % 2 ? 'wright' : 'thicket'; if (foeN % 3 === 0) return 'barrow'; return r === 'thicket' ? 'wright' : 'thicket'; }
+  // скирмиш: соперник (случайно — любой из трёх родов; или выбранный), сложность ИИ, карта — пункты меню, сохраняются (Arcade.Store, try/catch внутри)
+  var FOE_KEY = 'porubezhye.foe', AI_KEY = 'porubezhye.ai', MAP_KEY = 'porubezhye.map';
+  var FOES = ['random'].concat(RACES3), LEVELS = ['easy', 'normal', 'hard'], MAPS = P.MAP_IDS || ['gen'];
+  function stored(k, list, def) { var v = Store.get(k, def); return list.indexOf(v) >= 0 ? v : def; }
+  var foe = stored(FOE_KEY, FOES, 'random'), aiLevel = stored(AI_KEY, LEVELS, 'normal'), mapId = stored(MAP_KEY, MAPS, 'gen');
+  var SCORE_K = { easy: 0.6, normal: 1, hard: 1.5 };
+  function foeOf() { return foe !== 'random' ? foe : RACES3[(Math.random() * RACES3.length) | 0]; }
   var game = null, cam = { x: 0, y: 0 }, sel = [], groups = {}, mode = null, hover = null, hoverBtn = -1, notices = [], fx = [], pings = [];
   var keys = {}, lastGroupKey = { n: -1, t: 0 }, endT = -1, shotSnd = 0, attackNoteT = -99, preview = null, uiDown = null;
 
@@ -32,7 +36,11 @@
   // ---------- Меню: выбор расы + подсказки ----------
   g.menu.addItem({ key: 'race', after: 'play', label: function () { return g.t('race') + ': ' + g.t('r_' + race); },
     onSelect: function () { race = RACES3[(RACES3.indexOf(race) + 1) % RACES3.length]; Store.set(RACE_KEY, race); g.audio.beep(700, 0.04); } });
-  g.menu.setHint(function () { return [g.t('rd_' + race), { text: g.t('hint1'), dim: true }, { text: g.t('hint2'), dim: true }]; }, 'title');
+  // подсказка — о выбранном пункте: соперник, сложность, карта; иначе — о расе
+  g.menu.setHint(function () {
+    var m = g.menu.get('title'), k = m && m.current() ? m.current().key : '';
+    var first = k === 'foe' ? g.t(foe === 'random' ? 'fd_random' : 'fd_pick') + (foe === 'random' ? '' : ' ' + g.t('rd_' + foe)) : k === 'ailvl' ? g.t('ad_' + aiLevel) : k === 'map' ? g.t('mdesc_' + mapId) : g.t('rd_' + race);
+    return [first, { text: g.t('hint1'), dim: true }, { text: g.t('hint2'), dim: true }]; }, 'title');
   g.useStandardScreens({ title: 'ПОРУБЕЖЬЕ', subtitle: P.STR.ru.subtitle, lives: 1 });
 
   // ---------- Издание (js/edition.js): пункт «Кампания» и экран «Кампания — в полной версии» / «скоро» ----------
@@ -52,6 +60,14 @@
   function syncCampItem() { if (!ED.campaignHidden) return; var has = g.menu.items('title').indexOf('campaign') >= 0, hid = campHidden(); if (hid && has) g.menu.removeItem('campaign'); else if (!hid && !has) g.menu.addItem(campItem); }
   // кампания играбельна: есть js/campaign-ui.js и миссии, а издание не ставит пометку (в демо — «в полной версии» → экран издания)
   function campOpen() { return !!CU && CU.available() && !campTag(); }
+  // пункты скирмиша — после «Кампании» (её место в меню — третье — не сдвигается), перед «Языком»
+  function cyc(list, v) { return list[(list.indexOf(v) + 1) % list.length]; }
+  g.menu.addItem({ key: 'foe', before: 'lang', label: function () { return g.t('foe') + ': ' + (foe === 'random' ? g.t('foe_random') : g.t('r_' + foe)); },
+    onSelect: function () { foe = cyc(FOES, foe); Store.set(FOE_KEY, foe); g.audio.beep(700, 0.04); } });
+  g.menu.addItem({ key: 'ailvl', before: 'lang', label: function () { return g.t('ailvl') + ': ' + g.t('ai_' + aiLevel); },
+    onSelect: function () { aiLevel = cyc(LEVELS, aiLevel); Store.set(AI_KEY, aiLevel); g.audio.beep(700, 0.04); } });
+  g.menu.addItem({ key: 'map', before: 'lang', label: function () { return g.t('map') + ': ' + g.t('m_' + mapId); },
+    onSelect: function () { mapId = cyc(MAPS, mapId); Store.set(MAP_KEY, mapId); g.audio.beep(700, 0.04); } });
   var pendingMission = null;
   if (CU) CU.install(g, { startMission: function (id) { pendingMission = id; g.goto('play'); }, centerOn: function (x, y) { centerOn(x, y); }, note: function (t, c) { note(t, c); },
     ping: function (x, y) { pings.push({ x: x, y: y, t: g.time }); }, mode: function () { return mode; }, VIEW: VIEW, TOP: TOP, PY: PY });
@@ -100,7 +116,7 @@
   // ---------- Игра ----------
   function newGame() {
     if (pendingMission && CU) { game = CU.makeGame(pendingMission, onEvent); pendingMission = null; }
-    else game = new P.Game({ seed: 1 + ((Math.random() * 4) | 0), playerRace: race, aiRace: foeOf(race), onEvent: onEvent });
+    else game = new P.Game({ seed: 1 + ((Math.random() * 4) | 0), mapId: mapId, ai: aiLevel, playerRace: race, aiRace: foeOf(), onEvent: onEvent });
     sel = []; groups = {}; mode = null; notices = []; fx = []; pings = []; endT = -1;
     var main = mine('b').filter(function (b) { return b.type === game.race(0).main; })[0] || mine('u').filter(function (u) { return game.def(u).hero; })[0] || mine()[0];
     if (main) centerOn(main.x, main.y);
@@ -338,7 +354,7 @@
   function finish() {
     if (CU && game.mission) { CU.finish(game); return; }
     var won = game.winner === 0, st = game.stats[0];
-    g.state.score = st.kills * 10 + st.built * 25 + Math.round(st.gathered / 10) + (won ? Math.max(0, 3000 - Math.round(game.t) * 2) : 0);
+    g.state.score = Math.round((st.kills * 10 + st.built * 25 + Math.round(st.gathered / 10) + (won ? Math.max(0, 3000 - Math.round(game.t) * 2) : 0)) * (SCORE_K[game.ai ? game.ai.level : 'normal'] || 1));
     game.lastTime = game.t; if (won) g.win(); else g.gameover();
   }
 
@@ -449,7 +465,7 @@
   var bp = document.getElementById('bPause');
   if (bp) bp.addEventListener('click', function () { if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); });
   // для автотестов в браузере
-  global.PORUB.debug = { get game() { return game; }, card: function () { return card(); }, startMission: function (id) { pendingMission = id; g.goto('play'); }, get sel() { return sel; }, cam: cam, view: VIEW, toWorld: toWorld, get mode() { return mode; }, PY: PY, TOP: TOP, MINI: MINI, slotRect: slotRect };
+  global.PORUB.debug = { get game() { return game; }, get skirm() { return { foe: foe, ai: aiLevel, map: mapId }; }, card: function () { return card(); }, startMission: function (id) { pendingMission = id; g.goto('play'); }, get sel() { return sel; }, cam: cam, view: VIEW, toWorld: toWorld, get mode() { return mode; }, PY: PY, TOP: TOP, MINI: MINI, slotRect: slotRect };
 
   g.start('title');
   // ?mission=<id> — сразу брифинг миссии (плейтест полной версии)
