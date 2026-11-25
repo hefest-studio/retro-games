@@ -1,7 +1,8 @@
 /* ШУСТРИК · сборка: фреймворк Гефест Arcade (engine.js) + логика (levels.js, game.js) + рендер обеих тем + звук.
    Сцены title/pause/win/gameover — g.useStandardScreens; титул перерисован, в паузе — «С контрольной точки».
    Ввод: ←→/AD — бег; Пробел/Z/J — прыжок; X/K/Ctrl/F — огонь (держать — автоогонь), ↑/W — прицел по диагонали;
-   тач: дпад (▲ — прицел вверх), ● — прыжок, ✷ — огонь (держать), II — пауза.
+   тач (волна 6, площадки): виртуальный стик (js/stick.js) — бег, вверх — прицел по диагонали; ● — прыжок, ✷ — огонь (держать), II — пауза.
+   Геймпад — движком: A — прыжок (Space), B и правый триггер — огонь (KeyX / KeyF), X — тоже прыжок (KeyZ).
    Лучшее время каждого акта — localStorage `arcade.shustrik.times` ({"1-1": секунды, …}). */
 (function (global) {
   'use strict';
@@ -11,7 +12,7 @@
     modern: Object.assign({}, TH.modern, { bg: '#120e14', panel: '#1b1520', ink: '#f5efe6', muted: '#b0a6a0', accent: '#ffa62b', grid: '#2e2630' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#ffff55', muted: '#aaaaaa', ink: '#ffffff' })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: VW, height: VH, gameId: 'shustrik', strings: SH.STR, theme: 'modern', lives: L.K.LIVES, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: VW, height: VH, gameId: 'shustrik', leaderboard: 'shustrik', strings: SH.STR, theme: 'modern', lives: L.K.LIVES, themes: themes });
   SH.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
 
@@ -43,7 +44,8 @@
     SH.sfx(g, type, d);
     var s = game ? S() : null, P = s && s.hero, E = R.E;
     switch (type) {
-      case 'act': toasts = []; FX.clear(); cam.x = null; showBanner(actName(s), g.t('act') + ' ' + s.act + (s.act === 2 ? ' · ' + g.t('boss') : '') + ' — ' + g.t('intro'), 2.6); break;
+      case 'act': if (s.cleared > 0 && g._sceneName === 'play' && g.adReady()) { cardS = { w: s.world, a: s.act }; g.goto('card'); }   // межстраничная — по нажатию на карточке акта (Яндекс 4.4)
+        toasts = []; FX.clear(); cam.x = null; showBanner(actName(s), g.t('act') + ' ' + s.act + (s.act === 2 ? ' · ' + g.t('boss') : '') + ' — ' + g.t('intro'), 2.6); break;
       case 'bonus': toasts = []; FX.clear(); cam.x = null; showBanner(g.t('bonusStage'), g.t('bonusGoal').replace('{n}', s.LV.need).replace('{t}', s.LV.time), 2.4); break;
       case 'gear': FX.add(d.x, d.y, { n: 3, sp: 60, life: 0.3, c: col('#ffe08a', E.y), r: 1.5, g: 0 }); break;
       case 'cap':
@@ -101,6 +103,38 @@
     };
   });
 
+  // ---------- Площадка (движок v2.8/2.9): таблица лидеров «shustrik», «Без рекламы» (no_ads) в меню и паузе, реклама за награду ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «shustrik», GamePush — числовое поле игрока «shustrik» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/shustrik/platform.json (arcade-full). На сайте (без площадки) пунктов нет.
+  var LB = 'shustrik';
+  g.persist('arcade.best.shustrik', 'max'); g.persist(TKEY, 'last');   // рекорд и лучшее время актов — и в облако
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
+  // «Ещё один шанс» (раз за партию): после последней жизни — встать с 1 жизнью у контрольной точки; бонус в паузе — +1 жизнь
+  g.useRewardedContinue({ revive: function () { if (game) { game.reviveAd(); sync(); } } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { return !!game && game.canBoost(); }, grant: function () { if (game) { game.boost(); sync(); } } });
+  // Меню вмещает пункты площадки («Лидеры», «Без рекламы»): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
+  // ---------- Карточка «акт пройден» (только когда площадка готова показать межстраничную): нажатие → реклама → следующий акт ----------
+  var cardS = null, cardGoing = false;
+  function cardGo() { if (cardGoing || g._sceneName !== 'card') return; cardGoing = true; g.adBreak().then(function () { cardGoing = false; if (g._sceneName === 'card') { playSince = g.time; g.goto('play', { resume: true }); } }); }
+  g.scene('card', {
+    enter: function () { cardGoing = false; },
+    press: function (a) { if (a === 'action' || a === 'start') cardGo(); else if (a === 'pause') this.goto('play', { resume: true }); },
+    draw: function (ctx) {
+      var th = this.th();
+      if (game) SH.render(this, ctx, S(), { toasts: [], banner: null, cam: cam }); else this.clear();
+      ctx.fillStyle = 'rgba(12,8,14,.76)'; ctx.fillRect(0, 0, this.W, this.H);
+      this.text(this.t('cardDone'), this.W / 2, this.H / 2 - 30, { size: 26, align: 'center', color: th.accent, weight: 900, maxWidth: this.W - 30 });
+      if (cardS) this.text(this.t('world') + ' ' + cardS.w + ' · ' + this.t('act') + ' ' + cardS.a + (game ? ' · ' + this.t('score') + ': ' + S().score : ''), this.W / 2, this.H / 2 + 4, { size: 14, align: 'center', color: th.ink, weight: 700, maxWidth: this.W - 30 });
+      this.text(this.t('cardNext'), this.W / 2, this.H / 2 + 36, { size: 12, align: 'center', color: th.muted, weight: 600, maxWidth: this.W - 30 });
+    }
+  });
+  g.canvas.addEventListener('pointerdown', function (e) { if (g._sceneName === 'card') { e.preventDefault(); cardGo(); } });
+
   // ---------- Титул ----------
   var title = g.scenes.title, menu = g.menu.get('title'), demoS = null;
   function demoState() {
@@ -130,9 +164,9 @@
     R.hero(ctx, hx, 300, { face: 1, ground: true, runT: time * 10, rot: 0, mode: 'run' }, time, { retro: rt, scale: 2.4, speed: 420, flash: Math.floor(time * 4) % 3 === 0 });
     for (var i = 0; i < 5; i++) { ctx.fillStyle = rt ? R.E.w : 'rgba(255,255,255,' + (0.25 - i * 0.04) + ')'; ctx.beginPath(); ctx.arc(hx - 70 - i * 18 - ((time * 90) % 18), 270 + Math.sin(i + time * 5) * 4, 6 + i * 2, 0, Math.PI * 2); ctx.fill(); }
     R.fox(ctx, Wc - 110, 286, { dir: 1, h: 40, state: 'dash', flash: 0 }, time, rt, false);
-    menu.draw(this, Wc / 2, 150, 28);
-    var best = this.state.best;
-    if (best) this.text(this.t('best') + ': ' + best, Wc / 2, 290, { size: 12, align: 'center', color: th.muted, weight: 700 });
+    var best = this.state.best, mf = menuFit(menu, 150, 28, 140, Hc - 32);
+    menu.draw(this, Wc / 2, mf[0], mf[1]);
+    if (best) this.text(this.t('best') + ': ' + best, Wc / 2, menu.items.length > 5 ? 130 : 290, { size: 12, align: 'center', color: th.muted, weight: 700 });
     this.text(this.t('hint'), Wc / 2, Hc - 12, { size: rt ? 10 : 11, align: 'center', color: th.muted, weight: 600 });
   };
 
@@ -149,6 +183,7 @@
       toasts = toasts.filter(function (q) { return q.t > 0; });
       if (banner) { banner.a -= dt; if (banner.a <= 0) banner = null; }
       var dir = this.input.dir, live = g.time - playSince > 0.15;
+      if (stick.active) dir = { x: Math.abs(stick.x) > 0.3 ? Math.sign(stick.x) : 0, y: stick.y < -0.55 ? -1 : stick.y > 0.6 ? 1 : 0 };   // тач-стик
       var jump = live && (this.input.pressed('action') || extraJump);
       game.setInput(dir.x, live ? dir.y : 0, jump);
       game.setFire(live && (fireHeld || padFire));
@@ -172,9 +207,12 @@
       if (!game) { this.clear(); return; }
       var c2 = cam;
       if (cam.shake > 0) c2 = { x: cam.x + (Math.random() - 0.5) * 6, y: cam.y + (Math.random() - 0.5) * 6 };
-      SH.render(this, ctx, S(), { toasts: toasts, banner: banner, cam: c2, aimUp: this.input.dir.y < -0.3 });
+      SH.render(this, ctx, S(), { toasts: toasts, banner: banner, cam: c2, aimUp: this.input.dir.y < -0.3 || (stick.active && stick.y < -0.55) });
     }
   });
+
+  // ---------- Тач-стик (волна 6) ----------
+  var stick = global.ArcadeStick.create(document.querySelector('.pad [data-stick]'));
 
   // ---------- Доп. клавиши и тач-кнопки ----------
   var JUMP = { KeyZ: 1, KeyJ: 1 }, FIRE = { KeyX: 1, KeyK: 1, ControlLeft: 1, ControlRight: 1, KeyF: 1 }, held = {};
@@ -202,8 +240,12 @@
     var c = g.canvas, wrap = c.parentElement, pad = document.querySelector('.pad');
     var padFixed = pad && getComputedStyle(pad).position === 'fixed';
     var padH = pad && !padFixed && getComputedStyle(pad).display !== 'none' ? pad.offsetHeight + 16 : 0;
-    var w = Math.min(1120, (wrap && wrap.clientWidth) || g.W, (innerHeight - padH - 64) * g.W / g.H);
+    var vw = Math.min(innerWidth, document.documentElement.clientWidth || innerWidth), vh = Math.min(innerHeight, (global.visualViewport && global.visualViewport.height) || innerHeight);
+    var padOn = pad && getComputedStyle(pad).display !== 'none';
+    var w = Math.min(1120, padFixed && padOn ? vw - 300 : ((wrap && wrap.clientWidth) || g.W), (vh - padH - (padH ? 64 : 40)) * g.W / g.H);   // «лёжа»: поля по бокам под стик и кнопки
     w = Math.max(240, Math.floor(w)); c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
+    var se = document.scrollingElement || document.documentElement, over = se.scrollHeight - vh;   // страховка от прокрутки (площадки)
+    if (over > 0 && w > 240) { w = Math.max(240, Math.floor(w - over * g.W / g.H) - 2); c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px'; }
   }
   var lastLang = null, lastTheme = null;
   function domSync() {
@@ -211,6 +253,7 @@
       lastLang = g.i18n.lang; document.documentElement.lang = lastLang;
       var b = document.getElementById('backLink'); if (b) b.innerHTML = '&larr; ' + g.t('back');
       var f = document.getElementById('foot'); if (f) f.innerHTML = g.t('foot');   // строки — наши, из i18n.js
+      fit();
     }
     if (g.themeName !== lastTheme) { lastTheme = g.themeName; document.body.setAttribute('data-theme', lastTheme); }
     requestAnimationFrame(domSync);

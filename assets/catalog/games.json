@@ -1039,7 +1039,7 @@
     {
       "slug": "nalyot",
       "title": "НАЛЁТ",
-      "title_en": "NALYOT",
+      "title_en": "BOILERRAID",
       "subtitle": "Run-and-gun на двоих",
       "subtitle_en": "Two-player Run-and-gun",
       "year": 1996,
@@ -1258,7 +1258,7 @@
     {
       "slug": "druzhina",
       "title": "ДРУЖИНА",
-      "title_en": "DRUZHINA",
+      "title_en": "FORGEBAND",
       "subtitle": "Дружина «Гефеста» против железной орды",
       "subtitle_en": "The Hefest War Band vs the Iron Horde",
       "year": 1989,
@@ -1446,7 +1446,7 @@
     {
       "slug": "shustrik",
       "title": "ШУСТРИК",
-      "title_en": "SHUSTRIK",
+      "title_en": "STEAMSCURRY",
       "subtitle": "Хорёк-курьер против Ржавого Лиса",
       "subtitle_en": "Courier Ferret vs the Rust Fox",
       "year": 1994,
@@ -1851,7 +1851,7 @@
     {
       "slug": "paroviki",
       "title": "ПАРОВИКИ",
-      "title_en": "PAROVIKI",
+      "title_en": "VALVEWRIGHTS",
       "subtitle": "Стимпанк-экшен на двоих с ИИ-напарником",
       "subtitle_en": "Two-player Steampunk Action with an AI Partner",
       "year": 1993,
@@ -1883,7 +1883,7 @@
     {
       "slug": "otsek",
       "title": "ОТСЕК",
-      "title_en": "OTSEK",
+      "title_en": "DECKSCOUR",
       "subtitle": "Коридорный шутер на двоих",
       "subtitle_en": "Two-player Corridor Shooter",
       "year": 1991,

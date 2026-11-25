@@ -61,9 +61,15 @@
 | занос | drift | derrape | derrapagem | ЮЗ |
 | подрывник / РЕЛЕ | lağımcı / RÖLE | zapador / RELÉ | sapador / RELÉ | ФИТИЛЬ |
 | маяк (сохранение) | işaret | baliza | farol | УГОЛЁК |
+| дружина (отряд героев) | bölük | mesnada | companhia | ДРУЖИНА |
+| этап (уровень beat 'em up) | etap | etapa | fase | ДРУЖИНА |
+| акт (половина мира) | perde | acto | ato | ШУСТРИК |
+| Ржавый Лис | Paslı Tilki | Zorro Oxidado | Raposa Enferrujada | ШУСТРИК |
+| матрица-печать | mühür kalıbı | troquel | matriz | ЛАЗУТЧИК |
+| попытка (жизнь) | deneme | intento | tentativa | ЛАЗУТЧИК |
 
 ## Названия
 Внутри языка название одно везде (Яндекс 5.1.3): RU — своё, EN/TR/ES/PT — EN-название (CASCADE, BUMPERWRIGHT, MASONRY, KETTLECLANK,
 FORGEPIT, SPARKWARD, STEAMRAM, DUSKHOOK, GEODELVE, SKYHIRE, RIVETFALL, WINDSHANKS, RIMETRAIL, BRASSHUSH, KETTLEWAKE, ROPEWARD,
-LAMPDIVER, HEARTHDEEP, HIVEWRENCH; волна 5 — SLICEWARD, ANVILWATCH, BEETLEFORD, BENCHSKID, FUSEWICK, STOKELING). Имена персонажей — транслитерация (Iskra, Burash, Druza, Svetlyak, Ognyovka, Burik); прозвища
+LAMPDIVER, HEARTHDEEP, HIVEWRENCH; волна 5 — SLICEWARD, ANVILWATCH, BEETLEFORD, BENCHSKID, FUSEWICK, STOKELING; волна 6 — DECKSCOUR, VALVEWRIGHTS, BOILERRAID, FORGEBAND, STEAMSCURRY, OWLSTEP). Имена персонажей — транслитерация (Iskra, Burash, Druza, Svetlyak, Ognyovka, Burik); прозвища
 болванчиков ВЗВОДА — на языке игрока (TR Vida, Somun…; ES Tornillo, Tuerca…; PT Parafuso, Porca…), не длиннее 8–9 букв.

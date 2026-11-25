@@ -10,9 +10,12 @@
 <a class="back" id="backLink" href="../" data-catalog-back="1" data-en="← Catalog">&larr; Каталог</a>
 <div class="wrap"><canvas id="c" width="960" height="520" aria-label="НАЛЁТ"></canvas></div>
 <div class="pad">
-  <button data-d="U" aria-label="Вверх">▲</button><button data-d="L" aria-label="Влево">◀</button><button data-d="D" aria-label="Вниз">▼</button><button data-d="R" aria-label="Вправо">▶</button>
-  <button data-pause="1" aria-label="Пауза">II</button><button data-gren="1" aria-label="Граната">✸</button>
-  <button data-d="A" aria-label="Огонь">●</button><button data-jump="1" aria-label="Прыжок">⤒</button>
+  <div class="stick" data-stick="1" aria-label="Стик: бег и прицел"></div>
+  <button class="mini" data-pause="1" aria-label="Пауза">II</button>
+  <div class="acts">
+    <button data-gren="1" aria-label="Граната">✸</button><button data-d="A" class="fire" aria-label="Огонь">●</button>
+    <button data-jump="1" class="jump" aria-label="Прыжок">⤒</button>
+  </div>
 </div>
 <div class="foot" id="foot"><b>НАЛЁТ</b> · И1: стрелки, пробел — прыжок, / — огонь, «,» — граната · И2: WASD, Z — прыжок, X — огонь, C — граната · 1/2 на заставке — игроки · P/Esc пауза · L язык, T тема, M звук. Тач — только И1.</div>
 <script src="./engine.js"></script>
@@ -20,6 +23,7 @@
 <script src="./js/i18n.js"></script>
 <script src="./js/game.js"></script>
 <script src="./js/audio.js"></script>
+<script src="./js/stick.js"></script>
 <script src="./js/ui.js"></script>
 <script src="./js/modern.js"></script>
 <script src="./js/classic.js"></script>

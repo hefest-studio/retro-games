@@ -2,7 +2,9 @@
    Сцены title/pause/win/gameover — g.useStandardScreens; кооп 1–2 игрока — g.usePlayers (пункт «Игроки», клавиши 1/2,
    подсказка). Ввод: ход (left/right/up/down), огонь (держишь — направление и луч фонаря не поворачиваются),
    действие (двери, терминалы, пульт), смена оружия. В терминале: ↑↓ — выбор, ←→ — вкладка, огонь — взять, действие — выход.
-   Тач — крестовина + ● огонь (через движок) и ◆ действие / ⇄ оружие (свои кнопки), только И1. */
+   Тач (волна 6, площадки) — виртуальный стик (js/stick.js) + ● огонь (через движок) и ◆ действие / ⇄ оружие (свои кнопки), только И1;
+   «Автоприцел» (пункт меню, только на тач-экране, по умолчанию вкл.): герой сам поворачивается к ближнему видимому врагу и стреляет.
+   Геймпад — движком по раскладке usePlayers: A — огонь, B — действие, X — оружие. */
 (function (global) {
   'use strict';
   var OT = global.OTSEK, L = OT.logic;
@@ -11,7 +13,7 @@
     modern: Object.assign({}, TH.modern, { bg: '#0b0e11', panel: '#12171b', ink: '#eef1f2', muted: '#9aa6ad', accent: '#d6e04f', grid: '#262e33' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#e0e040', muted: '#a8a8b8' })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: L.VIEW_W, height: L.SCREEN_H, gameId: 'otsek', strings: OT.STR, theme: 'modern', lives: 3, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: L.VIEW_W, height: L.SCREEN_H, gameId: 'otsek', leaderboard: 'otsek', strings: OT.STR, theme: 'modern', lives: 3, themes: themes });
   OT.g = g;
   var pad = document.querySelector('.pad');
   OT.ui.init(g);
@@ -21,7 +23,7 @@
   g.usePlayers({
     bind: L.BIND, actions: ['fire', 'use', 'swap'], pad: pad,
     touch: { L: 'left', R: 'right', U: 'up', D: 'down', A: 'fire' },
-    hint: { ru: [OT.STR.ru.hint1, OT.STR.ru.hint2], en: [OT.STR.en.hint1, OT.STR.en.hint2] }
+    hint: ['ru', 'en', 'tr', 'es', 'pt'].reduce(function (o, l) { o[l] = [OT.STR[l].hint1, OT.STR[l].hint2]; return o; }, {})
   });
   g.input.bindDpad(pad);
 
@@ -56,6 +58,7 @@
     if (type === 'bossDie' || type === 'blast') shakeT = 1.2;
     if (type === 'alarm') shakeT = 0.6;
     sync();
+    if (type === 'deck' && d.n > 1 && g._sceneName === 'play' && g.adReady()) { cardDeck = d.n - 1; g.goto('card'); }   // межстраничная — по нажатию на карточке (Яндекс 4.4)
     if (type === 'win') { sync(); g.win(); }
     else if (type === 'gameover') { sync(); g.gameover(); }
   }
@@ -90,6 +93,29 @@
     b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('mousedown', on);
   });
 
+  // ---------- Тач (волна 6): стик и автоприцел ----------
+  var AIM_KEY = 'arcade.otsek.aim', aimOn = true;
+  try { aimOn = localStorage.getItem(AIM_KEY) !== '0'; } catch (e) {}
+  var stick = global.ArcadeStick.create(pad && pad.querySelector('[data-stick]'), {
+    onFlick: function (dx, dy) { if (game && g._sceneName === 'play' && game.state().phase === 'term' && game.state().term.pi === 0) { if (dy) game.termMove(dy); else game.termTab(dx); } }
+  });
+  function touchMode() { return g.input.device === 'touch' || g.input.touchOnly; }
+  var aimItem = { key: 'aim', label: function () { return g.t('aim') + ': ' + g.t(aimOn ? 'on' : 'off'); },
+    onSelect: function () { aimOn = !aimOn; try { localStorage.setItem(AIM_KEY, aimOn ? '1' : '0'); } catch (e) {} } };
+  function syncAim() { if (touchMode()) g.menu.addItem(Object.assign({ after: 'players' }, aimItem)); else g.menu.removeItem('aim'); }   // пункт — только на тач-экране
+  syncAim(); g.input.onDevice(syncAim);
+  // ближайший враг в радиусе и на линии огня (только то, что видно игроку)
+  function aimTarget(h, S) {
+    var best = null, bd = 240;
+    var list = S.enemies.slice(); if (S.boss && !S.boss.dead && game._bossVuln()) list.push(S.boss);   // ядро босса — когда уязвимо
+    list.forEach(function (e) {
+      if (e.dead) return;
+      var d = Math.hypot(e.x - h.x, e.y - h.y) - (e.r || 0); if (d >= bd) return;
+      if (!game._los(h.x, h.y, e.x, e.y)) return; best = e; bd = d;
+    });
+    return best;
+  }
+
   // ---------- Титул: палуба во тьме, луч фонаря и рой ----------
   var demo = OT.Game({ players: 2, seed: 7, rng: L.mulberry32(3) }).start(), demoT = 0;
   (function () {
@@ -113,11 +139,11 @@
     var th = this.th(), P = pal(), W = this.W, H = this.H;
     OT.ui.render(this, ctx, demoState(), P, { bare: true });
     ctx.fillStyle = P.pixel ? 'rgba(0,0,0,.35)' : 'rgba(4,6,8,.35)'; ctx.fillRect(0, 0, W, H);
-    var pw = 420, ph = 330, px = (W - pw) / 2, py = 40;
+    var pw = 420, ph = Math.min(H - 70, Math.max(330, 190 + menu.items.length * 30)), px = (W - pw) / 2, py = 30;
     OT.ui.panel(ctx, px, py, pw, ph, P, P.accent);
     OT.ui.txt(this, this.t('title'), W / 2, py + 70, { size: 60, align: 'center', color: P.accent, weight: 900 }, P);
     OT.ui.txt(this, this.t('subtitle'), W / 2, py + 96, { size: 11, align: 'center', color: th.muted, weight: 600, shadow: false }, P);
-    menu.draw(this, W / 2, py + 146, 30);
+    var mf = menuFit(menu, py + 146, 30, py + 130, py + ph - 40); menu.draw(this, W / 2, mf[0], mf[1]);
     if (this.state.best) OT.ui.txt(this, this.t('best') + ': ' + this.state.best, W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600, shadow: false }, P);
     this.menu._drawHint('title');
   };
@@ -127,6 +153,38 @@
     if (this._sceneName === 'win' || this._sceneName === 'gameover') OT.ui.render(this, this.ctx, game ? game.state() : demoState(), pal(), { bare: true });
   };
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
+
+  // ---------- Площадка (движок v2.8/2.9): таблица лидеров «otsek», «Без рекламы» (no_ads) в меню и паузе, реклама за награду ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «otsek», GamePush — числовое поле игрока «otsek» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/otsek/platform.json (arcade-full). На сайте (без площадки) пунктов нет.
+  var LB = 'otsek';
+  g.persist('arcade.best.otsek', 'max');
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
+  // «Ещё один шанс» (раз за партию): выбывшие встают с 1 жизнью на месте (после взрыва отсека — палуба отстыкована); бонус в паузе — +1 жизнь И1
+  g.useRewardedContinue({ revive: function () { if (game) { game.reviveAd(); sync(); } } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { return !!game && game.canBoost(); }, grant: function () { if (game) game.boost(); } });
+  // Меню вмещает пункты площадки («Лидеры», «Без рекламы», «Автоприцел»): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
+  // ---------- Карточка «палуба отстыкована» (только когда площадка готова показать межстраничную): нажатие → реклама → следующая палуба ----------
+  var cardDeck = 0, cardGoing = false;
+  function cardGo() { if (cardGoing || g._sceneName !== 'card') return; cardGoing = true; g.adBreak().then(function () { cardGoing = false; if (g._sceneName === 'card') g.goto('play', { resume: true }); }); }
+  g.scene('card', {
+    enter: function () { cardGoing = false; },
+    press: function (a) { if (a === 'action' || a === 'start') cardGo(); else if (a === 'pause') this.goto('play', { resume: true }); },
+    draw: function (ctx) {
+      var th = this.th(), P = pal();
+      if (game) OT.ui.render(this, ctx, game.state(), P, { bare: true }); else this.clear();
+      ctx.fillStyle = 'rgba(4,6,8,.78)'; ctx.fillRect(0, 0, this.W, this.H);
+      OT.ui.txt(this, OT.ui.up(P, this.t('clear')), this.W / 2, this.H / 2 - 34, { size: 30, align: 'center', color: th.accent, weight: 900, maxWidth: this.W - 40 }, P);
+      OT.ui.txt(this, this.t('level') + ' ' + cardDeck + '/' + L.MAX_DECK + (game ? ' · ' + this.t('score') + ': ' + game.state().score : ''), this.W / 2, this.H / 2 + 6, { size: 16, align: 'center', color: th.ink, weight: 700, maxWidth: this.W - 40 }, P);
+      OT.ui.txt(this, this.t('cardNext'), this.W / 2, this.H / 2 + 44, { size: 14, align: 'center', color: th.muted, weight: 600, maxWidth: this.W - 40 }, P);
+    }
+  });
+  g.canvas.addEventListener('pointerdown', function (e) { if (g._sceneName === 'card') { e.preventDefault(); cardGo(); } });
 
   // ---------- Игровая сцена ----------
   g.scene('play', {
@@ -146,7 +204,15 @@
             prevDir[pi] = { tx: tx, ty: ty };
           }
           if (pi < S.heroes.length) { game.setMove(pi, 0, 0); game.setFire(pi, false); }
-        } else if (pi < S.heroes.length) { game.setMove(pi, mx, my); game.setFire(pi, on && P.pressed('fire')); prevDir[pi] = {}; }
+        } else if (pi < S.heroes.length) {
+          var fire = on && P.pressed('fire');
+          if (pi === 0 && stick.active) { mx = stick.x; my = stick.y; }
+          if (pi === 0 && aimOn && touchMode() && !fire) {   // автоприцел (тач): повернуться к врагу и стрелять
+            var h0 = S.heroes[0], tg = h0 && h0.alive && aimTarget(h0, S);
+            if (tg) { var al = Math.hypot(tg.x - h0.x, tg.y - h0.y) || 1; h0.face = [(tg.x - h0.x) / al, (tg.y - h0.y) / al]; fire = true; }
+          }
+          game.setMove(pi, mx, my); game.setFire(pi, fire); prevDir[pi] = {};
+        }
       }
       game.update(Math.min(dt, 0.05));
       if (shakeT > 0) shakeT -= dt;

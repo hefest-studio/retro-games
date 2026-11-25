@@ -1,4 +1,4 @@
-/* ЛАЗУТЧИК · i18n (RU/EN). LZ.STR — таблицы для Arcade.createGame({strings}).
+/* ЛАЗУТЧИК · i18n (RU/EN/TR/ES/PT — движок v2.8 берёт языки из ключей strings; название: RU — ЛАЗУТЧИК, EN/TR/ES/PT — OWLSTEP). LZ.STR — таблицы для Arcade.createGame({strings}).
    Ключи play/language/theme/... нужны стандартным экранам движка; остальные — игре. */
 (function (global) {
   'use strict';
@@ -33,7 +33,8 @@
       w1: 'Матрица возвращена, конвейер Арсенала встал.', lose_caught: 'Стража скрутила Филина.', lose_ring: 'Будильник прозвенел, а Филин ещё внутри.',
       t_time: 'Время', t_kos: 'Стража в нокауте', t_alarms: 'Тревог', t_new: 'НОВЫЙ РЕКОРД ВРЕМЕНИ!',
       b_punch: 'РУКА', b_kick: 'НОГА', b_item: 'ВЕЩЬ', b_run: 'БЕГ', b_flash: 'СВЕТ',
-      foot: '<b>ЛАЗУТЧИК</b> · ← → / A D — шаг · Shift — бег (шумно) · ↓ / S — присесть, красться; на люке — открыть · ↑ / W — лестница, лифт, дрезина, рычаг, заложить будильник · Пробел / X — рука (↑ + рука — бросок) · C / K — нога (↓ + нога — подсечка) · Z — поднять / метнуть предмет · F — фонарик · P / Esc — пауза · L язык, T тема, M звук.'
+      rwLife: 'Реклама: +1 попытка',
+      foot: '<b>ЛАЗУТЧИК</b> · ← → / A D — шаг · Shift — бег (шумно) · ↓ / S — присесть, красться; на люке — открыть · ↑ / W — лестница, лифт, дрезина, рычаг, заложить будильник · Пробел / X — рука (↑ + рука — бросок) · C / K — нога (↓ + нога — подсечка) · Z — поднять / метнуть предмет · F — фонарик · P / Esc — пауза · L язык, T тема, M звук. Тач — стик: шаг, до упора — бег, вниз — присесть, вверх — лестница/рычаг; РУКА, НОГА, ВЕЩЬ, СВЕТ.'
     },
     en: {
       play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
@@ -63,7 +64,101 @@
       w1: 'The die is recovered and the Arsenal conveyor has stopped.', lose_caught: 'The guards have pinned the Owl down.', lose_ring: 'The clock rang while the Owl was still inside.',
       t_time: 'Time', t_kos: 'Guards knocked out', t_alarms: 'Alarms', t_new: 'NEW BEST TIME!',
       b_punch: 'PUNCH', b_kick: 'KICK', b_item: 'ITEM', b_run: 'RUN', b_flash: 'TORCH',
-      foot: '<b>OWLSTEP</b> · ← → / A D — step · Shift — run (noisy) · ↓ / S — crouch, sneak; on a hatch — open · ↑ / W — ladder, lift, handcar, lever, plant the clock · Space / X — punch (↑ + punch — throw) · C / K — kick (↓ + kick — sweep) · Z — pick up / throw an item · F — torch · P / Esc — pause · L language, T theme, M sound.'
+      rwLife: 'Watch ad: +1 try',
+      foot: '<b>OWLSTEP</b> · ← → / A D — step · Shift — run (noisy) · ↓ / S — crouch, sneak; on a hatch — open · ↑ / W — ladder, lift, handcar, lever, plant the clock · Space / X — punch (↑ + punch — throw) · C / K — kick (↓ + kick — sweep) · Z — pick up / throw an item · F — torch · P / Esc — pause · L language, T theme, M sound. Touch — stick: step, push all the way — run, down — crouch, up — ladder/lever; PUNCH, KICK, ITEM, TORCH.'
     }
+  };
+  LZ.STR.tr = {
+    play: 'Oyna', language: 'Dil', theme: 'Tema', sound: 'Ses', on: 'açık', off: 'kapalı',
+    score: 'Puan', level: 'Zorluk', best: 'Rekor', lives: 'Deneme',
+    win: 'MÜHÜR EVDE!', gameover: 'BAYKUŞ YAKALANDI',
+    pause: 'DURAKLATILDI', resume: 'Devam et', menu: 'Ana menü', tapstart: 'boşluk / dokun',
+    title: 'OWLSTEP', subtitle: 'Hefest atölyesinin Baykuş lakaplı gece bekçisi',
+    sub2: 'Paslı Cephanelik\'e sız · Usta\'nın mühür kalıbını geri al · makine salonunda çalar saati kur',
+    hint: '←→ adım · Shift koş · ↓ çömel (gölgede görünmez) · ↑ merdiven/kol · Boşluk yumruk · C tekme · Z eşya · F fener',
+    back: 'Katalog', diff: 'Zorluk', bestTime: 'En iyi süre',
+    d1: 'Bekçi', d2: 'Devriye', d3: 'Sızıcı', d4: 'Görünmez', d5: 'Hayalet',
+    d1s: 'az muhafız, uzun saat kurgusu', d2s: 'muhafızlar daha uyanık', d3s: 'değişmiş devriye yolları', d4s: 'daha çok muhafız, kısa kurgu', d5s: 'muhafızlar daha uzağı görür, sert vurur',
+    z_roof: 'Çatı', z_loft: 'Depo asma katı', z_office: 'Yazıhane', z_store: 'Alt depo', z_shop: 'Atölye', z_mine: 'Maden kuyusu', z_assembly: 'Montaj salonu', z_boiler: 'Kazan dairesi', z_foundry: 'Dökümhane', z_engine: 'Makine salonu', z_sewer: 'Kanalizasyon',
+    hp: 'SAĞLIK', en: 'ENERJİ', time: 'SÜRE', bomb: 'ÇALAR SAAT', alarm: 'ALARM!', hand: 'elde',
+    c_red: 'kırmızı', c_blue: 'mavi', c_yellow: 'sarı',
+    i_wrench: 'somun anahtarı', i_brick: 'tuğla', i_crowbar: 'levye', i_washer: 'yıldız pul',
+    k_boxer: 'kapıcı', k_heavy: 'ateşçi', k_thrower: 'somun atıcı', k_dog: 'kurmalı köpek',
+    m_card: 'Kart: ', m_locked: 'Gereken kart: ', m_grate: 'Izgara öbür taraftan kilitli', m_grateOpen: 'Kol çekildi — ızgara açık',
+    m_matrix: 'USTANIN MÜHRÜ! Şimdi makine salonuna', m_needMatrix: 'Önce mühür kalıbını bul', m_planted: 'SAAT KURULDU! Çıkış borusuna koş',
+    m_short: 'Makine salonunun zeminindeki kapak kanalizasyona iner', m_tired: 'nefes kalmadı', m_noItem: 'alınacak bir şey yok', m_thermos: 'termostan çay', m_take: 'sessiz!', m_block: 'blok', m_whiff: 'ıska — köpek alçakta', m_heavy: 'çok ağır', m_duck: 'eğildi', m_hidden: 'gölgede',
+    m_cartCall: 'el arabası geliyor…', m_liftEnd: 'asansör daha ileri gitmiyor', m_calm: 'alarm bitti', m_flashOn: 'fener açık (karanlıkta görünürsün)', m_flashOff: 'fener kapalı',
+    m_hint1: 'Sandıkların yanında çömel (↓) — gölgede muhafız seni görmez', m_hint2: 'Habersiz bir muhafıza arkadan vur — sessiz nakavt',
+    brief1: 'Paslı Cephanelik\'teki rakipler Hefest Ustası\'nın mühür kalıbını çaldı.',
+    brief2: 'Baykuş lakaplı gece bekçisi, yeraltı fabrikalarının çıkış borusundan içeri süzülüyor.',
+    brief3: 'Kalıbı bul, makine salonuna kurmalı çalar saati yerleştir — ve zamanında çık.',
+    brief4: 'Boşluk / Enter — başla',
+    w1: 'Kalıp geri alındı, Cephanelik\'in bandı durdu.', lose_caught: 'Muhafızlar Baykuş\'u yere yapıştırdı.', lose_ring: 'Saat çaldığında Baykuş hâlâ içerideydi.',
+    t_time: 'Süre', t_kos: 'Nakavt edilen muhafız', t_alarms: 'Alarm', t_new: 'YENİ SÜRE REKORU!',
+    b_punch: 'YUMRUK', b_kick: 'TEKME', b_item: 'EŞYA', b_run: 'KOŞ', b_flash: 'FENER',
+    rwLife: 'Reklam: +1 deneme',
+    foot: '<b>OWLSTEP</b> · ← → / A D — adım · Shift — koş (gürültülü) · ↓ / S — çömel, sinsice yürü; kapakta — aç · ↑ / W — merdiven, asansör, el arabası, kol, saati kur · Boşluk / X — yumruk (↑ + yumruk — fırlat) · C / K — tekme (↓ + tekme — çelme) · Z — eşya al / at · F — fener · P / Esc — duraklat · L dil, T tema, M ses. Dokunmatik — çubuk: adım, sonuna kadar — koş, aşağı — çömel, yukarı — merdiven/kol; YUMRUK, TEKME, EŞYA, FENER.'
+  };
+  LZ.STR.es = {
+    play: 'Jugar', language: 'Idioma', theme: 'Tema', sound: 'Sonido', on: 'sí', off: 'no',
+    score: 'Puntos', level: 'Dificultad', best: 'Récord', lives: 'Intentos',
+    win: '¡EL TROQUEL ESTÁ EN CASA!', gameover: 'EL BÚHO, ATRAPADO',
+    pause: 'PAUSA', resume: 'Continuar', menu: 'Menú principal', tapstart: 'espacio / toca',
+    title: 'OWLSTEP', subtitle: 'El vigilante nocturno del taller Hefest, apodado el Búho',
+    sub2: 'Cuélate en el Arsenal Oxidado · recupera el troquel del Maestro · da cuerda al despertador en la sala de máquinas',
+    hint: '←→ paso · Mayús correr · ↓ agacharse (invisible en sombra) · ↑ escalera/palanca · Espacio puño · C patada · Z objeto · F linterna',
+    back: 'Catálogo', diff: 'Dificultad', bestTime: 'Mejor tiempo',
+    d1: 'Sereno', d2: 'Rondador', d3: 'Intruso', d4: 'Invisible', d5: 'Fantasma',
+    d1s: 'pocos guardias, mucha cuerda', d2s: 'guardias más atentos', d3s: 'rondas cambiadas', d4s: 'más guardias, poca cuerda', d5s: 'los guardias ven más lejos y pegan más fuerte',
+    z_roof: 'Tejado', z_loft: 'Altillo del almacén', z_office: 'Oficina', z_store: 'Almacén inferior', z_shop: 'Taller', z_mine: 'Pozo de mina', z_assembly: 'Nave de montaje', z_boiler: 'Sala de calderas', z_foundry: 'Fundición', z_engine: 'Sala de máquinas', z_sewer: 'Alcantarilla',
+    hp: 'SALUD', en: 'ENERGÍA', time: 'TIEMPO', bomb: 'DESPERTADOR', alarm: '¡ALARMA!', hand: 'en la mano',
+    c_red: 'roja', c_blue: 'azul', c_yellow: 'amarilla',
+    i_wrench: 'llave inglesa', i_brick: 'ladrillo', i_crowbar: 'palanqueta', i_washer: 'arandela estrella',
+    k_boxer: 'portero', k_heavy: 'fogonero', k_thrower: 'lanzatuercas', k_dog: 'perro de cuerda',
+    m_card: 'Tarjeta: ', m_locked: 'Hace falta tarjeta: ', m_grate: 'La reja está cerrada por el otro lado', m_grateOpen: 'Palanca — reja abierta',
+    m_matrix: '¡EL TROQUEL DEL MAESTRO! Ahora, a la sala de máquinas', m_needMatrix: 'Primero encuentra el troquel', m_planted: '¡DESPERTADOR EN MARCHA! Corre al desagüe',
+    m_short: 'Una trampilla en el suelo de la sala de máquinas baja a la alcantarilla', m_tired: 'sin aliento', m_noItem: 'aquí no hay nada', m_thermos: 'té del termo', m_take: '¡silencio!', m_block: 'bloqueo', m_whiff: 'fallo — el perro va bajo', m_heavy: 'pesa demasiado', m_duck: 'esquiva', m_hidden: 'en sombra',
+    m_cartCall: 'viene la vagoneta…', m_liftEnd: 'el ascensor no sigue', m_calm: 'la alarma ha pasado', m_flashOn: 'linterna encendida (te ven en la oscuridad)', m_flashOff: 'linterna apagada',
+    m_hint1: 'Agáchate junto a las cajas (↓): en la sombra no te ven', m_hint2: 'Golpea por detrás a un guardia desprevenido: KO silencioso',
+    brief1: 'Los rivales del Arsenal Oxidado han robado el troquel del Maestro de Hefest.',
+    brief2: 'Un vigilante nocturno apodado el Búho se cuela por el desagüe de su fábrica subterránea.',
+    brief3: 'Encuentra el troquel, deja un despertador de cuerda en la sala de máquinas y sal a tiempo.',
+    brief4: 'Espacio / Enter — empezar',
+    w1: 'El troquel ha vuelto y la cadena del Arsenal se ha parado.', lose_caught: 'Los guardias han reducido al Búho.', lose_ring: 'El despertador sonó con el Búho aún dentro.',
+    t_time: 'Tiempo', t_kos: 'Guardias noqueados', t_alarms: 'Alarmas', t_new: '¡NUEVO RÉCORD DE TIEMPO!',
+    b_punch: 'PUÑO', b_kick: 'PATADA', b_item: 'OBJETO', b_run: 'CORRER', b_flash: 'LUZ',
+    rwLife: 'Anuncio: +1 intento',
+    foot: '<b>OWLSTEP</b> · ← → / A D — paso · Mayús — correr (hace ruido) · ↓ / S — agacharse, sigilo; en una trampilla — abrir · ↑ / W — escalera, ascensor, vagoneta, palanca, dejar el despertador · Espacio / X — puño (↑ + puño — lanzar) · C / K — patada (↓ + patada — barrido) · Z — coger / lanzar objeto · F — linterna · P / Esc — pausa · L idioma, T tema, M sonido. Táctil — stick: paso, a fondo — correr, abajo — agacharse, arriba — escalera/palanca; PUÑO, PATADA, OBJETO, LUZ.'
+  };
+  LZ.STR.pt = {
+    play: 'Jogar', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'lig.', off: 'desl.',
+    score: 'Pontos', level: 'Dificuldade', best: 'Recorde', lives: 'Tentativas',
+    win: 'A MATRIZ ESTÁ EM CASA!', gameover: 'A CORUJA FOI PEGA',
+    pause: 'PAUSA', resume: 'Continuar', menu: 'Menu principal', tapstart: 'espaço / toque',
+    title: 'OWLSTEP', subtitle: 'O vigia noturno da oficina Hefest, apelidado de Coruja',
+    sub2: 'Entre no Arsenal Enferrujado · recupere a matriz do Mestre · dê corda no despertador na sala de máquinas',
+    hint: '←→ passo · Shift correr · ↓ agachar (invisível na sombra) · ↑ escada/alavanca · Espaço soco · C chute · Z item · F lanterna',
+    back: 'Catálogo', diff: 'Dificuldade', bestTime: 'Melhor tempo',
+    d1: 'Vigia', d2: 'Rondante', d3: 'Intruso', d4: 'Invisível', d5: 'Fantasma',
+    d1s: 'poucos guardas, corda longa', d2s: 'guardas mais atentos', d3s: 'rondas alteradas', d4s: 'mais guardas, corda curta', d5s: 'guardas veem mais longe e batem mais forte',
+    z_roof: 'Telhado', z_loft: 'Mezanino do depósito', z_office: 'Escritório', z_store: 'Depósito inferior', z_shop: 'Oficina', z_mine: 'Poço da mina', z_assembly: 'Galpão de montagem', z_boiler: 'Casa das caldeiras', z_foundry: 'Fundição', z_engine: 'Sala de máquinas', z_sewer: 'Esgoto',
+    hp: 'SAÚDE', en: 'ENERGIA', time: 'TEMPO', bomb: 'DESPERTADOR', alarm: 'ALARME!', hand: 'na mão',
+    c_red: 'vermelho', c_blue: 'azul', c_yellow: 'amarelo',
+    i_wrench: 'chave inglesa', i_brick: 'tijolo', i_crowbar: 'pé de cabra', i_washer: 'arruela estrela',
+    k_boxer: 'porteiro', k_heavy: 'foguista', k_thrower: 'atirador de porcas', k_dog: 'cão de corda',
+    m_card: 'Cartão: ', m_locked: 'Precisa do cartão ', m_grate: 'A grade está trancada do outro lado', m_grateOpen: 'Alavanca — grade aberta',
+    m_matrix: 'A MATRIZ DO MESTRE! Agora, à sala de máquinas', m_needMatrix: 'Primeiro ache a matriz', m_planted: 'DESPERTADOR ARMADO! Corra para o escoadouro',
+    m_short: 'Um alçapão no chão da sala de máquinas desce ao esgoto', m_tired: 'sem fôlego', m_noItem: 'nada para pegar', m_thermos: 'chá da garrafa térmica', m_take: 'silêncio!', m_block: 'bloqueio', m_whiff: 'errou — o cão é baixo', m_heavy: 'pesado demais', m_duck: 'esquivou', m_hidden: 'na sombra',
+    m_cartCall: 'lá vem o carrinho…', m_liftEnd: 'o elevador não vai além', m_calm: 'o alarme passou', m_flashOn: 'lanterna ligada (visto no escuro)', m_flashOff: 'lanterna desligada',
+    m_hint1: 'Agache junto às caixas (↓): na sombra os guardas não veem', m_hint2: 'Bata por trás num guarda distraído: nocaute silencioso',
+    brief1: 'Os rivais do Arsenal Enferrujado roubaram a matriz do Mestre da Hefest.',
+    brief2: 'Um vigia noturno apelidado de Coruja entra pelo escoadouro da fábrica subterrânea deles.',
+    brief3: 'Ache a matriz, deixe um despertador de corda na sala de máquinas e saia a tempo.',
+    brief4: 'Espaço / Enter — começar',
+    w1: 'A matriz voltou e a esteira do Arsenal parou.', lose_caught: 'Os guardas imobilizaram a Coruja.', lose_ring: 'O despertador tocou com a Coruja ainda lá dentro.',
+    t_time: 'Tempo', t_kos: 'Guardas nocauteados', t_alarms: 'Alarmes', t_new: 'NOVO RECORDE DE TEMPO!',
+    b_punch: 'SOCO', b_kick: 'CHUTE', b_item: 'ITEM', b_run: 'CORRER', b_flash: 'LUZ',
+    rwLife: 'Anúncio: +1 tentativa',
+    foot: '<b>OWLSTEP</b> · ← → / A D — passo · Shift — correr (faz barulho) · ↓ / S — agachar, andar furtivo; num alçapão — abrir · ↑ / W — escada, elevador, carrinho, alavanca, armar o despertador · Espaço / X — soco (↑ + soco — arremesso) · C / K — chute (↓ + chute — rasteira) · Z — pegar / atirar item · F — lanterna · P / Esc — pausa · L idioma, T tema, M som. Toque — stick: passo, até o fim — correr, para baixo — agachar, para cima — escada/alavanca; SOCO, CHUTE, ITEM, LUZ.'
   };
 })(typeof window !== 'undefined' ? window : globalThis);

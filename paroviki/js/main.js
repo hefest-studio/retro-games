@@ -3,7 +3,10 @@
    Свои пункты меню: «Продолжить» (сохранение), «Герой И1», «Герой И2 / Напарник (ИИ)», «Пароль». Своя сцена: password.
    Лавка между уровнями — фаза игры внутри сцены play (у каждого игрока своя колонка).
    Хранение: сохранение — arcade.paroviki.save, выбор героев — arcade.paroviki.heroes.
-   Тач (только И1): крестовина [data-d], кнопки [data-act] «огонь»/«спецприём», [data-pause]. */
+   Тач (только И1; волна 6, площадки): виртуальный стик [data-stick] (js/stick.js), кнопки [data-act] «огонь»/«спецприём», [data-pause];
+   «Автоприцел» (пункт меню только на тач-экране, по умолчанию вкл.) — герой сам поворачивается к ближнему врагу на линии огня и стреляет.
+   В лавке стик листает строки, ● — купить. «Пароль» на тач-экране скрыт: сохранение и так уходит в облако площадки (g.persist).
+   Геймпад — движком по раскладке usePlayers: A — огонь, B — спецприём. */
 (function (global) {
   'use strict';
   var PV = global.PAROVIKI, L = PV.logic;
@@ -12,7 +15,7 @@
     modern: Object.assign({}, TH.modern, { bg: '#141312', panel: '#1a1917', ink: '#f2ece0', muted: '#a3a9b3', accent: '#e0b04c', grid: '#2a2826' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#f8c048', muted: '#a8a8a8' })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.SCREEN_H, gameId: 'paroviki', strings: PV.STR, theme: 'modern', lives: 3, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.SCREEN_H, gameId: 'paroviki', leaderboard: 'paroviki', strings: PV.STR, theme: 'modern', lives: 3, themes: themes });
   PV.g = g;
   var pad = document.querySelector('.pad');
   PV.ui.init(g);
@@ -30,7 +33,7 @@
   g.useStandardScreens({ lives: 3 });
   g.usePlayers({
     bind: L.BIND, actions: ['fire', 'spec'], pad: pad, touch: { L: 'left', R: 'right', U: 'up', D: 'down' },
-    hint: { ru: [PV.STR.ru.hint1, PV.STR.ru.hint2], en: [PV.STR.en.hint1, PV.STR.en.hint2] }
+    hint: ['ru', 'en', 'tr', 'es', 'pt'].reduce(function (o, l) { o[l] = [PV.STR[l].hint1, PV.STR[l].hint2]; return o; }, {})
   });
   g.input.bindDpad(pad);
 
@@ -93,13 +96,15 @@
     if (type === 'heroDie' || type === 'thud' || type === 'kill' && d.type === 'nest') shakeT = Math.max(shakeT, 0.25);
     if (type === 'special' && d.kind === 'bomb') shakeT = Math.max(shakeT, 0.4);
     if (type === 'bossDie') shakeT = 1.4;
-    if (type === 'shop') { sset(SAVE_KEY, JSON.stringify(game.progress())); syncMenu(); flash = [{ t: 0 }, { t: 0 }]; }
+    if (type === 'shop') { saveProgress(); syncMenu(); flash = [{ t: 0 }, { t: 0 }]; fromShop = true; }
+    if (type === 'level' && fromShop) { fromShop = false; if (g.adReady()) g.adBreak(); }   // межстраничная — по нажатию «Готов» в лавке (Яндекс 4.4)
     sync();
-    if (type === 'win') { sset(SAVE_KEY, null); syncMenu(); g.win(); }
-    else if (type === 'gameover') { sset(SAVE_KEY, null); syncMenu(); g.gameover(); }
+    if (type === 'win') { g.storeSet(SAVE_KEY, ''); syncMenu(); g.win(); }
+    else if (type === 'gameover') { syncMenu(); g.gameover(); }   // сохранение стирается на окончательном финале (сцена gameover), не на «ещё одном шансе»
   }
-  var pending = null;
-  function startGame(save) { pending = save; g.state.score = save ? save.score || 0 : 0; g.goto('play'); }
+  var pending = null, fromShop = false;
+  function saveProgress() { if (game) g.storeSet(SAVE_KEY, JSON.stringify(game.progress())); }   // + облако площадки (g.persist)
+  function startGame(save) { g.resetRun(); pending = save; g.state.score = save ? save.score || 0 : 0; g.goto('play'); }
   function newGame(save) {
     var o = { players: nP(), onEvent: onEvent, seed: Math.floor(Math.random() * 1e6), heroes: heroes.slice() };
     if (save) { o.save = save; o.players = save.players === 2 && !g.input.touchOnly ? 2 : 1; g.input.setPlayerCount(o.players); if (save.seed) o.seed = save.seed; }
@@ -121,7 +126,7 @@
     if (it === 'ready') { game.shopReady(pi); return; }
     var p = game.price(pi, it), t = S.team[pi];
     if (p == null) { flash[pi] = { t: 1.2, ok: false, text: g.t('max') }; g.audio.beep(180, 0.08); }
-    else if (game.buy(pi, it)) { flash[pi] = { t: 1.2, ok: true, text: '−' + p }; sset(SAVE_KEY, JSON.stringify(game.progress())); }
+    else if (game.buy(pi, it)) { flash[pi] = { t: 1.2, ok: true, text: '−' + p }; saveProgress(); }
     else { flash[pi] = { t: 1.2, ok: false, text: g.t('noMoney') + ' ' + (p - t.money) }; g.audio.beep(160, 0.12, 'square', 0.05); }
   }
   function shopNav(pi, dir) { var S = game.state(), st = S.shop[pi]; if (st.ready || (S.aiOn && pi === 1)) return; var n = game.shopItems(pi).length; st.sel = (st.sel + dir + n) % n; g.audio.beep(600, 0.03); }
@@ -145,6 +150,26 @@
     var pi = x < g.W / 2 ? 0 : 1, row = Math.round((y - 70 - 72 + 4) / 38), n = game.shopItems(pi).length;
     if (row >= 0 && row < n && (pi === 0 || nP() === 2)) { game.state().shop[pi].sel = row; shopSelect(pi); }
   });
+
+  // ---------- Тач (волна 6): стик, автоприцел, лавка стиком ----------
+  var AIM_KEY = 'arcade.paroviki.aim', aimOn = sget(AIM_KEY) !== '0';
+  var stick = global.ArcadeStick.create(pad && pad.querySelector('[data-stick]'), {
+    onFlick: function (dx, dy) { if (dy && game && g._sceneName === 'play' && game.state().phase === 'shop') shopNav(0, dy); }
+  });
+  function touchMode() { return g.input.device === 'touch' || g.input.touchOnly; }
+  var aimItem = { key: 'aim', label: function () { return g.t('aim') + ': ' + g.t(aimOn ? 'on' : 'off'); },
+    onSelect: function () { aimOn = !aimOn; sset(AIM_KEY, aimOn ? '1' : '0'); } };
+  function syncTouch() {   // «Автоприцел» — только на тач-экране; «Пароль» там не нужен (облачное сохранение площадки, ввод — клавиатурой)
+    if (touchMode()) { g.menu.addItem(Object.assign({ after: 'hero2' }, aimItem)); g.menu.removeItem('pass'); }
+    else { g.menu.removeItem('aim'); g.menu.addItem({ key: 'pass', after: 'hero2', label: function () { return g.t('pass'); }, onSelect: function () { openPass(); } }); }
+  }
+  // ближайший враг на линии огня в радиусе оружия (не дальше 300 px)
+  function aimTarget(h, S) {
+    var best = null, bd = 300;
+    S.enemies.forEach(function (e) { if (e.dead) return; var d = Math.hypot(e.x - h.x, e.y - h.y) - (e.r || 0); if (d < bd && game._los(h, e)) { best = e; bd = d; } });
+    if (S.boss && !S.boss.dead && S.boss.x != null) { var db = Math.hypot(S.boss.x - h.x, S.boss.y - h.y) - (S.boss.r || 0); if (db < bd && game._los(h, S.boss)) best = S.boss; }
+    return best;
+  }
 
   // ---------- Титул: двое паровиков отбиваются под меню ----------
   var demo = null, demoT = 0;
@@ -172,11 +197,11 @@
     if (!demo) demoInit();
     PV.ui.render(this, ctx, demo.state(), P, { bare: true });
     ctx.fillStyle = P.pixel ? 'rgba(0,0,0,.5)' : 'rgba(10,9,8,.5)'; ctx.fillRect(0, 0, W, H);
-    var n = menu.items.length, pw = 420, ph = 120 + n * 28, px = (W - pw) / 2, py = 30;
+    var n = menu.items.length, pw = 420, ph = Math.min(H - 80, 120 + n * 28), px = (W - pw) / 2, py = 30;
     PV.ui.panel(ctx, px, py, pw, ph, P, P.accent);
     PV.ui.txt(this, this.t('title'), W / 2, py + 62, { size: 54, align: 'center', color: P.accent, weight: 900 }, P);
     PV.ui.txt(this, this.t('subtitle'), W / 2, py + 86, { size: 11, align: 'center', color: th.muted, weight: 600, shadow: false }, P);
-    menu.draw(this, W / 2, py + 122, 28);
+    var mf = menuFit(menu, py + 122, 28, py + 108, py + ph - 14); menu.draw(this, W / 2, mf[0], mf[1]);
     var hd = this.t('hd_' + L.HEROES[heroes[0]].key) + '  ·  ' + this.t('hd_' + L.HEROES[heroes[1]].key);
     PV.ui.txt(this, hd, W / 2, py + ph + 18, { size: 11, align: 'center', color: th.ink, weight: 600, shadow: true }, P);
     if (this.state.best) PV.ui.txt(this, this.t('best') + ': ' + this.state.best, px + pw - 14, py + 20, { size: 11, align: 'right', color: th.muted, weight: 700, shadow: false }, P);
@@ -240,6 +265,25 @@
     PS.chars[PS.pos] = idx; PS.pos = Math.min(9, PS.pos + 1); e.preventDefault();
   }, true);
 
+  // ---------- Площадка (движок v2.8/2.9): таблица лидеров «paroviki», «Без рекламы» (no_ads) в меню и паузе, реклама за награду ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «paroviki», GamePush — числовое поле игрока «paroviki» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/paroviki/platform.json (arcade-full). На сайте (без площадки) пунктов нет.
+  var LB = 'paroviki';
+  g.persist('arcade.best.paroviki', 'max'); g.persist(SAVE_KEY, 'last');
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) { lbBest(); syncMenu(); } });   // облако слито: рекорд — в таблицу, сохранение — в меню
+  // «Ещё один шанс» (раз за партию, после своих продолжений игры): люди встают с 1 жизнью; бонус в паузе — +1 жизнь И1
+  g.useRewardedContinue({ revive: function () { if (game) { game.reviveAd(); sync(); } } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { return !!game && game.canBoost(); }, grant: function () { if (game) game.boost(); } });
+  // окончательный финал (gameover после «ещё шанса» или без него) — сохранение стирается
+  var goEnter = g.scenes.gameover.enter;
+  g.scenes.gameover.enter = function (d) { g.storeSet(SAVE_KEY, ''); syncMenu(); if (goEnter) return goEnter.call(this, d); };
+  // Меню вмещает пункты площадки («Лидеры», «Без рекламы», «Автоприцел»): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
+
   // ---------- Игровая сцена ----------
   g.scene('play', {
     realtime: true,
@@ -258,6 +302,11 @@
         if (on) {
           mx = (P.pressed('right') ? 1 : 0) - (P.pressed('left') ? 1 : 0); my = (P.pressed('down') ? 1 : 0) - (P.pressed('up') ? 1 : 0);
           fire = P.pressed('fire') || (pi === 0 && touchAct.fire);
+          if (pi === 0 && stick.active) { mx = stick.x; my = stick.y; }
+          if (pi === 0 && aimOn && touchMode() && !fire && S.phase === 'play') {   // автоприцел (тач)
+            var h0 = S.heroes[0], tg = h0 && h0.alive && aimTarget(h0, S);
+            if (tg) { var al = Math.hypot(tg.x - h0.x, tg.y - h0.y) || 1; h0.face = [(tg.x - h0.x) / al, (tg.y - h0.y) / al]; fire = true; }
+          }
           if (S.phase === 'shop') { mx = my = 0; fire = false; }
         }
         game.setMove(pi, mx, my); game.setFire(pi, fire);
@@ -272,6 +321,7 @@
     draw: function (ctx) { if (game) PV.ui.render(this, ctx, game.state(), pal(), { toasts: toasts, shake: shakeT > 0 ? 6 * Math.min(1, shakeT * 3) : 0, game: game, flash: flash }); else this.clear(); }
   });
 
+  syncTouch(); g.input.onDevice(syncTouch);
   g.start('title');
   PV.app = { g: g, game: function () { return game; }, newGame: newGame, demo: function () { return demo; }, touch: touchAct };   // для отладки/автотестов в браузере
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -18,6 +18,10 @@ test('16:9 (960×540, 640×360, 512×288; снимок ×2) → full: кадр �
   }
   eq(landscapeLayout(960, 540, 1).plateLeft, true); eq(landscapeLayout(960, 540, 2).plateLeft, false);
 });
+test('чуть шире 16:9 (НАЛЁТ 960×520) → full без обрезки: кадр целиком по ширине, полосы сверху/снизу — размытый кадр', () => {
+  const L = landscapeLayout(960, 520, 1); eq(L.mode, 'full'); eq(L.frame.w, 1280); ok(L.frame.x === 0 && L.frame.y > 0 && L.frame.y + L.frame.h <= 720, JSON.stringify(L.frame));
+  ok(L.bg && L.bg.y <= 0 && L.bg.y + L.bg.h >= 720, 'фон ' + JSON.stringify(L.bg)); ok(!landscapeLayout(960, 540, 1).bg, 'ровно 16:9 — без фона');
+});
 test('почти 16:9 (ГЛУБЬ 640×420, ЖЕОДА 640×400) → fit: по высоте по центру, фон — тот же кадр на весь размер', () => {
   for (const [w, h] of [[640, 420], [640, 400]]) {
     const L = landscapeLayout(w, h, 1); eq(L.mode, 'fit'); eq(L.frame.h, 720); ok(Math.abs(L.frame.x * 2 + L.frame.w - 1280) <= 1, 'по центру ' + JSON.stringify(L.frame));

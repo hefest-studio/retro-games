@@ -793,11 +793,29 @@
       void nh;
     }
 
+    // ---------- Площадка (волна 6): «ещё один шанс» за рекламу и бонус в паузе ----------
+    // reviveAd — после конца бригады: каждый выбывший герой получает 1 жизнь и встаёт на месте с неуязвимостью (рой отброшен);
+    // если бригаду накрыл взрыв отсека — их «вытаскивают» как обычно (палуба отстыкована, без бонуса).
+    function reviveAd() {
+      if (S.phase !== 'over') return false;
+      var blast = !!(S.alarm && S.alarm.t <= 0);
+      S.heroes.forEach(function (h) {
+        if (!h.out) return; h.out = false; h.lives = 1; h.alive = true; h.hp = HP; h.inv = INV_T * 2; h.deadT = 0; h.ammo = Math.max(h.ammo, 60);
+        S.enemies.forEach(function (e) { if (!e.dead && !e.boss && e.speed > 0 && dist(e.x, e.y, h.x, h.y) < 140) { var a = Math.atan2(e.y - h.y, e.x - h.x); move(e, Math.cos(a) * 90, Math.sin(a) * 90, e.r); } });
+      });
+      if (blast) { S.alarm.done = true; S.phase = 'clear'; S.phaseT = 0; S.lastBonus = 0; S.lastLeft = 0; emit('clear', { deck: S.deck, bonus: 0, left: 0, blast: true }); }
+      else S.phase = 'play';
+      emit('revive', {}); return true;
+    }
+    function canBoost() { var h = S.heroes[0]; return !!h && !h.out && h.lives < 5 && (S.phase === 'play' || S.phase === 'term'); }
+    function boost() { if (!canBoost()) return false; S.heroes[0].lives++; return true; }
+
     var api = {
       start: function () { loadDeck(S.deck); return api; },
       update: function (dt) { var n = Math.max(1, Math.ceil(dt / (1 / 60))), h = dt / n; for (var k = 0; k < n; k++) step(h); },
       setMove: function (pi, dx, dy) { var h = S.heroes[pi]; if (h) { h.mx = clamp(dx, -1, 1); h.my = clamp(dy, -1, 1); } },
       setFire: function (pi, on) { var h = S.heroes[pi]; if (h) h.fire = !!on; },
+      reviveAd: reviveAd, canBoost: canBoost, boost: boost,
       use: use, swap: swap, termMove: termMove, termTab: termTab, termBuy: termBuy, termClose: termClose, buy: buy, canBuy: canBuy,
       hint: function (pi) {   // что сделает «действие» рядом с героем (для подсказки на экране и бота)
         var h = S.heroes[pi]; if (!h || !h.alive || h.out || S.phase !== 'play') return null;

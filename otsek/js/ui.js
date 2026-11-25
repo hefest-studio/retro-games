@@ -9,14 +9,16 @@
 
   // ---------- DOM ----------
   function fit(g) {
-    var c = g.canvas, pad = document.querySelector('.pad');
-    var padH = pad && getComputedStyle(pad).display !== 'none' ? pad.offsetHeight + 16 : 0;
+    var c = g.canvas, pad = document.querySelector('.pad'), cs = pad && getComputedStyle(pad);
+    var padH = cs && cs.display !== 'none' && cs.position !== 'fixed' ? pad.offsetHeight + 16 : 0;   // телефон «лёжа»: пульт поверх полей (fixed)
     // ширина окна — clientWidth, а не innerWidth: на телефоне innerWidth — ширина «раздутого» макета (если что-то шире экрана),
     // и холст, подогнанный под неё, сам держит макет широким — края игры обрезаются (QA-прогон: «холст шире экрана»)
     var vw = Math.min(innerWidth, document.documentElement.clientWidth || innerWidth), vh = Math.min(innerHeight, (global.visualViewport && global.visualViewport.height) || innerHeight);
-    var availW = Math.min(vw - 16, 960), availH = vh - padH - 70;
-    var w = Math.max(280, Math.floor(Math.min(availW, availH * g.W / g.H)));
+    var availW = Math.min(vw - 16, 960), availH = vh - padH - (padH ? 70 : 40);
+    var w = Math.max(260, Math.floor(Math.min(availW, availH * g.W / g.H)));
     c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
+    var se = document.scrollingElement || document.documentElement, over = se.scrollHeight - vh;   // страховка от прокрутки (площадки)
+    if (over > 0 && w > 260) { w = Math.max(260, Math.floor(w - over * g.W / g.H) - 2); c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px'; }
   }
   var lastLang = null, lastTheme = null;
   function sync(g) {
@@ -25,6 +27,7 @@
       lastLang = lang; document.documentElement.lang = lang;
       var b = $('backLink'); if (b) b.innerHTML = '&larr; ' + g.t('back');
       var f = $('foot'); if (f) f.innerHTML = g.t('foot');   // строки — наши, из i18n.js
+      fit(g);
     }
     if (theme !== lastTheme) { lastTheme = theme; document.body.setAttribute('data-theme', theme); }
   }

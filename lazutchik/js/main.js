@@ -2,7 +2,9 @@
    Сцены движка: title (перерисован, пункт «Сложность»), pause (+ «Заново»), win, gameover (перерисованы); свои: brief, play.
    Ввод: ←→/AD — шаг; Shift — бег; ↓/S — присесть/красться (на люке — открыть); ↑/W — лестница, лифт, дрезина, рычаг, будильник;
    Пробел/X/J — рука (↑ + рука — бросок); C/K — нога (↓ + нога — подсечка); Z — предмет; F — фонарик.
-   Тач: дпад + кнопки РУКА, НОГА, ВЕЩЬ, БЕГ (переключатель), СВЕТ, II — пауза.
+   Тач (волна 6, площадки): виртуальный стик (js/stick.js) — шаг, до упора в сторону — бег, вниз — присесть, вверх — лестница/рычаг;
+   кнопки РУКА, НОГА, ВЕЩЬ, СВЕТ, II — пауза (переключатель БЕГ больше не нужен). Геймпад — движком: A — рука (Space), B — нога
+   (KeyX → configure: KeyC), X — предмет (KeyZ), Y — фонарик (KeyC → configure: KeyF), LB/RB — бег (Shift).
    Рекорд времени — по сложности, localStorage `lazutchik.time.d<N>` (секунды); счёт — рекорд движка. */
 (function (global) {
   'use strict';
@@ -12,7 +14,7 @@
     modern: Object.assign({}, TH.modern, { bg: '#0b0e14', panel: '#141a24', ink: '#eef2f8', muted: '#9aa6b8', accent: '#e0a23a', grid: '#1e2634', good: '#6fd38c', bad: '#ff6a5a', warn: '#ffcf5a' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: E.y, muted: E.l, ink: E.w, good: E.Gl, bad: E.R, warn: E.y })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: VW, height: VH, gameId: 'lazutchik', strings: LZ.STR, theme: 'modern', lives: 3, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: VW, height: VH, gameId: 'lazutchik', leaderboard: 'lazutchik', strings: LZ.STR, theme: 'modern', lives: 3, themes: themes });
   LZ.g = g;
   g.input.bindDpad(document.querySelector('.pad'));
 
@@ -80,7 +82,7 @@
   var basePauseDraw = g.scenes.pause.draw;
   g.scenes.pause.draw = function (ctx) {
     basePauseDraw.call(this, ctx);
-    this.text(g.t('hint'), VW / 2, VH - 14, { size: retro() ? 9 : 10, align: 'center', color: this.th().muted, weight: 600 });
+    this.text(g.t('hint'), VW / 2, VH - 14, { size: retro() ? 9 : 10, align: 'center', color: this.th().muted, weight: 600, maxWidth: VW - 16 });
   };
 
   // ---------- титул ----------
@@ -112,12 +114,13 @@
     ctx.restore();
     this.text(this.t('subtitle'), Wc / 2, 86, { size: rt ? 12 : 13, align: 'center', color: th.ink, weight: 700 });
     this.text(this.t('sub2'), Wc / 2, 104, { size: rt ? 9 : 10, align: 'center', color: th.muted, weight: 600 });
-    ctx.fillStyle = rt ? 'rgba(0,0,0,.7)' : 'rgba(10,12,18,.72)'; ctx.fillRect(Wc / 2 - 150, 114, 300, 168);
-    menu.draw(this, Wc / 2, 138, 26);
-    this.text(this.t('d' + diff + 's'), Wc / 2, 274, { size: 10, align: 'center', color: th.muted, weight: 600 });
+    var mb = Math.max(168, 64 + menu.items.length * 26), mby = Math.min(114, Hc - 52 - mb); mb = Math.min(mb, Hc - 52 - mby);
+    ctx.fillStyle = rt ? 'rgba(0,0,0,.7)' : 'rgba(10,12,18,.72)'; ctx.fillRect(Wc / 2 - 150, mby, 300, mb);
+    var mf = menuFit(menu, mby + 24, 26, mby + 18, mby + mb - 30); menu.draw(this, Wc / 2, mf[0], mf[1]);
+    this.text(this.t('d' + diff + 's'), Wc / 2, mby + mb - 8, { size: 10, align: 'center', color: th.muted, weight: 600, maxWidth: 290 });
     var bt = bestTime(diff), line2 = (bt ? this.t('bestTime') + ' (' + this.t('d' + diff) + '): ' + fmtT(bt) : '') + (this.state.best ? (bt ? '   ·   ' : '') + this.t('best') + ': ' + this.state.best : '');
-    if (line2) this.text(line2, Wc / 2, 300, { size: 11, align: 'center', color: th.accent, weight: 700 });
-    this.text(this.t('hint'), Wc / 2, Hc - 10, { size: rt ? 9 : 10, align: 'center', color: th.muted, weight: 600 });
+    if (line2) this.text(line2, Wc / 2, Math.max(mby + mb + 18, 300), { size: 11, align: 'center', color: th.accent, weight: 700, maxWidth: Wc - 20 });
+    this.text(this.t('hint'), Wc / 2, Hc - 10, { size: rt ? 9 : 10, align: 'center', color: th.muted, weight: 600, maxWidth: Wc - 16 });
   };
   function wrap(ctx, text, maxW) {
     var words = text.split(' '), lines = [], cur = '';
@@ -131,7 +134,7 @@
     realtime: true,
     enter: function () { this._t = 0; },
     update: function (dt) { this._t += dt; },
-    press: function (a) { if ((a === 'action' || a === 'start' || a === 'pause') && this._t > 0.25) g.goto('play', { resume: true }); },
+    press: function (a) { if (a === 'pause' || ((a === 'action' || a === 'start') && this._t > 0.25)) g.goto('play', { resume: true }); },   // P/Esc — сразу (не клавиша старта)
     draw: function (ctx) {
       var rt = retro(), th = this.th(), t = this._t;
       this.clear(rt ? '#000' : '#090c12');
@@ -148,6 +151,11 @@
       if (Math.floor(this.time * 2) % 2) this.text(this.t('brief4'), VW / 2, VH - 30, { size: 12, align: 'center', color: th.muted, weight: 700 });
     }
   });
+
+  // бриф — тоже часть партии: скрытая вкладка / потеря фокуса на площадке → пауза (движок ставит автопаузу только в play; Яндекс 1.3)
+  function briefAway() { if (g._sceneName === 'brief') g.goto('pause'); }
+  if (typeof document !== 'undefined') document.addEventListener('visibilitychange', function () { if (document.hidden) briefAway(); });
+  addEventListener('blur', function () { if (global.Platform && global.Platform.name !== 'web') briefAway(); });
 
   // ---------- финалы ----------
   function endDraw(name) {
@@ -176,7 +184,25 @@
     var s = S(), bt = bestTime(s.diff);
     if (!bt || s.time < bt) { Store.set('lazutchik.time.d' + s.diff, String(Math.round(s.time * 10) / 10)); if (result) result.newBest = true; }
   };
-  ['win', 'gameover'].forEach(function (n) { g.scenes[n].press = function (a) { if (a === 'action' || a === 'start' || a === 'pause') this.goto('title'); }; });
+  ['win', 'gameover'].forEach(function (n) { g.scenes[n].press = function (a) { if (a === 'action' || a === 'start' || a === 'pause') { this.goto('title'); this._finalExit(n); } }; });   // выход с финала — межстраничная движка (Яндекс 4.4)
+
+  // ---------- Площадка (движок v2.8/2.9): таблица лидеров «lazutchik», «Без рекламы» (no_ads) в меню и паузе, реклама за награду ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «lazutchik», GamePush — числовое поле игрока «lazutchik» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/lazutchik/platform.json (arcade-full). На сайте (без площадки) пунктов нет. Партия одна (без уровней) —
+  // межстраничная только на выходе с финалов.
+  var LB = 'lazutchik';
+  g.persist('arcade.best.lazutchik', 'max'); [1, 2, 3, 4, 5].forEach(function (d) { g.persist('lazutchik.time.d' + d, 'last'); });
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
+  // «Ещё один шанс» (раз за партию): только если Филина поймала стража (не будильник) — 1 попытка у контрольной точки; бонус в паузе — +1 попытка
+  g.useRewardedContinue({ available: function () { return !game || !game.state().over || game.canRevive(); },   // звонок будильника — без шанса
+    revive: function () { if (game) { game.reviveAd(); endT = -1; result = null; playSince = g.time; sync(); } } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { return !!game && game.canBoost(); }, grant: function () { if (game) { game.boost(); sync(); } } });
+  // Меню вмещает пункты площадки («Лидеры», «Без рекламы»): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
 
   // ---------- игровая сцена ----------
   var STEP = 1 / 60;
@@ -197,6 +223,7 @@
       if (shake > 0) shake -= dt;
       var dir = this.input.dir, live = inPlay();
       var run = held.Shift || pad.run;
+      if (stick.active) { dir = { x: Math.abs(stick.x) > 0.3 ? Math.sign(stick.x) : 0, y: stick.y < -0.6 ? -1 : stick.y > 0.55 ? 1 : 0 }; run = run || (Math.abs(stick.x) > 0.92 && Math.abs(stick.y) < 0.4); }   // тач-стик: до упора — бег
       game.setInput(live ? dir.x : 0, live ? dir.y : 0, live && run);
       var n = Math.max(1, Math.min(4, Math.round(Math.min(dt, 0.066) / STEP)));
       for (var k = 0; k < n; k++) game.update(STEP);
@@ -211,6 +238,10 @@
       LZ.render(this, ctx, S(), { banner: banner, tip: tip, shake: shake });
     }
   });
+
+  // ---------- тач-стик (волна 6) и геймпад ----------
+  var stick = global.ArcadeStick.create(document.querySelector('.pad [data-stick]'));
+  if (g.gamepad) g.gamepad.configure({ keys: { b: 'KeyC', y: 'KeyF', lb: 'ShiftLeft', rb: 'ShiftLeft' } });
 
   // ---------- доп. клавиши и тач-кнопки ----------
   var KEYS = { KeyX: 'punch', KeyJ: 'punch', KeyC: 'kick', KeyK: 'kick', KeyZ: 'item', KeyF: 'flash' };
@@ -245,8 +276,12 @@
     var c = g.canvas, wrap = c.parentElement, padEl = document.querySelector('.pad');
     var padFixed = padEl && getComputedStyle(padEl).position === 'fixed';
     var padH = padEl && !padFixed && getComputedStyle(padEl).display !== 'none' ? padEl.offsetHeight + 16 : 0;
-    var w = Math.min(1120, (wrap && wrap.clientWidth) || g.W, (innerHeight - padH - 64) * g.W / g.H);
+    var vw = Math.min(innerWidth, document.documentElement.clientWidth || innerWidth), vh = Math.min(innerHeight, (global.visualViewport && global.visualViewport.height) || innerHeight);
+    var padOn = padEl && getComputedStyle(padEl).display !== 'none';
+    var w = Math.min(1120, padFixed && padOn ? vw - 320 : ((wrap && wrap.clientWidth) || g.W), (vh - padH - (padH ? 64 : 40)) * g.W / g.H);   // «лёжа»: поля по бокам под стик и кнопки
     w = Math.max(240, Math.floor(w)); c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
+    var se = document.scrollingElement || document.documentElement, over = se.scrollHeight - vh;   // страховка от прокрутки (площадки)
+    if (over > 0 && w > 240) { w = Math.max(240, Math.floor(w - over * g.W / g.H) - 2); c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px'; }
   }
   var lastLang = null, lastTheme = null;
   function domSync() {
@@ -255,7 +290,8 @@
       var b = document.getElementById('backLink'); if (b) b.innerHTML = '&larr; ' + g.t('back');
       var f = document.getElementById('foot'); if (f) f.innerHTML = g.t('foot');   // строки — наши, из i18n.js
       [['bPunch', 'b_punch'], ['bKick', 'b_kick'], ['bItem', 'b_item'], ['bRun', 'b_run'], ['bFlash', 'b_flash']].forEach(function (p) { var el = document.getElementById(p[0]); if (el) el.textContent = g.t(p[1]); });
-      document.title = g.t('title') + ' · ' + (lastLang === 'ru' ? 'стелс-экшен — HTML5' : 'stealth action — HTML5');
+      if (!global.Platform) document.title = g.t('title') + ' · ' + (lastLang === 'ru' ? 'стелс-экшен — HTML5' : 'stealth action — HTML5');   // на площадке <title> ставит сборщик (одно название внутри языка, Яндекс 5.1.3)
+      fit();
     }
     if (g.themeName !== lastTheme) { lastTheme = g.themeName; document.body.setAttribute('data-theme', lastTheme); }
     requestAnimationFrame(domSync);

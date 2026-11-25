@@ -630,6 +630,10 @@
       fire: fire,
       state: function () { return S; },
       restartAct: function () { if (S.phase !== 'play') return; die('restart'); },
+      // площадка (волна 6): «ещё один шанс» за рекламу — после конца жизней встать с 1 жизнью у контрольной точки; бонус в паузе — +1 жизнь
+      reviveAd: function () { if (!S || S.phase !== 'over') return false; S.over = false; S.lives = 1; respawn(); ev('continue', { ad: true }); return true; },
+      canBoost: function () { return !!S && !S.over && !S.won && S.lives < K.MAXLIVES && (S.phase === 'play' || S.phase === 'clear'); },
+      boost: function () { if (!api.canBoost()) return false; S.lives++; ev('life', { lives: S.lives }); return true; },
       _goAct: function (w, a) { loadAct(w, a); return api; },
       _place: function (x, y) { var P = S.hero; P.x = x; P.y = y; P.vx = P.vy = P.gsp = 0; P.ground = false; P.mode = 'run'; return api; },
       _die: die, _hurt: hurt, _spawnBoss: spawnBoss, _cap: function (k) { openCap({ id: -Math.floor(rng() * 1e9) - 1, k: k, x: S.hero.x, y: S.hero.y }); }

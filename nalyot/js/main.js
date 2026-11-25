@@ -1,6 +1,9 @@
 /* НАЛЁТ · сборка: фреймворк Гефест Arcade (engine.js) + логика (game.js) + рендеры retro/modern + звук.
    Сцены title/pause/win/gameover — g.useStandardScreens; кооп 1–2 игрока — g.usePlayers (пункт «Игроки»,
-   клавиши 1/2, подсказка, тач — только И1). Титул — панорама «Ржавого двора» под меню. */
+   клавиши 1/2, подсказка, тач — только И1). Титул — панорама «Ржавого двора» под меню.
+   Тач (волна 6, площадки): виртуальный стик (js/stick.js) — бег, прицел вверх, присесть; ⤒ прыжок, ● огонь, ✸ граната;
+   «Автоприцел» (пункт меню только на тач-экране, по умолчанию вкл.) — прицел сам наводится на ближнюю цель в кадре и ствол стреляет.
+   Геймпад — движком по раскладке usePlayers: A — прыжок, B — граната, X и правый триггер — огонь (g.gamepad.configure). */
 (function (global) {
   'use strict';
   var N = global.NALYOT, L = N.logic;
@@ -9,7 +12,7 @@
     modern: Object.assign({}, TH.modern, { bg: '#101216', panel: '#171a20', ink: '#f2efe8', muted: '#9aa0aa', accent: '#ffb347', grid: '#2a2e36' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#ffff55', muted: '#aaaaaa' })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: L.VIEW_W, height: L.SCREEN_H, gameId: 'nalyot', strings: N.STR, theme: 'modern', lives: 3, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: L.VIEW_W, height: L.SCREEN_H, gameId: 'nalyot', leaderboard: 'nalyot', strings: N.STR, theme: 'modern', lives: 3, themes: themes });
   N.g = g;
   var pad = document.querySelector('.pad');
   g.input.bindDpad(pad);
@@ -21,7 +24,7 @@
   g.usePlayers({
     bind: L.BIND, actions: ['jump', 'grenade'], pad: pad,
     touch: { L: 'left', R: 'right', U: 'up', D: 'down', A: 'fire' },
-    hint: { ru: [N.STR.ru.hint1, N.STR.ru.hint2], en: [N.STR.en.hint1, N.STR.en.hint2] }
+    hint: ['ru', 'en', 'tr', 'es', 'pt'].reduce(function (o, l) { o[l] = [N.STR[l].hint1, N.STR[l].hint2]; return o; }, {})
   });
 
   // ---------- Игра ----------
@@ -53,6 +56,7 @@
     if (type === 'boom' && d.r > 60 || type === 'kotelBoom' || type === 'stomp') shakeT = Math.max(shakeT, 0.25);
     if (type === 'bossDie') shakeT = 1.2;
     sync();
+    if (type === 'mission' && d.mission > 1 && g._sceneName === 'play' && g.adReady()) { cardM = d.mission - 1; g.goto('card'); }   // межстраничная — по нажатию на карточке миссии (Яндекс 4.4)
     if (type === 'win') { sync(); g.win(); }
     else if (type === 'gameover') { sync(); g.gameover(); }
   }
@@ -75,6 +79,18 @@
   tbtn('[data-jump]', function () { game.jump(0); });
   tbtn('[data-gren]', function () { game.grenade(0); });
 
+  // ---------- Тач (волна 6): стик и автоприцел ----------
+  var AIM_KEY = 'arcade.nalyot.aim', aimOn = true;
+  try { aimOn = localStorage.getItem(AIM_KEY) !== '0'; } catch (e) {}
+  var stick = global.ArcadeStick.create(pad && pad.querySelector('[data-stick]'));
+  function touchMode() { return g.input.device === 'touch' || g.input.touchOnly; }
+  var aimItem = { key: 'aim', label: function () { return g.t('aim') + ': ' + g.t(aimOn ? 'on' : 'off'); },
+    onSelect: function () { aimOn = !aimOn; try { localStorage.setItem(AIM_KEY, aimOn ? '1' : '0'); } catch (e) {} } };
+  function syncAim() { if (touchMode()) g.menu.addItem(Object.assign({ after: 'players' }, aimItem)); else g.menu.removeItem('aim'); }   // пункт — только на тач-экране
+  syncAim(); g.input.onDevice(syncAim);
+  // геймпад: A — прыжок, B — граната, X и правый триггер — огонь (первая клавиша «fire» раскладки игрока)
+  if (g.gamepad) g.gamepad.configure({ actions: { a: 'jump', b: 'grenade', x: 'fire', rt: 'fire' } });
+
   // ---------- Фон экранов движка и титул ----------
   var demo = N.Game({ players: 1, rng: L.mulberry32(7) }).start(), demoT = 0;
   function demoState() {
@@ -90,7 +106,7 @@
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
     N.ui.world(this, ctx, demoState(), r, { bare: true });
     ctx.fillStyle = P.pixel ? 'rgba(0,0,0,.5)' : 'rgba(10,10,14,.5)'; ctx.fillRect(0, 0, W, H);
-    var pw = 500, ph = 362, px = (W - pw) / 2, py = 40;
+    var pw = 500, ph = Math.min(H - 70, Math.max(362, 220 + menu.items.length * 30)), px = (W - pw) / 2, py = 30;
     N.ui.panel(ctx, px, py, pw, ph, P, P.line);
     N.ui.txt(this, this.t('title'), W / 2, py + 64, { size: 58, align: 'center', color: P.accent, weight: 900 }, P);
     N.ui.txt(this, this.t('subtitle'), W / 2, py + 90, { size: 12, align: 'center', color: th.muted, weight: 600, shadow: false }, P);
@@ -100,7 +116,7 @@
       var fake = { id: i, x: x, y: py + 146, face: i ? -1 : 1, aim: { x: i ? -1 : 1, y: 0 }, alive: true, onGround: true, vx: 0, crouch: false, weapon: 'rivet', armor: 1, gunT: 0, meleeT: 0, runT: 0, hh: 32, deadT: 0 };
       r.hero(ctx, fake, demoT, 2);
     });
-    menu.draw(this, W / 2, py + 190, 30);
+    var mf = menuFit(menu, py + 190, 30, py + 176, py + ph - 34); menu.draw(this, W / 2, mf[0], mf[1]);
     if (this.state.best) N.ui.txt(this, this.t('best') + ': ' + this.state.best, W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600, shadow: false }, P);
     this.menu._drawHint('title');
   };
@@ -112,6 +128,38 @@
   };
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
 
+  // ---------- Площадка (движок v2.8/2.9): таблица лидеров «nalyot», «Без рекламы» (no_ads) в меню и паузе, реклама за награду ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «nalyot», GamePush — числовое поле игрока «nalyot» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/nalyot/platform.json (arcade-full). На сайте (без площадки) пунктов нет.
+  var LB = 'nalyot';
+  g.persist('arcade.best.nalyot', 'max');
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
+  // «Ещё один шанс» (раз за партию): выбывшие возвращаются с 1 жизнью в кадр (неуязвимость 3 с); бонус в паузе — +1 жизнь И1
+  g.useRewardedContinue({ revive: function () { if (game) { game.reviveAd(); sync(); } } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { return !!game && game.canBoost(); }, grant: function () { if (game) game.boost(); } });
+  // Меню вмещает пункты площадки («Лидеры», «Без рекламы», «Автоприцел»): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
+  // ---------- Карточка «миссия выполнена» (только когда площадка готова показать межстраничную): нажатие → реклама → следующая миссия ----------
+  var cardM = 0, cardGoing = false;
+  function cardGo() { if (cardGoing || g._sceneName !== 'card') return; cardGoing = true; g.adBreak().then(function () { cardGoing = false; if (g._sceneName === 'card') g.goto('play', { resume: true }); }); }
+  g.scene('card', {
+    enter: function () { cardGoing = false; },
+    press: function (a) { if (a === 'action' || a === 'start') cardGo(); else if (a === 'pause') this.goto('play', { resume: true }); },
+    draw: function (ctx) {
+      var th = this.th(), r = rnd(), P = r.P;
+      if (game) N.ui.world(this, ctx, game.state(), r, { bare: true }); else this.clear();
+      ctx.fillStyle = 'rgba(8,8,12,.76)'; ctx.fillRect(0, 0, this.W, this.H);
+      N.ui.txt(this, N.ui.up(P, this.t('cardDone')), this.W / 2, this.H / 2 - 34, { size: 30, align: 'center', color: th.accent, weight: 900, maxWidth: this.W - 40 }, P);
+      N.ui.txt(this, this.t('cardMis') + ' ' + cardM + '/' + L.MISSIONS.length + (game ? ' · ' + this.t('score') + ': ' + game.state().score : ''), this.W / 2, this.H / 2 + 6, { size: 16, align: 'center', color: th.ink, weight: 700, maxWidth: this.W - 40 }, P);
+      N.ui.txt(this, this.t('cardNext'), this.W / 2, this.H / 2 + 44, { size: 14, align: 'center', color: th.muted, weight: 600, maxWidth: this.W - 40 }, P);
+    }
+  });
+  g.canvas.addEventListener('pointerdown', function (e) { if (g._sceneName === 'card') { e.preventDefault(); cardGo(); } });
+
   // ---------- Игровая сцена ----------
   g.scene('play', {
     realtime: true,
@@ -122,7 +170,10 @@
       for (var pi = 0; pi < 2; pi++) {
         var P = g.input.player(pi), on = pi < g.input.playerCount, dx = 0, dy = 0;
         if (on) { dx = (P.pressed('right') ? 1 : 0) - (P.pressed('left') ? 1 : 0); dy = (P.pressed('down') ? 1 : 0) - (P.pressed('up') ? 1 : 0); }
-        game.setDir(pi, dx, dy); game.setFire(pi, on && P.pressed('fire'));
+        if (pi === 0 && stick.active) { dx = Math.abs(stick.x) > 0.35 ? Math.sign(stick.x) : 0; dy = Math.abs(stick.y) > 0.55 ? Math.sign(stick.y) : 0; }
+        var auto = pi === 0 && aimOn && touchMode(), hh = game.state().heroes[pi];
+        game.setAuto(pi, auto); game.setDir(pi, dx, dy);
+        game.setFire(pi, on && (P.pressed('fire') || (auto && hh && hh.autoT)));   // автоприцел (тач): есть цель — огонь
       }
       game.update(Math.min(dt, 0.05));
       if (shakeT > 0) shakeT -= dt;

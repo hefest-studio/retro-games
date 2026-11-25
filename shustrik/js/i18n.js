@@ -1,4 +1,4 @@
-/* ШУСТРИК · i18n (RU/EN). SHUSTRIK.STR — таблицы для Arcade.createGame({strings}).
+/* ШУСТРИК · i18n (RU/EN/TR/ES/PT — движок v2.8 берёт языки из ключей strings; название: RU — ШУСТРИК, EN/TR/ES/PT — STEAMSCURRY). SHUSTRIK.STR — таблицы для Arcade.createGame({strings}).
    Ключи play/language/theme/... нужны стандартным экранам движка; остальные — игре. */
 (function (global) {
   'use strict';
@@ -27,14 +27,15 @@
       boss: 'РЖАВЫЙ ЛИС!', b_fox: 'Ржавый Лис', b_ram: 'Паровой таран', b_cuckoo: 'Часовая кукушка', b_armor: 'Лис в паровой броне',
       bossDown: 'Попался! Вперёд к терминалу', restarted: 'С контрольной точки', sec: 'с',
       intro: 'Беги, разгоняйся, стреляй на ходу',
-      foot: '<b>ШУСТРИК</b> · ← → / A D — бег (держи — разгон до 3-й скорости) · Пробел / Z / J — прыжок · X / K / Ctrl / F — огонь (держать — автоогонь; с ↑ / W — по диагонали вверх) · P / Esc — пауза · L язык, T тема, M звук.'
+      rwLife: 'Реклама: +1 жизнь', cardDone: 'Акт пройден', cardNext: 'пробел / тап — следующий акт',
+      foot: '<b>ШУСТРИК</b> · ← → / A D — бег (держи — разгон до 3-й скорости) · Пробел / Z / J — прыжок · X / K / Ctrl / F — огонь (держать — автоогонь; с ↑ / W — по диагонали вверх) · P / Esc — пауза · L язык, T тема, M звук. Тач — стик: бег и прицел вверх; ● прыжок, ✷ огонь (держать — автоогонь).'
     },
     en: {
       play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
       score: 'Score', level: 'World', best: 'Best', lives: 'Lives',
       win: 'BLUEPRINTS DELIVERED!', gameover: 'OUT OF STEAM',
       pause: 'PAUSED', resume: 'Resume', menu: 'Main menu', restart: 'From checkpoint (−1 life)', tapstart: 'space / tap',
-      title: 'SHUSTRIK', subtitle: 'The clockwork courier ferret of the Hefest workshop',
+      title: 'STEAMSCURRY', subtitle: 'The clockwork courier ferret of the Hefest workshop',
       sub2: 'Catch the Rusty Fox and get the blueprints back · 4 worlds · speed and steam',
       hint: '←→ run · Space / Z jump · X fire (with ↑ — diagonal) · P pause',
       back: 'Catalog',
@@ -49,10 +50,89 @@
       c_shield: 'Shield', c_turbo: 'Speed boost!', c_magnet: 'Magnet', c_hp: '+pressure', c_life: '+life!', c_gears: '+10 gears',
       life: '+life!', secret: 'SECRET! +1000', token: 'Bonus stage token!', cp: 'Checkpoint',
       tier1: 'Speed 1', tier2: 'Speed 2', tier3: 'SPEED 3 — crates smash!',
-      boss: 'RUSTY FOX!', b_fox: 'Rusty Fox', b_ram: 'Steam Ram', b_cuckoo: 'Clockwork Cuckoo', b_armor: 'Fox in Steam Armor',
+      boss: 'RUSTY FOX!', b_fox: 'Rusty Fox', b_ram: 'Steam Ram', b_cuckoo: 'Clockwork Cuckoo', b_armor: 'Fox in Boiler Armor',
       bossDown: 'Gotcha! On to the terminal', restarted: 'From checkpoint', sec: 's',
       intro: 'Run, build up speed, shoot on the move',
-      foot: '<b>SHUSTRIK</b> · ← → / A D — run (hold to reach speed 3) · Space / Z / J — jump · X / K / Ctrl / F — fire (hold for auto-fire; with ↑ / W — diagonal up) · P / Esc — pause · L language, T theme, M sound.'
+      rwLife: 'Watch ad: +1 life', cardDone: 'Act clear', cardNext: 'space / tap — next act',
+      foot: '<b>STEAMSCURRY</b> · ← → / A D — run (hold to reach speed 3) · Space / Z / J — jump · X / K / Ctrl / F — fire (hold for auto-fire; with ↑ / W — diagonal up) · P / Esc — pause · L language, T theme, M sound. Touch — stick: run and aim up; ● jump, ✷ fire (hold for auto-fire).'
     }
+  };
+  SH.STR.tr = {
+    play: 'Oyna', language: 'Dil', theme: 'Tema', sound: 'Ses', on: 'açık', off: 'kapalı',
+    score: 'Puan', level: 'Dünya', best: 'Rekor', lives: 'Can',
+    win: 'PLANLAR TESLİM EDİLDİ!', gameover: 'BUHAR BİTTİ',
+    pause: 'DURAKLATILDI', resume: 'Devam et', menu: 'Ana menü', restart: 'Kontrol noktasından (−1 can)', tapstart: 'boşluk / dokun',
+    title: 'STEAMSCURRY', subtitle: 'Hefest atölyesinin kurmalı kurye gelinciği',
+    sub2: 'Paslı Tilki\'yi yakala, planları geri al · 4 dünya · hız ve buhar',
+    hint: '←→ koş · Boşluk / Z zıpla · X ateş (↑ ile çapraz) · P duraklat',
+    back: 'Katalog',
+    w1: 'Döküm mahallesi', w2: 'Buhar tünelleri', w3: 'Makas sahası', w4: 'Gök tersanesi',
+    act: 'Perde', world: 'Dünya', bonusStage: 'BONUS ETABI', bonusGoal: '{t} sn içinde {n} dişli topla',
+    bonusOk: 'TAMAM! +1 can', bonusFail: 'Yetişemedin…', got: 'toplandı',
+    clear: 'PERDE TAMAM', tTime: 'Süre', tBest: 'En iyi', tSpeed: 'Hız bonusu', tGears: 'Dişliler', tSecrets: 'Saklı yerler', tTotal: 'Toplam',
+    newBest: 'yeni en iyi süre!',
+    speed: 'HIZ', gears: 'DİŞLİ',
+    w_base: 'SAÇMA', w_burst: 'SERİ', w_blast: 'PATLAYICI', w_bounce: 'SEKEN',
+    c_burst: 'Blaster: seri!', c_blast: 'Blaster: patlayıcı!', c_bounce: 'Blaster: seken!',
+    c_shield: 'Kalkan', c_turbo: 'Hızlanma!', c_magnet: 'Mıknatıs', c_hp: '+basınç', c_life: '+can!', c_gears: '+10 dişli',
+    life: '+can!', secret: 'SAKLI YER! +1000', token: 'Bonus etabı jetonu!', cp: 'Kontrol noktası',
+    tier1: 'Hız 1', tier2: 'Hız 2', tier3: 'HIZ 3 — sandıklar kırılır!',
+    boss: 'PASLI TİLKİ!', b_fox: 'Paslı Tilki', b_ram: 'Buhar koçu', b_cuckoo: 'Kurmalı guguk', b_armor: 'Buhar zırhlı Tilki',
+    bossDown: 'Yakalandı! Terminale koş', restarted: 'Kontrol noktasından', sec: 'sn',
+    intro: 'Koş, hızlan, koşarken ateş et',
+    rwLife: 'Reklam: +1 can', cardDone: 'Perde tamam', cardNext: 'boşluk / dokun — sonraki perde',
+    foot: '<b>STEAMSCURRY</b> · ← → / A D — koş (basılı tut — 3. hıza kadar) · Boşluk / Z / J — zıpla · X / K / Ctrl / F — ateş (basılı tut — otomatik; ↑ / W ile çapraz yukarı) · P / Esc — duraklat · L dil, T tema, M ses. Dokunmatik — çubuk: koş ve yukarı nişan; ● zıpla, ✷ ateş (basılı tut — otomatik).'
+  };
+  SH.STR.es = {
+    play: 'Jugar', language: 'Idioma', theme: 'Tema', sound: 'Sonido', on: 'sí', off: 'no',
+    score: 'Puntos', level: 'Mundo', best: 'Récord', lives: 'Vidas',
+    win: '¡PLANOS ENTREGADOS!', gameover: 'SIN VAPOR',
+    pause: 'PAUSA', resume: 'Continuar', menu: 'Menú principal', restart: 'Desde el control (−1 vida)', tapstart: 'espacio / toca',
+    title: 'STEAMSCURRY', subtitle: 'El hurón mensajero de cuerda del taller Hefest',
+    sub2: 'Atrapa al Zorro Oxidado y recupera los planos · 4 mundos · velocidad y vapor',
+    hint: '←→ correr · Espacio / Z salto · X disparo (con ↑, en diagonal) · P pausa',
+    back: 'Catálogo',
+    w1: 'Barrio fundición', w2: 'Túneles de vapor', w3: 'Playa de vías', w4: 'Astillero celeste',
+    act: 'Acto', world: 'Mundo', bonusStage: 'FASE BONUS', bonusGoal: 'Coge {n} engranajes en {t} s',
+    bonusOk: '¡HECHO! +1 vida', bonusFail: 'Demasiado lento…', got: 'recogidos',
+    clear: 'ACTO SUPERADO', tTime: 'Tiempo', tBest: 'Mejor', tSpeed: 'Por velocidad', tGears: 'Engranajes', tSecrets: 'Escondites', tTotal: 'Total',
+    newBest: '¡nuevo mejor tiempo!',
+    speed: 'VELOCIDAD', gears: 'ENGRANAJES',
+    w_base: 'PERDIGÓN', w_burst: 'RÁFAGA', w_blast: 'EXPLOSIVO', w_bounce: 'REBOTE',
+    c_burst: 'Bláster: ráfaga!', c_blast: 'Bláster: explosivo!', c_bounce: 'Bláster: rebote!',
+    c_shield: 'Escudo', c_turbo: '¡Acelerón!', c_magnet: 'Imán', c_hp: '+presión', c_life: '¡+vida!', c_gears: '+10 engranajes',
+    life: '¡+vida!', secret: '¡ESCONDITE! +1000', token: '¡Ficha de fase bonus!', cp: 'Punto de control',
+    tier1: 'Velocidad 1', tier2: 'Velocidad 2', tier3: 'VELOCIDAD 3 — ¡rompe cajas!',
+    boss: '¡ZORRO OXIDADO!', b_fox: 'Zorro Oxidado', b_ram: 'Ariete de vapor', b_cuckoo: 'Cuco de cuerda', b_armor: 'Zorro con armadura de vapor',
+    bossDown: '¡Atrapado! A la terminal', restarted: 'Desde el control', sec: 's',
+    intro: 'Corre, acelera, dispara en marcha',
+    rwLife: 'Anuncio: +1 vida', cardDone: 'Acto superado', cardNext: 'espacio / toca — siguiente acto',
+    foot: '<b>STEAMSCURRY</b> · ← → / A D — correr (mantén para llegar a la velocidad 3) · Espacio / Z / J — salto · X / K / Ctrl / F — disparo (mantén — automático; con ↑ / W — diagonal arriba) · P / Esc — pausa · L idioma, T tema, M sonido. Táctil — stick: correr y apuntar arriba; ● salto, ✷ disparo (mantén — automático).'
+  };
+  SH.STR.pt = {
+    play: 'Jogar', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'lig.', off: 'desl.',
+    score: 'Pontos', level: 'Mundo', best: 'Recorde', lives: 'Vidas',
+    win: 'PLANTAS ENTREGUES!', gameover: 'SEM VAPOR',
+    pause: 'PAUSA', resume: 'Continuar', menu: 'Menu principal', restart: 'Do checkpoint (−1 vida)', tapstart: 'espaço / toque',
+    title: 'STEAMSCURRY', subtitle: 'O furão mensageiro de corda da oficina Hefest',
+    sub2: 'Pegue a Raposa Enferrujada e recupere as plantas · 4 mundos · velocidade e vapor',
+    hint: '←→ correr · Espaço / Z pulo · X tiro (com ↑, na diagonal) · P pausa',
+    back: 'Catálogo',
+    w1: 'Bairro da fundição', w2: 'Túneis de vapor', w3: 'Pátio de manobras', w4: 'Estaleiro celeste',
+    act: 'Ato', world: 'Mundo', bonusStage: 'FASE BÔNUS', bonusGoal: 'Pegue {n} engrenagens em {t} s',
+    bonusOk: 'CONSEGUIU! +1 vida', bonusFail: 'Lento demais…', got: 'coletadas',
+    clear: 'ATO CONCLUÍDO', tTime: 'Tempo', tBest: 'Melhor', tSpeed: 'Por velocidade', tGears: 'Engrenagens', tSecrets: 'Esconderijos', tTotal: 'Total',
+    newBest: 'novo melhor tempo!',
+    speed: 'VELOCIDADE', gears: 'ENGRENAGENS',
+    w_base: 'CHUMBINHO', w_burst: 'RAJADA', w_blast: 'EXPLOSIVO', w_bounce: 'QUICANTE',
+    c_burst: 'Blaster: rajada!', c_blast: 'Blaster: explosivo!', c_bounce: 'Blaster: quicante!',
+    c_shield: 'Escudo', c_turbo: 'Aceleração!', c_magnet: 'Ímã', c_hp: '+pressão', c_life: '+vida!', c_gears: '+10 engrenagens',
+    life: '+vida!', secret: 'ESCONDERIJO! +1000', token: 'Ficha da fase bônus!', cp: 'Checkpoint',
+    tier1: 'Velocidade 1', tier2: 'Velocidade 2', tier3: 'VELOCIDADE 3 — quebra caixas!',
+    boss: 'RAPOSA ENFERRUJADA!', b_fox: 'Raposa Enferrujada', b_ram: 'Aríete a vapor', b_cuckoo: 'Cuco de corda', b_armor: 'Raposa de armadura a vapor',
+    bossDown: 'Peguei! Para o terminal', restarted: 'Do checkpoint', sec: 's',
+    intro: 'Corra, acelere, atire em movimento',
+    rwLife: 'Anúncio: +1 vida', cardDone: 'Ato concluído', cardNext: 'espaço / toque — próximo ato',
+    foot: '<b>STEAMSCURRY</b> · ← → / A D — correr (segure para chegar à velocidade 3) · Espaço / Z / J — pulo · X / K / Ctrl / F — tiro (segure — automático; com ↑ / W — diagonal para cima) · P / Esc — pausa · L idioma, T tema, M som. Toque — stick: correr e mirar para cima; ● pulo, ✷ tiro (segure — automático).'
   };
 })(typeof window !== 'undefined' ? window : globalThis);
