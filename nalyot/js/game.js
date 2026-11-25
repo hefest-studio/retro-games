@@ -464,6 +464,7 @@
       h.hh = h.crouch ? CROUCH_H : HH;
       if (dx) h.face = dx;
       h.aim = aimFor(h, dx, dy, h.onGround);
+      if (h.auto) autoAim(h, dy);
       h.vx = h.crouch ? 0 : dx * RUN;
       if (h.onGround) h.coyote = 0.1; else h.coyote -= dt;
       if (h.dropT > 0) h.dropT -= dt;
@@ -492,6 +493,7 @@
       v.aim = aimFor(v, dx, dy, false); if (dy > 0 && v.onGround && !dx) v.aim = { x: v.face, y: 0 };
       if (dy > 0 && v.onGround && dx) v.aim = q8(dx, 1);
       h.aim = v.aim;
+      if (h.auto) { autoAim(h, dy); v.aim = h.aim; }
       v.vx = v.boom > 0 ? 0 : dx * KOTEL.speed;
       if (v.dropT > 0) v.dropT -= dt;
       if (h.jumpQ > 0) {
@@ -869,6 +871,30 @@
       S.heroes.forEach(function (h) { h.leashed = h.leashed && S.players === 2; });
     }
 
+    // ---------- Площадка (волна 6): автоприцел для тач-схемы и «ещё один шанс» за рекламу ----------
+    // autoAim — ближайшая цель в кадре (враг, живой босс) не дальше 420 px: прицел — по 8 направлениям на неё, герой разворачивается,
+    // если не бежит (бег задаёт игрок); h.autoT — есть цель (main.js тогда держит огонь). Вниз (присесть) игрок не теряет.
+    function autoAim(h, dy) {
+      var best = null, bd = 420, hy = h.y - (h.crouch ? 11 : 20);
+      function consider(x, y) { var d = Math.hypot(x - h.x, y - hy); if (d < bd && x > S.cam.x - 10 && x < S.cam.x + VIEW_W + 10) { bd = d; best = { x: x, y: y }; } }
+      S.enemies.forEach(function (e) { if (!e.dead && e.hp > 0) consider(e.x, e.y - e.hh / 2); });
+      if (S.boss && !S.boss.dead && S.boss.hp > 0) consider(S.boss.x, S.boss.y - S.boss.hh / 2);
+      h.autoT = !!best; if (!best) return;
+      var vx = best.x - h.x, vy = best.y - hy;
+      if (!h.dx && Math.abs(vx) > 6) h.face = vx > 0 ? 1 : -1;
+      var a = q8(vx, vy); if (h.onGround && a.y > 0 && !h.ride) a = { x: h.face, y: 0 };   // вниз с земли не стреляем
+      if (a.x !== 0 && Math.sign(a.x) !== h.face) a = { x: h.face, y: a.y < 0 ? -1 : 0 };
+      if (dy > 0 && h.crouch) a = { x: h.face, y: 0 };
+      h.aim = a.x && a.y ? q8(a.x, a.y) : a;
+    }
+    function reviveAd() {
+      if (S.phase !== 'over') return false;
+      S.phase = 'play'; S.over = false; S.phaseT = 0;
+      S.heroes.forEach(function (h) { if (!h.out) return; h.out = false; h.lives = 1; respawn(h); h.inv = 3; });
+      ev('revive', {}); return true;
+    }
+    function canBoost() { var h = S.heroes[0]; return !!h && !h.out && h.lives < 9 && S.phase === 'play'; }
+
     var api = {
       start: function () {
         var def = opts.map ? { rows: opts.map, arena: opts.arena, boss: opts.boss, name: 'test' } : opts.levels ? opts.levels[S.mission - 1] : genMission(S.mission);
@@ -877,6 +903,8 @@
       update: function (dt) { dt = Math.min(dt, 0.05); var n = Math.max(1, Math.ceil(dt / (1 / 60) - 1e-6)); for (var k = 0; k < n; k++) step(dt / n); },
       setDir: function (pi, dx, dy) { var h = S.heroes[pi]; if (h) { h.dx = sgn(dx); h.dy = sgn(dy); } },
       setFire: function (pi, held) { var h = S.heroes[pi]; if (h) h.fire = !!held; },
+      setAuto: function (pi, on) { var h = S.heroes[pi]; if (h) { h.auto = !!on; if (!on) h.autoT = false; } },
+      reviveAd: reviveAd, canBoost: canBoost, boost: function () { if (!canBoost()) return false; S.heroes[0].lives++; return true; },
       jump: function (pi) { var h = S.heroes[pi]; if (h && S.phase === 'play') jumpPress(h); },
       grenade: function (pi) { var h = S.heroes[pi]; return !!(h && throwGrenade(h)); },
       state: function () { return S; },

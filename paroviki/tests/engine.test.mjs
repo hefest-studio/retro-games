@@ -414,14 +414,14 @@ test('музыка: трек paroviki разбирается секвенсор�
   const n = s => (Array.isArray(s) ? s.join(' ') : s).replace(/\|/g, ' ').trim().split(/\s+/).length;
   eq(n(tr.melody) % 8, 0); eq(n(tr.bass) % 8, 0); eq(n(tr.drums) % 8, 0);
 });
-test('страница: фавикон студии, «← Каталог», canvas 640×512, скрипты по порядку, тач-крестовина, огонь/спецприём, пауза; engine.js = _shared/engine.js', () => {
+test('страница: фавикон студии, «← Каталог», canvas 640×512, скрипты по порядку, тач-стик (волна 6), огонь/спецприём, пауза; engine.js = _shared/engine.js', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   ok(/<link rel="icon"[^>]+data:image\/svg\+xml/.test(html), 'фавикон');
   ok(/class="back"[^>]*href="\.\.\/"/.test(html), 'ссылка в каталог');
   ok(/<canvas id="c" width="640" height="512"/.test(html), 'canvas');
   const order = [...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]);
-  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/modern.js', 'js/classic.js', 'js/render.js', 'js/ui.js', 'js/main.js']);
-  ok(['U', 'D', 'L', 'R'].every(d => html.includes('data-d="' + d + '"')) && /data-act="fire"/.test(html) && /data-act="spec"/.test(html) && /data-pause/.test(html), 'тач');
+  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/modern.js', 'js/classic.js', 'js/render.js', 'js/stick.js', 'js/ui.js', 'js/main.js']);
+  ok(/data-stick/.test(html) && /data-act="fire"/.test(html) && /data-act="spec"/.test(html) && /data-pause/.test(html), 'тач');
   eq(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js не копия _shared');
 });
 test('правило имён: в папке игры нет чужих названий игр/компаний/персонажей (регистронезависимо, с транслитом)', () => {
@@ -440,6 +440,26 @@ test('правило имён: в папке игры нет чужих назв
 });
 
 // ---------- Проходимость и баланс: «человеческий» бот + ИИ-напарник ----------
+// ---------- площадка (22.11, волна 6): реклама за награду, языки, тач-схема, «Без рекламы» и таблица лидеров ----------
+test('реклама: reviveAd после конца игры — люди встают с 1 жизнью; boost — +1 жизнь И1 (до 9)', () => {
+  const game = PV.Game({ players: 1, seed: 3, rng: L.mulberry32(3) }).start(), S = game._S;
+  ok(!game.reviveAd(), 'в игре — нельзя'); S.phase = 'over'; S.heroes[0].out = true; S.heroes[0].alive = false; S.team[0].lives = 0;
+  ok(game.reviveAd()); ok(S.phase === 'play' && !S.heroes[0].out && S.heroes[0].alive && S.team[0].lives === 1, 'встал');
+  ok(game.canBoost()); const l0 = S.team[0].lives; ok(game.boost()); ok(S.team[0].lives === l0 + 1); S.team[0].lives = 9; ok(!game.canBoost());
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ПАРОВИКИ, EN/TR/ES/PT VALVEWRIGHTS', () => {
+  const T = PV.STR, ks = Object.keys(T.en).sort().join(','); ok(Object.keys(T).join(',') === 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) ok(Object.keys(T[l]).sort().join(',') === ks, l);
+  ok(T.ru.title === 'ПАРОВИКИ'); for (const l of ['en', 'tr', 'es', 'pt']) ok(T[l].title === 'VALVEWRIGHTS', l);
+});
+test('тач-схема (волна 6): стик, автоприцел на тач-экране, межстраничная по «Готов» в лавке, сохранение в облако', () => {
+  const main = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
+  ok(/ArcadeStick\.create/.test(main) && /aimTarget/.test(main) && /_los\(/.test(main), 'стик/автоприцел');
+  ok(/fromShop/.test(main) && /g\.adBreak\(\)/.test(main), 'межстраничная после лавки');
+  ok(/g\.persist\(SAVE_KEY, 'last'\)/.test(main) && /menuFit/.test(main), 'облако сохранения, menuFit');
+});
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'paroviki', boards: ['paroviki'], test, ok }); }
 if (process.env.QUICK){ console.log(`\n${passed} прошло, ${failed} упало (без бота)`); process.exit(failed ? 1 : 0); }
 // Исполнимость: неуязвимый бот проходит каждый мир (4 лабиринта + механизм) в настоящей физике.
 // прокачка — как к этому миру у живого игрока (ствол = номер мира, котёл и заряды)

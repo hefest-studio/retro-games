@@ -1,4 +1,4 @@
-/* ДРУЖИНА · i18n (RU/EN). DRUZHINA.STR — таблицы для Arcade.createGame({strings}).
+/* ДРУЖИНА · i18n (RU/EN/TR/ES/PT — движок v2.8 берёт языки из ключей strings; название: RU — ДРУЖИНА, EN/TR/ES/PT — FORGEBAND). DRUZHINA.STR — таблицы для Arcade.createGame({strings}).
    Ключи play/language/theme/... нужны стандартным экранам движка, players/touch1p — g.usePlayers; остальные — игре. */
 (function (global) {
   'use strict';
@@ -29,15 +29,16 @@
       mount: 'В СЕДЛО!', knockOff: 'выбит из седла', extraLife: '+1 ЖИЗНЬ', out: 'выбыл',
       cont: 'ПРОДОЛЖИТЬ?', contSub: 'удар / Enter — продолжить', contLeft: 'осталось продолжений',
       lvl: 'ур.',
+      rwLife: 'Реклама: +1 жизнь', cardDone: 'Этап пройден', cardNext: 'пробел / тап — следующий этап',
       hint1: 'И1: стрелки, / удар, пробел прыжок, . магия, , «спина»',
       hint2: 'И2: WASD, X удар, Z прыжок, C магия, V «спина» · 1/2 — игроки',
-      foot: '<b>ДРУЖИНА</b> · И1: стрелки, / — удар, пробел — прыжок, «.» — магия, «,» — «спина» · И2: WASD, X — удар, Z — прыжок, C — магия, V — «спина» (в одиночку работают обе раскладки) · ⇄⇄ — бег, удар в беге и в прыжке, вплотную — захват (удар — колено, удар от врага — бросок) · к ничейному зверю — в седло, «спина» в седле — спешиться · 1/2 на заставке — игроки · P/Esc пауза · L язык, T тема, M звук. Тач — только И1.'
+      foot: '<b>ДРУЖИНА</b> · И1: стрелки, / — удар, пробел — прыжок, «.» — магия, «,» — «спина» · И2: WASD, X — удар, Z — прыжок, C — магия, V — «спина» (в одиночку работают обе раскладки) · ⇄⇄ — бег, удар в беге и в прыжке, вплотную — захват (удар — колено, удар от врага — бросок) · к ничейному зверю — в седло, «спина» в седле — спешиться · 1/2 на заставке — игроки · P/Esc пауза · L язык, T тема, M звук. Тач (только И1) — стик: ход вдоль и вглубь, дважды в сторону — бег; ● удар (окружили — удар по обе стороны), ⤒ прыжок, ✦ магия.'
     },
     en: {
       play: 'Play', players: 'Players', touch1p: 'touch — 1 player', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
       score: 'Score', level: 'Stage', best: 'Best', win: 'THE ROAD IS FREE!', gameover: 'THE BAND HAS FALLEN…',
       pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
-      title: 'DRUZHINA', subtitle: 'The Hefest war band vs the iron horde · 1–2 players · 6 stages',
+      title: 'FORGEBAND', subtitle: 'The Hefest war band vs the iron horde · 1–2 players · 6 stages',
       back: 'Catalog', p1: 'P1', p2: 'P2',
       h_zhdan: 'Zhdan', h_secha: 'Secha', h_olha: 'Olkha',
       r_zhdan: 'hammer-smith', r_secha: 'blade maiden', r_olha: 'archer seer',
@@ -58,9 +59,100 @@
       mount: 'SADDLE UP!', knockOff: 'knocked off', extraLife: '+1 LIFE', out: 'is out',
       cont: 'CONTINUE?', contSub: 'attack / Enter — continue', contLeft: 'continues left',
       lvl: 'lv',
+      rwLife: 'Watch ad: +1 life', cardDone: 'Stage clear', cardNext: 'space / tap — next stage',
       hint1: 'P1: arrows, / attack, space jump, . magic, , back attack',
       hint2: 'P2: WASD, X attack, Z jump, C magic, V back attack · 1/2 — players',
-      foot: '<b>DRUZHINA</b> · P1: arrows, / — attack, space — jump, “.” — magic, “,” — back attack · P2: WASD, X — attack, Z — jump, C — magic, V — back attack (solo: both layouts work) · ⇄⇄ — run, attacks while running and jumping, walk into a foe — grab (attack — knee, attack away — throw) · walk into a free beast — ride it, back attack while riding — dismount · 1/2 on the title — players · P/Esc pause · L language, T theme, M sound. Touch — P1 only.'
+      foot: '<b>FORGEBAND</b> · P1: arrows, / — attack, space — jump, “.” — magic, “,” — back attack · P2: WASD, X — attack, Z — jump, C — magic, V — back attack (solo: both layouts work) · ⇄⇄ — run, attacks while running and jumping, walk into a foe — grab (attack — knee, attack away — throw) · walk into a free beast — ride it, back attack while riding — dismount · 1/2 on the title — players · P/Esc pause · L language, T theme, M sound. Touch (P1 only) — stick: walk along and into the field, flick twice — run; ● attack (surrounded — hits both sides), ⤒ jump, ✦ magic.'
     }
+  };
+  D.STR.tr = {
+    play: 'Oyna', players: 'Oyuncular', touch1p: 'dokunmatik — 1 oyuncu', language: 'Dil', theme: 'Tema', sound: 'Ses', on: 'açık', off: 'kapalı',
+    score: 'Puan', level: 'Etap', best: 'Rekor', win: 'YOL ARTIK ÖZGÜR!', gameover: 'BÖLÜK DÜŞTÜ…',
+    pause: 'DURAKLATILDI', resume: 'Devam et', menu: 'Ana menü', tapstart: 'boşluk / dokun',
+    title: 'FORGEBAND', subtitle: 'Hefest bölüğü demir sürüye karşı · 1–2 oyuncu · 6 etap',
+    back: 'Katalog', p1: 'O1', p2: 'O2',
+    h_zhdan: 'Zhdan', h_secha: 'Secha', h_olha: 'Olkha',
+    r_zhdan: 'balyozcu', r_secha: 'kılıççı kız', r_olha: 'okçu bilici',
+    d_zhdan: 'Yavaş ve sağlam, en ağır çekiç darbeleri',
+    d_secha: 'Hızlı ikiz kılıçlar, 4 vuruşluk kombo',
+    d_olha: 'Orta mesafede ok, yakında asa',
+    m_forge: 'Ocak Ateşi', m_whirl: 'Kılıç Kasırgası', m_roots: 'Sarmaşık Kökler',
+    st_power: 'Güç', st_speed: 'Hız', st_reach: 'Menzil',
+    select: 'KAHRAMANINI SEÇ', selHint: '← → — kahraman, vuruş — hazır', ready: 'HAZIR', taken: 'alındı',
+    s_trakt: 'Demirciler yolu', s_village: 'Podgorye köyü', s_forest: 'Sık orman', s_crossing: 'Geçit', s_walls: 'Kale surları', s_foundry: 'Döküm kalesi', s_camp: 'Mola',
+    stage: 'ETAP', stageShort: 'Etap',
+    introSub: 'Demir sürüyü ez · kiler cinlerini düşür — çuvallarında testiler var',
+    b_voevoda: 'ZIRHLI KOMUTAN', b_twins: 'ÇEKİÇ İKİZLERİ', b_lovchiy: 'ATEŞ KERTENKELESİNDE AVCIBAŞI', b_cepnik: 'ZİNCİRLİ SALCI', b_stenoboy: 'SUR YIKAN', b_liteyshchik: 'KARA DÖKÜMCÜ',
+    bossSub: 'Demir sürünün başı · hamleye dikkat et', phase: 'ÖFKE',
+    clear: 'ETAP TAMAM', bonus: 'Ödül',
+    camp: 'MOLA', campSub: 'Kiler cinleri kampa sızıyor — testileri ve yiyeceği kap!', campEnd: 'Sabah oldu — yola!',
+    go: 'İLERİ', jug: 'testi', bread: 'somun', pie: 'börek', noMagic: 'testi yok',
+    mount: 'EYERE!', knockOff: 'eyerden düştü', extraLife: '+1 CAN', out: 'oyun dışı',
+    cont: 'DEVAM?', contSub: 'vuruş / Enter — devam', contLeft: 'kalan devam hakkı',
+    lvl: 'sv.',
+    rwLife: 'Reklam: +1 can', cardDone: 'Etap tamam', cardNext: 'boşluk / dokun — sonraki etap',
+    hint1: 'O1: oklar, / vuruş, boşluk zıpla, . büyü, , arka vuruş',
+    hint2: 'O2: WASD, X vuruş, Z zıpla, C büyü, V arka vuruş · 1/2 — oyuncu',
+    foot: '<b>FORGEBAND</b> · O1: oklar, / — vuruş, boşluk — zıpla, «.» — büyü, «,» — arka vuruş · O2: WASD, X — vuruş, Z — zıpla, C — büyü, V — arka vuruş (tek kişide iki düzen de çalışır) · ⇄⇄ — koş, koşarken ve zıplarken vuruş, düşmana yürü — yakala (vuruş — diz, ters yöne vuruş — fırlat) · sahipsiz hayvana yürü — bin, binerken arka vuruş — in · başlıkta 1/2 — oyuncu · P/Esc duraklat · L dil, T tema, M ses. Dokunmatik (yalnız O1) — çubuk: yürü, iki kez yana — koş; ● vuruş (sarılınca iki yana), ⤒ zıpla, ✦ büyü.'
+  };
+  D.STR.es = {
+    play: 'Jugar', players: 'Jugadores', touch1p: 'táctil — 1 jugador', language: 'Idioma', theme: 'Tema', sound: 'Sonido', on: 'sí', off: 'no',
+    score: 'Puntos', level: 'Etapa', best: 'Récord', win: '¡EL CAMINO ES LIBRE!', gameover: 'LA MESNADA HA CAÍDO…',
+    pause: 'PAUSA', resume: 'Continuar', menu: 'Menú principal', tapstart: 'espacio / toca',
+    title: 'FORGEBAND', subtitle: 'La mesnada de Hefest frente a la horda de hierro · 1–2 jugadores · 6 etapas',
+    back: 'Catálogo', p1: 'J1', p2: 'J2',
+    h_zhdan: 'Zhdan', h_secha: 'Secha', h_olha: 'Olkha',
+    r_zhdan: 'martillero', r_secha: 'espadachina', r_olha: 'arquera vidente',
+    d_zhdan: 'Lento y robusto, los martillazos más fuertes',
+    d_secha: 'Rápida, espadas gemelas, combo de 4 golpes',
+    d_olha: 'Flechas a media distancia, bastón de cerca',
+    m_forge: 'Calor de fragua', m_whirl: 'Torbellino de hojas', m_roots: 'Raíces trepadoras',
+    st_power: 'Fuerza', st_speed: 'Velocidad', st_reach: 'Alcance',
+    select: 'ELIGE HÉROE', selHint: '← → — héroe, golpe — listo', ready: 'LISTO', taken: 'ocupado',
+    s_trakt: 'Camino de los herreros', s_village: 'Aldea de Podgorye', s_forest: 'Bosque espeso', s_crossing: 'El vado', s_walls: 'Murallas', s_foundry: 'Fortaleza fundición', s_camp: 'Campamento',
+    stage: 'ETAPA', stageShort: 'Etapa',
+    introSub: 'Aplasta la horda de hierro · derriba a los duendes despenseros — llevan jarras',
+    b_voevoda: 'EL CAUDILLO ACORAZADO', b_twins: 'LOS GEMELOS MARTILLO', b_lovchiy: 'MONTERO SOBRE LAGARTO DE FUEGO', b_cepnik: 'EL BALSERO DE CADENAS', b_stenoboy: 'EL ROMPEMUROS', b_liteyshchik: 'EL FUNDIDOR NEGRO',
+    bossSub: 'Jefe de la horda de hierro · vigila la carga', phase: 'FURIA',
+    clear: 'ETAPA SUPERADA', bonus: 'Premio',
+    camp: 'CAMPAMENTO', campSub: '¡Los duendes despenseros se cuelan — quítales jarras y comida!', campEnd: 'Amanece — ¡en marcha!',
+    go: 'ADELANTE', jug: 'jarra', bread: 'pan', pie: 'empanada', noMagic: 'sin jarras',
+    mount: '¡A LA SILLA!', knockOff: 'derribado', extraLife: '+1 VIDA', out: 'eliminado',
+    cont: '¿CONTINUAR?', contSub: 'golpe / Enter — continuar', contLeft: 'continuaciones',
+    lvl: 'niv.',
+    rwLife: 'Anuncio: +1 vida', cardDone: 'Etapa superada', cardNext: 'espacio / toca — siguiente etapa',
+    hint1: 'J1: flechas, / golpe, espacio salto, . magia, , golpe atrás',
+    hint2: 'J2: WASD, X golpe, Z salto, C magia, V golpe atrás · 1/2 — jugadores',
+    foot: '<b>FORGEBAND</b> · J1: flechas, / — golpe, espacio — salto, «.» — magia, «,» — golpe atrás · J2: WASD, X — golpe, Z — salto, C — magia, V — golpe atrás (en solitario sirven ambos) · ⇄⇄ — correr, golpes corriendo y saltando, camina hacia un enemigo — agarre (golpe — rodillazo, golpe al lado contrario — lanzamiento) · camina hacia una bestia libre — montar, golpe atrás montado — desmontar · 1/2 en el título — jugadores · P/Esc pausa · L idioma, T tema, M sonido. Táctil (solo J1) — stick: andar, dos veces al lado — correr; ● golpe (rodeado — a ambos lados), ⤒ salto, ✦ magia.'
+  };
+  D.STR.pt = {
+    play: 'Jogar', players: 'Jogadores', touch1p: 'toque — 1 jogador', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'lig.', off: 'desl.',
+    score: 'Pontos', level: 'Fase', best: 'Recorde', win: 'A ESTRADA ESTÁ LIVRE!', gameover: 'A COMPANHIA CAIU…',
+    pause: 'PAUSA', resume: 'Continuar', menu: 'Menu principal', tapstart: 'espaço / toque',
+    title: 'FORGEBAND', subtitle: 'A companhia da Hefest enfrenta a horda de ferro · 1–2 jogadores · 6 fases',
+    back: 'Catálogo', p1: 'J1', p2: 'J2',
+    h_zhdan: 'Zhdan', h_secha: 'Secha', h_olha: 'Olkha',
+    r_zhdan: 'marreteiro', r_secha: 'espadachim', r_olha: 'arqueira vidente',
+    d_zhdan: 'Lento e firme, as marteladas mais fortes',
+    d_secha: 'Rápida, lâminas gêmeas, combo de 4 golpes',
+    d_olha: 'Flechas a média distância, cajado de perto',
+    m_forge: 'Calor da forja', m_whirl: 'Vendaval de lâminas', m_roots: 'Raízes agarradoras',
+    st_power: 'Força', st_speed: 'Velocidade', st_reach: 'Alcance',
+    select: 'ESCOLHA O HERÓI', selHint: '← → — herói, golpe — pronto', ready: 'PRONTO', taken: 'ocupado',
+    s_trakt: 'Estrada dos ferreiros', s_village: 'Aldeia de Podgorye', s_forest: 'Floresta densa', s_crossing: 'O vau', s_walls: 'Muralhas', s_foundry: 'Fortaleza da fundição', s_camp: 'Acampamento',
+    stage: 'FASE', stageShort: 'Fase',
+    introSub: 'Esmague a horda de ferro · derrube os diabretes da despensa — levam jarros',
+    b_voevoda: 'O CHEFE BLINDADO', b_twins: 'OS GÊMEOS MARTELO', b_lovchiy: 'CAÇADOR NO LAGARTO DE FOGO', b_cepnik: 'O BALSEIRO DAS CORRENTES', b_stenoboy: 'O ARRASA-MUROS', b_liteyshchik: 'O FUNDIDOR NEGRO',
+    bossSub: 'Chefe da horda de ferro · cuidado com o golpe', phase: 'FÚRIA',
+    clear: 'FASE CONCLUÍDA', bonus: 'Prêmio',
+    camp: 'ACAMPAMENTO', campSub: 'Diabretes da despensa invadem o acampamento — pegue jarros e comida!', campEnd: 'Amanheceu — em frente!',
+    go: 'AVANTE', jug: 'jarro', bread: 'pão', pie: 'torta', noMagic: 'sem jarros',
+    mount: 'NA SELA!', knockOff: 'derrubado', extraLife: '+1 VIDA', out: 'fora',
+    cont: 'CONTINUAR?', contSub: 'golpe / Enter — continuar', contLeft: 'continuações',
+    lvl: 'nív.',
+    rwLife: 'Anúncio: +1 vida', cardDone: 'Fase concluída', cardNext: 'espaço / toque — próxima fase',
+    hint1: 'J1: setas, / golpe, espaço pulo, . magia, , golpe atrás',
+    hint2: 'J2: WASD, X golpe, Z pulo, C magia, V golpe atrás · 1/2 — jogadores',
+    foot: '<b>FORGEBAND</b> · J1: setas, / — golpe, espaço — pulo, «.» — magia, «,» — golpe atrás · J2: WASD, X — golpe, Z — pulo, C — magia, V — golpe atrás (sozinho, os dois esquemas valem) · ⇄⇄ — correr, golpes correndo e pulando, ande até um inimigo — agarrão (golpe — joelhada, golpe para trás — arremesso) · ande até uma fera livre — montar, golpe atrás montado — desmontar · 1/2 no título — jogadores · P/Esc pausa · L idioma, T tema, M som. Toque (só J1) — stick: andar, duas vezes para o lado — correr; ● golpe (cercado — dos dois lados), ⤒ pulo, ✦ magia.'
   };
 })(typeof window !== 'undefined' ? window : globalThis);

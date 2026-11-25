@@ -268,6 +268,29 @@ test('правило имён: в папке игры нет чужих назв
   ok(!BAD.test('лазутчик') && !BAD.test('Филин') && !BAD.test('сабо') && !BAD.test('CONTRACT.md') && !BAD.test('Гефест') && !BAD.test('телогрейка') && !BAD.test('OWLSTEP') && !BAD.test('Intruder'), 'стоп-лист без ложных срабатываний на наши слова');
 });
 
+// ---------- площадка (волна 6): реклама за награду, языки, страница и тач-схема, «Без рекламы» и таблица лидеров ----------
+test('реклама: reviveAd — только если поймала стража (1 попытка, снова в игре); после будильника — нет; boost — +1 попытка (до 9)', () => {
+  const h = mk(1), S = h.S; ok(!h.game.reviveAd(), 'в игре — нельзя'); h.game._place(cx(0, 8), fy(5), 1); run(h.game, 0.2);
+  S.lives = 1; S.hero.hp = 0.1; S.hero.inv = 0; S.enemies = [Object.assign(guardAt(S, 0, 5, 'boxer', cx(0, 9), -1), { st: 'chase', cd: 0 })];
+  run(h.game, 4); ok(S.over && S.lose === 'caught', 'поймали'); ok(h.game.canRevive());
+  ok(h.game.reviveAd()); ok(!S.over && S.lives === 1 && S.phase === 'in', 'снова в игре: ' + S.phase); ok(!h.game.canRevive());
+  const r = mk(1); r.game._give('matrix'); r.game._plant(); r.S.bombT = 0.05; run(r.game, 0.3); ok(r.S.over && r.S.lose === 'ring'); ok(!r.game.reviveAd(), 'будильник — без шанса');
+  const b = mk(1); ok(b.game.canBoost()); const l0 = b.S.lives; ok(b.game.boost()); eq(b.S.lives, l0 + 1); b.S.lives = 9; ok(!b.game.canBoost());
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ЛАЗУТЧИК, EN/TR/ES/PT OWLSTEP', () => {
+  const S = LZ.STR, ks = Object.keys(S.en).sort().join(','); eq(Object.keys(S).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(S[l]).sort().join(','), ks, l);
+  eq(S.ru.title, 'ЛАЗУТЧИК'); for (const l of ['en', 'tr', 'es', 'pt']) eq(S[l].title, 'OWLSTEP', l);
+});
+test('страница и тач-схема (волна 6): engine.js = _shared, стик js/stick.js, кнопки РУКА/НОГА/ВЕЩЬ/СВЕТ, межстраничная на выходе с финала, menuFit', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'), main = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
+  eq(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js синхронизирован');
+  ok(/data-stick/.test(html) && html.includes('./js/stick.js') && ['bPunch', 'bKick', 'bItem', 'bFlash'].every(id => html.includes('id="' + id + '"')), 'стик и кнопки');
+  ok(/ArcadeStick\.create/.test(main) && /_finalExit\(n\)/.test(main) && /menuFit/.test(main), 'стик/межстраничная/menuFit');
+});
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'lazutchik', boards: ['lazutchik'], test, ok }); }
+
 // ---------- партии бота (QUICK=1 — пропустить) ----------
 if (process.env.QUICK){ console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed) + ' (без бота)'); process.exit(failed ? 1 : 0); }
 // «Человеческий» бот (tests/bot.mjs): реакция 150–250 мс, ошибки момента нажатий, часть угроз замечает поздно; дерётся, не прячется.

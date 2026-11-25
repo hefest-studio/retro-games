@@ -119,8 +119,11 @@ async function grabCanvas(page) {
 //  r < 1,45 (4:3, квадрат, портрет) → 'side': кадр по высоте у края (отступ 70), название/подпись/крупный план — на свободной стороне.
 export function landscapeLayout(w0, h0, n, W, H) {
   W = W || 1280; H = H || 720; var r = w0 / h0, k, fw, fh, margin = 28;
-  if (r >= 1.7) { k = Math.max(W / w0, H / h0); fw = Math.round(w0 * k); fh = Math.round(h0 * k);
-    return { mode: 'full', frame: { x: Math.round((W - fw) / 2), y: Math.round((H - fh) / 2), w: fw, h: fh }, margin: margin, plateLeft: n % 2 === 1 }; }
+  if (r >= 1.7) { // кадр целиком (contain): у кадров шире/уже 16:9 края с HUD не срезаются (НАЛЁТ 960×520 терял «Мис. 1/6»), полосы — размытый кадр
+    k = Math.min(W / w0, H / h0); fw = Math.round(w0 * k); fh = Math.round(h0 * k);
+    var L0 = { mode: 'full', frame: { x: Math.round((W - fw) / 2), y: Math.round((H - fh) / 2), w: fw, h: fh }, margin: margin, plateLeft: n % 2 === 1 };
+    if (fw < W - 1 || fh < H - 1) { var kc = Math.max(W / w0, H / h0), cw0 = Math.round(w0 * kc), ch0 = Math.round(h0 * kc); L0.bg = { x: Math.round((W - cw0) / 2), y: Math.round((H - ch0) / 2), w: cw0, h: ch0 }; }
+    return L0; }
   if (r >= 1.45) { k = H / h0; fw = Math.round(w0 * k); fh = H; var kb = Math.max(W / w0, H / h0), bw = Math.round(w0 * kb), bh = Math.round(h0 * kb);
     return { mode: 'fit', frame: { x: Math.round((W - fw) / 2), y: 0, w: fw, h: fh }, bg: { x: Math.round((W - bw) / 2), y: Math.round((H - bh) / 2), w: bw, h: bh }, margin: margin, plateLeft: n % 2 === 1 }; }
   k = H / h0; fw = Math.round(w0 * k); fh = H; var gx = n % 2 ? W - fw - 70 : 70;
@@ -176,14 +179,20 @@ window.Compose = (function(){
   async function landscape(o){ var img=await load(o.shot), W=1280, H=720, r=canvas(W,H), c=r[0], x=r[1], L=landscapeLayout(img.width,img.height,o.n,W,H);
     if (L.mode!=='side') {
       x.fillStyle='#000'; x.fillRect(0,0,W,H);
-      if (L.mode==='fit') { x.save(); x.filter='blur(18px) brightness(.55)'; x.drawImage(img,L.bg.x,L.bg.y,L.bg.w,L.bg.h); x.restore(); }
+      if (L.bg) { x.save(); x.filter='blur(18px) brightness(.55)'; x.drawImage(img,L.bg.x,L.bg.y,L.bg.w,L.bg.h); x.restore(); }
       x.imageSmoothingEnabled=!o.pixel; x.drawImage(img,L.frame.x,L.frame.y,L.frame.w,L.frame.h); x.imageSmoothingEnabled=true;
       var pl=plate(x,o,L,W,H), vis=Math.min(L.frame.w,W)*Math.min(L.frame.h,H);
       return { url:c.toDataURL('image/png'), share:(vis-pl.w*pl.h)/(W*H), mode:L.mode, plate:pl, frame:L.frame }; }
     bg(x,W,H,o.P,o.n);
     var iw=L.frame.w, ih=L.frame.h, gx=L.frame.x; x.imageSmoothingEnabled=!o.pixel; x.drawImage(img,gx,0,iw,ih);
     var side = L.side, cw=side[1]-side[0], cx=side[0]+cw/2;
-    title(x,o.title,cx,150,cw,74,o.P); caption(x,o.caption,cx,250,cw,38,o.P);
+    var tsz=title(x,o.title,cx,150,cw,74,o.P);
+    // подпись под названием: кегль меньше, пока самое длинное слово не влезет в колонку и строки не налезут на название/крупный план
+    var csz=38, cls, top0=150+tsz*0.6+14, bot0=o.detail?335:690;
+    for(;;){ x.font='800 '+csz+'px Inter'; cls=wrap(x,o.caption,cw); var wide=cls.some(function(l){ return x.measureText(l).width>cw; });
+      if ((!wide && cls.length*csz*1.22<=bot0-top0) || csz<=20) break; csz-=2; }
+    var ccy=Math.max(250, top0+cls.length*csz*1.22/2); if (ccy+cls.length*csz*1.22/2>bot0) ccy=top0+cls.length*csz*1.22/2;
+    caption(x,o.caption,cx,ccy,cw,csz,o.P);
     // крупный план фрагмента геймплея — элемент игры на свободном месте (Яндекс 5.1.1.2: свободное место — элементы игры или текст)
     if (o.detail) { var d=o.detail, dw=Math.min(cw,520), dh=Math.round(dw*d[3]/d[2]); if (dh>330){ dh=330; dw=Math.round(dh*d[2]/d[3]); }
       var dx=cx-dw/2, dy=330+(360-dh)/2; x.save(); x.shadowColor='rgba(0,0,0,.6)'; x.shadowBlur=24; x.fillStyle='#000'; x.fillRect(dx,dy,dw,dh); x.restore();

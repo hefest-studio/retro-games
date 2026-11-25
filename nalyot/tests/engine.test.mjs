@@ -407,16 +407,38 @@ test('музыка: трек nalyot разбирается секвенсоро�
   const n = s => (Array.isArray(s) ? s.join(' ') : s).replace(/\|/g, ' ').trim().split(/\s+/).length;
   eq(n(tr.melody) % 8, 0); eq(n(tr.bass) % 8, 0); eq(n(tr.drums) % 8, 0);
 });
-test('страница: фавикон студии, «← Каталог», canvas, скрипты по порядку, тач-кнопки прыжка/гранаты/паузы; engine.js = _shared/engine.js', () => {
+test('страница: фавикон студии, «← Каталог», canvas, скрипты по порядку, тач-стик (волна 6) и кнопки прыжка/гранаты/паузы; engine.js = _shared/engine.js', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   ok(/<link rel="icon"[^>]+data:image\/svg\+xml/.test(html), 'фавикон');
   ok(/class="back"[^>]*href="\.\.\/"/.test(html), 'ссылка в каталог');
   ok(/<canvas id="c" width="960" height="520"/.test(html), 'canvas');
   const order = [...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]);
-  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/ui.js', 'js/modern.js', 'js/classic.js', 'js/main.js']);
-  ok(/data-jump/.test(html) && /data-gren/.test(html) && /data-pause/.test(html) && /data-d="A"/.test(html), 'тач-кнопки');
+  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/stick.js', 'js/ui.js', 'js/modern.js', 'js/classic.js', 'js/main.js']);
+  ok(/data-stick/.test(html) && /data-jump/.test(html) && /data-gren/.test(html) && /data-pause/.test(html) && /data-d="A"/.test(html), 'тач-кнопки');
   eq(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js не копия _shared');
 });
+// ---------- площадка (22.11, волна 6): автоприцел, реклама за награду, языки, «Без рекламы» и таблица лидеров ----------
+test('автоприцел (тач): цель выше и впереди — прицел по диагонали вверх, цель позади стоящего героя — разворот; без цели autoT=false', () => {
+  const game = N.Game({ players: 1, rng: mulberry32(1) }).start(), S = game._S, h = S.heroes[0];
+  S.enemies = []; S.boss = null; game.setAuto(0, true); game.setDir(0, 0, 0); game.update(1 / 60); ok(!h.autoT, 'без цели');
+  game._spawn('drone', h.x + 150, h.y - 170); game.update(1 / 60); ok(h.autoT, 'цель есть'); ok(h.aim.x > 0 && h.aim.y < 0, 'диагональ вверх: ' + JSON.stringify(h.aim));
+  S.enemies = []; h.x = S.cam.x + 520; h.face = 1; game._spawn('raider', h.x - 200, h.y); game.update(1 / 60); eq(h.face, -1, 'развернулся'); ok(h.aim.x < 0 && h.aim.y === 0, 'прицел назад: ' + JSON.stringify(h.aim));
+  game.setAuto(0, false); game.update(1 / 60); ok(!h.autoT);
+});
+test('реклама: reviveAd после конца отряда — 1 жизнь, снова в игре; boost — +1 жизнь (до 9)', () => {
+  const game = N.Game({ players: 1, rng: mulberry32(2) }).start(), S = game._S, h = S.heroes[0];
+  ok(!game.reviveAd(), 'в игре — нельзя'); h.lives = 1; h.armor = 0; h.inv = 0; h.ride = null; game._S.phase === 'play';
+  S.heroes.forEach(q => { q.alive = false; q.out = true; q.lives = 0; }); S.phase = 'over'; S.phaseT = 0;
+  ok(game.reviveAd()); eq(S.phase, 'play'); ok(!h.out && h.alive && h.lives === 1 && h.inv > 0, 'встал');
+  ok(game.canBoost()); ok(game.boost()); eq(h.lives, 2); h.lives = 9; ok(!game.canBoost());
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU НАЛЁТ, EN/TR/ES/PT BOILERRAID', () => {
+  const T2 = N.STR, ks = Object.keys(T2.en).sort().join(','); eq(Object.keys(T2).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(T2[l]).sort().join(','), ks, l);
+  eq(T2.ru.title, 'НАЛЁТ'); for (const l of ['en', 'tr', 'es', 'pt']) eq(T2[l].title, 'BOILERRAID', l);
+});
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'nalyot', boards: ['nalyot'], test, ok }); }
 test('правило имён: нет чужих игр, компаний, героев run-and-gun, реального оружия (регистронезависимо, с транслитом)', () => {
   // стоп-лист хранится в base64, чтобы сами названия не попадали в текст репозитория
   const BAD = new RegExp(Buffer.from('aW52YWRlcnM/fNC40L3QslvQtdCwXdC50LTQtdGAfHRhaXRvfNGC0LDQudGC0L58Z2FsYWd80LPQsNC70LDQs3xnYWxheGlhbnzQs9Cw0LvQsNC60YHQuNCw0L18XGJwaG9lbml4XGJ80YTQtdC90LjQutGBfG5pc2hpa2Fkb3zQvdC40YHQuNC60LDQtNC+fGRlbW9uID9hdHRhY2t8XGJnb3JmXGJ8bW9vbiA/Y3Jlc3RhfGNlbnR1cml8YW1zdGFyfHBhYy0/bWFufNC/0LDQutC80LDQvXx0ZXRyaXN80YLQtdGC0YDQuNGBfFxiY29udHJhXGJ80LrQvtC90YLRgNCwKD8hW9CwLdGP0ZFdKXxrb25hbWl80LrQvtC90LDQvNC4fG5hbWNvfNC90LDQvNC60L58Y2FwY29tfNC60LDQv9C60L7QvHxuaW50ZW5kb3zQvdC40L3RgtC10L3QtNC+fHNlZ2FcYnzRgdC10LPQsCg/IVvQsC3Rj9GRXSl8dGVjbW98ZGl6enl8ZGVlcHNlZWt8eG9uaXh80LrRgdC+0L3QuNC60YF8YmF0dGxlID9jaXR5fGxvZGUgP3J1bm5lcnxib3VsZGVyID9kYXNofHJpdmVyID9yYWlkfGV4b2xvbnzRjdC60YHQvtC70L7QvXx2aXRvcmN80LLQuNGC0L7RgNC6fGxvc3QgP3Zpa2luZ3N8ZG91YmxlID9kcmFnb258YmF0dGxldG9hZHN8c2lsa3dvcm18XGJyLT90eXBlXGJ80YAtP9GC0LDQudC/fFxiaXJlbVxifNCw0LnRgNC10Lx8XGJieWRvXGJ80LHQuNC00L4oPyFb0LAt0Y/RkV0pfGdyYWRpdXN80LPRgNCw0LTQuNGD0YF8bmVtZXNpc3zQvdC10LzQtdC30LjQtHx2aWMgP3ZpcGVyfFxiZm9yY2VcYnzRhNC+0YDRgSg/IVvQsC3Rj9GRXSl8ZGFyaXVzfNC00LDRgNC40YPRgXxzYWxhbWFuZGVyfNGB0LDQu9Cw0LzQsNC90LTRgHxtZXRhbCA/c2x1Z3zQvNC10YLQsNC7ID/RgdC70LDQs3xwcm9ib3RlY3RvcnzQv9GA0L7QsdC+0YLQtdC60YLQvtGAfGd1bnN0YXJ80LPQsNC90YHRgtCw0YB8Y3VwaGVhZHzQutCw0L/RhdC10LR8cmFtYm980YDQsNC80LHQvnxcYmNvbW1hbmRvXGJ80LrQvtC80LzQsNC90LTQvnxpa2FyaXzQuNC60LDRgNC4fHNob2NrID90cm9vcGVyc3xoYXJkID9jb3Jwc3xicm9mb3JjZXxibGF6aW5nID9jaHJvbWV8aHVudGRvd258dHVycmljYW580YLRg9GA0YDQuNC60LDQvXxtaWRuaWdodCA/cmVzaXN0YW5jZXxyb2xsaW5nID90aHVuZGVyfG1lZ2EgP21hbnzQvNC10LPQsNC80LXQvXxyb2NrbWFufGFsaWVuID9zb2xkaWVyfGJpbGwgP3JpemVyfNCx0LjQu9C7ID/RgNCw0LnQt9C10YB8bGFuY2UgP2JlYW58bWFyY28gP3Jvc3NpfNC80LDRgNC60L4gP9GA0L7RgdGB0Lh8dGFybWF80YLQsNGA0LzQsCg/IVvQsC3Rj9GRXSl8XGJtb3JkZW5cYnzQvNC+0YDQtNC10L18XGJzbmtcYnxuYXpjYXxzdW5zb2Z0fGRhdGEgP2Vhc3R8YWstPzQ3fNCw0LotPzQ3fGthbGFzaG5pa292fNC60LDQu9Cw0YjQvdC40Lp8XGJtLT8xNlxifFxibS0/NjBcYnxcYnV6aVxifCg/PCFb0LAt0Y/RkV0p0YPQt9C4KD8hW9CwLdGP0ZFdKXxiYXpvb2thfNCx0LDQt9GD0Lp8Z2F0bGluZ3zQs9Cw0YLQu9C40L3Qs3xtaW5pZ3VufNC80LjQvdC40LPQsNC9fGRlc2VydCA/ZWFnbGV8Z2xvY2t80LPQu9C+0LooPyFb0LAt0Y/RkV0pfGJlcmV0dGF80LHQtdGA0LXRgtGCfFxiY29sdFxifNC60L7Qu9GM0YIoPyFb0LAt0Y/RkV0pfHRob21wc29ufNGC0L7QvNC/0YHQvtC9fG1hdXNlcnzQvNCw0YPQt9C10YB8bHVnZXJ80LvRjtCz0LXRgHxicm93bmluZ3zQsdGA0LDRg9C90LjQvdCzfFxicnBnLT83fNGA0L/Qsy0/N3xwYW56ZXJmYXVzdHzRhNCw0YPRgdGC0L/QsNGC0YDQvtC9', 'base64').toString('utf8'), 'i');

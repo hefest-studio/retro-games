@@ -856,6 +856,22 @@
       return true;
     }
 
+    // площадка (волна 6): «ещё один шанс» за рекламу после своих продолжений — дружина встаёт с 1 жизнью; бонус в паузе — +1 жизнь И1
+    function reviveAd() {
+      if (S.phase !== 'over') return false;
+      S.over = false; S.phase = S.bonus ? 'bonus' : 'play';
+      S.heroes.forEach(function (h) { h.lives = 1; h.out = false; h.alive = true; h.dying = false; respawn(h); });
+      ev('continue', { left: S.continues, ad: true }); return true;
+    }
+    function canBoost() { var h = S && S.heroes[0]; return !!h && !h.out && h.lives < 9 && (S.phase === 'play' || S.phase === 'bonus'); }
+    function boost() { if (!canBoost()) return false; S.heroes[0].lives++; return true; }
+    // окружение (для тач-схемы): враги в полосе героя и спереди, и сзади на расстоянии удара — «спина» вместо удара
+    function surrounded(pi) {
+      var h = hero(pi); if (!h || !h.alive) return false; var f0 = false, b0 = false;
+      S.foes.forEach(function (f) { if (!f.alive || f.dying || Math.abs(f.z - h.z) > ZR + 4) return; var dx = (f.x - h.x) * h.face, r = h.def.reach + f.w + 6; if (dx > -8 && dx < r) f0 = true; else if (dx <= -8 && dx > -r) b0 = true; });
+      return f0 && b0;
+    }
+
     function update(dt) {
       if (!S) return;
       dt = Math.min(dt, 0.05);
@@ -885,7 +901,7 @@
 
     var api = {
       start: start, update: update, state: function () { return S; }, get _S() { return S; },
-      setDir: setDir, attack: attack, jump: jump, magic: magic, special: special, continue_: continue_, magicLevel: magicLevel,
+      setDir: setDir, attack: attack, jump: jump, magic: magic, special: special, continue_: continue_, reviveAd: reviveAd, canBoost: canBoost, boost: boost, surrounded: surrounded, magicLevel: magicLevel,
       _spawn: function (type, x, z, o) { return mkFoe(type, x, z, o); }, _imp: function (x, z, d, b) { return mkImp(x, z, d, b); },
       _boss: function (key, x, z) { var b = mkBoss(key, x, z); b.intro = 0; return b; }, _mount: mkMount,
       _hitHero: hitHero, _hitFoe: hitFoe, _stageClear: stageClear, _lockBoss: lockBoss

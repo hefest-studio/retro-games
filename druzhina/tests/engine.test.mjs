@@ -292,14 +292,14 @@ test('музыка: трек druzhina разбирается секвенсор�
   const n = s => (Array.isArray(s) ? s.join(' ') : s).replace(/\|/g, ' ').trim().split(/\s+/).length;
   eq(n(tr.melody) % 8, 0); eq(n(tr.bass) % 8, 0); eq(n(tr.drums) % 8, 0);
 });
-test('страница: фавикон студии, «← Каталог», canvas, скрипты по порядку, тач-кнопки; engine.js = _shared/engine.js', () => {
+test('страница: фавикон студии, «← Каталог», canvas, скрипты по порядку, тач-стик (волна 6) и кнопки удара/прыжка/магии/паузы; engine.js = _shared/engine.js', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   ok(/<link rel="icon"[^>]+data:image\/svg\+xml/.test(html), 'фавикон');
   ok(/class="back"[^>]*href="\.\.\/"/.test(html), 'ссылка в каталог');
   ok(/<canvas id="c" width="960" height="540"/.test(html), 'canvas');
   const order = [...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]);
-  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/modern.js', 'js/classic.js', 'js/render.js', 'js/ui.js', 'js/main.js']);
-  ok(/data-jump/.test(html) && /data-magic/.test(html) && /data-back/.test(html) && /data-pause/.test(html) && /data-d="A"/.test(html), 'тач-кнопки');
+  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/modern.js', 'js/classic.js', 'js/render.js', 'js/stick.js', 'js/ui.js', 'js/main.js']);
+  ok(/data-stick/.test(html) && /data-jump/.test(html) && /data-magic/.test(html) && /data-pause/.test(html) && /data-d="A"/.test(html), 'тач-кнопки');
   eq(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js не копия _shared');
 });
 test('рендер: кадр всех этапов и привала рисуется без исключений в обеих темах (фиктивный canvas)', () => {
@@ -329,6 +329,32 @@ test('правило имён: в папке игры нет чужих назв
 });
 
 // ---------- Проходимость и баланс: «человеческий» бот ----------
+// ---------- площадка (волна 6): реклама за награду, «спина» на таче, языки, «Без рекламы» и таблица лидеров ----------
+test('реклама: reviveAd после конца дружины — 1 жизнь, снова в бою; boost — +1 жизнь И1 (до 9)', () => {
+  const { game, S, h } = setup(); ok(!game.reviveAd(), 'в игре — нельзя');
+  S.heroes.forEach(q => { q.out = true; q.alive = false; q.lives = 0; }); S.phase = 'over'; S.over = true;
+  ok(game.reviveAd()); eq(S.phase, 'play'); ok(!h.out && h.alive && h.lives === 1, 'встал'); ok(!S.over);
+  ok(game.canBoost()); ok(game.boost()); eq(h.lives, 2); h.lives = 9; ok(!game.canBoost());
+});
+test('тач: surrounded — враги в полосе героя и спереди, и сзади; только спереди — нет', () => {
+  const a = setup(); a.h.face = 1; foe(a.game, 'spear', 440, 90); ok(!a.game.surrounded(0), 'только спереди');
+  foe(a.game, 'spear', 360, 90); ok(a.game.surrounded(0), 'спереди и сзади');
+  const b = setup(); b.h.face = 1; foe(b.game, 'spear', 440, 90); foe(b.game, 'spear', 360, 160); ok(!b.game.surrounded(0), 'сзади, но в другой полосе');
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ДРУЖИНА, EN/TR/ES/PT FORGEBAND', () => {
+  const S = D.STR, ks = Object.keys(S.en).sort().join(','); eq(Object.keys(S).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(S[l]).sort().join(','), ks, l);
+  eq(S.ru.title, 'ДРУЖИНА'); for (const l of ['en', 'tr', 'es', 'pt']) eq(S[l].title, 'FORGEBAND', l);
+});
+test('тач-схема (волна 6): стик js/stick.js, «спина» при окружении, карточка этапа с межстраничной, menuFit, геймпад', () => {
+  const main = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
+  ok(/ArcadeStick\.create/.test(main) && /surrounded\(0\)/.test(main), 'стик/«спина»');
+  ok(/g\.adBreak\(\)/.test(main) && /g\.adReady\(\)/.test(main), 'межстраничная по нажатию на карточке');
+  ok(/menuFit/.test(main) && /g\.gamepad\.configure/.test(main), 'menuFit, геймпад');
+});
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'druzhina', boards: ['druzhina'], test, ok }); }
+
 if (process.env.QUICK){ console.log(`\n${passed} прошло, ${failed} упало (без бота)`); process.exit(failed ? 1 : 0); }
 // «Собранный» бот (реакция 0.12–0.2 с, редкие зевки) проходит каждый этап с нуля (3 жизни) хотя бы в 2 из 3 партий.
 const PASS = [];

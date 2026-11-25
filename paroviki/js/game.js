@@ -995,6 +995,15 @@
       setMove: function (pi, dx, dy) { var h = S.heroes[pi]; if (h && !h.ai) { h.mx = dx; h.my = dy; } },
       setFire: function (pi, on) { var h = S.heroes[pi]; if (h && !h.ai) h.fire = !!on; },
       special: special,
+      // площадка (волна 6): «ещё один шанс» за рекламу после конца игры — люди встают с 1 жизнью (рой вокруг отброшен); бонус в паузе — +1 жизнь И1
+      reviveAd: function () {
+        if (S.phase !== 'over') return false; S.phase = 'play';
+        S.heroes.forEach(function (h) { if (!h.ai) { h.t.lives = 1; h.out = false; respawn(h); h.inv = 3;
+          S.enemies.forEach(function (e) { if (!e.dead && e.type !== 'nest' && Math.hypot(e.x - h.x, e.y - h.y) < 120) { var a = Math.atan2(e.y - h.y, e.x - h.x), nx = e.x + Math.cos(a) * 80, ny = e.y + Math.sin(a) * 80; if (!hitsWall(nx, ny, e.r || 10)) { e.x = nx; e.y = ny; } } }); } });
+        emit('revive', { pi: 0, x: S.heroes[0].x, y: S.heroes[0].y }); return true;
+      },
+      canBoost: function () { var t = S.team[0], h = S.heroes[0]; return !!t && !!h && !h.out && t.lives < 9 && (S.phase === 'play' || S.phase === 'shop'); },
+      boost: function () { if (!api.canBoost()) return false; S.team[0].lives++; return true; },
       cont: function () { if (S.phase !== 'cont' || S.continues <= 0) return false; S.continues--; S.phase = 'play'; S.heroes.forEach(function (h) { if (!h.ai) { h.t.lives = START_LIVES; h.out = false; respawn(h); } }); emit('continue', {}); return true; },
       state: function () { return S; },
       price: price, buy: buy, shopItems: function (pi) { return SHOP_ITEMS(S.team[pi].hid); }, shopReady: shopReady, aiShop: aiShop,

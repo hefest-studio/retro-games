@@ -289,7 +289,8 @@ test('страница: engine.js — копия _shared, ссылка «← К�
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   eq(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js синхронизирован');
   ok(/data-catalog-back/.test(html) && /rel="icon"/.test(html) && /<canvas/.test(html));
-  for (const f of ['engine.js', 'js/music.js', 'js/i18n.js', 'js/levels.js', 'js/game.js', 'js/audio.js', 'js/render.js', 'js/main.js']) ok(html.includes('./' + f), f);
+  for (const f of ['engine.js', 'js/music.js', 'js/i18n.js', 'js/levels.js', 'js/game.js', 'js/audio.js', 'js/render.js', 'js/stick.js', 'js/main.js']) ok(html.includes('./' + f), f);
+  ok(/data-stick/.test(html) && /id="bFire"/.test(html) && /data-d="A"/.test(html), 'тач-стик (волна 6), огонь, прыжок');
   ok(!/https?:\/\//.test(html.replace(/xmlns='http:\/\/www\.w3\.org\/2000\/svg'/g, '')), 'без внешних URL');
 });
 test('правило имён: в папке игры нет чужих названий игр/компаний/персонажей (регистронезависимо, с транслитом)', () => {
@@ -302,6 +303,27 @@ test('правило имён: в папке игры нет чужих назв
   for (const f of walk(ROOT)) ok(!BAD.test(path.relative(ROOT, f)), 'имя файла: ' + f);
   ok(!BAD.test('Шустрик') && !BAD.test('supersonic') && !BAD.test('Гефест') && !BAD.test('CONTRACT.md') && !BAD.test('хорёк'), 'стоп-лист без ложных срабатываний на наши слова');
 });
+
+// ---------- площадка (волна 6): реклама за награду, языки, тач-схема, «Без рекламы» и таблица лидеров ----------
+test('реклама: reviveAd после последней жизни — 1 жизнь у контрольной точки; boost — +1 жизнь (до 9)', () => {
+  const a = mk(); ok(!a.game.reviveAd(), 'в игре — нельзя');
+  a.S.lives = 1; a.game._die('test'); run(a.game, 2); eq(a.S.phase, 'over'); ok(a.S.over && a.has('gameover'));
+  ok(a.game.reviveAd()); eq(a.S.phase, 'play'); eq(a.S.lives, 1); ok(!a.S.over, 'не over');
+  ok(a.game.canBoost()); ok(a.game.boost()); eq(a.S.lives, 2); a.S.lives = K.MAXLIVES; ok(!a.game.canBoost());
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ШУСТРИК, EN/TR/ES/PT STEAMSCURRY', () => {
+  const S = SH.STR, ks = Object.keys(S.en).sort().join(','); eq(Object.keys(S).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(S[l]).sort().join(','), ks, l);
+  eq(S.ru.title, 'ШУСТРИК'); for (const l of ['en', 'tr', 'es', 'pt']) eq(S[l].title, 'STEAMSCURRY', l);
+});
+test('тач-схема (волна 6): стик js/stick.js, карточка акта с межстраничной, menuFit', () => {
+  const main = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
+  ok(/ArcadeStick\.create/.test(main) && /stick\.active/.test(main), 'стик');
+  ok(/g\.adBreak\(\)/.test(main) && /g\.adReady\(\)/.test(main), 'межстраничная по нажатию на карточке');
+  ok(/menuFit/.test(main), 'menuFit');
+});
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'shustrik', boards: ['shustrik'], test, ok }); }
 
 // ---------- партии бота (QUICK=1 — пропустить) ----------
 if (process.env.QUICK){ console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed) + ' (без бота)'); process.exit(failed ? 1 : 0); }

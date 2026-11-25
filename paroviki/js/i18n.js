@@ -1,4 +1,4 @@
-/* ПАРОВИКИ · i18n (RU/EN). PAROVIKI.STR — таблицы для Arcade.createGame({strings}).
+/* ПАРОВИКИ · i18n (RU/EN/TR/ES/PT — движок v2.8 берёт языки из ключей strings; название: RU — ПАРОВИКИ, EN/TR/ES/PT — VALVEWRIGHTS). PAROVIKI.STR — таблицы для Arcade.createGame({strings}).
    Ключи play/language/theme/... нужны стандартным экранам движка, players/touch1p — g.usePlayers; остальные — игре. */
 (function (global) {
   'use strict';
@@ -32,13 +32,14 @@
       contAsk: 'ПРОДОЛЖИТЬ?', contHint: 'огонь / Enter — снова в бой', contLeft: 'продолжений', continued: 'ПРОДОЛЖЕНИЕ', saved: 'сохранено', password: 'Пароль уровня',
       hint1: 'И1: стрелки — ход, / или пробел — огонь, , или правый Shift — спецприём',
       hint2: 'И2: WASD — ход, F — огонь, G или Q — спецприём · 1/2 — игроки',
-      foot: '<b>ПАРОВИКИ</b> · стрелки — ход, <b>/</b> . пробел — огонь (пока держишь — герой не разворачивается), <b>,</b> правый Shift — спецприём · И2: WASD, F — огонь, G/Q — спецприём · 1/2 на заставке — игроки · P/Esc пауза · L язык, T тема, M звук. Один игрок — второго ведёт ИИ-напарник.'
+      aim: 'Автоприцел', rwLife: 'Реклама: +1 жизнь',
+      foot: '<b>ПАРОВИКИ</b> · стрелки — ход, <b>/</b> . пробел — огонь (пока держишь — герой не разворачивается), <b>,</b> правый Shift — спецприём · И2: WASD, F — огонь, G/Q — спецприём · 1/2 на заставке — игроки · P/Esc пауза · L язык, T тема, M звук. Один игрок — второго ведёт ИИ-напарник. Тач — стик, ● огонь, ✸ спецприём, автоприцел (меню).'
     },
     en: {
       play: 'New game', players: 'Players', touch1p: 'touch — 1 player', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
       score: 'Score', level: 'Level', best: 'Best', win: 'THE MACHINE IS DOWN! PROVINCE SAVED', gameover: 'OUT OF STEAM',
       pause: 'PAUSED', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
-      title: 'PAROVIKI', subtitle: 'Hefest contractors versus the runaway Steam Machine',
+      title: 'VALVEWRIGHTS', subtitle: 'Hefest contractors versus the runaway Steam Machine',
       back: 'Catalog', p1: 'P1', p2: 'P2', ai: 'AI', aiMate: 'Partner (AI)', hero1: 'P1 hero', hero2: 'P2 hero',
       cont: 'Continue', contFrom: 'world', pass: 'Password', passTitle: 'ENTER PASSWORD', passHint: 'letters and digits · ↑↓ — char · ←→ — slot · Enter — ok · Esc — back', passBad: 'Wrong password', passOk: 'Password accepted',
       h_klepa: 'Rivet', h_gudok: 'Hooter', h_shest: 'Cog', h_fonar: 'Lantern',
@@ -62,7 +63,101 @@
       contAsk: 'CONTINUE?', contHint: 'fire / Enter — back to the fight', contLeft: 'continues', continued: 'CONTINUE', saved: 'saved', password: 'Level password',
       hint1: 'P1: arrows — move, / or space — fire, , or right Shift — special',
       hint2: 'P2: WASD — move, F — fire, G or Q — special · 1/2 — players',
-      foot: '<b>PAROVIKI</b> · arrows — move, <b>/</b> . space — fire (hold to keep facing), <b>,</b> right Shift — special · P2: WASD, F — fire, G/Q — special · 1/2 on the title — players · P/Esc pause · L language, T theme, M sound. Playing solo, an AI partner takes the second hero.'
+      aim: 'Auto-aim', rwLife: 'Watch ad: +1 life',
+      foot: '<b>VALVEWRIGHTS</b> · arrows — move, <b>/</b> . space — fire (hold to keep facing), <b>,</b> right Shift — special · P2: WASD, F — fire, G/Q — special · 1/2 on the title — players · P/Esc pause · L language, T theme, M sound. Playing solo, an AI partner takes the second hero. Touch — stick, ● fire, ✸ special, auto-aim (menu).'
     }
+  };
+  PV.STR.tr = {
+    play: 'Yeni oyun', players: 'Oyuncular', touch1p: 'dokunmatik — 1 oyuncu', language: 'Dil', theme: 'Tema', sound: 'Ses', on: 'açık', off: 'kapalı',
+    score: 'Puan', level: 'Seviye', best: 'Rekor', win: 'MAKİNE DURDU! VİLAYET KURTULDU', gameover: 'BUHAR BİTTİ',
+    pause: 'DURAKLATILDI', resume: 'Devam et', menu: 'Ana menü', tapstart: 'boşluk / dokun',
+    title: 'VALVEWRIGHTS', subtitle: 'Hefest müteahhitleri kudurmuş Buhar Makinesine karşı',
+    back: 'Katalog', p1: 'O1', p2: 'O2', ai: 'YZ', aiMate: 'Ortak (YZ)', hero1: 'O1 kahramanı', hero2: 'O2 kahramanı',
+    cont: 'Devam et', contFrom: 'dünya', pass: 'Şifre', passTitle: 'ŞİFRE GİR', passHint: 'harf ve rakam · ↑↓ — işaret · ←→ — yer · Enter — onay · Esc — geri', passBad: 'Yanlış şifre', passOk: 'Şifre kabul edildi',
+    h_klepa: 'Perçin', h_gudok: 'Düdük', h_shest: 'Dişli', h_fonar: 'Fener',
+    hd_klepa: 'hızlı perçinci · ikisini de yamar', hd_gudok: 'patlayan buhar havanı · kazan bombası', hd_shest: 'seken testereler · şemsiye kalkan', hd_fonar: 'delen ark · harita ve sersemletme',
+    g_rivet: 'Perçin tabancası', g_steam: 'Buhar havanı', g_saw: 'Testere atar', g_bolt: 'Ark atar',
+    s_heal: 'Yama', s_bomb: 'Kazan bombası', s_shield: 'Şemsiye kalkan', s_chart: 'Harita',
+    sd_heal: 'ikisini iyileştirir, ortağı kaldırır', sd_bomb: 'çevreye hasar, mermileri söndürür', sd_shield: 'ikisi de 5 sn dokunulmaz', sd_chart: 'haritayı açar, canavarları sersemletir',
+    u_gun: 'Silah', u_hp: 'Kazan (+25 can)', u_heal: 'Yama (tam can)', u_spec: 'Özel hamle şarjı',
+    u_speed: 'Hafif adım (hız +%8)', u_life: 'Yedek can', u_armor: 'Perçinli zırh (hasar −%12)', u_magnet: 'Para mıknatısı', u_regen: 'Semaver (kendini onarır)',
+    u_ready: 'Hazır → yola', tier: 'kademe', max: 'azami', noMoney: 'eksik', owned: 'var',
+    shop: 'HEFEST DÜKKÂNI', shopHint: '↑↓ — seç · ateş — satın al', aiBuys: 'YZ ortağı kendi alışverişini yaptı:', aiNothing: 'para biriktiriyor', waitMate: 'ortak bekleniyor…', money: 'Para', next: 'İleri',
+    w_1: 'Kömür ocakları', w_2: 'Buhar limanı', w_3: 'Saatçiler mahallesi', w_4: 'Vilayet kazan dairesi',
+    world: 'DÜNYA', lvlShort: 'Sv.', worldShort: 'Dünya', bossLvl: 'mekanizma',
+    b_drill: 'KAZICI MATKAP', b_crane: 'KISKAÇLI VİNÇ', b_pendulum: 'AĞIRLIKLI SARKAÇ', b_machine: 'VİLAYET BUHAR MAKİNESİ',
+    bossSub: 'Vanaları çevir — basınç düşer, zırh açılır',
+    introSub: 'Bütün vana düğümlerini aç — savak açılır',
+    valves: 'Vanalar', keys: 'Anahtarlar', valveOn: 'VANA AÇILDI', valveLeft: 'kalan', exitOpen: 'SAVAK AÇIK!', toExit: 'savağa',
+    secret: 'ZULA!', key: '+anahtar', lever: 'KAPAK KALKTI', door: 'KAPI AÇILDI', food: '+can', charge: '+şarj', chest: 'sandık',
+    armorDown: 'BASINÇ DÜŞTÜ', armorOff: 'ZIRH DÜŞTÜ!', levelDone: 'SEVİYE GEÇİLDİ', bossDone: 'MEKANİZMA DURDU', bonus: 'Bonus',
+    warp: 'buhar atılımı', down: 'DEVRE DIŞI', revive: 'yeniden görevde', out: 'oyun dışı', lives: 'can', hpShort: 'can',
+    contAsk: 'DEVAM?', contHint: 'ateş / Enter — yeniden savaşa', contLeft: 'devam hakkı', continued: 'DEVAM', saved: 'kaydedildi', password: 'Seviye şifresi',
+    hint1: 'O1: oklar — yürü, / veya boşluk — ateş, , veya sağ Shift — özel hamle',
+    hint2: 'O2: WASD — yürü, F — ateş, G veya Q — özel hamle · 1/2 — oyuncu',
+    aim: 'Otomatik nişan', rwLife: 'Reklam: +1 can',
+    foot: '<b>VALVEWRIGHTS</b> · oklar — yürü, <b>/</b> . boşluk — ateş (basılıyken kahraman dönmez), <b>,</b> sağ Shift — özel hamle · O2: WASD, F — ateş, G/Q — özel hamle · başlıkta 1/2 — oyuncu · P/Esc duraklat · L dil, T tema, M ses. Tek oyuncuda ikinci kahramanı YZ ortağı yönetir. Dokunmatik — çubuk, ● ateş, ✸ özel hamle, otomatik nişan (menü).'
+  };
+  PV.STR.es = {
+    play: 'Nueva partida', players: 'Jugadores', touch1p: 'táctil — 1 jugador', language: 'Idioma', theme: 'Tema', sound: 'Sonido', on: 'sí', off: 'no',
+    score: 'Puntos', level: 'Nivel', best: 'Récord', win: '¡MÁQUINA APAGADA! PROVINCIA A SALVO', gameover: 'SIN VAPOR',
+    pause: 'PAUSA', resume: 'Continuar', menu: 'Menú principal', tapstart: 'espacio / toca',
+    title: 'VALVEWRIGHTS', subtitle: 'Contratistas de Hefest frente a la Máquina de Vapor desbocada',
+    back: 'Catálogo', p1: 'J1', p2: 'J2', ai: 'IA', aiMate: 'Compañero (IA)', hero1: 'Héroe J1', hero2: 'Héroe J2',
+    cont: 'Continuar', contFrom: 'mundo', pass: 'Clave', passTitle: 'INTRODUCE LA CLAVE', passHint: 'letras y cifras · ↑↓ — signo · ←→ — casilla · Enter — aceptar · Esc — volver', passBad: 'Clave errónea', passOk: 'Clave aceptada',
+    h_klepa: 'Remache', h_gudok: 'Pito', h_shest: 'Engranaje', h_fonar: 'Farol',
+    hd_klepa: 'remachadora rápida · cura a ambos', hd_gudok: 'mortero de vapor · caldera bomba', hd_shest: 'sierras que rebotan · paraguas escudo', hd_fonar: 'arco perforante · carta y aturdir',
+    g_rivet: 'Remachadora', g_steam: 'Mortero de vapor', g_saw: 'Lanzasierras', g_bolt: 'Lanzarrayos',
+    s_heal: 'Parche', s_bomb: 'Caldera bomba', s_shield: 'Paraguas escudo', s_chart: 'Carta',
+    sd_heal: 'cura a ambos, levanta al compañero', sd_bomb: 'daña alrededor, apaga disparos', sd_shield: 'ambos invulnerables 5 s', sd_chart: 'revela el mapa, aturde monstruos',
+    u_gun: 'Arma', u_hp: 'Caldera (+25 salud)', u_heal: 'Parche (salud llena)', u_spec: 'Carga especial',
+    u_speed: 'Paso ligero (velocidad +8 %)', u_life: 'Vida extra', u_armor: 'Blindaje remachado (daño −12 %)', u_magnet: 'Imán de monedas', u_regen: 'Samovar (autorreparación)',
+    u_ready: 'Listo → en marcha', tier: 'nivel', max: 'máx.', noMoney: 'faltan', owned: 'tienes',
+    shop: 'TIENDA HEFEST', shopHint: '↑↓ — elegir · disparo — comprar', aiBuys: 'El compañero IA compró solo:', aiNothing: 'ahorra', waitMate: 'esperando al compañero…', money: 'Dinero', next: 'Siguiente',
+    w_1: 'Minas de carbón', w_2: 'Puerto de vapor', w_3: 'Barrio relojero', w_4: 'Sala de calderas',
+    world: 'MUNDO', lvlShort: 'Niv.', worldShort: 'Mundo', bossLvl: 'mecanismo',
+    b_drill: 'TALADRO EXCAVADOR', b_crane: 'GRÚA PINZA', b_pendulum: 'PÉNDULO DE PESAS', b_machine: 'MÁQUINA DE VAPOR PROVINCIAL',
+    bossSub: 'Gira las válvulas: baja la presión y se abre el blindaje',
+    introSub: 'Abre todas las válvulas y se abrirá la compuerta',
+    valves: 'Válvulas', keys: 'Llaves', valveOn: 'VÁLVULA ABIERTA', valveLeft: 'quedan', exitOpen: '¡COMPUERTA ABIERTA!', toExit: 'a la compuerta',
+    secret: '¡ESCONDITE!', key: '+llave', lever: 'TRAMPILLA ALZADA', door: 'PUERTA ABIERTA', food: '+salud', charge: '+carga', chest: 'cofre',
+    armorDown: 'PRESIÓN LIBERADA', armorOff: '¡SIN BLINDAJE!', levelDone: 'NIVEL SUPERADO', bossDone: 'MECANISMO PARADO', bonus: 'Bonus',
+    warp: 'impulso de vapor', down: 'FUERA DE COMBATE', revive: 'de vuelta', out: 'fuera', lives: 'vidas', hpShort: 'salud',
+    contAsk: '¿CONTINUAR?', contHint: 'disparo / Enter — volver a la lucha', contLeft: 'continuaciones', continued: 'CONTINÚA', saved: 'guardado', password: 'Clave del nivel',
+    hint1: 'J1: flechas — mover, / o espacio — disparo, , o Mayús der. — especial',
+    hint2: 'J2: WASD — mover, F — disparo, G o Q — especial · 1/2 — jugadores',
+    aim: 'Autoapuntado', rwLife: 'Anuncio: +1 vida',
+    foot: '<b>VALVEWRIGHTS</b> · flechas — mover, <b>/</b> . espacio — disparo (mantenlo para no girar), <b>,</b> Mayús der. — especial · J2: WASD, F — disparo, G/Q — especial · 1/2 en el título — jugadores · P/Esc pausa · L idioma, T tema, M sonido. En solitario, un compañero IA lleva al segundo héroe. Táctil — stick, ● disparo, ✸ especial, autoapuntado (menú).'
+  };
+  PV.STR.pt = {
+    play: 'Novo jogo', players: 'Jogadores', touch1p: 'toque — 1 jogador', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'lig.', off: 'desl.',
+    score: 'Pontos', level: 'Fase', best: 'Recorde', win: 'MÁQUINA DESLIGADA! PROVÍNCIA SALVA', gameover: 'SEM VAPOR',
+    pause: 'PAUSA', resume: 'Continuar', menu: 'Menu principal', tapstart: 'espaço / toque',
+    title: 'VALVEWRIGHTS', subtitle: 'Empreiteiros da Hefest diante da Máquina a Vapor descontrolada',
+    back: 'Catálogo', p1: 'J1', p2: 'J2', ai: 'IA', aiMate: 'Parceiro (IA)', hero1: 'Herói J1', hero2: 'Herói J2',
+    cont: 'Continuar', contFrom: 'mundo', pass: 'Senha', passTitle: 'DIGITE A SENHA', passHint: 'letras e números · ↑↓ — sinal · ←→ — casa · Enter — ok · Esc — voltar', passBad: 'Senha errada', passOk: 'Senha aceita',
+    h_klepa: 'Rebite', h_gudok: 'Apito', h_shest: 'Engrenagem', h_fonar: 'Lanterna',
+    hd_klepa: 'rebitadora rápida · cura os dois', hd_gudok: 'morteiro a vapor · caldeira-bomba', hd_shest: 'serras que ricocheteiam · guarda-chuva escudo', hd_fonar: 'arco perfurante · carta e atordoar',
+    g_rivet: 'Rebitadora', g_steam: 'Morteiro a vapor', g_saw: 'Lança-serras', g_bolt: 'Lança-arcos',
+    s_heal: 'Remendo', s_bomb: 'Caldeira-bomba', s_shield: 'Guarda-chuva escudo', s_chart: 'Carta',
+    sd_heal: 'cura os dois, levanta o parceiro', sd_bomb: 'dano ao redor, apaga tiros', sd_shield: 'os dois invulneráveis por 5 s', sd_chart: 'revela o mapa, atordoa monstros',
+    u_gun: 'Arma', u_hp: 'Caldeira (+25 saúde)', u_heal: 'Remendo (saúde cheia)', u_spec: 'Carga especial',
+    u_speed: 'Passo leve (velocidade +8%)', u_life: 'Vida extra', u_armor: 'Blindagem rebitada (dano −12%)', u_magnet: 'Ímã de moedas', u_regen: 'Samovar (autorreparo)',
+    u_ready: 'Pronto → seguir', tier: 'nível', max: 'máx.', noMoney: 'faltam', owned: 'já tem',
+    shop: 'LOJA HEFEST', shopHint: '↑↓ — escolher · tiro — comprar', aiBuys: 'O parceiro IA comprou sozinho:', aiNothing: 'guardando dinheiro', waitMate: 'esperando o parceiro…', money: 'Dinheiro', next: 'Seguir',
+    w_1: 'Minas de carvão', w_2: 'Porto a vapor', w_3: 'Bairro dos relojoeiros', w_4: 'Casa das caldeiras',
+    world: 'MUNDO', lvlShort: 'Fase', worldShort: 'Mundo', bossLvl: 'mecanismo',
+    b_drill: 'BROCA ESCAVADORA', b_crane: 'GUINDASTE GARRA', b_pendulum: 'PÊNDULO DE PESOS', b_machine: 'MÁQUINA A VAPOR DA PROVÍNCIA',
+    bossSub: 'Gire as válvulas — a pressão cai e a blindagem abre',
+    introSub: 'Abra todas as válvulas — a comporta vai abrir',
+    valves: 'Válvulas', keys: 'Chaves', valveOn: 'VÁLVULA ABERTA', valveLeft: 'faltam', exitOpen: 'COMPORTA ABERTA!', toExit: 'para a comporta',
+    secret: 'ESCONDERIJO!', key: '+chave', lever: 'COMPORTA ERGUIDA', door: 'PORTA DESTRANCADA', food: '+saúde', charge: '+carga', chest: 'baú',
+    armorDown: 'PRESSÃO LIBERADA', armorOff: 'SEM BLINDAGEM!', levelDone: 'FASE CONCLUÍDA', bossDone: 'MECANISMO PARADO', bonus: 'Bônus',
+    warp: 'arrancada a vapor', down: 'FORA DE COMBATE', revive: 'de volta à ação', out: 'fora', lives: 'vidas', hpShort: 'saúde',
+    contAsk: 'CONTINUAR?', contHint: 'tiro / Enter — de volta à luta', contLeft: 'continues', continued: 'CONTINUAÇÃO', saved: 'salvo', password: 'Senha da fase',
+    hint1: 'J1: setas — andar, / ou espaço — tiro, , ou Shift dir. — especial',
+    hint2: 'J2: WASD — andar, F — tiro, G ou Q — especial · 1/2 — jogadores',
+    aim: 'Mira automática', rwLife: 'Anúncio: +1 vida',
+    foot: '<b>VALVEWRIGHTS</b> · setas — andar, <b>/</b> . espaço — tiro (segurando, o herói não vira), <b>,</b> Shift dir. — especial · J2: WASD, F — tiro, G/Q — especial · 1/2 na tela inicial — jogadores · P/Esc pausa · L idioma, T tema, M som. Sozinho, um parceiro IA leva o segundo herói. Toque — stick, ● tiro, ✸ especial, mira automática (menu).'
   };
 })(typeof window !== 'undefined' ? window : globalThis);

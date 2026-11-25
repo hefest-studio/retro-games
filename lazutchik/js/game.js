@@ -481,7 +481,7 @@
         P.deadT += dt;
         if (P.deadT >= K.DEAD) {
           S.lives--;
-          if (S.lives <= 0) { S.over = true; S.phase = 'lost'; S.lose = 'caught'; ev('gameover', { why: 'caught' }); return; }
+          if (S.lives <= 0) { S.lostFrom = S.phase; S.over = true; S.phase = 'lost'; S.lose = 'caught'; ev('gameover', { why: 'caught' }); return; }
           respawn(); P = S.hero;
         }
       } else {
@@ -537,6 +537,11 @@
       start: start, update: update, setInput: setInput, press: press,
       state: function () { return S; },
       // тестовые хуки
+      // площадка (волна 6): «ещё один шанс» за рекламу — только если Филина поймали (не будильник): 1 жизнь у контрольной точки; бонус — +1 жизнь
+      reviveAd: function () { if (!S || !S.over || S.won || S.lose !== 'caught') return false; S.over = false; S.lose = null; S.phase = S.lostFrom || 'in'; S.lives = 1; respawn(); ev('continue', { ad: true }); return true; },
+      canRevive: function () { return !!S && S.over && !S.won && S.lose === 'caught'; },
+      canBoost: function () { return !!S && !S.over && S.lives < 9; },
+      boost: function () { if (!api.canBoost()) return false; S.lives++; return true; },
       _place: function (x, y, face) { var P = S.hero; P.x = x; P.y = y; P.ground = true; P.climb = false; P.vy = 0; if (face) P.face = face; enterScreen(); S.cpPending = true; },
       _give: function (what) { if (what === 'matrix') S.matrix = true; else S.cards[what] = true; },
       _plant: function () { S.planted = true; S.phase = 'out'; S.bombT = D.timer; },

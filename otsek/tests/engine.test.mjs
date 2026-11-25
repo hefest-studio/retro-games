@@ -387,14 +387,14 @@ test('музыка: трек otsek разбирается секвенсором
   const n = s => (Array.isArray(s) ? s.join(' ') : s).replace(/\|/g, ' ').trim().split(/\s+/).length;
   eq(n(tr.melody) % 8, 0); eq(n(tr.bass) % 8, 0); eq(n(tr.drums) % 8, 0);
 });
-test('страница: фавикон студии, «← Каталог», canvas 640×512, скрипты по порядку, тач-крестовина, огонь/действие/оружие, пауза; engine.js = _shared/engine.js', () => {
+test('страница: фавикон студии, «← Каталог», canvas 640×512, скрипты по порядку, тач-стик (волна 6), огонь/действие/оружие, пауза; engine.js = _shared/engine.js', () => {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   ok(/<link rel="icon"[^>]+data:image\/svg\+xml/.test(html), 'фавикон');
   ok(/class="back"[^>]*href="\.\.\/"/.test(html), 'ссылка в каталог');
   ok(/<canvas id="c" width="640" height="512"/.test(html), 'canvas');
   const order = [...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]);
-  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/modern.js', 'js/classic.js', 'js/render.js', 'js/ui.js', 'js/main.js']);
-  ['U', 'D', 'L', 'R', 'A'].forEach(d => ok(html.includes('data-d="' + d + '"'), 'кнопка ' + d));
+  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/modern.js', 'js/classic.js', 'js/render.js', 'js/stick.js', 'js/ui.js', 'js/main.js']);
+  ok(/data-stick/.test(html), 'стик'); ok(html.includes('data-d="A"'), 'кнопка огня');
   ok(/data-act="use"/.test(html) && /data-act="swap"/.test(html) && /data-pause/.test(html), 'действие/оружие/пауза');
   eq(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js не копия _shared');
   ok(!/(src|href)="https?:\/\/(?!arcade\.hefest\.ru)/.test(html), 'нет внешних ссылок');
@@ -413,6 +413,28 @@ test('правило имён: в папке игры нет чужих назв
 });
 
 // ---------- Проходимость и баланс: «человеческий» бот ----------
+// ---------- площадка (22.11, волна 6): реклама за награду, языки, тач-схема, «Без рекламы» и таблица лидеров ----------
+test('реклама: reviveAd после конца бригады — 1 жизнь и встал на месте; после взрыва отсека — палуба отстыкована; boost — +1 жизнь (до 5)', () => {
+  const a = mk(); const h = a.S.heroes[0]; ok(!a.game.reviveAd(), 'в игре — нельзя');
+  h.lives = 1; a.game._kill(h, 'test'); eq(a.S.phase, 'over'); ok(a.game.reviveAd()); eq(a.S.phase, 'play'); ok(!h.out && h.alive && h.lives === 1 && h.inv > 0, 'герой встал');
+  const b = mk(); b.game._startAlarm(b.S.heroes[0].x + 400, b.S.heroes[0].y); b.S.heroes[0].lives = 1; b.S.alarm.t = 0.01; run(b.game, 0.1);
+  eq(b.S.phase, 'over', 'взрыв накрыл'); ok(b.game.reviveAd()); eq(b.S.phase, 'clear'); ok(!b.S.heroes[0].out);
+  const c = mk(); ok(c.game.canBoost()); ok(c.game.boost()); eq(c.S.heroes[0].lives, 4); c.S.heroes[0].lives = 5; ok(!c.game.canBoost());
+});
+test('языки: ru/en/tr/es/pt — одинаковые ключи; название RU ОТСЕК, EN/TR/ES/PT DECKSCOUR', () => {
+  const S = G.STR, ks = Object.keys(S.en).sort().join(','); eq(Object.keys(S).join(','), 'ru,en,tr,es,pt');
+  for (const l of ['ru', 'tr', 'es', 'pt']) eq(Object.keys(S[l]).sort().join(','), ks, l);
+  eq(S.ru.title, 'ОТСЕК'); for (const l of ['en', 'tr', 'es', 'pt']) eq(S[l].title, 'DECKSCOUR', l);
+});
+test('тач-схема (волна 6): стик js/stick.js, автоприцел (пункт меню на тач-экране, ближний видимый враг), карточка палубы с межстраничной', () => {
+  const main = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
+  ok(/ArcadeStick\.create/.test(main) && /aimTarget/.test(main) && /_los\(/.test(main), 'стик/автоприцел');
+  ok(/g\.adBreak\(\)/.test(main) && /g\.adReady\(\)/.test(main), 'межстраничная по нажатию на карточке');
+  ok(/menuFit/.test(main), 'menuFit');
+});
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'otsek', boards: ['otsek'], test, ok }); }
+
 if (process.env.QUICK){ console.log(`\n${passed} прошло, ${failed} упало (без бота)`); process.exit(failed ? 1 : 0); }
 test('исполнимость: неуязвимый бот проходит каждую из 6 палуб (по 2 сида, настоящая физика: карты, двери, пульт/босс, бег к шлюзу)', () => {
   for (let d = 1; d <= 6; d++) for (const s of [d, d + 10]){

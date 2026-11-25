@@ -10,12 +10,7 @@
 <button id="bPause" type="button" aria-label="Пауза">II</button>
 <div class="wrap"><canvas id="c" width="640" height="360" aria-label="ШУСТРИК"></canvas></div>
 <div class="pad">
-  <div class="dpad">
-    <button data-d="U" class="u" aria-label="Прицел вверх">▲</button>
-    <button data-d="L" class="l" aria-label="Влево">◀</button>
-    <button data-d="R" class="r" aria-label="Вправо">▶</button>
-    <button data-d="D" class="d" aria-label="Вниз">▼</button>
-  </div>
+  <div class="stick" data-stick="1" aria-label="Стик: бег и прицел"></div>
   <div class="acts">
     <button id="bFire" type="button" class="fire" aria-label="Огонь">✷</button>
     <button data-d="A" class="jump" aria-label="Прыжок">●</button>
@@ -29,5 +24,6 @@
 <script src="./js/game.js"></script>
 <script src="./js/audio.js"></script>
 <script src="./js/render.js"></script>
+<script src="./js/stick.js"></script>
 <script src="./js/main.js"></script>
 </body></html>
