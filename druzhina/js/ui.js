@@ -40,11 +40,21 @@
   }
   function txt(g, s, x, y, o, P) {
     o = o || {}; o.font = P.font;
+    if (P.hd) { var c0 = o.color, sz = o.size || 16; if (o.shadow !== false) { o.color = P.outline; var d = sz >= 24 ? 4 : 2; g.text(s, x + d, y + d, o); g.text(s, x - 2, y, o); g.text(s, x + 2, y - 2, o); } o.color = c0; g.text(s, x, y, o); return; }   // HD: жёсткая тень-обводка
     if (o.shadow !== false) { var c = o.color; o.color = P.pixel ? '#000000' : 'rgba(0,0,0,.6)'; g.text(s, x + (P.pixel ? 2 : 1), y + 2, o); o.color = c; }
     g.text(s, x, y, o);
   }
   function up(P, s) { return P.pixel ? String(s).toUpperCase() : String(s); }
   function panel(ctx, x, y, w, h, P, edge) {
+    if (P.hd) {   // HD: толстая тёмная рамка, медная кромка, заклёпки по углам
+      x = Math.round(x / 2) * 2; y = Math.round(y / 2) * 2;
+      ctx.fillStyle = P.outline; ctx.fillRect(x - 4, y - 2, w + 8, h + 4); ctx.fillRect(x - 2, y - 4, w + 4, h + 8);
+      ctx.fillStyle = P.panel; ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = P.panelHi; ctx.fillRect(x + 4, y + 4, w - 8, 4);
+      ctx.fillStyle = edge || P.line; ctx.fillRect(x, y, w, 2); ctx.fillRect(x, y + h - 2, w, 2); ctx.fillRect(x, y, 2, h); ctx.fillRect(x + w - 2, y, 2, h);
+      ctx.fillStyle = P.rivet; [[6, 6], [w - 12, 6], [6, h - 12], [w - 12, h - 12]].forEach(function (q) { ctx.fillRect(x + q[0], y + q[1], 6, 6); });
+      return;
+    }
     if (P.pixel) {
       ctx.fillStyle = P.panel; ctx.fillRect(x, y, w, h);
       ctx.fillStyle = edge || P.line; ctx.fillRect(x, y, w, 3); ctx.fillRect(x, y + h - 3, w, 3); ctx.fillRect(x, y, 3, h); ctx.fillRect(x + w - 3, y, 3, h);
@@ -56,6 +66,13 @@
   }
   function bar(ctx, x, y, w, h, f, col, P, segs) {
     f = Math.max(0, Math.min(1, f));
+    if (P.hd) {   // HD: рамка, «блик» сверху, тёмная нижняя кромка
+      x = Math.round(x); y = Math.round(y);
+      ctx.fillStyle = P.outline; ctx.fillRect(x - 2, y - 2, w + 4, h + 4); ctx.fillStyle = P.barBg; ctx.fillRect(x, y, w, h);
+      var fw = Math.round(w * f / 2) * 2; if (fw > 0) { ctx.fillStyle = col; ctx.fillRect(x, y, fw, h); ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fillRect(x, y, fw, 2); ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(x, y + h - 2, fw, 2); }
+      if (segs) { ctx.fillStyle = P.outline; for (var s2 = 1; s2 < segs; s2++) ctx.fillRect(x + Math.round(w * s2 / segs), y, 2, h); }
+      return;
+    }
     ctx.fillStyle = P.barBg;
     if (P.pixel) { ctx.fillRect(x, y, w, h); ctx.fillStyle = col; ctx.fillRect(x, y, Math.round(w * f / 3) * 3, h); }
     else { roundRect(ctx, x, y, w, h, h / 2); ctx.fill(); if (f > 0) { ctx.fillStyle = col; roundRect(ctx, x, y, Math.max(h, w * f), h, h / 2); ctx.fill(); } }
@@ -65,6 +82,7 @@
   // ---------- Мир (retro — через буфер) ----------
   var buf = null, bctx = null;
   function drawWorld(g, ctx, S, P, o) {
+    if (P.hd && D.hd) return D.hd.world(g, ctx, S, P, o || {});   // HD: фон в буфере ×2 + атлас спрайтов (js/hd.js)
     if (P.pixel && typeof document !== 'undefined') {
       var sc = P.scale || 3, w = Math.round(g.W / sc), h = Math.round(g.H / sc);
       if (!buf) { buf = document.createElement('canvas'); buf.width = w; buf.height = h; bctx = buf.getContext('2d'); }
@@ -83,7 +101,8 @@
   function heroBlock(g, ctx, S, h, x, P) {
     var L = D.logic, dim = h.out, col = dim ? P.muted : P.hero[h.hero];
     // значок
-    ctx.fillStyle = col; if (P.pixel) ctx.fillRect(x, 8, 34, 34); else { ctx.beginPath(); ctx.arc(x + 17, 25, 17, 0, Math.PI * 2); ctx.fill(); }
+    if (P.hd) { ctx.fillStyle = P.outline; ctx.fillRect(x - 2, 6, 38, 38); }
+    ctx.fillStyle = col; if (P.pixel || P.hd) ctx.fillRect(x, 8, 34, 34); else { ctx.beginPath(); ctx.arc(x + 17, 25, 17, 0, Math.PI * 2); ctx.fill(); }
     txt(g, g.t('h_' + h.hero).charAt(0), x + 17, 33, { size: 20, align: 'center', color: '#15161a', weight: 900, shadow: false }, P);
     var name = (S.players === 2 ? g.t(h.pi ? 'p2' : 'p1') + ' · ' : '') + g.t('h_' + h.hero);
     txt(g, up(P, name), x + 42, 17, { size: 12, color: col, weight: 800, shadow: false }, P);
@@ -99,6 +118,7 @@
     var L = D.logic, W = g.W, H = L.HUD;
     ctx.fillStyle = P.hudBg; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = P.line; ctx.fillRect(0, H - 2, W, 2);
+    if (P.hd) { ctx.fillStyle = P.outline; ctx.fillRect(0, H, W, 3); ctx.fillStyle = P.panelHi; ctx.fillRect(0, 0, W, 3); }
     S.heroes.forEach(function (h, i) { heroBlock(g, ctx, S, h, 10 + i * 250, P); });
     var scx = S.players === 2 ? W - 250 : W / 2;
     txt(g, String(S.score), scx, 30, { size: 22, align: 'center', color: P.accent, shadow: false }, P);

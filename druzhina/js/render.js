@@ -15,11 +15,12 @@
   function mix(a, b, t) { var x = hex2(a), y = hex2(b); return toHex(x[0] + (y[0] - x[0]) * t, x[1] + (y[1] - x[1]) * t, x[2] + (y[2] - x[2]) * t); }
   var qcache = {};
   function C(P, c) {
-    if (!P.pixel || !c || c[0] !== '#') return c;
-    var k = c; if (qcache[k]) return qcache[k];
+    if (!P.pixel || !c || c[0] !== '#') return P.recolor && c && c[0] === '#' ? (P._rc[c] || (P._rc[c] = P.recolor(c))) : c;   // recolor — тема HD (фоны «сочнее»)
+    var q = P === D.classic ? qcache : (P._q || (P._q = {}));   // кеш привязки — на палитру (retro — общий, как раньше)
+    var k = c; if (q[k]) return q[k];
     var a = hex2(c), best = c, bd = 1e9;
     P.pal.forEach(function (p) { var b = hex2(p), d = (a[0] - b[0]) * (a[0] - b[0]) * 0.3 + (a[1] - b[1]) * (a[1] - b[1]) * 0.59 + (a[2] - b[2]) * (a[2] - b[2]) * 0.11; if (d < bd) { bd = d; best = p; } });
-    return (qcache[k] = best);
+    return (q[k] = best);
   }
   function hash(n) { n = (n << 13) ^ n; return ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 0x7fffffff; }
 
@@ -31,7 +32,15 @@
   function line(ctx, P, x1, y1, x2, y2, w, c, cap) { ctx.strokeStyle = C(P, c); ctx.lineWidth = w; ctx.lineCap = cap || 'round'; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
   function grad(ctx, P, y0, y1, stops) {
     if (P.pixel) return C(P, stops[0][1]);
-    var g = ctx.createLinearGradient(0, y0, 0, y1); stops.forEach(function (s) { g.addColorStop(s[0], s[1]); }); return g;
+    var g = ctx.createLinearGradient(0, y0, 0, y1);
+    if (P.bands && stops.every(function (s) { return s[1][0] === '#'; })) {   // тема HD: ступенчатый градиент — P.bands полос (пиксель-арт)
+      for (var b = 0; b < P.bands; b++) {
+        var u = (b + 0.5) / P.bands, j = 0; while (j < stops.length - 2 && stops[j + 1][0] < u) j++;
+        var s0 = stops[j], s1 = stops[j + 1] || s0, k = s1[0] > s0[0] ? Math.max(0, Math.min(1, (u - s0[0]) / (s1[0] - s0[0]))) : 0, c = mix(s0[1], s1[1], k);
+        g.addColorStop(b / P.bands, c); g.addColorStop((b + 1) / P.bands - 1e-4, c);
+      }
+      return g;
+    } stops.forEach(function (s) { g.addColorStop(s[0], s[1]); }); return g;
   }
   function pt(x, y, a, l) { return [x + sin(a) * l, y + cos(a) * l]; }
 
@@ -286,7 +295,7 @@
     if (fire) { poly(ctx, P, [40, -63 + hb, 34, -74 + hb, 44, -64 + hb], spine); poly(ctx, P, [34, -61 + hb, 26, -70 + hb, 37, -60 + hb], spine); }
     else { poly(ctx, P, [38, -62 + hb, 30, -66 + hb, 40, -60 + hb], '#e8e0c8'); }
     // пламя
-    if (fire && att === 'a') {
+    if (fire && att === 'a' && !opts.noFlame) {
       var L = (m.def ? m.def.reach : 170) * (opts.reachK || 1) / s;
       for (var j = 0; j < 7; j++) {
         var f = (j + (t * 8) % 1) / 7, fx = 60 + f * L, fr = 6 + f * 22;
@@ -611,8 +620,11 @@
 
   // Портрет героя (меню выбора, HUD)
   function portrait(ctx, P, key, x, y, s, t, ps) {
+    if (P.hd && D.hd) return D.hd.portrait(ctx, P, key, x, y, s, t, ps);   // тема HD — из атласа спрайтов (js/hd.js)
     figure(ctx, P, { x: x, y: y, face: 1, look: LOOK[key], pose: ps || 'idle', t: t || 0, s: s || 1, mp: 'a' });
   }
 
-  D.render = { world: world, figure: figure, beast: beast, imp: imp, item: item, portrait: portrait, LOOK: LOOK, C: C, shade: shade, mix: mix, BG: BG };
+  // для темы HD (js/hd.js): позы, эффекты магии, масштаб поля; prep() — задать FLOOR_TOP фонам без вызова world()
+  D.render = { world: world, figure: figure, beast: beast, imp: imp, item: item, portrait: portrait, LOOK: LOOK, C: C, shade: shade, mix: mix, BG: BG,
+    heroPose: heroPose, foePose: foePose, bossPose: bossPose, spellFx: spellFx, layer: layer, hash: hash, GS: GS, prep: function () { FT = D.logic.FLOOR_TOP; } };
 })(typeof window !== 'undefined' ? window : globalThis);
