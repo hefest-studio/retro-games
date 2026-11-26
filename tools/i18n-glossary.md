@@ -69,7 +69,7 @@
 | попытка (жизнь) | deneme | intento | tentativa | ЛАЗУТЧИК |
 
 ## Названия
-Внутри языка название одно везде (Яндекс 5.1.3): RU — своё, EN/TR/ES/PT — EN-название (CASCADE, BUMPERWRIGHT, MASONRY, KETTLECLANK,
-FORGEPIT, SPARKWARD, STEAMRAM, DUSKHOOK, GEODELVE, SKYHIRE, RIVETFALL, WINDSHANKS, RIMETRAIL, BRASSHUSH, KETTLEWAKE, ROPEWARD,
+Внутри языка название одно везде (Яндекс 5.1.3): RU — своё, EN/TR/ES/PT — EN-название (CASCADE, BUMPERWRIGHT, MASONRY, SPOUTWOUND,
+SMELTPAIR, SCRAPRAMPART, YARDRAMMER, DUSKHOOK, GEODELVE, SKYHIRE, RIVETFALL, WINDSHANKS, RIMETRAIL, BRASSHUSH, KETTLEWAKE, ROPEWARD,
 LAMPDIVER, HEARTHDEEP, HIVEWRENCH; волна 5 — SLICEWARD, ANVILWATCH, BEETLEFORD, BENCHSKID, FUSEWICK, STOKELING; волна 6 — DECKSCOUR, VALVEWRIGHTS, BOILERRAID, FORGEBAND, STEAMSCURRY, OWLSTEP). Имена персонажей — транслитерация (Iskra, Burash, Druza, Svetlyak, Ognyovka, Burik); прозвища
 болванчиков ВЗВОДА — на языке игрока (TR Vida, Somun…; ES Tornillo, Tuerca…; PT Parafuso, Porca…), не длиннее 8–9 букв.

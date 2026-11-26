@@ -414,9 +414,9 @@ test('трасса дня: одна трасса на сутки (UTC+3), сос
   ok(/g\.persist\(DAILY_KEY, 'max'\)/.test(main) && /'arcade\.taran\.champ1', 'arcade\.taran\.champ2', 'arcade\.taran\.laps', 'arcade\.taran\.opts'\]\.forEach\(function \(k\) \{ g\.persist\(k, 'last'\)/.test(main), 'облако: рекорд дня, чемпионат, рекорды, настройки');
   ok(/useRewardedContinue/.test(main) && /useRewardedBonus/.test(main) && /g\.adBreak\(\)/.test(main), 'реклама за награду и межстраничная между заездами');
 });
-test('i18n: RU/EN/TR/ES/PT — одинаковые ключи, EN-название STEAMRAM в нерусских', () => {
+test('i18n: RU/EN/TR/ES/PT — одинаковые ключи, EN-название YARDRAMMER в нерусских', () => {
   const ru = Object.keys(T.STR.ru).sort().join(',');
-  for (const l of ['en', 'tr', 'es', 'pt']) { eq(Object.keys(T.STR[l]).sort().join(','), ru, l); eq(T.STR[l].title, 'STEAMRAM', l); }
+  for (const l of ['en', 'tr', 'es', 'pt']) { eq(Object.keys(T.STR[l]).sort().join(','), ru, l); eq(T.STR[l].title, 'YARDRAMMER', l); }
 });
 if (process.env.QUICK){ console.log(`\n${passed} прошло, ${failed} упало (без ботов)`); process.exit(failed ? 1 : 0); }
 const N1 = 20, R1 = []; for (let s = 1; s <= N1; s++) R1.push(playRace(T, s, { track: 0 }));

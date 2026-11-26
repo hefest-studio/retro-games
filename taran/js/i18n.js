@@ -45,7 +45,7 @@
       play: 'Play', players: 'Players', touch1p: 'touch — 1 player', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
       score: 'Winnings', level: 'League', best: 'Best', win: 'THE FACTORY YARDS CUP IS YOURS!', gameover: 'OUT OF THE CHAMPIONSHIP',
       pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
-      title: 'STEAMRAM', subtitle: 'The Factory Yards Cup · steam-car combat racing · 1–2 players',
+      title: 'YARDRAMMER', subtitle: 'The Factory Yards Cup · steam-car combat racing · 1–2 players',
       back: 'Catalog', p1: 'P1', p2: 'P2',
       mode: 'Mode', m_champ: 'championship', m_time: 'time trial',
       team: 'Two players', t_coop: 'co-op (shared purse)', t_duel: 'duel (own purses)',
@@ -76,13 +76,13 @@
       m_daily: 'track of the day', dailyRec: 'Today\'s best', rwFix: 'Watch ad: repair +1 rocket',
       hint1: 'P1: arrows · / fire · . rocket · , drop · RShift nitro',
       hint2: 'P2: WASD · F fire · G rocket · R drop · LShift/Q nitro · 1/2 — players',
-      foot: '<b>STEAMRAM</b> · P1: arrows — steer and throttle, / (or Space) — riveter, . — rocket, , — oil/nuts behind, right Shift — nitro boiler · P2: WASD, F — fire, G — rocket, R — drop, left Shift or Q — nitro (solo: both layouts work) · settings: “tank” or “arcade” controls · 1/2 on the title — players · P/Esc pause · L language, T theme, M sound. Touch — d-pad and buttons, 1 player.'
+      foot: '<b>YARDRAMMER</b> · P1: arrows — steer and throttle, / (or Space) — riveter, . — rocket, , — oil/nuts behind, right Shift — nitro boiler · P2: WASD, F — fire, G — rocket, R — drop, left Shift or Q — nitro (solo: both layouts work) · settings: “tank” or “arcade” controls · 1/2 on the title — players · P/Esc pause · L language, T theme, M sound. Touch — d-pad and buttons, 1 player.'
     },
     tr: {
       play: 'Oyna', players: 'Oyuncular', touch1p: 'dokunmatik — 1 oyuncu', language: 'Dil', theme: 'Tema', sound: 'Ses', on: 'açık', off: 'kapalı',
       score: 'Kazanç', level: 'Lig', best: 'Rekor', win: 'FABRİKA AVLULARI KUPASI SENİN!', gameover: 'ŞAMPİYONADAN ELENDİN',
       pause: 'DURAKLATILDI', resume: 'Devam', menu: 'Menü', tapstart: 'boşluk / dokun',
-      title: 'STEAMRAM', subtitle: 'Fabrika Avluları Kupası · buharlı araç savaş yarışı · 1–2 oyuncu',
+      title: 'YARDRAMMER', subtitle: 'Fabrika Avluları Kupası · buharlı araç savaş yarışı · 1–2 oyuncu',
       back: 'Katalog', p1: 'O1', p2: 'O2',
       mode: 'Mod', m_champ: 'şampiyona', m_time: 'zamana karşı',
       team: 'İki oyuncu', t_coop: 'ortak (ortak kasa)', t_duel: 'düello (ayrı kasa)',
@@ -113,13 +113,13 @@
       m_daily: 'günün pisti', dailyRec: 'Günün rekoru', rwFix: 'Reklam: onarım +1 roket',
       hint1: 'O1: oklar · / ateş · . roket · , bırak · SağShift nitro',
       hint2: 'O2: WASD · F ateş · G roket · R bırak · SolShift/Q nitro · 1/2 — oyuncular',
-      foot: '<b>STEAMRAM</b> · O1: oklar — direksiyon ve gaz, / (veya Boşluk) — perçin topu, . — roket, , — arkaya yağ/somun, sağ Shift — nitro kazanı · O2: WASD, F — ateş, G — roket, R — bırak, sol Shift veya Q — nitro (tek kişide iki düzen de çalışır) · ayarlarda «tank» veya «arcade» kontrol · başlıkta 1/2 — oyuncular · P/Esc duraklat · L dil, T tema, M ses. Dokunmatik — yön tuşları ve düğmeler, 1 oyuncu.'
+      foot: '<b>YARDRAMMER</b> · O1: oklar — direksiyon ve gaz, / (veya Boşluk) — perçin topu, . — roket, , — arkaya yağ/somun, sağ Shift — nitro kazanı · O2: WASD, F — ateş, G — roket, R — bırak, sol Shift veya Q — nitro (tek kişide iki düzen de çalışır) · ayarlarda «tank» veya «arcade» kontrol · başlıkta 1/2 — oyuncular · P/Esc duraklat · L dil, T tema, M ses. Dokunmatik — yön tuşları ve düğmeler, 1 oyuncu.'
     },
     es: {
       play: 'Jugar', players: 'Jugadores', touch1p: 'táctil — 1 jugador', language: 'Idioma', theme: 'Tema', sound: 'Sonido', on: 'sí', off: 'no',
       score: 'Ganancias', level: 'Liga', best: 'Récord', win: '¡LA COPA DE LOS PATIOS FABRILES ES TUYA!', gameover: 'FUERA DEL CAMPEONATO',
       pause: 'PAUSA', resume: 'Continuar', menu: 'Menú', tapstart: 'espacio / toque',
-      title: 'STEAMRAM', subtitle: 'Copa de los Patios Fabriles · carreras de combate a vapor · 1–2 jugadores',
+      title: 'YARDRAMMER', subtitle: 'Copa de los Patios Fabriles · carreras de combate a vapor · 1–2 jugadores',
       back: 'Catálogo', p1: 'J1', p2: 'J2',
       mode: 'Modo', m_champ: 'campeonato', m_time: 'cronometrado',
       team: 'Dos jugadores', t_coop: 'cooperativo (caja común)', t_duel: 'duelo (cajas propias)',
@@ -150,13 +150,13 @@
       m_daily: 'circuito del día', dailyRec: 'Récord del día', rwFix: 'Anuncio: reparar +1 cohete',
       hint1: 'J1: flechas · / disparo · . cohete · , soltar · Mayús der. nitro',
       hint2: 'J2: WASD · F disparo · G cohete · R soltar · Mayús izq./Q nitro · 1/2 — jugadores',
-      foot: '<b>STEAMRAM</b> · J1: flechas — dirección y acelerador, / (o Espacio) — remachadora, . — cohete, , — aceite/tuercas atrás, Mayús derecha — caldera nitro · J2: WASD, F — disparo, G — cohete, R — soltar, Mayús izquierda o Q — nitro (en solitario sirven ambos) · en ajustes, control «tanque» o «arcade» · 1/2 en el título — jugadores · P/Esc pausa · L idioma, T tema, M sonido. Táctil — cruceta y botones, 1 jugador.'
+      foot: '<b>YARDRAMMER</b> · J1: flechas — dirección y acelerador, / (o Espacio) — remachadora, . — cohete, , — aceite/tuercas atrás, Mayús derecha — caldera nitro · J2: WASD, F — disparo, G — cohete, R — soltar, Mayús izquierda o Q — nitro (en solitario sirven ambos) · en ajustes, control «tanque» o «arcade» · 1/2 en el título — jugadores · P/Esc pausa · L idioma, T tema, M sonido. Táctil — cruceta y botones, 1 jugador.'
     },
     pt: {
       play: 'Jogar', players: 'Jogadores', touch1p: 'toque — 1 jogador', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'lig.', off: 'desl.',
       score: 'Ganhos', level: 'Liga', best: 'Recorde', win: 'A COPA DOS PÁTIOS FABRIS É SUA!', gameover: 'FORA DO CAMPEONATO',
       pause: 'PAUSA', resume: 'Continuar', menu: 'Menu', tapstart: 'espaço / toque',
-      title: 'STEAMRAM', subtitle: 'Copa dos Pátios Fabris · corrida de combate a vapor · 1–2 jogadores',
+      title: 'YARDRAMMER', subtitle: 'Copa dos Pátios Fabris · corrida de combate a vapor · 1–2 jogadores',
       back: 'Catálogo', p1: 'J1', p2: 'J2',
       mode: 'Modo', m_champ: 'campeonato', m_time: 'cronometrada',
       team: 'Dois jogadores', t_coop: 'cooperativo (caixa comum)', t_duel: 'duelo (caixas próprias)',
@@ -187,7 +187,7 @@
       m_daily: 'pista do dia', dailyRec: 'Recorde do dia', rwFix: 'Anúncio: conserto +1 foguete',
       hint1: 'J1: setas · / tiro · . foguete · , soltar · Shift dir. nitro',
       hint2: 'J2: WASD · F tiro · G foguete · R soltar · Shift esq./Q nitro · 1/2 — jogadores',
-      foot: '<b>STEAMRAM</b> · J1: setas — direção e acelerador, / (ou Espaço) — rebitadora, . — foguete, , — óleo/porcas atrás, Shift direito — caldeira nitro · J2: WASD, F — tiro, G — foguete, R — soltar, Shift esquerdo ou Q — nitro (sozinho, os dois esquemas funcionam) · nas opções, controle «tanque» ou «arcade» · 1/2 no título — jogadores · P/Esc pausa · L idioma, T tema, M som. Toque — direcional e botões, 1 jogador.'
+      foot: '<b>YARDRAMMER</b> · J1: setas — direção e acelerador, / (ou Espaço) — rebitadora, . — foguete, , — óleo/porcas atrás, Shift direito — caldeira nitro · J2: WASD, F — tiro, G — foguete, R — soltar, Shift esquerdo ou Q — nitro (sozinho, os dois esquemas funcionam) · nas opções, controle «tanque» ou «arcade» · 1/2 no título — jogadores · P/Esc pausa · L idioma, T tema, M som. Toque — direcional e botões, 1 jogador.'
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

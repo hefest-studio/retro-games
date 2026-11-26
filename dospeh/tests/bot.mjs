@@ -1,4 +1,4 @@
-/* ДОСПЕХ · tests/bot.mjs — «человеческий» бот для проверки проходимости и баланса.
+/* КИСТЕНЬ · tests/bot.mjs — «человеческий» бот для проверки проходимости и баланса.
    Карту уровня знает (как игрок, видевший уровень), но управляет только как человек: setInput({dx,up,down,jump,fire})
    и теми же приёмами, по которым строится граф проходимости (logic.simulate — прыжок/сход с края, лестница, logic.rideCtl — плот).
    Человеческие ограничения:
@@ -6,7 +6,7 @@
    - место толчка — с ошибкой до ±0.04 клетки сверх шага кадра (граф прощает ±0.08);
    - врагов замечает не всех (opts.miss), угрозу (снаряд, пике, прыжок стража) замечает с вероятностью opts.dodge;
      уворачивается, перебирая простые действия (стоять, шаг влево/вправо, присесть, прыжок) и проверяя их той же физикой;
-   - бросает «тапами» не чаще раза в 0.15 с; особый удар в золотом доспехе — иногда (opts.chargeP).
+   - бьёт цепью «тапами» не чаще раза в 0.15 с; особый удар в полном жаре — иногда (opts.chargeP).
    opts: { level=0, loop=1, lives, react:[0.15,0.25], miss=0.15, dodge=0.75, chargeP=0.2, dmgMul, maxT=500 } */
 
 export function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
@@ -29,11 +29,11 @@ export function playLevel(D, seed, opts = {}){
   const [r0, r1] = opts.react || [0.15, 0.25];
   const missP = opts.miss == null ? 0.15 : opts.miss, dodgeP = opts.dodge == null ? 0.75 : opts.dodge, chargeP = opts.chargeP == null ? 0.2 : opts.chargeP;
   const maxT = opts.maxT || 500, idx = opts.level || 0, dt = 1 / 60;
-  const res = { seed, level: idx, cleared: false, over: false, deaths: 0, why: {}, t: 0, stuck: false, armorLost: 0, bossT: null };
+  const res = { seed, level: idx, cleared: false, over: false, deaths: 0, why: {}, t: 0, stuck: false, heatLost: 0, bossT: null };
   let S = null, bossAt = 0;
   const game = D.Game({ rng: mulberry32(seed), dmgMul: opts.dmgMul, onEvent: (t, d) => {
-    if (t === 'die'){ res.deaths++; res.why[d.why] = (res.why[d.why] || 0) + 1; (res.at = res.at || []).push(d.why + '@' + d.x.toFixed(1)); }
-    if (t === 'armorOff') res.armorLost++;
+    if (t === 'die'){ if (opts.onDie) opts.onDie(S, d); res.deaths++; res.why[d.why] = (res.why[d.why] || 0) + 1; (res.at = res.at || []).push(d.why + '@' + d.x.toFixed(1)); }
+    if (t === 'heatDown'){ res.heatLost++; if (opts.onHit) opts.onHit(S, d); }
     if (t === 'respawn'){ plan = null; bestT = S.time; best = Infinity; }
     if (t === 'bossIntro') bossAt = S.time;
     if (t === 'clear'){ res.cleared = true; res.bossT = +(S.time - bossAt).toFixed(1); }
@@ -124,12 +124,28 @@ export function playLevel(D, seed, opts = {}){
   }
 
   // ---------- броски ----------
-  function tapFire(want){
+  // цепь: нажатие запускает шар, удержание тянет дальше (до CHN.out = 22 кл/с, минимум 2,2 клетки); reach — расстояние до цели
+  function tapFire(want, reach){
     if (holdFire > 0){ holdFire -= dt; return holdFire > 0; }
-    if (!want || lastFire || fireCd > 0) return false;
-    fireCd = 0.15 + brng() * 0.08;
-    if (H().armor === 2 && brng() < chargeP) holdFire = L.CHARGE + 0.1 + brng() * 0.3;
+    if (!want || lastFire || fireCd > 0 || S.chain) return false;
+    fireCd = 0.12 + brng() * 0.08;
+    if (H().heat === L.HEAT_MAX && brng() < chargeP) holdFire = L.CHARGE + 0.1 + brng() * 0.3;
+    else if (reach > 2.4) holdFire = Math.min(0.3, (reach - 2.2) / 26);
     return true;
+  }
+  // вражеский снаряд спереди в досягаемости цепи — отбить (цепь по всей длине гасит снаряды)
+  function incoming(){
+    const h = S.hero;
+    for (const s of S.eshots){ const d = (s.x - h.x) * h.face; if (d > 0.8 && d < 5.5 && s.y > h.y - 3.2 && s.y < h.y + 0.2 && Math.abs(s.vx) > 0.3 && Math.sign(s.vx) === -h.face && spotted(s)) return d; }
+    return 0;
+  }
+  // цель выше линии цепи: диагональ (↑ + ход) или прямо вверх — по тем же правилам, что у игрока
+  function aimUp(e, sy){
+    const h = H(), d = Math.abs(e.x - h.x), cy = e.y - e.hh / 2, dy = (sy == null ? h.y - 1.15 : sy) - cy;
+    if (!(e.fly || e.hh < 1) || dy < 0.8 || dy > 7) return false;
+    const reachMax = L.WEAP[S.weapon].max - 0.5;
+    if (d < 0.9) return dy <= reachMax;
+    return Math.abs(dy - d) < 1.3 && Math.hypot(d, dy) <= reachMax;
   }
   function targetAhead(){
     if (opts.noFoes) return null;
@@ -140,12 +156,12 @@ export function playLevel(D, seed, opts = {}){
       if (e.dead || !noticed(e) || e.x < S.cam.x || e.x > S.cam.x + L.VIEW_W) continue;
       if ((e.type === 'vent' && e.st === 'hidden') || e.type === 'blub') continue;
       const d = Math.abs(e.x - h.x); if (d > 8) continue;
-      const arc = S.weapon === 'axe' || S.weapon === 'hammer';
-      const lineOk = arc ? (Math.abs(e.y - h.y) < 0.5 || (e.y < h.y && e.y > h.y - 5 && d > 1.5 && d < 4.5)) : (sy > e.y - e.hh - 0.3 && sy < e.y + 0.3);
-      if (!lineOk) continue;
+      const reachMax = L.WEAP[S.weapon].max - 0.5 + e.hw;
+      const lineOk = d <= reachMax && (sy > e.y - e.hh - 0.3 && sy < e.y + 0.3);
+      if (!lineOk && !(e.hp != null && aimUp(e, sy))) continue;
       if (d < bd){ bd = d; bestE = e; }
     }
-    if (!bestE) for (const c of S.chests){ if (!c.open && Math.abs(c.x - H().x) < 5 && Math.abs(c.y - h.y) < 0.5 && S.weapon !== 'torch') { bestE = c; break; } }
+    if (!bestE) for (const c of S.chests){ if (!c.open && Math.abs(c.x - H().x) < L.WEAP[S.weapon].max - 0.8 && Math.abs(c.y - h.y) < 0.5) { bestE = c; break; } }
     return bestE;
   }
 
@@ -201,13 +217,13 @@ export function playLevel(D, seed, opts = {}){
     const h = H(), b = S.boss, a = lv.arena, o = { dx: 0, fire: false };
     if (!b || b.dead){ const k = S.items.find(it => it.k === 'key'); if (k && Math.abs(k.x - h.x) > 0.3) o.dx = k.x > h.x ? 1 : -1; return o; }
     const side = h.x < b.x ? -1 : 1;
-    let want = b.x + side * (b.key === 'serpent' ? 4 : 6.5);
-    if (want < a.x0 + 1 || want > a.x1) want = b.x - side * 6.5;
+    let want = b.x + side * (b.key === 'serpent' ? 3.2 : 4.2);
+    if (want < a.x0 + 1 || want > a.x1) want = b.x - side * 4.2;
     want = Math.max(a.x0 + 0.5, Math.min(a.x1 + 0.5, want));
     if (Math.abs(want - h.x) > 0.5) o.dx = want > h.x ? 1 : -1;
     const facing = Math.sign(b.x - h.x) || 1;
     if (o.dx === 0 && h.face !== facing) o.dx = facing;
-    o.fire = h.face === facing;
+    o.fire = h.face === facing; o.reach = Math.abs(b.x - h.x) - b.hw; o.up = b.fly && aimUp({ x: b.x, y: b.y, hh: b.hh, hw: b.hw, fly: true });
     if (b.fly && (b.mode === 'glide' || b.mode === 'rise') && h.ground && h.face === facing && Math.abs(b.x - h.x) > 1.5 && Math.abs(b.x - h.x) < 5 && brng() < 0.5) o.jt = true;
     return o;
   }
@@ -223,7 +239,7 @@ export function playLevel(D, seed, opts = {}){
     let o = { dx: 0, up: false, down: false, jump: false, fire: false };
     const fighting = S.bossState !== 'none';
     wait -= dt;
-    if (dodgeT > 0){ dodgeT -= dt; o.dx = dodgeO.dx; o.down = !!dodgeO.down; o.jump = !!dodgeO.jump; o.fire = tapFire(!dodgeO.jump && !!targetAhead()); }
+    if (dodgeT > 0){ dodgeT -= dt; o.dx = dodgeO.dx; o.down = !!dodgeO.down; o.jump = !!dodgeO.jump; o.fire = tapFire(!dodgeO.jump && !!targetAhead(), 3); }
     else if (fighting){
       plan = null;
       if (wait <= 0){
@@ -232,22 +248,22 @@ export function playLevel(D, seed, opts = {}){
         const c = h.ground ? safeChoice({ dx: pol.dx }, 1.1) : { dx: 0 };
         if (c.dodge){ dodgeO = c; dodgeT = c.jump ? 0.1 : 0.35; }
         else if (pol.jt && optionSafe({ dx: 0, jump: true }, threats(), 0.8)){ jumpThrow = 0.32; }
-        cur = { dx: c.dx, fire: pol.fire };
+        cur = { dx: c.dx, fire: pol.fire, reach: pol.reach, up: pol.up };
       }
-      o.dx = cur.dx; o.fire = tapFire(cur.fire);
-      if (jumpThrow > 0){ o.dx = 0; if (jumpThrow > 0.3) o.jump = true; jumpThrow -= dt; o.fire = jumpThrow <= 0 ? tapFire(true) : false; }
+      o.dx = cur.dx; o.fire = tapFire(cur.fire, cur.reach); o.up = !!(cur.up && o.fire);
+      if (jumpThrow > 0){ o.dx = 0; if (jumpThrow > 0.3) o.jump = true; jumpThrow -= dt; o.fire = jumpThrow <= 0 ? tapFire(true, 3) : false; }
     } else {
       const inAir = plan && ((plan.e.ride != null && plan.st.k && plan.st.k !== 'go' && plan.st.k !== 'wait') || (plan.e.ride == null && plan.stage !== 'approach' && !plan.e.walk));
       const tgt = !inAir ? targetAhead() : null;
       // намерение этого кадра: бить цель или идти по плану
       if (tgt && h.ground && (!plan || plan.stage === 'approach')){
-        const f = Math.sign(tgt.x - h.x) || 1, d = Math.abs(tgt.x - h.x), arc = (S.weapon === 'axe' || S.weapon === 'hammer') && tgt.hp != null && tgt.type !== 'kite';
+        const f = Math.sign(tgt.x - h.x) || 1, d = Math.abs(tgt.x - h.x), arc = false;
         if (arc && d < 3.8 && d > 1.2 && optionSafe({ dx: -f }, threats(), 0.4)) o.dx = -f;
-        else { o.dx = h.face !== f ? f : 0; o.fire = tapFire(o.dx === 0); }
+        else { o.dx = h.face !== f ? f : 0; o.fire = tapFire(o.dx === 0, d); o.up = o.fire && tgt.hp != null && aimUp(tgt); }
       }
       else if (plan){ if (plan.stage === 'approach' && plan.e.jump && pitBusy()){ o.dx = 0; } else runPlan(o); }
       else if (h.ground){ plan = choosePlan(); }
-      if (!tgt && !o.fire) o.fire = tapFire(false);
+      if (!tgt && !o.fire) { const inc = incoming(); o.fire = tapFire(inc > 0, inc + 1); }
       // раз в реакцию — проверить, не опасно ли намерение (и стоять на месте); заметил угрозу — увернуться
       if (!inAir && h.ground && wait <= 0 && !o.jump){
         wait = react();

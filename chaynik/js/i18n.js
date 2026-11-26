@@ -36,7 +36,7 @@
       score: 'Score', level: 'Level', best: 'Best', lives: 'Lives',
       win: 'THE LID IS HOME!', gameover: 'THE KETTLE WENT COLD', pause: 'PAUSED', resume: 'Resume', menu: 'Main menu',
       restart: 'Restart level (−1 life)', tapstart: 'space / tap', back: 'Catalog',
-      title: 'KETTLECLANK', subtitle: 'A wind-up brass kettle from the Hefest workshop',
+      title: 'SPOUTWOUND', subtitle: 'A wind-up brass kettle from the Hefest workshop',
       sub2: 'Get the stolen Lid back — no lid, no boil! · 6 levels',
       hint: '←→ move · Space jump · X steam (↑/↓ aim) · C boil · ↑ by a hook — grab · P pause',
       steam: 'STEAM', overheat: 'OVERHEAT!', boil: 'BOIL', boilReady: 'BOIL — C!', warm: 'WARMTH', rival: 'pepper mill',
@@ -56,14 +56,14 @@
       count: 'Go!', story6: 'The Tea Set: Sugar Bowl, Brew Pot and Creamer — one gang',
       lvPick: 'Level', starNew: 'new best!', opened: 'level {n} unlocked', nextLevel: 'Space / tap — next', revived: 'One more try!',
       rwLife: 'Watch ad: +1 life',
-      foot: '<b>KETTLECLANK</b> · ← → / A D — move · Space / Z — jump · X / J / F — steam (hold; with ↑ / ↓ — up / down, mind the overheat!) · C / K — boil shot (when charged) · ↑ near a hook — grab, Space — let go · R — reset the puzzle · P / Esc — pause · L language, T theme, M sound.'
+      foot: '<b>SPOUTWOUND</b> · ← → / A D — move · Space / Z — jump · X / J / F — steam (hold; with ↑ / ↓ — up / down, mind the overheat!) · C / K — boil shot (when charged) · ↑ near a hook — grab, Space — let go · R — reset the puzzle · P / Esc — pause · L language, T theme, M sound.'
     },
     tr: {
       play: 'Oyna', language: 'Dil', theme: 'Tema', sound: 'Ses', on: 'açık', off: 'kapalı',
       score: 'Puan', level: 'Seviye', best: 'Rekor', lives: 'Can',
       win: 'KAPAK EVDE!', gameover: 'ÇAYDANLIK SOĞUDU', pause: 'DURAKLATILDI', resume: 'Devam', menu: 'Ana menü',
       restart: 'Seviyeyi yeniden başlat (−1 can)', tapstart: 'boşluk / dokun', back: 'Katalog',
-      title: 'KETTLECLANK', subtitle: 'Hefest atölyesinden kurmalı pirinç bir çaydanlık',
+      title: 'SPOUTWOUND', subtitle: 'Hefest atölyesinden kurmalı pirinç bir çaydanlık',
       sub2: 'Çalınan Kapağı geri al — kapaksız kaynamaz! · 6 seviye',
       hint: '←→ yürü · Boşluk zıpla · X buhar (↑/↓ nişan) · C kaynar su · kancada ↑ — tutun · P duraklat',
       steam: 'BUHAR', overheat: 'AŞIRI ISINDI!', boil: 'KAYNAR', boilReady: 'KAYNAR — C!', warm: 'SICAKLIK', rival: 'biberlik',
@@ -83,14 +83,14 @@
       count: 'Başla!', story6: 'Çay Takımı: Şekerlik, Demlik ve Sütlük — bir çete',
       lvPick: 'Seviye', starNew: 'yeni rekor!', opened: 'seviye {n} açıldı', nextLevel: 'Boşluk / dokun — devam', revived: 'Bir şans daha!',
       rwLife: 'Reklam: +1 can',
-      foot: '<b>KETTLECLANK</b> · ← → / A D — yürü · Boşluk / Z — zıpla · X / J / F — buhar (basılı tut; ↑ / ↓ ile yukarı / aşağı, aşırı ısınmaya dikkat!) · C / K — kaynar su (dolunca) · kancanın yanında ↑ — tutun, Boşluk — bırak · R — bulmacayı baştan · P / Esc — duraklat · L dil, T tema, M ses.'
+      foot: '<b>SPOUTWOUND</b> · ← → / A D — yürü · Boşluk / Z — zıpla · X / J / F — buhar (basılı tut; ↑ / ↓ ile yukarı / aşağı, aşırı ısınmaya dikkat!) · C / K — kaynar su (dolunca) · kancanın yanında ↑ — tutun, Boşluk — bırak · R — bulmacayı baştan · P / Esc — duraklat · L dil, T tema, M ses.'
     },
     es: {
       play: 'Jugar', language: 'Idioma', theme: 'Tema', sound: 'Sonido', on: 'sí', off: 'no',
       score: 'Puntos', level: 'Nivel', best: 'Récord', lives: 'Vidas',
       win: '¡LA TAPA VUELVE A CASA!', gameover: 'LA TETERA SE ENFRIÓ', pause: 'PAUSA', resume: 'Continuar', menu: 'Menú principal',
       restart: 'Reiniciar nivel (−1 vida)', tapstart: 'espacio / toque', back: 'Catálogo',
-      title: 'KETTLECLANK', subtitle: 'Una tetera de latón a cuerda del taller Hefest',
+      title: 'SPOUTWOUND', subtitle: 'Una tetera de latón a cuerda del taller Hefest',
       sub2: '¡Recupera la Tapa robada — sin tapa no hierve! · 6 niveles',
       hint: '←→ mover · Espacio saltar · X vapor (↑/↓ apuntar) · C hervor · ↑ junto a un gancho — agarrar · P pausa',
       steam: 'VAPOR', overheat: '¡SOBRECALENTADA!', boil: 'HERVOR', boilReady: '¡HERVOR — C!', warm: 'CALOR', rival: 'pimentero',
@@ -110,14 +110,14 @@
       count: '¡Ya!', story6: 'La vajilla: Azucarero, Tetera China y Lechera — una banda',
       lvPick: 'Nivel', starNew: '¡nuevo récord!', opened: 'nivel {n} desbloqueado', nextLevel: 'Espacio / toca — seguir', revived: '¡Otro intento!',
       rwLife: 'Anuncio: +1 vida',
-      foot: '<b>KETTLECLANK</b> · ← → / A D — mover · Espacio / Z — saltar · X / J / F — vapor (mantener; con ↑ / ↓ hacia arriba / abajo, ¡cuidado con el sobrecalentamiento!) · C / K — hervor (con carga) · ↑ junto a un gancho — agarrar, Espacio — soltar · R — reiniciar el puzle · P / Esc — pausa · L idioma, T tema, M sonido.'
+      foot: '<b>SPOUTWOUND</b> · ← → / A D — mover · Espacio / Z — saltar · X / J / F — vapor (mantener; con ↑ / ↓ hacia arriba / abajo, ¡cuidado con el sobrecalentamiento!) · C / K — hervor (con carga) · ↑ junto a un gancho — agarrar, Espacio — soltar · R — reiniciar el puzle · P / Esc — pausa · L idioma, T tema, M sonido.'
     },
     pt: {
       play: 'Jogar', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'lig.', off: 'desl.',
       score: 'Pontos', level: 'Fase', best: 'Recorde', lives: 'Vidas',
       win: 'A TAMPA VOLTOU!', gameover: 'A CHALEIRA ESFRIOU', pause: 'PAUSA', resume: 'Continuar', menu: 'Menu principal',
       restart: 'Reiniciar fase (−1 vida)', tapstart: 'espaço / toque', back: 'Catálogo',
-      title: 'KETTLECLANK', subtitle: 'Uma chaleira de latão de corda da oficina Hefest',
+      title: 'SPOUTWOUND', subtitle: 'Uma chaleira de latão de corda da oficina Hefest',
       sub2: 'Recupere a Tampa roubada — sem tampa não ferve! · 6 fases',
       hint: '←→ andar · Espaço pular · X vapor (↑/↓ mirar) · C fervura · ↑ perto de um gancho — agarrar · P pausa',
       steam: 'VAPOR', overheat: 'SUPERAQUECEU!', boil: 'FERVURA', boilReady: 'FERVURA — C!', warm: 'CALOR', rival: 'pimenteiro',
@@ -137,7 +137,7 @@
       count: 'Já!', story6: 'O jogo de chá: Açucareiro, Bule e Leiteira — uma gangue',
       lvPick: 'Fase', starNew: 'novo recorde!', opened: 'fase {n} liberada', nextLevel: 'Espaço / toque — seguir', revived: 'Mais uma chance!',
       rwLife: 'Anúncio: +1 vida',
-      foot: '<b>KETTLECLANK</b> · ← → / A D — andar · Espaço / Z — pular · X / J / F — vapor (segure; com ↑ / ↓ para cima / baixo, cuidado com o superaquecimento!) · C / K — fervura (com carga) · ↑ perto de um gancho — agarrar, Espaço — soltar · R — reiniciar o quebra-cabeça · P / Esc — pausa · L idioma, T tema, M som.'
+      foot: '<b>SPOUTWOUND</b> · ← → / A D — andar · Espaço / Z — pular · X / J / F — vapor (segure; com ↑ / ↓ para cima / baixo, cuidado com o superaquecimento!) · C / K — fervura (com carga) · ↑ perto de um gancho — agarrar, Espaço — soltar · R — reiniciar o quebra-cabeça · P / Esc — pausa · L idioma, T tema, M som.'
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

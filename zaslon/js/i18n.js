@@ -31,7 +31,7 @@
       play: 'Play', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
       score: 'Score', level: 'Sector', best: 'Best', win: 'THE LINE HELD!', gameover: 'GAME OVER',
       pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
-      title: 'SPARKWARD', subtitle: 'Let nothing past the bottom edge · 5 sectors',
+      title: 'SCRAPRAMPART', subtitle: 'Let nothing past the bottom edge · 5 sectors',
       sector: 'SECTOR', ready: 'GET READY!', warn: 'WARNING: LARGE TARGET', cleared: 'SECTOR CLEARED', final: 'FINAL SECTOR CLEARED!',
       baseDown: 'THE LINE IS BROKEN!', base: 'BARRIER', shield: 'Shield', scrap: 'Scrap', bombs: 'Bombs', lives: 'Ships',
       w_spark: 'Spark', w_ray: 'Ray', w_shot: 'Scatter', lvl: 'lv',
@@ -48,13 +48,13 @@
       hint2: 'Capsules cycle weapons — catch yours. Scrap buys upgrades.',
       back: 'Catalog',
       lvPick: 'Sector', starNew: 'new best!', opened: 'sector {n} unlocked', revived: 'One more chance!', rwRepair: 'Watch ad: barrier +25%',
-      foot: '<b>SPARKWARD</b> · arrows / WASD — fly, Space / ● — fire (hold), B / X / ✹ — mega bomb, P — pause · L language, T theme, M sound.'
+      foot: '<b>SCRAPRAMPART</b> · arrows / WASD — fly, Space / ● — fire (hold), B / X / ✹ — mega bomb, P — pause · L language, T theme, M sound.'
     },
     tr: {
       play: 'Oyna', language: 'Dil', theme: 'Tema', sound: 'Ses', on: 'açık', off: 'kapalı',
       score: 'Puan', level: 'Sektör', best: 'Rekor', win: 'BARİYER DAYANDI!', gameover: 'OYUN BİTTİ',
       pause: 'DURAKLATILDI', resume: 'Devam', menu: 'Menü', tapstart: 'boşluk / dokun',
-      title: 'SPARKWARD', subtitle: 'Düşmanı alt kenardan geçirme · 5 sektör',
+      title: 'SCRAPRAMPART', subtitle: 'Düşmanı alt kenardan geçirme · 5 sektör',
       sector: 'SEKTÖR', ready: 'HAZIR OL!', warn: 'DİKKAT: BÜYÜK HEDEF', cleared: 'SEKTÖR TEMİZ', final: 'SON SEKTÖR TEMİZ!',
       baseDown: 'BARİYER YARILDI!', base: 'BARİYER', shield: 'Kalkan', scrap: 'Hurda', bombs: 'Bomba', lives: 'Gemi',
       w_spark: 'Kıvılcım', w_ray: 'Işın', w_shot: 'Saçma', lvl: 'sv.',
@@ -71,13 +71,13 @@
       hint2: 'Kapsüller silahı değiştirir — istediğini yakala. Hurdayla geliştir.',
       back: 'Katalog',
       lvPick: 'Sektör', starNew: 'yeni rekor!', opened: 'sektör {n} açıldı', revived: 'Bir şans daha!', rwRepair: 'Reklam: bariyer +%25',
-      foot: '<b>SPARKWARD</b> · oklar / WASD — uç, Boşluk / ● — ateş (basılı tut), B / X / ✹ — mega bomba, P — duraklat · L dil, T tema, M ses.'
+      foot: '<b>SCRAPRAMPART</b> · oklar / WASD — uç, Boşluk / ● — ateş (basılı tut), B / X / ✹ — mega bomba, P — duraklat · L dil, T tema, M ses.'
     },
     es: {
       play: 'Jugar', language: 'Idioma', theme: 'Tema', sound: 'Sonido', on: 'sí', off: 'no',
       score: 'Puntos', level: 'Sector', best: 'Récord', win: '¡LA BARRERA RESISTIÓ!', gameover: 'FIN DE LA PARTIDA',
       pause: 'PAUSA', resume: 'Continuar', menu: 'Menú', tapstart: 'espacio / toque',
-      title: 'SPARKWARD', subtitle: 'Que ningún enemigo cruce el borde inferior · 5 sectores',
+      title: 'SCRAPRAMPART', subtitle: 'Que ningún enemigo cruce el borde inferior · 5 sectores',
       sector: 'SECTOR', ready: '¡PREPÁRATE!', warn: 'ATENCIÓN: OBJETIVO GRANDE', cleared: 'SECTOR DESPEJADO', final: '¡ÚLTIMO SECTOR DESPEJADO!',
       baseDown: '¡LA BARRERA HA CAÍDO!', base: 'BARRERA', shield: 'Escudo', scrap: 'Chatarra', bombs: 'Bombas', lives: 'Naves',
       w_spark: 'Chispa', w_ray: 'Rayo', w_shot: 'Metralla', lvl: 'niv.',
@@ -94,13 +94,13 @@
       hint2: 'Las cápsulas cambian el arma — atrapa la tuya. La chatarra compra mejoras.',
       back: 'Catálogo',
       lvPick: 'Sector', starNew: '¡nuevo récord!', opened: 'sector {n} desbloqueado', revived: '¡Otra oportunidad!', rwRepair: 'Anuncio: barrera +25%',
-      foot: '<b>SPARKWARD</b> · flechas / WASD — volar, Espacio / ● — disparar (mantener), B / X / ✹ — megabomba, P — pausa · L idioma, T tema, M sonido.'
+      foot: '<b>SCRAPRAMPART</b> · flechas / WASD — volar, Espacio / ● — disparar (mantener), B / X / ✹ — megabomba, P — pausa · L idioma, T tema, M sonido.'
     },
     pt: {
       play: 'Jogar', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'lig.', off: 'desl.',
       score: 'Pontos', level: 'Setor', best: 'Recorde', win: 'A BARREIRA RESISTIU!', gameover: 'FIM DE JOGO',
       pause: 'PAUSA', resume: 'Continuar', menu: 'Menu', tapstart: 'espaço / toque',
-      title: 'SPARKWARD', subtitle: 'Não deixe inimigos passarem da borda de baixo · 5 setores',
+      title: 'SCRAPRAMPART', subtitle: 'Não deixe inimigos passarem da borda de baixo · 5 setores',
       sector: 'SETOR', ready: 'PREPARE-SE!', warn: 'ATENÇÃO: ALVO GRANDE', cleared: 'SETOR LIMPO', final: 'ÚLTIMO SETOR LIMPO!',
       baseDown: 'A BARREIRA CAIU!', base: 'BARREIRA', shield: 'Escudo', scrap: 'Sucata', bombs: 'Bombas', lives: 'Naves',
       w_spark: 'Faísca', w_ray: 'Raio', w_shot: 'Chumbo', lvl: 'nív.',
@@ -117,7 +117,7 @@
       hint2: 'Cápsulas trocam a arma — pegue a sua. Sucata compra melhorias.',
       back: 'Catálogo',
       lvPick: 'Setor', starNew: 'novo recorde!', opened: 'setor {n} liberado', revived: 'Mais uma chance!', rwRepair: 'Anúncio: barreira +25%',
-      foot: '<b>SPARKWARD</b> · setas / WASD — voar, Espaço / ● — atirar (segure), B / X / ✹ — megabomba, P — pausa · L idioma, T tema, M som.'
+      foot: '<b>SCRAPRAMPART</b> · setas / WASD — voar, Espaço / ● — atirar (segure), B / X / ✹ — megabomba, P — pausa · L idioma, T tema, M som.'
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -31,7 +31,7 @@
       play: 'Play', players: 'Players', touch1p: 'touch — 1 player', language: 'Language', theme: 'Theme', sound: 'Sound', on: 'on', off: 'off',
       score: 'Score', level: 'Circle', best: 'Best', win: 'TRIAL COMPLETE! YOU ARE MASTERS NOW', gameover: 'THE CRUCIBLE HAS COOLED',
       pause: 'PAUSE', resume: 'Resume', menu: 'Menu', tapstart: 'space / tap',
-      title: 'FORGEPIT', subtitle: 'The Hefest apprentices’ trial · twin-stick · 1–2 players',
+      title: 'SMELTPAIR', subtitle: 'The Hefest apprentices’ trial · twin-stick · 1–2 players',
       back: 'Catalog', p1: 'P1', p2: 'P2', hero_0: 'Scale', hero_1: 'Chisel',
       stage: 'CIRCLE', stageShort: 'Circle', room: 'Room', roomShort: 'Rm.',
       s_1: 'Casting Yard', s_2: 'Rolling Mill', s_3: 'Heart of the Forge',
@@ -48,13 +48,13 @@
       lvPick: 'Circle', starNew: 'new best!', opened: 'circle {n} unlocked', revived: 'One more chance!', rwLife: 'Watch ad: +1 life', nextLevel: 'Fire / tap — next',
       hint1: 'P1: WASD — move, arrows — fire (8 ways)',
       hint2: 'P2: Home/Del/End/PgDn — move, numpad 8/4/5/6 — fire · 1/2 — players',
-      foot: '<b>FORGEPIT</b> · P1: WASD — move, arrows — fire in 8 directions (two arrows — diagonal) · P2: Home/Delete/End/PageDown — move, numpad 8/4/5/6 — fire (solo: both layouts work) · clear the arena and walk into a glowing gate · 1/2 on the title — players · P/Esc pause · L language, T theme, M sound. Touch — twin sticks, 1 player.'
+      foot: '<b>SMELTPAIR</b> · P1: WASD — move, arrows — fire in 8 directions (two arrows — diagonal) · P2: Home/Delete/End/PageDown — move, numpad 8/4/5/6 — fire (solo: both layouts work) · clear the arena and walk into a glowing gate · 1/2 on the title — players · P/Esc pause · L language, T theme, M sound. Touch — twin sticks, 1 player.'
     },
     tr: {
       play: 'Oyna', players: 'Oyuncular', touch1p: 'dokunmatik — 1 oyuncu', language: 'Dil', theme: 'Tema', sound: 'Ses', on: 'açık', off: 'kapalı',
       score: 'Puan', level: 'Tur', best: 'Rekor', win: 'SINAV TAMAM! ARTIK USTASINIZ', gameover: 'OCAK SOĞUDU',
       pause: 'DURAKLATILDI', resume: 'Devam', menu: 'Menü', tapstart: 'boşluk / dokun',
-      title: 'FORGEPIT', subtitle: 'Hefest çıraklarının sınavı · iki çubuk · 1–2 oyuncu',
+      title: 'SMELTPAIR', subtitle: 'Hefest çıraklarının sınavı · iki çubuk · 1–2 oyuncu',
       back: 'Katalog', p1: 'O1', p2: 'O2', hero_0: 'Cüruf', hero_1: 'Keski',
       stage: 'TUR', stageShort: 'Tur', room: 'Oda', roomShort: 'Oda',
       s_1: 'Döküm Avlusu', s_2: 'Haddehane', s_3: 'Ocağın Kalbi',
@@ -71,13 +71,13 @@
       lvPick: 'Tur', starNew: 'yeni rekor!', opened: 'tur {n} açıldı', revived: 'Bir şans daha!', rwLife: 'Reklam: +1 can', nextLevel: 'Ateş / dokun — devam',
       hint1: 'O1: WASD — yürü, oklar — ateş (8 yön)',
       hint2: 'O2: Home/Del/End/PgDn — yürü, numpad 8/4/5/6 — ateş · 1/2 — oyuncular',
-      foot: '<b>FORGEPIT</b> · O1: WASD — yürü, oklar — 8 yöne ateş (iki ok — çapraz) · O2: Home/Delete/End/PageDown — yürü, numpad 8/4/5/6 — ateş (tek kişide iki düzen de çalışır) · arenayı temizle ve parlayan kapıya gir · başlıkta 1/2 — oyuncular · P/Esc duraklat · L dil, T tema, M ses. Dokunmatik — iki çubuk, 1 oyuncu.'
+      foot: '<b>SMELTPAIR</b> · O1: WASD — yürü, oklar — 8 yöne ateş (iki ok — çapraz) · O2: Home/Delete/End/PageDown — yürü, numpad 8/4/5/6 — ateş (tek kişide iki düzen de çalışır) · arenayı temizle ve parlayan kapıya gir · başlıkta 1/2 — oyuncular · P/Esc duraklat · L dil, T tema, M ses. Dokunmatik — iki çubuk, 1 oyuncu.'
     },
     es: {
       play: 'Jugar', players: 'Jugadores', touch1p: 'táctil — 1 jugador', language: 'Idioma', theme: 'Tema', sound: 'Sonido', on: 'sí', off: 'no',
       score: 'Puntos', level: 'Ronda', best: 'Récord', win: '¡PRUEBA SUPERADA! YA SOIS MAESTROS', gameover: 'LA FRAGUA SE ENFRIÓ',
       pause: 'PAUSA', resume: 'Continuar', menu: 'Menú', tapstart: 'espacio / toque',
-      title: 'FORGEPIT', subtitle: 'La prueba de los aprendices de Hefest · doble stick · 1–2 jugadores',
+      title: 'SMELTPAIR', subtitle: 'La prueba de los aprendices de Hefest · doble stick · 1–2 jugadores',
       back: 'Catálogo', p1: 'J1', p2: 'J2', hero_0: 'Escoria', hero_1: 'Cincel',
       stage: 'RONDA', stageShort: 'Ronda', room: 'Sala', roomShort: 'Sala',
       s_1: 'Patio de fundición', s_2: 'Laminadora', s_3: 'Corazón de la fragua',
@@ -94,13 +94,13 @@
       lvPick: 'Ronda', starNew: '¡nuevo récord!', opened: 'ronda {n} desbloqueada', revived: '¡Otra oportunidad!', rwLife: 'Anuncio: +1 vida', nextLevel: 'Dispara / toca — seguir',
       hint1: 'J1: WASD — mover, flechas — disparar (8 direcciones)',
       hint2: 'J2: Home/Supr/Fin/AvPág — mover, teclado numérico 8/4/5/6 — disparar · 1/2 — jugadores',
-      foot: '<b>FORGEPIT</b> · J1: WASD — mover, flechas — disparar en 8 direcciones (dos flechas — diagonal) · J2: Home/Supr/Fin/AvPág — mover, teclado numérico 8/4/5/6 — disparar (en solitario sirven ambos) · limpia la arena y entra por una puerta brillante · 1/2 en el título — jugadores · P/Esc pausa · L idioma, T tema, M sonido. Táctil — doble stick, 1 jugador.'
+      foot: '<b>SMELTPAIR</b> · J1: WASD — mover, flechas — disparar en 8 direcciones (dos flechas — diagonal) · J2: Home/Supr/Fin/AvPág — mover, teclado numérico 8/4/5/6 — disparar (en solitario sirven ambos) · limpia la arena y entra por una puerta brillante · 1/2 en el título — jugadores · P/Esc pausa · L idioma, T tema, M sonido. Táctil — doble stick, 1 jugador.'
     },
     pt: {
       play: 'Jogar', players: 'Jogadores', touch1p: 'toque — 1 jogador', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'lig.', off: 'desl.',
       score: 'Pontos', level: 'Rodada', best: 'Recorde', win: 'PROVA CONCLUÍDA! AGORA VOCÊS SÃO MESTRES', gameover: 'A FORJA ESFRIOU',
       pause: 'PAUSA', resume: 'Continuar', menu: 'Menu', tapstart: 'espaço / toque',
-      title: 'FORGEPIT', subtitle: 'A prova dos aprendizes da Hefest · dois analógicos · 1–2 jogadores',
+      title: 'SMELTPAIR', subtitle: 'A prova dos aprendizes da Hefest · dois analógicos · 1–2 jogadores',
       back: 'Catálogo', p1: 'J1', p2: 'J2', hero_0: 'Escória', hero_1: 'Cinzel',
       stage: 'RODADA', stageShort: 'Rodada', room: 'Sala', roomShort: 'Sala',
       s_1: 'Pátio de fundição', s_2: 'Laminadora', s_3: 'Coração da forja',
@@ -117,7 +117,7 @@
       lvPick: 'Rodada', starNew: 'novo recorde!', opened: 'rodada {n} liberada', revived: 'Mais uma chance!', rwLife: 'Anúncio: +1 vida', nextLevel: 'Tiro / toque — seguir',
       hint1: 'J1: WASD — andar, setas — atirar (8 direções)',
       hint2: 'J2: Home/Del/End/PgDn — andar, teclado numérico 8/4/5/6 — atirar · 1/2 — jogadores',
-      foot: '<b>FORGEPIT</b> · J1: WASD — andar, setas — atirar em 8 direções (duas setas — diagonal) · J2: Home/Delete/End/PageDown — andar, teclado numérico 8/4/5/6 — atirar (sozinho, os dois esquemas funcionam) · limpe a arena e entre num portão brilhante · 1/2 no título — jogadores · P/Esc pausa · L idioma, T tema, M som. Toque — dois analógicos, 1 jogador.'
+      foot: '<b>SMELTPAIR</b> · J1: WASD — andar, setas — atirar em 8 direções (duas setas — diagonal) · J2: Home/Delete/End/PageDown — andar, teclado numérico 8/4/5/6 — atirar (sozinho, os dois esquemas funcionam) · limpe a arena e entre num portão brilhante · 1/2 no título — jogadores · P/Esc pausa · L idioma, T tema, M som. Toque — dois analógicos, 1 jogador.'
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -206,11 +206,11 @@ test('i18n: у RU и EN одинаковые ключи; есть названи
   for (let n = 1; n <= 6; n++) ok(CH.STR.ru['l' + n] && CH.STR.en['g' + n]);
   ['boil', 'crack', 'magnet', 'fall', 'cold', 'pop', 'race', 'woke_crunch', 'woke_melt', 'woke_puff', 'woke_alarm'].forEach(k => ok(CH.STR.ru['d_' + k] && CH.STR.en['d_' + k], k));
 });
-test('i18n TR/ES/PT: те же ключи, что у RU; плейсхолдеры {n} сохранены; EN-название KETTLECLANK во всех нерусских таблицах', () => {
+test('i18n TR/ES/PT: те же ключи, что у RU; плейсхолдеры {n} сохранены; EN-название SPOUTWOUND во всех нерусских таблицах', () => {
   const ru = Object.keys(CH.STR.ru).sort().join(',');
   for (const l of ['tr', 'es', 'pt']) { eq(Object.keys(CH.STR[l]).sort().join(','), ru, l);
     for (const k of Object.keys(CH.STR.ru)) { if (CH.STR.ru[k].includes('{n}')) ok(CH.STR[l][k].includes('{n}'), l + '.' + k); ok(String(CH.STR[l][k]).trim(), l + '.' + k + ' пусто'); } }
-  for (const l of ['en', 'tr', 'es', 'pt']) eq(CH.STR[l].title, 'KETTLECLANK', l);
+  for (const l of ['en', 'tr', 'es', 'pt']) eq(CH.STR[l].title, 'SPOUTWOUND', l);
 });
 test('мета: звёзды (пройден / без потерь / быстрее нормы), открытие уровней, сохранение, слияние max', () => {
   const M = CH.meta, mem = {}, st = { get: k => (k in mem ? mem[k] : null), set: (k, v) => { mem[k] = v; } }, P = M.Progress(st);
