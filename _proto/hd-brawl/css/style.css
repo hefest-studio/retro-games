@@ -1,0 +1,29 @@
+/* МЕДНАЯ СЛОБОДА · страница. Холст 480×270 растягивается только в целое число раз (js/main.js → fit), без сглаживания. */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#141013;--panel:#2e1f30;--line:#563043;--ink:#fff6e6;--mut:#92b4c8;--accent:#f0a050}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow-x:hidden;overscroll-behavior:none}
+.wrap{margin-top:26px;display:flex;justify-content:center;max-width:100%}
+canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;max-width:100%;background:#141013}
+a.back{position:fixed;left:10px;top:6px;color:var(--mut);font-size:12px;text-decoration:none;font-weight:700;z-index:2}
+a.back:hover{color:var(--accent)}
+.pad{width:min(96vw,560px);margin:8px 0 4px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pad button{background:var(--panel);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-size:22px;font-weight:800;touch-action:none;padding:0}
+.pad button:active{filter:brightness(1.4)}
+.pad .mini{width:44px;height:44px;font-size:14px}
+.stick{position:relative;width:140px;height:140px;border-radius:50%;border:1px dashed var(--line);touch-action:none;flex:none}
+.stick-base,.stick-knob{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;opacity:.55}
+.stick-base{width:100px;height:100px;border:2px solid var(--line);background:rgba(255,255,255,.04)}
+.stick-knob{width:48px;height:48px;background:var(--panel);border:2px solid var(--accent)}
+.acts{display:flex;gap:10px;align-items:flex-end}
+.acts button{width:68px;height:68px}
+.acts .hit{color:var(--accent);border-color:var(--accent)}
+.acts .jump{color:#5f9c7c;border-color:#2f5e55;margin-bottom:30px}
+.foot{color:var(--mut);font-size:11px;margin:6px 12px 12px;text-align:center;max-width:900px}
+.foot b{color:var(--ink)}
+@media(hover:hover) and (pointer:fine){.pad{display:none}}
+@media (max-height:520px) and (orientation:landscape){
+  .wrap{margin-top:22px}.foot{display:none}
+  .pad{position:fixed;left:0;right:0;bottom:4px;width:100%;max-width:none;margin:0;padding:0 6px;pointer-events:none;align-items:flex-end}
+  .pad>*{pointer-events:auto}.pad .mini{position:fixed;right:10px;top:2px;width:40px;height:30px}
+}
