@@ -298,7 +298,7 @@ test('страница: фавикон студии, «← Каталог», can
   ok(/class="back"[^>]*href="\.\.\/"/.test(html), 'ссылка в каталог');
   ok(/<canvas id="c" width="960" height="540"/.test(html), 'canvas');
   const order = [...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]);
-  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/modern.js', 'js/classic.js', 'js/render.js', 'js/stick.js', 'js/ui.js', 'js/main.js']);
+  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/modern.js', 'js/classic.js', 'js/render.js', 'js/hd.js', 'js/stick.js', 'js/ui.js', 'js/main.js']);
   ok(/data-stick/.test(html) && /data-jump/.test(html) && /data-magic/.test(html) && /data-pause/.test(html) && /data-d="A"/.test(html), 'тач-кнопки');
   eq(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js не копия _shared');
 });

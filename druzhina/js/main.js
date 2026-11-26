@@ -10,14 +10,29 @@
   var TH = Arcade.themes || {};
   var themes = {
     modern: Object.assign({}, TH.modern, { bg: '#101216', panel: '#171a20', ink: '#f3eee4', muted: '#9ea3ad', accent: '#f0a03c', grid: '#2a2e36' }),
-    retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#1a1c2c', accent: '#ffcd75', muted: '#94b0c2' })
+    retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#1a1c2c', accent: '#ffcd75', muted: '#94b0c2' }),
+    hd: Object.assign({}, TH.modern, { bg: '#120a14', panel: '#22142a', ink: '#fff3dc', muted: '#c0a8b4', accent: '#ffb53a', grid: '#3a2232', pixel: false, font: '"Trebuchet MS", Verdana, system-ui, sans-serif' })
   };
   var g = Arcade.createGame({ canvas: '#c', width: L.VIEW_W, height: L.SCREEN_H, gameId: 'druzhina', leaderboard: 'druzhina', strings: D.STR, theme: 'modern', lives: 3, themes: themes });
   D.g = g;
   var pad = document.querySelector('.pad');
   g.input.bindDpad(pad);
   D.ui.init(g);
-  function pal() { return g.themeName === 'retro' ? D.classic : D.modern; }
+  function pal() { return g.themeName === 'retro' ? D.classic : g.themeName === 'hd' && D.hd ? D.hd.P : D.modern; }
+  // ---------- Третья тема HD (пилот, js/hd.js) ----------
+  // Движок знает только modern/retro(/neon): порядок переключения и хранение — здесь. Общий ключ arcade.theme общий для всех игр
+  // каталога, поэтому «hd» пишется в свой ключ druzhina.theme, а в arcade.theme остаётся modern (другие игры hd не знают).
+  // arcade.theme = 'hd' (промо-съёмка, площадка) тоже принимается при загрузке.
+  var hdOn = !!D.hd;
+  if (hdOn && (g.themeName === 'hd' || Store.get('druzhina.theme', '') === 'hd')) { g.themeName = 'hd'; Store.set('arcade.theme', 'modern'); Store.set('druzhina.theme', 'hd'); g._applyPixel(); }
+  else if (g.themeName === 'hd') { g.themeName = 'modern'; g._applyPixel(); }
+  g.setTheme = function (name) {
+    if (name === 'hd' && !hdOn) name = 'modern';
+    this.themeName = name; Store.set('arcade.theme', name === 'hd' ? 'modern' : name); Store.set('druzhina.theme', name === 'hd' ? 'hd' : ''); this._applyPixel();
+    if (name === 'hd') D.hd.warm();
+  };
+  g.toggleTheme = function () { var order = hdOn ? ['modern', 'retro', 'hd'] : ['modern', 'retro']; this.setTheme(order[(order.indexOf(this.themeName) + 1) % order.length]); return this.themeName; };
+  var hitStop = 0;
 
   g.useStandardScreens({ lives: 3 });
   g.usePlayers({
@@ -32,7 +47,13 @@
   function toast(text, color, x, z) { toasts.push({ text: text, color: color, x: x, z: z, t: 1.3 }); if (toasts.length > 8) toasts.shift(); }
   function fx(type, d) {
     if (!game || !d || d.x == null) return;
-    var S = game.state(), sx = d.x - S.cam, sy = L.FLOOR_TOP + (d.z || 0) - (d.h || 0), P = pal(), sz = P.pixel ? 6 : 3;
+    var S = game.state(), sx = d.x - S.cam, sy = L.FLOOR_TOP + (d.z || 0) - (d.h || 0), P = pal(), sz = P.pixel ? 6 : P.hd ? 6 : 3;
+    if (P.hd) {   // HD: искры-звёзды, хит-стоп (замирание кадра 50–110 мс) и лёгкая тряска — только оболочка, логика та же
+      D.hd.fx(type, d, S);
+      if (type === 'hit') { hitStop = Math.max(hitStop, d.knee ? 0.04 : 0.055); shakeT = Math.max(shakeT, 0.06); }
+      else if (type === 'kill') { hitStop = Math.max(hitStop, d.boss ? 0.2 : 0.09); shakeT = Math.max(shakeT, d.boss ? 0.5 : 0.12); }
+      else if (type === 'block') hitStop = Math.max(hitStop, 0.03);
+    }
     if (type === 'hit') g.particles.spawn(sx, sy, { color: d.knee ? '#ffe0a0' : '#fff2c0', count: 6, speed: 150, life: 0.25, size: sz });
     else if (type === 'block') g.particles.spawn(sx, sy, { color: '#a8d0ff', count: 6, speed: 120, life: 0.2, size: sz });
     else if (type === 'kill') g.particles.spawn(sx, sy - 40, { color: d.boss ? '#ff7a3a' : '#c8ccd4', count: d.boss ? 50 : 12, speed: d.boss ? 240 : 130, life: d.boss ? 1.2 : 0.5, size: sz });
@@ -204,6 +225,7 @@
         demoT += dt; return;
       }
       if (!game) return;
+      if (hitStop > 0) { hitStop -= dt; if (shakeT > 0) shakeT -= dt; return; }   // HD: хит-стоп
       for (var pi = 0; pi < 2; pi++) {
         var P = g.input.player(pi), on = pi < g.input.playerCount, dir = on ? P.dir : { x: 0, y: 0 }, dx = dir.x, dy = dir.y;
         if (pi === 0 && stick.active) { dx = Math.abs(stick.x) > 0.35 ? Math.sign(stick.x) : 0; dy = Math.abs(stick.y) > 0.35 ? Math.sign(stick.y) : 0; }
@@ -218,11 +240,14 @@
     draw: function (ctx) {
       var P = pal();
       if (sel) { D.ui.drawWorld(this, ctx, demoState(), P, {}); D.ui.select(this, ctx, sel, P, demoT); return; }
-      if (game) D.ui.render(this, ctx, game.state(), P, { toasts: toasts, shake: shakeT > 0 ? 6 * Math.min(1, shakeT * 3) : 0 });
+      if (game) D.ui.render(this, ctx, game.state(), P, { toasts: toasts, shake: shakeT > 0 ? (P.hd ? 9 : 6) * Math.min(1, shakeT * 3) : 0 });
       else this.clear();
     }
   });
 
+  // подпись пункта «Тема»: HD — заглавными (движок печатает имя темы как есть)
+  Object.keys(g.scenes).forEach(function (k) { var m = g.scenes[k]._menu; if (m) m.items.forEach(function (it) { if (it.key !== 'theme') return; var lb = it.label; it.label = function () { return g.themeName === 'hd' ? g.t('theme') + ': HD' : lb(); }; }); });
+  if (g.themeName === 'hd') D.hd.warm();
   g.start('title');
   D.app = { g: g, game: function () { return game; }, newGame: newGame, sel: function () { return sel; } };   // для отладки/автотестов в браузере
 })(typeof window !== 'undefined' ? window : globalThis);
