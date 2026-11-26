@@ -12,8 +12,8 @@ const bbox = f => { let x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1; for (let i = 0; i 
 
 ok('палитра ≤ 16 цветов (кроме прозрачного), без повторов', () => { const c = S.PAL.filter(Boolean); assert.ok(c.length <= 16); assert.equal(new Set(c).size, c.length); });
 const RUN = ['idle0', 'idle1', 'walk0', 'walk1', 'walk2', 'walk3', 'walk4', 'walk5'];
-const KEYS = ['jab_a', 'jab', 'jab_r', 'cross_a', 'cross', 'cross_r', 'kick_a', 'kick', 'kick_r', 'hurt', 'fall0', 'fall1', 'down', 'getup0', 'getup1', 'jump', 'airkick'];
-const GROUNDED = RUN.concat(['jab_a', 'jab', 'jab_r', 'cross_a', 'cross', 'cross_r', 'kick_a', 'kick', 'kick_r', 'hurt', 'down', 'getup0', 'getup1']);
+const KEYS = ['jab_a', 'jab', 'jab_r', 'cross_a', 'cross', 'cross_r', 'kick_a', 'kick', 'kick_r', 'hurt', 'fall0', 'fall1', 'down', 'getup0', 'getup1', 'getup2', 'held', 'jump', 'airkick'];
+const GROUNDED = RUN.concat(['jab_a', 'jab', 'jab_r', 'cross_a', 'cross', 'cross_r', 'kick_a', 'kick', 'kick_r', 'hurt', 'down', 'getup0', 'getup1', 'getup2']);
 for (const set of ['hero', 'stokerA', 'stokerB']) ok('кадры ' + set + ': все на месте, 80×72, индексы в палитре, опора', () => {
   for (const k of RUN.concat(KEYS)) { const f = S.SETS[set][k]; assert.ok(f, k); assert.equal(f.w, S.FW); assert.equal(f.h, S.FH); assert.equal(f.a.length, f.w * f.h);
     for (const v of f.a) assert.ok(v < S.PAL.length);
@@ -46,11 +46,44 @@ ok('вторичное движение: хвосты повязки и поло
 ok('контур селективный: есть и чернила, и светлые кромки', () => { const a = S.SETS.hero.idle0.a; assert.ok(a.includes(1)); assert.ok(a.some(v => v === S.LIT[6] || v === S.LIT[5])); });
 ok('варианты врага — та же матрица, другие цвета', () => { const A = S.SETS.stokerA.idle0.a, B = S.SETS.stokerB.idle0.a; let diff = 0, shape = 0;
   for (let i = 0; i < A.length; i++) { if (A[i] !== B[i]) diff++; if (!!A[i] !== !!B[i]) shape++; } assert.ok(diff > 50); assert.equal(shape, 0); });
+// ---- v3: литейщик (крупный враг) и ручная доводка поз ----
+const BIGK = ['idle0', 'idle1', 'walk0', 'walk1', 'walk2', 'walk3', 'walk4', 'walk5', 'wind', 'grab', 'throw', 'hurt', 'fall0', 'fall1', 'down', 'getup0', 'getup1'];
+ok('литейщик: все кадры (и idle/ходьба) — целые матрицы из poses.js, 80×72, наземные стоят на подошве', () => {
+  for (const k of BIGK) { const m = POSES.big[k], f = S.SETS.founder[k]; assert.ok(m && f, k); const p = S.parse(m.rows);
+    for (let y = 0; y < p.h; y++) for (let x = 0; x < p.w; x++) assert.equal(f.a[(y + m.oy) * S.FW + x + m.ox], p.a[y * p.w + x], k);
+    for (const v of f.a) assert.ok(v < S.PAL.length);
+    if (!['fall0', 'fall1'].includes(k)) assert.equal(bbox(f).y1, S.FH - 1, k + ': подошва'); }
+});
+ok('литейщик крупнее: выше героя на ≥5 px и шире кочегара; свой облик (другая голова и торс)', () => {
+  const B = bbox(S.SETS.founder.idle0), H = bbox(S.SETS.hero.idle0), K = bbox(S.SETS.stokerA.idle0);
+  assert.ok(B.h >= H.h + 5 && B.h <= 70, 'рост ' + B.h); assert.ok(B.w > K.w + 4, 'ширина ' + B.w);
+  assert.ok(S.PARTS.big.torso.w > S.PARTS.foe.torso.w);
+  const d = (a, b) => a.a.reduce((s, v, i) => s + (v !== b.a[i]), 0); const Hd = S.PARTS.big.head;
+  assert.ok(d(Hd.n, Hd.a) >= 6 && d(Hd.n, Hd.h) >= 6, 'мимика литейщика');
+});
+ok('литейщик: захват тянется вперёд, замах — руки вверх, бросок — вперёд-вниз; ходьба качается', () => {
+  const F = S.SETS.founder, b = k => bbox(F[k]);
+  assert.ok(b('grab').x1 >= b('idle0').x1 + 8, 'захват длиннее стойки'); assert.ok(b('wind').y0 <= b('idle0').y0, 'замах не ниже головы');
+  assert.ok(b('throw').x1 > b('idle0').x1, 'бросок вперёд');
+  assert.ok(new Set(['walk0', 'walk1', 'walk2', 'walk3', 'walk4', 'walk5'].map(k => b(k).y0)).size >= 2);
+});
+ok('ручная доводка: правки FIX попали в матрицы (складки), полёт — руки видны и лицо не закрыто', () => {
+  const r = S.toRows(S.SETS.hero.jab); assert.equal(r[38][49], 't'); assert.equal(r[39][48], 't');
+  assert.equal(S.toRows(S.SETS.hero.kick)[47][46], 'l');
+  // fall0: обе кисти-рукавицы правее головы (лицо открыто): в рядах головы справа от лица нет кожи рукавицы поверх глаз
+  const f = S.SETS.hero.fall0, glove = new Set([3, 4, 5]); let hands = 0;
+  for (let y = 0; y < S.FH; y++) for (let x = 50; x < S.FW; x++) if (glove.has(f.a[y * S.FW + x])) hands++;
+  assert.ok(hands > 20, 'кисти в полёте видны: ' + hands);
+});
+ok('ходьба героя: противоход — кулаки сдвигаются по X между кадрами 0 и 3', () => {
+  const xs = k => { const f = S.SETS.hero[k]; let mx = -1; for (let i = 0; i < f.a.length; i++) if (f.a[i] && (i / f.w | 0) < 50 && (i / f.w | 0) > 36) mx = Math.max(mx, i % f.w); return mx; };
+  assert.ok(Math.abs(xs('walk0') - xs('walk3')) >= 3, xs('walk0') + ' vs ' + xs('walk3'));
+});
 ok('строки деталей одинаковой длины и из легенды', () => { for (const k of Object.keys(S.P)) S.parse(S.P[k]); });
 ok('шрифт 5×7: все символы текстов RU/EN и движка есть, глифы 7 рядов', () => {
   const txt = 'МЕДНАЯ СЛОБОДА COPPER QUARTER Прототип драки · чиби HD-пиксель Волна ВПЕРЁД Улица чиста! ←→↑↓ ход Пробел/J удар (×3 серия) K/Z прыжок P пауза ' +
     'Стик — ход ● удар ⤒ прыжок Играть Язык: RU Тема: modern Звук: вкл выкл Пауза Продолжить Меню Рекорд Очки Победа Игра окончена ▸ ♥ 0123456789 ' +
-    'Brawler prototype chibi HD pixel Wave GO Street clear! move Space hit combo jump pause Play Language Theme Sound on off Resume Best Score';
+    'ЖМИ УДАР! MASH HIT! Brawler prototype chibi HD pixel Wave GO Street clear! move Space hit combo jump pause Play Language Theme Sound on off Resume Best Score';
   for (const ch of txt) if (ch !== ' ') assert.ok(F.glyphs[ch] || F.glyphs[ch.toUpperCase()], 'нет глифа «' + ch + '»');
   for (const k of Object.keys(F.glyphs)) { assert.equal(F.glyphs[k].rows.length, 7, k); for (const r of F.glyphs[k].rows) assert.equal(r.length, F.glyphs[k].w, k); }
   assert.equal(F.measure('AB', 2), (5 + 1 + 5) * 2);

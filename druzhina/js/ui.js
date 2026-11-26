@@ -40,7 +40,7 @@
   }
   function txt(g, s, x, y, o, P) {
     o = o || {}; o.font = P.font;
-    if (P.hd) { var c0 = o.color, sz = o.size || 16; if (o.shadow !== false) { o.color = P.outline; var d = sz >= 24 ? 4 : 2; g.text(s, x + d, y + d, o); g.text(s, x - 2, y, o); g.text(s, x + 2, y - 2, o); } o.color = c0; g.text(s, x, y, o); return; }   // HD: жёсткая тень-обводка
+    if (P.hd) { if (!o.maxWidth) o.maxWidth = g.W - 24; g.text(s, x, y, o); return; }   // HD: пиксельный шрифт с тенью чернилами (js/hd-font.js)   // HD: жёсткая тень-обводка
     if (o.shadow !== false) { var c = o.color; o.color = P.pixel ? '#000000' : 'rgba(0,0,0,.6)'; g.text(s, x + (P.pixel ? 2 : 1), y + 2, o); o.color = c; }
     g.text(s, x, y, o);
   }
@@ -66,11 +66,11 @@
   }
   function bar(ctx, x, y, w, h, f, col, P, segs) {
     f = Math.max(0, Math.min(1, f));
-    if (P.hd) {   // HD: рамка, «блик» сверху, тёмная нижняя кромка
-      x = Math.round(x); y = Math.round(y);
+    if (P.hd) {   // HD: рамка чернилами, светлая верхняя кромка заливки, без полупрозрачности
+      x = Math.round(x / 2) * 2; y = Math.round(y / 2) * 2; h = Math.round(h / 2) * 2;
       ctx.fillStyle = P.outline; ctx.fillRect(x - 2, y - 2, w + 4, h + 4); ctx.fillStyle = P.barBg; ctx.fillRect(x, y, w, h);
-      var fw = Math.round(w * f / 2) * 2; if (fw > 0) { ctx.fillStyle = col; ctx.fillRect(x, y, fw, h); ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fillRect(x, y, fw, 2); ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(x, y + h - 2, fw, 2); }
-      if (segs) { ctx.fillStyle = P.outline; for (var s2 = 1; s2 < segs; s2++) ctx.fillRect(x + Math.round(w * s2 / segs), y, 2, h); }
+      var fw = Math.round(w * f / 2) * 2; if (fw > 0) { ctx.fillStyle = col; ctx.fillRect(x, y, fw, h); ctx.fillStyle = P.hi; ctx.fillRect(x, y, fw, 2); }
+      if (segs) { ctx.fillStyle = P.outline; for (var s2 = 1; s2 < segs; s2++) ctx.fillRect(x + Math.round(w * s2 / segs / 2) * 2, y, 2, h); }
       return;
     }
     ctx.fillStyle = P.barBg;
@@ -142,15 +142,15 @@
       var B = bosses[0], bw = 420, bx = (g.W - bw) / 2, by = L.HUD + 16;
       txt(g, up(P, g.t('b_' + B.type)) + (B.def.phases && B.stage ? '  ·  ' + up(P, g.t('phase')) + ' ' + B.stage : ''), g.W / 2, by + 2, { size: 12, align: 'center', color: P.boss, weight: 800 }, P);
       bar(ctx, bx, by + 8, bw, 9, hp / mx, P.boss, P);
-      if (B.intro > 0) { ctx.globalAlpha = Math.min(1, B.intro / 0.4); banner(g, ctx, P, g.t('b_' + B.type), g.t('bossSub'), P.boss, 150); ctx.globalAlpha = 1; }
+      if (B.intro > 0) { ctx.globalAlpha = P.hd ? 1 : Math.min(1, B.intro / 0.4); banner(g, ctx, P, g.t('b_' + B.type), g.t('bossSub'), P.boss, 150); ctx.globalAlpha = 1; }
     }
     if (S.phase === 'play' && S.banner > 0 && !S.bonus) {
-      ctx.globalAlpha = Math.min(1, S.banner / 0.4);
+      ctx.globalAlpha = P.hd ? 1 : Math.min(1, S.banner / 0.4);
       banner(g, ctx, P, g.t('stage') + ' ' + S.stage + ' · ' + g.t('s_' + S.key), g.t('introSub'), P.accent);
       ctx.globalAlpha = 1;
     }
     if (S.phase === 'bonus') {
-      if (S.banner > 0) { ctx.globalAlpha = Math.min(1, S.banner / 0.4); banner(g, ctx, P, g.t('camp'), g.t('campSub'), P.magic); ctx.globalAlpha = 1; }
+      if (S.banner > 0) { ctx.globalAlpha = P.hd ? 1 : Math.min(1, S.banner / 0.4); banner(g, ctx, P, g.t('camp'), g.t('campSub'), P.magic); ctx.globalAlpha = 1; }
       txt(g, String(Math.max(0, Math.ceil(S.bonusT))), g.W / 2, L.HUD + 40, { size: 28, align: 'center', color: P.magic }, P);
     }
     if (S.phase === 'clear') banner(g, ctx, P, g.t('clear'), g.t('bonus') + ' +' + (S.lastBonus || 0), P.good);
@@ -168,7 +168,7 @@
       txt(g, g.t(h.pi ? 'p2' : 'p1'), h.x - S.cam, L.FLOOR_TOP + h.z - h.h - (h.mount ? 175 : 140), { size: 11, align: 'center', color: P.hero[h.hero], weight: 900 }, P);
     });
     if (S.phase === 'continue') {
-      ctx.fillStyle = P.pixel ? 'rgba(0,0,0,.7)' : 'rgba(8,8,12,.7)'; ctx.fillRect(0, 0, g.W, g.H);
+      if (P.hd) D.hd.dim(g, ctx); else { ctx.fillStyle = P.pixel ? 'rgba(0,0,0,.7)' : 'rgba(8,8,12,.7)'; ctx.fillRect(0, 0, g.W, g.H); }
       txt(g, up(P, g.t('cont')), g.W / 2, 220, { size: 44, align: 'center', color: P.accent, weight: 900 }, P);
       txt(g, String(Math.max(0, Math.floor(S.contT))), g.W / 2, 310, { size: 72, align: 'center', color: P.ink, weight: 900 }, P);
       txt(g, g.t('contSub') + ' · ' + g.t('contLeft') + ': ' + S.continues, g.W / 2, 360, { size: 14, align: 'center', color: P.muted, weight: 700 }, P);
@@ -177,7 +177,7 @@
   function toasts(g, ctx, list, S, P) {
     var L = D.logic;
     for (var i = 0; i < list.length; i++) {
-      var t = list[i]; ctx.globalAlpha = Math.min(1, t.t / 0.4);
+      var t = list[i]; ctx.globalAlpha = P.hd ? 1 : Math.min(1, t.t / 0.4);
       txt(g, up(P, t.text), t.x - S.cam, L.FLOOR_TOP + t.z - 130 - (1.3 - t.t) * 26, { size: 13, align: 'center', color: t.color, weight: 900 }, P);
     }
     ctx.globalAlpha = 1;
@@ -194,7 +194,7 @@
   // ---------- Экран выбора героя ----------
   function select(g, ctx, sel, P, t) {
     var L = D.logic, W = g.W, keys = L.HERO_KEYS;
-    ctx.fillStyle = P.pixel ? 'rgba(0,0,0,.6)' : 'rgba(10,10,14,.55)'; ctx.fillRect(0, 0, W, g.H);
+    if (P.hd) D.hd.dim(g, ctx); else { ctx.fillStyle = P.pixel ? 'rgba(0,0,0,.6)' : 'rgba(10,10,14,.55)'; ctx.fillRect(0, 0, W, g.H); }
     txt(g, up(P, g.t('select')), W / 2, 70, { size: 34, align: 'center', color: P.accent, weight: 900 }, P);
     txt(g, g.t('selHint'), W / 2, 96, { size: 13, align: 'center', color: P.muted, weight: 600, shadow: false }, P);
     keys.forEach(function (k, i) {
@@ -202,17 +202,17 @@
       var who = []; for (var p = 0; p < sel.n; p++) if (sel.cur[p] === i) who.push(p);
       var col = who.length ? P.hero[k] : P.line;
       panel(ctx, x, y, cw, ch, P, col);
-      if (P.pixel) { ctx.fillStyle = '#1a1c2c'; ctx.fillRect(x + 12, y + 12, cw - 24, 170); } else { ctx.fillStyle = 'rgba(255,255,255,.04)'; roundRect(ctx, x + 12, y + 12, cw - 24, 170, 10); ctx.fill(); }
+      if (P.hd) { ctx.fillStyle = P.hudBg; ctx.fillRect(x + 12, y + 12, cw - 24, 170); } else if (P.pixel) { ctx.fillStyle = '#1a1c2c'; ctx.fillRect(x + 12, y + 12, cw - 24, 170); } else { ctx.fillStyle = 'rgba(255,255,255,.04)'; roundRect(ctx, x + 12, y + 12, cw - 24, 170, 10); ctx.fill(); }
       var ready = who.some(function (p) { return sel.ready[p]; });
       D.render.portrait(ctx, P, k, x + cw / 2 - 6, y + 168, 1.45, t + i, ready ? (k === 'olha' ? 'shoot' : 'over') : 'idle');
       txt(g, up(P, g.t('h_' + k)), x + cw / 2, y + 212, { size: 24, align: 'center', color: P.hero[k], weight: 900 }, P);
       txt(g, g.t('r_' + k), x + cw / 2, y + 232, { size: 12, align: 'center', color: P.muted, weight: 700, shadow: false }, P);
       var H = L.HEROES[k], st = [['st_power', { zhdan: 0.95, secha: 0.55, olha: 0.6 }[k]], ['st_speed', H.speed / 190], ['st_reach', { zhdan: 0.55, secha: 0.4, olha: 0.95 }[k]]];
-      st.forEach(function (s, j) { txt(g, g.t(s[0]), x + 22, y + 262 + j * 20, { size: 11, color: P.ink, weight: 700, shadow: false }, P); bar(ctx, x + 110, y + 254 + j * 20, cw - 134, 8, s[1], P.hero[k], P); });
+      st.forEach(function (s, j) { txt(g, g.t(s[0]), x + 22, y + 262 + j * 20, { size: 11, color: P.ink, weight: 700, shadow: false, maxWidth: 84 }, P); bar(ctx, x + 110, y + 254 + j * 20, cw - 134, 8, s[1], P.hero[k], P); });
       txt(g, g.t('m_' + H.magic.kind), x + cw / 2, y + 330, { size: 12, align: 'center', color: P.magic, weight: 800, shadow: false }, P);
       var dsc = g.t('d_' + k), fs = 10; ctx.font = '600 ' + fs + 'px ' + P.font;
       while (fs > 7 && ctx.measureText(dsc).width > cw - 16) { fs--; ctx.font = '600 ' + fs + 'px ' + P.font; }
-      txt(g, dsc, x + cw / 2, y + 348, { size: fs, align: 'center', color: P.muted, weight: 600, shadow: false }, P);
+      txt(g, dsc, x + cw / 2, y + 348, { size: fs, align: 'center', color: P.muted, weight: 600, shadow: false, maxWidth: cw - 16 }, P);
       who.forEach(function (p, q) {
         var tag = (sel.n === 2 ? g.t(p ? 'p2' : 'p1') + ' ' : '') + (sel.ready[p] ? '✔ ' + g.t('ready') : '▲');
         txt(g, up(P, tag), x + cw / 2 + (who.length > 1 ? (q ? 60 : -60) : 0), y + ch + 26, { size: 14, align: 'center', color: sel.ready[p] ? P.good : P.hero[k], weight: 900 }, P);

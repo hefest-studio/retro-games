@@ -83,13 +83,13 @@
     '..nlllllllllln..',
     '..nnllllllllnn..'
   ];
-  P.heroFlap = [   // полог фартука ниже ремня (вторичное движение)
-    'rcocccrw',
-    'rcoccccr',
-    'rcocccrw',
-    '.rcoccrw',
-    '.rccccw.',
-    '..wrrw..'
+  P.heroFlap = [   // полог фартука ниже ремня (вторичное движение): две складки — гребень светом, ложбина тенью
+    'rccoccrw',
+    'rccocrcw',
+    'rcocrccw',
+    '.rcorccw',
+    '.rcrccw.',
+    '..wrwrw.'
   ];
   P.heroTailsA = [ // хвосты повязки, точка крепления — правый верх
     '....tvvt',
@@ -105,13 +105,13 @@
     '.....vvt',
     '......t.'
   ];
-  P.heroGlove = [   // тёмная кожа рукавицы — отдельно от медного фартука
-    '.wrcc.',
-    'wrcccr',
-    'wrcrrr',
-    'wrrrrr',
-    'pwrrrw',
-    '.pwww.'
+  P.heroGlove = [   // тёмная кожа рукавицы — отдельно от медного фартука; кулак: большой палец сверху, щели пальцев спереди
+    '.wrrc.',
+    'wrccoc',
+    'wrwwwr',
+    'wrrccr',
+    'pwrwwr',
+    '.pwrw.'
   ];
   P.boot = [
     '.pwwp....',
@@ -179,6 +179,81 @@
     'wSSSSS',
     '.wwww.'
   ];
+  // КРУПНЫЙ ВРАГ — литейщик Глыба: кожаная шапочка, очки-консервы на лбу, седая окладистая борода,
+  // кожаный передник с заклёпками поверх серой холщовой рубахи, войлочные рукавицы. Медленный, хватает и бросает.
+  P.bigHead = [
+    '........wwwwwww.........',
+    '.....wwwrrrrrrrww.......',
+    '....wrrrrcrrrrrrrw......',
+    '...wrrrcrrrrrrrrrww.....',
+    '...wrrrrrrrrrrrbbbbw....',
+    '..lllllllllllbmmWmbl....',
+    '..nnnnnnnnnnnbmmmmbn....',
+    '..wSSsssssssssbbbbsS....',
+    '..wSsssssssssssssssss...',
+    '..SwSsssssssssssssssss..',
+    '..SwSsssssssssssssssss..',
+    '..SSssssssssssssssssssS.',
+    '..mmSsssssssssssssssss..',
+    '..bmmSsssssssssssssssS..',
+    '..bmmmssssssssssssssmm..',
+    '..bmmmmmmmmmmmmmmmmmmb..',
+    '...bmmmmmmmmmmmmmmmmmb..',
+    '...lbmmmmbmmmmmmbmmmbl..',
+    '....lbbmmmmmbmmmmmbbl...',
+    '.....llbbbbbbbbbbbll....',
+    '.......llllllllll.......'
+  ];
+  P.bigTorso = [
+    '.......ssssssssss.......',
+    '....bmmmSssssssSmmmb....',
+    '..bmmmmmmSssssSmmmmmmb..',
+    '.bmmmmmwwwwwwwwwwmmmmmb.',
+    'bmmmmmwrrwwwwwwwwpmmmmmb',
+    'bmmmmbwrwwwwwwwwwpbmmmmb',
+    'bmmmmbwrwgwwwwwgwpbmmmbl',
+    'bmmmmbwrwwwwwwwwwpbmmbbl',
+    'bbmmmbwrwwwwpwwwwpbbbbbl',
+    'lbbbbbwrwwwwpwwwwpbbbbll',
+    'lbbbbbwrwwwwwpwwwpbbbbll',
+    '.lbbbbwrrwwwwpwwwplbbll.',
+    '.llbbbwrrwwwwwwwwplbll..',
+    '..llbwwrwwwwwwwwwwpll...',
+    '..llbwrrwwwwwwwwwwpll...',
+    '..ppwrrwwwwwwwwwwwwppp..',
+    '..pgwrwwwwwwwwwwwwwwgp..',
+    '..pwrwwwwwwwwwwwwwwwwp..',
+    '..pwrwwwwwwwwwwwwwwwpp..',
+    '...pwwwwwwwwwwwwwwwpp...'
+  ];
+  P.bigFlap = [    // подол кожаного передника до колен (вторичное движение): складка тенью + заклёпка
+    'wrrwwwwpwwwww',
+    'wrwwwwpwwwwwp',
+    'wrwwwwpwwwwwp',
+    'wrwwwpwwwwwwp',
+    'wrwwwpwwwwwwp',
+    'wrwwwpwwwwwpp',
+    '.wrwwpwwwwwp.',
+    '.pwwpppwwpp..',
+    '..pp...pp....'
+  ];
+  P.bigMitt = [    // войлочная рукавица: отдельный большой палец сверху, крага-манжета сзади
+    '...lbbl..',
+    '..lbmmbl.',
+    'nllbmmmbl',
+    'lbbbbbbml',
+    'lbmmmmmbl',
+    'lbmmmmmbl',
+    'nlbbbbbbl',
+    '.nlllllln'
+  ];
+  P.bigBoot = [
+    '.pwwwp....',
+    '.pwwwwwp..',
+    'ppwwwwwwwp',
+    'pppppppppp',
+    '.kkkkkkkk.'
+  ];
   // Мимика: патчи поверх головы [ряд, столбец, строка] ('_' — не трогать). n — обычное, a — удар, h — урон.
   var FACES = {
     hero: {
@@ -196,6 +271,13 @@
         [16, 16, 'ppppppp'], [17, 16, 'kWWWWk'], [18, 17, 'kkkk']],
       h: [[8, 13, 'ppp'], [9, 11, 'pp'], [8, 19, 'pp'], [9, 21, 'pp'], [11, 13, 'k'], [12, 14, 'k'], [13, 13, 'k'], [11, 20, 'k'], [12, 19, 'k'], [13, 20, 'k'],
         [14, 22, 'SS'], [16, 16, 'ppppppp'], [17, 17, 'kkk'], [18, 17, 'kwk'], [19, 18, 'k']]
+    },
+    big: {   // брови седые (m/b), рот прячется в бороде
+      n: [[8, 11, 'mmmm'], [8, 17, 'mmm'], [9, 13, 'Wk'], [10, 13, 'kk'], [9, 19, 'k'], [10, 19, 'k'], [11, 22, 'S'], [12, 21, 'SS'], [14, 15, 'wwww']],
+      a: [[7, 11, 'mm'], [8, 12, 'mmm'], [8, 17, 'mm'], [7, 19, 'm'], [9, 13, 'kk'], [10, 13, 'kk'], [9, 19, 'k'], [10, 19, 'k'], [11, 22, 'S'], [12, 21, 'SS'],
+        [14, 14, 'kWWWWk'], [15, 15, 'kkkk']],
+      h: [[7, 12, 'mmm'], [8, 11, 'm'], [7, 18, 'mm'], [8, 20, 'm'], [9, 13, 'k'], [10, 14, 'k'], [11, 13, 'k'], [9, 20, 'k'], [10, 19, 'k'], [11, 20, 'k'],
+        [12, 21, 'SS'], [14, 16, 'kk'], [15, 16, 'kk']]
     }
   };
   function patch(rows, list) {
@@ -239,11 +321,15 @@
     r: [2.1, 1.7, 2.6, 2.2] };   // радиусы: плечо, предплечье, бедро, голень
   var JF = { neck: [10, 0], sN: [5, 3], sF: [14, 3], hN: [6, 14], hF: [13, 14], hip: [10, 15], belt: [5, 13], headNeck: [13, 21], knot: [1, 8],
     r: [2.8, 2.3, 3.1, 2.6] };
+  var JB = { neck: [12, 0], sN: [6, 3], sF: [18, 3], hN: [8, 18], hF: [16, 18], hip: [12, 18], belt: [9, 15], headNeck: [12, 20], knot: [1, 5],
+    r: [3.4, 3.0, 3.6, 3.1], len: { up: 9, fore: 9, thigh: 11, shin: 11 } };
   var CH = {
     hero: { head: P.heroHead, face: FACES.hero, torso: P.heroTorso, flap: P.heroFlap, tails: [P.heroTailsA, P.heroTailsB], hand: P.heroGlove, boot: P.boot,
       upper: 'vvt', fore: 'ssS', thigh: 'bln', shin: 'bln', J: JH },
     foe: { head: P.foeHead, face: FACES.foe, torso: P.foeTorso, flap: P.foeFlap, tails: null, hand: P.foeFist, boot: P.boot,
-      upper: 'bln', fore: 'ssS', thigh: 'rwp', shin: 'rwp', J: JF }
+      upper: 'bln', fore: 'ssS', thigh: 'rwp', shin: 'rwp', J: JF },
+    big: { head: P.bigHead, face: FACES.big, torso: P.bigTorso, flap: P.bigFlap, tails: null, hand: P.bigMitt, boot: P.bigBoot,
+      upper: 'mbl', fore: 'ssS', thigh: 'lnp', shin: 'lnp', J: JB }
   };
   var PARTS = {};
   Object.keys(CH).forEach(function (c) {
@@ -293,7 +379,7 @@
   //         lN/lF:[x,y] щиколотка, ebN/ebF/kbN/kbF — куда гнуть локоть/колено, bootN/bootF — поворот сапога, handN/handF — поворот кулака }
   // lag: { belt:[x,y], knot:[x,y] } — точки крепления из предыдущих кадров (вторичное движение). Возвращает { f, anchors }.
   function renderPose(spec, ch, lag, tick) {
-    var C = PARTS[ch], J = C.d.J, rot = spec.rot || 0, F = layer();
+    var C = PARTS[ch], J = C.d.J, Ln = J.len || LEN, rot = spec.rot || 0, F = layer();
     var t0 = shear(C.torso, spec.lean || 0), tor = rotN(t0, rot);
     function tp(pt) { var m = t0.map(pt[0], pt[1]); return rotPt(m[0], m[1], t0.w, t0.h, rot); }
     var hipL = tp(J.hip), org = [spec.hip[0] - hipL[0], spec.hip[1] - hipL[1]];
@@ -304,14 +390,14 @@
     var anchors = { knot: knot, belt: belt };
     var d = C.d, L;
     function arm(sh, hand, eb, hrot, shade, edge) {
-      var s = ik(sh, hand, LEN.up, LEN.fore, eb || [0.3, 1]); L = layer();
+      var s = ik(sh, hand, Ln.up, Ln.fore, eb || [0.3, 1]); L = layer();
       capsuleL(L, sh, s.mid, J.r[0], d.upper); capsuleL(L, s.mid, s.end, J.r[1], d.fore);
       var dir = [s.end[0] - s.mid[0], s.end[1] - s.mid[1]], hp = C.hand; if (dir[0] < -0.5) hp = flipX(hp); hp = rotN(hp, hrot || 0);
       var e = R(s.end); stampL(L, hp, e[0] - (hp.w >> 1) + (dir[0] < -0.5 ? -1 : 1), e[1] - (hp.h >> 1));
       comp(F, L, { shade: shade, edge: edge });
     }
     function leg(hp, foot, kb, brot, shade, edge) {
-      var s = ik(hp, foot, LEN.thigh, LEN.shin, kb || [1, 0]); L = layer();
+      var s = ik(hp, foot, Ln.thigh, Ln.shin, kb || [1, 0]); L = layer();
       capsuleL(L, hp, s.mid, J.r[2], d.thigh); capsuleL(L, s.mid, s.end, J.r[3], d.shin);
       var b = rotN(C.boot, brot || 0), a = rotPt(3, 0, C.boot.w, C.boot.h, brot || 0), e = R(s.end); stampL(L, b, e[0] - a[0], e[1] - a[1]);
       comp(F, L, { shade: shade, edge: edge });
@@ -355,11 +441,13 @@
     idle0: { hip: [40, 49], lean: 0.05, aN: [44, 42], aF: [50, 41], lN: [35, G], lF: [46, G], prev: 'idle1', prev2: 'idle0' },
     idle1: { hip: [40, 50], lean: 0.05, head: [0, 0], aN: [44, 43], aF: [50, 42], lN: [35, G], lF: [46, G], prev: 'idle0', prev2: 'idle1' }
   };
-  var WALK = [ // [бедро dy, ближняя стопа x,y, дальняя стопа x,y, мах рук]
-    [0, 47, G, 33, G - 1, 0], [1, 44, G, 35, G - 2, 1], [-1, 40, G, 41, G - 4, 1],
-    [0, 33, G - 1, 47, G, 0], [1, 35, G - 2, 44, G, -1], [-1, 41, G - 4, 40, G, -1]];
-  WALK.forEach(function (w, i) {
-    RUN['walk' + i] = { hip: [40, 49 + w[0]], lean: 0.1, lN: [w[1], w[2]], lF: [w[3], w[4]], aN: [43 - w[5], 43 + w[0]], aF: [49 + w[5], 42 + w[0]],
+  var WALK = [ // [бедро dy, ближняя стопа x,y, дальняя стопа x,y, мах рук: +1 — ближний кулак отведён назад]
+    [0, 47, G, 33, G - 1, 1], [1, 44, G, 35, G - 2, 0.5], [-1, 40, G, 41, G - 4, -0.3],
+    [0, 33, G - 1, 47, G, -1], [1, 35, G - 2, 44, G, -0.5], [-1, 41, G - 4, 40, G, 0.3]];
+  WALK.forEach(function (w, i) {   // противоход: кулаки ходят навстречу ногам (±4 px по X), в крайней точке кулак ниже на 1
+    var sw = w[5], dn = Math.abs(sw) > 0.9 ? 1 : 0;
+    RUN['walk' + i] = { hip: [40, 49 + w[0]], lean: 0.1, lN: [w[1], w[2]], lF: [w[3], w[4]],
+      aN: [44 - Math.round(sw * 4), 43 + w[0] + dn], aF: [49 + Math.round(sw * 4), 42 + w[0] + dn],
       prev: 'walk' + ((i + 5) % 6), prev2: 'walk' + ((i + 4) % 6) };
   });
 
@@ -387,6 +475,8 @@
     if (POSES) { for (k in POSES.hero) hero[k] = unpack(POSES.hero[k]); for (k in POSES.foe) foe[k] = unpack(POSES.foe[k]); }
     var b = {}; for (k in foe) b[k] = recolor(foe[k], FOE_B);
     SETS.hero = hero; SETS.stokerA = foe; SETS.stokerB = b;
+    // крупный враг: ВСЕ кадры (и idle/ходьба) — целые матрицы из js/poses.js (без пересборки со скелета в игре)
+    if (POSES && POSES.big) { var big = {}; for (k in POSES.big) big[k] = unpack(POSES.big[k]); SETS.founder = big; }
   }
   build();
   var FRAMES = {}; Object.keys(SETS).forEach(function (s) { Object.keys(SETS[s]).forEach(function (k) { FRAMES[s + '.' + k] = SETS[s][k]; }); });
