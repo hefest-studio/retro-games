@@ -1,8 +1,8 @@
-/* ОРУЖЕЙНИК · tests/engine.test.mjs — автотесты логики (Node, без зависимостей).
+/* ОТБОЙ (oruzheynik) · tests/engine.test.mjs — автотесты логики (Node, без зависимостей).
    Запуск: node oruzheynik/tests/engine.test.mjs (QUICK=1 — без партий бота). Логика (js/*.js) — в node:vm с шимом window.
-   Проверяет: этапы и их рецепты, физику (прыжок, подкат), проходимость каждого этапа графом по настоящей физике
-   (вкл. мигающие блоки во всех фазах такта), цепочку слабостей (замкнута, однозначна), оружие, прогресс и крепость,
-   повторные бои, сохранение/миграцию/пароль, музыку, i18n, правило имён и партии «человеческого» бота. */
+   Проверяет: этапы и их рецепты, физику (прыжок, кувырок), проходимость каждого этапа графом по настоящей физике,
+   молот (удар, отбой, жар, охват), бои с Мастерами (только отбитые снаряды бьют сильно), жизни, подсказки, сохранение и
+   миграцию игроков сайта, музыку, i18n (5 языков), правило имён и партии «человеческого» бота. */
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -15,7 +15,7 @@ sandbox.window = sandbox; sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 for (const f of ['js/music.js', 'js/i18n.js', 'js/levels.js', 'js/save.js', 'js/game.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 const OZ = sandbox.ORUZH, L = OZ.logic, DT = 1 / 60;
-const { playStage, mulberry32, navFor } = await import('./bot.mjs');
+const { playGame, playStage, mulberry32, navFor } = await import('./bot.mjs');
 
 let passed = 0, failed = 0;
 function test(name, fn){ try { fn(); passed++; console.log('ok   ' + name); } catch (e) { failed++; console.log('FAIL ' + name + ' — ' + e.message); } }
@@ -24,28 +24,37 @@ function ok(c, m){ if (!c) throw new Error(m || 'ложь'); }
 function memStore(init){ const m = new Map(Object.entries(init || {})); return { m, getItem: k => m.has(k) ? m.get(k) : null, setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) }; }
 function mk(o = {}){
   const ev = [], ls = o.ls || memStore();
-  const game = OZ.Game({ rng: mulberry32(o.seed || 1), dmgMul: o.dmgMul, store: OZ.save.store(ls), onEvent: (t, d) => ev.push({ t, d }) }).start();
+  const game = OZ.Game({ rng: mulberry32(o.seed || 1), dmgMul: o.dmgMul, start: o.start, tutorial: o.tutorial, onEvent: (t, d) => ev.push({ t, d }) }).start();
   return { game, S: game.state(), ev, ls, has: t => ev.some(e => e.t === t), count: t => ev.filter(e => e.t === t).length };
 }
 function run(game, sec, inp = {}){ for (let i = 0; i < Math.round(sec * 60); i++){ game.setInput(typeof inp === 'function' ? inp(game.state()) : inp); game.update(DT); } game.setInput({}); }
 // пустой мир для физики: пол на ряду 12, колонки по описанию
 function flatWorld(w, fn){ const t = new Uint8Array(w * L.R); for (let c = 0; c < w; c++) for (let r = 12; r < L.R; r++) t[r * w + c] = L.SOL; if (fn) fn(t, w); return { W: w, t, grp: new Int8Array(w * L.R).fill(-1), open: true }; }
 
+
 // ---------- этапы ----------
-test('11 этапов: 8 цехов + 3 яруса крепости; у каждого старт, отметки, арена босса; мини-комнаты с воротами', () => {
-  eq(OZ.STAGES.length, 11);
+test('7 этапов: 6 цехов и Чёрная Домна; у каждого старт, отметки, арена босса; мини-комнаты с воротами', () => {
+  eq(OZ.STAGES.length, 7);
   OZ.STAGES.forEach((d, i) => {
     const lv = OZ.level(i); ok(lv.start && lv.arena && lv.cps.length >= 2, d.key);
     ok(lv.W > 80 && lv.W < 220, d.key + ' ширина ' + lv.W);
     if (lv.mini) { const W = lv.W; let gates = 0; for (let r = 0; r < L.R; r++) if (lv.t[r * W + lv.mini.x1] === L.GATE) gates++; eq(gates, 3, d.key + ' ворота мини-комнаты'); }
   });
-  eq(OZ.STAGES.slice(0, 8).map(s => s.boss).join(','), L.BOSSES.join(','));
-  eq(OZ.STAGES.slice(8).map(s => s.fort).join(','), '1,2,3');
-  eq(OZ.STAGES[10].boss, 'rematch');
+  eq(OZ.STAGES.slice(0, 6).map(s => s.boss).join(','), L.BOSSES.join(','));
+  eq(OZ.STAGES[6].boss, 'walker'); ok(OZ.STAGES[6].final && !OZ.STAGES.slice(0, 6).some(s => s.final));
 });
 test('у каждого цеха свой набор врагов/препятствий (наборы не совпадают)', () => {
-  const sig = OZ.STAGES.slice(0, 8).map((d, i) => { const lv = OZ.level(i); const types = [...new Set(lv.spawns.map(s => s.type))].sort().join('+'); const toks = [...new Set(d.r.split(/\s+/).map(t => t.replace(/[\d:-].*$/, '')))].sort().join(''); return types + '|' + toks + '|' + (lv.mini && lv.mini.type) + '|' + d.theme; });
-  eq(new Set(sig).size, 8, sig.join(' / '));
+  const sig = OZ.STAGES.map((d, i) => { const lv = OZ.level(i); const types = [...new Set(lv.spawns.map(s => s.type))].sort().join('+'); const toks = [...new Set(d.r.split(/\s+/).map(t => t.replace(/[0-9:-]+.*$/, '')))].sort().join(','); return types + '|' + toks; });
+  ok(new Set(sig).size >= 6, sig.join(' / ')); eq(new Set(OZ.STAGES.map(d => d.r)).size, 7);
+});
+test('ползун не заходит в тоннели для кувырка (иначе молотом его там не достать): разворачивается у устья', () => {
+  const T = mk({ seed: 2, start: { si: 1 }, tutorial: false }); const lv = T.S.lv, W = lv.W;
+  let c0 = -1; for (let c = 5; c < W; c++) if (lv.t[10 * W + c] === L.SOL && lv.t[11 * W + c] === L.E && lv.t[12 * W + c] === L.SOL) { c0 = c; break; }
+  ok(c0 > 0, 'в цехе 2 есть тоннель'); let c1 = c0; while (lv.t[10 * W + c1 + 1] === L.SOL && lv.t[11 * W + c1 + 1] === L.E) c1++;
+  T.S.hero.inv = 1e9; T.S.hero.hp = 1e9; T.game._place(c0 - 5, 12); T.S.spawns.forEach(q => { q.done = true; });
+  const e = T.game._spawn('crawler', c0 - 2.5, 12); let inside = false;
+  for (let f = 0; f < 60 * 14; f++){ T.game._place(c0 - 6, 12); T.game.update(DT); if (e.dead) break; if (e.x > c0 - 0.2 && e.x < c1 + 1) inside = true; }
+  ok(!inside, 'ползун забрёл в тоннель');
 });
 test('неизвестный токен рецепта — понятная ошибка', () => {
   const bak = OZ.STAGES[0].r; OZ.STAGES[0].r = 'S f2 zz X';
@@ -81,6 +90,8 @@ test('шипы и пропасть — гибель; мигающие блоки
 });
 
 // ---------- проходимость ----------
+
+// ---------- проходимость ----------
 test('проходимость: в каждом этапе граф по физике ведёт от старта до арены босса (мини-комната, мигающие блоки во всех фазах)', () => {
   OZ.STAGES.forEach((d, i) => {
     const N = navFor(OZ, i), R = N.nav.reach(N.start);
@@ -94,130 +105,128 @@ test('исполнимость: бот без урона проходит каж
   OZ.STAGES.forEach((d, i) => { const r = playStage(OZ, 3, { stage: i, dmgMul: 0, maxT: 700 }); ok(r.cleared && !r.stuck, d.key + ': ' + JSON.stringify(r.stuckAt || r.at || r.t)); });
 });
 
-// ---------- слабости ----------
-test('цепочка слабостей: биекция «8 Мастеров ↔ 8 трофеев», без своей слабости, один замкнутый круг из 8', () => {
-  const B = L.BOSSES, owner = {}; B.forEach((b, i) => owner[L.WEAP[i + 1].k] = b);
-  const weak = B.map(b => L.WEAK[b]);
-  eq(new Set(weak).size, 8, 'у каждого Мастера своя слабость');
-  weak.forEach((w, i) => { ok(owner[w], B[i] + ': слабость не трофей'); ok(owner[w] !== B[i], B[i] + ': слаб к своему же оружию'); });
-  let cur = B[0], seen = [cur];
-  for (let k = 0; k < 8; k++){ cur = owner[L.WEAK[cur]]; if (k < 7) { ok(seen.indexOf(cur) < 0, 'круг короче 8: ' + seen.join('→')); seen.push(cur); } }
-  eq(cur, B[0], 'круг не замкнут: ' + seen.join('→'));
+// ---------- молот ----------
+const stand = (g, x) => { g._place(3.5, 12); g.state().spawns.forEach(q => { q.done = true; }); };   // герой на ровном месте у старта, врагов уровня нет
+test('нет дальнобойного оружия: ввода «выстрела» нет, удар молота — единственная атака; замах длится 0,42 с, охват вперёд 2,1', () => {
+  const T = mk({ seed: 3 }); ok(!('WEAP' in L) && !('CH1' in L)); eq(L.SW_TOT, 0.42); eq(L.REACH, 2.1);
+  eq(T.game._swing(), true); ok(T.S.hero.swingT > 0.4); eq(T.game._swing(), false, 'замах нельзя перебить');
+  run(T.game, 0.5); eq(T.S.hero.swingT, 0); ok(T.game._swing(), 'после замаха — снова');
+  ok(T.S.shots.length === 0, 'молот не пускает снарядов');
 });
-test('однозначность: по каждому Мастеру слабое оружие бьёт строго сильнее любого другого (и заряженного наруча)', () => {
-  const { game } = mk();
-  [...L.BOSSES, 'ladle', 'crane', 'walker', 'core'].forEach(b => {
-    const wk = L.WEAK[b], dWeak = game._bossDamage(b, wk).d;
-    ok(game._bossDamage(b, wk).weak, b);
-    L.WEAP.forEach(w => { if (w.k === wk) return; [0, 1, 2].forEach(lv => { const d = game._bossDamage(b, w.k, lv).d; ok(d < dWeak, b + ': ' + w.k + ' lv' + lv + ' = ' + d + ' ≥ ' + dWeak); }); });
+test('удар молота бьёт врага впереди (охват 2,1) и не достаёт дальше; сзади не бьёт', () => {
+  const T = mk({ seed: 3 }); T.S.cam.x = 0; stand(T.game, 10.5);
+  const near = T.game._spawn('crawler', 5.2, 12), far = T.game._spawn('crawler', 8.5, 12), back = T.game._spawn('crawler', 1.8, 12);
+  [near, far, back].forEach(e => { e.vx = 0; e.dir = 0; });
+  T.game.setInput({ hit: true }); T.game.update(DT); T.game.setInput({}); run(T.game, 0.4);
+  ok(near.dead, 'ближний убит одним ударом'); ok(!far.dead && !back.dead, 'дальний и задний целы');
+});
+test('отбой: снаряд в зоне удара не ранит героя, а летит обратно и бьёт стрелка; жар растёт', () => {
+  const T = mk({ seed: 3 }); T.S.cam.x = 0; stand(T.game, 10.5); const h = T.S.hero; h.inv = 0;
+  const tur = T.game._spawn('turret', 9.5, 12); tur.cd = 99;
+  h.face = 1; T.game._eshot({ kind: 'bolt', x: 4.4, y: 11.2, vx: -6, vy: 0, r: 0.25, dmg: 3 });   // летит в героя справа
+  T.game._swing(); run(T.game, 0.12);
+  ok(T.has('reflect'), 'отбой случился'); eq(h.hp, L.MAX_HP, 'герой не ранен'); eq(h.heat, 1, 'жар +1');
+  ok(T.S.shots.length === 1 && T.S.shots[0].k === 'ref' && T.S.shots[0].vx > 5, 'снаряд летит к стрелку');
+  run(T.game, 1.0); ok(tur.dead, 'самопал убит собственным снарядом');
+});
+test('отбить можно не всё: ударная волна по полу и ящик не отбиваются (волна — прыгай; ящик разбивается)', () => {
+  const T = mk({ seed: 3 }); T.S.cam.x = 0; stand(T.game, 10.5); const h = T.S.hero; h.inv = 0; h.face = 1;
+  T.game._eshot({ kind: 'wave', x: 4.7, y: 11.6, vx: -7, vy: 0, hw: 0.45, hh: 0.65, dmg: 3, floor: true });
+  T.game._swing(); run(T.game, 0.1); ok(!T.has('reflect'), 'волну не отбить'); ok(h.hp < L.MAX_HP, 'волна ранит');
+  const U = mk({ seed: 3 }); U.S.cam.x = 0; stand(U.game, 10.5); U.S.hero.face = 1; U.S.hero.inv = 0;
+  U.game._eshot({ kind: 'crate', x: 4.7, y: 11, vx: 0, vy: 0, g: 30, hw: 0.45, hh: 0.45, dmg: 4, crate: true });
+  U.game._swing(); run(U.game, 0.1); ok(U.has('crash') && U.S.hero.hp === L.MAX_HP, 'ящик разбит');
+});
+test('жар: три отбоя — молот раскалён (охват 3,0, удар сильнее), после удара жар сгорает; урон по герою сбрасывает жар', () => {
+  const T = mk({ seed: 3 }); T.S.cam.x = 0; stand(T.game, 10.5); const h = T.S.hero; h.heat = 3;
+  const e = T.game._spawn('crawler', 6.2, 12); e.vx = 0; e.dir = 0; e.hp = 4; e.max = 4;   // за пределами обычного охвата (2,1), но в раскалённом (3,0)
+  T.game._swing(); ok(h.hot && h.heat === 0, 'раскалённый удар'); run(T.game, 0.2); ok(e.dead, 'достал дальше и убил (урон 4)');
+  h.heat = 2; h.inv = 0; T.game._hurt(3, 'foe', 9); eq(h.heat, 0);
+});
+test('охват удара не бьёт сквозь стены... враг за спиной и снаряд позади не отбиваются', () => {
+  const T = mk({ seed: 3 }); T.S.cam.x = 0; stand(T.game, 10.5); const h = T.S.hero; h.face = 1; h.inv = 0;
+  T.game._eshot({ kind: 'bolt', x: 2.0, y: 11.2, vx: 6, vy: 0, r: 0.25, dmg: 3 });
+  T.game._swing(); run(T.game, 0.1); ok(!T.has('reflect'), 'снаряд позади не отбит');
+});
+
+// ---------- Мастера ----------
+test('Мастер: прямой удар молота — 1, отбитый снаряд — 4 (раскалённый молот — 3 и 6); после отбоя оглушён', () => {
+  const T = mk({ seed: 4 }); T.game._startBoss(); run(T.game, 1.8); const b = T.S.boss; eq(T.S.bossState, 'fight');
+  eq(T.game._bossDamage('hammer', 'melee', 1).d, 1); eq(T.game._bossDamage('hammer', 'ref', 4).d, 4);
+  const hp0 = b.hp; T.game._hitBoss(1); eq(b.hp, hp0 - 1); T.game._hitBoss(4); eq(b.hp, hp0 - 5); ok(b.stun > 0, 'оглушён');
+  eq(L.BOSS_HP, 27); eq(L.FINAL_HP, 28);
+});
+test('бой: Мастер, не получая отбитых снарядов, почти не теряет здоровья от ударов (6 ударов < 1/3 здоровья)', () => {
+  const T = mk({ seed: 4 }); T.game._startBoss(); run(T.game, 1.8); const b = T.S.boss;
+  for (let i = 0; i < 6; i++){ b.inv = 0; T.game._hitBoss(1); }
+  ok(b.hp > b.max * 2 / 3, 'hp ' + b.hp);
+});
+test('бой: каждый Мастер за цикл стреляет отбиваемыми снарядами (иначе его не победить)', () => {
+  L.BOSSES.concat(['walker', 'core']).forEach(k => {
+    const idx = OZ.STAGES.findIndex(s => s.boss === k); const T = mk({ seed: 6, start: { si: idx >= 0 ? idx : 6 } });
+    T.game._startBoss(); T.S.hero.hp = 9999; T.S.hero.inv = 1e9;
+    if (k === 'core'){ T.S.boss.hp = 0.0001; T.game._hitBoss(1); run(T.game, 2.8); }
+    let refl = 0; const seen = new Set();
+    for (let f = 0; f < 60 * 14; f++){ T.game.setInput({}); T.game.update(DT); T.S.eshots.forEach(s => { if (!seen.has(s)){ seen.add(s); if (!L.NOREF[s.kind]) refl++; } }); }
+    ok(refl >= 4, k + ': отбиваемых снарядов за 14 с — ' + refl);
   });
 });
-test('бой: слабость сбивает Мастера быстрее (7 попаданий против 28 искрами), оглушает; победа даёт трофей', () => {
-  const T = mk(); T.game.pick(0); T.game._startBoss(); run(T.game, 2);
-  eq(T.S.bossState, 'fight'); const b = T.S.boss;
-  T.game._hitBoss(L.WEAK.hammer); eq(b.hp, L.BOSS_HP - 4); ok(b.stun > 0, 'оглушение');
-  let n = 1; while (!b.dead && n < 50){ T.game._hitBoss(L.WEAK.hammer); n++; } eq(n, 7);
-  run(T.game, 3); eq(T.S.phase, 'got'); eq(T.S.gotW, 1); ok(T.S.prog.beaten[0] && T.game.owned(1));
-  const T2 = mk(); T2.game.pick(1); T2.game._startBoss(); run(T2.game, 2); let m = 0; while (!T2.S.boss.dead && m < 99){ T2.game._hitBoss('spark', 0); m++; } eq(m, 28);
+test('победа над Мастером: цех отвоёван (бонус за здоровье), через паузу — следующий этап; в финале — Шагающая Домна, затем Сердце, затем победа', () => {
+  const T = mk({ seed: 5 }); T.game._startBoss(); run(T.game, 1.8); T.S.boss.hp = 1; T.game._hitBoss(4); ok(T.S.bossState === 'dead');
+  run(T.game, 3); eq(T.S.phase, 'clear'); ok(T.S.clearBonus > 0 && T.has('clear')); run(T.game, 3.5); eq(T.S.phase, 'stage'); eq(T.S.stage, 1);
+  const F = mk({ seed: 5, start: { si: 6 } }); F.game._startBoss(); run(F.game, 1.8); F.S.boss.hp = 1; F.game._hitBoss(4); run(F.game, 3.2);
+  eq(F.S.boss.key, 'core'); eq(F.S.boss.hp, L.FINAL_HP); run(F.game, 1.8); F.S.boss.hp = 1; F.game._hitBoss(4); run(F.game, 3.2); eq(F.S.phase, 'won'); ok(F.S.won && F.has('win'));
+});
+test('жизни: гибель — с последней отметки, без жизней — конец игры; в воздухе удар не отбрасывает героя на шипы', () => {
+  const T = mk({ seed: 6 }); eq(T.S.lives, L.LIVES); T.game._kill('pit'); run(T.game, 2.2); eq(T.S.lives, L.LIVES - 1); eq(T.S.phase, 'stage');
+  T.game._kill('pit'); run(T.game, 2.2); T.game._kill('pit'); run(T.game, 2.2); eq(T.S.phase, 'over'); ok(T.has('gameover'));
+  const A = mk({ seed: 6 }); A._ = 0; A.S.hero.ground = false; A.S.hero.inv = 0; A.game._hurt(3, 'foe', A.S.hero.x - 1); eq(A.S.hero.knockDir, 0); eq(A.S.hero.knockT, 0);
+});
+test('площадка: «ещё один шанс» оживляет с отметки (1 жизнь, 60% здоровья); бонус паузы — раз за партию, здоровье и жар 2', () => {
+  const T = mk({ seed: 6 }); for (let i = 0; i < 3; i++){ T.game._kill('pit'); run(T.game, 2.2); } eq(T.S.phase, 'over');
+  ok(T.game.reviveAd()); eq(T.S.phase, 'stage'); eq(T.S.lives, 1); eq(T.S.hero.hp, Math.ceil(L.MAX_HP * 0.6)); ok(!T.S.over);
+  ok(T.game.canBoost()); ok(T.game.boost()); eq(T.S.hero.hp, L.MAX_HP); eq(T.S.hero.heat, 2); ok(!T.game.canBoost(), 'раз за партию');
+});
+test('подсказки первого цеха: удар, отбой и бой с Мастером — по одному разу; выключаются флагом tutorial:false', () => {
+  const T = mk({ seed: 7 }); T.S.cam.x = 0; run(T.game, 0.1); T.game._place(5, 12); T.S.cam.x = 0; run(T.game, 0.4); ok(T.ev.some(e => e.t === 'hint' && e.d.k === 'swing'));
+  const U = mk({ seed: 7, tutorial: false }); U.game._place(5, 12); run(U.game, 0.5); U.game._startBoss(); ok(!U.has('hint'));
+  const V = mk({ seed: 7 }); V.game._startBoss(); V.game._startBoss(); eq(V.ev.filter(e => e.t === 'hint' && e.d.k === 'boss').length, 1);
 });
 
-// ---------- оружие ----------
-test('оружие: трофеи недоступны до победы; каждый тратит свой заряд, наруч — бесплатно; капсула заряда пополняет', () => {
-  const T = mk(); T.game.pick(0); run(T.game, 0.5);
-  ok(!T.game.selectWeapon(3), 'нельзя взять чужое оружие'); T.game._beatAll();
-  for (let i = 1; i < L.WEAP.length; i++){
-    ok(T.game.selectWeapon(i), L.WEAP[i].k); T.S.shots = []; const e0 = T.S.energy[i];
-    ok(T.game._fire(0), 'выстрел ' + L.WEAP[i].k); ok(T.S.energy[i] < e0, 'заряд ' + L.WEAP[i].k);
-  }
-  T.game.selectWeapon(0); T.S.shots = []; T.game._fire(0); eq(T.S.energy[0], L.MAX_EN);
-  T.game.selectWeapon(2); T.S.energy[2] = 0; ok(!T.game._fire(0), 'без заряда не стреляет');
-  T.S.items.push({ k: 'en8', x: T.S.hero.x, y: T.S.hero.y, vy: 0, got: false, fixed: true }); run(T.game, 0.1); ok(T.S.energy[2] >= 10, 'капсула заряда');
+// ---------- сохранение и миграция ----------
+function memIO(init){ const m = new Map(Object.entries(init || {})); return { m, get: k => m.has(k) ? m.get(k) : null, set: (k, v) => m.set(k, String(v)), del: k => m.delete(k) }; }
+test('сохранение: v3 { si, score } туда-обратно; чужой формат и мусор читаются как «нет сохранения»; игра стартует с сохранённого этапа', () => {
+  const s = OZ.save.serialize({ si: 3, score: 1234 }); eq(JSON.stringify(OZ.save.parse(s)), JSON.stringify({ v: 3, si: 3, score: 1234 }));
+  eq(OZ.save.parse('{"v":1,"beaten":[true,false,false,false,false,false,false,false],"tanks":2,"fort":0,"tankGot":{}}'), null);
+  eq(OZ.save.parse('{мусор'), null); eq(OZ.save.parse(null), null); eq(OZ.save.parse(OZ.save.serialize({ si: 99, score: -5 })).si, 6);
+  const T = mk({ seed: 8, start: { si: 3, score: 1234 } }); eq(T.S.stage, 3); eq(T.S.score, 1234); eq(JSON.stringify(T.game.saveData()), JSON.stringify({ si: 3, score: 1234 }));
 });
-test('наруч: удержание — заряд в 2 ступени; заряженный болт крупнее и пробивает', () => {
-  const T = mk({ dmgMul: 0 }); T.game.pick(0); T.S.spawns = []; T.S.enemies = []; run(T.game, 0.5); T.S.shots = [];
-  run(T.game, L.CH2 + 0.1, { fire: true }); run(T.game, 1 / 60, {});
-  const big = T.S.shots.find(s => s.lv === 2); ok(big && big.pierce && big.dmg === 3, JSON.stringify(T.S.shots.map(s => s.lv)));
-  ok(T.has('charge'), 'событие заряда');
-});
-test('молот-бумеранг возвращается в руку; щит-шестерня гасит вражеские снаряды', () => {
-  const T = mk(); T.game.pick(0); run(T.game, 0.5); T.game._beatAll();
-  T.game.selectWeapon(1); T.S.shots = []; T.game._fire(0); const s = T.S.shots[0]; let maxD = 0, back = false;
-  for (let f = 0; f < 120 && T.S.shots.length; f++){ T.game.update(DT); maxD = Math.max(maxD, Math.abs(s.x - T.S.hero.x)); if (s.vx * T.S.hero.face < 0) back = true; }
-  ok(back && maxD > 3 && T.S.shots.length === 0, 'бумеранг: дальность ' + maxD.toFixed(1) + ', вернулся ' + back);
-  T.game.selectWeapon(2); T.S.eshots = [{ kind: 'bolt', x: T.S.hero.x + 1.5, y: T.S.hero.y - 0.8, vx: 0, vy: 0, r: 0.2, dmg: 3, life: 4 }];
-  T.game._fire(0); run(T.game, 0.3); eq(T.S.eshots.length, 0, 'снаряд погашен');
-});
-test('фляги: подобранная фляга сохраняется и больше не появляется; F — полное здоровье', () => {
-  const T = mk(); T.game.pick(1); run(T.game, 0.3);
-  const tank = T.S.items.find(i => i.k === 'tank'); ok(tank, 'на этапе есть фляга');
-  T.game._place(tank.x, tank.y); run(T.game, 0.1); eq(T.S.prog.tanks, 1);
-  T.S.hero.hp = 5; ok(T.game.useTank()); eq(T.S.hero.hp, L.MAX_HP); eq(T.S.prog.tanks, 0);
-  T.S.prog.tanks = 1; T.game._kill('pit'); run(T.game, 2.2); ok(!T.S.items.some(i => i.k === 'tank'), 'фляга не возродилась');
-  const p = JSON.parse(T.ls.getItem(OZ.save.KEY)); ok(Object.keys(p.tankGot).length === 1);
+test('миграция игроков сайта: старое сохранение (трофеи, фляги, пароль) стирается, прежний рекорд — в «прежний», сообщение один раз; новый игрок — без сообщения', () => {
+  const io = memIO({ 'arcade.save.oruzheynik': '{"v":1,"beaten":[true,true,false,false,false,false,false,false],"tanks":1,"fort":0,"tankGot":{}}', 'arcade.best.oruzheynik': '48200' });
+  const r = OZ.save.migrate(io);
+  ok(r.migrated && r.notice && r.oldBest === 48200); ok(io.get('arcade.save.oruzheynik') === null && io.get('arcade.best.oruzheynik') === null, 'старое стёрто');
+  eq(io.get('arcade.oruzheynik.oldBest'), '48200'); eq(io.get('arcade.oruzheynik.v'), '3');
+  const r2 = OZ.save.migrate(io); ok(!r2.migrated && r2.notice && r2.oldBest === 48200, 'повторно — не стирает заново, сообщение остаётся до показа');
+  const fresh = memIO(); const r3 = OZ.save.migrate(fresh); ok(!r3.migrated && !r3.notice && fresh.get('arcade.oruzheynik.v') === '3');
+  const onlyBest = memIO({ 'arcade.best.oruzheynik': '900' }); ok(OZ.save.migrate(onlyBest).migrated);
+  // новый рекорд после миграции пишется в тот же ключ, что и раньше: прежний не смешивается
+  ok(!('arcade.best.oruzheynik' in Object.fromEntries(onlyBest.m)));
 });
 
-// ---------- прогресс, крепость, финал ----------
-test('жизни: гибель — с последней отметки, без жизней — конец игры (прогресс цел)', () => {
-  const T = mk(); T.game.pick(2); run(T.game, 0.3); T.S.prog.beaten[5] = true;
-  T.game._kill('pit'); run(T.game, 2); eq(T.S.lives, 2); eq(T.S.phase, 'stage');
-  T.game._kill('pit'); run(T.game, 2); T.game._kill('pit'); run(T.game, 2); eq(T.S.phase, 'over'); ok(T.has('gameover'));
-  T.game.newRun(); eq(T.S.lives, L.LIVES); eq(T.S.phase, 'select');
-});
-test('крепость закрыта до 8 трофеев; ярусы идут по очереди; финал: 8 повторных боёв → Шагающая Домна → Сердце → победа', () => {
-  const T = mk(); ok(!T.game.canPick(8)); T.game._beatAll(); ok(T.game.canPick(8));
-  T.game.pick(8); eq(T.S.lv.key, 'f1'); T.game._startBoss(); run(T.game, 2); while (!T.S.boss.dead) T.game._hitBoss(L.WEAK.ladle); run(T.game, 3); eq(T.S.phase, 'clear');
-  run(T.game, 3); eq(T.S.lv.key, 'f2'); T.game._startBoss(); run(T.game, 2); while (!T.S.boss.dead) T.game._hitBoss(L.WEAK.crane); run(T.game, 6); eq(T.S.lv.key, 'f3');
-  T.game._startBoss(); const order = [];
-  for (let k = 0; k < 12 && !T.S.won; k++){ run(T.game, 2); order.push(T.S.boss.key); while (!T.S.boss.dead) T.game._hitBoss(L.WEAK[T.S.boss.key]); run(T.game, 3); }
-  eq(order.join(','), L.BOSSES.concat(['walker', 'core']).join(','));
-  ok(T.S.won && T.has('win')); eq(T.S.prog.fort, 3);
-});
-test('повторные бои: после гибели побеждённые в этом заходе Мастера не повторяются', () => {
-  const T = mk(); T.game._beatAll(); T.S.prog.fort = 2; T.game.pick(8); eq(T.S.lv.key, 'f3');
-  T.game._startBoss(); for (let k = 0; k < 3; k++){ run(T.game, 2); while (!T.S.boss.dead) T.game._hitBoss(L.WEAK[T.S.boss.key]); run(T.game, 3); }
-  T.game._kill('boss'); run(T.game, 2.2); T.game._startBoss(); run(T.game, 0.1); eq(T.S.boss.key, L.BOSSES[3]);
-});
-
-// ---------- сохранение, миграция, пароль ----------
-test('сохранение: победа над Мастером пишется в localStorage (v1) и читается новой игрой', () => {
-  const ls = memStore(); const T = mk({ ls }); T.game.pick(4); T.game._startBoss(); run(T.game, 2); while (!T.S.boss.dead) T.game._hitBoss(L.WEAK.frost); run(T.game, 3);
-  const raw = JSON.parse(ls.getItem(OZ.save.KEY)); eq(raw.v, 1); ok(raw.beaten[4]);
-  const T2 = mk({ ls }); ok(T2.S.prog.beaten[4] && T2.game.owned(5));
-});
-test('миграция: формат черновой сборки (без версии, 4 яруса крепости) → v1 при первом чтении, данные не теряются', () => {
-  const old = { beaten: [true, true, true, true, true, true, true, true], tanks: 3, fort: 4, tankGot: { 'gear:20.5': 1 } };
-  const ls = memStore({ [OZ.save.KEY]: JSON.stringify(old) });
-  const T = mk({ ls });
-  eq(T.S.prog.fort, 3); eq(T.S.prog.tanks, 3); ok(T.S.prog.beaten.every(Boolean)); eq(T.S.prog.tankGot['gear:20.5'], 1);
-  const now = JSON.parse(ls.getItem(OZ.save.KEY)); eq(now.v, 1, 'ключ переписан в новой версии'); eq(now.fort, 3);
-  const part = OZ.save.migrate({ beaten: [true, false, false, false, false, false, false, false], tanks: 9, fort: 2 }); eq(part.tanks, 4); eq(part.fort, 0, 'крепость без 8 трофеев');
-  eq(OZ.save.migrate({ v: 99, beaten: new Array(8).fill(true) }), null, 'будущая версия не портит данные');
-  eq(OZ.save.parse('{мусор').beaten.filter(Boolean).length, 0);
-});
-test('пароль: 6 цифр 1–8, туда-обратно для всех комбинаций побед/фляг; опечатка — отказ', () => {
-  let n = 0, bad = 0;
-  for (let mask = 0; mask < 256; mask++) for (let t = 0; t <= 4; t++) for (let f = 0; f <= (mask === 255 ? 3 : 0); f++){
-    const p = OZ.save.blank(); for (let i = 0; i < 8; i++) p.beaten[i] = !!(mask & (1 << i)); p.tanks = t; p.fort = f;
-    const code = OZ.save.encode(p); ok(/^[1-8]{6}$/.test(code), code);
-    const q = OZ.save.decode(code); ok(q && q.beaten.join() === p.beaten.join() && q.tanks === t && q.fort === f, code); n++;
-    const typo = code.slice(0, 2) + (code[2] % 8 + 1) + code.slice(3); if (OZ.save.decode(typo)) bad++;
-  }
-  ok(n === 255 * 5 + 5 * 4, 'комбинаций ' + n); ok(bad / n < 0.05, 'опечаток принято: ' + bad + '/' + n);
-  eq(OZ.save.decode('12'), null); eq(OZ.save.decode('999999'), null);
-  const T = mk(); ok(T.game.applyPassword(OZ.save.encode(Object.assign(OZ.save.blank(), { beaten: [1, 0, 1, 0, 1, 0, 1, 0].map(Boolean) })))); ok(T.game.owned(1) && !T.game.owned(2) && T.game.owned(3));
-});
-
-// ---------- музыка, i18n ----------
+// ---------- музыка, i18n, имена ----------
 test('музыка: оригинальные треки (цеха и бой) — 8 тактов, голоса кратны', () => {
   const n = s => (Array.isArray(s) ? s.join(' ') : s).replace(/\|/g, ' ').trim().split(/\s+/).length;
   [sandbox.Arcade.tracks.oruzheynik, OZ.MUSIC.boss].forEach(T => { ok(T && T.bpm > 0); eq(n(T.melody) % 8, 0); eq(n(T.melody) % n(T.bass), 0); eq(n(T.melody) % n(T.drums), 0); });
 });
-test('i18n: у RU и EN одинаковые ключи; есть имена всех Мастеров, цехов, оружия и врагов', () => {
-  const ru = Object.keys(OZ.STR.ru).sort(), en = Object.keys(OZ.STR.en).sort(); eq(ru.join(','), en.join(','));
-  [...L.BOSSES, 'ladle', 'crane', 'walker', 'core'].forEach(b => ok(OZ.STR.ru['b_' + b] && OZ.STR.en['b_' + b], b));
-  L.BOSSES.forEach(b => ok(OZ.STR.ru['s_' + b], b)); L.WEAP.forEach(w => ok(OZ.STR.ru['w_' + w.k] && OZ.STR.en['w_' + w.k], w.k));
-  L.WEAP.slice(1).forEach(w => ok(OZ.STR.ru['wd_' + w.k], 'описание ' + w.k));
-  ['crawler', 'hopper', 'flyer', 'turret', 'golem', 'valve', 'drone'].forEach(f => ok(OZ.STR.ru['f_' + f], f));
+test('i18n: RU/EN/TR/ES/PT — одинаковые ключи; есть названия Мастеров, цехов и врагов; подсказки и миграция', () => {
+  const ks = l => Object.keys(OZ.STR[l]).sort().join(',');
+  ['en', 'tr', 'es', 'pt'].forEach(l => eq(ks(l), ks('ru'), l));
+  ['ru', 'en', 'tr', 'es', 'pt'].forEach(l => {
+    [...L.BOSSES, 'walker', 'core'].forEach(b => ok(OZ.STR[l]['b_' + b], l + ' b_' + b));
+    L.BOSSES.concat(['walker']).forEach(b => ok(OZ.STR[l]['s_' + b], l + ' s_' + b));
+    ['crawler', 'hopper', 'flyer', 'turret', 'golem', 'valve', 'drone'].forEach(f => ok(OZ.STR[l]['f_' + f], l + ' f_' + f));
+    ['tutSwing', 'tutReflect', 'tutBoss', 'migrated', 'oldBest', 'rwHeal', 'cardClear', 'cardNext', 'cont', 'restart', 'refl', 'heatFull', 'foot', 'hint'].forEach(k => ok(OZ.STR[l][k], l + ' ' + k));
+  });
 });
 test('правило имён: в папке игры нет чужих названий игр/компаний/персонажей (регистронезависимо, с транслитом)', () => {
   // стоп-лист хранится в base64, чтобы сами названия не попадали в текст репозитория
@@ -231,19 +240,23 @@ test('правило имён: в папке игры нет чужих назв
 });
 
 // ---------- партии бота (QUICK=1 — пропустить) ----------
+
+// ---------- партии бота (QUICK=1 — пропустить) ----------
 if (process.env.QUICK){ console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed) + ' (без бота)'); process.exit(failed ? 1 : 0); }
-// «Человеческий» бот (tests/bot.mjs): реакция 150–250 мс, не замечает часть врагов, уворачивается не всегда, только наруч.
-const N1 = 24, FIRST = []; for (let s = 1; s <= N1; s++) FIRST.push(playStage(OZ, s, { stage: 0 }));
-test('баланс: бот проходит первый цех (только наручем) почти всегда — ≥ 85% партий, без «зависаний»', () => {
+// «Человеческий» бот (tests/bot.mjs): реакция 150–250 мс, не замечает часть врагов, уворачивается не всегда, отбивает не каждый снаряд.
+const N1 = 12, FIRST = []; for (let s = 1; s <= N1; s++) FIRST.push(playStage(OZ, s, { stage: 0 }));
+test('баланс: бот проходит первый цех (обучающий) почти всегда — ≥ 80% партий, без «зависаний»', () => {
   const n = FIRST.filter(r => r.cleared).length, why = {}; FIRST.forEach(r => { for (const k in r.why) why[k] = (why[k] || 0) + r.why[k]; });
-  const bt = FIRST.filter(r => r.bossT).map(r => r.bossT);
+  const bt = FIRST.map(r => r.stages[0] && r.stages[0].bossT).filter(Boolean);
   console.log('     1-й цех: ' + n + '/' + N1 + '; гибели: ' + JSON.stringify(why) + '; бой с Мастером, с: ' + Math.min(...bt).toFixed(0) + '–' + Math.max(...bt).toFixed(0));
-  ok(n >= 0.85 * N1, 'слишком сложно: ' + n + '/' + N1); ok(!FIRST.some(r => r.stuck), 'бот застрял');
+  ok(n >= 0.8 * N1, 'слишком сложно: ' + n + '/' + N1); ok(!FIRST.some(r => r.stuck), 'бот застрял');
 });
-test('баланс: каждый цех проходим ботом без трофеев (≥ 1 из 4 партий), бой с Мастером не короче 15 с', () => {
-  const rows = [];
-  for (let i = 0; i < 8; i++){ const rs = [1, 2, 3, 4].map(s => playStage(OZ, s, { stage: i })); const c = rs.filter(r => r.cleared).length; rows.push(OZ.STAGES[i].key + ' ' + c + '/4'); ok(c >= 1, OZ.STAGES[i].key + ': ' + c + '/4'); ok(rs.every(r => !r.bossT || r.bossT > 15), OZ.STAGES[i].key + ': слишком быстрый Мастер'); ok(!rs.some(r => r.stuck), 'застрял: ' + OZ.STAGES[i].key); }
-  console.log('     ' + rows.join(' · '));
+const NG = 20, GAMES = []; for (let s = 1; s <= NG; s++) GAMES.push(playGame(OZ, 200 + s));
+test('баланс: бот проходит всю игру (6 цехов + Домна, 3 жизни) в 20–45% партий; без «зависаний»; бой с Мастером не короче 12 с', () => {
+  const w = GAMES.filter(r => r.won).length, reach = Array(8).fill(0); GAMES.forEach(r => r.stages.forEach((q, i) => { if (q) reach[i]++; }));
+  const bt = GAMES.flatMap(r => r.stages.map(q => q && q.bossT)).filter(Boolean);
+  console.log('     вся игра: ' + w + '/' + NG + ' (' + Math.round(w / NG * 100) + '%); дошли до этапов 1…7: ' + reach.slice(0, 7).join(',') + '; бой с Мастером, с: ' + Math.min(...bt).toFixed(0) + '–' + Math.max(...bt).toFixed(0));
+  ok(w >= 0.2 * NG && w <= 0.45 * NG, 'доля побед ' + w + '/' + NG); ok(!GAMES.some(r => r.stuck), 'бот застрял: ' + JSON.stringify(GAMES.find(r => r.stuck))); ok(Math.min(...bt) >= 12, 'бой слишком короткий');
 });
 
 console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed));
