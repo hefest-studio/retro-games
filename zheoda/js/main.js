@@ -211,8 +211,8 @@
       }
     }
   }
-  cv.addEventListener('mousedown', function (e) { hubTap(e.clientX, e.clientY); });
-  cv.addEventListener('touchstart', function (e) { if (game && game.state().phase === 'hub' && g._sceneName === 'play') { e.preventDefault(); hubTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY); } }, { passive: false });
+  cv.addEventListener('mousedown', function (e) { if (Arcade.touchOk(e)) hubTap(e.clientX, e.clientY); });
+  cv.addEventListener('touchstart', function (e) { if (game && game.state().phase === 'hub' && g._sceneName === 'play') { Arcade.touchOk(e); hubTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY); } }, { passive: false });
 
   g.start('title');
   Z.app = { g: g, prog: prog, setStart: setStart, game: function () { return game; }, demo: demo };   // для отладки/автотестов в браузере

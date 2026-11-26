@@ -229,17 +229,18 @@
     return true;
   }
   cv.addEventListener('touchstart', function (e) {
-    if (g._sceneName !== 'play') return; e.preventDefault();
+    if (g._sceneName !== 'play') return; Arcade.touchOk(e);
     if (phase !== 'fly') { tapUi(e.changedTouches[0].clientX, e.changedTouches[0].clientY); return; }
     for (var i = 0; i < e.changedTouches.length; i++) { var t = e.changedTouches[i]; if (!drag) drag = { id: t.identifier, x: t.clientX, y: t.clientY }; else doBomb(); }
   }, { passive: false });
   cv.addEventListener('touchmove', function (e) {
-    if (!drag || !game) return; e.preventDefault();
+    if (!drag || !game) return; Arcade.touchOk(e);
     for (var i = 0; i < e.changedTouches.length; i++) { var t = e.changedTouches[i]; if (t.identifier !== drag.id) continue; var k = scale(); game.drag((t.clientX - drag.x) * k, (t.clientY - drag.y) * k); drag.x = t.clientX; drag.y = t.clientY; }
   }, { passive: false });
   function tEnd(e) { if (!drag) return; for (var i = 0; i < e.changedTouches.length; i++) if (e.changedTouches[i].identifier === drag.id) drag = null; }
   cv.addEventListener('touchend', tEnd, { passive: true }); cv.addEventListener('touchcancel', tEnd, { passive: true });
   cv.addEventListener('mousedown', function (e) {
+    if (!Arcade.touchOk(e)) return;   // эмуляция мыши после касания — касание уже обработано
     if (g._sceneName !== 'play') return;
     if (phase !== 'fly') { tapUi(e.clientX, e.clientY); return; }
     drag = { id: 'm', x: e.clientX, y: e.clientY }; if (e.button === 2) doBomb();
@@ -248,7 +249,7 @@
   addEventListener('mouseup', function () { if (drag && drag.id === 'm') drag = null; });
   addEventListener('blur', function () { drag = null; });
   cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
-  function btn(id, fn) { var b = document.getElementById(id); if (!b) return; var h = function (e) { e.preventDefault(); e.stopPropagation(); fn(b); }; b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h); }
+  function btn(id, fn) { var b = document.getElementById(id); if (!b) return; var h = function (e) { e.stopPropagation(); if (!Arcade.touchOk(e)) return; fn(b); }; b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h); }
   btn('bBomb', doBomb); btn('bCell', doCell); btn('bGun', doGun);
   btn('bPause', function () { if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); });
 

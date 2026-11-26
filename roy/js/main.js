@@ -161,12 +161,12 @@
   var LURE_KEYS = { KeyX: 1, KeyC: 1, ShiftLeft: 1, ShiftRight: 1 };
   addEventListener('keydown', function (e) { if (LURE_KEYS[e.code] && !e.repeat && live()) { e.preventDefault(); game.lure(); } });
   if (pad) pad.querySelectorAll('[data-act="lure"]').forEach(function (b) {
-    var on = function (e) { e.preventDefault(); if (live()) game.lure(); };
+    var on = function (e) { if (!Arcade.touchOk(e)) return; if (live()) game.lure(); };
     b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('mousedown', on);
   });
   var cv = g.canvas;
-  cv.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { e.preventDefault(); cardGo(); } }, { passive: false });
-  cv.addEventListener('mousedown', function () { if (g._sceneName === 'card') cardGo(); });
+  cv.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { Arcade.touchOk(e); cardGo(); } }, { passive: false });
+  cv.addEventListener('mousedown', function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'card') cardGo(); });
 
   g.start('title');
   R.app = { g: g, game: function () { return game; } };   // для отладки/автотестов в браузере

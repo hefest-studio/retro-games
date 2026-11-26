@@ -133,10 +133,10 @@
   function lx(clientX) { var r = cv.getBoundingClientRect(); return (clientX - r.left) * K.W / r.width; }
   function inPlay() { return g._sceneName === 'play' && game && g.time - playSince > 0.2; }
   addEventListener('mousemove', function (e) { if (g._sceneName === 'play' && game) game.setPointer(lx(e.clientX)); });
-  cv.addEventListener('mousedown', function (e) { if (!inPlay()) return; ptrDown = true; game.setPointer(lx(e.clientX)); game.action(); });
+  cv.addEventListener('mousedown', function (e) { if (!inPlay() || !Arcade.touchOk(e)) return; ptrDown = true; game.setPointer(lx(e.clientX)); game.action(); });
   addEventListener('mouseup', function () { ptrDown = false; });
-  cv.addEventListener('touchstart', function (e) { if (g._sceneName !== 'play' || !game) return; e.preventDefault(); ptrDown = true; game.setPointer(lx(e.changedTouches[0].clientX)); if (inPlay()) game.action(); }, { passive: false });
-  cv.addEventListener('touchmove', function (e) { if (g._sceneName !== 'play' || !game) return; e.preventDefault(); game.setPointer(lx(e.changedTouches[0].clientX)); }, { passive: false });
+  cv.addEventListener('touchstart', function (e) { if (g._sceneName !== 'play' || !game) return; Arcade.touchOk(e); ptrDown = true; game.setPointer(lx(e.changedTouches[0].clientX)); if (inPlay()) game.action(); }, { passive: false });
+  cv.addEventListener('touchmove', function (e) { if (g._sceneName !== 'play' || !game) return; Arcade.touchOk(e); game.setPointer(lx(e.changedTouches[0].clientX)); }, { passive: false });
   cv.addEventListener('touchend', function (e) { if (e.touches.length === 0) ptrDown = false; }, { passive: true });
   var FIRE = { KeyZ: 1, KeyX: 1, KeyJ: 1, ArrowUp: 1, KeyW: 1 };
   addEventListener('keydown', function (e) { if (FIRE[e.code] && g._sceneName === 'play') { e.preventDefault(); kbFire = true; if (!e.repeat && inPlay()) game.action(); } });
@@ -205,7 +205,7 @@
   }
   fit(); addEventListener('resize', fit); domSync(); setInterval(domSync, 250);
   var pbtn = $('bPause');
-  if (pbtn) { var hp = function (e) { e.preventDefault(); e.stopPropagation(); if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); }; pbtn.addEventListener('touchstart', hp, { passive: false }); pbtn.addEventListener('mousedown', hp); }
+  if (pbtn) { var hp = function (e) { e.stopPropagation(); if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); }; pbtn.addEventListener('touchstart', hp, { passive: false }); pbtn.addEventListener('mousedown', hp); }
 
   g.start('title');
   R.app = { g: g, game: function () { return game; }, mode: function () { return mode; }, setMode: setMode, setStart: function (n) { startLv = n; } };   // для автотестов в браузере

@@ -299,7 +299,7 @@
   function syncUp() { var dir = stick.active ? stickDir() : g.input.dir; game.setInput(dir.x, dir.y < 0, !!extra.jump); }
   addEventListener('keyup', function (e) { if (JUMP[e.code]) { held[e.code] = false; extra.jump = !!(held.KeyZ || held.KeyK); } });
   addEventListener('blur', function () { held = {}; extra.jump = false; });
-  function tap(id, fn) { var b = document.getElementById(id); if (!b) return; var h = function (e) { e.preventDefault(); fn(); b.classList.add('on'); setTimeout(function () { b.classList.remove('on'); }, 120); }; b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h); }
+  function tap(id, fn) { var b = document.getElementById(id); if (!b) return; var h = function (e) { if (!Arcade.touchOk(e)) return; fn(); b.classList.add('on'); setTimeout(function () { b.classList.remove('on'); }, 120); }; b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h); }
   tap('bThrow', function () { if (inExp()) { syncUp(); game.throwStake(); } else if (g._sceneName === 'play' && (mode === 'map' || result)) g.scenes.play.press.call(g, 'action'); });
   tap('bPause', function () { if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); });
   g.canvas.addEventListener('pointerdown', function (e) { if (g._sceneName === 'play' && result && result.t > 0.8) { e.preventDefault(); finishResult(); } });

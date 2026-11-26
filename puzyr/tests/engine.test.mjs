@@ -1,7 +1,8 @@
 /* ПУЗЫРЬ · tests/engine.test.mjs — автотесты логики и обвязки (Node, без зависимостей).
-   Запуск: node puzyr/tests/engine.test.mjs
+   Запуск: node puzyr/tests/engine.test.mjs (QUICK=1 — без баланса бота)
    Логика (js/game.js) — в node:vm с шимом window; кооп-ввод — через движок (engine.js) с фейковым DOM.
-   Бот (tests/bot.mjs) — «человеческий» игрок для баланса: уровень 1 ≥ 90 %, вся игра ~20–40 %. */
+   Переделка 2026-11: пузырь на трубке (держи — раздуть, отпусти — хлопок), враги кувырком в ванны с расплавом.
+   Бот (tests/bot.mjs) — «человеческий» игрок для баланса: уровень 1 ≥ 90 %, вся игра ~20–45 %. */
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -23,272 +24,168 @@ function test(name, fn){ try { fn(); passed++; console.log('ok   ' + name); } ca
 function eq(a, b, m){ if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error((m || '') + ' ждали ' + JSON.stringify(b) + ', получили ' + JSON.stringify(a)); }
 function ok(c, m){ if (!c) throw new Error(m || 'ложь'); }
 
-const h = 1 / 60;
-// Арена: уровень 1, фаза play, без врагов; «якорь» держит уровень незаконченным
+const h = 1 / 60, FLOOR = L.ROWS - 1;
+// Арена: уровень 1 (ванна в центре, колонки 15–16), фаза play, без врагов; «якорь» (враг в вечном появлении) держит уровень незаконченным
 function arena(opts = {}){
   const events = [];
   const game = Z.Game(Object.assign({ rng: mulberry32(opts.seed || 1), onEvent: (t, d) => events.push([t, d]) }, opts)).start();
   const S = game._S;
-  S.phase = 'play'; S.phaseT = 0; S.enemies = []; S.bubbles = []; S.specialT = 1e9; S.letterT = 1e9;
+  S.phase = 'play'; S.phaseT = 0; S.enemies = [];
   S.players.forEach(p => { p.inv = 0; });
-  const anchor = game._mkBubble({ x: 3, y: 2, kind: 'plain' }); anchor.enemy = { type: 'cog', angry: false }; anchor.trapT = 1e9; anchor.anchor = true;
+  if (!opts.noAnchor){ const a = game._mkEnemy('cog', 3, 4); a.spawnT = 1e9; a.anchor = true; S.enemies.push(a); }
   return { game, S, events };
 }
 function run(game, sec, each){ for (let i = 0; i < Math.round(sec * 60); i++){ if (each) each(i); game.update(h); } }
-function put(p, x, y){ p.x = x; p.y = y; p.vx = 0; p.vy = 0; p.alive = true; p.inv = 0; p.ground = true; }
-function enemyAt(game, S, type, x, y){ const e = game._mkEnemy(type, x, y); e.spawnT = 0; e.think = 1e9; e.hopT = 1e9; e.shotCd = 1e9; S.enemies.push(e); return e; }
-const nonAnchor = S => S.bubbles.filter(b => !b.anchor);
-const count = (ev, t) => ev.filter(e => e[0] === t).length;
+function put(p, x, y, face){ p.x = x; p.y = y; p.vx = 0; p.vy = 0; p.alive = true; p.inv = 0; p.ground = true; if (face) p.face = face; }
+function enemyAt(game, S, type, x, y){ const e = game._mkEnemy(type, x, y); e.spawnT = 0; e.think = 1e9; e.hopT = 1e9; e.shotCd = 1e9; e.speed = 0; e.ground = true; S.enemies.push(e); return e; }
+const live = S => S.enemies.filter(e => !e.anchor);
+const has = (events, t) => events.some(x => x[0] === t);
 
 // ---------- уровни и проходимость ----------
-test('уровни: 30 + Котёл 31-м, 6 ручных карт, зоны и спецшары, все 4 врага, названия RU/EN', () => {
-  eq(L.LEVELS, 30);
-  ok(L.level(31).boss && !Array.from({ length: 30 }, (_, i) => L.level(i + 1)).some(l => l.boss), 'босс только 31-м');
-  eq(Object.keys(L.HAND).length, 6, 'ручных карт');
-  const types = new Set(), sp = new Set(), zones = new Set();
-  for (let n = 1; n <= 31; n++){ const lv = L.level(n); lv.enemies.forEach(t => types.add(t)); lv.specials.forEach(s => sp.add(s)); zones.add(lv.zone); }
-  eq([...types].sort(), ['cog', 'soot', 'spark', 'spring']);
-  eq([...sp].sort(), ['bolt', 'fire', 'water']);
-  zones.forEach(z => ok(Z.STR.ru['z_' + z] && Z.STR.en['z_' + z], 'нет названия зоны ' + z));
-  ok(L.level(1).enemies.length >= 3 && L.level(30).enemies.length > L.level(1).enemies.length, 'врагов больше к концу');
+test('уровни: 30 + Котёл 31-м, 6 ручных карт, 5 зон, все 4 врага, у каждого уровня 1–3 ванны, потолок сплошной', () => {
+  eq(L.LEVELS, 30); eq(Object.keys(L.HAND).map(Number), [1, 6, 12, 18, 24, 30]);
+  const types = new Set(), zones = new Set();
+  for (let n = 1; n <= 30; n++){
+    const lv = L.level(n); lv.enemies.forEach(t => types.add(t)); zones.add(lv.zone);
+    ok(lv.enemies.length >= 3 && lv.enemies.length <= 8, 'врагов на ' + n);
+    const v = L.vatsOf(lv.vats); ok(v.length >= 1 && v.length <= 3, 'ванн на ' + n);
+    for (let x = 0; x < L.COLS; x++) ok(lv.grid[L.idx(x, 0)], 'потолок ' + n + ':' + x);
+    for (const q of v) for (let c = q.c0; c <= q.c1; c++) ok(!lv.grid[L.idx(c, FLOOR)], 'ванна в полу ' + n);
+  }
+  eq([...types].sort(), ['cog', 'soot', 'spark', 'spring']); eq(zones.size, 5);
+  ok(L.level(31).boss, 'Котёл 31-м');
+  for (const k of L.ZONES) ok(Z.STR.ru['z_' + k] && Z.STR.en['z_' + k], 'зона ' + k);
 });
-
-test('проходимость: все 31 карта — граф платформ сильно связен, проём перекрыт, верх под точкой сбора есть', () => {
-  for (let n = 1; n <= 31; n++){
-    const lv = L.level(n), v = L.validate(lv.grid, L.windOf(lv.wind).gather);
-    ok(v.ok, `ур.${n}: ${v.why}`);
+test('проходимость: все 31 карта — граф платформ сильно связен (каждое ребро — прогон физики), под героями пол, есть места врагам', () => {
+  for (let n = 1; n <= 31; n++){ const v = L.validate(L.level(n).grid); ok(v.ok, 'уровень ' + n + ': ' + v.why); }
+});
+test('враги ставятся на платформы (не в воздух и не в ванну)', () => {
+  for (let n = 1; n <= 30; n++){
+    const { S } = arena({ level: n, noAnchor: true }); const g2 = Z.Game({ level: n, rng: mulberry32(n) }).start(), S2 = g2.state();
+    for (const e of S2.enemies){ ok(e.fly || L.segAt(S2.segs, e.x, Math.round(e.y)), 'ур. ' + n + ' враг ' + e.type + ' @' + e.x.toFixed(1) + ',' + e.y); }
   }
 });
-
-test('проходимость: каждое ребро графа подтверждено прогоном физики; враги ставятся на достижимые платформы', () => {
-  let edges = 0;
-  for (let n = 1; n <= 31; n++){
-    const lv = L.level(n), segs = L.buildGraph(lv.grid);
-    for (const A of segs) for (const e of A.edges){ edges++; eq(L.simEdge(lv.grid, segs, A, e), e.to, `ур.${n} ребро ${e.type} из ряда ${A.row}`); }
-    const game = Z.Game({ rng: mulberry32(n), level: n, maxLevel: 31 }).start(), S = game.state();
-    const spawn = L.segAt(S.segs, L.SPAWNS[0].x, L.ROWS - 1), r = L.reach(S.segs, spawn.id);
-    S.enemies.filter(e => !e.fly).forEach(e => { const s = L.segAt(S.segs, e.x, Math.round(e.y)); ok(s && r[s.id], `ур.${n}: враг вне достижимой платформы`); });
-  }
-  ok(edges > 500, 'рёбер ' + edges);
-});
-
-test('проходимость: бот проходит каждый уровень по отдельности (31 уровень, лучший из 3 сидов)', () => {
-  const bad = [];
-  for (let n = 1; n <= 31; n++){
-    let okN = false;
-    for (let s = 1; s <= 3 && !okN; s++){ const r = playPuzyr(Z, 500 + n * 7 + s, { startLevel: n, levels: 1, lives: 5 }); okN = r.passed >= 1; }
-    if (!okN) bad.push(n);
-  }
-  eq(bad, [], 'непройденные уровни');
-});
-
-// ---------- шары ----------
-test('выдув: шар летит горизонтально (≈ RANGE клеток), затем всплывает к потолку и дрейфует к точке сбора', () => {
-  const { game, S, events } = arena(), p = S.players[0];
-  put(p, 6, 23); p.face = 1;
-  ok(game.blow(0)); ok(!game.blow(0), 'перезарядка');
-  const b = nonAnchor(S)[0]; eq(b.phase, 'shoot'); ok(count(events, 'blow') === 1);
-  run(game, 0.2);
-  ok(b.x > 6 + 2.5 && Math.abs(b.y - (23 - L.PH / 2)) < 0.01, 'летит по горизонтали: ' + b.x.toFixed(2));
-  run(game, 0.3); eq(b.phase, 'float'); ok(Math.abs(b.x - (6.9 + L.RANGE)) < 0.6, 'дальность ' + b.x.toFixed(2));
-  const y0 = b.y; run(game, 1); ok(b.y < y0 - 1.5, 'всплывает');
-  run(game, 9); ok(b.y <= L.CEIL_Y + 0.05, 'под потолком: ' + b.y.toFixed(2));
-  ok(Math.abs(b.x - S.wind.gather) < 1.5, 'дрейф к точке сбора ' + S.wind.gather + ': ' + b.x.toFixed(2));
-  run(game, L.EMPTY_LIFE); ok(!S.bubbles.includes(b), 'пустой шар со временем лопается сам');
-});
-
-test('потоки воздуха: зона уровня сносит всплывающий шар вбок', () => {
+test('переделка: прежней механики нет — ни шаров-ловушек, ни букв, ни спецшаров, ни сквозного прохода, ни «спешки»', () => {
   const { game, S } = arena();
-  S.wind = L.windOf('split');
-  const b = game._mkBubble({ x: 4, y: 12 }); run(game, 1.5);
-  ok(b.x > 5, 'левая зона гонит вправо: ' + b.x.toFixed(2));
+  for (const k of ['bubbles', 'letters', 'items', 'specials', 'wind', 'hurry', 'angryAll']) ok(!(k in S), 'поле ' + k);
+  for (const k of ['_mkBubble', 'blow']) ok(!(k in game), 'API ' + k);
+  const p = S.players[0]; put(p, 15.5, 20); p.ground = false; run(game, 1);
+  ok(!p.alive && p.why === 'vat', 'упал в проём — гибель в расплаве, а не появление сверху');
 });
 
-test('захват: шар в фазе полёта ловит врага; враг в «появлении» не ловится', () => {
-  const { game, S, events } = arena(), p = S.players[0];
-  put(p, 6, 23); p.face = 1;
-  const e = enemyAt(game, S, 'cog', 9, 23);
-  game.blow(0); run(game, 0.15);
-  ok(!S.enemies.includes(e), 'враг исчез с поля');
-  const b = nonAnchor(S)[0]; ok(b.enemy && b.enemy.type === 'cog', 'враг внутри шара'); eq(b.phase, 'float');
-  ok(count(events, 'trap') === 1);
-  const e2 = enemyAt(game, S, 'cog', 9, 23); e2.spawnT = 1; p.blowCd = 0; game.blow(0); run(game, 0.15);
-  ok(S.enemies.includes(e2), 'появляющийся враг не пойман');
+// ---------- пузырь и хлопок ----------
+test('пузырь: удержание раздувает (заряд растёт), отпускание — хлопок с силой по заряду; передержал — лопается сам на полной', () => {
+  const { game, S, events } = arena(), p = S.players[0]; put(p, 6, FLOOR, 1);
+  game.setInput(0, 0, false, true); run(game, 0.2);
+  ok(p.charging && p.charge > 0.15, 'раздувается'); ok(!has(events, 'blast'), 'ещё не хлопнул');
+  game.setInput(0, 0, false, false); run(game, h);
+  const b1 = events.find(x => x[0] === 'blast'); ok(b1, 'хлопок'); ok(b1[1].power > L.P_MIN && b1[1].power < 1, 'сила по заряду: ' + b1[1].power);
+  run(game, 0.5); events.length = 0;
+  game.setInput(0, 0, false, true); run(game, L.CHARGE_AUTO + 0.1);
+  const b2 = events.find(x => x[0] === 'blast'); ok(b2 && b2[1].power === 1, 'сам на полной');
+  eq(L.power(0), L.P_MIN); eq(L.power(L.CHARGE_MAX), 1); ok(L.blastRange(1) > L.blastRange(L.P_MIN) + 2, 'сила = дальность волны');
 });
-
-test('лопание: касание шара с врагом — 1000 очков, враг превращается в бонус, бонус падает и подбирается', () => {
-  const { game, S, events } = arena(), p = S.players[0];
-  put(p, 6, 23);
-  const b = game._mkBubble({ x: 6, y: 22.2 }); b.enemy = { type: 'spring', angry: false }; b.trapT = 9; b.life = 1e9;
-  run(game, h * 2);
-  ok(!S.bubbles.includes(b), 'лопнул'); eq(S.score, 1000);
-  ok(count(events, 'pop') === 1 && S.items.length === 1, 'бонус появился');
-  const it = S.items[0]; eq(it.kind, 'apple');
-  put(p, 20, 23);
-  run(game, 2.5); ok(it.ground, 'бонус упал на платформу');
-  put(p, it.x, it.y); run(game, h * 2);
-  eq(S.items.length, 0); eq(S.score, 1000 + it.score, 'бонус подобран');
+test('пузырь: раздувая на земле, герой стоит, но может повернуться; перезарядка между хлопками', () => {
+  const { game, S, events } = arena(), p = S.players[0]; put(p, 6, FLOOR, 1);
+  game.setInput(0, -1, false, true); run(game, 0.3);
+  ok(Math.abs(p.x - 6) < 0.01, 'стоит'); eq(p.face, -1, 'повернулся');
+  game.setInput(0, 0, false, false); run(game, h); ok(game.blast(0, 1) === false, 'перезарядка');
+  run(game, 0.4); ok(game.blast(0, 1) === true, 'после перезарядки');
 });
-
-test('цепочка: касание лопает все соприкасающиеся шары; очки 1000/2000/4000, бонусы дороже', () => {
-  const { game, S, events } = arena(), p = S.players[0];
-  put(p, 20, 23);
-  const bs = [10, 11.8, 13.6].map(x => { const b = game._mkBubble({ x, y: 12 }); b.enemy = { type: 'cog', angry: false }; b.trapT = 9; b.life = 1e9; return b; });
-  const lone = game._mkBubble({ x: 20, y: 12 }); lone.life = 1e9;
-  game._pop(bs[0], 0);
-  ok(bs.every(b => !S.bubbles.includes(b)), 'вся цепочка лопнула'); ok(S.bubbles.includes(lone), 'далёкий шар цел');
-  eq(events.filter(e => e[0] === 'pop').map(e => e[1].score), [1000, 2000, 4000]);
-  eq(S.score, 7000); eq(S.chainBest, 3);
-  ok(S.items.every(i => i.kind === 'plum'), 'цепочка из 3 — сливы (дороже яблок)');
-  ok(S.bubbles.some(b => b.kind === 'letter'), 'цепочка из 3+ приносит букву');
+test('хлопок сдувает врага кувырком по направлению взгляда; сильнее — дальше; сзади и выше полосы — не задевает', () => {
+  const dist = pw => { const { game, S } = arena(), p = S.players[0]; put(p, 4, FLOOR, 1); const e = enemyAt(game, S, 'cog', 6, FLOOR); game.blast(0, pw); ok(e.mode === 'tumble', 'кувырок'); run(game, 3); return e.x - 6; };
+  const d1 = dist(L.P_MIN), d2 = dist(1); ok(d1 > 0.5 && d2 > d1 + 2, 'дальность ' + d1.toFixed(1) + ' / ' + d2.toFixed(1));
+  const { game, S } = arena(), p = S.players[0]; put(p, 8, FLOOR, 1);
+  const back = enemyAt(game, S, 'cog', 6, FLOOR), high = enemyAt(game, S, 'cog', 10, 15);
+  game.blast(0, 1); eq([back.mode, high.mode], ['walk', 'walk']);
 });
-
-test('озлобление: не лопнул вовремя — враг вырывается разозлённым и быстрее; по таймеру уровня злятся все', () => {
+test('ванна: сдутый в проём враг переплавляется — очки 500; уровень пройден, когда переплавлены все', () => {
+  const { game, S, events } = arena({ noAnchor: true }), p = S.players[0]; put(p, 12, FLOOR, 1);
+  const e = enemyAt(game, S, 'cog', 13.6, FLOOR); game.blast(0, 1); run(game, 2.5);
+  ok(!S.enemies.includes(e), 'враг исчез'); const m = events.find(x => x[0] === 'melt'); ok(m && m[1].score === L.MELT_PTS, 'очки');
+  ok(S.phase === 'clear' && has(events, 'clear'), 'уровень пройден'); ok(S.timeBonus > 0, 'бонус за время');
+  run(game, 4); eq(S.level, 2, 'следующий уровень');
+});
+test('комбо: переплав подряд (≤ 2,5 с) — 500 × номер в серии (до ×5)', () => {
   const { game, S, events } = arena();
-  const b = game._mkBubble({ x: 16, y: 12 }); b.enemy = { type: 'cog', angry: false }; b.trapT = 0.5; b.life = 1e9;
-  run(game, 0.6);
-  ok(!S.bubbles.includes(b) && count(events, 'escape') === 1, 'вырвался');
-  const e = S.enemies[0]; ok(e && e.angry, 'разозлён');
-  run(game, 1.5, () => {}); e.think = 1e9;
-  const sp = Math.abs(e.vx); ok(Math.abs(sp - e.speed * L.ANGRY_K) < 0.01 || Math.abs(sp - e.speed * L.ANGRY_K * 0.8) < 0.01, 'скорость ×' + L.ANGRY_K + ': ' + sp);
-  const t2 = arena(); const e2 = enemyAt(t2.game, t2.S, 'cog', 10, 19);
-  t2.S.levelT = L.ANGRY_T - 0.05; run(t2.game, 0.1);
-  ok(e2.angry && t2.S.angryAll && t2.events.some(x => x[0] === 'angry') && t2.S.hurry, 'сквозняк → все злые');
+  for (let i = 0; i < 3; i++) game._melt(enemyAt(game, S, 'cog', 10, FLOOR), S.vats[0]);
+  eq(events.filter(x => x[0] === 'melt').map(x => x[1].score), [500, 1000, 1500]);
+  run(game, 3); game._melt(enemyAt(game, S, 'cog', 10, FLOOR), S.vats[0]);
+  eq(events.filter(x => x[0] === 'melt').pop()[1].score, 500, 'серия сброшена');
 });
-
-test('прыжок на шарах: падая на шар с зажатым прыжком — отскок (шар цел); без прыжка — лопается', () => {
+test('кегли: кувыркающийся враг сбивает другого (+100), оба летят; кувырком и оглушённые — безвредны', () => {
+  const { game, S, events } = arena(), p = S.players[0]; put(p, 4, FLOOR, 1);
+  const a = enemyAt(game, S, 'cog', 6, FLOOR), b = enemyAt(game, S, 'cog', 11.5, FLOOR);
+  game.blast(0, 1); ok(b.mode === 'walk', 'вне волны'); run(game, 0.5);
+  ok(b.mode === 'tumble' && has(events, 'knock'), 'сбит'); ok(S.score >= L.KNOCK_PTS, 'очки');
+  const q = arena(), pp = q.S.players[0]; put(pp, 10, FLOOR); const d = enemyAt(q.game, q.S, 'cog', 10.2, FLOOR); d.mode = 'daze'; d.daze = 2;
+  run(q.game, 0.3); ok(pp.alive, 'оглушённый не ранит');
+});
+test('о стену — оглушение и отскок; с уступа — на пол с оглушением', () => {
+  const { game, S, events } = arena(), p = S.players[0]; put(p, 6, FLOOR, -1);
+  const e = enemyAt(game, S, 'cog', 4, FLOOR); game.blast(0, 0.6); run(game, 0.35);
+  ok(has(events, 'bonk'), 'удар о стену'); run(game, 2); ok(e.mode === 'daze' && S.enemies.includes(e), 'оглушён: ' + e.mode); ok(e.x > L.WL + 1, 'отскочил');
+  const q = arena(); const pl = q.S.players[0]; put(pl, 3.5, 19, 1); const f = enemyAt(q.game, q.S, 'cog', 6, 19);
+  q.game.blast(0, 1); run(q.game, 1.5); ok(Math.round(f.y) > 19, 'слетел с уступа'); ok(q.events.some(x => x[0] === 'ledge'), 'событие «с уступа»');
+});
+test('враг на ходу ранит; падение сверху на врага — отскок и оглушение; снизу сквозь платформу — отброс без вреда', () => {
+  const { game, S, events } = arena(), p = S.players[0]; put(p, 10, FLOOR); enemyAt(game, S, 'cog', 10.3, FLOOR);
+  run(game, 0.1); ok(!p.alive && events.some(x => x[0] === 'die' && x[1].why === 'enemy'), 'касание убивает');
+  const q = arena(), pp = q.S.players[0], e = enemyAt(q.game, q.S, 'cog', 10, FLOOR);
+  put(pp, 10, FLOOR - 2.2); pp.ground = false; pp.vy = 6; run(q.game, 0.3);
+  ok(pp.alive && q.events.some(x => x[0] === 'bop'), 'отскок'); ok(e.mode === 'daze', 'оглушён');
+  const r = arena(), pr = r.S.players[0]; enemyAt(r.game, r.S, 'cog', 7, 19);
+  put(pr, 7, 20.6); pr.ground = false; pr.vy = -12; run(r.game, 0.5);
+  ok(pr.alive, 'снизу — без вреда');
+});
+test('копоть: хлопок сбивает её на платформу — лежит, её можно сдуть; искрун: искру хлопок отбивает обратно и оглушает', () => {
+  const { game, S } = arena(), p = S.players[0]; put(p, 6, FLOOR, 1);
+  const s = enemyAt(game, S, 'soot', 8, FLOOR - 0.5); s.ground = false;
+  game.blast(0, 1); ok(s.downed && s.mode === 'tumble', 'сбита'); run(game, 2); ok(s.ground || !S.enemies.includes(s), 'на полу или в ванне');
+  const q = arena(), pp = q.S.players[0]; put(pp, 8, FLOOR, 1);
+  const sp = enemyAt(q.game, q.S, 'spark', 16.5, 19); sp.mode = 'walk';
+  q.S.shots.push({ x: 10.5, y: FLOOR - 0.7, vx: -5.5, vy: 0, t: 3, kind: 'spark', back: false });
+  q.game.blast(0, 0.6); ok(q.S.shots[0] && q.S.shots[0].back && q.S.shots[0].vx > 0, 'искра отбита'); ok(pp.alive, 'жив');
+});
+test('искрун: замах, затем искра по горизонтали — она ранит', () => {
   const { game, S, events } = arena(), p = S.players[0];
-  const b = game._mkBubble({ x: 10, y: 10 }); b.life = 1e9;
-  put(p, 10, 8.95); p.ground = false; p.vy = 4;
-  game.setInput(0, 0, true); p.prevJump = true;
-  run(game, 0.08);
-  ok(S.bubbles.includes(b), 'шар цел'); ok(p.vy < -10, 'отскок вверх: ' + p.vy.toFixed(1)); ok(count(events, 'bounce') === 1);
-  const b2 = game._mkBubble({ x: 20, y: 10 }); b2.life = 1e9;
-  put(p, 20, 8.95); p.ground = false; p.vy = 4; game.setInput(0, 0, false);
-  run(game, 0.08); ok(!S.bubbles.includes(b2), 'без прыжка — лопнул');
-  const b3 = game._mkBubble({ x: 24, y: 20 }); b3.life = 1e9;
-  put(p, 24, 23); game.setInput(0, 0, true); p.prevJump = false; run(game, 0.3);
-  ok(!S.bubbles.includes(b3), 'прыжком снизу — лопнул');
-});
-
-test('сквозной проход: упал в проём пола — появился сверху и приземлился на платформу', () => {
-  const { game, S } = arena(), p = S.players[0];
-  put(p, 16, 23); p.ground = false; p.y = 23.05; p.vy = 5;
-  let wrapped = false, minY = 99;
-  run(game, 2, () => { if (p.y < 5) wrapped = true; minY = Math.min(minY, p.y); });
-  ok(wrapped, 'прошёл сквозь низ наверх'); ok(p.ground && p.y < 23, 'стоит на платформе: ' + p.y.toFixed(2));
-  const lv = L.level(1); ok(L.segAt(L.buildGraph(lv.grid), p.x, Math.round(p.y)), 'на сегменте');
-});
-
-test('спецшары: ЖАР выжигает платформу, ЛИВЕНЬ смывает врагов по пути, ГРОЗА бьёт по горизонтали', () => {
-  // ЖАР: падает на платформу под шаром, враги на ней гибнут → бонусы
-  let t = arena(); const pl = t.S.players[0]; put(pl, 26, 23);
-  const e1 = enemyAt(t.game, t.S, 'cog', 9, 19); e1.speed = 0;
-  const f = t.game._mkBubble({ x: 8, y: 17, kind: 'fire' }); t.game._pop(f, 0);
-  run(t.game, 1.2);
-  ok(!t.S.enemies.includes(e1), 'жар сжёг врага'); ok(count(t.events, 'zap') === 1 && t.S.items.length === 1, 'бонус из врага');
-  // ЛИВЕНЬ: поток по полу смывает врага
-  t = arena(); put(t.S.players[0], 26, 23); t.S.players[0].face = 1;
-  const e2 = enemyAt(t.game, t.S, 'cog', 9, 23); e2.speed = 0;
-  const w = t.game._mkBubble({ x: 4, y: 21, kind: 'water' }); t.game._pop(w, 0);
-  run(t.game, 1.5); ok(!t.S.enemies.includes(e2), 'ливень смыл врага');
-  // ГРОЗА: молния летит в сторону взгляда и бьёт врага на своей высоте, дальнего по вертикали — нет
-  t = arena(); const p3 = t.S.players[0]; put(p3, 26, 23); p3.face = -1;
-  const e3 = enemyAt(t.game, t.S, 'soot', 8, 12.7); e3.speed = 0; const e4 = enemyAt(t.game, t.S, 'cog', 8, 19); e4.speed = 0;
-  const bo = t.game._mkBubble({ x: 20, y: 12, kind: 'bolt' }); t.game._pop(bo, 0);
-  run(t.game, 0.8); ok(!t.S.enemies.includes(e3) && t.S.enemies.includes(e4), 'молния — только по своей высоте');
-});
-
-test('буквы: шесть букв ГЕФЕСТ дают +1 жизнь лопнувшему и обнуляют слово', () => {
-  const { game, S, events } = arena();
-  eq(L.WORD_LEN, 6); eq(Z.STR.ru.word.length, 6); eq(Z.STR.en.word.length, 6);
-  const lives = S.players[0].lives;
-  for (let i = 0; i < 6; i++){ const b = game._mkBubble({ x: 6 + i * 3, y: 10, kind: 'letter', letter: i }); game._pop(b, 0); if (i < 5) ok(S.letters[i], 'буква ' + i); }
-  eq(S.players[0].lives, lives + 1); ok(S.letters.every(v => !v), 'слово обнулено');
-  ok(count(events, 'word') === 1 && count(events, 'letter') === 6);
-  // буква в шаре не дублирует собранную
-  S.letters = [true, true, true, true, true, false]; S.bubbles = []; game._spawnLetter();
-  eq(S.bubbles.find(b => b.kind === 'letter').letter, 5);
-});
-
-test('касание врага убивает; жизнь −1, возрождение на старте с неуязвимостью; 0 жизней — выбыл, все выбыли — gameover', () => {
-  const { game, S, events } = arena(), p = S.players[0];
-  put(p, 10, 23); enemyAt(game, S, 'cog', 10.3, 23);
-  run(game, h * 2); ok(!p.alive && p.lives === 2, 'погиб');
-  S.enemies = []; run(game, 2); ok(p.alive && p.inv > 0 && Math.abs(p.x - L.SPAWNS[0].x) < 0.01, 'возрождение');
-  p.lives = 1; p.inv = 0; put(p, 10, 23); enemyAt(game, S, 'cog', 10.2, 23); run(game, h * 2);
-  ok(p.out && S.over && count(events, 'gameover') === 1, 'gameover');
-});
-
-test('кооп: общий счёт, раздельные жизни; один выбыл — игра идёт', () => {
-  const { game, S } = arena({ players: 2 }), [p1, p2] = S.players;
-  put(p1, 6, 23); put(p2, 26, 23);
-  const b1 = game._mkBubble({ x: 6, y: 22.2 }); b1.enemy = { type: 'cog', angry: false }; b1.trapT = 9; b1.life = 1e9;
-  const b2 = game._mkBubble({ x: 26, y: 22.2 }); b2.enemy = { type: 'cog', angry: false }; b2.trapT = 9; b2.life = 1e9;
-  run(game, h * 2); eq(S.score, 2000, 'общий счёт');
-  p2.lives = 1; enemyAt(game, S, 'cog', 26, 23); run(game, h * 2);
-  ok(p2.out && !S.over && p1.lives === 3, 'И2 выбыл, И1 играет');
-});
-
-test('вход «на лету»: И2 появляется посреди уровня; выбывший возвращается с полным запасом', () => {
-  const { game, S, events } = arena();
-  eq(S.players.length, 1);
-  ok(game.join(1)); eq(S.players.length, 2); ok(count(events, 'join') === 1);
-  const p2 = S.players[1]; ok(p2.alive && p2.lives === L.LIVES && p2.inv > 0 && Math.abs(p2.x - L.SPAWNS[1].x) < 0.01);
-  ok(!game.join(1), 'уже в игре');
-  p2.out = true; p2.alive = false; p2.lives = 0; ok(game.join(1) && !p2.out && p2.lives === L.LIVES, 'вернулся');
-  // ввод независим: И2 бежит влево, И1 стоит
-  put(S.players[0], 6, 23); put(p2, 26, 23); game.setInput(1, -1, false); game.setInput(0, 0, false);
-  run(game, 0.3); ok(p2.x < 25 && Math.abs(S.players[0].x - 6) < 1e-6);
-});
-
-test('за каждые EXTRA_LIFE очков — +1 жизнь каждому, кто в игре', () => {
-  const { game, S, events } = arena({ players: 2 });
-  S.score = L.EXTRA_LIFE - 5; const b = game._mkBubble({ x: 16, y: 12 }); game._pop(b, 0);
-  eq(S.players.map(p => p.lives), [4, 4]); ok(count(events, 'life') === 1);
-});
-
-test('уровень пройден, когда врагов нет ни снаружи, ни в шарах; затем следующий уровень', () => {
-  const { game, S, events } = arena();
-  S.bubbles = []; run(game, h);
-  eq(S.phase, 'clear'); run(game, 4); eq(S.level, 2); eq(S.phase, 'ready');
-  ok(count(events, 'clear') === 1 && count(events, 'level') === 2);
-});
-
-test('Котёл: бьют молнии ГРОЗЫ (в лоб) и шары; на нуле — в большом шаре, касание — победа и win', () => {
-  const events = [];
-  const game = Z.Game({ rng: mulberry32(3), level: 31, maxLevel: 31, onEvent: (t, d) => events.push([t, d]) }).start(), S = game.state();
-  S.phase = 'play'; S.specialT = 1e9; S.letterT = 1e9;
-  const B = S.boss; B.spawnT = 0; B.spitT = 1e9; B.vx = B.vy = 0; B.x = 16; B.y = 10;
-  const p = S.players[0]; put(p, 4, 23); p.inv = 1e9;
-  const hp0 = B.hp;
-  const bo = game._mkBubble({ x: 6, y: 20, kind: 'bolt' }); game._pop(bo, 0); run(game, 1.0);
-  eq(B.hp, hp0 - L.BOSS.boltDmg, 'молния летит в Котёл');
-  const sb = game._mkBubble({ x: 11, y: 8, vx: 15, phase: 'shoot', owner: 0 }); run(game, 0.3);
-  eq(B.hp, hp0 - L.BOSS.boltDmg - L.BOSS.bubbleDmg, 'шар бьёт слабее');
-  ok(!S.bubbles.includes(sb));
-  B.hp = 1; B.inv = 0; const bo2 = game._mkBubble({ x: 6, y: 20, kind: 'bolt' }); game._pop(bo2, 0); run(game, 0.6);
-  ok(B.trapped && count(events, 'bossTrap') === 1, 'Котёл в шаре');
-  put(p, B.x, B.y); p.inv = 0; run(game, h * 2);
-  ok(!B.alive && count(events, 'bossDie') === 1, 'лопнул');
-  run(game, 6); ok(S.won && S.over && count(events, 'win') === 1, 'победа');
-});
-
-test('Котёл плюётся расплавом; выдутый шар гасит каплю', () => {
-  const game = Z.Game({ rng: mulberry32(3), level: 31, maxLevel: 31 }).start(), S = game.state();
-  S.phase = 'play'; S.specialT = 1e9; const B = S.boss; B.spawnT = 0; B.spitT = 0.01; B.vx = B.vy = 0;
-  S.players[0].inv = 1e9; run(game, h * 2);
-  ok(S.shots.length >= 3 && S.shots.every(s => s.kind === 'drop'), 'веер капель');
-  const s0 = S.shots[0]; const b = game._mkBubble({ x: s0.x, y: s0.y, phase: 'shoot', vx: 1, owner: 0 }); run(game, h);
-  ok(!S.shots.includes(s0), 'капля погашена');
-});
-
-test('искрун: замах 0,45 с, затем искра по горизонтали — она убивает', () => {
-  const { game, S, events } = arena(), p = S.players[0];
-  put(p, 12, 23); const e = enemyAt(game, S, 'spark', 20, 23); e.dir = -1; e.shotCd = 0; e.speed = 0;
+  put(p, 10, FLOOR); const e = enemyAt(game, S, 'spark', 18, FLOOR); e.dir = -1; e.shotCd = 0;
   run(game, 0.2); ok(e.charge > 0 && S.shots.length === 0, 'замах');
-  run(game, 0.4); ok(S.shots.length === 1, 'выстрел');
-  run(game, 1.5); ok(!p.alive && events.some(x => x[0] === 'die' && x[1].why === 'spark'), 'искра убила');
+  run(game, 0.6); ok(S.shots.length === 1, 'выстрел');
+  run(game, 1.6); ok(!p.alive && events.some(x => x[0] === 'die' && x[1].why === 'spark'), 'искра ранила');
+});
+
+// ---------- жизни, кооп, реклама ----------
+test('жизни: −1, возрождение на старте с неуязвимостью; 0 — выбыл; все выбыли — gameover; +1 жизнь каждые EXTRA_LIFE', () => {
+  const { game, S, events } = arena({ lives: 1 }), p = S.players[0]; put(p, 10, FLOOR); enemyAt(game, S, 'cog', 10.2, FLOOR);
+  run(game, 0.1); ok(p.out && S.over && has(events, 'gameover'), 'конец игры');
+  const q = arena(), pq = q.S.players[0]; put(pq, 10, FLOOR); enemyAt(q.game, q.S, 'cog', 10.2, FLOOR); run(q.game, 2);
+  ok(pq.alive && pq.inv > 0 && pq.lives === 2, 'возрождение');
+  const r = arena(); const l0 = r.S.players[0].lives; for (let i = 0; i < 7; i++) r.game._melt(enemyAt(r.game, r.S, 'cog', 10, FLOOR), r.S.vats[0]);
+  ok(r.S.score >= L.EXTRA_LIFE && r.S.players[0].lives === l0 + 1 && r.events.some(x => x[0] === 'life'), '+1 жизнь: ' + r.S.score);
+});
+test('кооп: общий счёт, раздельные жизни, вход «на лету» и возврат выбывшего; «ещё шанс» и +1 жизнь за рекламу', () => {
+  const { game, S, events } = arena({ players: 2 });
+  ok(S.players.length === 2, 'двое'); S.players[1].out = true; S.players[1].alive = false; S.players[1].lives = 0;
+  ok(game.join(1) && !S.players[1].out && S.players[1].lives === L.LIVES, 'вернулся');
+  const one = arena(); ok(one.game.join(1) && one.S.players.length === 2 && one.events.some(x => x[0] === 'join'), 'И2 вошёл посреди уровня');
+  const d = arena({ lives: 1 }); put(d.S.players[0], 10, FLOOR); enemyAt(d.game, d.S, 'cog', 10.2, FLOOR); run(d.game, 0.1);
+  ok(d.S.over, 'конец'); ok(d.game.revive() && !d.S.over && d.S.players[0].alive && d.S.players[0].lives === L.LIVES, 'ещё шанс');
+  ok(d.game.canBoost(), 'бонус доступен'); const lv = d.S.players[0].lives; d.game.boost(); eq(d.S.players[0].lives, lv + 1);
+});
+test('между уровнями: waitAfter → фаза rest (карточка с межстраничной), proceed — дальше', () => {
+  const { game, S } = arena({ noAnchor: true, waitAfter: () => true });
+  game._melt(enemyAt(game, S, 'cog', 10, FLOOR), S.vats[0]); run(game, 0.1); eq(S.phase, 'clear'); run(game, 4);
+  eq(S.phase, 'rest'); eq(S.level, 1); ok(game.proceed()); eq(S.level, 2);
+});
+test('Котёл: плюётся каплями; капля, отбитая хлопком, летит в Котёл (−1); на нуле — падает в ванну, победа', () => {
+  const { game, S, events } = arena({ level: 31, noAnchor: true }), B = S.boss, p = S.players[0];
+  ok(B && B.hp === L.BOSS.hp, 'Котёл'); B.spawnT = 0; B.spitT = 0; run(game, h); ok(S.shots.some(s => s.kind === 'drop'), 'капли');
+  S.shots = []; put(p, 10, FLOOR, 1); B.x = 22; B.y = 10; B.vx = 0; B.vy = 0; B.spitT = 1e9;
+  S.shots.push({ x: 11.5, y: FLOOR - 1, vx: -3, vy: 1, t: 5, kind: 'drop', back: false });
+  game.blast(0, 0.6); ok(S.shots[0].back, 'отбита'); run(game, 2, () => { B.vx = 0; B.vy = 0; }); ok(B.hp === L.BOSS.hp - 1 && has(events, 'bossHit'), 'попала: ' + B.hp);
+  B.hp = 1; S.shots.push({ x: B.x, y: B.y - 1, vx: 0, vy: 0, t: 5, kind: 'drop', back: true }); run(game, h);
+  ok(B.dying && has(events, 'bossFall'), 'падает'); run(game, 9); ok(has(events, 'bossDie') && S.won && has(events, 'win'), 'победа');
 });
 
 // ---------- кооп-ввод через движок ----------
@@ -316,35 +213,30 @@ test('кооп-ввод: раскладки без конфликтов; Кол�
   eq(A.checkBindings(B, { reserved: ['Digit1', 'Digit2', 'Numpad1', 'Numpad2'] }), [], 'конфликты раскладок');
   const g = A.createGame({ canvas: '#c', width: 640, height: 520, gameId: 'puzyr' });
   g.useStandardScreens({ lives: 3 });
-  g.usePlayers({ bind: B, actions: ['blow'], repeat: [] });
+  g.usePlayers({ bind: B, actions: ['jump', 'blow'], repeat: [] });
   g.scene('play', { realtime: true }); g.start('title');
   ok(g.menu.items('title').indexOf('players') === 1, 'пункт «Игроки» после «Играть»');
   env.key('keydown', 'Digit2'); env.key('keyup', 'Digit2'); eq(g.input.playerCount, 2);
   g.goto('play'); env.tick(200);
-  const P1 = g.input.player(0), P2 = g.input.player(1), got = [];
-  P1.onPress(n => got.push('1' + n)); P2.onPress(n => got.push('2' + n));
+  const P1 = g.input.player(0), P2 = g.input.player(1);
   env.key('keydown', 'ArrowRight'); env.key('keydown', 'KeyA');
   eq([P1.dir.x, P2.dir.x], [1, -1], 'направления раздельно');
-  env.key('keydown', 'ArrowUp'); ok(P1.pressed('jump') && !P2.pressed('jump'), 'прыжок И1'); env.key('keyup', 'ArrowUp');
-  env.key('keydown', 'KeyW'); ok(P2.pressed('jump') && !P1.pressed('jump'), 'прыжок И2'); env.key('keyup', 'KeyW');
-  env.key('keyup', 'ArrowRight'); env.key('keyup', 'KeyA');
-  env.key('keydown', 'Space'); env.key('keyup', 'Space'); env.key('keydown', 'KeyF'); env.key('keyup', 'KeyF');
-  eq(got, ['1blow', '2blow'], 'шар по игрокам');
-  // логика под этим вводом: герои бегут в разные стороны
+  env.key('keydown', 'Space'); ok(P1.pressed('blow') && !P2.pressed('blow'), 'пузырь И1'); env.key('keyup', 'Space');
+  env.key('keydown', 'KeyF'); ok(P2.pressed('blow') && !P1.pressed('blow'), 'пузырь И2'); env.key('keyup', 'KeyF');
+  // логика под этим вводом: герои бегут в разные стороны, И2 раздувает пузырь
   const Z2 = env.win.PUZYR, game = Z2.Game({ players: 2, rng: mulberry32(1) }).start(), S = game.state();
   S.phase = 'play'; S.enemies = [];
-  env.key('keydown', 'ArrowRight'); env.key('keydown', 'KeyA');
-  for (let i = 0; i < 30; i++){ for (let pi = 0; pi < 2; pi++){ const I = g.input.player(pi); game.setInput(pi, I.dir.x, I.pressed('jump')); } game.update(h); }
-  ok(S.players[0].x > L.SPAWNS[0].x + 1.5, 'Колба вправо'); ok(S.players[1].x < L.SPAWNS[1].x - 1.5, 'Реторта влево');
-  env.key('keyup', 'ArrowRight'); env.key('keyup', 'KeyA');
-  // один игрок: WASD тоже ведёт И1
+  env.key('keydown', 'KeyF');
+  for (let i = 0; i < 30; i++){ for (let pi = 0; pi < 2; pi++){ const I = g.input.player(pi); game.setInput(pi, I.dir.x, I.pressed('jump'), I.pressed('blow')); } game.update(h); }
+  ok(S.players[0].x > L.SPAWNS[0].x + 1.5, 'Колба вправо'); ok(S.players[1].charging, 'Реторта раздувает');
+  env.key('keyup', 'ArrowRight'); env.key('keyup', 'KeyA'); env.key('keyup', 'KeyF');
   g.goto('title'); env.key('keydown', 'Digit1'); env.key('keyup', 'Digit1'); eq(g.input.playerCount, 1);
   g.goto('play'); env.tick(200);
   env.key('keydown', 'KeyD'); eq(P1.dir.x, 1); eq(P2.dir.x, 0); env.key('keyup', 'KeyD');
   eq(env.store['arcade.players.puzyr'], '1', 'выбор хранится');
 });
 
-// ---------- музыка, строки, имена ----------
+// ---------- музыка, строки, страница, площадка, имена ----------
 test('музыка: трек разбирается секвенсором движка, голоса кратны тактам', () => {
   const env = makeEnv();
   vm.runInContext(read('js/music.js'), env.win, { filename: 'music.js' });
@@ -352,30 +244,54 @@ test('музыка: трек разбирается секвенсором дв�
   const c = env.A.parseTrack(tr);
   eq(c.melody.length, 64); eq(c.bass.length, 32); eq(c.drums.length, 16);
 });
-
-test('строки: RU/EN — одинаковый набор ключей, названы враги, спецшары и зоны', () => {
-  eq(Object.keys(Z.STR.ru).sort(), Object.keys(Z.STR.en).sort());
-  Object.keys(L.ENEMY).forEach(k => ok(Z.STR.ru['en_' + k] && Z.STR.en['en_' + k], 'враг ' + k));
-  L.SPECIALS.forEach(k => ok(Z.STR.ru['sp_' + k] && Z.STR.en['sp_' + k], 'спецшар ' + k));
+test('строки: RU/EN/TR/ES/PT — одинаковый набор ключей, без пустых; названы враги и зоны; EN-название GLASSGUST', () => {
+  const langs = ['ru', 'en', 'tr', 'es', 'pt'], ref = Object.keys(Z.STR.ru).sort();
+  eq(Object.keys(Z.STR).sort(), langs.slice().sort());
+  for (const l of langs){ eq(Object.keys(Z.STR[l]).sort(), ref, 'ключи ' + l); for (const k of ref) ok(String(Z.STR[l][k]).trim(), l + '.' + k); }
+  Object.keys(L.ENEMY).forEach(k => langs.forEach(l => ok(Z.STR[l]['en_' + k], 'враг ' + k + ' ' + l)));
+  eq(Z.STR.ru.title, 'ПУЗЫРЬ'); for (const l of ['en', 'tr', 'es', 'pt']) eq(Z.STR[l].title, 'GLASSGUST');
 });
-
+test('страница: engine.js — копия общего, фавикон студии, «← Каталог», тач-пульт (бег, прыжок, пузырь, пауза), без внешних ссылок', () => {
+  const html = read('index.html');
+  eq(read('engine.js'), fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js не копия _shared');
+  ok(/<link rel="icon" type="image\/svg\+xml"/.test(html), 'фавикон'); ok(/data-catalog-back="1"/.test(html), 'каталог');
+  for (const d of ['L', 'R', 'U', 'A']) ok(html.includes('data-d="' + d + '"'), 'кнопка ' + d); ok(/data-pause="1"/.test(html), 'пауза');
+  ok(!/(src|href)="https?:\/\//.test(html), 'нет внешних ссылок');
+});
+test('площадка: карточка «уровень пройден» с межстраничной, menuFit, рекорд прежним ключом (g.persist), ещё шанс и бонус, геймпад A/B', () => {
+  const main = read('js/main.js');
+  ok(/g\.adBreak\(\)/.test(main) && /g\.adReady\(\)/.test(main) && /waitAfter/.test(main), 'межстраничная по нажатию на карточке между уровнями');
+  ok(/menuFit/.test(main), 'menuFit'); ok(/g\.persist\('arcade\.best\.puzyr', 'max'\)/.test(main), 'рекорд прежним ключом');
+  ok(/useRewardedContinue/.test(main) && /useRewardedBonus/.test(main), 'реклама за награду');
+  ok(/gamepad\.configure\(\{ actions: \{ a: 'jump', b: 'blow' \} \}\)/.test(main), 'геймпад');
+  ok(/gameId: 'puzyr'/.test(main) && /usePlayers/.test(main), 'ключи сохранений прежние (arcade.best.puzyr, arcade.players.puzyr)');
+});
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'puzyr', boards: ['puzyr'], test, ok }); }
 test('правило имён: в папке игры нет чужих названий игр/компаний/героев (регистронезависимо, с транслитом)', () => {
   // список чужих имён хранится в base64, чтобы сами имена не попадали в репозиторий открытым текстом
   const BAD = new RegExp(Buffer.from('YnViYmxlID9ib2JibGV80LHQsNCx0LsgP9Cx0L7QsXxwdXp6bGUgP2JvYmJsZXxcYmJ1YlxifFxiYm9iXGJ80LHQsNCx0LHQu9GD0L18YnViYmx1bnxib2JibHVufHJhaW5ib3cgP2lzbGFuZHN8cGFyYXNvbCA/c3RhcnN8c25vdyA/YnJvc3x0dW1ibGVwb3B8cGFjLT9tYW580L/QsNC60LzQsNC9fHRldHJpc3zRgtC10YLRgNC40YF8Z2FsYWd8Z2FsYXh8eG9uaXh80LrRgdC+0L3QuNC60YF8YmF0dGxlID9jaXR5fGxvZGUgP3J1bm5lcnxib3VsZGVyID9kYXNofGRpZ2dlcnxcYmNvbnRyYVxifNC60L7QvdGC0YDQsCg/IVvQsC3Rj9GRXSl8a29uYW1pfNC60L7QvdCw0LzQuHxuYW1jb3zQvdCw0LzQutC+fHRhaXRvfNGC0LDQudGC0L58Y2FwY29tfNC60LDQv9C60L7QvHxuaW50ZW5kb3zQvdC40L3RgtC10L3QtNC+fFxic2VnYVxifNGB0LXQs9CwKD8hW9CwLdGP0ZFdKXx0ZWNtb3xkaXp6eXxkZWVwc2Vla3xtYXJpb3zQvNCw0YDQuNC+fHNvbmljfNGB0L7QvdC40Lo=', 'base64').toString('utf8'), 'i');
   const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
-  const files = walk(ROOT).filter(f => !f.endsWith('engine.js') && !f.endsWith('engine.test.mjs') && /\.(js|mjs|html|css|md)$/.test(f));
+  const files = walk(ROOT).filter(f => !f.endsWith('engine.js') && !f.endsWith('engine.test.mjs') && /\.(js|mjs|html|css|md|json)$/.test(f));
+  ok(files.length >= 12, 'файлов: ' + files.length);
   for (const f of files){ const m = fs.readFileSync(f, 'utf8').match(BAD); ok(!m, path.relative(ROOT, f) + ': «' + (m && m[0]) + '»'); }
 });
 
-// ---------- баланс (бот) ----------
-test('бот: уровень 1 проходится ≥ 90 %, вся игра — ~20–40 % (60 прогонов)', () => {
-  const N = 60; let l1 = 0, won = 0, stuck = 0;
+// ---------- проходимость и баланс (QUICK=1 — пропустить) ----------
+if (process.env.QUICK){ console.log(`\n${passed} passed, ${failed} failed (без баланса)`); process.exit(failed ? 1 : 0); }
+test('проходимость: бот проходит каждый уровень по отдельности (31 уровень, лучший из 3 сидов)', () => {
+  const bad = [];
+  for (let n = 1; n <= 31; n++){ let okLv = false; for (const s of [1, 2, 3]){ if (playPuzyr(Z, s, { startLevel: n, levels: 1 }).passed) { okLv = true; break; } } if (!okLv) bad.push(n); }
+  ok(!bad.length, 'не пройдены: ' + bad.join(', '));
+});
+test('бот: уровень 1 проходится ≥ 90 %, вся игра — ~20–45 % (60 прогонов)', () => {
+  const N = 60; let l1 = 0, won = 0, stuck = 0, melts = 0;
   for (let s = 1; s <= N; s++){ const r = playPuzyr(Z, s); if (r.passed >= 1) l1++; if (r.won) won++; if (r.stuck) stuck++; }
   console.log(`     уровень 1: ${(100 * l1 / N).toFixed(0)} %, вся игра: ${(100 * won / N).toFixed(0)} %, застреваний: ${stuck}`);
   ok(l1 / N >= 0.9, 'уровень 1: ' + l1 / N);
-  ok(won / N >= 0.15 && won / N <= 0.45, 'вся игра: ' + won / N);
+  ok(won / N >= 0.15 && won / N <= 0.5, 'вся игра: ' + won / N);
+  ok(stuck <= 2, 'застреваний: ' + stuck);
 });
-
 test('бот: кооп вдвоём проходит первые уровни', () => {
   let l2 = 0;
   for (let s = 1; s <= 10; s++){ const r = playPuzyr(Z, 100 + s, { players: 2, levels: 3 }); if (r.passed >= 2) l2++; }

@@ -443,23 +443,23 @@
   function pt(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) }; }
   function inPlay() { return g._sceneName === 'play' && game; }
   function touchPad() { var k = view.css / W; return Math.max(10, Math.min(24, (44 / k - 30) / 2)); }   // мин. цель ≈ 44 css-пикселя, запас под палец ≥ 10
-  cv.addEventListener('mousedown', function (e) { if (g._sceneName === 'credits' && credT > 0.6) { endCredits(); return; } if (!inPlay()) return; mouseSeen = true; game.setTouchPad(0); if (e.button === 2) return; var p = pt(e); game.down(p.x, p.y); });
+  cv.addEventListener('mousedown', function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'credits' && credT > 0.6) { endCredits(); return; } if (!inPlay()) return; mouseSeen = true; game.setTouchPad(0); if (e.button === 2) return; var p = pt(e); game.down(p.x, p.y); });
   cv.addEventListener('mousemove', function (e) { if (!inPlay()) return; mouseSeen = true; var p = pt(e); game.move(p.x, p.y); });
-  addEventListener('mouseup', function (e) { if (!inPlay() || e.button === 2) return; var p = pt(e); game.up(p.x, p.y); });
+  addEventListener('mouseup', function (e) { if (!inPlay() || e.button === 2 || !Arcade.touchOk(e)) return; var p = pt(e); game.up(p.x, p.y); });
   cv.addEventListener('mouseleave', function () { if (inPlay()) game.move(-100, -100); });
   cv.addEventListener('contextmenu', function (e) { e.preventDefault(); if (!inPlay()) return; var p = pt(e); game.look(p.x, p.y); });
   var tid = null;   // один палец: второй касанием игнорируется (без случайных «двойных» действий)
   function myTouch(e) { for (var i = 0; i < e.changedTouches.length; i++) if (e.changedTouches[i].identifier === tid) return e.changedTouches[i]; return null; }
   function lifted(p) { if (game.runtime().drag) p.y -= LIFT; return p; }
   cv.addEventListener('touchstart', function (e) {
-    if (g._sceneName === 'credits' && credT > 0.6) { e.preventDefault(); endCredits(); return; }
-    if (!inPlay()) return; e.preventDefault(); if (tid !== null) return;
+    if (g._sceneName === 'credits' && credT > 0.6) { Arcade.touchOk(e); endCredits(); return; }
+    if (!inPlay()) return; Arcade.touchOk(e); if (tid !== null) return;
     if (performance.now() - playSince < 250) return;   // касание, которым выбрали пункт меню, не должно сразу пропустить вступление
     var t = e.changedTouches[0]; tid = t.identifier; mouseSeen = false; TOUCH = true; game.setTouchPad(touchPad());
     var p = pt(t); game.down(p.x, p.y);
   }, { passive: false });
-  cv.addEventListener('touchmove', function (e) { if (!inPlay()) return; e.preventDefault(); var t = myTouch(e); if (!t) return; var p = lifted(pt(t)); game.move(p.x, p.y); }, { passive: false });
-  function touchEnd(e) { if (!inPlay()) { tid = null; return; } e.preventDefault(); var t = myTouch(e); if (!t) return; tid = null; var p = lifted(pt(t)); game.up(p.x, p.y); game.move(-100, -100); }
+  cv.addEventListener('touchmove', function (e) { if (!inPlay()) return; Arcade.touchOk(e); var t = myTouch(e); if (!t) return; var p = lifted(pt(t)); game.move(p.x, p.y); }, { passive: false });
+  function touchEnd(e) { if (!inPlay()) { tid = null; return; } Arcade.touchOk(e); var t = myTouch(e); if (!t) return; tid = null; var p = lifted(pt(t)); game.up(p.x, p.y); game.move(-100, -100); }
   cv.addEventListener('touchend', touchEnd, { passive: false });
   cv.addEventListener('touchcancel', touchEnd, { passive: false });
 
@@ -568,7 +568,7 @@
   var bPause = $('bPause'), bFs = $('bFs'), back = $('backLink'), foot = $('foot'), rot = $('rotate');
   (function () {
     if (!bPause) return;
-    var h = function (e) { e.preventDefault(); if (g._sceneName === 'play') { writeSave(); g.pause(); } else if (g._sceneName === 'pause') g.goto('play', { resume: true }); };
+    var h = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play') { writeSave(); g.pause(); } else if (g._sceneName === 'pause') g.goto('play', { resume: true }); };
     bPause.addEventListener('touchstart', h, { passive: false }); bPause.addEventListener('mousedown', h);
   })();
   var fsEl = document.documentElement, FSX = K.Edition.fullscreen || null;   // обёртка (издание steam): окно приложения ↔ полный экран
@@ -591,7 +591,7 @@
   }
   // страница не масштабируется и не прокручивается во время игры (щипок, двойной тап, «резинка»)
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (ev) { document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false }); });
-  document.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });
+  document.addEventListener('touchmove', function (e) { Arcade.touchOk(e); }, { passive: false });
   document.addEventListener('dblclick', function (e) { e.preventDefault(); }, { passive: false });
   document.addEventListener('wheel', function (e) { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
 

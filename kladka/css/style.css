@@ -11,7 +11,7 @@ canvas{display:block;border:1px solid var(--line);border-radius:10px;background:
 body[data-theme="retro"] canvas{border-radius:2px;image-rendering:pixelated}
 a.back{position:fixed;left:10px;top:7px;color:var(--mut);font-size:12px;text-decoration:none;font-weight:700;z-index:2}
 a.back:hover{color:var(--accent)}
-#bPause{position:fixed;right:10px;top:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;
+#bPause{touch-action:none;position:fixed;right:10px;top:4px;background:var(--panel);border:1px solid var(--line);border-radius:8px;
   color:var(--ink);font-size:12px;font-weight:800;padding:4px 10px;z-index:2;cursor:pointer}
 .pad{width:min(94vw,480px);margin:10px 0 4px;display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:10px;max-width:400px}
 .pad button{height:62px;background:var(--panel);border:1px solid var(--line);border-radius:14px;color:var(--ink);font-size:24px;font-weight:800;touch-action:none}

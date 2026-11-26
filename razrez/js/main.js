@@ -87,8 +87,8 @@
       this.text(this.t('cardNext'), W / 2, H / 2 + 62, { size: 15, align: 'center', color: th.muted, weight: 600, maxWidth: W - 80 });
     }
   });
-  g.canvas.addEventListener('mousedown', function () { if (g._sceneName === 'card') cardGo(); });
-  g.canvas.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { e.preventDefault(); cardGo(); } }, { passive: false });
+  g.canvas.addEventListener('mousedown', function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'card') cardGo(); });
+  g.canvas.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { Arcade.touchOk(e); cardGo(); } }, { passive: false });
 
   var demo = null;
   function makeDemo() {
@@ -163,7 +163,7 @@
   // тач-кнопка паузы (дпад движка знает только U/D/L/R/A)
   var bp = document.getElementById('bPause');
   if (bp) {
-    var tp = function (e) { e.preventDefault(); if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); };
+    var tp = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); };
     bp.addEventListener('touchstart', tp, { passive: false }); bp.addEventListener('mousedown', tp);
   }
 

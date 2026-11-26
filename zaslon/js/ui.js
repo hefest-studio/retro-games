@@ -31,7 +31,7 @@
 
   function tap(el, fn) {
     if (!el) return;
-    var h = function (e) { e.preventDefault(); fn(); };
+    var h = function (e) { if (!Arcade.touchOk(e)) return; fn(); };
     el.addEventListener('touchstart', h, { passive: false }); el.addEventListener('mousedown', h);
   }
 

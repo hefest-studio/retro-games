@@ -73,7 +73,7 @@
   // Тач-кнопки прыжка и гранаты (только И1)
   function tbtn(sel, fn) {
     var b = pad && pad.querySelector(sel); if (!b) return;
-    var on = function (e) { e.preventDefault(); if (g._sceneName === 'play' && game) fn(); };
+    var on = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play' && game) fn(); };
     b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('mousedown', on);
   }
   tbtn('[data-jump]', function () { game.jump(0); });

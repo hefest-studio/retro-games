@@ -1,13 +1,11 @@
-/* КАТАКОМБЫ · tests/bot.mjs — «человеческий» бот для проверки баланса и проходимости.
-   Без читов: управляет только как игрок — setDir(pi, dx, dy) восемью направлениями клавиш,
-   setFire(pi, held), bomb(pi), а на прокачке — те же стрелки и «огонь» (choose).
-   Человеческие ограничения:
-   - решения раз в 180–300 мс (реакция), между решениями держит прежние клавиши;
-   - видит только кадр камеры (+1 клетка): врагов и логова за кадром не замечает;
-   - путь к цели ищет по карте (как игрок, который видит план этажа), но идёт по клеткам
-     «на глаз» — восемь направлений, без пиксельной точности; застрял — дёргается в сторону;
-   - бомбу бросает, когда стало туго (много врагов рядом или мало здоровья).
-   opts: { floors, startFloor=1, players=1, heroes=['smith','spark'], maxFloorT=240, react:[0.18,0.3] } */
+/* КАТАКОМБЫ · tests/bot.mjs — «человеческий» бот для проверки баланса и проходимости (переделка 2026-11, «Огненный обруч»).
+   Без читов: управляет только как игрок — setDir(pi, dx, dy) (стик, аналоговый), setFire(pi, held) (бросок — по нажатию),
+   на прокачке — choose (как стрелки + огонь). Человеческие ограничения:
+   - решения раз в react = [0.18, 0.3] с, между решениями держит прежний стик;
+   - замечает только тварей в кадре; целится с разбросом ±0.1 рад (дальше помогает автоприцел игры, как игроку);
+   - план этажа видит (как игрок, который смотрит на карту): идёт к горящей чаше окунуть обруч, затем к месту, откуда
+     холодная чаша видна по прямой, и бросает; когда горят все — к печати. Мало здоровья — встаёт в свет.
+   opts: { startFloor=1, floors, players=1, maxFloorT=240, react:[0.18,0.3] } */
 
 export function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 
@@ -17,174 +15,105 @@ export function playKatakomby(K, seed, opts = {}){
   const brng = mulberry32(seed * 7919 + 17);
   const [r0, r1] = opts.react || [0.18, 0.3];
   const maxFloorT = opts.maxFloorT || 240;
-  const game = K.Game({ rng: mulberry32(seed), players: opts.players || 1, heroes: opts.heroes || ['smith', 'spark'],
-    floor: start, maxFloor: start + floors - 1 }).start();
+  const game = K.Game({ rng: mulberry32(seed), players: opts.players || 1, floor: start, maxFloor: start + floors - 1 }).start();
   const S = game.state(), h = 1 / 60;
-  const ctl = S.heroes.map(() => ({ next: 0, dx: 0, dy: 0, fire: false, lastX: 0, lastY: 0, stuckT: 0, jig: 0, jdx: 0, jdy: 0, side: 1 }));
-  const deaths = {}, floorTime = {};
-  let t = 0, tFloor = 0, curFloor = S.floor, stuck = 0, upPlan = { smith: ['arm', 'str', 'spd'], spark: ['str', 'spd', 'arm'] };
+  const ctl = S.heroes.map(() => ({ next: 0, dx: 0, dy: 0, fire: false, lx: 0, ly: 0, still: 0, jig: 0, jdx: 0, jdy: 0 }));
+  let t = 0, tFloor = 0, curFloor = S.floor, stuck = false, kills = 0, bestMult = 1, lit = 0;
+  const plan = ['bnc', 'arm', 'spd', 'arm', 'bnc', 'spd', 'arm', 'bnc'];
 
-  const passable = (tx, ty, keys, goal) => {
-    if (tx < 0 || ty < 0 || tx >= S.W || ty >= S.H) return false;
-    const k = ty * S.W + tx; if (goal && goal[k]) return true;
-    const c = S.grid[k]; if (c === '#') return false;
-    if (c === 'D') return keys > 0 && goal && goal.door;
-    return !S.lairs.some(l => l.hp > 0 && l.tx === tx && l.ty === ty);
-  };
-  // BFS от героя: dist и родитель — для пути к любой клетке
-  function bfs(hero, goal){
+  const pass = (tx, ty) => { if (tx < 0 || ty < 0 || tx >= S.W || ty >= S.H) return false; const c = S.grid[ty * S.W + tx]; return c === '.' || c === 'E'; };
+  function bfs(H){
     const n = S.W * S.H, d = new Int16Array(n).fill(-1), par = new Int32Array(n).fill(-1);
-    const s = Math.floor(hero.y / T) * S.W + Math.floor(hero.x / T), q = [s]; d[s] = 0;
+    const s = Math.floor(H.y / T) * S.W + Math.floor(H.x / T), q = [s]; d[s] = 0;
     for (let qi = 0; qi < q.length; qi++){
       const j = q[qi], x = j % S.W, y = (j / S.W) | 0;
-      if (goal && goal[j] && j !== s) continue;   // в цель (логово/дверь) входим, но не сквозь неё
-      for (const [ox, oy] of [[1,0],[-1,0],[0,1],[0,-1]]){
-        const nx = x + ox, ny = y + oy, k = ny * S.W + nx;
-        if (nx < 0 || ny < 0 || nx >= S.W || ny >= S.H || d[k] >= 0 || !passable(nx, ny, S.keys, goal)) continue;
-        d[k] = d[j] + 1; par[k] = j; q.push(k);
-      }
+      for (const [ox, oy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const nx = x + ox, ny = y + oy, k = ny * S.W + nx; if (d[k] >= 0 || !pass(nx, ny)) continue; d[k] = d[j] + 1; par[k] = j; q.push(k); }
     }
     return { d, par, s };
   }
-  function stepToward(B, k){   // первая клетка пути к k
-    let cur = k, prev = k;
-    while (B.par[cur] >= 0 && B.par[cur] !== B.s){ prev = cur; cur = B.par[cur]; }
-    if (B.par[cur] < 0 && cur !== B.s) return null;
-    return cur === B.s ? prev : cur;
+  function next(B, k){ let cur = k, prev = k; while (B.par[cur] >= 0 && B.par[cur] !== B.s){ prev = cur; cur = B.par[cur]; } if (cur === B.s) return prev === k && k === B.s ? null : (B.par[k] === B.s ? k : prev); return cur; }
+  function steer(H, C, B, goals){   // goals: множество клеток; идём к ближайшей
+    let best = -1, bd = 1e9; for (const k of goals) if (B.d[k] >= 0 && B.d[k] < bd){ bd = B.d[k]; best = k; }
+    if (best < 0) return false;
+    if (best === B.s){ const cx = (best % S.W) * T + T / 2, cy = ((best / S.W) | 0) * T + T / 2; C.dx = (cx - H.x) / 12; C.dy = (cy - H.y) / 12; clampDir(C); return 'here'; }
+    const k = next(B, best); if (k == null) return false;
+    const cx = (k % S.W) * T + T / 2, cy = ((k / S.W) | 0) * T + T / 2; const v = Math.hypot(cx - H.x, cy - H.y) || 1;
+    C.dx = (cx - H.x) / v; C.dy = (cy - H.y) / v; return true;
   }
+  function clampDir(C){ const l = Math.hypot(C.dx, C.dy); if (l > 1){ C.dx /= l; C.dy /= l; } }
   const inView = o => o.x > S.cam.x - T && o.x < S.cam.x + L.VIEW_W + T && o.y > S.cam.y - T && o.y < S.cam.y + L.VIEW_H + T;
-  const q8 = (vx, vy) => { const l = Math.hypot(vx, vy) || 1, x = vx / l, y = vy / l; return [Math.abs(x) > 0.38 ? Math.sign(x) : 0, Math.abs(y) > 0.38 ? Math.sign(y) : 0]; };
+  const los = (H, x, y) => L.losCells({ W: S.W }, Math.floor(H.x / T), Math.floor(H.y / T), Math.floor(x / T), Math.floor(y / T), S.grid);
+  function aim(H, C, x, y){ const a = Math.atan2(y - H.y, x - H.x) + (brng() - 0.5) * 0.2; C.dx = Math.cos(a) * 0.12; C.dy = Math.sin(a) * 0.12; C.fire = true; }
+  function spotsFor(l){   // клетки, откуда чаша видна по прямой и ближе 8 клеток
+    const out = []; for (let y = Math.max(0, l.ty - 8); y <= Math.min(S.H - 1, l.ty + 8); y++) for (let x = Math.max(0, l.tx - 8); x <= Math.min(S.W - 1, l.tx + 8); x++){
+      if (!pass(x, y) || Math.hypot(x - l.tx, y - l.ty) > 8 || Math.hypot(x - l.tx, y - l.ty) < 0.9) continue;
+      if (L.losCells({ W: S.W }, x, y, l.tx, l.ty, S.grid)) out.push(y * S.W + x);
+    }
+    return out;
+  }
+  function adj(l){ const out = []; for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) if ((ox || oy) && pass(l.tx + ox, l.ty + oy)) out.push((l.ty + oy) * S.W + l.tx + ox); return out; }
 
   function decide(pi){
-    const H = S.heroes[pi], C = ctl[pi]; if (!H.alive){ C.dx = C.dy = 0; C.fire = false; return; }
-    const st = L.heroStats(H), melee = L.HEROES[H.cls].melee;
+    const H = S.heroes[pi], C = ctl[pi]; C.fire = false;
+    if (!H.alive){ C.dx = C.dy = 0; return; }
+    const o = H.hoop, st = L.heroStats(H), B = bfs(H);
     const foes = S.enemies.filter(e => e.hp > 0 && inView(e)).map(e => ({ e, d: Math.hypot(e.x - H.x, e.y - H.y) })).sort((a, b) => a.d - b.d);
-    const lairs = S.lairs.filter(l => l.hp > 0 && inView(l));
-    // бомба — когда туго
-    const close = foes.filter(f => f.d < 4 * T).length;
-    if (S.potions > 0 && (close >= 6 || (H.hp < st.maxHp * 0.3 && close >= 2) || (S.boss && !S.boss.dead && S.boss.hp > 20 && H.hp < st.maxHp * 0.45 && inView(S.boss)))) game.bomb(pi);
-    let goalCells = null, direct = null, fire = false, tap = false, big = false;
-    const B0 = bfs(H, null);
-    const reach = (tx, ty) => B0.d[ty * S.W + tx];
-    // Бой: развернуться к цели (отпустив «огонь» — герой смотрит, куда идёт), затем зажать «огонь»
-    // (направление фиксируется) и двигаться как удобно: Кузнец — вплотную, Искорка — держит дистанцию.
-    const fight = (tx, ty, keep) => {
-      const want = q8(tx - H.x, ty - H.y), have = q8(H.face.x, H.face.y), d = Math.hypot(tx - H.x, ty - H.y);
-      if (melee){ direct = [tx - H.x, ty - H.y]; fire = d < keep[1] + 40; return; }   // Кузнец бьёт по ходу движения
-      // развернуться — короткое нажатие стрелки (≈50 мс), а не шаг навстречу врагу
-      // выстрелы ложатся в цель (видно по попаданиям), если она в пределах ~20° от взгляда
-      const cosA = ((tx - H.x) * H.face.x + (ty - H.y) * H.face.y) / (d || 1);
-      if (cosA < Math.cos(L.AIM_CONE * 0.85) && (want[0] !== have[0] || want[1] !== have[1])){ direct = [tx - H.x, ty - H.y]; fire = false; tap = true; return; }
-      fire = true;
-      // Искорка с зажатым «огнём» пятится и обходит цель по дуге (стрейф), сторону меняет, упёршись
-      const ux = (tx - H.x) / (d || 1), uy = (ty - H.y) / (d || 1), sx = -uy * C.side, sy = ux * C.side;
-      if (d < keep[0]) direct = [-ux + sx * 0.8, -uy + sy * 0.8];
-      else if (d > keep[1]) direct = [ux, uy];
-      else direct = big ? [sx, sy] : [0, 0];
-    };
-    // 1) босс
+    // застрял — дёрнуться в сторону
+    if (C.jig > 0){ C.jig -= 1; C.dx = C.jdx; C.dy = C.jdy; return; }
+    // 1) бой: обруч в руке, тварь близко и видна — бросок в неё
+    const threat = foes.find(f => f.d < 6 * T && los(H, f.e.x, f.e.y));
+    if (o.state === 'held' && threat && !(S.boss && o.hot > 0 && foes[0].d > 2.5 * T)){ aim(H, C, threat.e.x, threat.e.y); return; }
+    // обруч в полёте и тварь вплотную — пятиться
+    if (o.state !== 'held' && foes.length && foes[0].d < 2.2 * T){ const f = foes[0].e, v = Math.hypot(H.x - f.x, H.y - f.y) || 1; C.dx = (H.x - f.x) / v; C.dy = (H.y - f.y) / v; return; }
+    const litL = S.lamps.filter(l => l.lit), cold = S.lamps.filter(l => !l.lit);
+    // 2) мало здоровья — в свет
+    if (H.hp < st.maxHp * 0.4 && !S.boss){ const g = [].concat(...litL.map(adj)); if (steer(H, C, B, g)) return; }
+    // 3) Страж: горящим обручем — в Стража, холодным — к огню
     if (S.boss && !S.boss.dead){
-      const b = S.boss;
-      if (foes.length && foes[0].d < 2.2 * T) fight(foes[0].e.x, foes[0].e.y, melee ? [0, 20] : [1.4 * T, 3 * T]);
-      // Страж «набухает» перед кольцом плевков (видно на экране) — Кузнец отходит, потом снова в бой
-      else if (melee && b.ringT < 0.7 && Math.hypot(b.x - H.x, b.y - H.y) < 3.2 * T){ direct = [H.x - b.x, H.y - b.y]; fire = false; }
-      else { big = true; fight(b.x, b.y, melee ? [0, b.r + 14] : [3.5 * T, 6 * T]); }
+      const Bs = S.boss, d = Math.hypot(Bs.x - H.x, Bs.y - H.y);
+      if (d < Bs.r + 2.5 * T){ const v = d || 1; C.dx = (H.x - Bs.x) / v * 0.7 - (Bs.y - H.y) / v * 0.7; C.dy = (H.y - Bs.y) / v * 0.7 + (Bs.x - H.x) / v * 0.7; clampDir(C); if (o.state === 'held' && o.hot > 0.3 && Bs.guardT <= 0) aim(H, C, Bs.x, Bs.y); return; }
+      if (o.hot > 0.6 && o.state === 'held' && d < 9 * T && los(H, Bs.x, Bs.y)){ aim(H, C, Bs.x, Bs.y); return; }
+      if (o.hot <= 0.6){ const g = [].concat(...litL.map(adj)); if (steer(H, C, B, g)) return; }
+      else if (o.state === 'held'){ const bt = Math.floor(Bs.y / T) * S.W + Math.floor(Bs.x / T), g = []; for (let k = 0; k < S.W * S.H; k++){ const x = k % S.W, y = (k / S.W) | 0; if (pass(x, y) && Math.hypot(x * T + 16 - Bs.x, y * T + 16 - Bs.y) < 6 * T && Math.hypot(x * T + 16 - Bs.x, y * T + 16 - Bs.y) > 3.5 * T && L.losCells({ W: S.W }, x, y, bt % S.W, (bt / S.W) | 0, S.grid)) g.push(k); } if (steer(H, C, B, g)) return; }
+      // держать дистанцию, обходя кругом
+      const v = d || 1, k = d < 5 * T ? -1 : 1; C.dx = (Bs.x - H.x) / v * k * 0.6 + -(Bs.y - H.y) / v * 0.6; C.dy = (Bs.y - H.y) / v * k * 0.6 + (Bs.x - H.x) / v * 0.6; clampDir(C); return;
     }
-    // 2) враги рядом
-    else if (foes.length && foes[0].d < (melee ? 3.2 : 5) * T && (los(H.x, H.y, foes[0].e.x, foes[0].e.y) || reach(Math.floor(foes[0].e.x / T), Math.floor(foes[0].e.y / T)) >= 0)){
-      const f = foes[0].e;
-      // в прямой видимости — бить; иначе подойти по карте
-      if (los(H.x, H.y, f.x, f.y)) fight(f.x, f.y, melee ? [0, 18] : [1.8 * T, 4 * T]);
-      else goalCells = { [Math.floor(f.y / T) * S.W + Math.floor(f.x / T)]: 1 };
-    }
-    if (!direct && !goalCells){
-      // 3) логово в кадре и доступно
-      const lr = lairs.map(l => ({ l, d: reachLair(B0, l) })).filter(o => o.d >= 0 && o.d <= 14).sort((a, b) => a.d - b.d)[0];
-      const items = S.items.filter(it => !it.taken).map(it => ({ it, d: reach(it.tx, it.ty) })).filter(o => o.d >= 0);
-      const food = items.filter(o => o.it.kind === 'food').sort((a, b) => a.d - b.d)[0];
-      const near = items.filter(o => (o.it.kind === 'chest' || o.it.kind === 'potion') && o.d <= 7).sort((a, b) => a.d - b.d)[0];
-      if (food && H.hp < st.maxHp * 0.55 && food.d < 30) goalCells = cellGoal(food.it);
-      else if (lr){
-        const l = lr.l, dd = Math.hypot(l.x - H.x, l.y - H.y);
-        if ((melee ? dd < 1.5 * T : dd < 4 * T) && los(H.x, H.y, l.x, l.y, l)) fight(l.x, l.y, melee ? [0, 30] : [1.5 * T, 3.5 * T]);
-        else goalCells = { [l.ty * S.W + l.tx]: 1 };
+    // 4) печать открыта — к спуску
+    if (S.sealOpen && S.exit){ steer(H, C, B, [S.exit.ty * S.W + S.exit.tx]); return; }
+    // 5) холодная чаша: горящим обручем — к месту броска; иначе — окунуть в огонь
+    if (o.hot > 1 && cold.length){
+      let bestL = null, bestK = -1, bd = 1e9;
+      for (const l of cold) for (const k of spotsFor(l)) if (B.d[k] >= 0 && B.d[k] < bd){ bd = B.d[k]; bestL = l; bestK = k; }
+      if (bestL){
+        if (B.d[bestK] <= 0 || (Math.hypot(bestL.x - H.x, bestL.y - H.y) < 8 * T && los(H, bestL.x, bestL.y))){ if (o.state === 'held') aim(H, C, bestL.x, bestL.y); else { C.dx = C.dy = 0; } return; }
+        steer(H, C, B, [bestK]); return;
       }
-      else if (near) goalCells = cellGoal(near.it);
-      else if (S.exit && reach(S.exit.tx, S.exit.ty) >= 0) goalCells = { [S.exit.ty * S.W + S.exit.tx]: 1 };
-      else {
-        const key = items.filter(o => o.it.kind === 'key').sort((a, b) => a.d - b.d)[0];
-        if (key) goalCells = cellGoal(key.it);
-        else if (S.keys > 0){ goalCells = { door: true }; S.grid.forEach((c, i) => { if (c === 'D') goalCells[i] = 1; }); }
-        else if (food) goalCells = cellGoal(food.it);
-      }
+      if (steer(H, C, B, [].concat(...cold.map(adj)))) return;
     }
-    // уворот от плевков: если плевок пройдёт впритирку в ближайшие ~0.6 с — шаг поперёк его полёта
-    let dodge = null;
-    for (const s of S.spits){
-      if (!inView(s)) continue;
-      const rx = H.x - s.x, ry = H.y - s.y, v2 = s.vx * s.vx + s.vy * s.vy, tt = (rx * s.vx + ry * s.vy) / v2;
-      if (tt < 0 || tt > 0.6) continue;
-      const mx = rx - s.vx * tt, my = ry - s.vy * tt, miss = Math.hypot(mx, my);
-      if (miss < H.r + s.r + 6){ const px = -s.vy, py = s.vx, sg = (mx * px + my * py) >= 0 ? 1 : -1; dodge = [px * sg, py * sg]; break; }
-    }
-    if (dodge && !tap){ direct = dodge; if (melee) fire = false; }
-    let dx = 0, dy = 0;
-    if (direct && !direct[0] && !direct[1]) direct = null, dx = dy = 0;
-    else if (direct) [dx, dy] = q8(direct[0], direct[1]);
-    else if (goalCells){
-      const B = goalCells === null ? B0 : bfs(H, goalCells);
-      let bestK = -1, bd = 1e9;
-      for (const k in goalCells){ if (k === 'door') continue; const v = B.d[k]; if (v >= 0 && v < bd){ bd = v; bestK = +k; } }
-      if (bestK >= 0){
-        const nk = stepToward(B, bestK);
-        if (nk != null){ const nx = (nk % S.W) * T + T / 2, ny = ((nk / S.W) | 0) * T + T / 2; [dx, dy] = q8(nx - H.x, ny - H.y);
-          if (bd <= 1){ const gx = (bestK % S.W) * T + T / 2, gy = ((bestK / S.W) | 0) * T + T / 2; [dx, dy] = q8(gx - H.x, gy - H.y); } }
-      }
-    }
-    // застревание — шаг в сторону
-    if (Math.hypot(H.x - C.lastX, H.y - C.lastY) < 2 && (dx || dy)) C.stuckT += C.dt || 0.25; else C.stuckT = 0;
-    C.lastX = H.x; C.lastY = H.y;
-    if (C.stuckT > 0.4) C.side = -C.side;
-    if (C.stuckT > 0.8){ C.jig = 0.35; const a = (brng() * 8) | 0; C.jdx = [1,1,0,-1,-1,-1,0,1][a]; C.jdy = [0,1,1,1,0,-1,-1,-1][a]; C.stuckT = 0; }
-    if (C.jig > 0){ dx = C.jdx; dy = C.jdy; fire = false; }
-    C.dx = dx; C.dy = dy; C.fire = fire; C.tap = tap ? 0.05 : -1;
-  }
-  // прямая видимость (по клеткам: стены, двери и живые логова, кроме цели) — как «вижу и могу попасть»
-  function los(x0, y0, x1, y1, target){
-    const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 8);
-    for (let i = 1; i < n; i++){
-      const x = x0 + (x1 - x0) * i / n, y = y0 + (y1 - y0) * i / n, tx = Math.floor(x / T), ty = Math.floor(y / T), c = S.grid[ty * S.W + tx];
-      if (c === '#' || c === 'D') return false;
-      if (S.lairs.some(l => l !== target && l.hp > 0 && l.tx === tx && l.ty === ty)) return false;
-    }
-    return true;
-  }
-  function cellGoal(it){ return { [it.ty * S.W + it.tx]: 1 }; }
-  function reachLair(B0, l){
-    let best = -1;
-    for (const [ox, oy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const v = B0.d[(l.ty + oy) * S.W + l.tx + ox]; if (v >= 0 && (best < 0 || v < best)) best = v; }
-    return best;
+    if (o.state === 'held' && o.hot <= 1){ const g = [].concat(...litL.map(adj)); if (steer(H, C, B, g)) return; }
+    C.dx = C.dy = 0;
   }
 
+  game.update(h);
   while (!S.over){
+    t += h; tFloor += h;
+    if (S.floor !== curFloor){ curFloor = S.floor; tFloor = 0; }
     if (S.phase === 'upgrade'){
-      S.heroes.forEach((H, pi) => { if (!S.upDone[pi]){ const plan = upPlan[H.cls]; const pick = plan.find(k => H.up[k] < L.UPG_MAX && H.up[k] <= Math.min(...plan.map(p => H.up[p]))) || plan[0]; game.choose(pi, L.UPG.indexOf(pick)); } });
-    } else if (S.phase === 'play'){
-      S.heroes.forEach((H, pi) => {
-        const C = ctl[pi];
-        C.jig -= h;
-        if (t >= C.next){ C.dt = r0 + brng() * (r1 - r0); C.next = t + C.dt; decide(pi); }
-        const held = C.tap < 0 || C.tap > 0; if (C.tap > 0) C.tap = Math.max(0, C.tap - h);
-        game.setDir(pi, held ? C.dx : 0, held ? C.dy : 0); game.setFire(pi, C.fire);
-      });
-    } else S.heroes.forEach((H, pi) => { game.setDir(pi, 0, 0); game.setFire(pi, false); });
-    const alive = S.heroes.map(x => x.alive);
-    game.update(h); t += h; tFloor += h;
-    S.heroes.forEach((H, i) => { if (alive[i] && !H.alive) deaths[S.floor] = (deaths[S.floor] || 0) + 1; });
-    if (S.floor !== curFloor){ floorTime[curFloor] = tFloor; curFloor = S.floor; tFloor = 0; }
-    if (tFloor > maxFloorT){ stuck = S.floor; break; }
+      S.heroes.forEach((H, i) => { if (!S.upDone[i]) game.choose(i, L.UPG.indexOf(plan[Math.min(plan.length - 1, S.floor - 1)])); });
+      game.update(h); continue;
+    }
+    S.heroes.forEach((H, i) => {
+      const C = ctl[i];
+      if (t >= C.next){
+        C.next = t + r0 + brng() * (r1 - r0);
+        const moved = Math.hypot(H.x - C.lx, H.y - C.ly); C.lx = H.x; C.ly = H.y;
+        if (Math.hypot(C.dx, C.dy) > 0.5 && moved < 2){ C.still++; if (C.still > 5){ C.still = 0; C.jig = 2; const a = brng() * 6.28; C.jdx = Math.cos(a); C.jdy = Math.sin(a); } } else C.still = 0;
+        decide(i);
+      } else if (C.fire){ C.fire = false; }   // нажатие — короткое
+      game.setDir(i, C.dx, C.dy); game.setFire(i, C.fire);
+    });
+    game.update(h);
+    if (tFloor > maxFloorT){ stuck = true; break; }
   }
-  if (S.over || stuck) floorTime[curFloor] = tFloor;
-  const passed = S.won ? floors : (S.floor - start);
-  return { passed, won: S.won, floor: S.floor, deaths, floorTime, stuck, score: S.score, hp: S.heroes.map(x => Math.round(x.hp)) };
+  return { won: S.won, floor: S.floor, passed: S.won ? S.maxFloor - start + 1 : S.floor - start, stuck, score: S.score, t, deaths: S.heroes.reduce((a, H) => a + H.deaths, 0), boss: S.boss ? S.boss.hp : null };
 }

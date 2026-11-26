@@ -201,12 +201,12 @@
       // тач-кнопки: удержание (прыжок, огонь, луч) и нажатия (колесо, молния, пауза)
       document.querySelectorAll('.pad [data-hold]').forEach(function (b) {
         var name = b.getAttribute('data-hold');
-        var on = function (e) { e.preventDefault(); acts.hold(name, true); }, off = function (e) { e.preventDefault(); acts.hold(name, false); };
+        var on = function (e) { if (!Arcade.touchOk(e)) return; acts.hold(name, true); }, off = function (e) { if (!Arcade.touchOk(e)) return; acts.hold(name, false); };
         b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('touchend', off, { passive: false }); b.addEventListener('touchcancel', off, { passive: false });
         b.addEventListener('mousedown', on); b.addEventListener('mouseup', off); b.addEventListener('mouseleave', off);
       });
       document.querySelectorAll('.pad [data-tap]').forEach(function (b) {
-        var name = b.getAttribute('data-tap'), h = function (e) { e.preventDefault(); e.stopPropagation(); acts.tap(name); };
+        var name = b.getAttribute('data-tap'), h = function (e) { e.stopPropagation(); if (!Arcade.touchOk(e)) return; acts.tap(name); };
         b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h);
       });
     },

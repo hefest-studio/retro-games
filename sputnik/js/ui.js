@@ -112,7 +112,7 @@
       var pb = $('bPause');
       if (pb) {
         var onPause = function (e) {
-          e.preventDefault(); e.stopPropagation();
+          e.stopPropagation(); if (!Arcade.touchOk(e)) return;
           if (g._sceneName === 'play') g.pause();
           else if (g._sceneName === 'pause') g.goto('play', { resume: true });
         };
@@ -120,7 +120,7 @@
       }
       var bq = $('bQuench');
       if (bq) {
-        var onQ = function (e) { e.preventDefault(); e.stopPropagation(); onQuench(); };
+        var onQ = function (e) { e.stopPropagation(); if (!Arcade.touchOk(e)) return; onQuench(); };
         bq.addEventListener('touchstart', onQ, { passive: false }); bq.addEventListener('mousedown', onQ);
       }
     },

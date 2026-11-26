@@ -225,13 +225,13 @@
   addEventListener('blur', function () { held = {}; refresh(); padFire = false; });
   (function () {
     var b = document.getElementById('bFire'); if (!b) return;
-    var on = function (e) { e.preventDefault(); padFire = true; if (inPlay()) game.fire(); }, off = function (e) { e.preventDefault(); padFire = false; };
+    var on = function (e) { if (!Arcade.touchOk(e)) return; padFire = true; if (inPlay()) game.fire(); }, off = function (e) { if (!Arcade.touchOk(e)) return; padFire = false; };
     b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('touchend', off, { passive: false }); b.addEventListener('touchcancel', off, { passive: false });
     b.addEventListener('mousedown', on); b.addEventListener('mouseup', off); b.addEventListener('mouseleave', off);
   })();
   (function () {
     var b = document.getElementById('bPause'); if (!b) return;
-    var h = function (e) { e.preventDefault(); if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); };
+    var h = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); };
     b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h);
   })();
 

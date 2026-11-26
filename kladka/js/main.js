@@ -192,14 +192,14 @@
   function canvasX(e) { var r = cv.getBoundingClientRect(); return (e.clientX - r.left) * (g.W / r.width); }
   function live() { return g._sceneName === 'play' && game && g.time - playSince > 0.25; }
   cv.addEventListener('mousemove', function (e) { if (live()) game.setTarget(canvasX(e)); });
-  cv.addEventListener('mousedown', function (e) { if (live()) { if (adGo()) return; game.setTarget(canvasX(e)); game.action(); } });
+  cv.addEventListener('mousedown', function (e) { if (!Arcade.touchOk(e)) return; if (live()) { if (adGo()) return; game.setTarget(canvasX(e)); game.action(); } });
   var touch = null;   // перетаскивание: мастерок едет на смещение пальца; короткий тап — пуск/резак
   cv.addEventListener('touchstart', function (e) {
-    if (!live()) return; e.preventDefault(); if (adGo()) return;
+    if (!live()) return; Arcade.touchOk(e); if (adGo()) return;
     var t = e.changedTouches[0]; touch = { id: t.identifier, x0: canvasX(t), px: game.state().paddle.x, cx: t.clientX, cy: t.clientY, at: Date.now(), moved: false };
   }, { passive: false });
   cv.addEventListener('touchmove', function (e) {
-    if (!touch || !live()) return; e.preventDefault();
+    if (!touch || !live()) return; Arcade.touchOk(e);
     for (var i = 0; i < e.changedTouches.length; i++) {
       var t = e.changedTouches[i]; if (t.identifier !== touch.id) continue;
       if (Math.abs(t.clientX - touch.cx) + Math.abs(t.clientY - touch.cy) > 8) touch.moved = true;
@@ -208,7 +208,7 @@
   }, { passive: false });
   cv.addEventListener('touchend', function (e) {
     if (!touch) return;
-    if (live()) { e.preventDefault(); if (!touch.moved && Date.now() - touch.at < 300) game.action(); }
+    if (live()) { Arcade.touchOk(e); if (!touch.moved && Date.now() - touch.at < 300) game.action(); }
     touch = null;
   }, { passive: false });
 

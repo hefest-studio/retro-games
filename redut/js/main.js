@@ -162,7 +162,7 @@
   function bindTouch() {
     function hold(id, dir) {
       var el = document.getElementById(id); if (!el) return;
-      var set = function (v) { return function (ev) { ev.preventDefault(); if (running && !game.isPaused()) game.setHeld(0, dir, v); }; };
+      var set = function (v) { return function (ev) { if (!Arcade.touchOk(ev)) return; if (running && !game.isPaused()) game.setHeld(0, dir, v); }; };
       el.addEventListener('touchstart', set(true), { passive: false });
       el.addEventListener('touchend', set(false), { passive: false });
       el.addEventListener('mousedown', set(true)); el.addEventListener('mouseup', set(false)); el.addEventListener('mouseleave', set(false));
@@ -170,7 +170,7 @@
     hold('tUp', 'up'); hold('tDown', 'down'); hold('tLeft', 'left'); hold('tRight', 'right');
     var f = document.getElementById('tFire');
     if (f) {
-      var h = function (ev) { ev.preventDefault(); if (!running) { startGame(); return; } if (!game.isPaused()) game.fire(0); };
+      var h = function (ev) { if (!Arcade.touchOk(ev)) return; if (!running) { startGame(); return; } if (!game.isPaused()) game.fire(0); };
       f.addEventListener('touchstart', h, { passive: false }); f.addEventListener('mousedown', h);
     }
   }

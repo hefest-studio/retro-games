@@ -165,7 +165,7 @@
       sync(g); setInterval(function () { sync(g); }, 250);
       function btn(id, fn) {
         var b = $(id); if (!b) return;
-        var h = function (e) { e.preventDefault(); e.stopPropagation(); fn(); };
+        var h = function (e) { e.stopPropagation(); if (!Arcade.touchOk(e)) return; fn(); };
         b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h);
       }
       btn('bPause', function () { if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); });

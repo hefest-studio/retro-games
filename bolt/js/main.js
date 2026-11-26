@@ -130,7 +130,7 @@
     var map = { tLeft: ['left'], tRight: ['right'] };
     function hold(id, name, val) {
       var el = document.getElementById(id); if (!el) return;
-      var set = function (v) { return function (ev) { ev.preventDefault(); if (running && !game.isPaused()) game.setHeld(name, v); }; };
+      var set = function (v) { return function (ev) { if (!Arcade.touchOk(ev)) return; if (running && !game.isPaused()) game.setHeld(name, v); }; };
       el.addEventListener('touchstart', set(true), { passive: false });
       el.addEventListener('touchend', set(false), { passive: false });
       el.addEventListener('mousedown', set(true)); el.addEventListener('mouseup', set(false)); el.addEventListener('mouseleave', set(false));
@@ -138,7 +138,7 @@
     hold('tLeft', 'left'); hold('tRight', 'right');
     function tap(id, fn) {
       var el = document.getElementById(id); if (!el) return;
-      var h = function (ev) { ev.preventDefault(); if (!running) { startGame(); return; } if (!game.isPaused()) fn(); };
+      var h = function (ev) { if (!Arcade.touchOk(ev)) return; if (!running) { startGame(); return; } if (!game.isPaused()) fn(); };
       el.addEventListener('touchstart', h, { passive: false }); el.addEventListener('mousedown', h);
     }
     tap('tJump', function () { game.jump(); });

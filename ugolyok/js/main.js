@@ -119,8 +119,8 @@
       U.ui.txt(this, this.t('cardNext'), this.W / 2, this.H / 2 + 48, { size: 13, align: 'center', color: th.muted, weight: 600, maxWidth: this.W - 40 }, P);
     }
   });
-  g.canvas.addEventListener('mousedown', function () { if (g._sceneName === 'card') cardGo(); });
-  g.canvas.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { e.preventDefault(); cardGo(); } }, { passive: false });
+  g.canvas.addEventListener('mousedown', function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'card') cardGo(); });
+  g.canvas.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { Arcade.touchOk(e); cardGo(); } }, { passive: false });
   ['win', 'gameover'].forEach(function (name) {
     var sc = g.scenes[name], baseDraw = sc.draw;
     sc.draw = function (ctx) {

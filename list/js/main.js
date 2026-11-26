@@ -212,14 +212,14 @@
   addEventListener('blur', function () { pad.grab = pad.use = pad.slot = false; });
   function holdBtn(id, key) {
     var b = document.getElementById(id); if (!b) return;
-    var on = function (e) { e.preventDefault(); pad[key] = true; }, off = function (e) { e.preventDefault(); pad[key] = false; };
+    var on = function (e) { if (!Arcade.touchOk(e)) return; pad[key] = true; }, off = function (e) { if (!Arcade.touchOk(e)) return; pad[key] = false; };
     b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('touchend', off, { passive: false }); b.addEventListener('touchcancel', off, { passive: false });
     b.addEventListener('mousedown', on); b.addEventListener('mouseup', off); b.addEventListener('mouseleave', off);
   }
   holdBtn('bGrab', 'grab'); holdBtn('bUse', 'use'); holdBtn('bSlot', 'slot');
   (function () {
     var bp = document.getElementById('bPause');
-    if (bp) { var h = function (e) { e.preventDefault(); if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); }; bp.addEventListener('touchstart', h, { passive: false }); bp.addEventListener('mousedown', h); }
+    if (bp) { var h = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); }; bp.addEventListener('touchstart', h, { passive: false }); bp.addEventListener('mousedown', h); }
   })();
 
   // ---------- DOM: подгонка канвы, подписи, тема страницы ----------

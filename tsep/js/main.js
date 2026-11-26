@@ -205,14 +205,14 @@
   addEventListener('blur', function () { held = {}; recompute(); pad.atk = pad.sub = false; });
   function hold(id, on, off) {
     var b = document.getElementById(id); if (!b) return;
-    var h1 = function (e) { e.preventDefault(); on(); b.classList.add('on'); }, h0 = function (e) { e.preventDefault(); off(); b.classList.remove('on'); };
+    var h1 = function (e) { if (!Arcade.touchOk(e)) return; on(); b.classList.add('on'); }, h0 = function (e) { if (!Arcade.touchOk(e)) return; off(); b.classList.remove('on'); };
     b.addEventListener('touchstart', h1, { passive: false }); b.addEventListener('touchend', h0, { passive: false }); b.addEventListener('touchcancel', h0, { passive: false });
     b.addEventListener('mousedown', h1); b.addEventListener('mouseup', h0); b.addEventListener('mouseleave', function () { if (b.classList.contains('on')) h0(new Event('x')); });
   }
   hold('bAtk', function () { pad.atk = true; }, function () { pad.atk = false; });
   hold('bSub', function () { pad.sub = true; }, function () { pad.sub = false; });
   var bp = document.getElementById('bPause');
-  if (bp) { var hp = function (e) { e.preventDefault(); if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); }; bp.addEventListener('touchstart', hp, { passive: false }); bp.addEventListener('mousedown', hp); }
+  if (bp) { var hp = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); }; bp.addEventListener('touchstart', hp, { passive: false }); bp.addEventListener('mousedown', hp); }
 
   // ---------- DOM: подгонка канвы, подписи, тема страницы ----------
   function fit() {

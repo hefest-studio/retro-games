@@ -185,6 +185,7 @@
   var cv = g.canvas;
   function canvasY(e) { var b = cv.getBoundingClientRect(); return (e.clientY - b.top) * (g.H / b.height); }
   function shopTap(e) {
+    if (!e.changedTouches && !Arcade.touchOk(e)) return;   // эмуляция мыши после касания — касание уже обработано
     if (g._sceneName !== 'play' || !inShop()) return;
     var p = e.changedTouches ? e.changedTouches[0] : e, i = Z.ui.shopRowAt(canvasY(p));
     if (i < 0) return;

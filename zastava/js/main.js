@@ -186,20 +186,20 @@
   function canvasX(e) { var r = cv.getBoundingClientRect(); return (e.clientX - r.left) * (g.W / r.width); }
   function live() { return g._sceneName === 'play' && game && g.time - playSince > 0.25; }
   cv.addEventListener('touchstart', function (e) {
-    if (!live()) return; e.preventDefault();
+    if (!live()) return; Arcade.touchOk(e);
     var t = e.changedTouches[0]; touch = { id: t.identifier, at: Date.now(), cx: t.clientX, moved: false }; touchX = canvasX(t);
   }, { passive: false });
   cv.addEventListener('touchmove', function (e) {
-    if (!touch || !live()) return; e.preventDefault();
+    if (!touch || !live()) return; Arcade.touchOk(e);
     for (var i = 0; i < e.changedTouches.length; i++) { var t = e.changedTouches[i]; if (t.identifier !== touch.id) continue; if (Math.abs(t.clientX - touch.cx) > 8) touch.moved = true; touchX = canvasX(t); }
   }, { passive: false });
   cv.addEventListener('touchend', function (e) {
     if (!touch) return;
-    if (live()) { e.preventDefault(); if (!touch.moved && Date.now() - touch.at < 300) game.action(); }
+    if (live()) { Arcade.touchOk(e); if (!touch.moved && Date.now() - touch.at < 300) game.action(); }
     touch = null; touchX = null;
   }, { passive: false });
-  cv.addEventListener('mousedown', function () { if (live()) game.action(); else if (g._sceneName === 'card') cardGo(); });
-  cv.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { e.preventDefault(); cardGo(); } }, { passive: false });
+  cv.addEventListener('mousedown', function (e) { if (!Arcade.touchOk(e)) return; if (live()) game.action(); else if (g._sceneName === 'card') cardGo(); });
+  cv.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { Arcade.touchOk(e); cardGo(); } }, { passive: false });
 
   g.start('title');
   Z.app = { g: g, game: function () { return game; } };   // для отладки/автотестов в браузере

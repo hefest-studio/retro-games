@@ -171,7 +171,7 @@
   addEventListener('blur', function () { held = {}; pad.charge = pad.res = false; });
   function hold(id, on, off) {
     var b = document.getElementById(id); if (!b) return;
-    var h1 = function (e) { e.preventDefault(); on(); b.classList.add('on'); }, h0 = function (e) { e.preventDefault(); off(); b.classList.remove('on'); };
+    var h1 = function (e) { if (!Arcade.touchOk(e)) return; on(); b.classList.add('on'); }, h0 = function (e) { if (!Arcade.touchOk(e)) return; off(); b.classList.remove('on'); };
     b.addEventListener('touchstart', h1, { passive: false }); b.addEventListener('touchend', h0, { passive: false }); b.addEventListener('touchcancel', h0, { passive: false });
     b.addEventListener('mousedown', h1); b.addEventListener('mouseup', h0); b.addEventListener('mouseleave', function () { if (b.classList.contains('on')) { off(); b.classList.remove('on'); } });
   }
@@ -179,7 +179,7 @@
   hold('bDrone', function () { if (g._sceneName === 'play') { if (game && S().phase === 'cut') game.skip(); else aimToggle(); } }, function () {});
   (function () {
     var b = document.getElementById('bPause'); if (!b) return;
-    var h = function (e) { e.preventDefault(); aim = null; if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); };
+    var h = function (e) { if (!Arcade.touchOk(e)) return; aim = null; if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); };
     b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h);
   })();
   function canvasPoint(e) {
@@ -189,8 +189,8 @@
     var r = g.canvas.getBoundingClientRect(), x = (e.clientX - r.left) * (VW / r.width) / TS, y = (e.clientY - r.top) * (VH / r.height) / TS;
     game.sendDrone(x, y); aim = null;
   }
-  g.canvas.addEventListener('mousedown', function (e) { canvasPoint(e); });
-  g.canvas.addEventListener('touchstart', function (e) { if (g._sceneName === 'play') { e.preventDefault(); canvasPoint(e.changedTouches[0]); } }, { passive: false });
+  g.canvas.addEventListener('mousedown', function (e) { if (Arcade.touchOk(e)) canvasPoint(e); });
+  g.canvas.addEventListener('touchstart', function (e) { if (g._sceneName === 'play') { Arcade.touchOk(e); canvasPoint(e.changedTouches[0]); } }, { passive: false });
 
   // ---------- DOM: подгонка канвы, подписи, тема страницы ----------
   function fit() {

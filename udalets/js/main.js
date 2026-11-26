@@ -184,7 +184,7 @@
   addEventListener('blur', function () { held = {}; extraJump = false; });
   function tap(id, fn) {
     var b = document.getElementById(id); if (!b) return;
-    var h = function (e) { e.preventDefault(); fn(); };
+    var h = function (e) { if (!Arcade.touchOk(e)) return; fn(); };
     b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h);
   }
   tap('bPuff', function () { puffAct(); });
