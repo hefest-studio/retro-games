@@ -20,6 +20,17 @@
   };
   var g = Arcade.createGame({ canvas: '#c', width: VW, height: VH, gameId: 'hd-brawl', strings: STR, theme: 'modern', lives: 3, themes: themes });
   var ctx = g.ctx; ctx.imageSmoothingEnabled = false;
+  // ---------- Пиксельный шрифт вместо системного: все тексты движка (меню, оверлеи, подсказки) идут через g.text ----------
+  var F = HB.font;
+  g.text = function (s, x, y, o) { o = o || {}; F.draw(this.ctx, s, x, y, { size: o.size, color: o.color || this.th().ink, align: o.align, baseline: o.baseline, maxWidth: o.maxWidth, ink: PAL[1] }); };
+  // Затемнение без полупрозрачности (иначе цвета вне палитры): шахматка чернилами 50 %.
+  var dith = (function () { var c = document.createElement('canvas'); c.width = 2; c.height = 2; var x = c.getContext('2d'); x.fillStyle = PAL[1]; x.fillRect(0, 0, 1, 1); x.fillRect(1, 1, 1, 1); return ctx.createPattern(c, 'repeat'); })();
+  function dim() { ctx.fillStyle = dith; ctx.fillRect(0, 0, VW, VH); }
+  g.overlay = function (title, sub, color) {
+    var th = this.th(); dim();
+    this.text(title, VW / 2, VH / 2 - 20, { size: 40, align: 'center', color: color || th.accent, maxWidth: VW - 24 });
+    if (sub) this.text(sub, VW / 2, VH / 2 + 14, { size: 15, align: 'center', color: th.muted, maxWidth: VW - 24 });
+  };
 
   // ---------- Целый масштаб холста ----------
   var cv = g.canvas;
@@ -71,8 +82,11 @@
   }
 
   // ---------- Мир боя ----------
-  var ATK = { hit1: { len: 14, on: 3, off: 6, dmg: 6, reach: 30, next: 'hit2' }, hit2: { len: 15, on: 3, off: 7, dmg: 7, reach: 31, next: 'hit3' },
-    hit3: { len: 22, on: 4, off: 9, dmg: 11, reach: 34, heavy: true }, air: { len: 30, on: 2, off: 22, dmg: 9, reach: 32, heavy: true } };
+  // Удар = предвосхищение (a) → удар (активные кадры on..off) → возврат (r). ph — до какого тика кадр «a», до какого — сам удар.
+  var ATK = { hit1: { len: 15, on: 4, off: 7, dmg: 6, reach: 42, next: 'hit2', fr: 'jab', ph: [4, 9] },
+    hit2: { len: 17, on: 5, off: 8, dmg: 7, reach: 46, next: 'hit3', fr: 'cross', ph: [5, 11] },
+    hit3: { len: 26, on: 7, off: 11, dmg: 11, reach: 50, heavy: true, fr: 'kick', ph: [7, 15] },
+    air: { len: 30, on: 2, off: 22, dmg: 9, reach: 46, heavy: true } };
   var game = null;
   function fighter(set, x, z, hp, face) { return { set: set, x: x, z: z, y: 0, vx: 0, vz: 0, vy: 0, face: face || 1, st: 'idle', t: 0, hp: hp, max: hp, flash: 0, atk: null, hitSet: [], cd: 60, inv: 0, combo: 0, buf: false }; }
   var WAVES = [{ at: 120, list: ['stokerA', 'stokerA'] }, { at: 560, list: ['stokerA', 'stokerB', 'stokerA'] }, { at: 960, list: ['stokerB', 'stokerA', 'stokerB', 'stokerB'] }];
@@ -128,10 +142,10 @@
   }
   function dust(x, y) { for (var i = 0; i < 6; i++) game.fx.push({ x: x + (Math.random() * 16 - 8), y: y, vx: (Math.random() - 0.5) * 1.2, vy: -Math.random() * 0.6, life: 16, c: i & 1 ? 14 : 13, s: 2, grav: 0 }); }
   function hit(att, tgt, A) {
-    tgt.hp -= A.dmg; tgt.flash = 4; att.hitSet.push(tgt);
+    tgt.hp -= A.dmg; tgt.flash = 2; att.hitSet.push(tgt);
     var heavy = !!A.heavy || tgt.hp <= 0;
     game.stop = heavy ? 4 : 3; game.shake = heavy ? 8 : 5; game.shakeA = heavy ? 3 : 2;
-    var hx = tgt.x - att.face * 6, hy = Wd.FLOOR_TOP + tgt.z - tgt.y - 30;
+    var hx = tgt.x - att.face * 8, hy = Wd.FLOOR_TOP + tgt.z - tgt.y - 40;
     spark(hx, hy, heavy);
     game.nums.push({ x: tgt.x, y: hy - 6, v: A.dmg, life: 40, c: tgt === game.hero ? 5 : 7 });
     if (tgt.set !== 'hero') g.state.score += A.dmg * 10;
@@ -144,7 +158,7 @@
     for (var i = 0; i < targets.length; i++) {
       var t = targets[i]; if (t.hp <= 0 && t.st === 'down') continue; if (t.inv > 0 || t.st === 'fall' || t.st === 'down' || t.st === 'getup') continue;
       if (f.hitSet.indexOf(t) >= 0) continue;
-      var dx = (t.x - f.x) * f.face; if (dx < 4 || dx > A.reach) continue; if (Math.abs(t.z - f.z) > 9) continue; if (Math.abs(t.y - f.y) > 26) continue;
+      var dx = (t.x - f.x) * f.face; if (dx < 4 || dx > A.reach) continue; if (Math.abs(t.z - f.z) > 9) continue; if (Math.abs(t.y - f.y) > 34) continue;
       hit(f, t, A);
     }
   }
@@ -156,7 +170,7 @@
     if (f.y === 0 && f.st !== 'fall') f.vx *= 0.8;
     f.z = Math.max(0, Math.min(Wd.FLOOR_D, f.z));
     f.x = Math.max(game.cam + 10, Math.min(Math.min(game.lock, Wd.LEN) - 10 + (f.set === 'hero' ? 0 : 60), f.x));
-    if (f.flash > 0) f.flash--; if (f.inv > 0) f.inv--;
+    if (f.inv > 0) f.inv--;
   }
   function landed(f) {
     if (f.st === 'fall') { setSt(f, 'down'); f.vx = 0; dust(f.x, Wd.FLOOR_TOP + f.z); game.shake = Math.max(game.shake, 4); game.shakeA = 1; }
@@ -167,7 +181,7 @@
     if (f.st === 'atk') { var A = ATK[f.atk]; if (f.atk !== 'air' && f.t >= A.len) { if (f.buf && A.next) startAtk(f, A.next); else setSt(f, 'idle'); } }
     else if (f.st === 'hurt' && f.t >= 18) setSt(f, 'idle');
     else if (f.st === 'down' && f.t >= (f.hp <= 0 ? 70 : 44)) { if (f.hp > 0) { setSt(f, 'getup'); } }
-    else if (f.st === 'getup' && f.t >= 10) { setSt(f, 'idle'); f.inv = 30; }
+    else if (f.st === 'getup' && f.t >= 20) { setSt(f, 'idle'); f.inv = 30; }
   }
 
   // ---------- Герой ----------
@@ -201,16 +215,16 @@
     var free = e.st === 'idle' || e.st === 'walk';
     if (free) {
       e.cd--;
-      var side = e.x < h.x ? -1 : 1, tx = h.x + side * 26, tz = h.z + (idx % 2 ? 6 : -6) * (game.foes.length > 2 ? 1 : 0);
+      var side = e.x < h.x ? -1 : 1, tx = h.x + side * 36, tz = h.z + (idx % 2 ? 6 : -6) * (game.foes.length > 2 ? 1 : 0);
       var dx = tx - e.x, dz = tz - e.z;
       var attacking = game.foes.some(function (o) { return o !== e && (o.st === 'wind' || (o.st === 'atk')); });
-      if (Math.abs(h.x - e.x) < 32 && Math.abs(h.z - e.z) < 7 && e.cd <= 0 && !attacking && h.hp > 0) { e.face = h.x > e.x ? 1 : -1; setSt(e, 'wind'); e.vx = 0; e.vz = 0; }
+      if (Math.abs(h.x - e.x) < 44 && Math.abs(h.z - e.z) < 7 && e.cd <= 0 && !attacking && h.hp > 0) { e.face = h.x > e.x ? 1 : -1; setSt(e, 'wind'); e.vx = 0; e.vz = 0; }
       else if (Math.abs(dx) > 3 || Math.abs(dz) > 2) { if (e.st !== 'walk') setSt(e, 'walk'); e.vx = Math.sign(dx) * Math.min(0.75, Math.abs(dx) * 0.1); e.vz = Math.sign(dz) * Math.min(0.5, Math.abs(dz) * 0.1); e.face = h.x > e.x ? 1 : -1; }
       else { if (e.st !== 'idle') setSt(e, 'idle'); e.vz = 0; e.face = h.x > e.x ? 1 : -1; }
     } else if (e.st === 'wind') { e.vz = 0; if (e.t >= 22) { startAtk(e, 'hit1'); e.cd = 70 + (Math.random() * 60 | 0); } }
     else e.vz = 0;
     // раздвигаемся, чтобы не стоять друг в друге
-    game.foes.forEach(function (o) { if (o === e || o.hp <= 0) return; var d = e.x - o.x; if (Math.abs(d) < 14 && Math.abs(e.z - o.z) < 8) e.x += (d >= 0 ? 1 : -1) * 0.4; });
+    game.foes.forEach(function (o) { if (o === e || o.hp <= 0) return; var d = e.x - o.x; if (Math.abs(d) < 20 && Math.abs(e.z - o.z) < 8) e.x += (d >= 0 ? 1 : -1) * 0.4; });
     if (e.st === 'wind') e.t++; else stepCommon(e);
     physics(e);
     tryHits(e, [h]);
@@ -240,6 +254,7 @@
     game.fx = game.fx.filter(function (p) { if (!p.ring) { p.x += p.vx; p.y += p.vy; if (p.grav !== 0) p.vy += 0.12; } return --p.life > 0; });
     game.nums = game.nums.filter(function (n) { n.y -= n.life > 28 ? 0.8 : 0.15; return --n.life > 0; });
     if (game.shake > 0) game.shake--;
+    [game.hero].concat(game.foes).forEach(function (f) { if (f.flash > 0) f.flash--; });   // вспышка 2 тика, потом поза урона
     if (game.stop > 0) { game.stop--; return; }   // хит-стоп: бойцы замерли, искры и пар живут
     stepHero(game.hero, inp);
     game.foes.forEach(stepFoe);
@@ -250,26 +265,27 @@
   function frameOf(f) {
     var T = f.t;
     switch (f.st) {
-      case 'walk': return 'walk' + ((T / 7 | 0) % 4);
-      case 'atk': return f.atk === 'air' ? 'hit3' : f.atk;
-      case 'wind': return 'walk0';
+      case 'walk': return 'walk' + ((T / 5 | 0) % 6);
+      case 'atk': { if (f.atk === 'air') return 'airkick'; var A = ATK[f.atk]; return A.fr + (T < A.ph[0] ? '_a' : T < A.ph[1] ? '' : '_r'); }
+      case 'wind': return 'cross_a';
       case 'jump': return 'jump';
       case 'hurt': return 'hurt';
-      case 'fall': return 'fall';
+      case 'fall': return T < 10 ? 'fall0' : 'fall1';
       case 'down': return 'down';
-      case 'getup': return 'jump';
-      default: return 'idle' + ((T / 28 | 0) % 2);
+      case 'getup': return T < 10 ? 'getup0' : 'getup1';
+      default: return 'idle' + ((T / 30 | 0) % 2);
     }
   }
   function drawFighter(f, cam) {
     var sx = Math.round(f.x - cam), gy = Math.round(Wd.FLOOR_TOP + f.z);
-    var sh = shadow(f.st === 'down' || f.st === 'fall' ? 30 : Math.max(12, 22 - Math.round(f.y / 4)));
+    var sh = shadow(f.st === 'down' || f.st === 'fall' ? 44 : Math.max(16, 30 - Math.round(f.y / 4)));
     ctx.drawImage(sh, sx - (sh.width >> 1), gy - (sh.height >> 1));
     if (f.inv > 0 && (f.inv >> 2) % 2 && f.hp > 0) return;
     if (f.hp <= 0 && f.st === 'down' && f.t > 40 && (f.t >> 2) % 2) return;
     var img = sprite(f.set, frameOf(f), f.face < 0, f.flash > 0);
-    ctx.drawImage(img, sx - (img.width >> 1), gy - Math.round(f.y) - img.height + 2);
-    if (f.st === 'wind' && (f.t >> 2) % 2 === 0) { ctx.fillStyle = PAL[1]; ctx.fillRect(sx - 2, gy - 56, 5, 10); ctx.fillStyle = PAL[7]; ctx.fillRect(sx - 1, gy - 55, 3, 5); ctx.fillRect(sx - 1, gy - 49, 3, 2); }
+    // канонический кадр 80×72: опора — (40, 71)
+    ctx.drawImage(img, sx - S.FOOT_X, gy - Math.round(f.y) - S.FH + 1);
+    if (f.st === 'wind' && (f.t >> 2) % 2 === 0) { ctx.fillStyle = PAL[1]; ctx.fillRect(sx - 2, gy - 76, 5, 10); ctx.fillStyle = PAL[7]; ctx.fillRect(sx - 1, gy - 75, 3, 5); ctx.fillRect(sx - 1, gy - 69, 3, 2); }
   }
   function bar(x, y, w, v, max, col) {
     ctx.fillStyle = PAL[1]; ctx.fillRect(x - 1, y - 1, w + 2, 7);
@@ -281,19 +297,19 @@
     var h = game.hero;
     // мини-портрет: голова героя из того же спрайта (кадр idle0, верх)
     var img = sprite('hero', 'idle0', 0, 0); ctx.fillStyle = PAL[1]; ctx.fillRect(6, 5, 26, 22); ctx.fillStyle = PAL[12]; ctx.fillRect(7, 6, 24, 20);
-    ctx.drawImage(img, 9, 7, 22, 18, 8, 7, 22, 18);
+    ctx.drawImage(img, 30, 15, 24, 20, 7, 6, 24, 20);
     bar(36, 8, 90, h.hp, h.max, 6);
     for (var i = 0; i < g.state.lives; i++) { ctx.fillStyle = PAL[1]; ctx.fillRect(36 + i * 8, 17, 7, 7); ctx.fillStyle = PAL[5]; ctx.fillRect(37 + i * 8, 18, 5, 5); ctx.fillStyle = PAL[7]; ctx.fillRect(37 + i * 8, 18, 2, 2); }
     digits(String(g.state.score).padStart(6, '0'), VW - 60, 8, 7, 2);
     // полоски врагов
     game.foes.forEach(function (e, k) { if (e.hp > 0) bar(VW - 70, 24 + k * 8, 50, e.hp, e.max, e.set === 'stokerB' ? 5 : 13); });
-    if (game.banner > 0 && (game.banner >> 3) % 2 === 0 && game.wave < WAVES.length) g.text(g.t('wave') + ' ' + (game.wave + 1) + '/' + WAVES.length, VW / 2, 52, { size: 16, align: 'center', color: PAL[7] });
+    if (game.banner > 0 && (game.banner >> 3) % 2 === 0 && game.wave < WAVES.length) g.text(g.t('wave') + ' ' + (game.wave + 1) + '/' + WAVES.length, VW / 2, 56, { size: 20, align: 'center', color: PAL[7] });
     if (game.go > 0 && (game.go >> 4) % 2 === 0) {   // стрелка «вперёд» пикселями
       var ax = VW - 44, ay = 96; ctx.fillStyle = PAL[1]; ctx.fillRect(ax - 1, ay - 1, 22, 11); for (var k2 = 0; k2 < 8; k2++) ctx.fillRect(ax + 20 + k2 - 1, ay - 5 + k2 - 1, 3, 21 - k2 * 2 + 1);
       ctx.fillStyle = PAL[7]; ctx.fillRect(ax, ay, 20, 9); for (var k3 = 0; k3 < 7; k3++) ctx.fillRect(ax + 20 + k3, ay - 4 + k3, 1, 17 - k3 * 2);
-      g.text(g.t('go'), ax + 8, ay + 26, { size: 11, align: 'center', color: PAL[7] });
+      g.text(g.t('go'), ax + 10, ay + 30, { size: 16, align: 'center', color: PAL[7] });
     }
-    if (game.clear) g.text(g.t('clear'), VW / 2, 70, { size: 20, align: 'center', color: PAL[7] });
+    if (game.clear) g.text(g.t('clear'), VW / 2, 74, { size: 24, align: 'center', color: PAL[7] });
   }
   function render() {
     var cam = Math.round(game.cam), ox = 0, oy = 0;
@@ -321,14 +337,14 @@
     if (g._sceneName === 'play' || !Wd) return baseClear.call(this, c);
     if (g._sceneName === 'title') { titleT++; Wd.update(); titleHero.t = titleT; titleFoe.t = titleT + 13; }
     if (game && g._sceneName !== 'title') { render(); }
-    else { Wd.draw(ctx, 380); drawFighter(titleHero, 0); drawFighter(titleFoe, 0); Wd.drawFront(ctx, 380); }
-    ctx.fillStyle = 'rgba(20,16,19,.55)'; ctx.fillRect(0, 0, VW, VH);
+    else { Wd.draw(ctx, 380, true); drawFighter(titleHero, 0); drawFighter(titleFoe, 0); return; }
+    dim();
   };
   var titleScene = g.scenes.title, baseTitleDraw = titleScene.draw;
   titleScene.draw = function (c2) {
     baseTitleDraw.call(this, c2);
     var touch = this.input.touchOnly || this.input.device === 'touch';
-    this.text(this.t(touch ? 'hintTouch' : 'hint'), VW / 2, VH - 10, { size: 9, align: 'center', color: PAL[14], maxWidth: VW - 16 });
+    this.text(this.t(touch ? 'hintTouch' : 'hint'), VW / 2, VH - 6, { size: 9, align: 'center', color: PAL[14], maxWidth: VW - 16 });
   };
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
 
@@ -356,7 +372,7 @@
     stage: function () {
       newGame(); g.goto('play'); manual = true;
       var h = game.hero; h.x = 600; h.z = 46; game.cam = 600 - VW * 0.42; game.wave = 1; game.active = true; game.lock = game.cam + VW; game.banner = 0;
-      game.foes = [fighter('stokerA', 628, 47, 30, -1), fighter('stokerB', 560, 22, 40, 1), fighter('stokerA', 690, 74, 30, -1)];
+      game.foes = [fighter('stokerA', 640, 47, 30, -1), fighter('stokerB', 548, 20, 40, 1), fighter('stokerA', 700, 76, 30, -1)];
       game.foes[2].st = 'walk'; game.foes[1].st = 'wind';
       render();
     }
