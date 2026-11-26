@@ -1,26 +1,25 @@
-/* ЦЕПЬ · этажи башни Остановленных Часов и сборка карт.
+/* ЩЁЛК · этажи Часового завода и сборка карт.
    Карта рисуется «кистью» (paint-API ниже) в сетку символов, затем собирается в типизированный массив.
    Символы клеток:
-     ' ' пусто · '#' кладка/литьё (твердь) · '=' балка (только сверху) · '/' '\' ступени лестницы (наискось; не твердь)
-     '*' зубчатка-пила (ранит) · фонари-лампы (разбиваются цепью): i искра, I пять искр, k ключ, f склянка, g шестерня,
-     s пружина, p стоп-маятник, c звено цепи (апгрейд), h маслёнка (здоровье), m латунный жетон (очки)
+     ' ' пусто · '#' кладка/литьё (твердь) · '=' балка (только сверху) · '/' '\\' ступени лестницы (наискось; не твердь)
+     '*' зубчатка-пила (ранит) · 'a' блок ТИК (твердь только в фазе ТИК, в фазе ТАК — контур) · 'b' блок ТАК (наоборот)
+     предметы (лежат на месте): i винтик, I пять винтиков, c катушка щёлкуна (радиус и урон), h маслёнка (здоровье), m латунный жетон (очки)
      враги: T тикун, Y моль (гнездо), R маслёнщик, J попрыгун, G часовой
-     @ старт · C отметка (возрождение) · | ворота арены (колонна) · B место стража · 1 2 двери развилки (после стража 3-го этажа)
+     @ старт · C отметка (возрождение) · | ворота арены (колонна) · B место стража
    Лестница P.st(x, y, n, dir): нижняя точка (x, y) — угол клетки на поверхности пола; dir = +1 — вверх вправо, −1 — вверх влево;
      ступени — клетки (x+i, y−1−i) или (x−1−i, y−1−i); верхняя точка (x + dir·n, y − n) — там должен начинаться пол.
    Подвижные опоры (порядок — как вызваны): P.pend(px, py, len, amp, per, ph, from, to) — маятник-площадка: ось (px, py),
      площадка шириной 2.4 на расстоянии len, угол amp·sin(2πt/per + ph); P.lift(x, y, w, h, per, ph, from, to) — шестерня-подъёмник
      шириной w, верх — от y (низ) до y − h. from/to — [колонка, поверхность] опор по краям (для графа проходимости и бота).
-   Маршрут: этажи 1–3 общие, после стража 3-го этажа — две двери: «1» → Ход шестерён → Зал маховиков, «2» → Колокольная галерея →
-   Звонница; 6-й этаж — Часовое Сердце. */
+   Фаза: на каждом этаже игра начинается в фазе ТИК (0); щелчок переключает фазу мира. Шесть этажей идут подряд, последний — Часовое Сердце. */
 (function (global) {
   'use strict';
   var T = global.TSEP = global.TSEP || {};
-  var E = 0, SOL = 1, ONE = 2, STR = 3, STL = 4, SAW = 5;
-  T.TILES = { E: E, SOL: SOL, ONE: ONE, STR: STR, STL: STL, SAW: SAW };
-  var LAMPS = { i: 'spark', I: 'spark5', k: 'key', f: 'flask', g: 'gear', s: 'spring', p: 'stopper', c: 'chain', h: 'oil', m: 'token' };
+  var E = 0, SOL = 1, ONE = 2, STR = 3, STL = 4, SAW = 5, PA = 6, PB = 7;
+  T.TILES = { E: E, SOL: SOL, ONE: ONE, STR: STR, STL: STL, SAW: SAW, PA: PA, PB: PB };
+  var ITEMS = { i: 'spark', I: 'spark5', c: 'coil', h: 'oil', m: 'token' };
   var FOES = { T: 'tick', Y: 'moth', R: 'oiler', J: 'springer', G: 'guard' };
-  T.LAMPS = LAMPS; T.FOES = FOES;
+  T.ITEMS = ITEMS; T.FOES = FOES;
 
   function Painter(w, h) {
     var g = []; for (var r = 0; r < h; r++) { g.push(new Array(w).fill(' ')); }
@@ -41,72 +40,81 @@
   }
 
   // ---------- этажи ----------
-  // key, boss, theme, w, h, arena:{x (колонна ворот), y (верхний ряд вида арены)}, paint(P)
+  // key, boss, bhp, w, h, arena:{x (колонна ворот), y (верхний ряд вида арены)}, paint(P)
   T.FLOORS = {
-    works: { key: 'works', boss: 'cuckoo', bhp: 10, w: 132, h: 16, arena: { x: 100, y: 0 }, paint: function (P) {
-      P.ceil(0, 131, 1); P.fill(0, 0, 0, 15, '#');
-      P.ground(1, 12, 13); P.put(3, 12, '@');
-      P.put(6, 11, 'i').put(10, 11, 'k').put(9, 12, 'T');
-      // пролом 13..14
-      P.ground(15, 44, 13);
-      P.put(18, 11, 'i').st(22, 13, 4, 1).fill(26, 9, 36, 10, '#');
-      P.put(30, 7, 'c').put(34, 8, 'J').put(41, 11, 'i').put(39, 12, 'T');
-      // пролом 45..46
-      P.ground(47, 56, 13).fill(55, 11, 56, 12, '#');
-      P.put(50, 11, 'i').put(52, 12, 'R');
-      // маятник над пропастью 57..66
-      P.pend(62, 2.5, 8.6, 0.42, 3.4, 0, [56, 11], [67, 11]);
-      P.ground(67, 68, 11).ground(69, 86, 13);
-      P.put(71, 12, 'C').put(73, 11, 'I').put(80, 12, 'G').put(77, 11, 'i');
-      P.st(84, 13, 3, 1).ground(87, 99, 10);
-      P.put(91, 8, 'h').put(95, 6, 'Y');
+    works: { key: 'works', boss: 'cuckoo', bhp: 10, w: 144, h: 16, arena: { x: 112, y: 0 }, paint: function (P) {
+      P.ceil(0, 143, 1); P.fill(0, 0, 0, 15, '#');
+      P.ground(1, 20, 13); P.put(3, 12, '@');
+      P.put(6, 11, 'i').put(8, 11, 'i');
+      P.fill(10, 8, 10, 12, 'a');                 // урок 1: стена ТИК — щелчок убирает её
+      P.put(13, 11, 'i').put(16, 12, 'T');
+      P.fill(21, 13, 24, 13, 'a');                // урок 2: мост ТИК через пролом 4 клетки
+      P.ground(25, 44, 13);
+      P.put(28, 11, 'i').st(26, 13, 4, 1).fill(30, 9, 40, 10, '#');
+      P.put(34, 7, 'c').put(38, 8, 'J').put(43, 12, 'T');
+      // урок 3: камни ТИК/ТАК через пропасть — щелчок в прыжке
+      P.fill(47, 13, 48, 13, 'a').fill(51, 13, 52, 13, 'b').fill(55, 13, 56, 13, 'a');
+      P.ground(59, 68, 13).fill(67, 11, 68, 12, '#');
+      P.put(62, 11, 'i').put(64, 12, 'R');
+      P.pend(74, 2.5, 8.6, 0.42, 3.4, 0, [68, 11], [79, 11]);
+      P.ground(79, 80, 11).ground(81, 98, 13);
+      P.put(83, 12, 'C').put(85, 11, 'I').put(92, 12, 'G').put(89, 11, 'i');
+      P.st(96, 13, 3, 1).ground(99, 111, 10);
+      P.put(103, 8, 'h').put(107, 6, 'Y');
       // арена
-      P.ground(100, 131, 13).fill(131, 0, 131, 15, '#').put(100, 12, '|');
-      P.girder(104, 107, 11).girder(124, 127, 11);
-      P.put(115, 6, 'B');
+      P.ground(112, 143, 13).fill(143, 0, 143, 15, '#').put(112, 12, '|');
+      P.girder(116, 119, 11).girder(136, 139, 11);
+      P.put(127, 6, 'B');
     } },
     pendulum: { key: 'pendulum', boss: 'pendulum', bhp: 16, w: 140, h: 16, arena: { x: 108, y: 0 }, paint: function (P) {
       P.ceil(0, 139, 1); P.fill(0, 0, 0, 15, '#');
       P.ground(1, 24, 13); P.put(3, 12, '@');
       P.st(8, 13, 4, 1).girder(12, 22, 9);
-      P.put(5, 11, 'i').put(16, 7, 's').put(20, 7, 'i').put(18, 12, 'T').put(21, 8, 'J');
-      // пролом 25..26
-      P.ground(27, 34, 13).fill(33, 11, 34, 12, '#');
-      P.put(30, 11, 'i').put(29, 12, 'T');
+      P.put(5, 11, 'i').put(16, 8, 'I').put(20, 8, 'i').put(18, 12, 'T').put(21, 8, 'J');
+      // пролом 25..28: мост ТАК
+      P.fill(25, 13, 28, 13, 'b');
+      P.ground(29, 34, 13).fill(33, 11, 34, 12, '#');
+      P.put(30, 11, 'i').put(31, 12, 'T');
       P.pend(40, 2.5, 8.6, 0.42, 3.2, 0, [34, 11], [45, 11]);
       P.ground(45, 46, 11).ground(47, 60, 13).fill(59, 11, 60, 12, '#');
       P.put(51, 12, '*').put(49, 11, 'i').put(55, 12, 'R').put(57, 11, 'I');
       P.pend(66, 2.5, 8.6, 0.42, 3.6, 1.2, [60, 11], [71, 11]);
       P.ground(71, 72, 11).ground(73, 92, 13);
       P.put(75, 12, 'C').put(78, 11, 'h').put(83, 12, 'G').put(88, 7, 'Y').put(86, 11, 'i');
+      P.fill(87, 9, 87, 12, 'a');                 // стена ТИК перед лестницей
       P.st(90, 13, 3, 1).ground(93, 99, 10).put(96, 8, 'c');
-      // пролом 100..101, затем уступ к арене
-      P.ground(102, 107, 11).put(104, 9, 'i');
+      // пролом 100..103: мост ТАК, затем уступ к арене
+      P.fill(100, 10, 103, 10, 'b');
+      P.ground(104, 107, 11).put(106, 9, 'i');
       P.ground(108, 139, 13).fill(139, 0, 139, 15, '#').put(108, 12, '|');
       P.put(123, 5, 'B');
     } },
-    springs: { key: 'springs', boss: 'drake', bhp: 18, w: 100, h: 30, arena: { x: 68, y: 0 }, branch: true, paint: function (P) {
+    springs: { key: 'springs', boss: 'drake', bhp: 18, w: 100, h: 30, arena: { x: 68, y: 0 }, paint: function (P) {
       P.fill(0, 0, 0, 29, '#').ceil(0, 99, 1).ground(1, 46, 27);
-      P.put(3, 26, '@').put(7, 25, 'i').put(14, 26, 'T').put(25, 25, 'm').put(38, 25, 'I').put(33, 26, 'J');
+      P.put(3, 26, '@').put(7, 25, 'i').put(14, 26, 'T').put(25, 25, 'm').put(33, 26, 'J');
+      P.fill(41, 23, 41, 26, 'a').put(44, 25, 'I');   // сокровище за стеной ТИК
       P.st(12, 27, 5, 1).girder(17, 27, 22);
-      P.put(21, 20, 'f').put(24, 21, 'T');
+      P.put(21, 20, 'i').put(24, 21, 'T');
       P.lift(28, 22, 3, 7, 4.0, 0, [27, 22], [31, 15]);
       P.fill(31, 15, 46, 16, '#').fill(47, 13, 47, 29, '#');
       P.put(34, 13, 'c').put(37, 14, 'J').put(32, 13, 'i');
       P.st(40, 15, 4, 1).fill(44, 11, 58, 12, '#').fill(48, 13, 58, 29, '#');
       P.put(48, 10, 'C').put(52, 9, 'i').put(55, 7, 'Y').put(57, 10, 'R');
-      // смертельный пролом 59..60
-      P.ground(61, 67, 13).put(65, 11, 'h');
+      // пролом 59..64: камень ТАК
+      P.fill(61, 12, 62, 12, 'b');
+      P.ground(65, 67, 13).put(66, 11, 'h');
       P.ground(68, 99, 13).fill(99, 0, 99, 29, '#').put(68, 12, '|');
-      P.put(84, 9, 'B').put(72, 12, '1').put(95, 12, '2');
+      P.put(84, 9, 'B');
     } },
     gears: { key: 'gears', boss: 'spider', bhp: 20, w: 140, h: 16, arena: { x: 108, y: 0 }, paint: function (P) {
       P.ceil(0, 139, 1); P.fill(0, 0, 0, 15, '#');
       P.ground(1, 16, 13); P.put(3, 12, '@').put(7, 11, 'i').put(12, 12, 'T');
       P.lift(17, 13, 3, 4, 3.6, 0, [16, 13], [20, 9]);
-      P.ground(20, 33, 9).put(24, 8, '*').put(29, 7, 'g').put(31, 8, 'J');
+      P.ground(20, 33, 9).put(24, 8, '*').put(30, 8, 'I').put(32, 8, 'J');
+      P.fill(27, 5, 27, 8, 'a');                  // стена ТИК на площадке
       P.lift(34, 13, 3, 4, 3.2, 1.5, [33, 9], [37, 11]);
-      P.ground(37, 50, 11).put(41, 10, 'R').put(44, 9, 'i').put(47, 7, 'Y');
+      P.ground(37, 48, 11).put(41, 10, 'R').put(44, 9, 'i').put(47, 7, 'Y');
+      P.fill(49, 11, 52, 11, 'b');                // мост ТАК
       P.ground(53, 62, 13).put(56, 12, 'C').put(58, 11, 'I').put(60, 12, 'T');
       P.fill(61, 11, 62, 12, '#');
       P.pend(68, 2.5, 8.6, 0.42, 3.4, 0.6, [62, 11], [73, 11]);
@@ -119,8 +127,11 @@
     } },
     flywheel: { key: 'flywheel', boss: 'flywheel', bhp: 18, w: 140, h: 16, arena: { x: 108, y: 0 }, paint: function (P) {
       P.ceil(0, 139, 1); P.fill(0, 0, 0, 15, '#');
-      P.ground(1, 20, 13); P.put(3, 12, '@').put(8, 11, 'I').put(11, 12, 'J');
-      P.st(14, 13, 4, 1).ground(18, 27, 9).put(22, 7, 'p').put(25, 8, 'T');
+      P.ground(1, 8, 13); P.put(3, 12, '@').put(7, 11, 'I');
+      P.fill(9, 13, 12, 13, 'a');                 // мост ТИК
+      P.ground(13, 20, 13).put(15, 12, 'J');
+      P.st(14, 13, 4, 1).ground(18, 27, 9).put(22, 8, 'i').put(25, 8, 'T');
+      P.fill(23, 5, 23, 8, 'a');
       P.pend(33, 2.0, 7.6, 0.5, 3.2, 0, [27, 9], [39, 9]);
       P.ground(39, 46, 9).put(42, 7, 'i').put(44, 8, 'R');
       P.lift(47, 13, 3, 4, 3.4, 0.8, [46, 9], [50, 11]);
@@ -131,56 +142,26 @@
       P.ground(108, 139, 13).fill(139, 0, 139, 15, '#').put(108, 12, '|');
       P.put(124, 12, 'B');
     } },
-    gallery: { key: 'gallery', boss: 'bellows', bhp: 16, w: 140, h: 16, arena: { x: 108, y: 0 }, open: true, paint: function (P) {
-      P.fill(0, 0, 0, 15, '#');
-      P.ground(1, 14, 12); P.put(3, 11, '@').put(8, 10, 'i').put(12, 11, 'T');
-      P.ground(17, 24, 12).put(20, 10, 'f').put(23, 8, 'Y');
-      P.ground(27, 32, 11).put(30, 9, 'i');
-      P.ground(35, 46, 12).put(38, 11, 'J').put(42, 10, 'I').put(45, 11, 'T');
-      P.pend(52, 2.0, 7.8, 0.42, 3.2, 0.4, [46, 12], [57, 11]);
-      P.ground(57, 58, 11).ground(59, 70, 12).put(61, 11, 'C').put(64, 10, 'h').put(68, 11, 'R');
-      P.girder(72, 76, 10).ground(79, 84, 12).put(74, 8, 'i').put(81, 11, 'G').put(77, 6, 'Y');
-      P.ground(87, 92, 11).put(90, 9, 'c');
-      P.ground(95, 107, 12).put(98, 11, 'T').put(102, 10, 'i').put(105, 11, 'J');
-      P.ground(108, 139, 13).fill(139, 0, 139, 15, '#').put(108, 12, '|');
-      P.put(130, 12, 'B');
-    } },
-    belfry: { key: 'belfry', boss: 'ringer', bhp: 22, w: 100, h: 30, arena: { x: 68, y: 0 }, paint: function (P) {
-      P.fill(0, 0, 0, 29, '#').ceil(0, 99, 1).ground(1, 36, 27);
-      P.put(3, 26, '@').put(8, 25, 'i').put(14, 26, 'T').put(11, 22, 'Y').put(30, 25, 'm');
-      P.st(20, 27, 5, 1).fill(25, 22, 36, 23, '#');
-      P.put(28, 20, 'k').put(35, 21, 'J');
-      P.st(34, 22, 4, -1).fill(18, 18, 29, 19, '#');
-      P.put(19, 16, 'i').put(26, 17, 'R');
-      P.st(20, 18, 4, 1).fill(24, 14, 40, 15, '#').fill(37, 16, 67, 29, '#');
-      P.put(27, 13, 'C').put(31, 12, 's').put(36, 13, 'T').put(39, 9, 'Y').put(34, 12, 'c');
-      P.lift(41, 14, 3, 6, 3.6, 0, [40, 14], [44, 8]).fill(41, 15, 43, 15, '#');
-      P.fill(44, 8, 52, 29, '#').put(47, 6, 'i').put(50, 7, 'J');
-      // смертельный пролом 53..62 с маятником
-      P.clear(53, 2, 62, 29);
-      P.pend(58, 1.5, 8.0, 0.42, 3.4, 0.3, [52, 8], [63, 9]);
-      P.fill(63, 9, 67, 29, '#').put(65, 7, 'h');
-      P.ground(68, 99, 13).fill(99, 0, 99, 29, '#').put(68, 12, '|');
-      P.put(88, 12, 'B');
-    } },
     heart: { key: 'heart', boss: 'heart', bhp: 24, final: true, w: 120, h: 16, arena: { x: 88, y: 0 }, paint: function (P) {
       P.ceil(0, 119, 1); P.fill(0, 0, 0, 15, '#');
-      P.ground(1, 14, 13); P.put(3, 12, '@').put(7, 11, 'I').put(12, 11, 'h');
-      P.st(10, 13, 4, 1).ground(14, 22, 9).put(17, 8, 'J').put(20, 7, 'i');
+      P.ground(1, 14, 13); P.put(3, 12, '@').put(5, 11, 'I').put(12, 11, 'h');
+      P.fill(7, 9, 7, 12, 'a');
+      P.st(10, 13, 4, 1).ground(14, 22, 9).put(17, 8, 'J').put(20, 8, 'i');
       P.pend(28, 2.0, 7.6, 0.5, 3.0, 0, [22, 9], [34, 9]);
       P.ground(34, 40, 9).put(39, 8, 'T').put(37, 7, 'c');
       P.lift(41, 13, 3, 4, 3.0, 1.0, [40, 9], [44, 11]);
       P.ground(44, 56, 11).put(47, 10, 'C').put(50, 9, 'I').put(54, 10, 'G').put(52, 6, 'Y');
       P.pend(62, 2.5, 8.6, 0.42, 3.2, 0.9, [56, 11], [67, 11]);
-      P.ground(67, 87, 11).put(70, 9, 'p').put(74, 10, 'T').put(78, 10, '*').put(82, 9, 'h').put(85, 10, 'J');
+      P.ground(67, 78, 11).put(70, 10, 'I').put(73, 10, 'T').put(76, 10, '*');
+      P.fill(80, 11, 81, 11, 'a').fill(83, 11, 84, 11, 'b');   // камни ТИК/ТАК перед ареной
+      P.ground(85, 87, 11).put(86, 10, 'h');
       P.ground(88, 119, 13).fill(119, 0, 119, 15, '#').put(88, 12, '|');
       P.girder(91, 95, 11).girder(112, 116, 11);
       P.put(104, 5, 'B');
     } }
   };
-  T.ROUTES = { A: ['works', 'pendulum', 'springs', 'gears', 'flywheel', 'heart'], B: ['works', 'pendulum', 'springs', 'gallery', 'belfry', 'heart'] };
-  T.BRANCH = 2;   // индекс этажа развилки (3-й этаж)
-  T.floorKey = function (fi, route) { return T.ROUTES[route || 'A'][fi]; };
+  T.ROUTE = ['works', 'pendulum', 'springs', 'gears', 'flywheel', 'heart'];
+  T.floorKey = function (fi) { return T.ROUTE[fi]; };
 
   // ---------- сборка ----------
   T.build = function (key) {
@@ -188,16 +169,15 @@
     if (!def) throw new Error('нет этажа ' + key);
     var P = Painter(def.w, def.h); def.paint(P);
     var W = def.w, H = def.h, t = new Uint8Array(W * H);
-    var lamps = [], foes = [], start = null, cps = [], boss = null, doors = [], gate = null;
+    var items = [], foes = [], start = null, cps = [], boss = null, gate = null;
     for (var r = 0; r < H; r++) for (var c = 0; c < W; c++) {
       var ch = P.g[r][c], v = E;
-      if (ch === '#') v = SOL; else if (ch === '=') v = ONE; else if (ch === '/') v = STR; else if (ch === '\\') v = STL; else if (ch === '*') v = SAW;
-      else if (LAMPS[ch]) lamps.push({ x: c + 0.5, y: r + 0.5, k: LAMPS[ch] });
+      if (ch === '#') v = SOL; else if (ch === '=') v = ONE; else if (ch === '/') v = STR; else if (ch === '\\') v = STL; else if (ch === '*') v = SAW; else if (ch === 'a') v = PA; else if (ch === 'b') v = PB;
+      else if (ITEMS[ch]) items.push({ x: c + 0.5, y: r + 1, k: ITEMS[ch] });
       else if (FOES[ch]) foes.push({ type: FOES[ch], x: c + 0.5, y: r + 1 });
       else if (ch === '@') start = { x: c + 0.5, y: r + 1 };
       else if (ch === 'C') cps.push({ x: c + 0.5, y: r + 1 });
       else if (ch === 'B') boss = { x: c + 0.5, y: r + 1 };
-      else if (ch === '1' || ch === '2') doors.push({ x: c + 0.5, y: r + 1, route: ch === '1' ? 'A' : 'B' });
       else if (ch === '|') gate = { x: c, y: r + 1 };
       else if (ch !== ' ') throw new Error(key + ': неизвестный знак ' + ch);
       t[r * W + c] = v;
@@ -218,8 +198,9 @@
       stairs.push({ dir: dir, n: n, bx: bx, by: by, tx: bx + dir * n, ty: by - n });
     }
     var mov = P.mov.map(function (m, i) { return Object.assign({ id: i }, m); });
-    return { key: key, def: def, W: W, H: H, t: t, lamps: lamps, foes: foes, start: start, cps: cps, boss: boss, bossKind: def.boss, bhp: def.bhp,
-      doors: doors, gate: gate, arena: { x0: gate.x, x1: W - 1, y0: def.arena.y, y1: def.arena.y + 15 }, stairs: stairs, mov: mov,
-      branch: !!def.branch, final: !!def.final, open: !!def.open, grid: P.g.map(function (row) { return row.join(''); }) };
+    var hasPh = false; for (var q = 0; q < t.length; q++) if (t[q] === PA || t[q] === PB) { hasPh = true; break; }
+    return { key: key, def: def, hasPh: hasPh, ph: 0, W: W, H: H, t: t, items: items, foes: foes, start: start, cps: cps, boss: boss, bossKind: def.boss, bhp: def.bhp,
+      gate: gate, arena: { x0: gate.x, x1: W - 1, y0: def.arena.y, y1: def.arena.y + 15 }, stairs: stairs, mov: mov,
+      final: !!def.final, open: !!def.open, grid: P.g.map(function (row) { return row.join(''); }) };
   };
 })(typeof window !== 'undefined' ? window : globalThis);
