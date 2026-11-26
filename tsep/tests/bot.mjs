@@ -1,12 +1,13 @@
-/* ЦЕПЬ · tests/bot.mjs — «человеческий» бот для проверки проходимости и баланса.
-   Карту этажа знает (как игрок, видевший этаж), но управляет только как человек: setInput({dx,up,down,jump,atk,sub})
-   и теми же приёмами, по которым строится граф проходимости (logic.simulate — прыжок/сход, лестницы, logic.rideCtl — маятник/подъёмник).
+/* ЩЁЛК · tests/bot.mjs — «человеческий» бот для проверки проходимости и баланса.
+   Карту этажа знает (как игрок, видевший этаж), но управляет только как человек: setInput({dx,up,down,jump,flick})
+   и теми же приёмами, по которым строится граф проходимости (logic.simulate — прыжок/сход, щелчок на месте и в прыжке, лестницы,
+   logic.rideCtl — маятник/подъёмник). Узел графа = клетка × фаза мира.
    Человеческие ограничения:
    - реакция: боевые решения раз в 150–250 мс (opts.react), между решениями держит прежние клавиши; часть решений «прозевает» (opts.miss);
    - место толчка — с ошибкой до ±0.04 клетки (граф прощает ±0.08);
-   - бой: перебирает простые действия (стоять, присесть, шаг/прыжок вперёд/назад, удар, удар вверх, орудие, «по плану») и проверяет
-     их той же физикой на 0.75 с вперёд (клон партии), выбирая выгодное; во время замаха цепи передумать нельзя.
-   opts: { fi=0, route='A', react:[0.15,0.25], miss=0.12, dmgMul, maxT=420, god, lives, chain, sub, sparks, untilClear=true } */
+   - бой: перебирает простые действия (стоять, присесть, шаг/прыжок вперёд/назад, щелчок, щелчок в прыжке, «по плану») и проверяет
+     их той же физикой на 0.75 с вперёд (клон партии), выбирая выгодное.
+   opts: { fi=0, react:[0.15,0.25], miss=0.12, dmgMul, maxT=420, god, lives, coil, sparks, noFoes, untilNext } */
 
 export function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 
@@ -17,6 +18,7 @@ export function navFor(T, key){
   const o = { lv, nav }; NAV.set(key, o); return o;
 }
 export function route(T, key){ const N = navFor(T, key), lv = N.lv; return N.nav.path(N.nav.startNode, u => u % lv.W > lv.gate.x + 2); }
+const rowOf = (lv, u) => Math.floor(u / lv.W) % lv.H;
 
 // ---------- исполнитель ребра графа ----------
 function compress(path){
@@ -28,8 +30,8 @@ export function makeExec(T, lv, e, jit){ return { e, ph: 0, jit: jit || 0, ride:
 // → { inp, done, fail }
 export function stepExec(T, lv, X, S){
   const L = T.logic, h = S.hero, e = X.e, W = lv.W, sgn = Math.sign;
-  const cx = u => (u % W) + 0.5, ry = u => Math.floor(u / W);
-  const node = () => L.nodeOf(lv, h);
+  const cx = u => (u % W) + 0.5, ry = u => rowOf(lv, u);
+  const node = () => L.nodeOf(lv, h, S.ph);
   if (e.type === 'walk'){
     const tx = cx(e.to);
     if (!h.ground) return { inp: {} };
@@ -40,13 +42,25 @@ export function stepExec(T, lv, X, S){
   if (e.type === 'jump'){
     if (X.ph === 0){
       if (!h.ground) return { inp: {} };
+      if (e.fk > 0 && S.flickT > 0) return { inp: {} };
       const sx = e.sx + X.jit;
-      if (Math.abs(h.x - sx) <= 0.035) { X.ph = 1; return { inp: { dx: e.d, jump: true } }; }
+      if (Math.abs(h.x - sx) <= 0.035) { X.ph = 1; X.j = 0; return { inp: { dx: e.d, jump: true } }; }
       return { inp: { dx: sgn(sx - h.x) } };
     }
-    if (X.ph === 1){ if (!h.ground) { X.ph = 2; return { inp: { dx: e.d } }; } if ((X.k = (X.k || 0) + 1) > 2) { X.ph = 0; X.k = 0; } return { inp: {} }; }
+    if (X.ph === 1){
+      X.j++;
+      if (!h.ground) { X.ph = 2; return { inp: { dx: e.d, flick: X.j === e.fk } }; }
+      if (X.j > 3) { X.ph = 0; X.j = 0; } return { inp: {} };
+    }
     if (h.ground){ const v = node(); return v === e.to ? { inp: {}, done: true } : { inp: {}, fail: true }; }
-    return { inp: {} };
+    X.j++;
+    return { inp: { dx: e.d, flick: X.j === e.fk } };
+  }
+  if (e.type === 'flip'){
+    const NN = lv.W * lv.H, want = Math.floor(e.to / NN);
+    if (S.ph === want && h.ground) return { inp: {}, done: true };
+    if (!h.ground || S.flickT > 0) return { inp: {} };
+    return { inp: { flick: true } };
   }
   if (e.type === 'drop'){
     if (X.ph === 0){ if (!h.ground) X.ph = 1; return { inp: { dx: e.d } }; }
@@ -68,7 +82,7 @@ export function stepExec(T, lv, X, S){
     return { inp: {} };
   }
   if (e.type === 'ride'){
-    const Wd = { lv, t: S.t, gate: S.gateClosed, chain: S.chain };
+    const Wd = { lv, t: S.t, gate: S.gateClosed };
     const inp = L.rideCtl(lv, X.ride, S, Wd);
     if (X.ride.ph === 'done') return { inp: {}, done: true };
     if (X.ride.ph === 'fail') return { inp: {}, fail: true };
@@ -81,30 +95,29 @@ const CANDS = [
   { id: 'plan' }, { id: 'stand', inp: {} }, { id: 'crouch', inp: { down: true } },
   { id: 'fwd', inp: { dx: 'f' } }, { id: 'back', inp: { dx: 'b' } },
   { id: 'jumpF', inp: { dx: 'f', jump: 1 } }, { id: 'jumpB', inp: { dx: 'b', jump: 1 } }, { id: 'jumpU', inp: { jump: 1 } },
-  { id: 'atk', inp: { atk: 1 } }, { id: 'atkT', inp: { dx: 't', atk: 2 } }, { id: 'uatk', inp: { up: true, atk: 1 } }, { id: 'jatk', inp: { dx: 't', jump: 1, atk: 8 } },
-  { id: 'sub', inp: { sub: 1 } }, { id: 'crAtk', inp: { down: true, atk: 1 } }
+  { id: 'flick', inp: { flick: 1 } }, { id: 'flickT', inp: { dx: 't', flick: 2 } }, { id: 'jflick', inp: { dx: 't', jump: 1, flick: 8 } }
 ];
 
 export function playFloor(T, seed, opts = {}){
   const L = T.logic, K = L.K, brng = mulberry32(seed * 7919 + 17), dt = 1 / 60;
   const [r0, r1] = opts.react || [0.15, 0.25], missP = opts.miss == null ? 0.12 : opts.miss, maxT = opts.maxT || 420;
-  const res = { seed, fi: opts.fi || 0, cleared: false, over: false, deaths: 0, why: {}, t: 0, stuck: false, bossT: null, hpLost: 0, kills: 0 };
+  const res = { seed, fi: opts.fi || 0, flicks: 0, cleared: false, over: false, deaths: 0, why: {}, t: 0, stuck: false, bossT: null, hpLost: 0, kills: 0 };
   let bossAt = 0, S = null;
   const game = T.Game({ rng: mulberry32(seed), dmgMul: opts.god ? 0 : opts.dmgMul, onEvent: (t, d) => {
     if (t === 'die'){ res.deaths++; res.why[d.why] = (res.why[d.why] || 0) + 1; (res.at = res.at || []).push(d.why + '@' + d.x.toFixed(1) + ',' + d.y.toFixed(1) + (ex ? ':' + ex.e.type : '') + (commit ? ':' + commit.c.id : '')); }
     if (t === 'respawn'){ ex = null; plan = null; commit = null; }
     if (t === 'bossIntro') bossAt = S.time;
     if (t === 'kill') res.kills++;
-    if (t === 'clear'){ res.cleared = true; res.bossT = +(S.time - bossAt).toFixed(1); res.route = d.route; }
+    if (t === 'flick') res.flicks++;
+    if (t === 'clear'){ res.cleared = true; res.bossT = +(S.time - bossAt).toFixed(1); }
     if (t === 'win'){ res.cleared = true; res.won = true; res.bossT = +(S.time - bossAt).toFixed(1); }
     if (t === 'continueQ' || t === 'gameover') res.over = true;
   } }).start();
   S = game.state();
-  const fi = opts.fi || 0, rt = opts.route || 'A';
-  game._floor(fi, fi > T.BRANCH ? rt : null);
+  const fi = opts.fi || 0;
+  game._floor(fi);
   if (opts.lives) S.lives = opts.lives;
-  if (opts.chain) S.chain = opts.chain;
-  if (opts.sub) S.sub = opts.sub;
+  if (opts.coil) S.coil = opts.coil;
   if (opts.sparks != null) S.sparks = opts.sparks;
   if (opts.noFoes){ S.enemies = []; S.nests = []; }
   const N = navFor(T, S.key), lv = N.lv;
@@ -114,7 +127,7 @@ export function playFloor(T, seed, opts = {}){
 
   function goalFn(u){ return u % lv.W > lv.gate.x + 2; }
   function replan(){
-    const u = L.nodeOf(lv, S.hero); if (u < 0) return false;
+    const u = L.nodeOf(lv, S.hero, S.ph); if (u < 0) return false;
     const p = N.nav.path(u, goalFn); if (!p) return false;
     plan = compress(p); ex = plan.length ? makeExec(T, lv, plan.shift(), jitter()) : null; return true;
   }
@@ -123,7 +136,7 @@ export function playFloor(T, seed, opts = {}){
     const h = Sx.hero;
     if (Sx.bossState === 'fight' || Sx.bossState === 'intro'){
       const b = Sx.boss; if (!b) return {};
-      const side = Math.sign(b.x - h.x) || 1, reach = K.REACH[Sx.chain] * 0.75;
+      const side = Math.sign(b.x - h.x) || 1, reach = K.R[Sx.coil] * 0.8;
       let tx = b.x - side * (reach + b.w / 2);
       // маховик: ждать у стены, куда он врежется (оглушён — бить)
       if (b.k === 'flywheel' && b.st !== 'stun') tx = h.x > b.cx ? b.ax1 - 3.3 : b.ax0 + 3.3;
@@ -132,8 +145,7 @@ export function playFloor(T, seed, opts = {}){
     }
     if (Sx.bossState === 'dead'){
       let tx = null;
-      if (Sx.doorsOn){ const d = Sx.doors.find(q => q.route === (opts.route || 'A')) || Sx.doors[0]; tx = d.x; }
-      else { const c = Sx.items.find(i => i.k === 'core'); if (c) tx = c.x; }
+      { const c = Sx.items.find(i => i.k === 'core'); if (c) tx = c.x; }
       if (tx == null) return {};
       if (!h.ground) return {};
       return { dx: Math.abs(tx - h.x) > 0.2 ? Math.sign(tx - h.x) : 0 };
@@ -147,7 +159,6 @@ export function playFloor(T, seed, opts = {}){
     if (S.bossState === 'fight' || S.bossState === 'intro') return true;
     for (const e of S.enemies) if (e.act && Math.abs(e.x - h.x) < 7 && Math.abs(e.y - h.y) < 5) return true;
     for (const q of S.eshots) if (Math.abs(q.x - h.x) < 8 && Math.abs(q.y - h.y) < 6) return true;
-    for (let i = 0; i < lv.lamps.length; i++) if (S.lampsOn[i] && Math.abs(lv.lamps[i].x - h.x) < 2.2 && lv.lamps[i].y < h.y && lv.lamps[i].y > h.y - 2.4) return true;
     return false;
   }
   function faceTo(Sx){ const h = Sx.hero, tgt = target(Sx); return tgt ? (Math.sign(tgt.x - h.x) || h.face) : h.face; }
@@ -157,11 +168,9 @@ export function playFloor(T, seed, opts = {}){
     for (const k in ci){
       if (k === 'dx') o.dx = ci.dx === 'f' ? tf : ci.dx === 'b' ? -tf : ci.dx === 't' ? (f < 2 ? tf : 0) : ci.dx;
       else if (k === 'jump') o.jump = f === 0;
-      else if (k === 'atk') o.atk = f === ci.atk;
-      else if (k === 'sub') o.sub = f === 1;
+      else if (k === 'flick') o.flick = f === ci.flick;
       else o[k] = ci[k];
     }
-    if (ci.sub && f === 0) o.dx = tf;
     return o;
   }
   function target(Sx){
@@ -172,7 +181,7 @@ export function playFloor(T, seed, opts = {}){
   }
   function value(g2){ const s = g2.state(); let v = 0; for (const e of s.enemies) v += e.hp; if (s.boss && s.bossState === 'fight') v += s.boss.hp * 1.5; return v; }
   function evalCand(c){
-    const g2 = game.clone(), s2 = g2.state(), hp0 = s2.hp, v0 = value(g2), lamps0 = s2.lampsOn.reduce((a, b) => a + b, 0);
+    const g2 = game.clone(), s2 = g2.state(), hp0 = s2.hp, v0 = value(g2);
     let exx = c.id === 'plan' && ex ? JSON.parse(JSON.stringify(ex)) : null, firstHit = 99; const tf = faceTo(s2);
     const n = 45;
     for (let f = 0; f < n; f++){
@@ -184,10 +193,10 @@ export function playFloor(T, seed, opts = {}){
     // в воздухе — досмотреть до приземления (пропасть)
     for (let f = 0; f < 120 && s2.phase === 'play' && !s2.hero.ground && !s2.hero.stair; f++){ g2.setInput({}); g2.update(dt); }
     const lost = hp0 - s2.hp, dead = s2.phase === 'dead' || s2.phase === 'cont' || s2.phase === 'over';
-    const dealt = v0 - value(g2), lamps = lamps0 - s2.lampsOn.reduce((a, b) => a + b, 0);
-    let sc = dealt * 3 + lamps * 0.6 - lost * 5 - (dead ? 1000 : 0) + (firstHit < 99 ? firstHit * 0.02 : 0);
+    const dealt = v0 - value(g2);
+    let sc = dealt * 3 - lost * 5 - (dead ? 1000 : 0) + (firstHit < 99 ? firstHit * 0.02 : 0);
     if (c.id === 'plan') sc += 0.4;
-    if (c.id === 'sub' && dealt <= 0) sc -= 2;
+    if (c.inp && c.inp.flick && dealt <= 0) sc -= 0.3;
     return sc;
   }
 
@@ -213,21 +222,21 @@ export function playFloor(T, seed, opts = {}){
     } else { ex = null; plan = null; }
     let inp;
     wait -= dt;
-    const busy = h.atk || (ex && ex.e.type === 'ride' && ex.ride.ph !== 'go' && ex.ride.ph !== 'wait');
+    const busy = (ex && ex.e.type === 'ride' && ex.ride.ph !== 'go' && ex.ride.ph !== 'wait');
     if (commit){
       inp = resolve(commit.c, S, commit.f++, commit.tf);
-      if (commit.f > commit.n || (commit.f > 3 && h.ground && !h.atk && commit.c.inp.jump)) { commit = null; ex = null; }
+      if (commit.f > commit.n || (commit.f > 3 && h.ground && commit.c.inp.jump)) { commit = null; ex = null; }
     } else if (wait <= 0 && !busy && !(ex && ex.ph > 0 && ex.e.type !== 'walk') && nearThreat()){
       wait = react();
       if (brng() >= missP){
         let best = null, bs = -1e9;
         for (const c of CANDS){
-          if (c.id === 'sub' && (!S.sub || S.sparks < L.SUB[S.sub].cost)) continue;
+          if (c.inp && c.inp.flick && S.flickT > 0) continue;
           if (h.stair && c.inp && (c.inp.jump || c.inp.dx === 'b')) continue;
           const sc = evalCand(c); if (sc > bs){ bs = sc; best = c; }
         }
         if (opts.trace) opts.trace({ t, best: best && best.id, bs, x: S.hero.x, b: S.boss && { st: S.boss.st, x: S.boss.x, y: S.boss.y, hp: S.boss.hp } });
-        if (best && best.id !== 'plan'){ commit = { c: best, f: 0, tf: faceTo(S), n: best.inp.jump ? 50 : best.inp.atk || best.inp.sub ? 20 : Math.round(react() * 60) }; inp = resolve(best, S, commit.f++, commit.tf); }
+        if (best && best.id !== 'plan'){ commit = { c: best, f: 0, tf: faceTo(S), n: best.inp.jump ? 50 : best.inp.flick ? 20 : Math.round(react() * 60) }; inp = resolve(best, S, commit.f++, commit.tf); }
       }
     }
     if (!inp){
