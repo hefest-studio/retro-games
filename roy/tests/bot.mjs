@@ -1,135 +1,90 @@
-/* РОЙ · tests/bot.mjs — «человеческий» бот для проверки баланса.
-   Без читов: видит только то, что на экране (позиции врагов/пуль из state()),
-   и управляет только через setDir/setFire — как игрок с клавиатуры.
-   Человеческие ограничения:
-   - реакция: решения принимаются по «картинке» 150–250 мс давности (буфер кадров);
-     собственный корабль бот знает точно (проприоцепция);
-   - решения пересматриваются ~12 раз в секунду, а не каждый кадр;
-   - прицел с разбросом ±6 px, траектории пике предсказываются линейно по двум кадрам
-     (бот не знает, куда враг довернёт);
-   - запас безопасности по уклонению небольшой, как у умелого игрока. */
+/* РОЙ · tests/bot.mjs — «человеческий» бот для проверки баланса (переделка 2026-11: искра и манок).
+   Без читов: видит только то, что на экране (позиции роя, Матки, плевков, манка из state()), управляет только
+   setDir / fire / lure — как игрок со стиком и двумя кнопками. Человеческие ограничения:
+   - реакция: решения по «картинке» react[0]…react[1] с давности (буфер кадров); свой корабль знает точно;
+   - решения ~12 раз в секунду; прицел с разбросом ±aimNoise px;
+   - движение роя предсказывает линейно по двум кадрам (не знает, куда стая повернёт).
+   Тактика: держаться внизу, уходить от ближних мошек и плевков; если рой разрежен — бросить манок и поджечь клубок;
+   иначе — бить по ближайшей мошке над собой или по Матке. */
 
 export function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 
-const P_SPEED = 250, P_BULLET_V = 580, HULL_HX = 13, HULL_HY = 12;
-
-// Снимок того, что видно на экране.
 function snap(S, t){
   return {
     t,
-    en: S.enemies.filter(e=>e.state!=='dead' && e.state!=='wait').map(e=>({ id:e.id, x:e.x, y:e.y, state:e.state, sub:e.sub, kind:e.kind, r:e.r })),
-    eb: S.eb.map(q=>({ x:q.x, y:q.y, vx:q.vx, vy:q.vy }))
+    dr: S.drones.filter(d => d.state === 'live').map(d => ({ id: d.id, x: d.x, y: d.y, shell: d.shell })),
+    sp: S.spores.map(b => ({ x: b.x, y: b.y, vx: b.vx, vy: b.vy })),
+    q: S.queen && S.queen.alive ? { x: S.queen.x, y: S.queen.y, warn: S.queen.warn > 0 } : null,
+    lure: S.lure ? { x: S.lure.x, y: S.lure.y, state: S.lure.state, t: S.lure.t } : null,
+    surge: !!S.surge
   };
 }
 
-/* Сыграть одну партию. R — модуль ROY (из vm), seed — сид игры и бота.
-   opts: { waves=5, maxT=900, react:[0.15,0.25], aimNoise=6, decide=1/12, margin=6 } */
-export function playRoy(R, seed, opts={}){
-  const C = R.consts, PY = C.PLAYER_Y, W = C.W;
-  const waves = opts.waves || 5, maxT = opts.maxT || 900;
-  const brng = mulberry32(seed*7919 + 13);
-  const [r0, r1] = opts.react || [0.15, 0.25];
-  const react = r0 + brng()*(r1-r0);              // реакция этого «игрока»
-  const aimNoise = opts.aimNoise == null ? 6 : opts.aimNoise;
-  const decideDt = opts.decide || 1/12;
-  const margin = opts.margin == null ? 6 : opts.margin;
-  const causes = { bullet:0, ram:0, capture:0 };
-  let prevEv = null;
-  const g = R.Game({ rng: mulberry32(seed), onEvent:(type,d)=>{
-    if (type === 'captured') causes.capture++;
-    if (type === 'die' || type === 'hull') { if (prevEv && prevEv[0] === 'kill' && prevEv[1].y > PY - 40) causes.ram++; else causes.bullet++; }
-    prevEv = [type, d];
-  } }); g.start();
-  const S = g.state(), h = 1/60;
-  const hist = [];
-  let t = 0, nextDecide = 0, dir = 0, fireOn = false, goalX = W/2, noise = 0;
-  const wavesLost = {};                      // волна → потерянные жизни
-  let lastLives = S.lives, maxWave = 1;
-
-  function stale(){ // кадр давностью react
-    let s = hist[0];
-    for (let i = hist.length-1; i >= 0; i--) if (hist[i].t <= t - react){ s = hist[i]; break; }
-    return s;
-  }
-  function prevOf(s){ // кадр за ~0.1 с до s — для оценки скорости
-    for (let i = hist.length-1; i >= 0; i--) if (hist[i].t <= s.t - 0.1) return hist[i];
-    return null;
-  }
-
-  function decide(){
-    const p = S.player;
-    if (!p.alive){ dir = 0; fireOn = false; return; }
-    const s = stale(), s0 = prevOf(s), age = t - s.t;
-    const vel = {};
-    if (s0){ const dtv = s.t - s0.t; for (const e of s0.en) vel[e.id] = e; for (const e of s.en){ const o = vel[e.id]; vel[e.id] = o ? { vx:(e.x-o.x)/dtv, vy:(e.y-o.y)/dtv } : { vx:0, vy:0 }; } }
-    const dual = p.dual, hulls = x => dual ? [x, x + C.HULL_GAP] : [x];
-    const maxX = W - 18 - (dual ? C.HULL_GAP : 0);
-
-    // угрозы на горизонте 0.9 с: пули (линейно) и пикирующие (линейно по двум кадрам)
-    const threats = [];
-    for (const q of s.eb) threats.push({ x:q.x + q.vx*age, y:q.y + q.vy*age, vx:q.vx, vy:q.vy, rx:HULL_HX-2, ry:HULL_HY });
-    for (const e of s.en){
-      if (e.state !== 'dive' && e.state !== 'return') continue;
-      if (e.sub === 'beam' || e.sub === 'hold'){
-        threats.push({ beam:true, x:e.x });       // луч виден на экране — держимся в стороне
-        continue;
+/* opts: { waves=5, startWave=1, maxT=1200, maxWaveT=240, react:[0.15,0.25], aimNoise=6, decide=1/12, perfect } */
+export function playRoy(R, seed, opts = {}){
+  const C = R.consts, W = C.W;
+  const waves = opts.waves || 5, maxT = opts.maxT || 1200, maxWaveT = opts.maxWaveT || 240;
+  const brng = mulberry32(seed * 7919 + 13);
+  const react = opts.perfect ? [0.05, 0.08] : (opts.react || [0.15, 0.25]);
+  const aimNoise = opts.perfect ? 2 : (opts.aimNoise == null ? 6 : opts.aimNoise);
+  const decide = opts.decide || 1 / 12;
+  const res = { passed: 0, won: false, lost: {}, waveTime: {}, score: 0, chains: 0, bestChain: 0, stuck: 0 };
+  const g = R.Game({ rng: mulberry32(seed), startWave: opts.startWave || 1, onEvent: (t, d) => {
+    if (t === 'die') res.lost[S.wave] = (res.lost[S.wave] || 0) + 1;
+    if (t === 'clear') { res.passed++; res.waveTime[d.wave] = S.t - waveT0; }
+    if (t === 'chain') { res.chains++; res.bestChain = Math.max(res.bestChain, d.n); }
+    if (t === 'wave') waveT0 = S.t;
+  } });
+  let waveT0 = 0;
+  const S = g._S; g.start(); waveT0 = 0;
+  const buf = []; let nextDecide = 0, dx = 0, dy = 0, aimX = W / 2, lag = react[0];
+  const h = 1 / 60;
+  let firstWave = S.wave;
+  while (!S.over && S.t < maxT){
+    buf.push(snap(S, S.t)); if (buf.length > 40) buf.shift();
+    if (S.t >= nextDecide){
+      nextDecide = S.t + decide; lag = react[0] + brng() * (react[1] - react[0]);
+      let v = buf[0]; for (let i = buf.length - 1; i >= 0; i--) if (S.t - buf[i].t >= lag){ v = buf[i]; break; }
+      let v0 = buf[0]; for (let i = buf.length - 1; i >= 0; i--) if (v.t - buf[i].t >= 0.1){ v0 = buf[i]; break; }
+      const p = S.player, dtv = Math.max(0.05, v.t - v0.t), ahead = S.t - v.t + 0.15;
+      // предсказанные позиции мошек
+      const pred = v.dr.map(d => { const o = v0.dr.find(e => e.id === d.id); const vx = o ? (d.x - o.x) / dtv : 0, vy = o ? (d.y - o.y) / dtv : 0;
+        return { x: d.x + vx * ahead, y: d.y + vy * ahead, vx, vy, shell: d.shell }; });
+      // угрозы: мошки и плевки рядом с кораблём
+      let fx = 0, fy = 0, danger = false;
+      for (const d of pred){ const ex = p.x - d.x, ey = p.y - d.y, l = Math.hypot(ex, ey) || 1; if (l < 95){ const f = (95 - l) / 95; fx += ex / l * f * 2.2; fy += ey / l * f * 2.2; danger = danger || l < 70; } }
+      for (const b of v.sp){ const bx = b.x + b.vx * ahead, by = b.y + b.vy * ahead, ex = p.x - bx, ey = p.y - by, l = Math.hypot(ex, ey) || 1;
+        if (l < 60 && by < p.y + 10){ fx += (Math.abs(ex) < 2 ? (p.x < W / 2 ? 1 : -1) : Math.sign(ex)) * (60 - l) / 60 * 2.5; danger = true; } }
+      if (v.surge || (v.q && v.q.warn)) fy += 0.6;
+      // цель по x
+      let tx = null, wantLure = false;
+      const L = v.lure;
+      if (L){
+        const near = pred.filter(d => Math.hypot(d.x - L.x, d.y - L.y) < 46).length, att = pred.filter(d => Math.hypot(d.x - L.x, d.y - L.y) < C.LURE_BURST * 3).length;
+        if (L.state === 'hover' && (near >= Math.min(7, Math.max(2, att * 0.6)) || L.t > 2.2)) tx = L.x;
       }
-      const v = vel[e.id] || { vx:0, vy:0 };
-      threats.push({ x:e.x + v.vx*age, y:e.y + v.vy*age, vx:v.vx, vy:v.vy, rx:e.r+HULL_HX-4, ry:e.r+HULL_HY-4 });
-    }
-
-    // цель для прицела: враг, к которому пуля успеет; пикирующие — в приоритете
-    let aimX = goalX, best = 1e9;
-    for (const e of s.en){
-      if (e.state === 'enter') continue;
-      if (e.y > PY - 40) continue;
-      const v = vel[e.id] || { vx:0, vy:0 };
-      const tf = (PY - 16 - e.y) / P_BULLET_V;
-      const ex = e.x + v.vx*(age + tf);
-      const reach = Math.abs(ex - p.x) / P_SPEED;
-      const pri = reach + (e.state === 'dive' ? -0.4 : 0) + (e.kind === 'medusa' && e.state === 'form' ? 0.2 : 0);
-      if (pri < best){ best = pri; aimX = ex; }
-    }
-    noise = noise*0.6 + (brng()*2-1)*aimNoise*0.4;
-    aimX = Math.max(18, Math.min(maxX, aimX + noise));
-
-    // выбор позиции: перебор целевых x, имитация движения к ней, штраф за попадание
-    let bestX = p.x, bestCost = 1e9;
-    for (let cx = 18; cx <= maxX + 0.1; cx += 8){
-      let cost = Math.abs(cx - aimX) * 0.02 + Math.abs(cx - p.x) * 0.004;
-      let px = p.x;
-      for (let tau = 0; tau <= 0.9; tau += 1/30){
-        const d = cx - px, stepx = P_SPEED/30; px += Math.abs(d) <= stepx ? d : Math.sign(d)*stepx;
-        if (p.inv > tau + 0.1) continue;
-        for (const th of threats){
-          for (const hx of hulls(px)){
-            if (th.beam){ if (Math.abs(hx - th.x) < S.BEAM_HALF + margin) cost += 3/(1+tau*4); continue; }
-            const tx = th.x + th.vx*tau, ty = th.y + th.vy*tau;
-            if (Math.abs(tx - hx) < th.rx + margin && Math.abs(ty - PY) < th.ry + 4) cost += 100/(1+tau*6);
-          }
-        }
-        if (cost > bestCost) break;
+      if (tx == null){
+        const free = pred.filter(d => d.y < p.y - 40);
+        if (!L && p.lureCd <= 0 && free.length >= 5) wantLure = true;
+        if (L && L.state !== 'hover'){ tx = p.x; }
+        else if (free.length){ free.sort((a, b) => Math.abs(a.x - p.x) - Math.abs(b.x - p.x)); tx = free[0].x; }
+        else if (v.q) tx = v.q.x;
       }
-      if (cost < bestCost){ bestCost = cost; bestX = cx; }
+      if (tx != null && tx !== aimX) aimX = tx + (brng() * 2 - 1) * aimNoise;
+      dx = tx == null ? 0 : clamp((aimX - p.x) / 22, -1, 1);
+      const ty = 585; dy = clamp((ty - p.y) / 30, -1, 1);
+      if (danger || Math.hypot(fx, fy) > 0.3){ dx = clamp(dx * 0.3 + fx, -1, 1); dy = clamp(dy * 0.3 + fy, -1, 1); if (p.y > 596 && dy > 0) dy = 0; if (Math.abs(dx) < 0.2 && danger) dx = p.x < W / 2 ? 1 : -1; }
+      g.setDir(dx, dy);
+      if (wantLure) g.lure();
+      if (tx != null && Math.abs(aimX - p.x) < 9) g.fire();
     }
-    goalX = bestX;
-    // огонь: цель над кораблём (с учётом разброса)
-    fireOn = Math.abs(aimX - p.x) < 12 || (dual && Math.abs(aimX - (p.x + C.HULL_GAP)) < 12);
+    g.update(h);
+    if (S.wave !== firstWave){ firstWave = S.wave; }
+    if (S.t - waveT0 > maxWaveT && !S.over){ res.stuck = S.wave; break; }
+    if (S.wave - (opts.startWave || 1) + 1 > waves) break;
+    if (res.passed >= waves) break;
   }
-
-  while (t < maxT && !S.over){
-    hist.push(snap(S, t)); if (hist.length > 40) hist.shift();
-    if (t >= nextDecide){ decide(); nextDecide = t + decideDt*(0.8 + brng()*0.4); }
-    const p = S.player;
-    dir = Math.abs(goalX - p.x) < 3 ? 0 : Math.sign(goalX - p.x);
-    g.setDir(dir); g.setFire(fireOn);
-    g.update(h); t += h;
-    if (S.lives < lastLives) wavesLost[S.wave] = (wavesLost[S.wave]||0) + (lastLives - S.lives);
-    lastLives = S.lives; maxWave = Math.max(maxWave, S.wave);
-    if (S.wave > waves || (S.wave === waves && S.phase === 'clear')) break;
-  }
-  const cleared = S.won || S.wave > waves || (S.wave === waves && S.phase === 'clear');
-  // наибольшая полностью пройденная волна
-  const passed = cleared ? waves : (S.phase === 'clear' ? S.wave : S.wave - 1);
-  return { seed, won: S.won, cleared, passed, wave: S.wave, lives: S.lives, score: S.score, t, react, lost: wavesLost, causes };
+  res.won = res.passed >= waves; res.score = S.score;
+  return res;
 }
+function clamp(v, a, b){ return v < a ? a : v > b ? b : v; }

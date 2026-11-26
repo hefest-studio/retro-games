@@ -183,15 +183,15 @@
     if (best && best.id) game.goTo(best.id); else if (best) game.goToSpot(best.spot.f, best.spot.x);
     else game.goToSpot(loc.f, Math.max(L.FB[loc.f][0], Math.min(L.FB[loc.f][1], loc.x)));
   }
-  cv.addEventListener('mousedown', function (e) { tap(e.clientX, e.clientY); });
-  cv.addEventListener('touchstart', function (e) { if (g._sceneName === 'play' || g._sceneName === 'card') { e.preventDefault(); var t0 = e.changedTouches[0]; tap(t0.clientX, t0.clientY); } }, { passive: false });
+  cv.addEventListener('mousedown', function (e) { if (Arcade.touchOk(e)) tap(e.clientX, e.clientY); });
+  cv.addEventListener('touchstart', function (e) { if (g._sceneName === 'play' || g._sceneName === 'card') { Arcade.touchOk(e); var t0 = e.changedTouches[0]; tap(t0.clientX, t0.clientY); } }, { passive: false });
 
   // P / Esc на паузе — продолжить
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
 
   // тач-кнопка паузы
   var bp = document.getElementById('bPause');
-  if (bp) { var tp = function (e) { e.preventDefault(); if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); }; bp.addEventListener('touchstart', tp, { passive: false }); bp.addEventListener('mousedown', tp); }
+  if (bp) { var tp = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); }; bp.addEventListener('touchstart', tp, { passive: false }); bp.addEventListener('mousedown', tp); }
 
   // подпись под канвой — язык
   var lastLang = null;

@@ -1,6 +1,6 @@
 /* СПУТНИК · звук: оригинальные короткие SFX поверх g.audio.beep движка (WebAudio, без файлов).
    SPUTNIK.sfx(g, type, data) — вызывается из main.js на события логики. Частые события
-   (поглощение пуль, ожог, рикошет) прорежены, чтобы не забивать микшер. */
+   (скольжение у кромки, гашение пуль, выстрелы) прорежены, чтобы не забивать микшер. */
 (function (global) {
   'use strict';
   var Sp = global.SPUTNIK = global.SPUTNIK || {};
@@ -15,20 +15,15 @@
     d = d || {};
     switch (type) {
       case 'shoot': if (rare('shoot', 45)) g.audio.beep(1180, 0.035, 'square', 0.03); break;
-      case 'beam': seq(g, [220, 330, 440 + d.c * 440], 30, 0.09, 'sawtooth', 0.06); break;
-      case 'chargeFull': g.audio.beep(1568, 0.06, 'triangle', 0.04); break;
       case 'eshot': if (rare('eshot', 90)) g.audio.beep(360, 0.04, 'sawtooth', 0.02); break;
       case 'kill': seq(g, [300 + (d.pts || 100) / 2, 180], 30, 0.05, 'square', 0.045); break;
       case 'hit': if (rare('hit', 40)) g.audio.beep(700, 0.025, 'square', 0.03); break;
-      case 'burn': if (rare('burn', 120)) g.audio.beep(140 + Math.random() * 40, 0.05, 'sawtooth', 0.035); break;
-      case 'absorb': if (rare('absorb', 70)) g.audio.beep(1760, 0.03, 'triangle', 0.03); break;
-      case 'ricochet': if (rare('ric', 80)) g.audio.beep(2093, 0.02, 'triangle', 0.02); break;
+      case 'skim': if (rare('skim', 110)) g.audio.beep(90 + d.k * 120 + Math.random() * 30, 0.06, 'sawtooth', 0.018 + d.k * 0.02); break;
+      case 'tier': if (d.up) seq(g, d.tier === 2 ? [523, 784, 1046, 1568] : [392, 523, 659], 45, 0.06, 'triangle', 0.05); break;
+      case 'quench': g.audio.beep(1600, 0.25, 'sawtooth', 0.025); seq(g, [880, 659, 440, 330, 220], 40, 0.08, 'triangle', 0.05); break;
+      case 'douse': if (rare('douse', 80)) g.audio.beep(2400 + Math.random() * 400, 0.03, 'triangle', 0.02); break;
+      case 'tutorQuench': seq(g, [659, 880], 80, 0.07, 'square', 0.04); break;
       case 'clang': if (rare('clang', 70)) g.audio.beep(1900, 0.03, 'triangle', 0.03); break;
-      case 'droneLaunch': seq(g, [392, 523, 659], 40, 0.06, 'triangle', 0.05); break;
-      case 'droneRecall': seq(g, [659, 523], 50, 0.06, 'triangle', 0.04); break;
-      case 'droneAttach': seq(g, [880, 1320], 35, 0.05, 'square', 0.045); break;
-      case 'capDrop': g.audio.beep(988, 0.08, 'triangle', 0.04); break;
-      case 'pickup': seq(g, [523, 659, 784, 1046], 45, 0.07, 'square', 0.05); break;
       case 'guard': seq(g, [196, 185, 196, 185], 120, 0.12, 'sawtooth', 0.05); break;
       case 'guardDie': seq(g, [392, 294, 196, 131], 80, 0.12, 'sawtooth', 0.06); break;
       case 'boss': seq(g, [131, 139, 131, 123, 131], 150, 0.16, 'sawtooth', 0.06); break;

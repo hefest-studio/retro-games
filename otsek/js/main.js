@@ -89,7 +89,7 @@
   // свои тач-кнопки (◆ действие, ⇄ оружие) — И1
   if (pad) pad.querySelectorAll('[data-act]').forEach(function (b) {
     var name = b.getAttribute('data-act');
-    var on = function (e) { e.preventDefault(); act(0, name); };
+    var on = function (e) { if (!Arcade.touchOk(e)) return; act(0, name); };
     b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('mousedown', on);
   });
 

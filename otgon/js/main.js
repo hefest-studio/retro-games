@@ -231,7 +231,7 @@
     if (e.code === 'KeyE' || e.code === 'KeyF' || e.code === 'KeyX') game.staff();
     else if (e.code === 'KeyQ' || e.code === 'KeyZ') game.whistle();
   });
-  function hold(id, fn) { var b = document.getElementById(id); if (!b) return; var h = function (e) { e.preventDefault(); fn(b); }; b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h); }
+  function hold(id, fn) { var b = document.getElementById(id); if (!b) return; var h = function (e) { if (!Arcade.touchOk(e)) return; fn(b); }; b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h); }
   hold('bWhistle', function () { if (g._sceneName === 'play' && game) game.whistle(); else if (g._sceneName === 'camp') campGo(); });
   hold('bStaff', function () { if (g._sceneName === 'play' && game) game.staff(); });
   hold('bRun', function (b) { runLock = !runLock; b.classList.toggle('on', runLock); });
@@ -260,12 +260,12 @@
     if (ptr && !ptr.moved && performance.now() - ptr.t < 400 && game && g._sceneName === 'play') { var w = RD.toWorld(game.state(), ptr.x, ptr.y); game.moveTo(w.x, w.y); }
     ptr = null; stick = null;
   }
-  cv.addEventListener('mousedown', function (e) { down(e.clientX, e.clientY); });
+  cv.addEventListener('mousedown', function (e) { if (Arcade.touchOk(e)) down(e.clientX, e.clientY); });
   addEventListener('mousemove', function (e) { move(e.clientX, e.clientY); });
-  addEventListener('mouseup', up);
-  cv.addEventListener('touchstart', function (e) { if (g._sceneName === 'play' || g._sceneName === 'camp') { e.preventDefault(); var t0 = e.changedTouches[0]; down(t0.clientX, t0.clientY); } }, { passive: false });
-  cv.addEventListener('touchmove', function (e) { if (ptr) { e.preventDefault(); var t0 = e.changedTouches[0]; move(t0.clientX, t0.clientY); } }, { passive: false });
-  cv.addEventListener('touchend', function (e) { if (ptr) { e.preventDefault(); up(); } }, { passive: false });
+  addEventListener('mouseup', function (e) { if (Arcade.touchOk(e)) up(); });
+  cv.addEventListener('touchstart', function (e) { if (g._sceneName === 'play' || g._sceneName === 'camp') { Arcade.touchOk(e); var t0 = e.changedTouches[0]; down(t0.clientX, t0.clientY); } }, { passive: false });
+  cv.addEventListener('touchmove', function (e) { if (ptr) { Arcade.touchOk(e); var t0 = e.changedTouches[0]; move(t0.clientX, t0.clientY); } }, { passive: false });
+  cv.addEventListener('touchend', function (e) { if (ptr) { Arcade.touchOk(e); up(); } }, { passive: false });
   cv.addEventListener('touchcancel', function () { ptr = null; stick = null; });
 
   // P / Esc на паузе — продолжить

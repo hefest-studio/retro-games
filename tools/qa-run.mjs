@@ -375,7 +375,7 @@ async function gameRun(browser, slug, vp) {
           window.dispatchEvent(new Event('blur')); document.dispatchEvent(new Event('visibilitychange'));
           await new Promise((r) => setTimeout(r, 400));
           const ac = g.audio && g.audio.ac;
-          const out = { scene: g._sceneName, ac: ac ? ac.state : null, sound: g.audio ? !!g.audio.on : null };
+          const out = { scene: g._sceneName, ac: ac ? ac.state : null, sound: g.audio ? !!g.audio.on : null, optOut: g.autoPause === false, frozen: !!g._hiddenFreeze, hasPause: !!(g.scenes && g.scenes.pause) };
           delete document.hidden; delete document.visibilityState;
           window.dispatchEvent(new Event('focus')); document.dispatchEvent(new Event('visibilitychange'));
           return out;
@@ -424,8 +424,9 @@ async function gameRun(browser, slug, vp) {
 
 function judgeGame(slug, r) {
   const where = r.vp;
-  // 4xx/5xx — отдельной проверкой ниже; «Ignored attempt to cancel a touchstart…» — вмешательство Chrome (касание пришло неотменяемым,
-  // пока страница считает, что идёт прокрутка): в эмуляции тача под нагрузкой бывает и на холсте с touch-action:none — жёлтым, с виновником
+  // 4xx/5xx — отдельной проверкой ниже; «Ignored attempt to cancel a touchstart…» — вмешательство Chrome: касание пришло неотменяемым
+  // (точка вне «блокирующих» обработчиков — край кнопки/щель пульта, цель подобрал touch adjustment), а код игры позвал preventDefault
+  // без проверки e.cancelable (движок v2.10 — Arcade.touchOk(e)) — жёлтым, с виновником
   const TOUCH_IV = /^Ignored attempt to cancel a touch/;
   const ce = r.consoleErrors.filter((t) => !/^Failed to load resource/.test(t) && !TOUCH_IV.test(t));
   const iv = r.consoleErrors.filter((t) => TOUCH_IV.test(t)).length;
@@ -461,12 +462,18 @@ async function browserGames(browser) {
       done++; log(`  [${done}/${jobs.length}] ${red ? 'FAIL' : 'ok  '} ${slug} ${sec(Date.now() - st)} с${red ? ' — красных ' + red : ''}`);
     }
   }));
-  // автопауза при потере фокуса — одной строкой на весь каталог: без площадки движок v2.9 паузу по blur/скрытой вкладке не ставит
-  // (только с window.Platform, см. _shared/engine.js «v2.7»), поэтому это вопрос движка, а не каждой игры
-  const noPause = [], tested = [];
-  for (const [s, rs] of Object.entries(R.browser)) for (const r of rs) if (r.focus) { tested.push(s); if (r.focus.scene !== 'pause') noPause.push(`${s} (${r.vp})`); }
+  // автопауза при потере фокуса — одной строкой на весь каталог. Движок v2.10: скрытая вкладка в play → пауза и на сайте;
+  // засчитывается и осознанный опт-аут игры (createGame({ autoPause:false }) — idle и т. п.), и заморозка цикла у игры без сцены pause
+  const noPause = [], tested = [], optOut = [], frozen = [];
+  for (const [s, rs] of Object.entries(R.browser)) for (const r of rs) if (r.focus) {
+    tested.push(s); const f = r.focus;
+    if (f.scene === 'pause') continue; if (f.optOut) { optOut.push(s); continue; } if (f.frozen && !f.hasPause) { frozen.push(s); continue; }
+    noPause.push(`${s} (${r.vp})`);
+  }
+  const uniq = (xs) => [...new Set(xs)].join(', ');
   if (tested.length) add('browser', 'каталог', 'автопауза при потере фокуса (blur + скрытая вкладка)', noPause.length ? 'warn' : 'ok',
-    noPause.length ? `нет паузы в ${noPause.length} из ${tested.length} проходов — движок без площадки не ставит паузу (нужна правка engine.js): ${noPause.join(', ')}` : `${tested.length} проходов`);
+    (noPause.length ? `нет паузы в ${noPause.length} из ${tested.length} проходов (движок v2.10 ставит паузу по скрытой вкладке — проверь игру): ${noPause.join(', ')}` : `${tested.length} проходов`) +
+    (optOut.length ? `; опт-аут autoPause:false: ${uniq(optOut)}` : '') + (frozen.length ? `; без сцены pause — заморозка цикла: ${uniq(frozen)}` : ''));
   R.timings.browser = sec(Date.now() - t);
 }
 

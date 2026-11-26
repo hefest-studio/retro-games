@@ -4,7 +4,7 @@
  * настройки: язык/тема/звук), сцены, сетка, частицы, HUD, счёт+рекорд (localStorage по игре).
  * Встроены критерии: проходимость (win/lose+финал, difficulty), играбельность (отклик, фидбек),
  * непресность (нарастание). Игры самодостаточны: build.sh копирует файл в игру. API — README.
- * (c) Студия «Гефест». v2.9.0 (v2.9: геймпад — Gamepad API, раскладка standard: D-pad/левый стик (мёртвая зона, гистерезис, автоповтор) и кнопки → виртуальные клавиши (игры без поддержки получают геймпад через свои клавиши и привязки), A — выбор/действие, B — назад/второе, Start — пауза, Select — меню; меню движка геймпадом; 2-й геймпад → И2 (usePlayers); g.gamepad (pressed/stick/trigger/onButton/onConnect/configure/glyph), g.rumble(), g.input.device + <html data-input>, g.prompt()/g.drawPrompt() — значки кнопок при геймпаде, клавиши — при клавиатуре; без Gamepad API — без ошибок; v2.8: языки — из ключей strings игры (не только ru/en): ?lang= и язык площадки — любой язык таблиц, иначе en; L — по кругу, «Язык: XX»; data-<язык> с откатом на data-en; ссылка каталога — EN для всех, кроме RU; встроенные строки движка RU/EN/TR/ES/PT (прочие — EN); автоподбор кегля (text maxWidth: overlay, меню, подсказки); g.leaderboard с именованными таблицами + g.useLeaderboard() (окно площадки или своя сцена «Лидеры»); g.useNoAds({ scene:['title','pause'] }); g.useOwnGames() — «Наши игры» через SDK; g.useShortcut() — ярлык; g.useReview() — просьба об оценке после успеха, не чаще раза в N сессий; g.onCloud()/g.cloudReady — событие «облако слито» после g.persist; v2.7: с площадкой — тишина и пауза при любой потере фокуса (blur/pagehide, Яндекс 1.3); g.leaderboard, g.flags (удалённая конфигурация: частота/места рекламы, сложность), g.purchase()/g.useNoAds() — после покупки «Без рекламы» межстраничная и стики не показываются, g.serverTime()/g.daily(), g.requestReview(), g.addShortcut(), g.ownGames() — через platform.js 1.2; v2.6: реклама за награду g.rewarded() + «продолжить за рекламу» g.useRewardedContinue() и бонус g.useRewardedBonus() — только при площадке с рекламой; межстраничная реклама — по действию игрока при выходе с финала и g.adBreak() в паузах между уровнями; старт меню после инициализации площадки (язык SDK до меню, ready() — когда можно играть); автопауза при скрытой вкладке; без контекстного меню/выделения; g.persist()/g.storeSet() — ключи в облако; v2.5: необязательная связка с площадкой — window.Platform из _shared/platform.js: пауза и звук на время рекламы, язык площадки, рекорд в облако, gameplayStart/Stop по сценам, реклама в паузах win/gameover, скрытие внешних ссылок; без platform.js — всё как раньше; v2.4: ссылка «← Каталог» a[data-catalog-back] ведёт в каталог текущего языка — ../ или ../en/, dt первого кадра не отрицательный; v2.3: единое правило языка ?lang= → arcade.lang → ru, перевод DOM по data-en; v2.2: g.menu, g.input.player(i), g.usePlayers, touchOnly)
+ * (c) Студия «Гефест». v2.10.0 (v2.10: касания — Arcade.touchOk(e): preventDefault только у cancelable-касаний, эмуляция мыши после касания не даёт второго нажатия, [data-arcade-touch] → touch-action:none на пульте/холсте/кнопке паузы; автопауза на сайте — скрытая вкладка в play → пауза (возврат — экран паузы), без сцены pause — заморозка цикла, blur на сайте — только звук; g.awayPaused; v2.9: геймпад — Gamepad API, раскладка standard: D-pad/левый стик (мёртвая зона, гистерезис, автоповтор) и кнопки → виртуальные клавиши (игры без поддержки получают геймпад через свои клавиши и привязки), A — выбор/действие, B — назад/второе, Start — пауза, Select — меню; меню движка геймпадом; 2-й геймпад → И2 (usePlayers); g.gamepad (pressed/stick/trigger/onButton/onConnect/configure/glyph), g.rumble(), g.input.device + <html data-input>, g.prompt()/g.drawPrompt() — значки кнопок при геймпаде, клавиши — при клавиатуре; без Gamepad API — без ошибок; v2.8: языки — из ключей strings игры (не только ru/en): ?lang= и язык площадки — любой язык таблиц, иначе en; L — по кругу, «Язык: XX»; data-<язык> с откатом на data-en; ссылка каталога — EN для всех, кроме RU; встроенные строки движка RU/EN/TR/ES/PT (прочие — EN); автоподбор кегля (text maxWidth: overlay, меню, подсказки); g.leaderboard с именованными таблицами + g.useLeaderboard() (окно площадки или своя сцена «Лидеры»); g.useNoAds({ scene:['title','pause'] }); g.useOwnGames() — «Наши игры» через SDK; g.useShortcut() — ярлык; g.useReview() — просьба об оценке после успеха, не чаще раза в N сессий; g.onCloud()/g.cloudReady — событие «облако слито» после g.persist; v2.7: с площадкой — тишина и пауза при любой потере фокуса (blur/pagehide, Яндекс 1.3); g.leaderboard, g.flags (удалённая конфигурация: частота/места рекламы, сложность), g.purchase()/g.useNoAds() — после покупки «Без рекламы» межстраничная и стики не показываются, g.serverTime()/g.daily(), g.requestReview(), g.addShortcut(), g.ownGames() — через platform.js 1.2; v2.6: реклама за награду g.rewarded() + «продолжить за рекламу» g.useRewardedContinue() и бонус g.useRewardedBonus() — только при площадке с рекламой; межстраничная реклама — по действию игрока при выходе с финала и g.adBreak() в паузах между уровнями; старт меню после инициализации площадки (язык SDK до меню, ready() — когда можно играть); автопауза при скрытой вкладке; без контекстного меню/выделения; g.persist()/g.storeSet() — ключи в облако; v2.5: необязательная связка с площадкой — window.Platform из _shared/platform.js: пауза и звук на время рекламы, язык площадки, рекорд в облако, gameplayStart/Stop по сценам, реклама в паузах win/gameover, скрытие внешних ссылок; без platform.js — всё как раньше; v2.4: ссылка «← Каталог» a[data-catalog-back] ведёт в каталог текущего языка — ../ или ../en/, dt первого кадра не отрицательный; v2.3: единое правило языка ?lang= → arcade.lang → ru, перевод DOM по data-en; v2.2: g.menu, g.input.player(i), g.usePlayers, touchOnly)
  */
 (function (global) {
   'use strict';
@@ -175,6 +175,25 @@
   var HOTKEYS = ['KeyP', 'Escape', 'KeyM', 'KeyL', 'KeyT', 'Enter', 'NumpadEnter', 'Space'];
   var DIRN = { left: 1, right: 1, up: 1, down: 1 };
   function now() { var p = global.performance; return p && p.now ? p.now() : Date.now(); }
+  // ---------- Касания (v2.10) ----------
+  // Arcade.touchOk(e) — в обработчиках тач-кнопок/холста вместо голого e.preventDefault():
+  //  · touch*: preventDefault() — только если событие cancelable (Chrome шлёт касание неотменяемым, если точка касания вне
+  //    «блокирующих» обработчиков — край кнопки, щель пульта, — а цель подобрал touch adjustment; голый preventDefault даёт в консоли
+  //    «Ignored attempt to cancel a touchstart event with cancelable=false»); → true (обработать);
+  //  · mouse*/click сразу после касания (≤ 800 мс) — эмуляция мыши браузером (её не отменили, раз касание было неотменяемым) →
+  //    false (пропустить: иначе одно касание = два нажатия); прочие события → true.
+  // Прокрутку/зум у пульта и холста снимает CSS touch-action:none (движок ставит его через [data-arcade-touch] с нулевой
+  // специфичностью — своё touch-action игры важнее), так что отмена касания не обязательна.
+  var TOUCH_GAP = 800, _touchAt = -1e9;
+  function markTouch() { _touchAt = now(); }
+  function touchOk(e) {
+    if (!e || typeof e.type !== 'string') return true;
+    if (/^touch/.test(e.type)) { markTouch(); if (e.cancelable !== false && typeof e.preventDefault === 'function') e.preventDefault(); return true; }
+    if (/^(mouse|click|dblclick)/.test(e.type) && now() - _touchAt < TOUCH_GAP) return false;
+    return true;
+  }
+  if (typeof global.addEventListener === 'function') ['touchstart', 'touchend', 'touchcancel'].forEach(function (t) { global.addEventListener(t, markTouch, { capture: true, passive: true }); });
+  function touchAttr(el) { try { if (el && el.setAttribute && el !== (doc && doc.body) && el !== (doc && doc.documentElement)) el.setAttribute('data-arcade-touch', ''); } catch (e) {} }
   // bind: [раскладкаИ1, раскладкаИ2] или { p1:{…}, p2:{…} }; раскладка = { имя: ['KeyCode', …] }
   function normBind(b) { if (!b) return [{}, {}]; if (Array.isArray(b)) return [b[0] || {}, b[1] || {}]; return [b.p1 || {}, b.p2 || {}]; }
   // Проверка раскладок: горячие клавиши движка (+ o.reserved) и клавиши, общие для двух игроков.
@@ -260,10 +279,11 @@
   Input.prototype.pressed = function (a) { return !!this.keys[a]; };
   Input.prototype.bindDpad = function (root) {
     if (!root) return; var self = this; var keyFor = { U: 'up', D: 'down', L: 'left', R: 'right', A: 'action' };
+    touchAttr(root); // v2.10: пульт целиком — touch-action:none (щели между кнопками не прокручивают/не зумят)
     root.querySelectorAll('[data-d]').forEach(function (btn) {
-      var d = btn.dataset.d, a = keyFor[d]; if (!a) return;
-      var on = function (e) { e.preventDefault(); if (!self.keys[a]) self._emit(a); self.keys[a] = true; self._setDir(); self._padPl(d, true); };
-      var off = function (e) { e.preventDefault(); self.keys[a] = false; self._setDir(); self._padPl(d, false); };
+      var d = btn.dataset.d, a = keyFor[d]; if (!a) return; touchAttr(btn);
+      var on = function (e) { if (!touchOk(e)) return; if (!self.keys[a]) self._emit(a); self.keys[a] = true; self._setDir(); self._padPl(d, true); };
+      var off = function (e) { if (!touchOk(e)) return; self.keys[a] = false; self._setDir(); self._padPl(d, false); };
       btn.addEventListener('touchstart', on, { passive: false }); btn.addEventListener('touchend', off, { passive: false });
       btn.addEventListener('touchcancel', off, { passive: false }); btn.addEventListener('mousedown', on);
       btn.addEventListener('mouseup', off); btn.addEventListener('mouseleave', off);
@@ -751,9 +771,11 @@
     this.input._inPlay = function () { return self._sceneName === 'play'; }; // ввод игроков — только в play
     var preset = opts.music || (Arcade.tracks && Arcade.tracks[this.gameId]); // трек из js/music.js игры
     if (preset) this.audio.setMusic(preset);
-    this.canvas.addEventListener('click', function (e) { self._click(e); });
-    this.canvas.addEventListener('touchstart', function (e) { if (self.current && self.current._menu) { e.preventDefault(); self._click(e.changedTouches[0]); } }, { passive: false });
-    this.autoPause = opts.autoPause !== false; // с площадкой: скрытая вкладка в play → пауза
+    touchAttr(this.canvas); // v2.10: touch-action:none на холсте (если игра не задала своё)
+    this.canvas.addEventListener('click', function (e) { if (touchOk(e)) self._click(e); }); // click-эмуляция после касания — уже обработано касанием
+    this.canvas.addEventListener('touchstart', function (e) { if (self.current && self.current._menu) { touchOk(e); self._click(e.changedTouches[0]); } }, { passive: false });
+    this.autoPause = opts.autoPause !== false; // скрытая вкладка в play → пауза (v2.10 — и на сайте; с площадкой ещё blur/pagehide)
+    this.awayPaused = false; this._hiddenFreeze = false; // v2.10: последняя пауза поставлена автопаузой; заморозка цикла (нет сцены pause)
     this.adBreaks = opts.adBreaks !== false; // реклама площадки в логических паузах (win/gameover), если подключён platform.js
     var PF = global.Platform; this.platform = PF && typeof PF.init === 'function' && typeof PF.pauseHook === 'function' ? PF : null;
     this._initExtras(opts);
@@ -787,7 +809,7 @@
     // паузы), игра ждёт «Продолжить». Без площадки — как раньше: звук спит только при скрытой вкладке (visibilitychange).
     if (typeof global.addEventListener === 'function') {
       var away = function () { var a = self.audio, ac = a.ac; a._blur = true; if (ac) { try { ac.suspend(); } catch (e) {} }
-        if (self.autoPause !== false && self._sceneName === 'play' && self.scenes.pause && !self._adPause && !self._pfPause) self.pause(); };
+        if (self.autoPause !== false && self._sceneName === 'play' && self.scenes.pause && !self._adPause && !self._pfPause) { self.pause(); self.awayPaused = true; } };
       var back = function () { var a = self.audio, ac = a.ac; a._blur = false; if (ac && a.unlocked && !a._away() && !self._pfPause && !self._adPause) { try { ac.resume(); } catch (e) {} } };
       global.addEventListener('blur', away); global.addEventListener('pagehide', away);
       global.addEventListener('focus', back); global.addEventListener('pageshow', back);
@@ -1248,7 +1270,8 @@
     try {
       if (!doc || !doc.createElement || !doc.head || doc.getElementById('arcade-input-css')) return;
       var st = doc.createElement('style'); st.id = 'arcade-input-css';
-      st.textContent = 'html:not([data-input="gamepad"]) .arcade-pad-only{display:none!important}html[data-input="gamepad"] .arcade-kb-only{display:none!important}';
+      st.textContent = 'html:not([data-input="gamepad"]) .arcade-pad-only{display:none!important}html[data-input="gamepad"] .arcade-kb-only{display:none!important}' +
+        ':where([data-arcade-touch]){touch-action:none}'; // v2.10: пульт/холст без прокрутки и зума (своё touch-action игры важнее)
       doc.head.appendChild(st);
     } catch (e) {}
   }
@@ -1266,7 +1289,7 @@
   Engine.prototype.saveBest = function () { if (this.state.score > this.state.best) { this._newBest = true; this.state.best = this.state.score; Store.set('arcade.best.' + this.gameId, String(this.state.best)); if (this.platform) this.platform.save('best.' + this.gameId, this.state.best); if (this.leaderboard.auto) this.leaderboard.submit(this.state.best); } };
 
   Engine.prototype.scene = function (name, def) { this.scenes[name] = def; return this; };
-  Engine.prototype.goto = function (name, data) { this.current = this.scenes[name]; this._sceneName = name; this._acc = 0; if (name === 'play') this.input._armedAt = now(); if (this.platform) { if (name === 'play') this.platform.gameplayStart(); else this.platform.gameplayStop(); } this._musicScene(name, data || {}); if (this.current && this.current.enter) this.current.enter.call(this, data || {}); if (this._bonuses || this._shop || this._lbUi || this._gamesUi || this._scUi) this._syncBonuses(); };
+  Engine.prototype.goto = function (name, data) { this.current = this.scenes[name]; this._sceneName = name; this._acc = 0; if (name !== 'pause') this.awayPaused = false; if (name === 'play') this.input._armedAt = now(); if (this.platform) { if (name === 'play') this.platform.gameplayStart(); else this.platform.gameplayStop(); } this._musicScene(name, data || {}); if (this.current && this.current.enter) this.current.enter.call(this, data || {}); if (this._bonuses || this._shop || this._lbUi || this._gamesUi || this._scUi) this._syncBonuses(); };
   // Музыка следует за сценой (если musicAuto): play — играет (resume — с того же места, иначе с начала),
   // pause — пауза, title/win/gameover и прочие — стоп (на win/gameover звучит SFX движка, музыка не мешает).
   Engine.prototype._musicScene = function (name, data) {
@@ -1300,10 +1323,14 @@
       this._sceneName = 'loading'; this.platform.init().then(function () { setTimeout(go, 0); }, function () { setTimeout(go, 0); });
     } else go();
     this.running = true; this._last = performance.now();
-    if (this.platform && (this.autoPause !== false) && doc && doc.addEventListener) doc.addEventListener('visibilitychange', function () { // вкладка скрыта — игра на паузе (GamePush: «пауза при сворачивании», продолжение — кнопкой)
-      if (doc.hidden && self._sceneName === 'play' && self.scenes.pause) self.pause(); });
+    // Скрытая вкладка (visibilitychange → hidden) в play — пауза: с площадкой (v2.6, GamePush: «пауза при сворачивании») и, с v2.10,
+    // на сайте. Возврат — экран паузы, игрок продолжает сам. Нет сцены pause — на сайте только заморозка цикла до возврата вкладки.
+    // blur окна на сайте паузу НЕ ставит (iframe, devtools, адресная строка дают ложные blur) — только с площадкой (v2.7, _bindPlatform).
+    // createGame({ autoPause:false }) — выключить (idle-игры: время идёт само).
+    if (doc && doc.addEventListener) doc.addEventListener('visibilitychange', function () { self._onVisibility(!!doc.hidden); });
     var loop = function (t) {
       self._raf = requestAnimationFrame(loop);
+      if (self._hiddenFreeze) { self._last = t; return; } // v2.10: вкладка скрыта, у игры нет сцены pause — кадр стоит
       if (self._pfPause || self._adPause) { self._last = t; var pac = self.audio.ac; if (pac && pac.state === 'running') { try { pac.suspend(); } catch (e) {} } return; } // звук не должен «проснуться» во время показа (resume из жеста/другого колбэка) // пауза площадки / показ рекламы: кадр стоит
       var dt = (t - self._last) / 1000; self._last = t; if (dt > 0.25) dt = 0.25; else if (dt < 0) dt = 0; // метка rAF первого кадра бывает раньше performance.now() из start() — без отрицательного времени (иначе g.time < 0 и кадры спрайтов с индексом -1)
       self.time += dt; self.particles.update(dt);
@@ -1317,6 +1344,15 @@
     this._raf = requestAnimationFrame(loop); return this;
   };
   Engine.prototype.stop = function () { cancelAnimationFrame(this._raf); this.running = false; };
+  // v2.10: автопауза по скрытой вкладке. hidden=true — вкладка скрыта, false — снова видна.
+  // С площадкой — как в v2.6–v2.9 (только пауза при наличии сцены pause); без площадки — пауза, а у игр без сцены pause — заморозка цикла.
+  Engine.prototype._onVisibility = function (hidden) {
+    if (this.autoPause === false) return;
+    if (!hidden) { if (this._hiddenFreeze) { this._hiddenFreeze = false; this._last = performance.now(); } return; }
+    if (this._sceneName !== 'play') return;
+    if (this.scenes.pause) { this.pause(); this.awayPaused = true; return; }
+    if (!this.platform) this._hiddenFreeze = true;
+  };
 
   // Рисование (учитывает тему)
   Engine.prototype.clear = function (c) { var th = this.th(); this.ctx.fillStyle = c || th.bg; this.ctx.fillRect(0, 0, this.W, this.H); };
@@ -1403,7 +1439,8 @@
     }, 'title');
     var pb = cfg.pad && cfg.pad.querySelector && cfg.pad.querySelector('[data-pause]');
     if (pb) {
-      var hp = function (e) { e.preventDefault(); if (self._sceneName === 'play') self.pause(); else if (self._sceneName === 'pause') self.goto('play', { resume: true }); };
+      touchAttr(pb);
+      var hp = function (e) { if (!touchOk(e)) return; if (self._sceneName === 'play') self.pause(); else if (self._sceneName === 'pause') self.goto('play', { resume: true }); };
       pb.addEventListener('touchstart', hp, { passive: false }); pb.addEventListener('mousedown', hp);
     }
     this.players = { count: function () { return inp.playerCount; }, set: setN };
@@ -1425,7 +1462,7 @@
 
   // Arcade.tracks[gameId] = track — так js/music.js игры регистрирует свою мелодию до createGame.
   var Arcade = (global.Arcade && global.Arcade.tracks) ? global.Arcade : {};
-  Object.assign(Arcade, { createGame: function (o) { var e = new Engine(o); Arcade.last = e; return e; }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, Gamepads: Gamepads, padNames: PAD_NAMES.slice(), padKeys: Object.assign({}, PAD_KEYS), padStyle: padStyle, deadzone: deadzone, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, version: '2.9.0', catalogRoot: catalogRoot });
+  Object.assign(Arcade, { createGame: function (o) { var e = new Engine(o); Arcade.last = e; return e; }, loadSprites: loadSprites, Grid: Grid, Input: Input, Audio: Audio, Music: Music, parseTrack: parseTrack, noteFreq: noteFreq, Particles: Particles, Menu: Menu, MenuApi: MenuApi, PlayerInput: PlayerInput, Gamepads: Gamepads, padNames: PAD_NAMES.slice(), padKeys: Object.assign({}, PAD_KEYS), padStyle: padStyle, deadzone: deadzone, hotkeys: HOTKEYS.slice(), checkBindings: checkBindings, themes: THEMES, Store: Store, touchOk: touchOk, version: '2.10.0', catalogRoot: catalogRoot });
   Arcade.tracks = Arcade.tracks || {};
   if (typeof module !== 'undefined' && module.exports) module.exports = Arcade;
   global.Arcade = Arcade;

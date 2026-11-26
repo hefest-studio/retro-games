@@ -1,38 +1,38 @@
 /* РОЙ · звук: оригинальные SFX на WebAudio через g.audio.beep (без файлов).
-   ROY.sfx(g, type, data) — вызывается на события движка игры. */
+   ROY.sfx(g, type, data) — вызывается на события логики. Поджог в цепи звучит всё выше (место в цепи). */
 (function (global) {
   'use strict';
   var R = global.ROY = global.ROY || {};
-
+  var lastIgn = 0;
   function seq(g, notes, gap, dur, type, vol) {
-    notes.forEach(function (f, i) {
-      setTimeout(function () { g.audio.beep(f, dur, type, vol); }, i * gap);
-    });
+    notes.forEach(function (f, i) { setTimeout(function () { g.audio.beep(f, dur, type, vol); }, i * gap); });
   }
-
   R.sfx = function (g, type, d) {
     if (!g.audio.enabled) return;
     d = d || {};
     switch (type) {
-      case 'shoot': g.audio.beep(1320, 0.05, 'square', 0.035); break;
-      case 'eshoot': g.audio.beep(520, 0.05, 'triangle', 0.04); break;
-      case 'hurt': g.audio.beep(760, 0.06, 'square', 0.06); break;
-      case 'kill':
-        if (d.kind === 'medusa') seq(g, [420, 300, 210], 45, 0.08, 'sawtooth', 0.07);
-        else g.audio.beep(d.kind === 'wedge' ? 260 : 330, 0.1, 'sawtooth', 0.06);
-        break;
-      case 'dive': seq(g, [980, 840, 720, 610], 35, 0.04, 'square', 0.025); break;
-      case 'beam': for (var i = 0; i < 12; i++) (function (k) { setTimeout(function () { g.audio.beep(k % 2 ? 470 : 350, 0.13, 'triangle', 0.045); }, k * 120); })(i); break;
-      case 'captured': seq(g, [700, 590, 500, 420, 350], 110, 0.12, 'triangle', 0.07); break;
-      case 'release': seq(g, [500, 640], 60, 0.08, 'square', 0.05); break;
-      case 'rescue': seq(g, [523, 659, 784, 1046], 70, 0.1, 'square', 0.06); break;
-      case 'lost': seq(g, [300, 220], 90, 0.14, 'sawtooth', 0.05); break;
-      case 'hull': g.audio.beep(220, 0.18, 'sawtooth', 0.07); break;
+      case 'shoot': g.audio.beep(1180, 0.04, 'square', 0.03); break;
+      case 'ignite': {   // не чаще 30 мс, тон по месту в цепи (пентатоника вверх)
+        var now = Date.now(); if (now - lastIgn < 30) break; lastIgn = now;
+        var steps = [0, 2, 4, 7, 9], n = Math.min(d.n || 1, 15) - 1, semi = steps[n % 5] + 12 * Math.floor(n / 5);
+        g.audio.beep(330 * Math.pow(2, semi / 12), 0.07, 'triangle', 0.05); break;
+      }
+      case 'crack': g.audio.beep(900, 0.05, 'square', 0.05); break;
+      case 'chain': if (d.n >= 8) seq(g, [784, 988, 1175, 1568], 60, 0.09, 'square', 0.05); break;
+      case 'qhurt': g.audio.beep(180, 0.05, 'sawtooth', 0.04); break;
+      case 'queen': seq(g, [220, 330, 440, 660, 880], 70, 0.12, 'sawtooth', 0.07); break;
+      case 'lure': seq(g, [520, 780], 50, 0.06, 'triangle', 0.05); break;
+      case 'burst': g.audio.beep(140, 0.2, 'sawtooth', 0.07); break;
+      case 'fizzle': g.audio.beep(260, 0.12, 'triangle', 0.03); break;
+      case 'lay': g.audio.beep(420, 0.05, 'triangle', 0.025); break;
+      case 'spit': g.audio.beep(300, 0.06, 'square', 0.035); break;
+      case 'warn': seq(g, [880, 660, 880], 90, 0.07, 'square', 0.045); break;
+      case 'surge': seq(g, [330, 294, 262], 60, 0.09, 'sawtooth', 0.05); break;
       case 'die': seq(g, [260, 190, 140, 100, 70], 70, 0.12, 'sawtooth', 0.08); break;
       case 'respawn': g.audio.beep(880, 0.08, 'triangle', 0.06); break;
-      // короткий оригинальный «позывной» волны (не копия известных мелодий)
-      case 'wave': seq(g, [392, 466, 587, 698, 587, 784], 85, 0.1, 'square', 0.05); break;
-      case 'clear': seq(g, [659, 784, 988, 1175], 80, 0.11, 'triangle', 0.06); break;
+      case 'life': seq(g, [660, 880, 1046], 70, 0.09, 'square', 0.05); break;
+      case 'wave': seq(g, [392, 523, 659, 587, 784], 85, 0.1, 'triangle', 0.05); break;
+      case 'clear': seq(g, [659, 784, 988, 1318], 80, 0.11, 'triangle', 0.06); break;
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

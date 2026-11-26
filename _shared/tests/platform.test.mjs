@@ -175,8 +175,8 @@ function engineEnv({ platform = null, search = '', mock = {}, metas = {}, store 
   const g = win.Arcade.createGame(Object.assign({ canvas: '#c', width: 100, height: 100, gameId: 'tst', strings: { ru: { play: 'Играть' }, en: { play: 'Play' } } }, opts));
   return { w, win, g, links, ac, frame: (t) => raf && raf(t), log: w.log };
 }
-test('движок без platform.js: как раньше (g.platform = null, ссылки на месте, версия 2.9.0, реклама за награду недоступна)', () => {
-  const e = engineEnv(); ok(e.g.platform === null); ok(!e.links.some(a => a.style.display === 'none')); eq(e.win.Arcade.version, '2.9.0');
+test('движок без platform.js: как раньше (g.platform = null, ссылки на месте, версия 2.10.0, реклама за награду недоступна)', () => {
+  const e = engineEnv(); ok(e.g.platform === null); ok(!e.links.some(a => a.style.display === 'none')); eq(e.win.Arcade.version, '2.10.0');
   ok(!e.g.canRewarded() && !e.g.adReady(), 'без площадки рекламы нет');
 });
 test('движок + web: ссылки не прячутся, язык — по правилу движка', async () => {

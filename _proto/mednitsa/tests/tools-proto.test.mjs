@@ -46,7 +46,7 @@ try {
   test('promo-build --check _proto/mednitsa: тексты promo/mednitsa/promo.json — 0 ошибок (длины, дубли, запрещённые слова)', () => {
     const f = path.join(PROMO, 'mednitsa', 'promo.json'); if (!fs.existsSync(f)) { console.log('     (нет ' + f + ' — пропуск)'); return; }
     eq(checkTexts(JSON.parse(fs.readFileSync(f, 'utf8'))).join(' | '), '');
-    const r = execFileSync('node', ['tools/promo-build.mjs', '_proto/mednitsa', '--check'], { cwd: REPO, encoding: 'utf8' }); ok(/^OK\s+promo\/mednitsa\/promo\.json: ошибок 0/m.test(r), r);
+    const r = execFileSync('node', ['tools/promo-build.mjs', '_proto/mednitsa', '--check'], { cwd: REPO, encoding: 'utf8' }); ok(/^OK\s+promo\/mednitsa(\/promo\.json)?: ошибок 0/m.test(r), r);
   });
 } finally { fs.rmSync(out, { recursive: true, force: true }); }
 console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed));
