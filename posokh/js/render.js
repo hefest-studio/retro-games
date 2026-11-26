@@ -1,6 +1,6 @@
-/* ПОСОХ · отрисовка: экспедиции, героиня, враги, хозяева, HUD, глобус-карта лагеря. Темы: modern (мягкие
-   градиенты, своя палитра у каждой экспедиции) и retro (16-цветная палитра EGA-духа, «пиксельные» прямоугольники).
-   Тема меняет только картинку, не логику. POSOKH.R — общие примитивы (героиня нужна и титулу). */
+/* ПОСОХ · отрисовка: экспедиции маршрута, картограф Ярослава, вехи, реперы, враги, хозяева, HUD, карта маршрута.
+   Темы: modern (мягкие градиенты, своя палитра у каждой экспедиции) и retro (16-цветная палитра EGA-духа, «пиксельные»
+   прямоугольники). Тема меняет только картинку, не логику. POSOKH.R — общие примитивы (героиня нужна и титулу). */
 (function (global) {
   'use strict';
   var PS = global.POSOKH = global.POSOKH || {};
@@ -8,82 +8,69 @@
   // EGA-подобная палитра для retro
   var E = { k: '#000000', b: '#0000aa', g: '#00aa00', c: '#00aaaa', r: '#aa0000', m: '#aa00aa', n: '#aa5500', l: '#aaaaaa',
     d: '#555555', B: '#5555ff', G: '#55ff55', C: '#55ffff', R: '#ff5555', M: '#ff55ff', y: '#ffff55', w: '#ffffff' };
-  // палитры экспедиций: [modern, retro]
+  // палитры экспедиций: [modern, retro]; soft — мягкая порода (крепь/торф/фирн/сваи/доски)
   var EXPAL = {
-    mine:  { sky: ['#2b1f2f', '#140d16'], rsky: E.k, rock: '#5a4536', rockHi: '#8b6a4b', rockLo: '#3a2b22', vein: '#d8843f', rrock: E.n, rrockHi: E.y, rvein: E.R, plat: '#9a6b3c', rplat: E.n, liquid: '#7a3b1e', rliq: E.r, accent: '#e39a4f' },
-    swamp: { sky: ['#4c6a5c', '#1a2c27'], rsky: E.k, rock: '#3f4a2c', rockHi: '#7d9a3e', rockLo: '#29311d', vein: '#5c6e33', rrock: E.g, rrockHi: E.G, rvein: E.d, plat: '#5fae5a', rplat: E.G, liquid: '#41583a', rliq: E.g, accent: '#b8e07a' },
-    ridge: { sky: ['#8fbde6', '#e6f2ff'], rsky: E.b, rock: '#5f86ad', rockHi: '#f4f9ff', rockLo: '#476b90', vein: '#9cc0e0', rrock: E.c, rrockHi: E.w, rvein: E.C, plat: '#bfe3f7', rplat: E.C, liquid: '#3c79a8', rliq: E.B, accent: '#5fb5ff' },
-    tower: { sky: ['#ff9f6e', '#5b4a92'], rsky: E.m, rock: '#7b7f8e', rockHi: '#c9c6cf', rockLo: '#4f5260', vein: '#9a8f88', rrock: E.d, rrockHi: E.l, rvein: E.l, plat: '#b9874c', rplat: E.n, liquid: '#2d5c8a', rliq: E.b, accent: '#ffd36b' },
-    sunk:  { sky: ['#11334a', '#06141f'], rsky: E.k, rock: '#4a5a68', rockHi: '#8fa3b3', rockLo: '#2c3843', vein: '#b38b4a', rrock: E.d, rrockHi: E.c, rvein: E.n, plat: '#a8753a', rplat: E.n, liquid: '#1d6f8f', rliq: E.c, accent: '#7fe0ff' }
+    mine:  { sky: ['#2b1f2f', '#140d16'], rsky: E.k, rock: '#5a4536', rockHi: '#8b6a4b', rockLo: '#3a2b22', vein: '#d8843f', rrock: E.n, rrockHi: E.y, rvein: E.R, plat: '#9a6b3c', rplat: E.n, liquid: '#7a3b1e', rliq: E.r, accent: '#e39a4f', soft: ['#8a5a2e', '#6b4322', '#b07a40'], rsoft: [E.n, E.k, E.y], softK: 'plank' },
+    swamp: { sky: ['#4c6a5c', '#1a2c27'], rsky: E.k, rock: '#3f4a2c', rockHi: '#7d9a3e', rockLo: '#29311d', vein: '#5c6e33', rrock: E.g, rrockHi: E.G, rvein: E.d, plat: '#5fae5a', rplat: E.G, liquid: '#41583a', rliq: E.g, accent: '#b8e07a', soft: ['#5a3f2a', '#3e2b1d', '#7a5a3a'], rsoft: [E.n, E.k, E.d], softK: 'peat' },
+    ridge: { sky: ['#8fbde6', '#e6f2ff'], rsky: E.b, rock: '#5f86ad', rockHi: '#f4f9ff', rockLo: '#476b90', vein: '#9cc0e0', rrock: E.c, rrockHi: E.w, rvein: E.C, plat: '#bfe3f7', rplat: E.C, liquid: '#3c79a8', rliq: E.B, accent: '#5fb5ff', soft: ['#e9eef4', '#c3d0de', '#ffffff'], rsoft: [E.w, E.l, E.C], softK: 'firn' },
+    sunk:  { sky: ['#11334a', '#06141f'], rsky: E.k, rock: '#4a5a68', rockHi: '#8fa3b3', rockLo: '#2c3843', vein: '#b38b4a', rrock: E.d, rrockHi: E.c, rvein: E.n, plat: '#a8753a', rplat: E.n, liquid: '#1d6f8f', rliq: E.c, accent: '#7fe0ff', soft: ['#7a5a36', '#56401f', '#9a7a4a'], rsoft: [E.n, E.k, E.y], softK: 'pile' },
+    tower: { sky: ['#ff9f6e', '#5b4a92'], rsky: E.m, rock: '#7b7f8e', rockHi: '#c9c6cf', rockLo: '#4f5260', vein: '#9a8f88', rrock: E.d, rrockHi: E.l, rvein: E.l, plat: '#b9874c', rplat: E.n, liquid: '#2d5c8a', rliq: E.b, accent: '#ffd36b', soft: ['#b98a55', '#8a6238', '#d9ab72'], rsoft: [E.n, E.k, E.y], softK: 'plank' }
   };
-  // героиня: [modern, retro]
+  // героиня — молодой картограф-геодезист: бирюзовая штормовка, рыжий сигнальный жилет со светлой полосой,
+  // вязаная зелёная шапка с помпоном, тёмная коса, тубус с картами за спиной; веха — красно-белая полосатая. [modern, retro]
   var HC = {
-    boot: ['#3b2a20', E.n], pants: ['#3e475c', E.b], jacket: ['#6b7a3a', E.g], jacketHi: ['#86964a', E.G], belt: ['#4a3a22', E.n],
-    scarf: ['#d0602a', E.R], skin: ['#e8b98f', E.y], hair: ['#dfe3ea', E.w], hairLo: ['#aeb4be', E.l], goggle: ['#b87333', E.n], lens: ['#8fe1f2', E.C],
-    staff: ['#8b5a2b', E.n], band: ['#a9b1bb', E.l], spring: ['#d2d8de', E.w], knob: ['#d9a62e', E.y]
+    boot: ['#2d2a2a', E.d], pants: ['#4a4f5e', E.d], parka: ['#2f8f8a', E.c], parkaHi: ['#4fb7ae', E.C], vest: ['#f07a24', E.R], stripe: ['#e8eef0', E.w],
+    skin: ['#e6b48c', E.y], hair: ['#4a2e1e', E.n], hat: ['#5f8a3a', E.g], hatHi: ['#86b852', E.G], pom: ['#f2e6c8', E.w], tube: ['#8a6a44', E.n], tubeCap: ['#cfc6b0', E.l],
+    poleR: ['#d8342c', E.R], poleW: ['#f4f0e8', E.w]
   };
   function hc(k, rtr) { return HC[k][rtr ? 1 : 0]; }
   function R_(ctx, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
+  // полосатая веха: (x,y) — начало, len — длина, vertical — стоймя
+  function pole(ctx, x, y, len, vertical, rtr, dir) {
+    dir = dir || 1;
+    for (var i = 0; i < len; i += 4) {
+      var c = (i / 4) % 2 ? hc('poleW', rtr) : hc('poleR', rtr), l = Math.min(4, len - i);
+      if (vertical) R_(ctx, x, y + i, 2, l, c); else R_(ctx, dir > 0 ? x + i : x - i - l, y, l, 2, c);
+    }
+  }
 
   // ---------- героиня ----------
-  // o: { face, run (фаза бега), pogo, squash (0..1 сжатие пружины), swing (0..1), hurt, air }
+  // o: { face, run (фаза бега), throwT (0..1 — замах), air, blink, hold (веха в руке) }
   function hero(ctx, x, y, o, rtr, t) {
     var f = o.face || 1;
     ctx.save(); ctx.translate(Math.round(x), Math.round(y));
     if (f < 0) ctx.scale(-1, 1);
     if (o.blink && Math.floor(t * 16) % 2) ctx.globalAlpha = 0.35;
     if (!rtr) { ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(0, 0, 7, 2, 0, 0, 7); ctx.fill(); }
-    // посох
-    var sx = 6;
-    if (o.pogo) {
-      // стоит на посохе: пружина внизу, подножка-перекладина под сапогами
-      var sq = o.squash || 0, sh = 7 - Math.round(sq * 4);
-      for (var i = 0; i < 4; i++) R_(ctx, 2 + (i % 2 ? 0 : -2), -sh + Math.round(i * sh / 4), 5, 1, hc('spring', rtr));
-      ctx.translate(0, -sh - 1);
-    } else if (o.swing > 0) {
-      // клюшка: посох проносится снизу вперёд
-      var a = -1.9 + (1 - o.swing) * 2.6;
-      ctx.save(); ctx.translate(3, -14); ctx.rotate(a);
-      R_(ctx, -1, 0, 2, 22, hc('staff', rtr)); R_(ctx, -2, 18, 4, 4, hc('spring', rtr)); R_(ctx, -2, 8, 4, 1, hc('band', rtr));
-      ctx.restore();
-    } else {
-      R_(ctx, sx, -26, 2, 25, hc('staff', rtr));
-      R_(ctx, sx - 1, -27, 4, 3, hc('knob', rtr));
-      R_(ctx, sx - 1, -17, 4, 1, hc('band', rtr)); R_(ctx, sx - 1, -8, 4, 1, hc('band', rtr));
-      R_(ctx, sx - 1, -4, 4, 1, hc('spring', rtr)); R_(ctx, sx, -3, 3, 1, hc('spring', rtr)); R_(ctx, sx - 1, -2, 4, 1, hc('spring', rtr));
-    }
+    // тубус с картами за спиной
+    R_(ctx, -8, -21, 3, 11, hc('tube', rtr)); R_(ctx, -8, -22, 3, 2, hc('tubeCap', rtr));
     // ноги
     var ph = o.run || 0, l1 = 0, l2 = 0;
-    if (!o.pogo && !o.air && ph) { l1 = Math.round(Math.sin(ph) * 2); l2 = -l1; }
-    var crouch = o.pogo ? 2 : 0;
+    if (!o.air && ph) { l1 = Math.round(Math.sin(ph) * 2); l2 = -l1; }
     R_(ctx, -4 + l1, -3, 3, 3, hc('boot', rtr)); R_(ctx, 1 + l2, -3, 3, 3, hc('boot', rtr));
-    R_(ctx, -4, -9 + crouch, 8, 6 - crouch, hc('pants', rtr));
-    ctx.translate(0, crouch);
-    // куртка
-    R_(ctx, -5, -18, 10, 9, hc('jacket', rtr));
-    R_(ctx, -5, -18, 2, 9, hc('jacketHi', rtr));
-    R_(ctx, -5, -11, 10, 1, hc('belt', rtr));
-    R_(ctx, 1, -15, 3, 3, hc('jacketHi', rtr));
-    // рука к посоху
-    R_(ctx, 3, -16, 4, 2, hc('jacket', rtr)); R_(ctx, 6, -16, 2, 2, hc('skin', rtr));
-    // шарф
-    R_(ctx, -4, -19, 8, 2, hc('scarf', rtr));
-    var wave = o.air || o.run ? Math.round(Math.sin(t * 14) * 1) : 0;
-    R_(ctx, -7, -18 + wave, 3, 2, hc('scarf', rtr)); R_(ctx, -8, -16 + wave, 2, 2, hc('scarf', rtr));
-    // голова
-    R_(ctx, -3, -24, 7, 5, hc('skin', rtr));
-    R_(ctx, 4, -22, 1, 1, rtr ? E.n : '#d39a72');
-    // волосы и пучок
-    R_(ctx, -3, -26, 7, 2, hc('hair', rtr)); R_(ctx, -4, -25, 2, 4, hc('hair', rtr));
-    R_(ctx, -7, -28, 4, 4, hc('hair', rtr)); R_(ctx, -6, -25, 2, 1, hc('hairLo', rtr));
-    // очки-гогглы: медный ремешок и линзы
-    R_(ctx, -3, -24, 7, 1, hc('goggle', rtr));
-    R_(ctx, 1, -25, 3, 3, hc('goggle', rtr)); R_(ctx, 2, -24, 1, 1, hc('lens', rtr));
-    if (o.pogo) {
-      ctx.translate(0, -crouch);
-      R_(ctx, 3, -19, 2, 20, hc('staff', rtr)); R_(ctx, -5, -1, 12, 2, hc('band', rtr)); R_(ctx, 2, -10, 4, 1, hc('band', rtr));
-      R_(ctx, 2, -22, 4, 3, hc('knob', rtr)); R_(ctx, 1, -16, 5, 2, hc('skin', rtr));
-    }
+    R_(ctx, -4, -9, 8, 6, hc('pants', rtr));
+    if (o.air) { R_(ctx, -4, -5, 3, 2, hc('pants', rtr)); }
+    // штормовка и жилет
+    R_(ctx, -5, -18, 10, 10, hc('parka', rtr));
+    R_(ctx, -4, -17, 8, 7, hc('vest', rtr));
+    R_(ctx, -4, -13, 8, 1, hc('stripe', rtr));
+    R_(ctx, -5, -18, 1, 10, hc('parkaHi', rtr));
+    // голова, коса, шапка
+    R_(ctx, -3, -24, 7, 6, hc('skin', rtr));
+    R_(ctx, 3, -22, 1, 1, rtr ? E.k : '#2a1a12');
+    R_(ctx, -4, -23, 2, 5, hc('hair', rtr)); R_(ctx, -6, -19, 2, 4, hc('hair', rtr)); R_(ctx, -7, -15, 2, 2, hc('hair', rtr));
+    R_(ctx, -4, -27, 9, 4, hc('hat', rtr)); R_(ctx, -4, -24, 9, 1, hc('hatHi', rtr)); R_(ctx, -1, -29, 3, 2, hc('pom', rtr));
+    // рука и веха
+    var th = o.throwT || 0;
+    if (th > 0) {
+      // бросок: рука вытянута вперёд (вверх, если бросок вверх)
+      if (o.up) { R_(ctx, 3, -22, 3, 2, hc('parka', rtr)); R_(ctx, 5, -25, 2, 3, hc('skin', rtr)); }
+      else { R_(ctx, 3, -16, 6, 2, hc('parka', rtr)); R_(ctx, 8, -16, 2, 2, hc('skin', rtr)); }
+    } else if (o.hold !== false) {
+      // веха стоймя в руке
+      pole(ctx, 6, -30, 30, true, rtr);
+      R_(ctx, 3, -15, 4, 2, hc('parka', rtr)); R_(ctx, 5, -15, 2, 2, hc('skin', rtr));
+    } else { R_(ctx, 3, -15, 3, 4, hc('parka', rtr)); }
     ctx.restore();
   }
 
@@ -130,9 +117,43 @@
       if (!rtr) for (i = 0; i < 14; i++) { ctx.fillStyle = 'rgba(180,240,255,.25)'; ctx.beginPath(); ctx.arc((i * 71 + Math.sin(t + i) * 8) % VW, VH - ((t * 30 + i * 47) % VH), 2, 0, 7); ctx.fill(); }
     }
   }
+  function softTile(ctx, x, y, tx, ty, P, rtr, up, LV) {
+    var c = rtr ? P.rsoft : P.soft, k = P.softK;
+    R_(ctx, x, y, T, T, c[0]);
+    if (k === 'plank' || k === 'pile') {
+      // доски / сваи: волокна и шляпки гвоздей
+      if (k === 'plank') {   // длинные доски: шов редко, волокна вдоль
+        R_(ctx, x, y + 7, T, 1, c[1]); R_(ctx, x, y + 15, T, 1, c[1]);
+        if (((tx * 3 + ty * 5) % 7) === 0) R_(ctx, x + 9, y, 1, 7, c[1]); if (((tx * 5 + ty * 3) % 7) === 2) R_(ctx, x + 4, y + 8, 1, 7, c[1]);
+        if (!rtr) { R_(ctx, x + ((tx * 7) % 10) + 2, y + 3, 4, 1, 'rgba(0,0,0,.12)'); R_(ctx, x + ((tx * 11 + 3) % 10) + 2, y + 11, 5, 1, 'rgba(0,0,0,.12)'); if (((tx + ty) % 3) === 0) R_(ctx, x + 12, y + 3, 1, 1, c[2]); }
+      }
+      else { R_(ctx, x + 3, y, 1, T, c[1]); R_(ctx, x + 11, y, 1, T, c[1]); if (((tx + ty) % 2) === 0) R_(ctx, x + 6, y + 6, 3, 2, c[2]); }
+    } else if (k === 'peat') {
+      for (var i = 0; i < 3; i++) R_(ctx, x + ((tx * 3 + i * 5 + ty * 7) % 13), y + 3 + i * 4, 3, 1, c[1]);
+      if (!rtr && ((tx * 7 + ty * 3) % 4) === 0) R_(ctx, x + 6, y + 9, 2, 2, c[2]);
+    } else {   // фирн: зерно и голубые прожилки
+      if (((tx * 5 + ty * 3) % 3) === 0) R_(ctx, x + 3, y + 5, 2, 2, c[1]);
+      if (((tx * 3 + ty * 7) % 4) === 1) R_(ctx, x + 10, y + 11, 3, 1, c[1]);
+      if (!rtr) R_(ctx, x + 1, y + 1, 1, 1, c[2]);
+    }
+    if (!PS.logic.isSolid(up) && up !== '-' && up !== '|') R_(ctx, x, y, T, 2, rtr ? c[2] : 'rgba(255,255,255,.28)');
+  }
+  // стенной репер: латунная марка с крестом; снятый — с зелёной меткой
+  function markTile(ctx, x, y, done, P, rtr, t) {
+    R_(ctx, x, y, T, T, rtr ? P.rrock : P.rock);
+    if (!rtr) R_(ctx, x, y + T - 3, T, 3, P.rockLo);
+    var cx = x + 8, cy = y + 8;
+    if (rtr) { R_(ctx, x + 3, y + 3, 10, 10, done ? E.G : E.y); R_(ctx, x + 7, y + 4, 2, 8, E.k); R_(ctx, x + 4, y + 7, 8, 2, E.k); }
+    else {
+      ctx.fillStyle = done ? '#7fd06a' : '#d9a62e'; ctx.beginPath(); ctx.arc(cx, cy, 6, 0, 7); ctx.fill();
+      ctx.strokeStyle = 'rgba(40,28,10,.85)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, 6, 0, 7); ctx.moveTo(cx - 4, cy); ctx.lineTo(cx + 4, cy); ctx.moveTo(cx, cy - 4); ctx.lineTo(cx, cy + 4); ctx.stroke();
+      if (!done) { ctx.strokeStyle = 'rgba(255,230,140,' + (0.35 + 0.35 * Math.sin(t * 4)) + ')'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx, cy, 8.5, 0, 7); ctx.stroke(); }
+    }
+  }
   function tiles(ctx, S, cam, rtr, t) {
     var LV = S.LV, W = S.W, P = pal(LV), L = PS.logic;
     var c0 = Math.max(0, Math.floor(cam / T)), c1 = Math.min(LV.w - 1, Math.floor((cam + VW) / T) + 1);
+    var pegs = [];
     for (var ty = 0; ty < LV.h; ty++) for (var tx = c0; tx <= c1; tx++) {
       var ch = W.g[ty][tx]; if (ch === '.') continue;
       var x = tx * T - Math.round(cam), y = ty * T, up = ty > 0 ? W.g[ty - 1][tx] : '#';
@@ -140,9 +161,12 @@
         R_(ctx, x, y, T, T, rtr ? P.rrock : P.rock);
         if (!rtr) { R_(ctx, x, y + T - 3, T, 3, P.rockLo); if (((tx * 7 + ty * 13) % 5) === 0) R_(ctx, x + 4, y + 6, 5, 2, P.vein); }
         else if (((tx + ty) % 3) === 0) R_(ctx, x + 2, y + 9, 4, 2, P.rvein);
-        if (!L.isSolid(up) && up !== '-') R_(ctx, x, y, T, rtr ? 3 : 4, rtr ? P.rrockHi : P.rockHi);
+        if (!L.isSolid(up) && up !== '-' && up !== '|') R_(ctx, x, y, T, rtr ? 3 : 4, rtr ? P.rrockHi : P.rockHi);
         if (ch === 'c') { var cc = rtr ? E.k : 'rgba(0,0,0,.55)'; R_(ctx, x + 3, y + 3, 2, 6, cc); R_(ctx, x + 5, y + 8, 5, 2, cc); R_(ctx, x + 10, y + 9, 2, 5, cc); R_(ctx, x + 8, y + 2, 2, 4, cc); }
-      } else if (ch === '^') {
+      } else if (ch === '=') softTile(ctx, x, y, tx, ty, P, rtr, up, LV);
+      else if (ch === 'Q' || ch === 'q') markTile(ctx, x, y, ch === 'q', P, rtr, t);
+      else if (ch === '|') pegs.push([tx, ty, x, y]);
+      else if (ch === '^') {
         R_(ctx, x, y + 8, T, 8, rtr ? P.rrock : P.rock);
         var sc = rtr ? E.w : (LV.id === 'ridge' ? '#e8f6ff' : '#d4d8de');
         ctx.fillStyle = sc;
@@ -155,10 +179,6 @@
       } else if (ch === '~') {
         R_(ctx, x, y, T, T, rtr ? P.rliq : P.liquid);
         if (up !== '~') R_(ctx, x, y + 1 + Math.round(Math.sin(t * 3 + tx) * 1.2), T, 2, rtr ? E.w : 'rgba(255,255,255,.35)');
-      } else if (ch === 'D') {
-        R_(ctx, x, y, T, T, rtr ? E.n : '#5d4128'); R_(ctx, x + 1, y + 1, T - 2, T - 2, rtr ? E.d : '#7a5a37');
-        R_(ctx, x + 2, y + 7, T - 4, 2, rtr ? E.l : '#b0b6bd');
-        if (W.g[ty + 1] && W.g[ty + 1][tx] !== 'D') { R_(ctx, x + 6, y + 4, 4, 5, rtr ? E.y : '#e8c25a'); R_(ctx, x + 7, y + 6, 2, 2, E.k); }
       } else if (ch === 'X' || ch === 'A' || ch === 'a') {
         if (ch === 'a') { if (ty === LV.h - 4) { R_(ctx, x + 2, y - 30, 3, 46, rtr ? E.d : 'rgba(255,255,255,.12)'); R_(ctx, x + 11, y - 30, 3, 46, rtr ? E.d : 'rgba(255,255,255,.12)'); } continue; }
         R_(ctx, x, y, T, T, rtr ? E.k : 'rgba(10,10,14,.35)');
@@ -166,35 +186,51 @@
         R_(ctx, x, y + 6, T, 2, rtr ? E.d : '#6a727c');
       }
     }
+    // воткнутые вехи: торчат из стены, сверху — опора; самая старая (уйдёт следующей) мигает, если вех уже три
+    pegs.forEach(function (p) {
+      var face = PS.logic.tileAt(S.W, p[0] + 1, p[1]) === '=' ? 1 : -1;
+      var old = S.pegs.length >= PS.logic.K.PEGS && S.pegs[0] && S.pegs[0].tx === p[0] && S.pegs[0].ty === p[1];
+      if (old && Math.floor(t * 6) % 2) ctx.globalAlpha = 0.55;
+      var x0 = face > 0 ? p[2] + 16 : p[2];
+      pole(ctx, x0 + (face > 0 ? 3 : -3), p[3] + 1, 17, false, rtr, -face);
+      if (!rtr) R_(ctx, face > 0 ? p[2] + 1 : p[2], p[3] + 3, 14, 1, 'rgba(0,0,0,.3)');
+      ctx.globalAlpha = 1;
+    });
   }
   // ---------- предметы ----------
-  var GEMC = [['#ff5a6e', E.R], ['#57d98a', E.G], ['#5aa8ff', E.B]];
+  // образец породы: камешек с кристаллом (крупный — друза)
+  var GEMC = [['#6fd0ff', E.C], ['#9cf08a', E.G], ['#ffb86a', E.y]];
   function gem(ctx, x, y, big, k, rtr, t) {
-    var s = big ? 6 : 4, c = big ? (rtr ? E.M : '#c977ff') : GEMC[k % 3][rtr ? 1 : 0];
     var bob = Math.round(Math.sin(t * 3 + k) * 1.5); y += bob;
-    if (rtr) { R_(ctx, x - s / 2, y - s, s, s * 2, c); R_(ctx, x - s, y - s / 2, s * 2, s, c); R_(ctx, x - 1, y - s + 1, 2, 2, E.w); return; }
-    ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(x, y - s - 1); ctx.lineTo(x + s, y - 1); ctx.lineTo(x, y + s); ctx.lineTo(x - s, y - 1); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,.65)'; ctx.beginPath(); ctx.moveTo(x - 1, y - s + 1); ctx.lineTo(x + 2, y - 2); ctx.lineTo(x - 2, y - 2); ctx.fill();
-    if (Math.sin(t * 4 + k * 1.7) > 0.93) { R_(ctx, x + s - 1, y - s - 2, 1, 5, '#fff'); R_(ctx, x + s - 3, y - s, 5, 1, '#fff'); }
+    var rock = rtr ? E.l : '#8f8780', c = big ? (rtr ? E.M : '#c98aff') : GEMC[k % 3][rtr ? 1 : 0];
+    if (rtr) {
+      R_(ctx, x - 5, y, 10, 4, rock); R_(ctx, x - 2, y - 4, 3, 5, c); R_(ctx, x + 1, y - 2, 2, 3, c);
+      if (big) { R_(ctx, x - 5, y - 3, 2, 4, c); R_(ctx, x + 3, y - 5, 2, 6, c); }
+      return;
+    }
+    ctx.fillStyle = rock; ctx.beginPath(); ctx.ellipse(x, y + 2, big ? 7 : 5.5, 3, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = c;
+    var spikes = big ? [[-4, 6], [-1, 9], [2, 7], [5, 5]] : [[-2, 6], [1, 4]];
+    spikes.forEach(function (s) { ctx.beginPath(); ctx.moveTo(x + s[0] - 1.6, y + 1); ctx.lineTo(x + s[0], y + 1 - s[1]); ctx.lineTo(x + s[0] + 1.6, y + 1); ctx.fill(); });
+    if (Math.sin(t * 4 + k * 1.7) > 0.93) { R_(ctx, x + 1, y - 9, 1, 5, '#fff'); R_(ctx, x - 1, y - 7, 5, 1, '#fff'); }
   }
-  function pie(ctx, x, y, big, rtr) {
-    var w = big ? 14 : 10;
-    R_(ctx, x - w / 2, y - 1, w, 5, rtr ? E.n : '#c27a32');
-    R_(ctx, x - w / 2 + 1, y - 4, w - 2, 3, rtr ? E.y : '#efb85a');
-    R_(ctx, x - 2, y - 3, 1, 1, rtr ? E.n : '#8a4f1e'); R_(ctx, x + 1, y - 3, 1, 1, rtr ? E.n : '#8a4f1e');
-    if (big) R_(ctx, x - 1, y - 7, 2, 3, rtr ? E.R : '#d94a4a');
+  // термос с чаем
+  function thermos(ctx, x, y, rtr) {
+    R_(ctx, x - 3, y - 7, 6, 11, rtr ? E.R : '#c8463c'); R_(ctx, x - 3, y - 9, 6, 2, rtr ? E.l : '#cfd6dd'); R_(ctx, x - 2, y - 4, 4, 1, rtr ? E.w : '#f0e8dc');
+    R_(ctx, x + 3, y - 5, 2, 5, rtr ? E.l : '#cfd6dd');
   }
   function itemIcon(ctx, x, y, what, rtr, s) {
     s = s || 1;
     ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
-    if (what === 'gear') { R_(ctx, -5, -5, 10, 10, rtr ? E.y : '#d9a62e'); R_(ctx, -7, -2, 14, 4, rtr ? E.y : '#d9a62e'); R_(ctx, -2, -7, 4, 14, rtr ? E.y : '#d9a62e'); R_(ctx, -2, -2, 4, 4, rtr ? E.k : '#5a3c12'); }
-    else if (what === 'compass') { R_(ctx, -5, -5, 10, 10, rtr ? E.l : '#cfd6dd'); R_(ctx, -4, -4, 8, 8, rtr ? E.b : '#2f5d8a'); R_(ctx, -1, -4, 2, 4, rtr ? E.R : '#ff5a5a'); R_(ctx, -1, 0, 2, 4, rtr ? E.w : '#fff'); R_(ctx, 4, -8, 2, 4, rtr ? E.l : '#cfd6dd'); }
-    else if (what === 'icepick') { R_(ctx, -1, -6, 2, 13, rtr ? E.n : '#8b5a2b'); R_(ctx, -6, -7, 12, 3, rtr ? E.C : '#a6e4ff'); R_(ctx, 5, -6, 2, 3, rtr ? E.C : '#a6e4ff'); }
-    else if (what === 'astro') { ctx.strokeStyle = rtr ? E.y : '#e1a83c'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 6, 0, 7); ctx.stroke(); R_(ctx, -6, -1, 12, 2, rtr ? E.y : '#e1a83c'); R_(ctx, -1, -6, 2, 12, rtr ? E.n : '#b8762a'); }
-    else if (what === 'lens') { ctx.fillStyle = rtr ? E.C : 'rgba(150,230,255,.9)'; ctx.beginPath(); ctx.arc(0, 0, 6, 0, 7); ctx.fill(); ctx.strokeStyle = rtr ? E.y : '#d9a62e'; ctx.lineWidth = 2; ctx.stroke(); R_(ctx, -2, -3, 2, 2, '#fff'); }
-    else if (what === 'key') { R_(ctx, -7, -3, 6, 6, rtr ? E.y : '#ffd56a'); R_(ctx, -5, -1, 2, 2, rtr ? E.k : '#2a2030'); R_(ctx, -1, -1, 9, 2, rtr ? E.y : '#ffd56a'); R_(ctx, 5, 1, 2, 3, rtr ? E.y : '#ffd56a'); R_(ctx, 2, 1, 2, 2, rtr ? E.y : '#ffd56a');
-      R_(ctx, -5, -6, 2, 2, rtr ? E.w : '#fff7c8'); }
-    else if (what === 'life') { R_(ctx, -4, -4, 8, 8, rtr ? E.y : '#e0b048'); R_(ctx, -2, -6, 4, 12, rtr ? E.y : '#e0b048'); R_(ctx, -6, -2, 12, 4, rtr ? E.y : '#e0b048'); R_(ctx, -2, -2, 4, 4, rtr ? E.R : '#d94a4a'); }
+    if (what === 'life') { R_(ctx, -4, -4, 8, 8, rtr ? E.y : '#e0b048'); R_(ctx, -2, -6, 4, 12, rtr ? E.y : '#e0b048'); R_(ctx, -6, -2, 12, 4, rtr ? E.y : '#e0b048'); R_(ctx, -2, -2, 4, 4, rtr ? E.R : '#d94a4a'); }
+    else if (what === 'mark') { if (rtr) { R_(ctx, -5, -5, 10, 10, E.y); R_(ctx, -1, -4, 2, 8, E.k); R_(ctx, -4, -1, 8, 2, E.k); } else { ctx.fillStyle = '#d9a62e'; ctx.beginPath(); ctx.arc(0, 0, 5, 0, 7); ctx.fill(); ctx.strokeStyle = '#3a2a10'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(3, 0); ctx.moveTo(0, -3); ctx.lineTo(0, 3); ctx.stroke(); } }
+    else if (what === 'sign') {
+      // тригопункт: деревянная тренога с флажком
+      var wd = rtr ? E.n : '#a8783e';
+      ctx.strokeStyle = wd; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(-7, 8); ctx.moveTo(0, -12); ctx.lineTo(7, 8); ctx.moveTo(0, -12); ctx.lineTo(0, 8); ctx.moveTo(-4, -1); ctx.lineTo(4, -1); ctx.stroke();
+      R_(ctx, 0, -18, 1, 7, rtr ? E.w : '#f0e8dc'); R_(ctx, 1, -18, 6, 4, rtr ? E.R : '#e9643a');
+    }
+    else if (what === 'pole') { pole(ctx, -1, -8, 16, true, rtr); }
     ctx.restore();
   }
   function items(ctx, S, cam, rtr, t) {
@@ -203,14 +239,12 @@
       if (S.got[it.id]) return;
       var x = it.tx * T + 8 - cam, y = it.ty * T + 8; if (x < -20 || x > VW + 20) return;
       if (it.k === 'gem' || it.k === 'big') gem(ctx, x, y, it.k === 'big', i, rtr, t);
-      else if (it.k === 'pie' || it.k === 'bigpie') pie(ctx, x, y + 3, it.k === 'bigpie', rtr);
+      else if (it.k === 'pie') thermos(ctx, x, y + 4, rtr);
       else {
-        var w = it.k === 'item' ? it.what : it.k === 'relic' ? it.what : 'life';
         if (!rtr) { ctx.fillStyle = 'rgba(255,240,180,' + (0.18 + 0.1 * Math.sin(t * 4)) + ')'; ctx.beginPath(); ctx.arc(x, y, 12, 0, 7); ctx.fill(); }
-        itemIcon(ctx, x, y + Math.sin(t * 2.5) * 2, w, rtr);
+        itemIcon(ctx, x, y + Math.sin(t * 2.5) * 2, 'life', rtr);
       }
     });
-    S.loot.forEach(function (g, i) { gem(ctx, g.x - cam, g.y, g.v >= 500, i, rtr, t); });
     LV.flags.forEach(function (f, i) {
       var x = f.tx * T + 8 - cam, y = (f.ty + 1) * T; if (x < -20 || x > VW + 20) return;
       R_(ctx, x - 1, y - 26, 2, 26, rtr ? E.l : '#cfc6b8');
@@ -218,21 +252,34 @@
       ctx.fillStyle = on ? (rtr ? E.R : '#e9643a') : (rtr ? E.d : '#7d7468');
       ctx.beginPath(); ctx.moveTo(x + 1, y - 26); ctx.lineTo(x + 13, y - 22 + wv); ctx.lineTo(x + 1, y - 17); ctx.fill();
     });
-    S.objs.forEach(function (o) {
-      if (!o.alive) return; var x = o.x - cam, y = o.y;
-      if (o.k === 'rock') {
-        if (rtr) { R_(ctx, x - 6, y - 10, 12, 10, E.l); R_(ctx, x - 4, y - 12, 8, 2, E.l); R_(ctx, x - 3, y - 9, 3, 2, E.w); }
-        else { ctx.fillStyle = '#8d8a86'; ctx.beginPath(); ctx.ellipse(x, y - 6, 7, 6.5, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#b5b1ab'; ctx.beginPath(); ctx.ellipse(x - 2, y - 8, 3, 2, 0, 0, 7); ctx.fill(); }
-      } else {
-        R_(ctx, x - 8, y - 11, 16, 11, rtr ? E.n : '#8a5a2e'); R_(ctx, x - 8, y - 13, 16, 4, rtr ? E.n : '#a06a36');
-        R_(ctx, x - 8, y - 9, 16, 2, rtr ? E.y : '#d9a62e'); R_(ctx, x - 2, y - 10, 4, 5, rtr ? E.y : '#e8c25a'); R_(ctx, x - 6, y - 13, 2, 13, rtr ? E.y : '#c79528'); R_(ctx, x + 4, y - 13, 2, 13, rtr ? E.y : '#c79528');
-      }
-    });
-    if (S.keyDrop && !S.keyGot) {
-      var kx = S.keyDrop.x - cam, ky = S.keyDrop.y;
+    if (S.sign && !S.signGot) {
+      var kx = S.sign.x - cam, ky = S.sign.y;
       if (!rtr) { ctx.fillStyle = 'rgba(255,230,140,' + (0.25 + 0.15 * Math.sin(t * 5)) + ')'; ctx.beginPath(); ctx.arc(kx, ky, 18, 0, 7); ctx.fill(); }
-      itemIcon(ctx, kx, ky, 'key', rtr, 1.6);
+      itemIcon(ctx, kx, ky, 'sign', rtr, 1.4);
     }
+  }
+  // летящие вехи и прицел
+  function darts(ctx, S, cam, rtr) {
+    S.darts.forEach(function (d) {
+      var x = d.x - cam, y = d.y;
+      ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.rotate(d.uy ? (d.ux > 0 ? -Math.PI / 4 : -3 * Math.PI / 4) : (d.ux > 0 ? 0 : Math.PI));
+      pole(ctx, -14, -1, 16, false, rtr, 1); R_(ctx, 2, -1, 2, 2, rtr ? E.l : '#c9ced6');
+      ctx.restore();
+    });
+  }
+  function aim(ctx, S, cam, rtr, up, t) {
+    var P = S.hero, L = PS.logic;
+    if (S.phase !== 'play' || S.darts.length || !P.ground) return;
+    var r = L.stakeRay(S.W, P, up), s = L.newStake(P, up);
+    var x0 = s.x - cam, y0 = s.y, x1 = r.x - cam, y1 = r.y, n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / 8));
+    var col = r.k === 'peg' ? (rtr ? E.G : '#8fe87a') : r.k === 'mark' ? (rtr ? E.y : '#ffd56a') : r.k === 'crack' ? (rtr ? E.C : '#9fe8ff') : (rtr ? E.d : 'rgba(255,255,255,.35)');
+    var a = rtr ? 1 : 0.55 + 0.2 * Math.sin(t * 6);
+    ctx.globalAlpha = a;
+    for (var i = 1; i < n; i++) R_(ctx, x0 + (x1 - x0) * i / n - 1, y0 + (y1 - y0) * i / n - 1, 2, 2, col);
+    if (r.k === 'peg') { var px = r.tx * T + 8 - cam, py = r.ty * T + 1; R_(ctx, px - 7, py, 14, 2, col); }
+    else if (r.k === 'mark' || r.k === 'crack') { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.strokeRect(r.tx * T - cam + 1, r.ty * T + 1, 14, 14); }
+    else if (r.k === 'clink') { R_(ctx, x1 - 3, y1 - 1, 6, 2, col); R_(ctx, x1 - 1, y1 - 3, 2, 6, col); }
+    ctx.globalAlpha = 1;
   }
   // ---------- враги ----------
   var ENC = { // [тело modern, акцент modern, тело retro, акцент retro]
@@ -320,29 +367,24 @@
     var c = full ? (rtr ? E.R : '#ff5d6c') : (rtr ? E.d : 'rgba(255,255,255,.18)');
     R_(ctx, x, y + 1, 3, 3, c); R_(ctx, x + 4, y + 1, 3, 3, c); R_(ctx, x + 1, y + 3, 5, 3, c); R_(ctx, x + 2, y + 6, 3, 2, c);
   }
-  function money(n) { var s = String(Math.max(0, Math.floor(n))); return s.replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  function num(n) { var s = String(Math.max(0, Math.floor(n))); return s.replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
   function hud(g, ctx, S, prog, rtr) {
-    var th = g.th();
+    var th = g.th(), K = PS.logic.K;
     R_(ctx, 0, 0, VW, 18, rtr ? E.k : 'rgba(8,8,14,.6)');
-    for (var i = 0; i < PS.logic.K.HEARTS; i++) heartIcon(ctx, 6 + i * 10, 5, i < S.hearts, rtr);
-    // мини-портрет и жизни
-    R_(ctx, 40, 4, 5, 3, rtr ? E.w : '#dfe3ea'); R_(ctx, 40, 7, 5, 4, rtr ? E.y : '#e8b98f'); R_(ctx, 40, 7, 5, 1, rtr ? E.n : '#b87333');
-    g.text('×' + S.lives, 47, 13, { size: 10, color: th.ink, weight: 800 });
-    gem(ctx, 70, 10, false, 2, rtr, 0);
-    g.text(money(S.bank + S.bag), 78, 13, { size: 10, color: rtr ? E.y : '#ffe08a', weight: 800 });
-    if (S.bag) g.text('(' + g.t('bag') + ' +' + money(S.bag) + ')', 138, 13, { size: 9, color: th.muted, weight: 700 });
-    // ключи
-    var ids = PS.levels.ids;
-    for (var k = 0; k < ids.length; k++) {
-      var have = prog.keys[ids[k]] || (ids[k] === S.id && S.keyGot);
-      ctx.globalAlpha = have ? 1 : 0.25; itemIcon(ctx, 330 + k * 18, 9, 'key', rtr, 0.8); ctx.globalAlpha = 1;
-    }
-    // предметы и реликвии
-    var xi = 430;
-    PS.levels.ITEMS.concat(PS.levels.RELICS).forEach(function (w) {
-      var have = (prog.items[w] || prog.relics[w] || S.gotItem === w || S.gotRelic === w);
-      if (!have) return; itemIcon(ctx, xi, 9, w, rtr, 0.8); xi += 16;
-    });
+    for (var i = 0; i < K.HEARTS; i++) heartIcon(ctx, 6 + i * 10, 5, i < S.hearts, rtr);
+    // мини-портрет (шапка) и жизни
+    R_(ctx, 40, 3, 6, 3, hc('hat', rtr)); R_(ctx, 41, 6, 5, 4, hc('skin', rtr)); R_(ctx, 40, 10, 6, 2, hc('vest', rtr));
+    g.text('×' + S.lives, 49, 13, { size: 10, color: th.ink, weight: 800 });
+    g.text(num(S.score), 78, 13, { size: 10, color: rtr ? E.y : '#ffe08a', weight: 800 });
+    // вехи: в связке / воткнуты (самая старая уйдёт следующей)
+    var free = K.PEGS - S.pegs.length;
+    for (var k = 0; k < K.PEGS; k++) { ctx.globalAlpha = k < free ? 1 : 0.3; pole(ctx, 170 + k * 6, 3, 12, true, rtr); }
+    ctx.globalAlpha = 1;
+    // реперы участка
+    var got = 0; for (var m in S.marks) got++;
+    for (var q = 0; q < S.LV.marks.length; q++) { ctx.globalAlpha = q < got ? 1 : 0.28; itemIcon(ctx, 420 + q * 14, 9, 'mark', rtr, 1); }
+    ctx.globalAlpha = 1;
+    g.text(g.t('x_' + S.id), 404, 13, { size: 9, align: 'right', color: th.muted, weight: 700 });
   }
   function bossBar(g, ctx, b, name, rtr) {
     if (!b || !b.alive || !b.awake) return;
@@ -363,109 +405,98 @@
     big(ctx, S.guard, cam, LV.id, 'guard', rtr, t);
     big(ctx, S.boss, cam, LV.id, LV.boss, rtr, t);
     S.shots.forEach(function (s) { var x = s.x - cam; if (rtr) R_(ctx, x - 3, s.y - 3, 6, 6, E.G); else { ctx.fillStyle = LV.id === 'sunk' ? 'rgba(235,245,255,.85)' : '#8fbf4a'; ctx.beginPath(); ctx.arc(x, s.y, 4, 0, 7); ctx.fill(); } });
+    if (ui.aim !== false) aim(ctx, S, cam, rtr, !!ui.aimUp, t);
+    darts(ctx, S, cam, rtr);
     var P = S.hero;
     if (S.phase !== 'dead' || Math.floor(t * 10) % 2) {
       if (!rtr) { ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.85)'; ctx.shadowBlur = 3; }
-      hero(ctx, P.x - cam, P.y, { face: P.face, run: P.ground ? ui.runPh : 0, pogo: P.pogo || (ui.squash > 0 && !P.ground), squash: ui.squash, swing: S.swing > 0 ? S.swing / PS.logic.K.SWING : 0, air: !P.ground, blink: P.inv > 0 && S.phase === 'play' }, rtr, t);
+      hero(ctx, P.x - cam, P.y, { face: P.face, run: P.ground ? ui.runPh : 0, throwT: ui.throwT || 0, up: ui.throwUp, hold: !S.darts.length && S.cool <= 0.05, air: !P.ground, blink: P.inv > 0 && S.phase === 'play' }, rtr, t);
       if (!rtr) ctx.restore();
     }
     ui.fx.draw(ctx, cam, rtr);
     hud(g, ctx, S, prog, rtr);
     if (S.guard.alive && S.guard.awake) bossBar(g, ctx, S.guard, g.t('g_' + LV.guard), rtr);
     if (S.boss.alive && S.boss.awake) bossBar(g, ctx, S.boss, g.t('b_' + LV.boss), rtr);
-    // всплывашки
     ui.toasts.forEach(function (q) { var a = Math.min(1, q.t / q.life * 2); ctx.globalAlpha = a; g.text(q.text, q.x - cam, q.y - (1 - q.t / q.life) * 18, { size: q.big ? 12 : 10, align: 'center', color: q.color, weight: 800 }); ctx.globalAlpha = 1; });
     var th = g.th();
-    if (ui.msg) { ctx.globalAlpha = Math.min(1, ui.msg.a * 2); g.text(ui.msg.text, VW / 2, VH - 14, { size: 12, align: 'center', color: ui.msg.color || th.ink, weight: 800 }); ctx.globalAlpha = 1; }
+    if (ui.msg) { ctx.globalAlpha = Math.min(1, ui.msg.a * 2); g.text(ui.msg.text, VW / 2, VH - 14, { size: 12, align: 'center', color: ui.msg.color || th.ink, weight: 800, maxWidth: VW - 20 }); ctx.globalAlpha = 1; }
     if (ui.banner) {
       var bn = ui.banner, al = Math.min(1, bn.a * 2, (bn.dur - bn.a) * 4 + 0.2), lines = bn.lines || [];
       ctx.globalAlpha = al;
       var bh = 50 + lines.length * 15;
-      R_(ctx, 56, 70, VW - 112, bh, rtr ? E.k : 'rgba(10,10,18,.78)');
-      if (rtr) { R_(ctx, 56, 70, VW - 112, 2, bn.color || th.accent); R_(ctx, 56, 68 + bh, VW - 112, 2, bn.color || th.accent); }
-      g.text(bn.title, VW / 2, 94, { size: 18, align: 'center', color: bn.color || th.accent, weight: 900 });
-      if (bn.sub) g.text(bn.sub, VW / 2, 111, { size: 11, align: 'center', color: th.muted, weight: 700 });
-      lines.forEach(function (ln, i) { g.text(ln, VW / 2, 128 + i * 15, { size: 11, align: 'center', color: th.ink, weight: 700 }); });
+      R_(ctx, 40, 70, VW - 80, bh, rtr ? E.k : 'rgba(10,10,18,.78)');
+      if (rtr) { R_(ctx, 40, 70, VW - 80, 2, bn.color || th.accent); R_(ctx, 40, 68 + bh, VW - 80, 2, bn.color || th.accent); }
+      g.text(bn.title, VW / 2, 94, { size: 18, align: 'center', color: bn.color || th.accent, weight: 900, maxWidth: VW - 96 });
+      if (bn.sub) g.text(bn.sub, VW / 2, 111, { size: 11, align: 'center', color: th.muted, weight: 700, maxWidth: VW - 96 });
+      lines.forEach(function (ln, i) { g.text(ln, VW / 2, 128 + i * 15, { size: 11, align: 'center', color: th.ink, weight: 700, maxWidth: VW - 96 }); });
       ctx.globalAlpha = 1;
     }
   };
 
-  // ---------- лагерь: глобус ----------
-  var LON = { mine: 0, swamp: 72, ridge: 144, tower: 216, sunk: 288 };
-  var LAT = { mine: 18, swamp: -14, ridge: 34, tower: -2, sunk: -30 };
-  var XCOL = { mine: ['#e39a4f', E.n], swamp: ['#8fd16a', E.G], ridge: ['#9fd6ff', E.C], tower: ['#ffd36b', E.y], sunk: ['#5fc8e8', E.c] };
-  PS.renderCamp = function (g, ctx, M, prog) {
-    var rtr = g.themeName === 'retro', t = g.time, th = g.th();
+  // ---------- карта маршрута ----------
+  // участки — станции на бумажной карте с горизонталями, пунктир маршрута слева направо, в конце — обсерватория
+  var MAPXY = { mine: [70, 196], swamp: [150, 120], ridge: [240, 170], sunk: [322, 98], tower: [398, 160], obs: [462, 78] };
+  var XCOL = { mine: ['#c0602a', E.n], swamp: ['#4f8a3a', E.g], ridge: ['#3b7fc4', E.B], sunk: ['#2b7f8f', E.c], tower: ['#c8902a', E.r] };
+  PS.renderMap = function (g, ctx, M, prog) {
+    var rtr = g.themeName === 'retro', t = g.time, th = g.th(), SV = PS.save, ids = PS.levels.ids;
     ctx.imageSmoothingEnabled = !rtr;
-    // ночное небо и лагерь
-    if (rtr) { ctx.fillStyle = E.b; ctx.fillRect(0, 0, VW, VH); }
-    else { var gr = ctx.createLinearGradient(0, 0, 0, VH); gr.addColorStop(0, '#141a3a'); gr.addColorStop(1, '#3a2b4a'); ctx.fillStyle = gr; ctx.fillRect(0, 0, VW, VH); }
-    for (var i = 0; i < 60; i++) { var a = 0.4 + 0.6 * Math.abs(Math.sin(t * 0.7 + i)); ctx.globalAlpha = rtr ? 1 : a; R_(ctx, (i * 97) % VW, (i * 53) % 170, 1 + (i % 3 === 0), 1 + (i % 3 === 0), rtr ? E.w : '#fff'); }
-    ctx.globalAlpha = 1;
-    R_(ctx, 0, 240, VW, 48, rtr ? E.g : '#2b3a2a');
-    // палатка и костёр
-    ctx.fillStyle = rtr ? E.n : '#8a6a3a'; ctx.beginPath(); ctx.moveTo(24, 240); ctx.lineTo(64, 196); ctx.lineTo(104, 240); ctx.fill();
-    ctx.fillStyle = rtr ? E.k : '#3a2a1a'; ctx.beginPath(); ctx.moveTo(56, 240); ctx.lineTo(64, 214); ctx.lineTo(72, 240); ctx.fill();
-    var fl = Math.sin(t * 9) * 2;
-    R_(ctx, 128, 236, 20, 4, rtr ? E.n : '#5a3a1e');
-    ctx.fillStyle = rtr ? E.R : '#ff8a3a'; ctx.beginPath(); ctx.moveTo(130, 236); ctx.lineTo(138, 220 + fl); ctx.lineTo(146, 236); ctx.fill();
-    ctx.fillStyle = rtr ? E.y : '#ffd56a'; ctx.beginPath(); ctx.moveTo(134, 236); ctx.lineTo(138, 226 - fl); ctx.lineTo(142, 236); ctx.fill();
-    hero(ctx, 168, 240, { face: 1, run: 0 }, rtr, t);
-    // глобус
-    var cx = 300, cy = 128, r = 86;
-    R_(ctx, cx - 4, cy + r, 8, 26, rtr ? E.n : '#7a5a34'); R_(ctx, cx - 30, cy + r + 22, 60, 6, rtr ? E.n : '#5a3f22');
-    if (rtr) { ctx.fillStyle = E.c; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill(); }
-    else { var rg = ctx.createRadialGradient(cx - 30, cy - 30, 10, cx, cy, r); rg.addColorStop(0, '#6fb6d8'); rg.addColorStop(1, '#1d4a6a'); ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill(); }
-    ctx.strokeStyle = rtr ? E.b : 'rgba(255,255,255,.18)'; ctx.lineWidth = 1;
-    for (var la = -60; la <= 60; la += 30) { var yy = cy - Math.sin(la * Math.PI / 180) * r, rr = Math.cos(la * Math.PI / 180) * r; ctx.beginPath(); ctx.ellipse(cx, yy, rr, rr * 0.08 + 0.5, 0, 0, 7); ctx.stroke(); }
-    for (var lo = 0; lo < 360; lo += 30) { var ang = (lo - M.rot) * Math.PI / 180; if (Math.cos(ang) < 0) continue; ctx.beginPath(); ctx.ellipse(cx, cy, Math.abs(Math.sin(ang)) * r + 0.5, r, 0, 0, 7); ctx.stroke(); }
-    // материки-пятна (оборачиваются вместе с глобусом)
-    for (var m = 0; m < 9; m++) {
-      var mlon = m * 40 + 10, mlat = ((m * 37) % 100) - 50, aa = (mlon - M.rot) * Math.PI / 180;
-      if (Math.cos(aa) < 0.1) continue;
-      var mx = cx + Math.sin(aa) * Math.cos(mlat * Math.PI / 180) * r, my = cy - Math.sin(mlat * Math.PI / 180) * r;
-      ctx.fillStyle = rtr ? E.g : 'rgba(120,170,90,.55)'; ctx.beginPath(); ctx.ellipse(mx, my, 14 * Math.cos(aa), 9, 0, 0, 7); ctx.fill();
+    // бумага
+    if (rtr) { ctx.fillStyle = E.k; ctx.fillRect(0, 0, VW, VH); R_(ctx, 8, 26, VW - 16, 214, E.n); R_(ctx, 10, 28, VW - 20, 210, E.k); }
+    else {
+      ctx.fillStyle = '#1b1712'; ctx.fillRect(0, 0, VW, VH);
+      var gr = ctx.createLinearGradient(0, 26, 0, 240); gr.addColorStop(0, '#efe2c4'); gr.addColorStop(1, '#dcc89e');
+      ctx.fillStyle = gr; ctx.fillRect(8, 26, VW - 16, 214);
+      ctx.strokeStyle = 'rgba(120,90,50,.5)'; ctx.lineWidth = 2; ctx.strokeRect(9, 27, VW - 18, 212);
     }
-    // узлы экспедиций
-    PS.levels.ids.forEach(function (id) {
-      var aa = (LON[id] - M.rot) * Math.PI / 180, cs = Math.cos(aa); if (cs < -0.05) return;
-      var la = LAT[id] * Math.PI / 180, x = cx + Math.sin(aa) * Math.cos(la) * r, y = cy - Math.sin(la) * r, sel = M.sel === id;
-      var col = XCOL[id][rtr ? 1 : 0], sz = 4 + cs * 4;
-      ctx.globalAlpha = 0.35 + 0.65 * cs;
-      if (sel) { ctx.strokeStyle = rtr ? E.w : '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, sz + 5 + Math.sin(t * 5), 0, 7); ctx.stroke(); }
-      R_(ctx, x - sz, y - sz, sz * 2, sz * 2, col);
-      if (prog.keys[id]) itemIcon(ctx, x, y - sz - 8, 'key', rtr, 0.7);
+    // горизонтали
+    ctx.lineWidth = 1;
+    for (var i = 0; i < 7; i++) {
+      ctx.strokeStyle = rtr ? (i % 2 ? E.d : E.n) : 'rgba(150,110,60,' + (0.18 + (i % 3) * 0.06) + ')';
+      ctx.beginPath();
+      for (var x = 12; x <= VW - 12; x += 8) { var y = 60 + i * 26 + Math.sin(x * 0.02 + i * 1.3) * 12 + Math.sin(x * 0.051 + i) * 5; if (x === 12) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+      ctx.stroke();
+    }
+    // маршрут
+    var path = ids.concat(['obs']);
+    for (var k = 0; k < path.length - 1; k++) {
+      var a = MAPXY[path[k]], b = MAPXY[path[k + 1]], done = !!prog.cleared[path[k]];
+      var n = 12;
+      for (var j = 0; j < n; j++) if (j % 2 === 0) { var px = a[0] + (b[0] - a[0]) * j / n, py = a[1] + (b[1] - a[1]) * j / n; R_(ctx, px - 1, py - 1, 3, 3, done ? (rtr ? E.R : '#c8463c') : (rtr ? E.d : 'rgba(90,70,40,.5)')); }
+    }
+    // станции
+    path.forEach(function (id) {
+      var p = MAPXY[id], sel = M.sel === id, open = id === 'obs' ? SV.allCleared(prog) : SV.isOpen(prog, id);
+      ctx.globalAlpha = open ? 1 : 0.45;
+      if (sel) { ctx.strokeStyle = rtr ? E.w : '#3a2a10'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p[0], p[1], 15 + Math.sin(t * 5), 0, 7); ctx.stroke(); }
+      if (id === 'obs') {
+        R_(ctx, p[0] - 10, p[1] - 4, 20, 10, rtr ? E.l : '#9a8f9e'); ctx.fillStyle = rtr ? E.w : '#cfc8d8'; ctx.beginPath(); ctx.arc(p[0], p[1] - 4, 10, Math.PI, 0); ctx.fill();
+        R_(ctx, p[0] + 1, p[1] - 16, 8, 3, rtr ? E.y : '#d9a62e');
+      } else {
+        var c = XCOL[id][rtr ? 1 : 0];
+        ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(p[0], p[1] - 10); ctx.lineTo(p[0] + 9, p[1] + 6); ctx.lineTo(p[0] - 9, p[1] + 6); ctx.fill();
+        if (prog.cleared[id]) itemIcon(ctx, p[0] + 12, p[1] - 6, 'sign', rtr, 0.7);
+        var mk = SV.markCount(prog, id);
+        for (var q = 0; q < PS.levels.MARKS; q++) { ctx.globalAlpha = (open ? 1 : 0.45) * (q < mk ? 1 : 0.3); itemIcon(ctx, p[0] - 12 + q * 12, p[1] + 16, 'mark', rtr, 0.8); }
+        ctx.globalAlpha = open ? 1 : 0.45;
+        if (!open) { R_(ctx, p[0] - 3, p[1] - 3, 6, 5, rtr ? E.l : '#5a4a3a'); }
+      }
       ctx.globalAlpha = 1;
     });
-    // обсерватория на полюсе
-    var allK = PS.save.allKeys(prog), ox = cx, oy = cy - r - 4;
-    ctx.globalAlpha = allK ? 1 : 0.45;
-    R_(ctx, ox - 10, oy - 6, 20, 8, rtr ? E.l : '#cfc8d8'); ctx.fillStyle = rtr ? E.w : '#efe8f6'; ctx.beginPath(); ctx.arc(ox, oy - 6, 10, Math.PI, 0); ctx.fill();
-    R_(ctx, ox - 1, oy - 16, 3, 6, rtr ? E.d : '#5a5368'); R_(ctx, ox + 1, oy - 20, 8, 3, rtr ? E.y : '#ffd56a');
-    if (M.sel === 'obs') { ctx.strokeStyle = rtr ? E.y : '#ffd56a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(ox, oy - 6, 16 + Math.sin(t * 5), 0, 7); ctx.stroke(); }
-    ctx.globalAlpha = 1;
-    // шапка
-    g.text(g.t('camp'), VW / 2, 18, { size: 13, align: 'center', color: th.accent, weight: 900 });
-    // панель слева: казна, жизни, ключи, предметы
-    var px = 12, py = 44;
-    R_(ctx, px - 4, py - 14, 132, M.ach && M.ach.trueEnd ? 104 : 84, rtr ? E.k : 'rgba(8,8,16,.5)');
-    g.text(g.t('bank') + ': ' + money(prog.bank), px, py, { size: 11, color: rtr ? E.y : '#ffe08a', weight: 800 });
-    g.text(g.t('lives') + ': ' + prog.lives, px, py + 16, { size: 11, color: th.ink, weight: 800 });
-    g.text(g.t('keys') + ': ' + PS.save.keyCount(prog) + '/5', px, py + 32, { size: 11, color: th.ink, weight: 800 });
-    var ix = px + 6;
-    PS.levels.ITEMS.forEach(function (w) { ctx.globalAlpha = prog.items[w] ? 1 : 0.2; itemIcon(ctx, ix, py + 50, w, rtr); ix += 20; });
-    PS.levels.RELICS.forEach(function (w) { ctx.globalAlpha = prog.relics[w] ? 1 : 0.2; itemIcon(ctx, ix, py + 50, w, rtr); ix += 20; });
-    ctx.globalAlpha = 1;
-    if (M.ach && M.ach.trueEnd) g.text('★ ' + g.t('achTrue'), px, py + 80, { size: 8, color: rtr ? E.y : '#ffd56a', weight: 800 });
-    // панель выбранного
+    // героиня у выбранной станции
+    var hp = MAPXY[M.sel] || MAPXY.mine;
+    hero(ctx, hp[0] - 22, hp[1] + 8, { face: 1, run: 0 }, rtr, t);
+    // шапка и панель
+    g.text(g.t('map'), VW / 2, 18, { size: 13, align: 'center', color: th.accent, weight: 900 });
+    g.text(g.t('total') + ': ' + num(prog.score) + '   ♥×' + prog.lives + '   ' + g.t('marks') + ': ' + SV.markCount(prog) + '/' + ids.length * PS.levels.MARKS, VW - 18, 42, { size: 9, align: 'right', color: rtr ? E.y : '#5a3a14', weight: 800, maxWidth: VW - 40 });
     var id = M.sel, name = g.t('x_' + id), desc = g.t('xd_' + id), st;
-    if (id === 'obs') st = allK ? (PS.save.trueEnd(prog) ? g.t('endingTrue').split(':')[0] : '✓ 5/5') : g.t('locked');
-    else st = prog.keys[id] ? '✓ ' + g.t('cleared') + ' · ' + g.t('replay') : g.t('notYet') + ' · ' + g.t('b_' + PS.levels.EXP.filter(function (e) { return e.id === id; })[0].boss);
-    R_(ctx, 100, 236, 312, 44, rtr ? E.k : 'rgba(8,8,16,.72)');
-    g.text(name, VW / 2, 252, { size: 14, align: 'center', color: id === 'obs' ? (rtr ? E.y : '#ffd56a') : XCOL[id][rtr ? 1 : 0], weight: 900 });
-    g.text(desc + ' — ' + st, VW / 2, 266, { size: 9, align: 'center', color: th.ink, weight: 700 });
-    g.text(g.t('campHint'), VW / 2, 278, { size: 8, align: 'center', color: th.muted, weight: 700 });
-    if (M.note && M.noteA > 0) g.text(M.note, cx, cy + r + 10, { size: 11, align: 'center', color: th.warn, weight: 800 });
+    if (id === 'obs') st = SV.allCleared(prog) ? g.t('obsOpen') : g.t('obsLocked');
+    else if (!SV.isOpen(prog, id)) st = g.t('locked');
+    else st = prog.cleared[id] ? '✓ ' + g.t('cleared') + (SV.markCount(prog, id) < PS.levels.MARKS ? ' · ' + g.t('replay') : '') : g.t('notYet') + ' · ' + g.t('b_' + PS.levels.EXP.filter(function (e) { return e.id === id; })[0].boss);
+    R_(ctx, 40, 244, VW - 80, 40, rtr ? E.k : 'rgba(8,8,16,.78)');
+    g.text(name, VW / 2, 258, { size: 14, align: 'center', color: id === 'obs' ? (rtr ? E.y : '#ffd56a') : (rtr ? E.w : '#ffe6b0'), weight: 900, maxWidth: VW - 100 });
+    g.text(desc + ' — ' + st, VW / 2, 271, { size: 9, align: 'center', color: th.ink, weight: 700, maxWidth: VW - 100 });
+    g.text(g.t('mapHint'), VW / 2, 281, { size: 8, align: 'center', color: th.muted, weight: 700, maxWidth: VW - 100 });
+    if (M.note && M.noteA > 0) g.text(M.note, VW / 2, 232, { size: 11, align: 'center', color: rtr ? E.y : '#7a2a10', weight: 800, maxWidth: VW - 40 });
   };
 
   // ---------- частицы ----------
@@ -475,5 +506,5 @@
   FXs.prototype.draw = function (ctx, cam, rtr) { this.p.forEach(function (q) { ctx.globalAlpha = Math.min(1, q.t / q.life * 1.5); var s = rtr ? Math.max(2, Math.round(q.r)) : q.r; ctx.fillStyle = q.c; ctx.fillRect(Math.round(q.x - cam - s / 2), Math.round(q.y - s / 2), s, s); }); ctx.globalAlpha = 1; };
   FXs.prototype.clear = function () { this.p = []; };
 
-  PS.R = { VW: VW, VH: VH, E: E, EXPAL: EXPAL, hero: hero, background: background, itemIcon: itemIcon, gem: gem, big: big, money: money, FX: new FXs(), LON: LON };
+  PS.R = { VW: VW, VH: VH, E: E, EXPAL: EXPAL, hero: hero, pole: pole, background: background, itemIcon: itemIcon, gem: gem, big: big, num: num, FX: new FXs(), MAPXY: MAPXY };
 })(typeof window !== 'undefined' ? window : globalThis);

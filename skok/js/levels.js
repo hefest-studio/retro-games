@@ -1,10 +1,12 @@
-/* СКОК · уровни (куски ASCII) и карта мира Заплатных земель. SKOK.levels, SKOK.MAP.
+/* СКОК · уровни (куски ASCII) и Верстак — выбор уровней по краям. SKOK.levels, SKOK.MAP.
+   Переделка 2026-11: главная механика — заводной ключ. Ключом Скок останавливает заводных врагов (остановленный — опора,
+   второй удар — разобрать на гайки), заводит лебёдки (мосты и пружинные плиты участка работают, пока не кончится завод)
+   и вскрывает короба. Прыжок на врага больше не сбивает его — касание любого заведённого врага ранит.
    Клетка 16 px, уровень — 18 рядов (экран 288 px). Уровень собирается из кусков CH слева направо (выравнивание по низу).
    Коды клеток: . воздух · # заплатная земля · = камень крепости · T доска (только сверху) · / и \ склоны
-   ^ шипы (твердь, верх колет; медный панцирь не боится) · ~ кипящая смола (гибель)
-   B ящик с гайкой · M ящик с россыпью гаек · * ящик с костюмом (какой — список suits уровня) · L ящик с жизнью
-   u пустой ящик · x хрупкий короб (ломают заклёпки и удар панциря о землю)
-   o гайка · K ключ · D тайная дверь · @ старт · E столб-часовня с колоколом (финиш) · C фонарь (контрольная точка)
+   ^ шипы (твердь, верх колет) · ~ кипящая смола (гибель) · x короб (вскрыть ключом — 3 гайки)
+   W лебёдка (ударь ключом — заводит механизмы своего куска) · b звено моста (без завода — пусто) · S пружинная плита (с заводом — подбрасывает)
+   o гайка · L сердце-шестерня (+1 сердце) · @ старт · E деталь механизма (финиш) · C фонарь (контрольная точка)
    враги: g шестерёнка-катун · m заводная мышь · h пружинник · n игольник · v флюгерник · P давильный молот · Z хозяин крепости */
 (function (global) {
   'use strict';
@@ -33,28 +35,99 @@
       '................',
       '################',
       '################'],
-    crates: [
+    // обучение: шестерёнка в низком проходе — перепрыгнуть нельзя, только остановить ключом
+    tunnel: [
+      '..........................',
+      '..........................',
+      '..........................',
+      '..........................',
+      '.......############.......',
+      '.......############.......',
+      '.........o..o..o..........',
+      '.................g........',
+      '##########################',
+      '##########################'],
+    mousehole: [
+      '..........................',
+      '..........................',
+      '..........................',
+      '..........................',
+      '.....##############.......',
+      '.....##############.......',
+      '......o....o....o.........',
+      '...............m..........',
+      '##########################',
+      '##########################'],
+    // мост через пропасть: без завода не перепрыгнуть (10 клеток)
+    bridge: [
+      '..............................',
+      '..............................',
+      '..............................',
+      '............o.o.o.............',
+      '..............................',
+      '..............................',
+      '..............................',
+      '...W..........................',
+      '######bbbbbbbbbb##############',
+      '######..........##############'],
+    tarbridge: [
+      '................................',
+      '................................',
+      '................................',
+      '................................',
+      '...........o..o..o..............',
+      '................................',
+      '................................',
+      '..W.............................',
+      '#####bbbbbbbbbbbbb##############',
+      '#####~~~~~~~~~~~~~##############'],
+    // мост между уступами
+    highbridge: [
+      '................................',
+      '................................',
+      '...............o.o.o............',
+      '................................',
+      '......W###bbbbbbbbbb####........',
+      '.....######..........####.......',
+      '....#######..........#####......',
+      '...########..........######.....',
+      '###########..........###########',
+      '###########..........###########'],
+    // пружинная плита у стены в 6 клеток: заведи лебёдку — и наверх
+    springwall: [
+      '..........................',
+      '.............o.o..........',
+      '...........######.........',
+      '...........######.........',
+      '...........######.........',
+      '...........######.........',
+      '...........######.........',
+      '...W.......######.........',
+      '#######S##################',
+      '##########################'],
+    springpit: [
+      '..............................',
+      '..............................',
+      '..............................',
+      '................o.o...........',
+      '..............######..........',
+      '..............######..........',
+      '..............######..........',
+      '..............######..........',
+      '......W.......######..........',
+      '###########S##################',
+      '##############################'],
+    boxes1: [
       '....................',
       '....................',
       '....................',
       '....................',
-      '.....B..*..B........',
       '....................',
       '....................',
-      '............g.......',
+      '.........x..........',
+      '.....x..xx......g...',
       '####################',
       '####################'],
-    crates2: [
-      '......................',
-      '......................',
-      '..........o.o.........',
-      '......................',
-      '.....M....TTT...*.....',
-      '......................',
-      '......................',
-      '..............m.......',
-      '######################',
-      '######################'],
     steps: [
       '..................',
       '..................',
@@ -107,7 +180,7 @@
       '........./##\\.............',
       '......../####\\............',
       '......./######\\...........',
-      '....../########\\.....g.g..',
+      '....../########\\.....g....',
       '##########################',
       '##########################'],
     planks: [
@@ -121,28 +194,6 @@
       '.................h....',
       '######################',
       '######################'],
-    keyhigh: [
-      '........................',
-      '...............K........',
-      '.............#####......',
-      '........................',
-      '.........TTT............',
-      '........................',
-      '.....TTT................',
-      '...................g....',
-      '########################',
-      '########################'],
-    door: [
-      '................',
-      '................',
-      '................',
-      '................',
-      '....#######.....',
-      '....#.....#.....',
-      '................',
-      '.......D........',
-      '################',
-      '################'],
     pitplanks: [
       '........................',
       '........................',
@@ -150,7 +201,7 @@
       '........................',
       '..........oo............',
       '........................',
-      '.......TTT....TTT.......',
+      '.......TTTT..TTTT.......',
       '........................',
       '####..............######',
       '####..............######'],
@@ -176,12 +227,12 @@
       '........................',
       '########...#############',
       '########...#############'],
-    boxes: [
+    hut: [
       '..................',
       '..................',
       '..................',
       '..................',
-      '........B.........',
+      '..................',
       '......xxxx........',
       '......xoox........',
       '......xoox....g...',
@@ -214,10 +265,21 @@
       '......................',
       '......................',
       '......................',
-      '.......B....B.........',
+      '.......o....o.........',
       '......................',
       '......................',
       '.....n.........n......',
+      '######################',
+      '######################'],
+    springs: [
+      '......................',
+      '......................',
+      '...........ooo........',
+      '......................',
+      '......................',
+      '......................',
+      '......................',
+      '.........h......L.....',
       '######################',
       '######################'],
     lantern: [
@@ -242,7 +304,7 @@
       '.............../##########..',
       '############################',
       '############################'],
-    chapel: [
+    finish: [
       '......................',
       '......................',
       '......................',
@@ -283,8 +345,8 @@
       '......................',
       '.......o...o...o......',
       '......................',
-      '......==..==..==......',
       '......................',
+      '.....===...==...===...',
       '====~~~~~~~~~~~~~=====',
       '====~~~~~~~~~~~~~====='],
     fspike: [
@@ -303,12 +365,23 @@
       '............',
       '............',
       '............',
-      '....*.......',
       '............',
       '............',
-      '.......C....',
+      '............',
+      '...L...C....',
       '============',
       '============'],
+    fbridge: [
+      '==============================',
+      '..............................',
+      '..............................',
+      '..............................',
+      '............o..o..o...........',
+      '..............................',
+      '..............................',
+      '...W..........................',
+      '======bbbbbbbbbbbb============',
+      '======~~~~~~~~~~~~============'],
     arena: [
       '================================',
       '...............................=',
@@ -319,52 +392,34 @@
       '...............................=',
       '.......................Z.......=',
       '================================',
-      '================================'],
-    // ---- стычка с бродягой ----
-    ambush: [
-      '################################',
-      '#..............................#',
-      '#..............................#',
-      '#..............................#',
-      '#.........TTTTTTTTTTTT.........#',
-      '#..............................#',
-      '#..............................#',
-      '#..@...........................#',
-      '################################',
-      '################################']
+      '================================']
   };
   // враги уровня по краю: подмена «g» и «m» в кусках
   var SWAP = { 1: {}, 2: { m: 'h' }, 3: { g: 'n' }, 4: { g: 'n', m: 'h' } };
-  var AMBUSH = { 1: 'ggmmg', 2: 'ghvhm', 3: 'nhgnm', 4: 'nhvhn' };
   var BOSS = { 1: 'rust', 2: 'boiler', 3: 'vane', 4: 'pendulum' };
-  // уровни: r край, n номер (6 — крепость), chunks, suits — костюмы для ящиков «*» по порядку, key — ключ тайного выхода
+  // 4 края × (4 уровня + крепость); r край, n номер (5 — крепость)
   var LEVELS = [
-    { id: '1-1', r: 1, n: 1, suits: ['boots'], chunks: ['start', 'coins', 'crates', 'hill', 'gap2', 'mice', 'lantern', 'steps', 'gap2', 'chapel'] },
-    { id: '1-2', r: 1, n: 2, suits: ['wings'], chunks: ['start', 'mice', 'bighill', 'crates', 'gap3', 'lantern', 'steps', 'hill', 'mice', 'chapel'] },
-    { id: '1-3', r: 1, n: 3, suits: ['armor'], key: 'k1', chunks: ['start', 'hill', 'keyhigh', 'gap2', 'crates', 'lantern', 'bighill', 'door', 'mice', 'chapel'] },
-    { id: '1-4', r: 1, n: 4, suits: ['apron'], chunks: ['start', 'boxes', 'bighill', 'gap3', 'crates2', 'lantern', 'planks', 'hill', 'mice', 'chapel'] },
-    { id: '1-5', r: 1, n: 5, suits: ['apron', 'boots'], chunks: ['start', 'steps', 'slope2', 'crates', 'gap3', 'lantern', 'bighill', 'crates2', 'mice', 'gap3', 'chapel'] },
-    { id: '1-F', r: 1, n: 6, fort: 1, suits: ['apron'], chunks: ['fstart', 'fpist', 'flava', 'flamp', 'fspike', 'fpist', 'arena'] },
-    { id: '2-1', r: 2, n: 1, suits: ['wings'], chunks: ['start', 'planks', 'vanes', 'crates', 'hill', 'lantern', 'pitplanks', 'mice', 'chapel'] },
-    { id: '2-2', r: 2, n: 2, suits: ['boots'], chunks: ['start', 'hill', 'pitplanks', 'planks', 'lantern', 'crates', 'vanes', 'gap3', 'chapel'] },
-    { id: '2-3', r: 2, n: 3, suits: ['apron'], key: 'k2', chunks: ['start', 'planks', 'keyhigh', 'vanes', 'lantern', 'door', 'crates', 'pitplanks', 'chapel'] },
-    { id: '2-4', r: 2, n: 4, suits: ['armor', 'wings'], chunks: ['start', 'boxes', 'slope2', 'vanes', 'crates2', 'lantern', 'pitplanks', 'crates', 'chapel'] },
-    { id: '2-5', r: 2, n: 5, suits: ['boots'], chunks: ['start', 'vanes', 'bighill', 'planks', 'lantern', 'pitplanks', 'crates', 'vanes', 'mice', 'chapel'] },
-    { id: '2-F', r: 2, n: 6, fort: 1, suits: ['wings'], chunks: ['fstart', 'flava', 'fpist', 'flamp', 'fspike', 'flava', 'arena'] },
-    { id: '3-1', r: 3, n: 1, suits: ['armor'], chunks: ['start', 'hedges', 'crates', 'tar', 'lantern', 'spikes', 'hill', 'chapel'] },
-    { id: '3-2', r: 3, n: 2, suits: ['apron'], key: 'k3', chunks: ['start', 'tar', 'keyhigh', 'crates', 'lantern', 'spikes', 'door', 'hedges', 'chapel'] },
-    { id: '3-3', r: 3, n: 3, suits: ['wings'], chunks: ['start', 'spikes', 'bighill', 'crates', 'lantern', 'tar', 'hedges', 'gap3', 'chapel'] },
-    { id: '3-4', r: 3, n: 4, suits: ['boots', 'armor'], chunks: ['start', 'boxes', 'tar', 'crates2', 'lantern', 'spikes', 'slope2', 'crates', 'chapel'] },
-    { id: '3-5', r: 3, n: 5, suits: ['apron'], chunks: ['start', 'hedges', 'spikes', 'tar', 'lantern', 'crates', 'bighill', 'tar', 'mice', 'chapel'] },
-    { id: '3-F', r: 3, n: 6, fort: 1, suits: ['armor'], chunks: ['fstart', 'fspike', 'fpist', 'flamp', 'flava', 'fspike', 'arena'] },
-    { id: '4-1', r: 4, n: 1, suits: ['boots'], chunks: ['start', 'vanes', 'spikes', 'crates', 'lantern', 'pitplanks', 'hedges', 'chapel'] },
-    { id: '4-2', r: 4, n: 2, suits: ['wings', 'apron'], chunks: ['start', 'pitplanks', 'tar', 'crates2', 'lantern', 'vanes', 'slope2', 'crates', 'chapel'] },
-    { id: '4-3', r: 4, n: 3, suits: ['armor'], chunks: ['start', 'spikes', 'vanes', 'crates', 'lantern', 'tar', 'pitplanks', 'mice', 'chapel'] },
-    { id: '4-4', r: 4, n: 4, suits: ['apron'], key: 'k4', chunks: ['start', 'tar', 'planks', 'keyhigh', 'lantern', 'spikes', 'door', 'crates', 'vanes', 'chapel'] },
-    { id: '4-5', r: 4, n: 5, suits: ['boots', 'wings'], chunks: ['start', 'hedges', 'pitplanks', 'crates2', 'lantern', 'tar', 'spikes', 'crates', 'bighill', 'vanes', 'chapel'] },
-    { id: '4-F', r: 4, n: 6, fort: 1, suits: ['apron', 'boots'], chunks: ['fstart', 'flava', 'fspike', 'flamp', 'fpist', 'flava', 'fspike', 'arena'] }
+    { id: '1-1', r: 1, n: 1, chunks: ['start', 'coins', 'tunnel', 'lantern', 'bridge', 'hill', 'boxes1', 'finish'] },
+    { id: '1-2', r: 1, n: 2, chunks: ['start', 'mice', 'gap3', 'springwall', 'lantern', 'steps', 'mousehole', 'hut', 'finish'] },
+    { id: '1-3', r: 1, n: 3, chunks: ['start', 'hill', 'highbridge', 'gap2', 'lantern', 'tunnel', 'bighill', 'springs', 'finish'] },
+    { id: '1-4', r: 1, n: 4, chunks: ['start', 'boxes1', 'springwall', 'gap3', 'lantern', 'bridge', 'planks', 'mice', 'finish'] },
+    { id: '1-F', r: 1, n: 5, fort: 1, chunks: ['fstart', 'fpist', 'flava', 'flamp', 'fbridge', 'fpist', 'arena'] },
+    { id: '2-1', r: 2, n: 1, chunks: ['start', 'planks', 'vanes', 'bridge', 'lantern', 'pitplanks', 'springs', 'finish'] },
+    { id: '2-2', r: 2, n: 2, chunks: ['start', 'hill', 'pitplanks', 'springpit', 'lantern', 'mousehole', 'vanes', 'gap3', 'finish'] },
+    { id: '2-3', r: 2, n: 3, chunks: ['start', 'planks', 'highbridge', 'vanes', 'lantern', 'tunnel', 'hut', 'pitplanks', 'finish'] },
+    { id: '2-4', r: 2, n: 4, chunks: ['start', 'boxes1', 'slope2', 'vanes', 'springwall', 'lantern', 'bridge', 'springs', 'finish'] },
+    { id: '2-F', r: 2, n: 5, fort: 1, chunks: ['fstart', 'flava', 'fpist', 'flamp', 'fbridge', 'fspike', 'arena'] },
+    { id: '3-1', r: 3, n: 1, chunks: ['start', 'hedges', 'tar', 'tarbridge', 'lantern', 'spikes', 'hill', 'finish'] },
+    { id: '3-2', r: 3, n: 2, chunks: ['start', 'tar', 'tunnel', 'springwall', 'lantern', 'spikes', 'hedges', 'finish'] },
+    { id: '3-3', r: 3, n: 3, chunks: ['start', 'spikes', 'highbridge', 'hut', 'lantern', 'tarbridge', 'hedges', 'gap3', 'finish'] },
+    { id: '3-4', r: 3, n: 4, chunks: ['start', 'boxes1', 'tar', 'springpit', 'lantern', 'spikes', 'slope2', 'tarbridge', 'finish'] },
+    { id: '3-F', r: 3, n: 5, fort: 1, chunks: ['fstart', 'fspike', 'fpist', 'flamp', 'fbridge', 'flava', 'arena'] },
+    { id: '4-1', r: 4, n: 1, chunks: ['start', 'vanes', 'spikes', 'bridge', 'lantern', 'pitplanks', 'hedges', 'finish'] },
+    { id: '4-2', r: 4, n: 2, chunks: ['start', 'pitplanks', 'tarbridge', 'springs', 'lantern', 'vanes', 'springwall', 'slope2', 'finish'] },
+    { id: '4-3', r: 4, n: 3, chunks: ['start', 'spikes', 'highbridge', 'mousehole', 'lantern', 'tar', 'springpit', 'mice', 'finish'] },
+    { id: '4-4', r: 4, n: 4, chunks: ['start', 'tar', 'planks', 'springwall', 'lantern', 'spikes', 'tarbridge', 'vanes', 'hedges', 'finish'] },
+    { id: '4-F', r: 4, n: 5, fort: 1, chunks: ['fstart', 'flava', 'fspike', 'flamp', 'fbridge', 'fpist', 'fspike', 'arena'] }
   ];
-  [1, 2, 3, 4].forEach(function (r) { LEVELS.push({ id: r + '-A', r: r, n: 0, ambush: 1, suits: [], chunks: ['ambush'] }); });
   var byId = {}; LEVELS.forEach(function (l) { byId[l.id] = l; });
   var ids = LEVELS.map(function (l) { return l.id; });
   var ENEMY = 'gmhnvPZ';
@@ -372,78 +427,50 @@
   function build(id) {
     var def = byId[id]; if (!def) throw new Error('нет уровня ' + id);
     var rows = []; for (var i = 0; i < H; i++) rows.push('');
-    var pad = def.fort ? '=' : '.';
-    def.chunks.forEach(function (name) {
+    var pad = def.fort ? '=' : '.', chunkOf = [];
+    def.chunks.forEach(function (name, ci) {
       var c = CH[name]; if (!c) throw new Error('нет куска ' + name);
       var w = c[0].length, off = H - c.length;
       for (var y = 0; y < H; y++) rows[y] += y < off ? new Array(w + 1).join(pad) : c[y - off];
+      for (var x = 0; x < w; x++) chunkOf.push(ci);
     });
-    var LV = { id: id, r: def.r, n: def.n, fort: !!def.fort, ambush: !!def.ambush, key: def.key || null, boss: def.fort ? BOSS[def.r] : null,
-      w: rows[0].length, h: H, t: [], items: [], enemies: [], crates: {}, camps: [], start: null, exit: null, door: null, arenaX: null };
-    var swap = SWAP[def.r] || {}, suitI = 0, amb = def.ambush ? AMBUSH[def.r].split('') : null, ai = 0;
+    var LV = { id: id, r: def.r, n: def.n, fort: !!def.fort, boss: def.fort ? BOSS[def.r] : null,
+      w: rows[0].length, h: H, t: [], items: [], enemies: [], camps: [], groups: [], start: null, exit: null, arenaX: null, crates: 0 };
+    var swap = SWAP[def.r] || {}, gi = {};
+    function group(ci) { if (gi[ci] == null) { gi[ci] = LV.groups.length; LV.groups.push({ id: gi[ci], winch: null, tiles: [], t: 0, ext: 0 }); } return LV.groups[gi[ci]]; }
     for (var ty = 0; ty < H; ty++) {
       var out = '';
       for (var tx = 0; tx < LV.w; tx++) {
         var ch = rows[ty].charAt(tx), put = ch;
-        if (ch === 'o' || ch === 'K') { LV.items.push({ id: LV.items.length, k: ch === 'o' ? 'nut' : 'key', tx: tx, ty: ty }); put = '.'; }
+        if (ch === 'o' || ch === 'L') { LV.items.push({ id: LV.items.length, k: ch === 'o' ? 'nut' : 'heart', tx: tx, ty: ty }); put = '.'; }
         else if (ch === '@') { LV.start = { tx: tx, ty: ty }; put = '.'; }
         else if (ch === 'E') { LV.exit = { tx: tx, ty: ty }; put = '.'; }
-        else if (ch === 'D') { LV.door = { tx: tx, ty: ty }; put = '.'; }
         else if (ch === 'C') { LV.camps.push({ id: LV.camps.length, tx: tx, ty: ty }); put = '.'; }
+        else if (ch === 'W') { group(chunkOf[tx]).winch = { tx: tx, ty: ty }; put = '.'; }
+        else if (ch === 'b' || ch === 'S') group(chunkOf[tx]).tiles.push({ tx: tx, ty: ty, k: ch });
+        else if (ch === 'x') LV.crates++;
         else if (ENEMY.indexOf(ch) >= 0) { LV.enemies.push({ k: swap[ch] || ch, tx: tx, ty: ty }); put = '.'; }
-        else if (ch === '*') { LV.crates[ty * LV.w + tx] = { k: 'suit', suit: def.suits[suitI % Math.max(1, def.suits.length)] || 'apron' }; suitI++; }
-        else if (ch === 'B') LV.crates[ty * LV.w + tx] = { k: 'nut', n: 1 };
-        else if (ch === 'M') LV.crates[ty * LV.w + tx] = { k: 'nut', n: 6 };
-        else if (ch === 'L') LV.crates[ty * LV.w + tx] = { k: 'life' };
         out += put;
       }
       LV.t.push(out);
     }
-    if (amb) { // стычка: враги края расставлены по арене
-      [10, 14, 18, 23, 27].forEach(function (x, i) { LV.enemies.push({ k: amb[i], tx: x, ty: amb[i] === 'v' ? 10 : 15 }); });
-    }
+    LV.groups.forEach(function (gr) { if (!gr.winch) throw new Error(id + ': механизм без лебёдки'); gr.tiles.sort(function (a, b) { return a.tx - b.tx; }); });
+    LV.nuts = LV.items.filter(function (it) { return it.k === 'nut'; }).length;
     if (LV.fort && LV.arenaX == null) LV.arenaX = (LV.w - 32) * 16;
+    LV.par = Math.round(LV.w * 16 / 70) + (LV.fort ? 40 : 20);   // секунды на «быстрое» прохождение (бонус за время)
     return LV;
   }
 
-  // ---------- карта мира ----------
-  // на край — страница 512×288: 5 уровней, крепость, лавка-лотерея (S), «угадай рычаг» (R, только по тайной тропе)
-  var LOCAL = { '1': [56, 214], '2': [128, 160], 'S': [104, 82], '3': [208, 210], '4': [282, 146], '5': [366, 196], 'F': [452, 120], 'R': [318, 254] };
-  var REGIONS = 4, NODES = [], EDGES = [];
-  for (var r = 1; r <= REGIONS; r++) {
-    ['1', '2', 'S', '3', '4', '5', 'F', 'R'].forEach(function (k) {
-      var id = r + '-' + k, p = LOCAL[k];
-      NODES.push({ id: id, r: r, k: k, x: p[0], y: p[1], gx: p[0] + (r - 1) * 560, kind: k === 'S' ? 'shop' : k === 'R' ? 'lever' : k === 'F' ? 'fort' : 'level' });
-    });
-    var keyLv = LEVELS.filter(function (l) { return l.r === r && l.key; })[0];
-    EDGES.push({ a: r + '-1', b: r + '-2' }, { a: r + '-2', b: r + '-3' }, { a: r + '-3', b: r + '-4' }, { a: r + '-4', b: r + '-5' }, { a: r + '-5', b: r + '-F' },
-      { a: r + '-2', b: r + '-S' }, { a: keyLv.id, b: r + '-R', secret: true }, { a: r + '-R', b: r + '-F' });
-    if (r < REGIONS) EDGES.push({ a: r + '-F', b: (r + 1) + '-1' });
-  }
-  var nodeById = {}; NODES.forEach(function (n) { nodeById[n.id] = n; });
+  // ---------- Верстак: 4 края × 5 узлов, открываются по порядку ----------
+  var REGIONS = 4, NODES = [];
+  LEVELS.forEach(function (l, i) { NODES.push({ id: l.id, r: l.r, n: l.n, i: i, kind: l.fort ? 'fort' : 'level' }); });
   var MAP = {
-    NODES: NODES, EDGES: EDGES, FIRST: '1-1', FINAL: REGIONS + '-F', REGIONS: REGIONS,
-    node: function (id) { return nodeById[id]; },
-    // пройден ли узел: уровни — cleared, мини-игры — played
-    done: function (p, id) { var n = nodeById[id]; if (!n) return false; return n.kind === 'shop' || n.kind === 'lever' ? !!(p.played && p.played[id]) : !!(p.cleared && p.cleared[id]); },
-    edgeOpen: function (p, e) { return MAP.done(p, e.a) && (!e.secret || !!(p.secret && p.secret[e.a])); },
-    isOpen: function (p, id) {
-      if (id === MAP.FIRST) return true;
-      for (var i = 0; i < EDGES.length; i++) { var e = EDGES[i]; if (e.b === id && MAP.edgeOpen(p, e)) return true; }
-      return false;
-    },
-    // соседи для ходьбы: по открытой тропе в обе стороны
-    neighbors: function (p, id) {
-      var out = [];
-      EDGES.forEach(function (e) {
-        if (!MAP.edgeOpen(p, e)) return;
-        if (e.a === id && MAP.isOpen(p, e.b)) out.push(e.b);
-        else if (e.b === id && MAP.isOpen(p, e.a)) out.push(e.a);
-      });
-      return out;
-    },
-    // узлы, где может бродить бродяга края (уровни 1–5)
-    roam: function (r) { return NODES.filter(function (n) { return n.r === r && n.kind === 'level'; }).map(function (n) { return n.id; }); }
+    NODES: NODES, FIRST: '1-1', FINAL: REGIONS + '-F', REGIONS: REGIONS,
+    node: function (id) { return byId[id] ? NODES[ids.indexOf(id)] : null; },
+    done: function (p, id) { return !!(p.cleared && p.cleared[id]); },
+    isOpen: function (p, id) { var i = ids.indexOf(id); if (i < 0) return false; return i === 0 || MAP.done(p, ids[i - 1]) || MAP.done(p, id); },
+    next: function (id) { var i = ids.indexOf(id); return i >= 0 && i < ids.length - 1 ? ids[i + 1] : null; },
+    region: function (r) { return ids.filter(function (id) { return byId[id].r === r; }); }
   };
   SK.levels = { CH: CH, LEVELS: LEVELS, ids: ids, byId: byId, build: build, H: H, SWAP: SWAP, BOSS: BOSS };
   SK.MAP = MAP;

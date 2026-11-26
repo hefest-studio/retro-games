@@ -1,7 +1,9 @@
 /* УДАЛЕЦ · рендер обеих тем. UDALETS.render(g, ctx, S, opts) — кадр игры; UDALETS.R — примитивы для титула.
-   modern (по умолчанию): цеха в полумраке, кладка с фаской и бликами, стальные балки с заклёпками, свечение огня,
-   кислоты и самоцветов, мягкие тени. retro: 16-цветная палитра, «пиксели» 3×3, кладка в две краски, сканлайны.
-   Логику не трогает — только читает состояние. Статичный слой экрана кэшируется (уровень, экран, тема). */
+   Переделка 2026-11: камера плавно следует за героем (opts.cam — левый верх вида в клетках), горны (остывшие → тлеют →
+   пылают), выдох мехов, продухи с восходящим потоком, крыльчатки и заслонки, таблички-подсказки; новый облик Удальца —
+   медные вихры под кожаным ремешком, горчичная рубаха, кузнечные мехи за спиной.
+   modern (по умолчанию): цеха в полумраке, кладка с фаской, стальные балки, свечение огня и горнов, виньетка.
+   retro: 16-цветная палитра, «пиксели» 3×3, клёпаные листы на тёмно-синем, сканлайны. Логику не трогает — только читает состояние. */
 (function (global) {
   'use strict';
   var U = global.UDALETS = global.UDALETS || {};
@@ -9,50 +11,55 @@
 
   // палитры цехов: [кладка, кладка-тёмная, фон-верх, фон-низ, балка]
   var MOD = [
-    ['#9a5a3c', '#6d3b26', '#1d1512', '#120d0b', '#5d6876'],   // 1 Старый цех
-    ['#8d4a34', '#5e2c1e', '#22120e', '#140a08', '#6a5a52'],   // 2 Кузня / Котельная
+    ['#9a6a3c', '#6d4526', '#1d1612', '#120d0b', '#5d6876'],   // 1 Старый цех
+    ['#8d5a34', '#5e381e', '#22140e', '#140b08', '#6a5a52'],   // 2 Кузня / Котельная
     ['#7d6a56', '#54463a', '#1a1714', '#100e0c', '#6c6f78'],   // 3 Литейная
     ['#4d6b58', '#304a3b', '#0f1a15', '#08100c', '#5a6d68'],   // 4 Кислотные чаны
     ['#56637a', '#38435a', '#121722', '#0b0e15', '#7a8496'],   // 5 Трубный ярус
     ['#6a6f90', '#464a68', '#141626', '#0c0d18', '#8088a6'],   // 6 Башня ветров / Шпиль
     ['#86743e', '#5a4c26', '#1a170c', '#100e07', '#9a8a5a'],   // 7 Часовой механизм
-    ['#8e3a48', '#5f2230', '#1e0c12', '#12070b', '#7a5a62'],   // 8 Горн Мастера
-    ['#6c4a92', '#462e66', '#170f22', '#0d0815', '#8a78b0']    // бонус
+    ['#8e4a3a', '#5f2a22', '#1e0e0c', '#120807', '#7a5a62']    // 8 Горн Мастера
   ];
+  // retro: [лист, тень листа, заклёпки/блик, фон]
   var RET = [
-    ['#aa0000', '#550000', '#ff5555'], ['#aa5500', '#552a00', '#ffff55'], ['#aaaaaa', '#555555', '#ffffff'], ['#00aa00', '#005500', '#55ff55'],
-    ['#0000aa', '#000055', '#5555ff'], ['#00aaaa', '#005555', '#55ffff'], ['#aa5500', '#552a00', '#ffff55'], ['#aa00aa', '#550055', '#ff55ff'], ['#aa00aa', '#550055', '#ff55ff']
+    ['#aa5500', '#552a00', '#ffff55', '#000055'], ['#aa5500', '#552a00', '#ffff55', '#000000'], ['#aaaaaa', '#555555', '#ffffff', '#000055'], ['#00aa00', '#005500', '#55ff55', '#000000'],
+    ['#00aaaa', '#005555', '#55ffff', '#000055'], ['#5555ff', '#0000aa', '#55ffff', '#000000'], ['#aa5500', '#552a00', '#ffff55', '#000055'], ['#aa00aa', '#550055', '#ff55ff', '#000000']
   ];
-  var PM = { pixel: false, ink: '#f4eee6', muted: '#a49a92', accent: '#ffc24a', good: '#5ee08f', bad: '#ff5d6c', warn: '#ffb020', hud: '#0e0b0a', hudLine: '#2e2622', bar: '#2a2320' };
-  var PR = { pixel: true, ink: '#ffffff', muted: '#aaaaaa', accent: '#ffff55', good: '#55ff55', bad: '#ff5555', warn: '#ffff55', hud: '#000000', hudLine: '#5555ff', bar: '#555555' };
+  var PM = { pixel: false, ink: '#f4eee6', muted: '#a49a92', accent: '#ffb347', good: '#5ee08f', bad: '#ff5d6c', warn: '#ffb020', hud: '#0e0b0a', hudLine: '#2e2622', bar: '#2a2320' };
+  var PR = { pixel: true, ink: '#ffffff', muted: '#aaaaaa', accent: '#ffff55', good: '#55ff55', bad: '#ff5555', warn: '#ffff55', hud: '#000000', hudLine: '#00aaaa', bar: '#555555' };
   function hash(a, b) { var n = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return n - Math.floor(n); }
   function retro(g) { return g.themeName === 'retro'; }
   function rr(ctx, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
   // «пиксель» retro-темы: всё кратно 3 px
   function px(ctx, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x / 3) * 3, Math.round(y / 3) * 3, Math.max(3, Math.round(w / 3) * 3), Math.max(3, Math.round(h / 3) * 3)); }
 
-  // ---------- Статичный слой экрана ----------
+  // ---------- Статичный слой экрана (фон и твердь; заслонки — отдельно, они поднимаются) ----------
   var cache = {};
+  function solidAt(LV, c, r) { var ch = L.tile(LV, c, r); return ch === '#' || ch === '%' || ch === '=' || ch === 'u'; }
   function roomLayer(LV, room, isRetro) {
-    var key = LV.idx + ':' + (LV.bonus ? 'b' : '') + ':' + room + ':' + (isRetro ? 'r' : 'm');
+    var key = LV.idx + ':' + room + ':' + (isRetro ? 'r' : 'm');
     if (cache[key]) return cache[key];
     var c = document.createElement('canvas'); c.width = COLS * T; c.height = ROWS * T;
-    var x = c.getContext('2d'), B = L.roomBox(LV, room), th = LV.theme, i, j;
+    var x = c.getContext('2d'), B = L.roomBox(LV, room), th = LV.theme % MOD.length, i, j, k;
     if (isRetro) {
-      var R = RET[th]; x.fillStyle = '#000'; x.fillRect(0, 0, c.width, c.height);
-      // редкие «звёзды»-заклёпки на чёрном фоне
-      for (i = 0; i < 40; i++) px(x, hash(i, room + th) * c.width, hash(room, i + 7) * c.height, 3, 3, '#000055');
+      var R = RET[th]; x.fillStyle = R[3]; x.fillRect(0, 0, c.width, c.height);
+      // дальний план: трубы и редкие огоньки
+      for (i = 0; i < 3; i++) { var py = 30 + hash(room, i) * 280; x.fillStyle = R[3] === '#000000' ? '#000055' : '#000000'; x.fillRect(0, Math.round(py / 3) * 3, c.width, 6); for (k = 0; k < 6; k++) px(x, hash(i, k + room) * c.width, py - 3, 6, 12, x.fillStyle); }
+      for (i = 0; i < 24; i++) px(x, hash(i, room + th) * c.width, hash(room, i + 7) * c.height, 3, 3, '#555555');
       for (j = 0; j < ROWS; j++) for (i = 0; i < COLS; i++) {
         var ch = L.tile(LV, B.x0 + i, B.y0 + j), X = i * T, Y = j * T;
-        if (ch === '#' || ch === '%') {
-          x.fillStyle = R[0]; x.fillRect(X, Y, T, T);
-          x.fillStyle = R[1];
-          for (var k = 0; k < 3; k++) { x.fillRect(X, Y + k * 8 + 6, T, 2); x.fillRect(X + ((k + j) % 2 ? 3 : 15), Y + k * 8, 3, 6); }
-          if (ch === '%') { x.fillStyle = R[1]; x.fillRect(X + 9, Y + 9, 3, 3); }   // еле заметная выбоина тайника
-        } else if (ch === '=') {
-          x.fillStyle = '#555555'; x.fillRect(X, Y, T, T);
-          x.fillStyle = '#aaaaaa'; x.fillRect(X, Y, T, 3); x.fillStyle = '#000000'; x.fillRect(X, Y + T - 3, T, 3);
-          x.fillStyle = '#ffffff'; x.fillRect(X + 3, Y + 9, 3, 3); x.fillRect(X + 15, Y + 9, 3, 3);
+        if (ch === '#' || ch === '%') {   // клёпаный лист
+          x.fillStyle = R[1]; x.fillRect(X, Y, T, T); x.fillStyle = R[0]; x.fillRect(X + 3, Y + 3, T - 6, T - 6);
+          x.fillStyle = R[2]; x.fillRect(X + 3, Y + 3, 3, 3); x.fillRect(X + T - 6, Y + T - 6, 3, 3);
+          if (!solidAt(LV, B.x0 + i, B.y0 + j - 1)) { x.fillStyle = R[2]; x.fillRect(X, Y, T, 3); }
+          if (ch === '%') { x.fillStyle = R[1]; x.fillRect(X + 12, Y + 9, 3, 3); }   // еле заметная выбоина тайника
+        } else if (ch === '=') {   // ферма
+          x.fillStyle = '#555555'; x.fillRect(X, Y, T, 6); x.fillRect(X, Y + T - 6, T, 3);
+          x.fillStyle = '#aaaaaa'; x.fillRect(X, Y, T, 3);
+          for (k = 0; k < 4; k++) { x.fillStyle = '#555555'; x.fillRect(X + k * 6, Y + 6 + (k % 2) * 6, 3, 9 - (k % 2) * 3); }
+        } else if (ch === 'u') {   // продух
+          x.fillStyle = '#555555'; x.fillRect(X, Y, T, T); x.fillStyle = '#000000'; for (k = 0; k < 4; k++) x.fillRect(X + 3 + k * 6, Y + 3, 3, T - 9);
+          x.fillStyle = '#55ffff'; x.fillRect(X, Y, T, 3);
         }
       }
     } else {
@@ -76,7 +83,7 @@
       }
       x.fillStyle = 'rgba(0,0,0,.25)'; x.fillRect(0, hash(room, 2) * 120 + 30, c.width, 10);
       for (j = 0; j < ROWS; j++) for (i = 0; i < COLS; i++) {
-        var ch2 = L.tile(LV, B.x0 + i, B.y0 + j), X2 = i * T, Y2 = j * T, open = !L.isSolid(LV, B.x0 + i, B.y0 + j - 1) && L.tile(LV, B.x0 + i, B.y0 + j - 1) !== '%';
+        var ch2 = L.tile(LV, B.x0 + i, B.y0 + j), X2 = i * T, Y2 = j * T, open = !solidAt(LV, B.x0 + i, B.y0 + j - 1);
         if (ch2 === '#' || ch2 === '%') {
           var v = hash(B.x0 + i, B.y0 + j);
           for (k = 0; k < 2; k++) {
@@ -98,8 +105,12 @@
           x.fillStyle = 'rgba(255,255,255,.25)'; x.fillRect(X2, Y2 + 1, T, 2);
           x.fillStyle = '#c9cfd8'; [6, 18].forEach(function (rx) { x.beginPath(); x.arc(X2 + rx, Y2 + 11, 2, 0, TAU); x.fill(); });
           x.fillStyle = 'rgba(0,0,0,.35)'; x.fillRect(X2 + T - 1, Y2 + 3, 1, T - 6);
-          // тень под балкой
           x.fillStyle = 'rgba(0,0,0,.22)'; if (!L.isSolid(LV, B.x0 + i, B.y0 + j + 1)) x.fillRect(X2, Y2 + T, T, 6);
+        } else if (ch2 === 'u') {   // продух: чугунная решётка
+          var gu = x.createLinearGradient(0, Y2, 0, Y2 + T); gu.addColorStop(0, '#6c7480'); gu.addColorStop(1, '#2a2f36');
+          x.fillStyle = gu; x.fillRect(X2, Y2, T, T);
+          x.fillStyle = '#0d1014'; for (k = 0; k < 4; k++) { rr(x, X2 + 3 + k * 5, Y2 + 4, 3, T - 9, 1.5); x.fill(); }
+          x.fillStyle = 'rgba(160,220,255,.35)'; x.fillRect(X2, Y2, T, 2);
         }
       }
     }
@@ -150,21 +161,6 @@
     var sp = (t * 1.3 + cx * 0.01) % 2; if (sp < 0.3) { ctx.fillStyle = 'rgba(255,255,255,' + (1 - sp / 0.3).toFixed(2) + ')'; ctx.fillRect(-s * 0.6, -s * 0.7, 2, 6); ctx.fillRect(-s * 0.6 - 2, -s * 0.7 + 2, 6, 2); }
     ctx.restore();
   }
-  function cup(ctx, cx, cy, t, isRetro, scale) {
-    scale = scale || 1;
-    if (isRetro) {
-      px(ctx, cx - 9, cy - 9, 18, 6, '#ffff55'); px(ctx, cx - 6, cy - 3, 12, 6, '#ffff55'); px(ctx, cx - 3, cy + 3, 6, 3, '#aa5500'); px(ctx, cx - 6, cy + 6, 12, 3, '#ffff55');
-      px(ctx, cx - 12, cy - 9, 3, 6, '#aa5500'); px(ctx, cx + 9, cy - 9, 3, 6, '#aa5500'); if (Math.floor(t * 4) % 2) px(ctx, cx - 3, cy - 6, 3, 3, '#ffffff'); return;
-    }
-    ctx.save(); ctx.translate(cx, cy + Math.sin(t * 2.5) * 1.5); ctx.scale(scale, scale);
-    var gl = ctx.createRadialGradient(0, 0, 2, 0, 0, 22); gl.addColorStop(0, 'rgba(255,214,90,.55)'); gl.addColorStop(1, 'rgba(255,200,60,0)'); ctx.fillStyle = gl; ctx.fillRect(-24, -24, 48, 48);
-    var gc = ctx.createLinearGradient(-9, 0, 9, 0); gc.addColorStop(0, '#a8741c'); gc.addColorStop(0.45, '#ffe48a'); gc.addColorStop(1, '#b07a1e');
-    ctx.fillStyle = gc; ctx.beginPath(); ctx.moveTo(-9, -9); ctx.lineTo(9, -9); ctx.quadraticCurveTo(9, 3, 2, 4); ctx.lineTo(2, 7); ctx.lineTo(6, 9); ctx.lineTo(-6, 9); ctx.lineTo(-2, 7); ctx.lineTo(-2, 4); ctx.quadraticCurveTo(-9, 3, -9, -9); ctx.fill();
-    ctx.strokeStyle = '#d9a640'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(-10, -4, 4, Math.PI * 0.5, Math.PI * 1.5); ctx.stroke(); ctx.beginPath(); ctx.arc(10, -4, 4, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
-    ctx.fillStyle = '#e8483a'; ctx.beginPath(); ctx.arc(0, -3, 2.2, 0, TAU); ctx.fill();
-    var sp = (t * 0.9) % 1.6; if (sp < 0.4) { ctx.fillStyle = 'rgba(255,255,255,' + (1 - sp / 0.4).toFixed(2) + ')'; ctx.fillRect(4, -12, 2, 8); ctx.fillRect(1, -9, 8, 2); }
-    ctx.restore();
-  }
   function item(ctx, k, cx, cy, t, isRetro) {
     var bob = isRetro ? 0 : Math.sin(t * 3 + cx * 0.05) * 1.5; cy += bob;
     switch (k) {
@@ -176,99 +172,164 @@
       case 'g': gem(ctx, cx, cy, isRetro ? '#00aa00' : '#3fdc7a', isRetro ? '#55ff55' : '#c4ffd9', 7, isRetro, t); return;
       case 'b': gem(ctx, cx, cy, isRetro ? '#0000aa' : '#3f8cff', isRetro ? '#55ffff' : '#c8e0ff', 8, isRetro, t); return;
       case 'R': gem(ctx, cx, cy, isRetro ? '#aa0000' : '#ff3d5a', isRetro ? '#ff5555' : '#ffd0d8', 9, isRetro, t); return;
-      case 'K': cup(ctx, cx, cy, t, isRetro); return;
-      case 'G':
-        if (isRetro) { px(ctx, cx - 10, cy - 3, 18, 3, '#aaaaaa'); px(ctx, cx - 10, cy, 9, 6, '#aa5500'); return; }
-        ctx.save(); ctx.translate(cx, cy); ctx.fillStyle = '#7b4a24'; rr(ctx, -10, -1, 9, 6, 2); ctx.fill(); ctx.fillStyle = '#b8c0cc'; ctx.fillRect(-3, -3, 14, 3); ctx.fillStyle = '#e8b04a'; ctx.fillRect(-4, -4, 4, 6); ctx.restore(); return;
-      case 'A':
-        if (isRetro) { px(ctx, cx - 7, cy - 4, 15, 9, '#aa5500'); px(ctx, cx - 4, cy - 1, 9, 3, '#ffff55'); return; }
-        ctx.fillStyle = '#5a4a2e'; rr(ctx, cx - 8, cy - 5, 16, 11, 2); ctx.fill(); ctx.fillStyle = '#e8c35a'; for (var a = 0; a < 3; a++) ctx.fillRect(cx - 5 + a * 4, cy - 8, 2, 6); return;
-      case 'J':
-        if (isRetro) { px(ctx, cx - 6, cy - 9, 12, 15, '#aaaaaa'); px(ctx, cx - 3, cy + 6, 6, 3, '#ff5555'); return; }
-        ctx.save(); ctx.translate(cx, cy); var gj = ctx.createLinearGradient(-7, 0, 7, 0); gj.addColorStop(0, '#6f7a88'); gj.addColorStop(0.5, '#dfe5ee'); gj.addColorStop(1, '#6f7a88');
-        ctx.fillStyle = gj; rr(ctx, -7, -10, 6, 16, 3); ctx.fill(); rr(ctx, 1, -10, 6, 16, 3); ctx.fill(); ctx.fillStyle = '#c0392b'; ctx.fillRect(-7, -3, 14, 3);
-        ctx.fillStyle = 'rgba(255,170,60,' + (0.6 + 0.4 * Math.sin(t * 20)).toFixed(2) + ')'; ctx.beginPath(); ctx.moveTo(-6, 7); ctx.lineTo(-4, 12); ctx.lineTo(-2, 7); ctx.moveTo(2, 7); ctx.lineTo(4, 12); ctx.lineTo(6, 7); ctx.fill(); ctx.restore(); return;
-      case 'F':
-        if (isRetro) { px(ctx, cx - 6, cy - 6, 12, 12, '#ff5555'); px(ctx, cx - 3, cy - 9, 6, 3, '#aaaaaa'); return; }
-        ctx.fillStyle = '#d2412f'; rr(ctx, cx - 6, cy - 6, 12, 13, 2); ctx.fill(); ctx.fillStyle = '#ffd0a0'; ctx.fillRect(cx - 3, cy - 2, 6, 2); ctx.fillStyle = '#9aa4b2'; ctx.fillRect(cx - 2, cy - 9, 4, 3); return;
-      case 'W':
-        if (isRetro) { var q = Math.floor(t * 6) % 4; px(ctx, cx - 9, cy - 9, 18, 18, ['#aa00aa', '#ff55ff', '#5555ff', '#55ffff'][q]); px(ctx, cx - 3, cy - 3, 6, 6, '#000'); return; }
-        ctx.save(); ctx.translate(cx, cy); for (var w = 0; w < 4; w++) { ctx.rotate(t * 2 + w); ctx.strokeStyle = 'hsla(' + (280 + w * 25) + ',90%,70%,.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 4 + w * 2.5, 0, Math.PI * 1.3); ctx.stroke(); } ctx.restore(); return;
       case '+':
         if (isRetro) { px(ctx, cx - 6, cy - 6, 6, 6, '#ff5555'); px(ctx, cx, cy - 6, 6, 6, '#ff5555'); px(ctx, cx - 6, cy, 12, 3, '#ff5555'); px(ctx, cx - 3, cy + 3, 6, 3, '#ff5555'); return; }
         ctx.save(); ctx.translate(cx, cy); ctx.shadowColor = '#ff5d6c'; ctx.shadowBlur = 10; ctx.fillStyle = '#ff5d6c'; ctx.beginPath(); ctx.moveTo(0, 7); ctx.bezierCurveTo(-12, -2, -6, -11, 0, -4); ctx.bezierCurveTo(6, -11, 12, -2, 0, 7); ctx.fill(); ctx.restore(); return;
     }
   }
-  function door(ctx, X, Y, open, t, isRetro) {   // X,Y — левый верх клетки над полом (дверь — 1×2 клетки)
-    var y0 = Y - T;
+
+  // ---------- Горн: X,Y — левый верх клетки (горн стоит на полу), heat 0..3 ----------
+  function furnace(ctx, X, Y, heat, t, isRetro, k) {
+    var cx = X + T / 2, base = Y + T, lit = heat >= L.HEAT_NEED, i;
     if (isRetro) {
-      px(ctx, X - 3, y0 - 3, T + 6, 2 * T + 3, '#aa5500');
-      px(ctx, X, y0, T, 2 * T, open ? (Math.floor(t * 4) % 2 ? '#55ffff' : '#ffffff') : '#555555');
-      if (!open) { px(ctx, X + 15, y0 + 21, 3, 6, '#ffff55'); px(ctx, X + 3, y0 + 6, 18, 3, '#aaaaaa'); px(ctx, X + 3, y0 + 33, 18, 3, '#aaaaaa'); }
+      px(ctx, cx - 15, base - 21, 30, 21, '#aa0000'); px(ctx, cx - 12, base - 27, 24, 6, '#aa0000'); px(ctx, cx - 6, base - 33, 12, 6, '#555555');
+      px(ctx, cx - 9, base - 15, 18, 12, '#000000');
+      if (heat > 0) { var fl = Math.floor(t * 8 + k) % 2; px(ctx, cx - 6, base - 9 - (lit ? 6 : 0) - fl * 3, 12, 6 + (lit ? 6 : 0), heat > 1 ? '#ffff55' : '#ff5555'); if (heat > 1) px(ctx, cx - 3, base - 12 - (lit ? 6 : 0), 6, 3, '#ffffff'); }
+      if (lit) { px(ctx, cx - 3, base - 42 - (Math.floor(t * 6) % 3) * 3, 3, 3, '#ffff55'); px(ctx, cx + 3, base - 39 - (Math.floor(t * 5 + 1) % 3) * 3, 3, 3, '#ff5555'); }
+      else for (i = 0; i < heat; i++) px(ctx, cx - 9 + i * 9, base - 3, 3, 3, '#ffff55');
       return;
     }
-    ctx.fillStyle = '#3a2a1e'; rr(ctx, X - 4, y0 - 6, T + 8, 2 * T + 6, 8); ctx.fill();
-    ctx.fillStyle = '#c99a4a'; ctx.fillRect(X - 4, y0 - 6, T + 8, 3);
-    if (open) {
-      var g = ctx.createLinearGradient(0, y0, 0, y0 + 2 * T); g.addColorStop(0, '#fff7d0'); g.addColorStop(1, '#ffb347');
-      ctx.save(); ctx.shadowColor = '#ffc24a'; ctx.shadowBlur = 18 + 6 * Math.sin(t * 4); ctx.fillStyle = g; rr(ctx, X, y0, T, 2 * T, 6); ctx.fill(); ctx.restore();
-      ctx.fillStyle = 'rgba(255,255,255,.6)'; for (var i = 0; i < 3; i++) { var p = (t * 0.7 + i / 3) % 1; ctx.fillRect(X + 4 + i * 7, y0 + 2 * T - p * 2 * T, 2, 2); }
-    } else {
-      var gd = ctx.createLinearGradient(X, 0, X + T, 0); gd.addColorStop(0, '#4a5260'); gd.addColorStop(0.5, '#7a8494'); gd.addColorStop(1, '#3e4552');
-      ctx.fillStyle = gd; rr(ctx, X, y0, T, 2 * T, 5); ctx.fill();
-      ctx.fillStyle = '#2a2f38'; ctx.fillRect(X, y0 + 12, T, 3); ctx.fillRect(X, y0 + 34, T, 3);
-      ctx.fillStyle = '#e0b04a'; rr(ctx, X + 14, y0 + 20, 6, 8, 2); ctx.fill(); ctx.fillStyle = '#222'; ctx.fillRect(X + 16, y0 + 23, 2, 3);
+    if (lit) {   // свечение
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      var gl = ctx.createRadialGradient(cx, base - 12, 4, cx, base - 12, 58 + 4 * Math.sin(t * 5 + k)); gl.addColorStop(0, 'rgba(255,170,60,.55)'); gl.addColorStop(1, 'rgba(255,90,0,0)');
+      ctx.fillStyle = gl; ctx.fillRect(cx - 64, base - 76, 128, 96); ctx.restore();
+    }
+    // кирпичный купол
+    var gk = ctx.createLinearGradient(cx - 16, 0, cx + 16, 0); gk.addColorStop(0, '#5a2a1c'); gk.addColorStop(0.5, lit ? '#b8553a' : '#7a4030'); gk.addColorStop(1, '#4a2216');
+    ctx.fillStyle = gk; ctx.beginPath(); ctx.moveTo(cx - 16, base); ctx.lineTo(cx - 16, base - 16); ctx.quadraticCurveTo(cx - 16, base - 30, cx, base - 30); ctx.quadraticCurveTo(cx + 16, base - 30, cx + 16, base - 16); ctx.lineTo(cx + 16, base); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1; for (i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(cx - 16, base - 6 - i * 7); ctx.lineTo(cx + 16, base - 6 - i * 7); ctx.stroke(); }
+    ctx.fillStyle = '#3a3f48'; ctx.fillRect(cx - 5, base - 38, 10, 9); ctx.fillStyle = '#596170'; ctx.fillRect(cx - 6, base - 39, 12, 3);
+    // топка
+    var mouth = ctx.createLinearGradient(0, base - 18, 0, base); mouth.addColorStop(0, '#120806'); mouth.addColorStop(1, '#251008');
+    ctx.fillStyle = mouth; rr(ctx, cx - 9, base - 19, 18, 17, 7); ctx.fill();
+    if (heat > 0) {
+      var hh = lit ? 16 : 5 + heat * 4;
+      ctx.save(); ctx.shadowColor = '#ff8a2a'; ctx.shadowBlur = lit ? 16 : 8;
+      for (i = 0; i < 3; i++) {
+        var fh = hh * (0.7 + 0.3 * Math.sin(t * 11 + i * 2.1 + k)), fx = cx - 5 + i * 5;
+        var gf = ctx.createLinearGradient(0, base - 3 - fh, 0, base - 3); gf.addColorStop(0, lit ? 'rgba(255,245,170,.95)' : 'rgba(255,170,80,.9)'); gf.addColorStop(0.6, '#ff8a2a'); gf.addColorStop(1, '#c4300e');
+        ctx.fillStyle = gf; ctx.beginPath(); ctx.moveTo(fx - 3.5, base - 3); ctx.quadraticCurveTo(fx - 3, base - 3 - fh * 0.6, fx + Math.sin(t * 9 + i) * 1.5, base - 3 - fh); ctx.quadraticCurveTo(fx + 3, base - 3 - fh * 0.6, fx + 3.5, base - 3); ctx.fill();
+      }
+      ctx.restore();
+    } else { ctx.fillStyle = '#4a4440'; for (i = 0; i < 4; i++) ctx.fillRect(cx - 7 + i * 4, base - 5 - (i % 2), 3, 2); }
+    if (lit) for (i = 0; i < 4; i++) { var p = (t * 0.8 + i / 4 + k * 0.13) % 1; ctx.fillStyle = 'rgba(255,' + (200 - i * 30) + ',90,' + (1 - p).toFixed(2) + ')'; ctx.fillRect(cx - 3 + Math.sin(p * 9 + i) * 6, base - 40 - p * 26, 2, 2); }
+    else if (heat > 0) for (i = 0; i < heat; i++) { ctx.fillStyle = '#ffb347'; ctx.beginPath(); ctx.arc(cx - 6 + i * 6, base + 4, 1.8, 0, TAU); ctx.fill(); }
+  }
+  // ---------- Крыльчатка: центр клетки ----------
+  function vane(ctx, cx, cy, spinT, t, isRetro) {
+    var a = spinT != null ? (t - spinT) * 14 + 0.3 : 0.3;
+    if (isRetro) {
+      px(ctx, cx - 3, cy - 3, 6, 6, '#ffff55');
+      var q = Math.floor(a / 0.785) % 2;
+      if (q) { px(ctx, cx - 12, cy - 3, 9, 6, '#aaaaaa'); px(ctx, cx + 3, cy - 3, 9, 6, '#aaaaaa'); px(ctx, cx - 3, cy - 12, 6, 9, '#aaaaaa'); px(ctx, cx - 3, cy + 3, 6, 9, '#aaaaaa'); }
+      else { px(ctx, cx - 12, cy - 12, 6, 6, '#aaaaaa'); px(ctx, cx + 6, cy - 12, 6, 6, '#aaaaaa'); px(ctx, cx - 12, cy + 6, 6, 6, '#aaaaaa'); px(ctx, cx + 6, cy + 6, 6, 6, '#aaaaaa'); }
+      if (spinT == null && Math.floor(t * 2) % 2) px(ctx, cx - 15, cy - 15, 3, 3, '#55ffff');
+      return;
+    }
+    ctx.save(); ctx.translate(cx, cy);
+    ctx.strokeStyle = '#5a626e'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 12, 0, TAU); ctx.stroke();
+    if (spinT == null) { ctx.strokeStyle = 'rgba(140,220,255,' + (0.35 + 0.3 * Math.sin(t * 4)).toFixed(2) + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 15, 0, TAU); ctx.stroke(); }
+    ctx.rotate(a);
+    for (var i = 0; i < 4; i++) { ctx.rotate(TAU / 4); var gv = ctx.createLinearGradient(0, -2, 0, -11); gv.addColorStop(0, '#9aa4b2'); gv.addColorStop(1, '#d9dfe8'); ctx.fillStyle = gv; ctx.beginPath(); ctx.moveTo(-2, -2); ctx.quadraticCurveTo(-6, -8, -1, -11); ctx.lineTo(3, -10); ctx.lineTo(2, -2); ctx.fill(); }
+    ctx.fillStyle = '#c99a4a'; ctx.beginPath(); ctx.arc(0, 0, 3, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
+  // ---------- Заслонка: X,Y — левый верх клетки; lift 0..1 — поднята ----------
+  function shutter(ctx, X, Y, lift, isRetro) {
+    var dy = -lift * T * 2;
+    if (isRetro) { px(ctx, X, Y + dy, T, T, '#555555'); for (var k = 0; k < 3; k++) px(ctx, X + 3 + k * 7, Y + dy, 3, T, '#aaaaaa'); px(ctx, X, Y + dy + 9, T, 3, '#aa5500'); return; }
+    ctx.save(); ctx.beginPath(); ctx.rect(X - 2, Y - T * 3, T + 4, T * 4); ctx.clip();
+    var g = ctx.createLinearGradient(X, 0, X + T, 0); g.addColorStop(0, '#3a414c'); g.addColorStop(0.5, '#7a8494'); g.addColorStop(1, '#353b45');
+    ctx.fillStyle = g; ctx.fillRect(X + 1, Y + dy, T - 2, T);
+    ctx.fillStyle = 'rgba(0,0,0,.4)'; for (var i = 0; i < 3; i++) ctx.fillRect(X + 4 + i * 7, Y + dy + 2, 2, T - 4);
+    ctx.fillStyle = '#c99a4a'; ctx.fillRect(X + 1, Y + dy + 10, T - 2, 3);
+    ctx.restore();
+  }
+  // ---------- Табличка-подсказка: прыжок + выдох вниз = выше ----------
+  function sign(ctx, cx, cy, t, isRetro) {
+    if (isRetro) {
+      px(ctx, cx - 18, cy - 15, 36, 30, '#aa5500'); px(ctx, cx - 15, cy - 12, 30, 24, '#000000');
+      px(ctx, cx - 9, cy + 3, 3, 6, '#ffffff'); px(ctx, cx - 9, cy - 3, 3, 3, '#ffffff');
+      px(ctx, cx - 3, cy + 6, 6, 3, '#55ffff'); px(ctx, cx + 6, cy - 9, 3, 9, '#ffff55'); px(ctx, cx + 3, cy - 9, 9, 3, '#ffff55');
+      return;
+    }
+    ctx.save(); ctx.translate(cx, cy);
+    ctx.fillStyle = '#4a3020'; rr(ctx, -19, -15, 38, 30, 4); ctx.fill(); ctx.fillStyle = '#1a120c'; rr(ctx, -16, -12, 32, 24, 3); ctx.fill();
+    ctx.strokeStyle = '#ffb347'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(-12, 8); ctx.quadraticCurveTo(-8, -4, -3, 2); ctx.stroke();                 // прыжок
+    var p = (t * 1.5) % 1; ctx.fillStyle = 'rgba(190,230,255,' + (1 - p).toFixed(2) + ')';
+    ctx.beginPath(); ctx.arc(-3, 5 + p * 5, 2 + p * 2, 0, TAU); ctx.fill();                                 // выдох вниз
+    ctx.beginPath(); ctx.moveTo(-3, 2); ctx.quadraticCurveTo(2, -14, 9, -8); ctx.stroke();                   // выше
+    ctx.fillStyle = '#ffb347'; ctx.beginPath(); ctx.moveTo(9, -11); ctx.lineTo(13, -6); ctx.lineTo(7, -5); ctx.fill();
+    ctx.restore();
+  }
+  // ---------- Выдох мехов ----------
+  function gust(ctx, q, sx, sy, isRetro) {
+    var k = q.t / 0.45, n = 5, i;
+    for (i = 0; i < n; i++) {
+      var f = Math.min(1, k * 1.6) * (i + 1) / n, d = q.reach * f + 0.5;
+      var x = q.dir === 'down' ? q.x + Math.sin(i * 2.3) * 0.3 : q.x + q.dir * d, y = q.dir === 'down' ? q.y + 0.6 + d * 0.8 : q.y + Math.sin(i * 1.7 + q.t * 9) * 0.25;
+      var a = (1 - k) * (0.4 + 0.6 * (1 - i / n)), r = 3 + f * 7;
+      if (isRetro) { if (a > 0.25) px(ctx, sx(x) - r / 2, sy(y) - 2, r, 3, i % 2 ? '#55ffff' : '#ffffff'); continue; }
+      ctx.strokeStyle = 'rgba(220,240,255,' + a.toFixed(2) + ')'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      if (q.dir === 'down') ctx.arc(sx(x), sy(y), r, Math.PI * 0.15, Math.PI * 0.85);
+      else if (q.dir > 0) ctx.arc(sx(x), sy(y), r, -Math.PI * 0.35, Math.PI * 0.35);
+      else ctx.arc(sx(x), sy(y), r, Math.PI * 0.65, Math.PI * 1.35);
+      ctx.stroke();
     }
   }
 
-  // ---------- Герой: подмастерье-удалец (красный картуз с очками-гоглами, синяя рубаха, кожаный фартук) ----------
+  // ---------- Герой: подмастерье-удалец (медные вихры под кожаным ремешком, горчичная рубаха, кузнечные мехи за спиной) ----------
   function hero(ctx, X, Y, H, t, o) {   // X — центр, Y — подошвы (px)
     o = o || {};
     var f = H.face || 1, isRetro = o.retro, air = !H.ground, walk = H.ground && Math.abs(H.vx) > 0.1, ph = H.walkT * 2.2;
+    var squeeze = o.puff != null ? Math.max(0, 1 - o.puff / 0.2) : 0;   // мехи сжаты сразу после выдоха
     if (o.blink && Math.floor(t * 12) % 2) return;
     ctx.save(); ctx.translate(X, Y); ctx.scale(f, 1);
     var leg = walk ? Math.sin(ph * Math.PI) * 5 : air ? 3 : 0;
     if (isRetro) {
-      if (o.jetOwned) { px(ctx, -12, -27, 6, 15, '#aaaaaa'); if (H.jet) px(ctx, -12, -12, 6, 6 + (Math.floor(t * 20) % 2) * 3, '#ffff55'); }
-      px(ctx, -6 + leg * 0.6, -9, 6, 9, '#0000aa'); px(ctx, 0 - leg * 0.6, -9, 6, 9, '#0000aa');
-      px(ctx, -6 + leg * 0.6, -3, 6, 3, '#552a00'); px(ctx, 0 - leg * 0.6, -3, 6, 3, '#552a00');
-      px(ctx, -6, -24, 12, 15, '#5555ff'); px(ctx, -3, -21, 9, 12, '#aa5500');
-      px(ctx, 3, -21 + (o.aim ? 0 : 3), 9, 3, o.gun ? '#aaaaaa' : '#ffaa77');
-      px(ctx, -6, -33, 12, 9, '#ffaa77'); px(ctx, -9, -36, 18, 3, '#aa0000'); px(ctx, -6, -39, 12, 3, '#ff5555');
-      px(ctx, 0, -33, 6, 3, '#55ffff'); px(ctx, 3, -30, 3, 3, '#000');
+      px(ctx, -15, -27 + squeeze * 3, 9, 15 - squeeze * 6, '#aa5500'); px(ctx, -12, -24 + squeeze * 3, 3, 9 - squeeze * 6, '#552a00');
+      px(ctx, -6, -30, 12, 3, '#ffff55');   // носик мехов через плечо
+      px(ctx, -6 + leg * 0.6, -9, 6, 9, '#555555'); px(ctx, 0 - leg * 0.6, -9, 6, 9, '#555555');
+      px(ctx, -6 + leg * 0.6, -3, 6, 3, '#000000'); px(ctx, 0 - leg * 0.6, -3, 6, 3, '#000000');
+      px(ctx, -6, -24, 12, 15, '#ffff55'); px(ctx, -6, -15, 12, 3, '#552a00');
+      px(ctx, 3, -21 + (air ? -3 : 0), 6, 9, '#ffaa77');
+      px(ctx, -6, -33, 12, 9, '#ffaa77'); px(ctx, -6, -39, 12, 3, '#aa5500'); px(ctx, -6, -42, 3, 3, '#aa5500'); px(ctx, 0, -42, 3, 3, '#aa5500'); px(ctx, 3, -39, 3, 3, '#aa5500'); px(ctx, -9, -36, 3, 6, '#aa5500'); px(ctx, -6, -36, 12, 3, '#552a00');
+      px(ctx, 3, -30, 3, 3, '#000');
       ctx.restore(); return;
     }
-    // ранец
-    if (o.jetOwned) {
-      var gj = ctx.createLinearGradient(-14, 0, -6, 0); gj.addColorStop(0, '#6f7a88'); gj.addColorStop(0.5, '#dfe5ee'); gj.addColorStop(1, '#6f7a88');
-      ctx.fillStyle = gj; rr(ctx, -14, -28, 7, 16, 3); ctx.fill(); ctx.fillStyle = '#c0392b'; ctx.fillRect(-14, -22, 7, 2);
-      if (H.jet) {
-        var fl = 8 + Math.sin(t * 40) * 3; var gf = ctx.createLinearGradient(0, -12, 0, -12 + fl + 6); gf.addColorStop(0, '#fff3b0'); gf.addColorStop(0.5, '#ff9b2e'); gf.addColorStop(1, 'rgba(255,60,0,0)');
-        ctx.fillStyle = gf; ctx.beginPath(); ctx.moveTo(-14, -12); ctx.lineTo(-10.5, -6 + fl); ctx.lineTo(-7, -12); ctx.fill();
-      }
-    }
+    // мехи за спиной: два деревянных щита и кожаная гармошка, латунный носик через плечо
+    ctx.save(); ctx.translate(-10, -20);
+    var bw = 9 - squeeze * 3;
+    ctx.fillStyle = '#7a4a24'; rr(ctx, -bw / 2 - 2, -9, 4, 18, 2); ctx.fill(); rr(ctx, bw / 2 - 2, -9, 4, 18, 2); ctx.fill();
+    ctx.fillStyle = '#3e2414'; ctx.beginPath(); ctx.moveTo(-bw / 2, -8); ctx.lineTo(bw / 2, -8); ctx.lineTo(bw / 2, 8); ctx.lineTo(-bw / 2, 8); ctx.fill();
+    ctx.strokeStyle = '#5c3a22'; ctx.lineWidth = 1; for (var z = -6; z <= 6; z += 3) { ctx.beginPath(); ctx.moveTo(-bw / 2, z); ctx.lineTo(bw / 2, z + 1.5); ctx.stroke(); }
+    ctx.restore();
+    ctx.strokeStyle = '#c99a4a'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(-9, -29); ctx.quadraticCurveTo(-2, -33, 6, -27); ctx.stroke();
+    ctx.fillStyle = '#e8c070'; ctx.beginPath(); ctx.arc(7, -27, 2, 0, TAU); ctx.fill();
     // ноги и сапоги
-    ctx.fillStyle = '#2d3e66'; rr(ctx, -6 + leg * 0.7, -12, 5, 10, 2); ctx.fill(); rr(ctx, 1 - leg * 0.7, -12, 5, 10, 2); ctx.fill();
-    ctx.fillStyle = '#3a2416'; rr(ctx, -7 + leg * 0.7, -4, 7, 4, 2); ctx.fill(); rr(ctx, 0 - leg * 0.7, -4, 7, 4, 2); ctx.fill();
-    // тело: рубаха + фартук
-    var gs = ctx.createLinearGradient(0, -26, 0, -11); gs.addColorStop(0, '#4f7fd8'); gs.addColorStop(1, '#2e55a8');
+    ctx.fillStyle = '#4a3a30'; rr(ctx, -6 + leg * 0.7, -12, 5, 10, 2); ctx.fill(); rr(ctx, 1 - leg * 0.7, -12, 5, 10, 2); ctx.fill();
+    ctx.fillStyle = '#1e1612'; rr(ctx, -7 + leg * 0.7, -4, 7, 4, 2); ctx.fill(); rr(ctx, 0 - leg * 0.7, -4, 7, 4, 2); ctx.fill();
+    // тело: горчичная рубаха, широкий пояс
+    var gs = ctx.createLinearGradient(0, -26, 0, -11); gs.addColorStop(0, '#e0b040'); gs.addColorStop(1, '#a87a1e');
     ctx.fillStyle = gs; rr(ctx, -7, -26, 14, 15, 4); ctx.fill();
-    ctx.fillStyle = '#8a5a32'; rr(ctx, -4, -23, 10, 12, 3); ctx.fill(); ctx.fillStyle = '#c99a4a'; ctx.fillRect(-3, -19, 8, 1.5);
-    // рука / ружьё
-    if (o.gun) { ctx.fillStyle = '#7b4a24'; rr(ctx, 1, -20, 7, 5, 2); ctx.fill(); ctx.fillStyle = '#b8c0cc'; ctx.fillRect(6, -21, 10, 3); }
-    else { ctx.fillStyle = '#f2b48a'; rr(ctx, 3, -22 + (air ? -4 : 0), 4, 9, 2); ctx.fill(); }
-    // голова, картуз с гоглами
+    ctx.fillStyle = '#3a2416'; ctx.fillRect(-7, -16, 14, 3); ctx.fillStyle = '#c99a4a'; ctx.fillRect(1, -16, 3, 3);
+    ctx.strokeStyle = '#5c3a22'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(-6, -25); ctx.lineTo(4, -14); ctx.stroke();   // ремень мехов
+    // рука
+    ctx.fillStyle = '#f2b48a'; rr(ctx, 3, -22 + (air ? -4 : 0), 4, 9, 2); ctx.fill();
+    // голова, медные вихры, кожаный ремешок
     ctx.fillStyle = '#f2b48a'; rr(ctx, -6, -36, 12, 11, 4); ctx.fill();
-    ctx.fillStyle = '#5a3418'; ctx.fillRect(-6, -30, 3, 4);
-    ctx.fillStyle = '#d23a2c'; rr(ctx, -7, -41, 14, 7, 4); ctx.fill(); ctx.fillRect(2, -36, 8, 2.5);
-    ctx.fillStyle = '#7ee0ff'; ctx.beginPath(); ctx.arc(-1, -38, 2.4, 0, TAU); ctx.arc(4, -38, 2.4, 0, TAU); ctx.fill();
-    ctx.strokeStyle = '#3a2416'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(-1, -38, 2.4, 0, TAU); ctx.moveTo(6.4, -38); ctx.arc(4, -38, 2.4, 0, TAU); ctx.stroke();
-    ctx.fillStyle = '#222'; ctx.fillRect(2, -32, 2, 2);
+    ctx.fillStyle = '#c4581e'; ctx.beginPath(); ctx.moveTo(-7, -33); ctx.lineTo(-8, -40); ctx.lineTo(-4, -38); ctx.lineTo(-2, -43); ctx.lineTo(1, -39); ctx.lineTo(4, -42); ctx.lineTo(5, -38); ctx.lineTo(8, -37); ctx.lineTo(6, -34); ctx.lineTo(-7, -33); ctx.fill();
+    ctx.fillStyle = '#e07a34'; ctx.fillRect(-1, -41, 2, 3);
+    ctx.fillStyle = '#4a2c18'; ctx.fillRect(-7, -35, 14, 2.5);
+    ctx.fillStyle = '#222'; ctx.fillRect(2, -31, 2, 2.5);
+    ctx.fillStyle = '#c4581e'; ctx.fillRect(-6, -30, 2, 4);
     ctx.restore();
   }
 
   // ---------- Обитатели ----------
-  function enemy(ctx, e, X, Y, t, isRetro) {   // X,Y — центр (у ходока — подошвы)
+  function enemyBase(ctx, e, X, Y, t, isRetro) {   // X,Y — центр (у ходока — подошвы)
     var i;
     if (e.k === 'w') {   // шестерняк — латунный жук-шестерёнка
       if (isRetro) { px(ctx, X - 9, Y - 18, 18, 12, '#aa5500'); px(ctx, X - 6, Y - 21, 12, 3, '#ffff55'); px(ctx, X + e.dir * 6 - 2, Y - 15, 3, 3, '#ff5555'); for (i = 0; i < 3; i++) px(ctx, X - 9 + i * 7, Y - 6 + ((Math.floor(t * 8) + i) % 2) * 3, 3, 3, '#aaaaaa'); return; }
@@ -305,93 +366,140 @@
     ctx.restore();
   }
 
+  function enemy(ctx, e, X, Y, t, isRetro) {
+    var st = e.stun > 0 || e.fall;
+    if (st) ctx.globalAlpha = 0.75;
+    enemyBase(ctx, e, X, Y + (e.fall ? 0 : 0), st ? 0 : t, isRetro);
+    ctx.globalAlpha = 1;
+    if (e.stun > 0) {   // оглушён: кружат искорки
+      var cy = e.k === 'w' ? Y - 26 : Y - 16;
+      for (var i = 0; i < 3; i++) { var a = t * 6 + i * TAU / 3, x = X + Math.cos(a) * 9, y = cy + Math.sin(a) * 3;
+        if (isRetro) px(ctx, x - 1, y - 1, 3, 3, '#ffff55'); else { ctx.fillStyle = '#fff1a0'; ctx.beginPath(); ctx.arc(x, y, 1.8, 0, TAU); ctx.fill(); } }
+    }
+  }
+
   // ---------- HUD ----------
   function hud(g, ctx, S, P, isRetro) {
     var W = g.W;
     ctx.fillStyle = P.hud; ctx.fillRect(0, 0, W, HUD);
     ctx.fillStyle = P.hudLine; ctx.fillRect(0, HUD - (isRetro ? 3 : 1), W, isRetro ? 3 : 1);
     var f = isRetro ? '"Courier New", monospace' : 'Inter, system-ui, sans-serif';
-    function tx(s, x, y, o) { o = o || {}; ctx.fillStyle = o.color || P.ink; ctx.font = (o.weight || 800) + ' ' + (o.size || 14) + 'px ' + f; ctx.textAlign = o.align || 'left'; ctx.textBaseline = 'middle'; ctx.fillText(isRetro ? String(s).toUpperCase() : s, x, y); }
-    tx(g.t('score'), 12, 13, { size: 10, color: P.muted, weight: 700 }); tx(String(S.score).padStart(6, '0'), 12, 28, { size: 16, color: P.accent });
-    tx(g.t('level'), 104, 13, { size: 10, color: P.muted, weight: 700 }); tx(S.inBonus ? '★' : String(S.level) + '/10', 104, 28, { size: 16 });
-    // кубок
-    tx(g.t('cupL'), 176, 13, { size: 10, color: P.muted, weight: 700 });
-    ctx.globalAlpha = S.cup || S.inBonus ? 1 : 0.25; cup(ctx, 190, 29, g.time, isRetro, 0.75); ctx.globalAlpha = 1;
-    // ружьё
-    var x0 = 236;
-    if (S.gun) {
-      tx(g.t('ammoL'), x0, 13, { size: 10, color: P.muted, weight: 700 });
-      for (var i = 0; i < Math.min(S.ammo, L.AMMO_MAX); i++) { ctx.fillStyle = S.ammo ? '#e8c35a' : P.bad; if (isRetro) px(ctx, x0 + i * 6, 23, 3, 9, '#ffff55'); else { rr(ctx, x0 + i * 5.5, 22, 3.5, 11, 1.5); ctx.fill(); } }
-      if (!S.ammo) tx(g.t('empty'), x0, 28, { size: 12, color: P.bad });
-    }
-    x0 = 360;
-    if (S.jetOwned) {
-      tx(g.t('fuelL'), x0, 13, { size: 10, color: P.muted, weight: 700 });
-      var fr = S.fuel / L.FUEL_MAX, bw = 96;
-      ctx.fillStyle = P.bar; if (isRetro) ctx.fillRect(x0, 23, bw, 9); else { rr(ctx, x0, 23, bw, 9, 4.5); ctx.fill(); }
-      ctx.fillStyle = fr < 0.25 ? P.bad : (S.hero.jet ? '#ffb347' : P.good);
-      if (isRetro) ctx.fillRect(x0, 23, Math.round(bw * fr / 3) * 3, 9); else if (fr > 0) { rr(ctx, x0, 23, Math.max(9, bw * fr), 9, 4.5); ctx.fill(); }
-    }
-    if (S.inBonus) tx(g.t('bonusTime') + ' ' + Math.ceil(Math.max(0, S.bonusT)), 470, 28, { size: 14, color: P.warn });
-    // жизни
-    tx(g.t('lives'), W - 12, 13, { size: 10, color: P.muted, weight: 700, align: 'right' });
+    function tx(s, x, y, o) { o = o || {}; ctx.fillStyle = o.color || P.ink; ctx.font = (o.weight || 800) + ' ' + (o.size || 14) + 'px ' + f; ctx.textAlign = o.align || 'left'; ctx.textBaseline = 'middle'; ctx.fillText(isRetro ? String(s).toUpperCase() : s, x, y, o.max); }
+    tx(g.t('score'), 12, 13, { size: 10, color: P.muted, weight: 700, max: 86 }); tx(String(S.score).padStart(6, '0'), 12, 28, { size: 16, color: P.accent });
+    tx(g.t('level'), 104, 13, { size: 10, color: P.muted, weight: 700, max: 70 }); tx(String(S.level) + '/10', 104, 28, { size: 16 });
+    // горны цеха: разожжённые и остывшие
+    tx(g.t('furnL'), 180, 13, { size: 10, color: P.muted, weight: 700, max: 200 });
+    var LV = S.LV;
+    LV.furn.forEach(function (fu, i) {
+      var x = 186 + i * 22, h = S.heat[fu.id], lit = h >= L.HEAT_NEED;
+      if (isRetro) { px(ctx, x - 6, 21, 12, 12, lit ? '#aa0000' : '#555555'); px(ctx, x - 3, 27, 6, 6, lit ? '#ffff55' : (h ? '#ff5555' : '#000000')); return; }
+      ctx.fillStyle = lit ? '#b8553a' : '#4a3a32'; ctx.beginPath(); ctx.moveTo(x - 7, 34); ctx.lineTo(x - 7, 26); ctx.quadraticCurveTo(x - 7, 20, x, 20); ctx.quadraticCurveTo(x + 7, 20, x + 7, 26); ctx.lineTo(x + 7, 34); ctx.fill();
+      ctx.fillStyle = lit ? '#ffd37a' : h ? '#ff7a2a' : '#1a1210'; rr(ctx, x - 4, 27, 8, 6, 2.5); ctx.fill();
+      if (lit) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(255,170,60,.25)'; ctx.beginPath(); ctx.arc(x, 28, 10, 0, TAU); ctx.fill(); ctx.restore(); }
+    });
+    // жизни — головы с медными вихрами
+    tx(g.t('lives'), W - 12, 13, { size: 10, color: P.muted, weight: 700, align: 'right', max: 100 });
     for (var l = 0; l < S.lives; l++) {
       var lx = W - 20 - l * 20;
-      if (isRetro) { px(ctx, lx - 6, 21, 12, 3, '#aa0000'); px(ctx, lx - 3, 24, 9, 9, '#ffaa77'); }
-      else { ctx.fillStyle = '#f2b48a'; rr(ctx, lx - 5, 23, 10, 10, 3.5); ctx.fill(); ctx.fillStyle = '#d23a2c'; rr(ctx, lx - 6, 19, 12, 6, 3); ctx.fill(); ctx.fillStyle = '#7ee0ff'; ctx.fillRect(lx - 2, 21, 5, 2); }
+      if (isRetro) { px(ctx, lx - 6, 18, 3, 6, '#aa5500'); px(ctx, lx, 18, 3, 6, '#aa5500'); px(ctx, lx - 6, 21, 12, 3, '#aa5500'); px(ctx, lx - 6, 24, 12, 9, '#ffaa77'); }
+      else { ctx.fillStyle = '#f2b48a'; rr(ctx, lx - 5, 23, 10, 10, 3.5); ctx.fill(); ctx.fillStyle = '#c4581e'; ctx.beginPath(); ctx.moveTo(lx - 6, 25); ctx.lineTo(lx - 6, 19); ctx.lineTo(lx - 2, 21); ctx.lineTo(lx, 17); ctx.lineTo(lx + 2, 21); ctx.lineTo(lx + 6, 19); ctx.lineTo(lx + 6, 25); ctx.fill(); ctx.fillStyle = '#4a2c18'; ctx.fillRect(lx - 6, 23, 12, 2); }
     }
+  }
+
+  // ---------- Камера: левый верх вида (в клетках), герой по центру, в пределах карты ----------
+  function camFor(S) {
+    var LV = S.LV, H = S.hero;
+    return { x: L.clamp(H.x - COLS / 2, 0, LV.w - COLS), y: L.clamp(H.y - 0.7 - ROWS / 2, 0, LV.h - ROWS) };
   }
 
   // ---------- Кадр ----------
   U.render = function (g, ctx, S, o) {
     o = o || {};
-    var isRetro = retro(g), P = isRetro ? PR : PM, LV = S.LV, t = g.time, room = S.room, B = L.roomBox(LV, room);
-    var sx = function (x) { return (x - B.x0) * T; }, sy = function (y) { return HUD + (y - B.y0) * T; };
-    ctx.fillStyle = isRetro ? '#000' : MOD[LV.theme][3]; ctx.fillRect(0, 0, g.W, g.H);
-    ctx.drawImage(roomLayer(LV, room, isRetro), 0, HUD);
+    var isRetro = retro(g), P = isRetro ? PR : PM, LV = S.LV, t = g.time, cam = o.cam || camFor(S);
+    var ox = Math.round(cam.x * T), oy = Math.round(cam.y * T);
+    var sx = function (x) { return x * T - ox; }, sy = function (y) { return HUD + y * T - oy; };
+    var c0 = Math.floor(cam.x) - 1, c1 = Math.ceil(cam.x + COLS) + 1, r0 = Math.floor(cam.y) - 2, r1 = Math.ceil(cam.y + ROWS) + 1;
+    var vis = function (x, y, m) { m = m || 1.5; return x > cam.x - m && x < cam.x + COLS + m && y > cam.y - m && y < cam.y + ROWS + m + 1; };
+    ctx.fillStyle = isRetro ? '#000' : MOD[LV.theme % MOD.length][3]; ctx.fillRect(0, 0, g.W, g.H);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, HUD, g.W, g.H - HUD); ctx.clip();
+    // экраны, попавшие в вид
+    for (var ry = 0; ry < LV.rh; ry++) for (var rx = 0; rx < LV.rw; rx++) {
+      var bx0 = rx * COLS, by0 = ry * ROWS;
+      if (bx0 + COLS <= cam.x || bx0 >= cam.x + COLS || by0 + ROWS <= cam.y || by0 >= cam.y + ROWS) continue;
+      ctx.drawImage(roomLayer(LV, ry * LV.rw + rx, isRetro), sx(bx0), sy(by0));
+    }
     var i, j, k = 0;
-    for (j = B.y0; j < B.y1; j++) for (i = B.x0; i < B.x1; i++) { var ch = L.tile(LV, i, j); if (L.HAZ[ch]) hazard(ctx, ch, sx(i), sy(j), t, isRetro, k++); }
-    door(ctx, sx(LV.exit.c), sy(LV.exit.r - 1), S.cup || LV.bonus, t, isRetro);
-    LV.items.forEach(function (it) { if (S.got[it.id] || it.c < B.x0 || it.c >= B.x1 || it.r < B.y0 || it.r >= B.y1) return; item(ctx, it.k, sx(it.c + 0.5), sy(it.r + 0.5), t, isRetro); });
-    S.enemies.forEach(function (e) { if (e.alive && e.room === room) enemy(ctx, e, sx(e.x), sy(e.y), t + e.id, isRetro); });
+    // восходящий поток над продухами
+    LV.vents.forEach(function (v, vi) {
+      if (v.c < c0 || v.c > c1) return;
+      var h = v.r - v.top;
+      for (var q = 0; q < 7; q++) {
+        var p = (t * 0.9 + q / 7 + vi * 0.37) % 1, y = v.r - p * h, x = v.c + 0.5 + Math.sin(q * 2.1 + t * 3) * 0.28;
+        if (isRetro) { if ((q + Math.floor(t * 6)) % 2) px(ctx, sx(x) - 1, sy(y), 3, 6, '#55ffff'); }
+        else { ctx.fillStyle = 'rgba(200,235,255,' + (0.28 * (1 - p)).toFixed(2) + ')'; ctx.fillRect(sx(x) - 1, sy(y), 2, 9); }
+      }
+    });
+    for (j = r0; j < r1; j++) for (i = c0; i < c1; i++) { var ch = L.tile(LV, i, j); if (L.HAZ[ch]) hazard(ctx, ch, sx(i), sy(j), t, isRetro, k++); }
+    LV.shut.forEach(function (s) {
+      if (!vis(s.c, s.r)) return;
+      var lift = s.open ? (s.openAt != null ? Math.min(1, (S.time - s.openAt) / 0.6) : 1) : 0;
+      if (lift < 1) shutter(ctx, sx(s.c), sy(s.r), lift, isRetro);
+    });
+    LV.signs.forEach(function (s) { if (vis(s.c, s.r)) sign(ctx, sx(s.c + 0.5), sy(s.r + 0.5), t, isRetro); });
+    LV.vanes.forEach(function (v) { if (vis(v.c, v.r)) vane(ctx, sx(v.c + 0.5), sy(v.r + 0.5), S.spun[v.id] != null && S.spun[v.id] !== false ? S.spun[v.id] : null, S.time, isRetro); });
+    LV.furn.forEach(function (f, fi) { if (vis(f.c, f.r, 3)) furnace(ctx, sx(f.c), sy(f.r), S.heat[f.id], t, isRetro, fi); });
+    LV.items.forEach(function (it) { if (S.got[it.id] || !vis(it.c, it.r)) return; item(ctx, it.k, sx(it.c + 0.5), sy(it.r + 0.5), t, isRetro); });
+    S.enemies.forEach(function (e) { if (e.alive && vis(e.x, e.y)) enemy(ctx, e, sx(e.x), sy(e.y), t + e.id, isRetro); });
     S.eshots.forEach(function (b) {
       if (isRetro) { px(ctx, sx(b.x) - 4, sy(b.y) - 4, 9, 9, '#ff5555'); px(ctx, sx(b.x) - 1, sy(b.y) - 1, 3, 3, '#ffff55'); return; }
       ctx.save(); ctx.shadowColor = '#ff7a2a'; ctx.shadowBlur = 10; ctx.fillStyle = '#ffb05a'; ctx.beginPath(); ctx.arc(sx(b.x), sy(b.y), 4, 0, TAU); ctx.fill(); ctx.restore();
     });
-    S.shots.forEach(function (b) {
-      if (isRetro) { px(ctx, sx(b.x) - 6, sy(b.y) - 1, 12, 3, '#ffffff'); return; }
-      ctx.save(); ctx.shadowColor = '#ffe9a0'; ctx.shadowBlur = 8; ctx.fillStyle = '#fff6c8'; rr(ctx, sx(b.x) - 7, sy(b.y) - 1.5, 14, 3, 1.5); ctx.fill(); ctx.restore();
-    });
+    var last = S.gusts.length ? S.gusts[S.gusts.length - 1] : null;
     if (S.phase !== 'dead') {
       var H = S.hero;
-      if (!isRetro) { ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(sx(H.x), sy(Math.ceil(H.y - 0.01)) , 9, 2.5, 0, 0, TAU); if (H.ground) ctx.fill(); }
-      hero(ctx, sx(H.x), sy(H.y), H, t, { retro: isRetro, gun: S.gun, jetOwned: S.jetOwned, blink: S.inv > 0 });
+      if (!isRetro && H.ground) { ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(sx(H.x), sy(Math.ceil(H.y - 0.01)), 9, 2.5, 0, 0, TAU); ctx.fill(); }
+      hero(ctx, sx(H.x), sy(H.y), H, t, { retro: isRetro, blink: S.inv > 0, puff: last ? last.t : null });
+      // подсказка у остывшего горна (первые уровни): «дунь!» — значок кнопки выдоха
+      if (o.prompt) {
+        var bx = sx(H.x) + H.face * 22, by = sy(H.y) - 52, a = 0.75 + 0.25 * Math.sin(t * 6);
+        ctx.globalAlpha = a;
+        if (isRetro) { px(ctx, bx - 15, by - 12, 30, 21, '#ffffff'); px(ctx, bx - 12, by - 9, 24, 15, '#000000'); }
+        else { ctx.fillStyle = 'rgba(16,12,10,.85)'; rr(ctx, bx - 16, by - 13, 32, 24, 8); ctx.fill(); ctx.strokeStyle = P.accent; ctx.lineWidth = 1.5; rr(ctx, bx - 16, by - 13, 32, 24, 8); ctx.stroke(); }
+        ctx.fillStyle = P.accent; ctx.font = '900 13px ' + (isRetro ? '"Courier New", monospace' : 'Inter, system-ui, sans-serif'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(o.prompt, bx, by - 1);
+        ctx.globalAlpha = 1;
+      }
     }
+    S.gusts.forEach(function (q) { gust(ctx, q, sx, sy, isRetro); });
     if (o.fx) o.fx(ctx, sx, sy);
+    ctx.restore();
     // всплывающие подписи
     (o.toasts || []).forEach(function (q) {
       var a = Math.min(1, q.t / 0.4), yy = sy(q.y) - (q.life - q.t) * 18;
       ctx.globalAlpha = a; ctx.font = (q.big ? 900 : 800) + ' ' + (q.big ? 16 : 12) + 'px ' + (isRetro ? '"Courier New", monospace' : 'Inter, system-ui, sans-serif');
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      var s = isRetro ? String(q.text).toUpperCase() : q.text, xx = Math.max(70, Math.min(g.W - 70, sx(q.x)));
-      ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillText(s, xx + 1, yy + 1); ctx.fillStyle = q.color || P.accent; ctx.fillText(s, xx, yy); ctx.globalAlpha = 1;
+      var s = isRetro ? String(q.text).toUpperCase() : q.text, xx = Math.max(90, Math.min(g.W - 90, sx(q.x)));
+      ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillText(s, xx + 1, yy + 1, g.W - 20); ctx.fillStyle = q.color || P.accent; ctx.fillText(s, xx, yy, g.W - 20); ctx.globalAlpha = 1;
     });
     // баннер уровня / прохождения
     if (o.banner) {
-      var bw = 380, bh = 70, bx = (g.W - bw) / 2, by = HUD + 100;
+      var bw = 420, bh = 70, bxx = (g.W - bw) / 2, byy = HUD + 100;
       ctx.globalAlpha = Math.min(1, o.banner.a);
-      if (isRetro) { ctx.fillStyle = '#000'; ctx.fillRect(bx, by, bw, bh); ctx.fillStyle = P.hudLine; ctx.fillRect(bx, by, bw, 3); ctx.fillRect(bx, by + bh - 3, bw, 3); ctx.fillRect(bx, by, 3, bh); ctx.fillRect(bx + bw - 3, by, 3, bh); }
-      else { ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 20; ctx.fillStyle = 'rgba(16,12,10,.88)'; rr(ctx, bx, by, bw, bh, 14); ctx.fill(); ctx.restore(); ctx.strokeStyle = 'rgba(255,194,74,.5)'; ctx.lineWidth = 1.5; rr(ctx, bx + 0.75, by + 0.75, bw - 1.5, bh - 1.5, 14); ctx.stroke(); }
+      if (isRetro) { ctx.fillStyle = '#000'; ctx.fillRect(bxx, byy, bw, bh); ctx.fillStyle = P.hudLine; ctx.fillRect(bxx, byy, bw, 3); ctx.fillRect(bxx, byy + bh - 3, bw, 3); ctx.fillRect(bxx, byy, 3, bh); ctx.fillRect(bxx + bw - 3, byy, 3, bh); }
+      else { ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 20; ctx.fillStyle = 'rgba(16,12,10,.88)'; rr(ctx, bxx, byy, bw, bh, 14); ctx.fill(); ctx.restore(); ctx.strokeStyle = 'rgba(255,179,71,.5)'; ctx.lineWidth = 1.5; rr(ctx, bxx + 0.75, byy + 0.75, bw - 1.5, bh - 1.5, 14); ctx.stroke(); }
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.font = '900 22px ' + (isRetro ? '"Courier New", monospace' : 'Inter, system-ui, sans-serif'); ctx.fillStyle = P.accent;
-      ctx.fillText(isRetro ? o.banner.title.toUpperCase() : o.banner.title, g.W / 2, by + 26);
+      ctx.fillText(isRetro ? o.banner.title.toUpperCase() : o.banner.title, g.W / 2, byy + 26, bw - 24);
       ctx.font = '700 12px ' + (isRetro ? '"Courier New", monospace' : 'Inter, system-ui, sans-serif'); ctx.fillStyle = P.muted;
-      ctx.fillText(isRetro ? o.banner.sub.toUpperCase() : o.banner.sub, g.W / 2, by + 50);
+      ctx.fillText(isRetro ? o.banner.sub.toUpperCase() : o.banner.sub, g.W / 2, byy + 50, bw - 24);
       ctx.globalAlpha = 1;
     }
-    if (!isRetro) { var vg = ctx.createRadialGradient(g.W / 2, HUD + 180, 160, g.W / 2, HUD + 180, 420); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.35)'); ctx.fillStyle = vg; ctx.fillRect(0, HUD, g.W, g.H - HUD); }
-    else { ctx.fillStyle = 'rgba(0,0,0,.18)'; for (var y = HUD; y < g.H; y += 3) ctx.fillRect(0, y, g.W, 1); }
+    if (!isRetro) {
+      var glow = S.lit / Math.max(1, LV.furn.length);   // чем больше горнов пылает, тем теплее и светлее цех
+      var vg = ctx.createRadialGradient(g.W / 2, HUD + 180, 160, g.W / 2, HUD + 180, 420); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,' + (0.4 - 0.25 * glow).toFixed(2) + ')'); ctx.fillStyle = vg; ctx.fillRect(0, HUD, g.W, g.H - HUD);
+      if (glow > 0) { ctx.fillStyle = 'rgba(255,140,40,' + (0.05 * glow).toFixed(3) + ')'; ctx.fillRect(0, HUD, g.W, g.H - HUD); }
+    } else { ctx.fillStyle = 'rgba(0,0,0,.18)'; for (var y = HUD; y < g.H; y += 3) ctx.fillRect(0, y, g.W, 1); }
     hud(g, ctx, S, P, isRetro);
   };
-  U.R = { hero: hero, cup: cup, enemy: enemy, item: item, PM: PM, PR: PR, MOD: MOD, HUD: HUD, rr: rr, px: px, roomLayer: roomLayer };
+  U.R = { hero: hero, furnace: furnace, vane: vane, enemy: enemy, item: item, PM: PM, PR: PR, MOD: MOD, HUD: HUD, rr: rr, px: px, roomLayer: roomLayer, camFor: camFor };
 })(typeof window !== 'undefined' ? window : globalThis);
