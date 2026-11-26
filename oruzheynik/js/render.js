@@ -1,4 +1,4 @@
-/* ОТБОЙ · рендер обеих тем. ORUZH.render(g, ctx, S, ui).
+/* МОЛОТОБОЙ · рендер обеих тем. ORUZH.render(g, ctx, S, ui).
    modern — мягкие градиенты, свечение, векторные фигуры в полном разрешении;
    retro — тот же кадр рисуется в буфер половинного разрешения плоскими цветами (без градиентов и теней)
    и растягивается без сглаживания: крупный «пиксель», ограниченная палитра.
@@ -280,7 +280,7 @@
     var fl = (b.flash > 0 && Math.floor(t * 30) % 2), k = fl ? '#ffffff' : null, d = b.dir || 1, i, hw = b.hw * TS, hh = b.hh * TS;
     c.save(); if (fill < 1) c.globalAlpha = Math.max(0.15, fill);
     switch (b.key) {
-      case 'hammer': {   // Молотобой: приземистый чугунный корпус с головой-наковальней и рукой-молотом
+      case 'hammer': {   // Кувалдарь: приземистый чугунный корпус с головой-наковальней и рукой-молотом
         var crouch = b.mode === 'crouch' ? 6 : 0;
         c.fillStyle = k || '#3b3132'; c.fillRect(x - hw, y - hh + 14 + crouch, hw * 2, hh - 22 - crouch);
         c.fillStyle = k || '#5a4b4c'; poly(c, [x - hw - 6, y - hh + crouch, x + hw + 6, y - hh + crouch, x + hw - 2, y - hh + 16 + crouch, x - hw + 2, y - hh + 16 + crouch], k || '#5a4b4c');
