@@ -8,9 +8,9 @@
   var VW = Wd.VW, VH = Wd.VH;
   var STR = {
     ru: { title: 'МЕДНАЯ СЛОБОДА', subtitle: 'Прототип драки · чиби HD-пиксель', wave: 'Волна', go: 'ВПЕРЁД', clear: 'Улица чиста!',
-      hint: '←→↑↓ ход · Пробел/J удар (×3 серия) · K/Z прыжок · P пауза', hintTouch: 'Стик — ход · ● удар · ⤒ прыжок' },
+      hint: '←→↑↓ ход · Пробел/J удар (×3 серия) · K/Z прыжок · P пауза', hintTouch: 'Стик — ход · ● удар · ⤒ прыжок', mash: 'ЖМИ УДАР!' },
     en: { title: 'COPPER QUARTER', subtitle: 'Brawler prototype · chibi HD pixel', wave: 'Wave', go: 'GO', clear: 'Street clear!',
-      hint: '←→↑↓ move · Space/J hit (×3 combo) · K/Z jump · P pause', hintTouch: 'Stick — move · ● hit · ⤒ jump' }
+      hint: '←→↑↓ move · Space/J hit (×3 combo) · K/Z jump · P pause', hintTouch: 'Stick — move · ● hit · ⤒ jump', mash: 'MASH HIT!' }
   };
   var pixelTheme = function (base, o) { return Object.assign({}, base, o, { pixel: true }); };
   var TH = Arcade.themes || {};
@@ -89,7 +89,11 @@
     air: { len: 30, on: 2, off: 22, dmg: 9, reach: 46, heavy: true } };
   var game = null;
   function fighter(set, x, z, hp, face) { return { set: set, x: x, z: z, y: 0, vx: 0, vz: 0, vy: 0, face: face || 1, st: 'idle', t: 0, hp: hp, max: hp, flash: 0, atk: null, hitSet: [], cd: 60, inv: 0, combo: 0, buf: false }; }
-  var WAVES = [{ at: 120, list: ['stokerA', 'stokerA'] }, { at: 560, list: ['stokerA', 'stokerB', 'stokerA'] }, { at: 960, list: ['stokerB', 'stokerA', 'stokerB', 'stokerB'] }];
+  // 3-я волна: литейщик (крупный, медленный, захват) + двое кочегаров
+  var WAVES = [{ at: 120, list: ['stokerA', 'stokerA'] }, { at: 560, list: ['stokerA', 'stokerB', 'stokerA'] }, { at: 960, list: ['stokerB', 'founder', 'stokerA'] }];
+  var HP = { stokerA: 30, stokerB: 40, founder: 90 };
+  // Литейщик: телеграф (замах) → бросок-захват (выпад) → держит; вырваться — MASH нажатий, иначе бросок.
+  var BIG = { wind: 30, lunge: 14, reach: [8, 34], hold: 110, mash: 8, throwLen: 26, throwDmg: 14 };
   function newGame() {
     g.resetRun(); g.state.score = 0; g.state.lives = 3; g.state.level = 1;
     game = { hero: fighter('hero', 80, 40, 100, 1), foes: [], fx: [], nums: [], cam: 0, lock: VW, wave: 0, active: false, stop: 0, shake: 0, shakeA: 0, clear: 0, banner: 90, over: 0, frame: 0 };
@@ -156,7 +160,7 @@
   function tryHits(f, targets) {
     if (f.st !== 'atk') return; var A = ATK[f.atk]; if (f.t < A.on || f.t > A.off) return;
     for (var i = 0; i < targets.length; i++) {
-      var t = targets[i]; if (t.hp <= 0 && t.st === 'down') continue; if (t.inv > 0 || t.st === 'fall' || t.st === 'down' || t.st === 'getup') continue;
+      var t = targets[i]; if (t.hp <= 0 && t.st === 'down') continue; if (t.inv > 0 || t.st === 'fall' || t.st === 'down' || t.st === 'getup' || t.st === 'held') continue;
       if (f.hitSet.indexOf(t) >= 0) continue;
       var dx = (t.x - f.x) * f.face; if (dx < 4 || dx > A.reach) continue; if (Math.abs(t.z - f.z) > 9) continue; if (Math.abs(t.y - f.y) > 34) continue;
       hit(f, t, A);
@@ -181,12 +185,16 @@
     if (f.st === 'atk') { var A = ATK[f.atk]; if (f.atk !== 'air' && f.t >= A.len) { if (f.buf && A.next) startAtk(f, A.next); else setSt(f, 'idle'); } }
     else if (f.st === 'hurt' && f.t >= 18) setSt(f, 'idle');
     else if (f.st === 'down' && f.t >= (f.hp <= 0 ? 70 : 44)) { if (f.hp > 0) { setSt(f, 'getup'); } }
-    else if (f.st === 'getup' && f.t >= 20) { setSt(f, 'idle'); f.inv = 30; }
+    else if (f.st === 'getup' && f.t >= 24) { setSt(f, 'idle'); f.inv = 30; }
   }
 
   // ---------- Герой ----------
   function stepHero(h, inp) {
     if (h.hp <= 0) { stepCommon(h); physics(h); if (h.st === 'down' && h.t >= 70) heroDied(); return; }
+    if (h.st === 'held') {   // в захвате: вырываться быстрыми нажатиями (удар/прыжок/смена направления)
+      if (inp.hit || inp.jump || (inp.x && inp.x !== h.lastX)) { h.mash++; h.shk = 3; sfx('swing'); }
+      h.lastX = inp.x; h.t++; if (h.shk > 0) h.shk--; return;
+    }
     var free = h.st === 'idle' || h.st === 'walk';
     if (inp.hit) {
       if (h.st === 'jump') { startAtk(h, 'air'); sfx('swing'); }
@@ -211,13 +219,14 @@
   // ---------- Враг: подойти, выровняться по глубине, замах (телеграф) → удар ----------
   function stepFoe(e, idx) {
     var h = game.hero;
+    if (e.set === 'founder') return stepFounder(e);
     if (e.hp <= 0) { stepCommon(e); physics(e); return; }
     var free = e.st === 'idle' || e.st === 'walk';
     if (free) {
       e.cd--;
       var side = e.x < h.x ? -1 : 1, tx = h.x + side * 36, tz = h.z + (idx % 2 ? 6 : -6) * (game.foes.length > 2 ? 1 : 0);
       var dx = tx - e.x, dz = tz - e.z;
-      var attacking = game.foes.some(function (o) { return o !== e && (o.st === 'wind' || (o.st === 'atk')); });
+      var attacking = h.st === 'held' || game.foes.some(function (o) { return o !== e && (o.st === 'wind' || o.st === 'atk' || o.st === 'lunge'); });
       if (Math.abs(h.x - e.x) < 44 && Math.abs(h.z - e.z) < 7 && e.cd <= 0 && !attacking && h.hp > 0) { e.face = h.x > e.x ? 1 : -1; setSt(e, 'wind'); e.vx = 0; e.vz = 0; }
       else if (Math.abs(dx) > 3 || Math.abs(dz) > 2) { if (e.st !== 'walk') setSt(e, 'walk'); e.vx = Math.sign(dx) * Math.min(0.75, Math.abs(dx) * 0.1); e.vz = Math.sign(dz) * Math.min(0.5, Math.abs(dz) * 0.1); e.face = h.x > e.x ? 1 : -1; }
       else { if (e.st !== 'idle') setSt(e, 'idle'); e.vz = 0; e.face = h.x > e.x ? 1 : -1; }
@@ -230,14 +239,51 @@
     tryHits(e, [h]);
   }
 
+  // ---------- Литейщик: медленно подходит, замах-телеграф, выпад с захватом; держит → бросок ----------
+  function release(e, h, escaped) {
+    if (escaped) { setSt(h, 'idle'); h.inv = 30; h.x += -e.face * 10; h.y = 0; setSt(e, 'hurt'); e.vx = -e.face * 1.2; e.cd = 120; sfx('hit'); spark(e.x + e.face * 14, Wd.FLOOR_TOP + e.z - 40, false); }
+    h.grab = null; h.mash = 0;
+  }
+  function stepFounder(e) {
+    var h = game.hero;
+    if (e.hp <= 0) { if (h.grab === e) release(e, h, false); stepCommon(e); physics(e); return; }
+    if (h.grab === e && e.st !== 'grab' && e.st !== 'throw') { setSt(h, 'idle'); h.y = 0; release(e, h, false); }   // захват прерван ударом
+    var free = e.st === 'idle' || e.st === 'walk', heroOk = h.hp > 0 && h.st !== 'held' && h.st !== 'fall' && h.st !== 'down' && h.st !== 'getup';
+    if (free) {
+      e.cd--; e.face = h.x > e.x ? 1 : -1;
+      var tx = h.x - e.face * 26, dx = tx - e.x, dz = h.z - e.z;
+      if (Math.abs(h.x - e.x) < 40 && Math.abs(dz) < 7 && e.cd <= 0 && heroOk) { setSt(e, 'wind'); e.vx = 0; e.vz = 0; }
+      else if (Math.abs(dx) > 3 || Math.abs(dz) > 2) { if (e.st !== 'walk') setSt(e, 'walk'); e.vx = Math.sign(dx) * Math.min(0.45, Math.abs(dx) * 0.08); e.vz = Math.sign(dz) * Math.min(0.32, Math.abs(dz) * 0.08); }
+      else { if (e.st !== 'idle') setSt(e, 'idle'); e.vz = 0; }
+      stepCommon(e);
+    } else if (e.st === 'wind') { e.vz = 0; e.vx = 0; e.t++; if (e.t >= BIG.wind) { setSt(e, 'lunge'); sfx('swing'); } }
+    else if (e.st === 'lunge') {
+      e.t++; e.vx = e.t < 7 ? e.face * 1.5 : 0;
+      var ddx = (h.x - e.x) * e.face;
+      if (heroOk && h.inv <= 0 && h.y < 12 && ddx >= BIG.reach[0] && ddx <= BIG.reach[1] && Math.abs(h.z - e.z) < 9) {
+        setSt(e, 'grab'); e.vx = 0; h.grab = e; h.mash = 0; h.lastX = 0; h.atk = null; setSt(h, 'held'); h.vx = 0; h.vz = 0; h.vy = 0; h.face = -e.face;
+        game.stop = 3; game.shake = 4; game.shakeA = 1; sfx('heavy');
+      } else if (e.t >= BIG.lunge) { setSt(e, 'idle'); e.cd = 80; }
+    } else if (e.st === 'grab') {
+      e.t++; h.x = e.x + e.face * 27; h.z = e.z; h.y = 5;
+      if (h.mash >= BIG.mash) release(e, h, true);
+      else if (e.t >= BIG.hold) {   // бросок: герой летит вперёд и падает
+        setSt(e, 'throw'); release(e, h, false); h.hp -= BIG.throwDmg; h.flash = 2; setSt(h, 'fall'); h.vx = e.face * 2.6; h.vy = 3.4; h.y = 6;
+        game.nums.push({ x: h.x, y: Wd.FLOOR_TOP + h.z - 50, v: BIG.throwDmg, life: 40, c: 5 }); game.stop = 4; game.shake = 8; game.shakeA = 3; sfx('heavy'); e.cd = 110;
+      }
+    } else if (e.st === 'throw') { e.t++; if (e.t >= BIG.throwLen) setSt(e, 'idle'); }
+    else { e.vz = 0; stepCommon(e); }
+    physics(e);
+  }
+
   // ---------- Волны и камера ----------
   function stepWaves() {
     var h = game.hero, W = WAVES[game.wave];
     if (!game.active && W && h.x >= W.at) {
       game.active = true; game.lock = game.cam + VW; game.banner = 70; g.state.level = game.wave + 1;
-      W.list.forEach(function (set, i) { var left = i % 2 === 1; game.foes.push(fighter(set, left ? game.cam - 20 - i * 14 : game.cam + VW + 20 + i * 14, 10 + (i * 23) % 70, set === 'stokerB' ? 40 : 30, left ? 1 : -1)); });
+      W.list.forEach(function (set, i) { var left = i % 2 === 1; game.foes.push(fighter(set, left ? game.cam - 20 - i * 14 : game.cam + VW + 20 + i * 14, 10 + (i * 23) % 70, HP[set], left ? 1 : -1)); });
     }
-    game.foes = game.foes.filter(function (e) { if (e.hp <= 0 && e.st === 'down' && e.t >= 70) { g.state.score += 100; return false; } return true; });
+    game.foes = game.foes.filter(function (e) { if (e.hp <= 0 && e.st === 'down' && e.t >= 70) { g.state.score += e.set === 'founder' ? 300 : 100; return false; } return true; });
     if (game.active && !game.foes.length) {
       game.active = false; game.wave++; game.lock = Wd.LEN;
       if (game.wave >= WAVES.length) game.clear = 1; else game.go = 120;
@@ -263,16 +309,19 @@
 
   // ---------- Отрисовка ----------
   function frameOf(f) {
-    var T = f.t;
+    var T = f.t, big = f.set === 'founder';
     switch (f.st) {
-      case 'walk': return 'walk' + ((T / 5 | 0) % 6);
+      case 'walk': return 'walk' + ((T / (big ? 8 : 5) | 0) % 6);
+      case 'lunge': case 'grab': return 'grab';
+      case 'throw': return T < 8 ? 'grab' : 'throw';
+      case 'held': return 'held';
       case 'atk': { if (f.atk === 'air') return 'airkick'; var A = ATK[f.atk]; return A.fr + (T < A.ph[0] ? '_a' : T < A.ph[1] ? '' : '_r'); }
-      case 'wind': return 'cross_a';
+      case 'wind': return big ? 'wind' : 'cross_a';
       case 'jump': return 'jump';
       case 'hurt': return 'hurt';
       case 'fall': return T < 10 ? 'fall0' : 'fall1';
       case 'down': return 'down';
-      case 'getup': return T < 10 ? 'getup0' : 'getup1';
+      case 'getup': return T < 8 ? 'getup0' : (T < 16 || big) ? 'getup1' : 'getup2';
       default: return 'idle' + ((T / 30 | 0) % 2);
     }
   }
@@ -282,10 +331,14 @@
     ctx.drawImage(sh, sx - (sh.width >> 1), gy - (sh.height >> 1));
     if (f.inv > 0 && (f.inv >> 2) % 2 && f.hp > 0) return;
     if (f.hp <= 0 && f.st === 'down' && f.t > 40 && (f.t >> 2) % 2) return;
-    var img = sprite(f.set, frameOf(f), f.face < 0, f.flash > 0);
+    var img = sprite(f.set, frameOf(f), f.face < 0, f.flash > 0), jx = f.st === 'held' && f.shk > 0 ? (f.shk & 1 ? 1 : -1) : 0;
     // канонический кадр 80×72: опора — (40, 71)
-    ctx.drawImage(img, sx - S.FOOT_X, gy - Math.round(f.y) - S.FH + 1);
-    if (f.st === 'wind' && (f.t >> 2) % 2 === 0) { ctx.fillStyle = PAL[1]; ctx.fillRect(sx - 2, gy - 76, 5, 10); ctx.fillStyle = PAL[7]; ctx.fillRect(sx - 1, gy - 75, 3, 5); ctx.fillRect(sx - 1, gy - 69, 3, 2); }
+    ctx.drawImage(img, sx - S.FOOT_X + jx, gy - Math.round(f.y) - S.FH + 1);
+    if (f.st === 'wind' && (f.t >> 2) % 2 === 0) { var my = f.set === 'founder' ? gy - 82 : gy - 76; ctx.fillStyle = PAL[1]; ctx.fillRect(sx - 2, my, 5, 10); ctx.fillStyle = PAL[7]; ctx.fillRect(sx - 1, my + 1, 3, 5); ctx.fillRect(sx - 1, my + 7, 3, 2); }
+    if (f.st === 'held' && (game.frame >> 3) % 2 === 0) {   // подсказка «жми» и шкала рывков
+      g.text(g.t('mash'), sx, gy - 84, { size: 10, align: 'center', color: PAL[7] });
+      for (var m = 0; m < BIG.mash; m++) { ctx.fillStyle = PAL[1]; ctx.fillRect(sx - 20 + m * 5, gy - 74, 4, 4); ctx.fillStyle = PAL[m < f.mash ? 7 : 3]; ctx.fillRect(sx - 19 + m * 5, gy - 73, 2, 2); }
+    }
   }
   function bar(x, y, w, v, max, col) {
     ctx.fillStyle = PAL[1]; ctx.fillRect(x - 1, y - 1, w + 2, 7);
@@ -302,7 +355,7 @@
     for (var i = 0; i < g.state.lives; i++) { ctx.fillStyle = PAL[1]; ctx.fillRect(36 + i * 8, 17, 7, 7); ctx.fillStyle = PAL[5]; ctx.fillRect(37 + i * 8, 18, 5, 5); ctx.fillStyle = PAL[7]; ctx.fillRect(37 + i * 8, 18, 2, 2); }
     digits(String(g.state.score).padStart(6, '0'), VW - 60, 8, 7, 2);
     // полоски врагов
-    game.foes.forEach(function (e, k) { if (e.hp > 0) bar(VW - 70, 24 + k * 8, 50, e.hp, e.max, e.set === 'stokerB' ? 5 : 13); });
+    game.foes.forEach(function (e, k) { if (e.hp > 0) bar(VW - 70, 24 + k * 8, 50, e.hp, e.max, e.set === 'stokerB' ? 5 : e.set === 'founder' ? 4 : 13); });
     if (game.banner > 0 && (game.banner >> 3) % 2 === 0 && game.wave < WAVES.length) g.text(g.t('wave') + ' ' + (game.wave + 1) + '/' + WAVES.length, VW / 2, 56, { size: 20, align: 'center', color: PAL[7] });
     if (game.go > 0 && (game.go >> 4) % 2 === 0) {   // стрелка «вперёд» пикселями
       var ax = VW - 44, ay = 96; ctx.fillStyle = PAL[1]; ctx.fillRect(ax - 1, ay - 1, 22, 11); for (var k2 = 0; k2 < 8; k2++) ctx.fillRect(ax + 20 + k2 - 1, ay - 5 + k2 - 1, 3, 21 - k2 * 2 + 1);
@@ -316,7 +369,9 @@
     if (game.shake > 0) { var a = game.shakeA * (game.shake > 2 ? 1 : 0.5); ox = Math.round((Math.random() * 2 - 1) * a); oy = Math.round((Math.random() * 2 - 1) * a); }
     ctx.save(); ctx.translate(ox, oy);
     Wd.draw(ctx, cam);
-    var list = [game.hero].concat(game.foes).sort(function (a, b) { return a.z - b.z || (a === game.hero ? 1 : -1); });
+    // в захвате герой рисуется ПОД литейщиком: рукавицы лежат поверх героя
+    var held = game.hero.st === 'held';
+    var list = [game.hero].concat(game.foes).sort(function (a, b) { return a.z - b.z || (a === game.hero ? (held ? -1 : 1) : (b === game.hero ? (held ? 1 : -1) : 0)); });
     list.forEach(function (f) { drawFighter(f, cam); });
     Wd.drawFront(ctx, cam);
     game.fx.forEach(function (p) {
@@ -374,6 +429,13 @@
       var h = game.hero; h.x = 600; h.z = 46; game.cam = 600 - VW * 0.42; game.wave = 1; game.active = true; game.lock = game.cam + VW; game.banner = 0;
       game.foes = [fighter('stokerA', 640, 47, 30, -1), fighter('stokerB', 548, 20, 40, 1), fighter('stokerA', 700, 76, 30, -1)];
       game.foes[2].st = 'walk'; game.foes[1].st = 'wind';
+      render();
+    },
+    // сцена с литейщиком (3-я волна): герой, литейщик рядом и кочегар
+    stageBig: function () {
+      newGame(); g.goto('play'); manual = true;
+      var h = game.hero; h.x = 1020; h.z = 40; game.cam = 1020 - VW * 0.42; game.wave = 2; game.active = true; game.lock = game.cam + VW; game.banner = 0;
+      game.foes = [fighter('founder', 1072, 40, 90, -1), fighter('stokerB', 960, 18, 40, 1)];
       render();
     }
   };

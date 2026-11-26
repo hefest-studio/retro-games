@@ -298,7 +298,7 @@ test('страница: фавикон студии, «← Каталог», can
   ok(/class="back"[^>]*href="\.\.\/"/.test(html), 'ссылка в каталог');
   ok(/<canvas id="c" width="960" height="540"/.test(html), 'canvas');
   const order = [...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]);
-  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/modern.js', 'js/classic.js', 'js/render.js', 'js/hd.js', 'js/stick.js', 'js/ui.js', 'js/main.js']);
+  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/modern.js', 'js/classic.js', 'js/render.js', 'js/hd-font.js', 'js/hd-sprites.js', 'js/hd-poses.js', 'js/hd-world.js', 'js/hd.js', 'js/stick.js', 'js/ui.js', 'js/main.js']);
   ok(/data-stick/.test(html) && /data-jump/.test(html) && /data-magic/.test(html) && /data-pause/.test(html) && /data-d="A"/.test(html), 'тач-кнопки');
   eq(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js не копия _shared');
 });
@@ -314,6 +314,28 @@ test('рендер: кадр всех этапов и привала рисуе�
     S.heroes[0].jugs = 8; g.magic(0); for (let i = 0; i < 90; i++){ g.update(1 / 60); R.render.world(ctx, S, P, {}); }
   }
   const g = R.Game({ rng: mulberry32(1), heroes: ['secha'] }).start(), S = g.state(); S.key = 'camp'; R.render.world(ctx, S, R.classic, {});
+});
+test('тема HD v2: палитра ≤ 16, позы матрицами (hd-poses.js) для героев/врагов/2 боссов, рост бойцов 56–64 px, все позы по состояниям, RLE, шрифт', () => {
+  const box = { console, Math }; box.window = box; box.globalThis = box; vm.createContext(box);
+  for (const f of ['js/hd-sprites.js', 'js/hd-poses.js', 'js/hd-font.js']) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), box, { filename: f });
+  const S = box.DRUZHINA.hdSprites, PO = box.DRUZHINA.HD_POSES;
+  eq(S.PAL.filter(Boolean).length, 16, 'палитра'); ok(new Set(S.PAL.filter(Boolean)).size === 16, 'цвета различны');
+  for (const k of ['zhdan', 'secha', 'olha', 'shield', 'spear', 'raider', 'brute', 'voevoda', 'liteyshchik']) {
+    ok(PO[k], 'нет поз ' + k);
+    for (const n of S.keyPoses(k)) ok(PO[k][n], k + '.' + n + ' — нет матрицы');
+  }
+  for (const k of Object.keys(S.CH)) {
+    const F = S.frames(k), need = S.cycles(k).concat(S.keyPoses(k));
+    for (const n of need) { const f = F.f[n]; ok(f && f.w === F.B.FW && f.h === F.B.FH, k + '.' + n); for (let i = 0; i < f.a.length; i++) if (f.a[i] > 16) throw new Error('индекс вне палитры ' + k + '.' + n); }
+    const h = S.height(F.f.idle0); if (F.B.big) ok(h >= 64 && h <= 80, k + ' рост ' + h); else ok(h >= 56 && h <= 64, k + ' рост ' + h);
+    const low = F.f.idle0; let bottom = -1; for (let i = 0; i < low.a.length; i++) if (low.a[i]) bottom = Math.floor(i / low.w); eq(bottom, F.B.GR + 1, k + ': подошва (+контур) на опоре');
+  }
+  ['zhdan', 'secha', 'olha'].forEach(k => ['run0', 'swing_a', 'swing2_a', 'over_a', 'dash_a', 'back_a', 'air', 'fall1', 'down', 'rise1', 'grabk', 'toss', 'cast', 'ride_a'].forEach(n => ok(S.frames(k).f[n], k + '.' + n)));
+  ok(S.frames('olha').f.shoot_w, 'выстрел'); ok(S.frames('shield').f.guard, 'щит'); ok(S.frames('raider').f.crouch && S.frames('raider').f.air, 'прыжок налётчицы');
+  const r = '....kkrrrrrWWs'; eq(S.unrle(S.rle(r)), r, 'RLE');
+  const H = S.HEADS.zhdan; ok(H.n && H.a && H.h, 'мимика'); ok(H.n.a.some((v, i) => v !== H.a.a[i]), 'удар меняет лицо');
+  ok(S.beast('fire').walk.length === 6 && S.beast('tail', true).a, 'звери'); ok(S.imp(0, 3).w === 44, 'бес'); ok(S.ITEMS.jug && S.ITEMS.bread && S.ITEMS.pie, 'предметы');
+  const F2 = box.DRUZHINA.hdFont; ok(F2.measure('ДРУЖИНА', 1) > 0 && F2.glyphs['Ж'] && F2.glyphs['✔'], 'шрифт');
 });
 test('правило имён: в папке игры нет чужих названий игр/компаний/персонажей (регистронезависимо, с транслитом)', () => {
   // стоп-лист хранится в base64, чтобы сами названия не попадали в текст репозитория

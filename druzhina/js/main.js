@@ -15,6 +15,7 @@
   };
   var g = Arcade.createGame({ canvas: '#c', width: L.VIEW_W, height: L.SCREEN_H, gameId: 'druzhina', leaderboard: 'druzhina', strings: D.STR, theme: 'modern', lives: 3, themes: themes });
   D.g = g;
+  if (D.hd) D.hd.install(g);   // тема HD v2: тексты/оверлеи движка — пиксельным шрифтом (только при теме hd)
   var pad = document.querySelector('.pad');
   g.input.bindDpad(pad);
   D.ui.init(g);
@@ -53,6 +54,7 @@
       if (type === 'hit') { hitStop = Math.max(hitStop, d.knee ? 0.04 : 0.055); shakeT = Math.max(shakeT, 0.06); }
       else if (type === 'kill') { hitStop = Math.max(hitStop, d.boss ? 0.2 : 0.09); shakeT = Math.max(shakeT, d.boss ? 0.5 : 0.12); }
       else if (type === 'block') hitStop = Math.max(hitStop, 0.03);
+      return;   // частицы — свои, пикселями палитры (js/hd.js)
     }
     if (type === 'hit') g.particles.spawn(sx, sy, { color: d.knee ? '#ffe0a0' : '#fff2c0', count: 6, speed: 150, life: 0.25, size: sz });
     else if (type === 'block') g.particles.spawn(sx, sy, { color: '#a8d0ff', count: 6, speed: 120, life: 0.2, size: sz });
@@ -153,16 +155,16 @@
   title.update = function (dt) { demoT += Math.min(dt, 0.05); };
   title.draw = function (ctx) {
     var th = this.th(), P = pal(), W = this.W, H = this.H;
-    D.ui.drawWorld(this, ctx, demoState(), P, {});
-    ctx.fillStyle = P.pixel ? 'rgba(0,0,0,.45)' : 'rgba(10,10,14,.45)'; ctx.fillRect(0, 0, W, H);
+    D.ui.drawWorld(this, ctx, demoState(), P, { dark: true });   // HD: фон на 2 ступени темнее вместо плашки
+    if (!P.hd) { ctx.fillStyle = P.pixel ? 'rgba(0,0,0,.45)' : 'rgba(10,10,14,.45)'; ctx.fillRect(0, 0, W, H); }
     var pw = 520, ph = Math.min(H - 50, Math.max(392, 290 + menu.items.length * 30)), px = (W - pw) / 2, py = 26;
     D.ui.panel(ctx, px, py, pw, ph, P, P.line);
     D.ui.txt(this, this.t('title'), W / 2, py + 66, { size: 60, align: 'center', color: P.accent, weight: 900 }, P);
-    D.ui.txt(this, this.t('subtitle'), W / 2, py + 92, { size: 12, align: 'center', color: th.muted, weight: 600, shadow: false }, P);
+    D.ui.txt(this, this.t('subtitle'), W / 2, py + 92, { size: 12, align: 'center', color: th.muted, weight: 600, shadow: false, maxWidth: pw - 24 }, P);
     // дружина
     var two = g.input.playerCount === 2;
     var row = two ? ['zhdan', 'secha', 'olha'] : ['zhdan', 'secha', 'olha'];
-    row.forEach(function (k, i) { D.render.portrait(ctx, P, k, W / 2 + (i - 1) * 70, py + 196, 0.9, demoT + i * 1.3, Math.floor(demoT * 0.7 + i) % 3 === 0 ? 'over' : 'idle'); });
+    row.forEach(function (k, i) { D.render.portrait(ctx, P, k, W / 2 + (i - 1) * 70, py + (P.hd ? 214 : 196), 0.9, demoT + i * 1.3, Math.floor(demoT * 0.7 + i) % 3 === 0 ? 'over' : 'idle'); });
     var mf = menuFit(menu, py + 236, 30, py + 226, py + ph - 34); menu.draw(this, W / 2, mf[0], mf[1]);
     if (this.state.best) D.ui.txt(this, this.t('best') + ': ' + this.state.best, W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600, shadow: false }, P);
     this.menu._drawHint('title');
@@ -198,7 +200,7 @@
     draw: function (ctx) {
       var th = this.th(), P = pal();
       if (game) D.ui.drawWorld(this, ctx, game.state(), P, {}); else this.clear();
-      ctx.fillStyle = 'rgba(10,10,14,.76)'; ctx.fillRect(0, 0, this.W, this.H);
+      if (P.hd) D.hd.dim(this, ctx); else { ctx.fillStyle = 'rgba(10,10,14,.76)'; ctx.fillRect(0, 0, this.W, this.H); }
       D.ui.txt(this, this.t('cardDone'), this.W / 2, this.H / 2 - 34, { size: 30, align: 'center', color: th.accent, weight: 900, maxWidth: this.W - 40 }, P);
       D.ui.txt(this, this.t('level') + ' ' + cardSt + '/' + (game ? game.state().maxStage : 6) + (game ? ' · ' + this.t('score') + ': ' + game.state().score : ''), this.W / 2, this.H / 2 + 6, { size: 16, align: 'center', color: th.ink, weight: 700, maxWidth: this.W - 40 }, P);
       D.ui.txt(this, this.t('cardNext'), this.W / 2, this.H / 2 + 44, { size: 14, align: 'center', color: th.muted, weight: 600, maxWidth: this.W - 40 }, P);
