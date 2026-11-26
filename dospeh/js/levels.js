@@ -1,11 +1,11 @@
-/* ДОСПЕХ · уровни: рецепты Окалинных пустошей и сборка карты из рецепта.
+/* КИСТЕНЬ · уровни: рецепты Окалинных пустошей и сборка карты из рецепта.
    Карта — сетка 16 рядов (ряд 0 — верх), ширина по рецепту. Клетки: E 0 пусто, SOL 1 твердь, ONE 2 мостки (только сверху),
    LAD 3 лестница (верхняя клетка лестницы держит сверху). Пропасти без дна; в «жидких» уровнях на дне — ржа/расплав.
    Токены рецепта (каждый пристраивает участок справа; gy — ряд поверхности земли, 6..13):
      S — старт (6 клеток) · fN — ровно N · uN/dN — ступень вверх (N ≤ 2)/вниз на N и 2 клетки ровно · pN — пропасть N (≤ 3)
      tH — кованая тумба высотой H (1..2), ширина 2 · o:H:N — мостки на высоте H над землёй длиной N (под ними ровно)
      LH — утёс вверх на H с лестницей · mN — пропасть N (≥ 7) с ходящим плотом (зазор 1 у каждого берега)
-     vH — шахта-подъёмник вверх на H (3 клетки) · c — середина уровня (отметка) · k[:что] — сундук (arm, gold, spear, axe, torch, blades, shield, trap)
+     vH — шахта-подъёмник вверх на H (3 клетки) · c — середина уровня (отметка) · k[:что] — сундук (ember, horn, ball, spike, coal, trap)
      e:тип[:dx[:dy]] — засада (vent, brute, kite) · B:босс — арена 26 клеток со стеной справа. */
 (function (global) {
   'use strict';
@@ -14,20 +14,20 @@
 
   // theme — палитра (render.js), liquid — что на дне пропастей, rise — интервал появления окалышей (с), boss — страж в конце
   D.LEVELS = [
-    { key: 'wastes', liquid: null, rise: 3.0, boss: 'golem', bhp: 14,
-      r: 'S f6 k:arm f5 t1 f5 e:vent:2 f7 p2 f6 u1 f4 o:2:5 f3 k:axe f4 d1 f4 e:kite:3 f3 t2 f5 p2 f5 e:kite:4 f8 L3 f5 c f8 d3 f6 k:gold f6 p3 f5 e:brute:4 f8 u2 f6 e:kite:3 f5 p2 f4 e:vent:4 f2 t1 f5 e:brute:3 f7 d2 f8 B:golem' },
-    { key: 'river', liquid: 'rust', rise: 3.6, boss: 'crab', bhp: 14,
-      r: 'S f5 k:arm f5 p2 f4 e:vent:2 f5 m8 f5 t1 f4 p3 f5 e:kite:4 f6 u1 f4 k:blades f5 m9 f6 c f7 p2 f3 p2 f5 e:brute:4 f6 d1 f4 k:gold f4 m8 f5 e:kite:2 f6 p3 f4 u2 f5 e:vent:3 f6 p2 f7 B:crab' },
-    { key: 'hills', liquid: null, rise: 3.8, boss: 'serpent', bhp: 10,
-      r: 'S f5 k:arm f6 L3 f4 e:kite:3 f6 d2 f4 p2 f5 v4 f5 k:torch f5 e:brute:4 f6 d3 f6 c f7 e:brute:4 f6 L3 f5 o:2:6 f2 k:gold f4 p3 f4 e:kite:2 f6 d2 f5 v4 f6 e:kite:3 f6 d3 f8 B:serpent' },
-    { key: 'cave', liquid: 'lava', rise: 3.6, boss: 'golem', bhp: 14,
-      r: 'S f5 k:arm f5 t2 f5 p3 f5 e:brute:3 f5 v4 f5 e:brute:3 f6 d2 f4 p2 f4 k:shield f5 m8 f6 c f8 e:kite:3 f6 t1 f4 p3 f5 L3 f5 k:gold f5 e:vent:3 f6 d3 f5 m9 f5 e:brute:4 f7 B:golem' },
-    { key: 'bridge', liquid: null, rise: 3.8, boss: 'crab', bhp: 18,
-      r: 'S f5 k:arm f4 p3 f3 p2 f4 e:kite:3 f5 m8 f4 p3 f4 e:kite:2 f5 t1 f4 k:axe f5 p3 f3 c f7 e:brute:4 f5 m9 f4 p2 f3 p3 f4 e:kite:3 f5 k:gold f5 p2 f4 e:kite:2 f6 m8 f5 e:vent:3 f7 B:crab' },
-    { key: 'tower', liquid: null, rise: 3.6, boss: 'serpent', bhp: 14,
-      r: 'S f5 k:arm f5 L3 f4 e:vent:3 f5 v4 f4 e:kite:2 f6 d3 f4 k:blades f5 p3 f4 e:brute:3 f6 c f7 L3 f5 e:kite:3 f6 d4 f4 L3 f5 o:2:6 f3 k:gold f5 d2 f4 v3 f5 e:vent:3 f6 p3 f5 e:kite:2 f6 d3 f8 B:serpent' },
-    { key: 'forge', liquid: 'lava', rise: 3.0, boss: 'koshey', bhp: 30, final: true,
-      r: 'S f6 k:arm f5 p2 f5 e:kite:3 f6 t2 f5 c f6 k:gold f6 e:vent:3 f6 p3 f6 B:koshey' }
+    { key: 'wastes', liquid: null, rise: 4.1, boss: 'golem', bhp: 10,
+      r: 'S f6 k:ember f5 t1 f5 e:vent:2 f7 p2 f6 u1 f4 o:2:5 f3 k:spike f4 d1 f4 e:kite:3 f3 t2 f5 p2 f5 e:kite:4 f8 L3 f5 c f8 d3 f6 k:horn f6 p3 f5 e:brute:4 f8 u2 f6 e:kite:3 f5 p2 f4 e:vent:4 f2 t1 f5 e:brute:3 f7 d2 f8 B:golem' },
+    { key: 'river', liquid: 'rust', rise: 4.9, boss: 'crab', bhp: 10,
+      r: 'S f5 k:ember f5 p2 f4 e:vent:2 f5 m8 f5 t1 f4 p3 f5 e:kite:4 f6 u1 f4 k:coal f5 m9 f6 c f7 p2 f3 p2 f5 e:brute:4 f6 d1 f4 k:horn f4 m8 f5 e:kite:2 f6 p3 f4 u2 f5 e:vent:3 f6 p2 f7 B:crab' },
+    { key: 'hills', liquid: null, rise: 5.1, boss: 'serpent', bhp: 8,
+      r: 'S f5 k:ember f6 L3 f4 e:kite:3 f6 d2 f4 p2 f5 v4 f5 k:spike f5 e:brute:4 f6 d3 f6 c f7 e:brute:4 f6 L3 f5 o:2:6 f2 k:horn f4 p3 f4 e:kite:2 f6 d2 f5 v4 f6 e:kite:3 f6 d3 f8 B:serpent' },
+    { key: 'cave', liquid: 'lava', rise: 4.9, boss: 'golem', bhp: 10,
+      r: 'S f5 k:ember f5 t2 f5 p3 f5 e:brute:3 f5 v4 f5 e:brute:3 f6 d2 f4 p2 f4 k:coal f5 m8 f6 c f8 e:kite:3 f6 t1 f4 p3 f5 L3 f5 k:horn f5 e:vent:3 f6 d3 f5 m9 f5 e:brute:4 f7 B:golem' },
+    { key: 'bridge', liquid: null, rise: 5.1, boss: 'crab', bhp: 16,
+      r: 'S f5 k:ember f4 p3 f3 p2 f4 e:kite:3 f5 m8 f4 p3 f4 e:kite:2 f5 t1 f4 k:spike f5 p3 f3 c f7 e:brute:4 f5 m9 f4 p2 f3 p3 f4 e:kite:3 f5 k:horn f5 p2 f4 e:kite:2 f6 m8 f5 e:vent:3 f7 B:crab' },
+    { key: 'tower', liquid: null, rise: 4.9, boss: 'serpent', bhp: 10,
+      r: 'S f5 k:ember f5 L3 f4 e:vent:3 f5 v4 f4 e:kite:2 f6 d3 f4 k:coal f5 p3 f4 e:brute:3 f6 c f7 L3 f5 e:kite:3 f6 d4 f4 L3 f5 o:2:6 f3 k:horn f5 d2 f4 v3 f5 e:vent:3 f6 p3 f5 e:kite:2 f6 d3 f8 B:serpent' },
+    { key: 'forge', liquid: 'lava', rise: 4.1, boss: 'koshey', bhp: 28, final: true,
+      r: 'S f6 k:ember f5 p2 f5 e:kite:3 f6 t2 f5 c f6 k:horn f6 e:vent:3 f6 p3 f6 B:koshey' }
   ];
   D.TILES = { E: E, SOL: SOL, ONE: ONE, LAD: LAD, R: R };
 
@@ -63,7 +63,7 @@
         pit(3, true); gy -= vh; flat(2);
       }
       else if (tk === 'c') cps.push({ x: x + 0.5, y: gy });
-      else if ((m = /^k(?::(\w+))?$/.exec(tk))) chests.push({ x: x + 0.5, y: gy, c: m[1] || 'arm' });
+      else if ((m = /^k(?::(\w+))?$/.exec(tk))) chests.push({ x: x + 0.5, y: gy, c: m[1] || 'ember' });
       else if ((m = /^e:(\w+)(?::(-?\d+))?(?::(-?\d+))?$/.exec(tk))) spawns.push({ type: m[1], x: x + (+m[2] || 0) + 0.5, y: gy - (+m[3] || 0) });
       else if ((m = /^B:(\w+)$/.exec(tk))) {
         flat(2); arena = { x0: x, x1: x + 25, y: gy, boss: m[1] }; flat(25);

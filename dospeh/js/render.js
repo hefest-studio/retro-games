@@ -1,4 +1,4 @@
-/* ДОСПЕХ · отрисовка (обе темы). modern — градиенты, параллакс, свечение; retro — тот же кадр в буфере 256×144
+/* КИСТЕНЬ · отрисовка (обе темы). modern — градиенты, параллакс, свечение; retro — тот же кадр в буфере 256×144
    плоскими цветами и крупным пикселем. Тема меняет только вид, не логику.
    DOSPEH.render(g, ctx, S, ui) · DOSPEH.R — размеры, палитры, фигуры (герой и пр.) · DOSPEH.fx — частицы. */
 (function (global) {
@@ -26,12 +26,13 @@
       r: { sky: '#100000', far: '#300800', top: '#d06030', body: '#582010', dark: '#300800', liq: '#ff7000' } }
   };
   R.PAL = PAL;
-  // герой: металл доспеха, золото, рубаха и фартук (обе темы)
+  // герой: кочегар — кепка с очками, рыжая борода, горчичная рубаха, синий полукомбинезон, горн на спине (обе темы)
   var HERO = {
-    m: { metal: '#c8793a', metalD: '#8a4a22', metalL: '#f0b070', trim: '#3fb59a', mail: '#9aa0a8', gold: '#ffd24a', goldD: '#c08a18', goldL: '#fff2a8',
-      shirt: '#efe6d2', shirtD: '#c8bca4', stitch: '#c0392b', apron: '#7a4b2a', apronD: '#5a3418', skin: '#e8b48a', hair: '#4a2a18', pants: '#3a3040', boot: '#2a1c14' },
-    r: { metal: '#d87830', metalD: '#884000', metalL: '#ffb060', trim: '#40c0a0', mail: '#a0a0a0', gold: '#ffd800', goldD: '#c08800', goldL: '#ffff90',
-      shirt: '#f0f0e0', shirtD: '#c0c0a8', stitch: '#d82800', apron: '#885020', apronD: '#583010', skin: '#f0b890', hair: '#502800', pants: '#383048', boot: '#281810' }
+    m: { cap: '#6a4a2a', capD: '#4a3220', strap: '#2a2020', glass: '#7fe6d6', skin: '#dba980', soot: '#8a6a58', beard: '#c8602a', shirt: '#d8a838', shirtD: '#a8802a',
+      overall: '#2e3f78', overallD: '#1e2a52', buckle: '#e8d080', boot: '#3a2418', glove: '#8a5a2a', iron: '#555060', ironD: '#34303c', pipe: '#6a6672', pipeL: '#8a8696',
+      cold: '#2a2024', fire: '#ff7a1a', fire2: '#ffd24a' },
+    r: { cap: '#885020', capD: '#583010', strap: '#202020', glass: '#60f0d0', skin: '#f0b890', soot: '#a08070', beard: '#e06820', shirt: '#e8b830', shirtD: '#b08820', overall: '#3048a0', overallD: '#202870',
+      buckle: '#f0e090', boot: '#402010', glove: '#a06830', iron: '#606068', ironD: '#383840', pipe: '#808088', pipeL: '#a0a0a8', cold: '#201818', fire: '#ff8800', fire2: '#ffe040' }
   };
   R.HERO = HERO;
 
@@ -48,53 +49,41 @@
   function box(c, col, x, y, w, h) { c.fillStyle = col; c.fillRect(x, y, w, h); }
 
   // ---------- герой (x,y — подошвы в пикселях; f — направление) ----------
-  // st: { armor 0|1|2, run (сек), air, crouch, climb, throwT, charge, hurt, t }
+  // st: { heat 1|2|3, run (сек), air, crouch, climb, throwT, charge, t }
   function heroFig(c, x, y, f, st, retro) {
-    var K = HERO[retro ? 'r' : 'm'], t = st.t || 0;
+    var K = HERO[retro ? 'r' : 'm'], t = st.t || 0, heat = st.heat || 3;
     c.save(); c.translate(Math.round(x), Math.round(y)); if (f < 0) c.scale(-1, 1);
     var ph = st.run ? Math.floor(st.run * 10) % 4 : 0, legA = st.air ? 2 : [0, 2, 0, -2][ph], legB = -legA;
-    var crouch = st.crouch ? 8 : 0, arm = st.armor;
-    var M = arm === 2 ? K.gold : K.metal, MD = arm === 2 ? K.goldD : K.metalD, ML = arm === 2 ? K.goldL : K.metalL;
+    var crouch = st.crouch ? 8 : 0, top = -25 + crouch;
     if (st.climb) { legA = Math.floor(t * 8) % 2 ? 3 : -3; legB = -legA; }
-    // ноги
-    var hipY = -12 + crouch * 0.6;
-    box(c, K.pants, -4 + Math.min(0, legA), hipY, 3, 9 - crouch * 0.4); box(c, K.pants, 1 + Math.max(0, legB) * 0.5, hipY, 3, 9 - crouch * 0.4);
-    if (arm) { box(c, M, -4 + Math.min(0, legA), hipY + 2, 3, 3); box(c, M, 1 + Math.max(0, legB) * 0.5, hipY + 2, 3, 3); }
-    box(c, K.boot, -5 + Math.min(0, legA), -3, 4, 3); box(c, K.boot, 1 + Math.max(0, legB) * 0.5, -3, 4, 3);
-    // корпус
-    var top = -25 + crouch;
-    if (arm) {
-      box(c, MD, -5, top + 4, 10, 10); box(c, M, -4, top + 4, 8, 9); box(c, ML, -3, top + 5, 2, 6);
-      box(c, K.trim, -5, top + 12, 10, 2);                         // пояс с патиной
-      box(c, K.mail, -5, top + 14, 10, 3);                         // кольчужный подол
-      box(c, MD, -6, top + 3, 3, 4); box(c, MD, 3, top + 3, 3, 4);  // наплечники
-      if (arm === 2 && !retro) { c.fillStyle = 'rgba(255,240,160,' + (0.35 + 0.25 * Math.sin(t * 6)) + ')'; c.fillRect(-1, top + 6, 2, 2); }
-    } else {
-      box(c, K.shirtD, -5, top + 4, 10, 11); box(c, K.shirt, -4, top + 4, 8, 10);
-      box(c, K.stitch, -2, top + 4, 4, 1); box(c, K.stitch, -1, top + 5, 2, 2);  // вышитый ворот
-      box(c, K.apron, -4, top + 8, 8, 9); box(c, K.apronD, -4, top + 8, 8, 1); box(c, K.apronD, -1, top + 10, 2, 3); // фартук с карманом
-      box(c, K.stitch, -5, top + 15, 10, 1);
+    // горн за спиной: труба, корпус, колосники по числу жара
+    box(c, K.pipe, -9, top - 3, 3, 8); box(c, K.pipeL, -9, top - 3, 3, 1);
+    box(c, K.iron, -10, top + 4, 6, 12); box(c, K.ironD, -10, top + 4, 1, 12); box(c, K.ironD, -10, top + 15, 6, 1);
+    for (var gi = 0; gi < 4; gi++) box(c, gi < heat ? (heat === 4 ? K.fire2 : K.fire) : K.cold, -9, top + 5 + gi * 3, 4, 2);
+    if (!retro) {
+      if (heat === 4) { c.fillStyle = 'rgba(255,200,80,' + (0.18 + 0.1 * Math.sin(t * 9)) + ')'; c.beginPath(); c.arc(-3, top + 8, 13, 0, Math.PI * 2); c.fill(); }
+      for (var sk = 0; sk < 3; sk++) { var ph2 = (t * 1.4 + sk * 0.33) % 1; c.fillStyle = 'rgba(' + (heat === 1 ? '70,64,64' : '150,140,140') + ',' + (0.55 * (1 - ph2)) + ')'; c.beginPath(); c.arc(-8 - ph2 * 3 + Math.sin(t * 3 + sk) * 1.2, top - 4 - ph2 * 14, 1.6 + ph2 * 2.2, 0, Math.PI * 2); c.fill(); }
     }
-    // рука (бросок — вперёд)
+    if (heat === 4) box(c, Math.floor(t * 10) % 2 ? K.fire2 : K.fire, -9, top - 6 - (Math.floor(t * 10) % 2), 3, 3);
+    // ноги: штанины комбинезона и тяжёлые ботинки
+    var hipY = -12 + crouch * 0.6;
+    box(c, K.overall, -4 + Math.min(0, legA), hipY, 3, 9 - crouch * 0.4); box(c, K.overall, 1 + Math.max(0, legB) * 0.5, hipY, 3, 9 - crouch * 0.4);
+    box(c, K.boot, -5 + Math.min(0, legA), -3, 4, 3); box(c, K.boot, 1 + Math.max(0, legB) * 0.5, -3, 5, 3);
+    // корпус: горчичная рубаха, нагрудник комбинезона с лямкой и пряжкой
+    box(c, K.shirtD, -5, top + 4, 10, 11); box(c, K.shirt, -4, top + 4, 8, 9);
+    box(c, K.overall, -4, top + 8, 8, 8); box(c, K.overallD, -4, top + 8, 8, 1); box(c, K.overallD, -3, top + 4, 2, 5); box(c, K.buckle, -3, top + 8, 2, 2);
+    // рука в рукавице (бросок цепи — вперёд)
     var thr = st.throwT > 0, ax = thr ? 4 : 1, ay = thr ? top + 6 : top + 7;
     if (st.climb) { ax = 2; ay = top + (Math.floor(t * 8) % 2 ? 1 : 4); }
-    box(c, arm ? M : K.shirt, ax, ay, thr ? 6 : 3, 3); box(c, K.skin, ax + (thr ? 6 : 1), ay + (thr ? 0 : 3), 2, 2);
-    // голова
+    box(c, K.shirt, ax, ay, thr ? 4 : 3, 3); box(c, K.glove, ax + (thr ? 4 : 0), ay - (thr ? 0 : -3), thr ? 4 : 3, 3);
+    // голова: рыжая борода, кепка, очки на лбу
     var hy = top - 4;
-    box(c, K.skin, -3, hy, 6, 6);
-    box(c, '#1a1010', 1, hy + 2, 1, 1);
-    if (arm) {
-      // шишак: остроконечный шлем с наносником и бармицей
-      box(c, MD, -4, hy - 1, 8, 3); box(c, M, -3, hy - 3, 6, 3); box(c, M, -2, hy - 5, 4, 2); box(c, ML, -1, hy - 7, 2, 2);
-      box(c, MD, 2, hy + 1, 1, 3);                                   // наносник
-      box(c, K.mail, -4, hy + 2, 2, 5); box(c, K.mail, -4, hy + 5, 7, 2); // бармица
-      box(c, K.trim, -4, hy - 1, 8, 1);
-    } else {
-      box(c, K.hair, -4, hy - 2, 7, 3); box(c, K.hair, -4, hy, 2, 3);
-      box(c, K.stitch, -4, hy - 1, 8, 1);                             // очелье
-    }
-    // заряд особого удара
-    if (st.charge > 0 && arm === 2) {
+    box(c, K.skin, -3, hy, 6, 6); box(c, K.beard, -3, hy + 4, 6, 3); box(c, K.beard, 1, hy + 3, 3, 1);
+    box(c, K.soot, -3, hy + 1, 2, 1); box(c, '#1a1010', 1, hy + 2, 1, 1);
+    box(c, K.cap, -4, hy - 2, 8, 3); box(c, K.cap, -3, hy - 3, 5, 1); box(c, K.capD, 1, hy - 1, 5, 2);
+    box(c, K.strap, -4, hy - 1, 8, 1); box(c, K.glass, -1, hy - 3, 3, 2);
+    // заряд вихря (жар 3)
+    if (st.charge > 0 && heat === 4) {
       var k = Math.min(1, st.charge / (D.logic ? D.logic.CHARGE : 0.9));
       c.strokeStyle = k >= 1 ? (retro ? '#ffff90' : 'rgba(255,240,150,.9)') : (retro ? '#c08800' : 'rgba(255,200,80,.6)'); c.lineWidth = 1.5;
       c.beginPath(); c.arc(0, top + 8, 8 + k * 4 + (k >= 1 ? Math.sin(t * 20) : 0), 0, Math.PI * 2 * k); c.stroke();
@@ -103,16 +92,25 @@
   }
   R.heroFig = heroFig;
 
-  // ---------- оружие-иконки и снаряды (в px, центр) ----------
-  var WCOL = { spear: '#d8d0c0', axe: '#b8c0c8', torch: '#ffb040', blades: '#e0e8f0', shield: '#c8793a', hammer: '#ffd24a' };
+  // ---------- головы цепи: иконки и сама голова (в px, центр) ----------
+  var WCOL = { ball: '#9aa0a8', spike: '#c8d0d8', coal: '#ff9a3a' };
   function weaponFig(c, k, x, y, s, rot, retro) {
-    c.save(); c.translate(x, y); c.rotate(rot || 0); c.scale(s, s);
-    if (k === 'spear') { box(c, '#8a5a2a', -7, -1, 10, 2); box(c, retro ? '#e0e0e0' : '#e8e4dc', 3, -2, 4, 4); box(c, retro ? '#ffffff' : '#fffaf0', 7, -1, 2, 2); }
-    else if (k === 'axe') { box(c, '#8a5a2a', -1, -6, 2, 12); c.fillStyle = retro ? '#c0c0c0' : '#c8d0d8'; c.beginPath(); c.moveTo(1, -6); c.lineTo(6, -4); c.lineTo(6, 3); c.lineTo(1, 1); c.closePath(); c.fill(); box(c, '#ffffff', 5, -3, 1, 5); }
-    else if (k === 'torch') { box(c, '#6a3a1a', -1, -1, 2, 7); c.fillStyle = '#ff7a10'; c.beginPath(); c.arc(0, -3, 3, 0, Math.PI * 2); c.fill(); c.fillStyle = '#ffe070'; c.beginPath(); c.arc(0, -3.5, 1.6, 0, Math.PI * 2); c.fill(); }
-    else if (k === 'blades') { c.fillStyle = retro ? '#e0e0e0' : '#e8eef4'; c.beginPath(); c.moveTo(-4, -1); c.lineTo(4, 0); c.lineTo(-4, 1); c.closePath(); c.fill(); box(c, '#6a4a2a', -6, -1, 2, 2); }
-    else if (k === 'shield') { c.fillStyle = retro ? '#d87830' : '#c8793a'; c.beginPath(); c.arc(0, 0, 5, 0, Math.PI * 2); c.fill(); c.fillStyle = retro ? '#40c0a0' : '#3fb59a'; c.beginPath(); c.arc(0, 0, 3.2, 0, Math.PI * 2); c.fill(); c.fillStyle = '#ffd24a'; c.beginPath(); c.arc(0, 0, 1.4, 0, Math.PI * 2); c.fill(); }
-    else if (k === 'hammer') { box(c, '#6a3a1a', -1, -2, 2, 9); box(c, retro ? '#ffd800' : '#ffd24a', -5, -6, 10, 5); box(c, retro ? '#c08800' : '#c08a18', -5, -2, 10, 1); box(c, '#fff2a8', -4, -5, 3, 1); }
+    c.save(); c.translate(Math.round(x), Math.round(y)); c.rotate(rot || 0); c.scale(s || 1, s || 1);
+    var i, a;
+    if (k === 'spike') {
+      c.fillStyle = retro ? '#e0e0e0' : '#d8dee6';
+      for (i = 0; i < 8; i++) { a = i * Math.PI / 4; c.beginPath(); c.moveTo(Math.cos(a - 0.3) * 4, Math.sin(a - 0.3) * 4); c.lineTo(Math.cos(a) * 8, Math.sin(a) * 8); c.lineTo(Math.cos(a + 0.3) * 4, Math.sin(a + 0.3) * 4); c.closePath(); c.fill(); }
+      c.fillStyle = retro ? '#707078' : '#575c66'; c.beginPath(); c.arc(0, 0, 4.5, 0, Math.PI * 2); c.fill();
+      c.fillStyle = retro ? '#b0b0b8' : '#8a909c'; c.fillRect(-2, -2.5, 2, 2);
+    } else if (k === 'coal') {
+      c.fillStyle = retro ? '#301008' : '#2a1812'; c.beginPath(); c.arc(0, 0, 5.5, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = retro ? '#ff8800' : '#ff8a2a'; c.lineWidth = 1.4; c.beginPath(); c.moveTo(-4, -1); c.lineTo(-1, 0); c.lineTo(-2, 3); c.moveTo(1, -4); c.lineTo(2, -1); c.lineTo(4, 1); c.stroke();
+      if (!retro) { c.fillStyle = 'rgba(255,150,50,.22)'; c.beginPath(); c.arc(0, 0, 9, 0, Math.PI * 2); c.fill(); }
+    } else {
+      c.fillStyle = retro ? '#686870' : '#4a4e58'; c.beginPath(); c.arc(0, 0, 5, 0, Math.PI * 2); c.fill();
+      c.fillStyle = retro ? '#b0b0b8' : '#9aa0aa'; c.beginPath(); c.arc(-1.6, -1.6, 1.8, 0, Math.PI * 2); c.fill();
+      box(c, retro ? '#a0a0a8' : '#8a909a', -1, -7, 2, 3);   // проушина цепи
+    }
     c.restore();
   }
   R.weaponFig = weaponFig; R.WCOL = WCOL;
@@ -122,16 +120,24 @@
     var f = e.face || 1, fl = e.flash > 0;
     c.save(); c.translate(Math.round(px), Math.round(py));
     if (e.type === 'riser') {
-      var up = e.st === 'rise' ? Math.min(1, e.t / 0.9) : e.st === 'sink' ? 1 - Math.min(1, e.t / 0.8) : 1;
+      if (e.st === 'rise' && e.t < 0.72) {   // капля шлака падает сверху и застывает на земле: окалыш виден заранее
+        var kk = e.t / 0.72, dy = -(1 - kk * kk) * (py - HUD - 6);
+        c.fillStyle = retro ? '#884400' : 'rgba(255,150,50,.35)'; c.fillRect(-1, dy - 44, 2, 40);
+        c.fillStyle = retro ? '#ffaa00' : '#ffb04a'; c.beginPath(); c.ellipse(0, dy - 4, 3, 5, 0, 0, Math.PI * 2); c.fill();
+        c.fillStyle = retro ? '#ffff00' : '#ffe9a0'; c.fillRect(-1, dy - 6, 2, 2);
+        c.fillStyle = retro ? '#884400' : 'rgba(255,170,60,.4)'; c.beginPath(); c.ellipse(0, -1, 3 + kk * 7, 1.5 + kk * 1.5, 0, 0, Math.PI * 2); c.fill();
+        c.restore(); return;
+      }
+      var up = e.st === 'rise' ? Math.min(1, (e.t - 0.72) / 0.18) : e.st === 'sink' ? 1 - Math.min(1, e.t / 0.8) : 1;
       c.save(); c.beginPath(); c.rect(-12, -24, 24, 24); c.clip(); c.translate(0, (1 - up) * 20);
       var bob = Math.sin(t * 8 + e.x) * 1;
-      c.fillStyle = fl ? '#ffffff' : (retro ? '#8a7060' : '#86705e'); c.beginPath(); c.ellipse(0, -9 + bob, 7, 9, 0, 0, Math.PI * 2); c.fill();
-      c.fillStyle = fl ? '#ffffff' : (retro ? '#584838' : '#5a4a3c'); c.fillRect(-7, -4 + bob, 14, 4);
+      c.fillStyle = fl ? '#ffffff' : (retro ? '#4a3c44' : '#463a40'); c.beginPath(); c.ellipse(0, -9 + bob, 7, 9, 0, 0, Math.PI * 2); c.fill();
+      c.fillStyle = fl ? '#ffffff' : (retro ? '#302830' : '#32282e'); c.fillRect(-7, -4 + bob, 14, 4);
       c.strokeStyle = retro ? '#ffaa00' : '#ffb04a'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(-4, -14 + bob); c.lineTo(-1, -9 + bob); c.lineTo(-3, -5 + bob); c.moveTo(3, -13 + bob); c.lineTo(5, -8 + bob); c.stroke();
       c.fillStyle = retro ? '#ffff00' : '#ffe14a'; c.fillRect(f > 0 ? 1 : -4, -13 + bob, 3, 3); c.fillStyle = '#000'; c.fillRect(f > 0 ? 3 : -4, -12 + bob, 1, 1);
-      box(c, retro ? '#584838' : '#5a4a3c', f * 6 - 2, -7 + bob, 5, 3);  // клешня
+      box(c, retro ? '#302830' : '#32282e', f * 6 - 2, -7 + bob, 5, 3);  // клешня
       c.restore();
-      if (e.st === 'rise') { c.fillStyle = retro ? '#884400' : 'rgba(200,110,40,.8)'; for (var i = 0; i < 4; i++) c.fillRect(-8 + i * 5 + Math.sin(t * 20 + i) * 1, -2 - (i % 2) * 2, 2, 2); }
+      if (e.st === 'rise') { c.fillStyle = retro ? '#884400' : 'rgba(255,150,50,.8)'; for (var i = 0; i < 4; i++) c.fillRect(-8 + i * 5 + Math.sin(t * 20 + i) * 1, -2 - (i % 2) * 2, 2, 2); }
     } else if (e.type === 'blub') {
       var hot = liquid === 'lava';
       c.fillStyle = fl ? '#fff' : hot ? (retro ? '#ff8800' : '#ff7a1a') : (retro ? '#a84810' : '#a8501e'); c.beginPath(); c.ellipse(0, -6, 6, 7, 0, 0, Math.PI * 2); c.fill();
@@ -226,29 +232,36 @@
   R.bossFig = bossFig;
 
   // ---------- предметы ----------
+  // тигель: литой горшок на трёх ножках; от двух ударов цепью трескается, вспыхивает и роняет содержимое
   function chestFig(c, ch, px, py, t, retro) {
     c.save(); c.translate(Math.round(px), Math.round(py));
-    var lid = ch.open ? Math.min(1, ch.t * 4) : 0, fl = ch.flash > 0;
-    box(c, fl ? '#fff' : (retro ? '#884400' : '#7a4b2a'), -8, -10, 16, 10);
-    box(c, retro ? '#606060' : '#6a6e74', -8, -10, 16, 2); box(c, retro ? '#606060' : '#6a6e74', -8, -2, 16, 2);
-    box(c, retro ? '#ffd800' : '#e0b040', -2, -7, 4, 4);
-    c.save(); c.translate(-8, -10); c.rotate(-lid * 1.2); box(c, fl ? '#fff' : (retro ? '#a05010' : '#8a5a32'), 0, -5, 16, 5); box(c, retro ? '#606060' : '#6a6e74', 0, -5, 16, 1); c.restore();
+    var lid = ch.open ? Math.min(1, ch.t * 4) : 0, fl = ch.flash > 0, dmg = ch.hp < 2 && !ch.open;
+    box(c, fl ? '#fff' : (retro ? '#585860' : '#4a4c56'), -7, -11, 14, 8); box(c, fl ? '#fff' : (retro ? '#707078' : '#60636e'), -8, -12, 16, 3);
+    box(c, retro ? '#383840' : '#32343c', -6, -4, 12, 2); box(c, retro ? '#383840' : '#32343c', -7, -2, 3, 2); box(c, retro ? '#383840' : '#32343c', 4, -2, 3, 2); box(c, retro ? '#383840' : '#32343c', -1, -2, 2, 2);
+    box(c, retro ? '#a0a0a8' : '#8a8e9a', -10, -9, 2, 4); box(c, retro ? '#a0a0a8' : '#8a8e9a', 8, -9, 2, 4);   // ушки
+    c.fillStyle = retro ? '#ff8800' : '#ff8a2a'; c.fillRect(-5, -11, 10, 2);
+    if (dmg || ch.open) { c.strokeStyle = retro ? '#ffcc00' : '#ffd070'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(-3, -11); c.lineTo(-1, -7); c.lineTo(-3, -4); c.moveTo(3, -10); c.lineTo(2, -6); c.stroke(); }
+    if (ch.open && !retro) { c.fillStyle = 'rgba(255,190,80,' + (0.35 * (1 - lid)) + ')'; c.beginPath(); c.moveTo(-6, -11); c.lineTo(-10, -30); c.lineTo(10, -30); c.lineTo(6, -11); c.fill(); }
+    if (!ch.open) box(c, retro ? '#ffcc00' : '#ffb347', -3 + Math.floor(t * 3 + ch.x) % 2, -14, 2, 2);   // искра над горшком
     c.restore();
   }
   function itemFig(c, it, px, py, t, retro) {
     var bob = it.ground ? Math.sin(t * 4 + it.x) * 1.5 : 0, y = py - 8 + bob;
-    if (!retro) { c.fillStyle = it.k === 'key' || it.k === 'gold' || it.k === 'hammer' ? 'rgba(255,210,80,.25)' : 'rgba(255,255,255,.12)'; c.beginPath(); c.arc(px, y, 10, 0, Math.PI * 2); c.fill(); }
-    if (it.pedestal) { box(c, retro ? '#606060' : '#5a5c60', px - 7, py - 4, 14, 4); }
-    if (it.k === 'arm' || it.k === 'gold') {
-      var g = it.k === 'gold', K = HERO[retro ? 'r' : 'm'];
-      box(c, g ? K.goldD : K.metalD, px - 6, y - 6, 12, 11); box(c, g ? K.gold : K.metal, px - 5, y - 6, 10, 10); box(c, g ? K.goldL : K.metalL, px - 3, y - 5, 2, 7);
-      box(c, K.trim, px - 6, y + 2, 12, 2);
-      if (g && Math.floor(t * 6) % 2) box(c, '#ffffff', px + 3, y - 7, 2, 2);
-    } else if (it.k === 'key') {
-      c.fillStyle = retro ? '#ffd800' : '#ffd24a'; c.beginPath(); c.arc(px - 4, y, 4, 0, Math.PI * 2); c.fill(); c.fillStyle = '#3a2010'; c.beginPath(); c.arc(px - 4, y, 1.6, 0, Math.PI * 2); c.fill();
-      box(c, retro ? '#ffd800' : '#ffd24a', px, y - 1, 9, 2); box(c, retro ? '#ffd800' : '#ffd24a', px + 5, y + 1, 2, 3); box(c, retro ? '#ffd800' : '#ffd24a', px + 8, y + 1, 1, 3);
-    } else if (it.k === 'hammer') weaponFig(c, 'hammer', px, y, 1.3, Math.sin(t * 3) * 0.2, retro);
-    else if (it.k.indexOf('w:') === 0) weaponFig(c, it.k.slice(2), px, y, 1.2, 0, retro);
+    if (!retro) { c.fillStyle = it.k === 'key' || it.k === 'horn' ? 'rgba(255,210,80,.25)' : 'rgba(255,255,255,.12)'; c.beginPath(); c.arc(px, y, 10, 0, Math.PI * 2); c.fill(); }
+    var K = HERO[retro ? 'r' : 'm'], i, a;
+    if (it.k === 'ember') {   // горсть углей
+      box(c, retro ? '#301008' : '#2a1812', px - 6, y - 2, 12, 7); box(c, retro ? '#301008' : '#3a2018', px - 4, y - 5, 8, 4);
+      box(c, K.fire, px - 4, y - 1, 3, 2); box(c, K.fire2, px + 1, y - 4, 2, 2); box(c, K.fire, px + 2, y + 1, 3, 2);
+      if (Math.floor(t * 6) % 2) box(c, '#ffffff', px - 1, y - 7, 2, 2);
+    } else if (it.k === 'horn') {   // раздутый горн: чугунный короб с белым жаром и пламенем
+      box(c, K.ironD, px - 7, y - 5, 14, 11); box(c, K.iron, px - 6, y - 5, 12, 10);
+      for (i = 0; i < 3; i++) box(c, K.fire2, px - 4, y - 3 + i * 3, 8, 2);
+      box(c, Math.floor(t * 8) % 2 ? K.fire2 : K.fire, px - 2, y - 10, 4, 5); box(c, '#ffffff', px - 1, y - 8, 2, 2);
+    } else if (it.k === 'key') {   // вентиль-шестерня: открывает заслонку горна
+      c.fillStyle = retro ? '#ffd800' : '#ffd24a';
+      for (i = 0; i < 6; i++) { a = i * Math.PI / 3 + t; c.save(); c.translate(px, y); c.rotate(a); c.fillRect(-1.5, -8, 3, 4); c.restore(); }
+      c.beginPath(); c.arc(px, y, 5.5, 0, Math.PI * 2); c.fill(); c.fillStyle = '#3a2010'; c.beginPath(); c.arc(px, y, 2.2, 0, Math.PI * 2); c.fill();
+    } else if (it.k.indexOf('w:') === 0) weaponFig(c, it.k.slice(2), px, y, 1.3, 0, retro);
   }
   R.chestFig = chestFig; R.itemFig = itemFig;
 
@@ -356,13 +369,22 @@
     if (!retro) { c.fillStyle = 'rgba(0,0,0,.28)'; S.enemies.forEach(function (e) { if (!FOEFLY[e.type]) { c.beginPath(); c.ellipse(X(e.x), Y(e.y), e.hw * TS + 2, 2.5, 0, 0, Math.PI * 2); c.fill(); } }); if (S.hero && S.hero.ground) { c.beginPath(); c.ellipse(X(S.hero.x), Y(S.hero.y), 8, 2.5, 0, 0, Math.PI * 2); c.fill(); } }
     // герой
     var h = S.hero;
-    if (h && S.phase !== 'dead' && !(h.inv > 0 && h.hurtT <= 0 && Math.floor(t * 20) % 2)) heroFig(c, X(h.x), Y(h.y), h.face, { armor: h.armor, run: h.vx && h.ground ? h.runT : 0, air: !h.ground && !h.climb, crouch: h.crouch, climb: h.climb, throwT: h.throwT, charge: h.charge, t: t }, retro);
-    if (S.ring) for (var q = 0; q < 4; q++) { var ra = S.ring.a + q * Math.PI / 2; weaponFig(c, 'shield', X(h.x + Math.cos(ra) * 1.6), Y(h.y - 1 + Math.sin(ra) * 1.6), 1, 0, retro); }
-    // броски
-    S.shots.forEach(function (s) {
-      var rot = s.k === 'axe' || s.k === 'hammer' ? t * 18 : s.k === 'shield' ? 0 : Math.atan2(s.vy, s.vx);
-      weaponFig(c, s.k, X(s.x), Y(s.y), s.sp ? 1.3 : 1, rot, retro);
-    });
+    if (h && S.phase !== 'dead' && !(h.inv > 0 && h.hurtT <= 0 && Math.floor(t * 20) % 2)) heroFig(c, X(h.x), Y(h.y), h.face, { heat: h.heat, run: h.vx && h.ground ? h.runT : 0, air: !h.ground && !h.climb, crouch: h.crouch, climb: h.climb, throwT: h.throwT, charge: h.charge, t: t }, retro);
+    // цепь-шар: звенья от руки до головы
+    function chainLine(x0, y0, x1, y1) {
+      var dx = x1 - x0, dy = y1 - y0, n = Math.max(1, Math.floor(Math.hypot(dx, dy) / 5));
+      for (var q = 1; q < n; q++) box(c, q % 2 ? (retro ? '#c0c0c8' : '#b4b8c4') : (retro ? '#808088' : '#6a6e7a'), Math.round(x0 + dx * q / n) - 1, Math.round(y0 + dy * q / n) - 1, 2, 2);
+    }
+    if (h && S.chain) {
+      var cc = S.chain, hx = X(h.x + h.face * 0.2), hy2 = Y(h.y - (h.crouch ? 0.6 : 1.15));
+      chainLine(hx, hy2, X(cc.x), Y(cc.y));
+      weaponFig(c, cc.w, X(cc.x), Y(cc.y), 1.15, t * 10, retro);
+    }
+    if (h && S.ring) for (var q = 0; q < 2; q++) {
+      var ra = S.ring.a + q * Math.PI, rx = X(h.x + Math.cos(ra) * 2.2), ry = Y(h.y - 1 + Math.sin(ra) * 1.7);
+      chainLine(X(h.x), Y(h.y - 1), rx, ry); weaponFig(c, S.weapon, rx, ry, 1.5, t * 12, retro);
+      if (!retro) { c.fillStyle = 'rgba(255,200,90,.16)'; c.beginPath(); c.arc(rx, ry, 11, 0, Math.PI * 2); c.fill(); }
+    }
     // вражеские снаряды
     S.eshots.forEach(function (s) {
       var px = X(s.x), py = Y(s.y);
@@ -386,12 +408,12 @@
     box(c, retro ? '#000000' : 'rgba(14,10,12,.92)', 0, 0, W, HUD);
     box(c, retro ? '#884400' : 'rgba(200,121,58,.5)', 0, HUD - 1, W, 1);
     function txt(s, x, y, col, sz, al, wt) { c.fillStyle = col; c.font = (wt || 800) + ' ' + (sz || 11) + 'px ' + font; c.textAlign = al || 'left'; c.fillText(s, x, y); }
-    // доспех
-    var K = HERO[retro ? 'r' : 'm'], arm = h ? h.armor : 1;
-    c.save(); c.translate(14, 30); c.scale(0.72, 0.72); heroFig(c, 0, 0, 1, { armor: arm, t: g.time }, retro); c.restore();
-    txt(arm === 2 ? g.t('armGold') : arm === 1 ? g.t('armOn') : g.t('armOff'), 28, 13, arm === 2 ? K.gold : arm === 1 ? K.metalL : th.bad, 10);
-    // оружие
-    box(c, retro ? '#202020' : 'rgba(255,255,255,.08)', 28, 17, 22, 12); weaponFig(c, S.weapon, 39, 23, 1, 0, retro);
+    // жар: герой, подпись и три «колосника» по числу жара; рядом — голова цепи в руке
+    var K = HERO[retro ? 'r' : 'm'], ht = h ? h.heat : 3;
+    c.save(); c.translate(14, 30); c.scale(0.72, 0.72); heroFig(c, 0, 0, 1, { heat: ht, t: g.time }, retro); c.restore();
+    txt(g.t('heat') + ' ' + ht + '/' + D.logic.HEAT_MAX, 28, 13, ht === 4 ? K.fire2 : ht > 1 ? K.fire : th.bad, 10);
+    for (var gi = 0; gi < 4; gi++) box(c, gi < ht ? (ht === 4 ? K.fire2 : K.fire) : (retro ? '#303030' : 'rgba(255,255,255,.14)'), 84 + gi * 9, 5, 7, 8);
+    box(c, retro ? '#202020' : 'rgba(255,255,255,.08)', 28, 17, 22, 12); weaponFig(c, S.weapon, 39, 23, 0.8, 0, retro);
     txt(g.t('w_' + S.weapon), 54, 27, th.muted, 9, 'left', 700);
     // счёт и рекорд
     txt(g.t('score') + ' ' + S.score, 200, 13, th.ink, 11, 'center');
@@ -410,7 +432,6 @@
       box(c, retro ? '#000000' : 'rgba(0,0,0,.6)', bx - 2, by - 2, bw + 4, 12);
       box(c, retro ? '#d82800' : '#e0503a', bx, by, bw * Math.max(0, b.hp) / b.max, 8);
       txt(g.t('b_' + S.lv.key), W / 2, by + 20, th.ink, 10, 'center');
-      if (b.key === 'koshey' && S.loop === 2 && S.weapon !== 'hammer') txt(g.t('needHammer'), W / 2, by + 32, th.warn, 10, 'center');
     }
   }
 

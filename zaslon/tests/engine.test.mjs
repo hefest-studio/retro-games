@@ -238,9 +238,9 @@ test('реклама за награду: reviveAd после gameover (кора
   S.base=0; S.overT=0.01; run(g,0.1); ok(S.over,'заслон прорван'); ok(g.reviveAd()); eq(S.base,50); run(g,1); ok(!S.over,'игра идёт');
   S.base=90; ok(g.repairAd()); eq(S.base,100); ok(!g.repairAd(),'полный — нельзя');
 });
-test('i18n: RU/EN/TR/ES/PT — одинаковые ключи, {n} сохранён, EN-название SPARKWARD в нерусских', () => {
+test('i18n: RU/EN/TR/ES/PT — одинаковые ключи, {n} сохранён, EN-название SCRAPRAMPART в нерусских', () => {
   const ru=Object.keys(Z.STR.ru).sort().join(',');
-  for (const l of ['en','tr','es','pt']) { eq(Object.keys(Z.STR[l]).sort().join(','), ru, l); eq(Z.STR[l].title,'SPARKWARD',l); ok(Z.STR[l].opened.includes('{n}'), l); }
+  for (const l of ['en','tr','es','pt']) { eq(Object.keys(Z.STR[l]).sort().join(','), ru, l); eq(Z.STR[l].title,'SCRAPRAMPART',l); ok(Z.STR[l].opened.includes('{n}'), l); }
 });
 test('детерминизм: один сид — одна партия', () => {
   const play = s => { const g=Z.Game({rng:mulberry32(s)}); g.start(); g.setFire(true); for(let i=0;i<60*40;i++){ g.setDir(Math.sin(i/50)>0?1:-1,0); g.update(1/60);} const S=g.state(); return [S.score,S.scrap,S.base,S.lives,S.sector].join(); };

@@ -1,4 +1,4 @@
-/* ДОСПЕХ · звук: оригинальные короткие SFX поверх g.audio.beep движка (WebAudio, без файлов).
+/* КИСТЕНЬ · звук: оригинальные короткие SFX поверх g.audio.beep движка (WebAudio, без файлов).
    DOSPEH.sfx(g, type, data) — вызывается из main.js на события логики; частые события прорежены. */
 (function (global) {
   'use strict';
@@ -6,14 +6,14 @@
   function seq(g, notes, gap, dur, type, vol) { notes.forEach(function (f, i) { if (f) setTimeout(function () { g.audio.beep(f, dur, type, vol); }, i * gap); }); }
   var last = {};
   function rare(type, ms) { var n = Date.now(); if (n - (last[type] || 0) < ms) return false; last[type] = n; return true; }
-  var THROW = { spear: [660, 'square'], axe: [330, 'sawtooth'], torch: [220, 'sawtooth'], blades: [990, 'square'], shield: [440, 'triangle'], hammer: [180, 'square'] };
+  var THROW = { ball: [330, 'square'], spike: [520, 'sawtooth'], coal: [240, 'sawtooth'] };
   D.sfx = function (g, type, d) {
     if (!g.audio.enabled) return;
     d = d || {};
     switch (type) {
       case 'jump': if (rare('jump', 80)) g.audio.beep(280, 0.07, 'triangle', 0.035); break;
       case 'land': if (rare('land', 120)) g.audio.beep(110, 0.04, 'square', 0.025); break;
-      case 'throw': { var s = THROW[d.w] || THROW.spear; if (rare('thr', 50)) seq(g, [s[0], s[0] * 0.75], 25, 0.04, s[1], 0.035); break; }
+      case 'throw': { var s = THROW[d.w] || THROW.ball; if (rare('thr', 50)) seq(g, [s[0], s[0] * 0.75], 25, 0.04, s[1], 0.035); break; }
       case 'special': seq(g, [523, 784, 1046, 1568], 40, 0.08, 'square', 0.05); break;
       case 'charged': seq(g, [880, 1320], 50, 0.06, 'triangle', 0.04); break;
       case 'hit': if (rare('hit', 50)) g.audio.beep(260, 0.04, 'square', 0.035); break;
@@ -21,9 +21,9 @@
       case 'knock': if (rare('kn', 60)) g.audio.beep(160, 0.05, 'square', 0.035); break;
       case 'chest': seq(g, [392, 523, 659], 60, 0.07, 'triangle', 0.045); break;
       case 'trap': seq(g, [196, 185, 175, 165], 70, 0.09, 'sawtooth', 0.05); break;
-      case 'armorOff': seq(g, [880, 660, 440, 330], 35, 0.06, 'square', 0.06); break;
+      case 'heatDown': seq(g, [880, 660, 440, 330], 35, 0.06, 'square', 0.06); break;
       case 'die': seq(g, [523, 440, 349, 262, 196, 131], 90, 0.12, 'square', 0.055); break;
-      case 'pickup': if (d.k === 'gold' || d.k === 'hammer') seq(g, [523, 659, 784, 1046, 1318], 60, 0.08, 'triangle', 0.055); else if (d.k === 'arm') seq(g, [392, 523, 659, 784], 60, 0.07, 'triangle', 0.05); else seq(g, [660, 880], 50, 0.06, 'triangle', 0.04); break;
+      case 'pickup': if (d.k === 'horn') seq(g, [523, 659, 784, 1046, 1318], 60, 0.08, 'triangle', 0.055); else if (d.k === 'ember') seq(g, [392, 523, 659, 784], 60, 0.07, 'triangle', 0.05); else seq(g, [660, 880], 50, 0.06, 'triangle', 0.04); break;
       case 'weapon': break;
       case 'life': seq(g, [659, 784, 988, 1318], 70, 0.08, 'triangle', 0.05); break;
       case 'checkpoint': seq(g, [523, 784], 80, 0.08, 'triangle', 0.04); break;

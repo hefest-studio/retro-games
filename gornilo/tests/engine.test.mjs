@@ -374,9 +374,9 @@ test('реклама за награду: reviveAd только после «к�
   if (!g.reviveAd() || S.phase!=='play' || h.lives!==1 || !h.alive || h.out) throw new Error('возврат');
   h.lives=4; if (!g.addLifeAd() || h.lives!==5 || g.addLifeAd()) throw new Error('addLifeAd');
 });
-test('i18n: RU/EN/TR/ES/PT — одинаковые ключи, {n}, EN-название FORGEPIT в нерусских', () => {
+test('i18n: RU/EN/TR/ES/PT — одинаковые ключи, {n}, EN-название SMELTPAIR в нерусских', () => {
   const ru=Object.keys(G.STR.ru).sort().join(',');
-  for (const l of ['en','tr','es','pt']) { if (Object.keys(G.STR[l]).sort().join(',')!==ru) throw new Error('ключи '+l); if (G.STR[l].title!=='FORGEPIT' || !G.STR[l].opened.includes('{n}')) throw new Error(l); }
+  for (const l of ['en','tr','es','pt']) { if (Object.keys(G.STR[l]).sort().join(',')!==ru) throw new Error('ключи '+l); if (G.STR[l].title!=='SMELTPAIR' || !G.STR[l].opened.includes('{n}')) throw new Error(l); }
 });
 if (process.env.QUICK){ console.log(`\n${passed} прошло, ${failed} упало (без бота)`); process.exit(failed ? 1 : 0); }
 // Исполнимость в настоящей физике: неуязвимый бот проходит каждый круг (8 комнат по своей ветке + босс).
