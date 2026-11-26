@@ -117,8 +117,10 @@
     return out.sort(function (a, b) { return a.n - b.n; });
   }
   // закрытое в издании открывается покупкой внутри площадки (E.canBuy/E.buy — издание «для площадок»), иначе — ссылка «Узнать больше»
-  function offerLabel() { if (E.canBuy && E.canBuy()) { var pr = E.price ? E.price() : ''; return g.t('more') + (pr ? ' · ' + pr : ''); } return g.t('more') + ' ↗'; }
+  // E.more(g) — необязательный хук издания вне сайта (своя страница игры через мост обёртки, без ссылок и цен); на сайте его нет
+  function offerLabel() { if (E.more) return g.t('more'); if (E.canBuy && E.canBuy()) { var pr = E.price ? E.price() : ''; return g.t('more') + (pr ? ' · ' + pr : ''); } return g.t('more') + ' ↗'; }
   function offerGo() {
+    if (E.more) { E.more(g); return; }
     if (!(E.canBuy && E.canBuy())) { openMore(); return; }
     E.buy(g).then(function (ok) { g.audio.beep(ok ? 1000 : 200, ok ? 0.15 : 0.06, 'triangle'); if (ok) g.goto('camp'); });
   }
@@ -322,8 +324,9 @@
     y += 4; wrap(c, g.t(fin.sub), pw - 90, 15, 600).forEach(function (ln) { text(c, ln, cx, y, { size: 15, weight: 600, align: 'center' }); y += 22; });
     var n = fin.items.length, bw = 240, gap = 20, bx = cx - (n * bw + (n - 1) * gap) / 2;
     fin.items.forEach(function (k, i) {
-      var fn = k === 'more' ? offerGo : function () { g.goto('camp'); };
-      button(c, bx + i * (bw + gap), y0 + ph - 70, bw, 44, k === 'more' ? offerLabel() : '← ' + g.t('toMap'), fn, { primary: i === 0, size: 15, focus: sel2 === i });
+      // 'toMenu' — экран издания открыт из главного меню (необязательный пункт издания вне сайта); на сайте — только 'toMap'/'more'
+      var fn = k === 'more' ? offerGo : k === 'toMenu' ? function () { g.goto('title'); } : function () { g.goto('camp'); };
+      button(c, bx + i * (bw + gap), y0 + ph - 70, bw, 44, k === 'more' ? offerLabel() : '← ' + g.t(k === 'toMenu' ? 'toMenu' : 'toMap'), fn, { primary: i === 0, size: 15, focus: sel2 === i });
     });
   }
   var sel2 = 0, finaleId = null;
@@ -396,7 +399,7 @@
         if (a === 'right' || a === 'down') { sel2 = (sel2 + 1) % nb; g.audio.beep(600, 0.03); }
         else if (a === 'left' || a === 'up') { sel2 = (sel2 - 1 + nb) % nb; g.audio.beep(600, 0.03); }
         else if (a === 'start' || a === 'action') { if (hot[sel2]) hot[sel2].fn(); }
-        else if (a === 'pause') g.goto('camp');
+        else if (a === 'pause') g.goto(E.finale(P.EDITION).items.indexOf('toMenu') >= 0 ? 'title' : 'camp');
       } else if (name === 'finale') {
         var nf = Math.max(1, hot.length);
         if (a === 'right' || a === 'down') { sel2 = (sel2 + 1) % nf; g.audio.beep(600, 0.03); } else if (a === 'left' || a === 'up') { sel2 = (sel2 - 1 + nf) % nf; g.audio.beep(600, 0.03); }
@@ -682,8 +685,13 @@
     if (mp === 'gen:last' && !P.SKIRMISH_SEED) mp = 'gen';
     if (qm) mp = qm[1]; P.SKIRMISH_MAP = mp;
     function mapList() { var l = MAPS.slice(); if (P.SKIRMISH_SEED) l.splice(1, 0, 'gen:last'); return l; }
-    g.menu.addItem({ key: 'map', after: 'level', label: function () { var m = P.SKIRMISH_MAP; return g.t('map') + ': ' + (m === 'gen:last' ? g.t('mapGenSeed') + P.SKIRMISH_SEED : g.t({ gen: 'mapGen', pass: 'mapPass', isles: 'mapIsles', veins: 'mapVeins' }[m])); },
+    // E.mapOpen(map) — необязательный хук издания вне сайта: карта закрыта — подпись «· <mapLocked>», «Скирмиш» на ней зовёт E.mapLocked(g)
+    // (или просто не стартует); на сайте хука нет — открыты все карты, как раньше
+    function mapShut(m) { return !!E.mapOpen && !E.mapOpen(String(m || 'gen').split(':')[0]); }
+    g.menu.addItem({ key: 'map', after: 'level', label: function () { var m = P.SKIRMISH_MAP; return g.t('map') + ': ' + (m === 'gen:last' ? g.t('mapGenSeed') + P.SKIRMISH_SEED : g.t({ gen: 'mapGen', pass: 'mapPass', isles: 'mapIsles', veins: 'mapVeins' }[m])) + (mapShut(m) ? ' · ' + g.t('mapLocked') : ''); },
       onSelect: function () { var l = mapList(); P.SKIRMISH_MAP = l[(l.indexOf(P.SKIRMISH_MAP) + 1) % l.length]; try { store.setItem('arcade.priisk.map', P.SKIRMISH_MAP); } catch (e) {} g.audio.beep(600, 0.05); } });
+    if (E.mapOpen) { var tm = g.menu.get('title'), pi = tm && tm.items.filter(function (it) { return it.key === 'play'; })[0];
+      if (pi) { var play0 = pi.onSelect; pi.onSelect = function () { if (!mapShut(P.SKIRMISH_MAP)) return play0.apply(this, arguments); g.audio.beep(180, 0.06, 'square'); if (E.mapLocked) E.mapLocked(g); }; } }
     // клавиши героев Сизых: Q — Корней, E — Митяй, R — Агафья (у Медного Ключа Q/E/R ловит main.js)
     global.addEventListener('keydown', function (e) {
       var hk = AB_KEYS[e.code], S = host.S; if (!hk || e.ctrlKey || e.metaKey || e.altKey || g._sceneName !== 'play' || !S.W || !S.W.mission || !S.W.mission.heroes[hk]) return;
