@@ -1,14 +1,15 @@
 /* СПУТНИК · логика без DOM (детерминирована при заданном rng). SPUTNIK.Game(opts), SPUTNIK.logic
-   Горизонтальный космический скролл-шутер студии «Гефест»: корабль «Горн» летит слева направо сквозь
-   пояс Окалины. Рядом — неуязвимый дрон-спутник «Наковальня» (раскалённый кованый шар):
-   - крепится к носу или к корме — с той стороны, откуда подлетел;
-   - глотает вражеские пули и жжёт врагов касанием;
-   - отстёгивается кнопкой и улетает вперёд (с кормы — назад), повторное нажатие — возврат;
-   - капсулы меняют его луч: «рикошет» (отражается от стен), «змейка» (ползёт по рельефу), «веер».
-   Корабль: обычный выстрел по нажатию, удержание огня копит заряд, отпускание — пробивной луч.
-   До двух малых спутников-«оптик» сверху и снизу. Рельеф (стены пещер, поршни, шестерни) убивает корабль.
+   Горизонтальный космический скролл-шутер студии «Гефест»: малый кузнечный корабль «Спутник» — спутник орбитальной
+   мастерской «Горн» — летит слева направо сквозь пояс Окалины.
+   Переделка 2026-11 — главная механика «калильный жар»:
+   - корабль накаляется, когда скользит вдоль раскалённой кромки породы и механизмов (чем ближе — тем быстрее),
+     и чуть-чуть — от каждого сбитого врага; без кромки жар медленно остывает;
+   - жар = огневая мощь: тлеет (одиночный), жар (двойной), белый жар (двойной калёный + искры веером);
+   - кнопка «закалка» сбрасывает весь жар паровым кольцом: оно гасит вражеские пули, бьёт врагов и открытое слабое место босса;
+     чем жарче корабль, тем шире кольцо — выбор «держать мощь или сбросить в защиту».
+   Огонь автоматический. Рельеф (стены пещер, поршни, шестерни) убивает корабль — жар берут у самой кромки.
    6 уровней: волны врагов, полубосс посередине, в конце — крупный босс со слабым местом. 3 жизни,
-   при гибели — возврат к контрольной точке. Все координаты — мировые (x растёт вправо), камера S.cx. */
+   при гибели — возврат к контрольной точке, жар остывает. Все координаты — мировые (x растёт вправо), камера S.cx. */
 (function (global) {
   'use strict';
   var Sp = global.SPUTNIK = global.SPUTNIK || {};
@@ -17,35 +18,37 @@
   var W = 640, H = 360, TOP = 26, MID = (TOP + H) / 2;       // TOP — низ полосы HUD
   var COL = 8;                                                // шаг колонок рельефа, px
   var SCROLL = 44;                                            // скорость камеры, px/с
-  var SHIP_V = 160, SHIP_HW = 11, SHIP_HH = 5;                // хитбокс корабля (для пуль и врагов)
-  var SHIP_TW = 13, SHIP_TH = 6;                              // хитбокс корабля для рельефа
-  var SHOT_V = 560, SHOT_MAX = 6, VOLLEY_CD = 0.09;
-  var CHARGE_DELAY = 0.14, CHARGE_TIME = 1.0, CHARGE_MIN = 0.3, BEAM_V = 660;
-  var DRONE_R = 11, DRONE_OFF = 20, DRONE_LAUNCH_V = 340, DRONE_RETURN_V = 280, DRONE_FOLLOW_V = 80, DRONE_DPS = 7;
-  var OPTIC_R = 6, OPTIC_DY = 24;
+  var SHIP_V = 160, SHIP_HW = 10, SHIP_HH = 4;                // хитбокс корабля (для пуль и врагов)
+  var SHIP_TW = 12, SHIP_TH = 5;                              // хитбокс корабля для рельефа
+  var SHOT_V = 560, FIRE_CD = 0.15, SHOTS_MAX = 40;           // автоматический огонь
+  // жар
+  var HEAT_MAX = 100, SKIM = 30, SKIM_RATE = 48, HEAT_DECAY = 5, HEAT_HOLD = 0.8;
+  var TIER1 = 35, TIER2 = 70, KILL_HEAT = 3, INGOT_HEAT = 22, GUARD_HEAT = 35, SKIM_PTS = 30;
+  // закалка
+  var QUENCH_MIN = 25, QUENCH_CD = 0.8, RING_V = 560, RING_R0 = 60, RING_PER = 1.6, RING_GRACE = 0.45;
   var ARENA = W + 160;                                        // ширина арены босса за концом уровня
-  var EXTRA_LIFE = [50000];
+  var EXTRA_LIFE = [25000, 60000, 100000], LIFE_MAX = 5;
   var TAU = Math.PI * 2;
 
   // Враги: радиус, прочность, очки
   var EN = {
     moth: { r: 9, hp: 1, pts: 100 }, dart: { r: 8, hp: 1, pts: 120 }, turret: { r: 10, hp: 3, pts: 200 },
     walker: { r: 11, hp: 4, pts: 300 }, mine: { r: 10, hp: 2, pts: 150 }, stinger: { r: 8, hp: 1, pts: 150 },
-    pod: { r: 12, hp: 3, pts: 300 }, guard: { r: 24, hp: 20, pts: 2000 }
+    ingot: { r: 12, hp: 5, pts: 300 }, guard: { r: 24, hp: 20, pts: 2000 }
   };
-  var CAPS = ['R', 'S', 'V', 'O'];   // R — рикошет, S — змейка, V — веер, O — оптика
 
   // 6 уровней. c/f — толщина потолка/пола: база, две синусоиды, выступы; gap — минимальный просвет.
   var LEVELS = [
-    { name: 'orbit',  boss: 'crucible', len: 3000, c: [0, 0, 0, 0],    f: [30, 16, 10, 2], bumps: 5,  gap: 190, pistons: 0, gears: 0, pool: { moths: 5, darts: 2, turret: 2, mine: 1 }, space: [200, 270], caps: ['R', 'O', 'V', 'S'] },
-    { name: 'slag',   boss: 'hammer',   len: 3400, c: [34, 20, 10, 3], f: [36, 20, 12, 3], bumps: 9,  gap: 150, pistons: 3, gears: 1, pool: { moths: 4, darts: 3, turret: 3, walker: 2, mine: 2 }, space: [175, 240], caps: ['O', 'S', 'R', 'V'] },
-    { name: 'gears',  boss: 'worm',     len: 3600, c: [30, 14, 8, 2],  f: [30, 14, 8, 2],  bumps: 7,  gap: 145, pistons: 5, gears: 3, pool: { moths: 4, darts: 3, turret: 3, walker: 2, mine: 2, stinger: 2 }, space: [165, 230], caps: ['V', 'O', 'S', 'R'] },
-    { name: 'channel', boss: 'hive',    len: 3800, c: [54, 24, 12, 3], f: [54, 24, 12, 3], bumps: 9,  gap: 128, pistons: 3, gears: 2, pool: { moths: 3, darts: 3, turret: 5, walker: 2, mine: 2, stinger: 3 }, space: [150, 220], caps: ['S', 'R', 'O', 'V'] },
-    { name: 'hive',   boss: 'mirror',   len: 4000, c: [46, 30, 14, 4], f: [46, 30, 14, 4], bumps: 10, gap: 135, pistons: 2, gears: 3, pool: { moths: 4, darts: 3, turret: 3, walker: 2, mine: 3, stinger: 2 }, space: [155, 225], caps: ['R', 'V', 'O', 'S'] },
-    { name: 'heart',  boss: 'heart',    len: 4200, c: [50, 30, 14, 4], f: [50, 30, 14, 4], bumps: 10, gap: 130, pistons: 4, gears: 3, pool: { moths: 4, darts: 3, turret: 3, walker: 2, mine: 3, stinger: 3 }, space: [150, 215], caps: ['O', 'R', 'S', 'V'] }
+    { name: 'orbit',  boss: 'crucible', len: 3000, c: [0, 0, 0, 0],    f: [30, 16, 10, 2], bumps: 5,  gap: 190, pistons: 0, gears: 0, pool: { moths: 5, darts: 2, turret: 2, mine: 1 }, space: [200, 270] },
+    { name: 'slag',   boss: 'hammer',   len: 3400, c: [34, 20, 10, 3], f: [36, 20, 12, 3], bumps: 9,  gap: 150, pistons: 3, gears: 1, pool: { moths: 4, darts: 3, turret: 3, walker: 2, mine: 2 }, space: [175, 240] },
+    { name: 'gears',  boss: 'worm',     len: 3600, c: [30, 14, 8, 2],  f: [30, 14, 8, 2],  bumps: 7,  gap: 145, pistons: 5, gears: 3, pool: { moths: 4, darts: 3, turret: 3, walker: 2, mine: 2, stinger: 2 }, space: [165, 230] },
+    { name: 'channel', boss: 'hive',    len: 3800, c: [54, 24, 12, 3], f: [54, 24, 12, 3], bumps: 9,  gap: 128, pistons: 3, gears: 2, pool: { moths: 3, darts: 3, turret: 5, walker: 2, mine: 2, stinger: 3 }, space: [150, 220] },
+    { name: 'hive',   boss: 'mirror',   len: 4000, c: [46, 30, 14, 4], f: [46, 30, 14, 4], bumps: 10, gap: 135, pistons: 2, gears: 3, pool: { moths: 4, darts: 3, turret: 3, walker: 2, mine: 3, stinger: 2 }, space: [155, 225] },
+    { name: 'heart',  boss: 'heart',    len: 4200, c: [50, 30, 14, 4], f: [50, 30, 14, 4], bumps: 10, gap: 130, pistons: 4, gears: 3, pool: { moths: 4, darts: 3, turret: 3, walker: 2, mine: 3, stinger: 3 }, space: [150, 215] }
   ];
 
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function tierOf(h) { return h >= TIER2 ? 2 : h >= TIER1 ? 1 : 0; }
 
   // ---------- Уровень: рельеф, механизмы, расписание врагов (детерминированно от номера) ----------
   function buildLevel(n) {
@@ -65,6 +68,7 @@
       }
       var ramp = Math.min(1, Math.max(0, (x - 120) / 360));            // мягкий старт
       c *= ramp; f = f * (0.4 + 0.6 * ramp);
+      if (n === 1 && x > 160 && x < 900) f = Math.min(f, 22 + 6 * Math.sin(x / 90));   // 1-й уровень: ровная кромка — учебный участок
       var ar = Math.min(1, Math.max(0, (x - (def.len - 260)) / 200));   // выход на арену
       c = c * (1 - ar) + (def.c[0] ? 14 : 0) * ar; f = f * (1 - ar) + 14 * ar;
       c = Math.max(0, c); f = Math.max(4, f);
@@ -85,15 +89,15 @@
       }
     }
     place(def.pistons, function (mx) { return { kind: 'piston', x: mx, w: 24, side: lr() < 0.5 ? 'c' : 'f', w8: R(0.8, 1.15), ph: lr() * TAU }; });
-    place(def.gears, function (mx) { return { kind: 'gear', x: mx, r: 20, w8: R(0.7, 1.05), ph: lr() * TAU }; });
+    place(def.gears, function (mx) { return { kind: 'gear', x: mx, r: 20, w8: R(0.55, 0.85), ph: lr() * TAU }; });
     mechs.sort(function (a, b) { return a.x - b.x; });
-    // расписание врагов
+    // расписание врагов; на 1-м уровне первые 900 px — без врагов (учебный участок у кромки)
     var spawns = [], pool = [], kk;
     for (kk in def.pool) for (var w = 0; w < def.pool[kk]; w++) pool.push(kk);
-    var sx = 680, ci = 0, nextPod = 900;
+    var sx = n === 1 ? 900 : 680, nextIngot = n === 1 ? 1300 : 900;
     while (sx < def.len - 340) {
       if (Math.abs(sx - midX) < 330) { sx = midX + 340; continue; }
-      if (sx >= nextPod) { spawns.push({ x: sx, type: 'pod', cap: def.caps[ci++ % def.caps.length], y: R(0.3, 0.7) }); nextPod += R(780, 900); sx += R(def.space[0] * 0.7, def.space[1] * 0.7); continue; }
+      if (sx >= nextIngot) { spawns.push({ x: sx, type: 'ingot', y: R(0.3, 0.7) }); nextIngot += R(780, 900); sx += R(def.space[0] * 0.7, def.space[1] * 0.7); continue; }
       var t = pool[Math.floor(lr() * pool.length)];
       spawns.push({ x: sx, type: t, y: lr(), side: lr() < 0.5 ? 'c' : 'f', n: t === 'moths' ? 5 : t === 'darts' ? 3 : t === 'mine' ? 2 : t === 'stinger' ? 2 : 1, amp: R(24, 48) });
       sx += R(def.space[0], def.space[1]);
@@ -107,7 +111,7 @@
   function params(lv, diff) {
     var d = diff || function (l, base, step, max) { var v = base + (l - 1) * step; return max == null ? v : (step >= 0 ? Math.min(v, max) : Math.max(v, max)); };
     return {
-      bulletV: d(lv, 120, 20, 225), fireMul: d(lv, 0.95, -0.12, 0.38), aim: d(lv, 0.2, 0.1, 0.7),
+      bulletV: d(lv, 110, 15, 185), fireMul: d(lv, 1.2, -0.1, 0.65), aim: d(lv, 0.15, 0.08, 0.55),
       mothV: d(lv, 78, 6, 110), dartV: d(lv, 150, 12, 220), mineBurst: lv >= 3, guardHp: d(lv, 22, 5, 50),
       bossHp: d(lv, 1, 0.12, 1.6), bossRate: d(lv, 1, -0.06, 0.7)
     };
@@ -122,17 +126,21 @@
       phase: 'intro', phaseT: 0, time: 0, over: false, won: false, name: '', lv: null, prm: null,
       cx: 0, hold: false, cp: 0, cpIdx: 0, spawnIdx: 0, extra: 0, clearBonus: 0, banner: 0,
       ship: { x: 80, y: MID, dead: false, grace: 0, vx: 0, vy: 0, tilt: 0 },
-      fire: { held: false, heldT: 0, charge: 0, cd: 0, flash: 0 },
-      drone: { state: 'front', x: 0, y: 0, vx: 0, kind: null, lvl: 0, glow: 0, spin: 0, homeSX: 0 },
-      optics: [], shots: [], bullets: [], enemies: [], caps: [], boss: null, guard: null, guardDone: false, laser: null,
-      kills: 0, deaths: 0, absorbed: 0
+      heat: 0, tier: 0, skim: 0, skimSide: null, skimX: 0, skimY: 0, heatHold: 0, qcd: 0, ring: null, fireCd: 0, flash: 0,
+      shots: [], bullets: [], enemies: [], boss: null, guard: null, guardDone: false, laser: null,
+      kills: 0, deaths: 0, quenches: 0, doused: 0, skimT: 0, tutor: { quench: false, quenched: false }
     };
-    var dir = { x: 0, y: 0 }, fireHeld = false;
+    var dir = { x: 0, y: 0 }, skimPts = 0, skimEv = 0;
     function emit(t, d) { onEvent(t, d || {}); }
     function rr(a, b) { return a + (b - a) * rng(); }
     function addScore(n) {
       S.score += n;
-      while (S.extra < EXTRA_LIFE.length && S.score >= EXTRA_LIFE[S.extra]) { S.extra++; S.lives++; emit('life', { lives: S.lives }); }
+      while (S.extra < EXTRA_LIFE.length && S.score >= EXTRA_LIFE[S.extra]) { S.extra++; if (S.lives < LIFE_MAX) { S.lives++; emit('life', { lives: S.lives }); } }
+    }
+    function addHeat(v) {
+      var was = S.tier; S.heat = Math.max(0, Math.min(HEAT_MAX, S.heat + v)); S.tier = tierOf(S.heat);
+      if (S.tier !== was) emit('tier', { tier: S.tier, up: S.tier > was });
+      if (S.level === 1 && !S.tutor.quench && S.heat >= QUENCH_MIN) { S.tutor.quench = true; emit('tutorQuench', {}); }
     }
 
     // ---------- Рельеф ----------
@@ -178,6 +186,23 @@
       for (var xx = x - hw; xx <= x + hw + 0.01; xx += hw) { if (y - hh < ceilY(xx) || y + hh > floorY(xx)) return true; }
       return !!mechHit(x, y, hw, hh);
     }
+    // зазор от корпуса корабля до раскалённой кромки (порода и механизмы) → { d, side, x, y }
+    function skimGap(x, y) {
+      var best = { d: 1e9, side: null, x: x, y: y }, xx, v;
+      for (xx = x - SHIP_TW; xx <= x + SHIP_TW + 0.01; xx += SHIP_TW) {
+        var cy = ceilY(xx);
+        if (cy > TOP + 1.5) { v = (y - SHIP_TH) - cy; if (v < best.d) best = { d: v, side: 'c', x: xx, y: cy }; }
+        var fy = floorY(xx); v = fy - (y + SHIP_TH); if (v < best.d) best = { d: v, side: 'f', x: xx, y: fy };
+      }
+      var ms = nearMechs();
+      for (var i = 0; i < ms.length; i++) {
+        var m = ms[i]; if (Math.abs(m.x - x) > 70) continue;
+        var g = mechRects(m);
+        if (g.r) { v = Math.hypot(Math.max(Math.abs(x - g.cx) - SHIP_TW, 0), Math.max(Math.abs(y - g.cy) - SHIP_TH, 0)) - g.r; if (v < best.d) best = { d: v, side: 'm', x: g.cx, y: g.cy + (y > g.cy ? g.r : -g.r) }; }
+        else { var dx = Math.max(g.x0 - (x + SHIP_TW), (x - SHIP_TW) - g.x1, 0), dy = Math.max(g.y0 - (y + SHIP_TH), (y - SHIP_TH) - g.y1, 0); v = Math.hypot(dx, dy); if (v < best.d) best = { d: v, side: 'm', x: Math.max(g.x0, Math.min(g.x1, x)), y: y < g.y0 ? g.y0 : g.y1 }; }
+      }
+      best.d = Math.max(0, best.d); return best;
+    }
 
     // ---------- Уровень ----------
     function setupLevel() {
@@ -191,14 +216,13 @@
     function resetToCheckpoint(fresh) {
       var L = S.lv;
       S.cx = S.cp; S.hold = false;
-      S.shots = []; S.bullets = []; S.enemies = []; S.caps = []; S.laser = null;
+      S.shots = []; S.bullets = []; S.enemies = []; S.laser = null; S.ring = null;
       S.boss = null; S.guard = null;
       S.spawnIdx = 0;
       while (S.spawnIdx < L.spawns.length && L.spawns[S.spawnIdx].x < S.cx + 120) S.spawnIdx++;
       if (S.guardDone) for (var i = S.spawnIdx; i < L.spawns.length; i++) if (L.spawns[i].type === 'guard') L.spawns[i].done = true;
       var sh = S.ship; sh.x = S.cx + 90; sh.y = safeY(sh.x); sh.dead = false; sh.grace = fresh ? 0 : 2.0; sh.vx = sh.vy = 0;
-      var D = S.drone; D.state = 'front'; D.x = sh.x + DRONE_OFF; D.y = sh.y;
-      S.fire.held = false; S.fire.heldT = 0; S.fire.charge = 0; S.fire.cd = 0;
+      S.fireCd = 0; S.qcd = 0; S.skim = 0; S.heatHold = 0;
       if (S.cx >= L.len) spawnBoss();
     }
 
@@ -231,7 +255,7 @@
           emit('stingerWarn', { y: yIn(sp.y) });
           break;
         }
-        case 'pod': enemy('pod', X, yIn(sp.y), { vx: -34, cap: sp.cap }); break;
+        case 'ingot': enemy('ingot', X, yIn(sp.y), { vx: -34, fireT: 99 }); break;
         case 'guard':
           if (sp.done) break;
           S.guard = enemy('guard', X + 30, MID, { hp: P.guardHp, max: P.guardHp, fireT: 1.6, ring: 0 });
@@ -239,7 +263,7 @@
           break;
       }
     }
-    function eBullet(x, y, vx, vy, kind) { S.bullets.push({ x: x, y: y, vx: vx, vy: vy, r: kind === 'big' ? 5 : 3, kind: kind || 'spark', t: 0 }); }
+    function eBullet(x, y, vx, vy, kind) { var b = { x: x, y: y, vx: vx, vy: vy, r: kind === 'big' ? 5 : 3, kind: kind || 'spark', t: 0 }; S.bullets.push(b); return b; }
     function aimAt(x, y, sp, spread) {
       var a = Math.atan2(S.ship.y - y, S.ship.x - x) + (spread || 0);
       return { vx: Math.cos(a) * sp, vy: Math.sin(a) * sp };
@@ -251,7 +275,7 @@
       switch (e.type) {
         case 'turret': v = aimAt(e.x, e.y, P.bulletV); eBullet(e.x, e.y, v.vx, v.vy); e.fireT = rr(1.6, 2.4) * P.fireMul; break;
         case 'walker': v = aimAt(e.x, e.y - 8, P.bulletV * 0.9); eBullet(e.x, e.y - 8, v.vx, v.vy); e.fireT = rr(2.0, 2.8) * P.fireMul; break;
-        case 'pod': e.fireT = 99; return;
+        case 'ingot': e.fireT = 99; return;
         case 'guard': {
           var G = e; G.ring = (G.ring + 1) % 3;
           if (G.ring === 2 && S.level >= 2) { for (var k = 0; k < 8 + S.level; k++) { var a = k / (8 + S.level) * TAU + rr(0, 0.3); eBullet(G.x, G.y, Math.cos(a) * P.bulletV * 0.8, Math.sin(a) * P.bulletV * 0.8); } }
@@ -267,12 +291,12 @@
     function killEnemy(e, by) {
       if (!e.alive) return;
       e.alive = false; S.kills++; addScore(EN[e.type].pts);
-      emit('kill', { x: e.x, y: e.y, type: e.type, pts: EN[e.type].pts, by: by });
-      if (e.type === 'pod') { S.caps.push({ x: e.x, y: e.y, type: e.cap, t: 0 }); emit('capDrop', { x: e.x, y: e.y, type: e.cap }); }
+      var heat = e.type === 'ingot' ? INGOT_HEAT : e.type === 'guard' ? GUARD_HEAT : KILL_HEAT;
+      emit('kill', { x: e.x, y: e.y, type: e.type, pts: EN[e.type].pts, by: by, heat: heat });
+      addHeat(heat); S.heatHold = Math.max(S.heatHold, HEAT_HOLD);
       if (e.type === 'mine' && S.prm.mineBurst) for (var k = 0; k < 6; k++) { var a = k / 6 * TAU + 0.26; eBullet(e.x, e.y, Math.cos(a) * 90, Math.sin(a) * 90); }
       if (e.type === 'guard') {
         S.guard = null; S.hold = false; S.guardDone = true;
-        S.caps.push({ x: e.x, y: e.y, type: CAPS[(S.level + 2) % 4], t: 0 });
         S.bullets = [];
         emit('guardDie', { x: e.x, y: e.y });
       }
@@ -280,10 +304,10 @@
     function damage(e, dmg, by) {
       if (!e.alive) return;
       e.hp -= dmg; e.flash = 0.12;
-      if (e.hp <= 0) killEnemy(e, by); else if (by !== 'drone') emit('hit', { x: e.x, y: e.y, type: e.type });
+      if (e.hp <= 0) killEnemy(e, by); else emit('hit', { x: e.x, y: e.y, type: e.type });
     }
     function updateEnemies(dt) {
-      var P = S.prm, sh = S.ship;
+      var sh = S.ship;
       for (var i = 0; i < S.enemies.length; i++) {
         var e = S.enemies[i]; if (!e.alive) continue;
         e.t += dt; if (e.flash > 0) e.flash -= dt;
@@ -299,9 +323,9 @@
           case 'stinger':
             if (e.warn > 0) { e.warn -= dt; e.x = S.cx - 30; break; }
             e.x += e.vx * dt; e.y += Math.max(-30, Math.min(30, (e.y0 - e.y))) * dt; break;
-          case 'pod': e.x += e.vx * dt; e.y += Math.sin(e.t * 1.7) * 12 * dt; break;
+          case 'ingot': e.x += e.vx * dt; e.y += Math.sin(e.t * 1.7) * 12 * dt; e.rot = e.t * 0.8; break;
           case 'guard': {
-            var tx = S.cx + W - 110; e.x += Math.max(-90, Math.min(90, (tx - e.x) * 2)) * dt + SCROLL * 0 * dt;
+            var tx = S.cx + W - 110; e.x += Math.max(-90, Math.min(90, (tx - e.x) * 2)) * dt;
             e.y = MID + Math.sin(e.t * 0.8) * Math.max(0, (floorY(e.x) - ceilY(e.x)) / 2 - 50);
             break;
           }
@@ -321,9 +345,9 @@
 
     // ---------- Корабль ----------
     function shipHit(why) {
-      var sh = S.ship; if (sh.dead || S.over || S.phase !== 'play') return;
+      var sh = S.ship; if (sh.dead || S.over || S.phase !== 'play' || S.god) return;   // god — только для съёмки промо
       sh.dead = true; S.lives--; S.deaths++; S.phase = 'dead'; S.phaseT = 1.6;
-      S.optics = []; var D = S.drone; if (D.lvl > 0 && --D.lvl === 0) D.kind = null;   // гибель: оптики теряются, луч дрона слабеет
+      S.heat = 0; S.tier = 0; S.ring = null;   // гибель: жар остывает
       emit('playerHit', { x: sh.x, y: sh.y, lives: S.lives, why: why });
       if (S.lives <= 0) { S.over = true; S.phase = 'over'; emit('gameover', { score: S.score }); }
     }
@@ -340,132 +364,86 @@
       if (terrainHit(sh.x, sh.y, SHIP_TW, SHIP_TH)) shipHit('wall');
     }
 
-    // ---------- Огонь: залп по нажатию, заряд удержанием, луч по отпусканию ----------
+    // ---------- Жар: скольжение вдоль кромки ----------
+    function updateHeat(dt) {
+      var sh = S.ship; if (sh.dead) { S.skim = 0; return; }
+      var g = skimGap(sh.x, sh.y), k = g.d < SKIM ? 1 - g.d / SKIM : 0;
+      S.skim = k; S.skimSide = k > 0 ? g.side : null; S.skimX = g.x; S.skimY = g.y;
+      if (k > 0) {
+        addHeat(SKIM_RATE * k * dt); S.heatHold = HEAT_HOLD; S.skimT += dt;
+        skimPts += SKIM_PTS * k * dt; if (skimPts >= 10) { addScore(10); skimPts -= 10; }
+        skimEv -= dt; if (skimEv <= 0) { skimEv = 0.09; emit('skim', { x: g.x, y: g.y, k: k, side: g.side }); }
+      } else if (S.heatHold > 0) S.heatHold -= dt;
+      else if (S.heat > 0) addHeat(-HEAT_DECAY * dt);
+    }
+
+    // ---------- Огонь (автоматический, мощность — от жара) ----------
     function shot(x, y, vx, vy, kind, dmg, extra) {
       var s = { x: x, y: y, vx: vx, vy: vy, kind: kind, dmg: dmg, t: 0, life: 2, r: 3 };
       for (var k in extra) s[k] = extra[k];
       S.shots.push(s); return s;
     }
     function volley() {
-      var sh = S.ship, F = S.fire; if (sh.dead || F.cd > 0) return false;
-      var mine = 0; for (var i = 0; i < S.shots.length; i++) if (S.shots[i].kind === 'shot') mine++;
-      if (mine >= SHOT_MAX) return false;
-      F.cd = VOLLEY_CD; F.flash = 0.06;
-      shot(sh.x + 14, sh.y, SHOT_V, 0, 'shot', 1);
-      S.optics.forEach(function (o) { shot(o.x + 6, o.y, SHOT_V, 0, 'opt', 1, { r: 2 }); });
-      droneFire();
-      emit('shoot', { x: sh.x, y: sh.y });
-      return true;
-    }
-    function droneFire() {
-      var D = S.drone, x = D.x, y = D.y, k = D.kind, L = D.lvl, dmg = L >= 2 ? 2 : 1, i;
-      var cap = 0; for (i = 0; i < S.shots.length; i++) if (S.shots[i].from === 'drone') cap++;
-      if (cap > 30) return;
-      if (D.state !== 'front' && D.state !== 'back') { shot(x + 12, y, SHOT_V * 0.9, 0, 'dshot', 1, { from: 'drone' }); return; }
-      if (!k) return;
-      var sd = D.state === 'front' ? 1 : -1;
-      if (k === 'R') {
-        var angs = L >= 2 ? [0, -0.42, 0.42, -0.2, 0.2] : [0, -0.45, 0.45];
-        angs.forEach(function (a) { shot(x + sd * 10, y, Math.cos(a) * 480 * sd, Math.sin(a) * 480, 'ric', dmg, { from: 'drone', bounces: 2, life: 1.2, dir: sd }); });
-      } else if (k === 'S') {
-        [-1, 1].forEach(function (v) { shot(x, y + v * 6, 110 * sd, v * 330, 'crawl', dmg, { from: 'drone', mode: 'seek', vside: v, life: 1.5, dir: sd }); });
-        if (L >= 2) shot(x + sd * 10, y, 520 * sd, 0, 'dshot', 1, { from: 'drone' });
-      } else if (k === 'V') {
-        var n = L >= 2 ? 7 : 5, spread = L >= 2 ? 0.6 : 0.44;
-        for (i = 0; i < n; i++) { var a2 = -spread + 2 * spread * i / (n - 1); shot(x + sd * 10, y, Math.cos(a2) * 470 * sd, Math.sin(a2) * 470, 'fan', dmg, { from: 'drone', life: L >= 2 ? 0.55 : 0.45 }); }
+      var sh = S.ship; if (sh.dead || S.fireCd > 0 || S.shots.length > SHOTS_MAX) return false;
+      S.fireCd = FIRE_CD; S.flash = 0.06;
+      var x = sh.x + 14, y = sh.y, t = S.tier;
+      if (t === 0) shot(x, y, SHOT_V, 0, 'shot', 1);
+      else if (t === 1) { shot(x, y - 4, SHOT_V, 0, 'shot', 1); shot(x, y + 4, SHOT_V, 0, 'shot', 1); }
+      else {
+        shot(x, y - 4, SHOT_V, 0, 'hot', 1.5, { r: 4 }); shot(x, y + 4, SHOT_V, 0, 'hot', 1.5, { r: 4 });
+        [-0.2, 0.2].forEach(function (a) { shot(x, y, Math.cos(a) * SHOT_V * 0.9, Math.sin(a) * SHOT_V * 0.9, 'spark', 1, { life: 0.55, r: 2 }); });
       }
-    }
-    function chargeBeam(c) {
-      var sh = S.ship, dmg = Math.round(3 + 9 * c), h = 6 + 18 * c;
-      shot(sh.x + 16, sh.y, BEAM_V, 0, 'beam', dmg, { h: h, r: h / 2, pierce: dmg, hitIds: [], c: c });
-      emit('beam', { x: sh.x, y: sh.y, c: c, dmg: dmg });
+      emit('shoot', { x: sh.x, y: sh.y, tier: t });
+      return true;
     }
     function updateFire(dt) {
-      var F = S.fire;
-      if (F.cd > 0) F.cd -= dt; if (F.flash > 0) F.flash -= dt;
-      if (S.ship.dead || (S.phase !== 'play' && S.phase !== 'intro')) { F.held = false; F.charge = 0; F.heldT = 0; return; }
-      if (fireHeld && !F.held) { F.held = true; F.heldT = 0; F.charge = 0; volley(); }
-      else if (fireHeld && F.held) {
-        F.heldT += dt;
-        if (F.heldT > CHARGE_DELAY) { var was = F.charge; F.charge = Math.min(1, (F.heldT - CHARGE_DELAY) / CHARGE_TIME); if (was < 1 && F.charge >= 1) emit('chargeFull', {}); }
-      } else if (!fireHeld && F.held) {
-        F.held = false;
-        if (F.charge >= CHARGE_MIN) chargeBeam(F.charge);
-        F.charge = 0; F.heldT = 0;
-      }
+      if (S.fireCd > 0) S.fireCd -= dt; if (S.flash > 0) S.flash -= dt; if (S.qcd > 0) S.qcd -= dt;
+      if (S.ship.dead || (S.phase !== 'play' && S.phase !== 'intro')) return;
+      volley();
     }
 
-    // ---------- Дрон «Наковальня» ----------
-    function droneToggle() {
-      var D = S.drone, sh = S.ship; if (sh.dead || S.over) return false;
-      if (D.state === 'front' || D.state === 'back') {
-        D.vx = (D.state === 'front' ? 1 : -1) * DRONE_LAUNCH_V; D.state = 'launch'; emit('droneLaunch', { dir: Math.sign(D.vx) });
-      } else if (D.state === 'free' || D.state === 'launch') { D.state = 'return'; emit('droneRecall', {}); }
+    // ---------- Закалка: паровое кольцо ----------
+    function quench() {
+      var sh = S.ship;
+      if (sh.dead || S.over || (S.phase !== 'play' && S.phase !== 'intro') || S.heat < QUENCH_MIN || S.qcd > 0) return false;
+      var h = S.heat;
+      S.ring = { x: sh.x, y: sh.y, r: 8, R: RING_R0 + RING_PER * h, dmg: 2 + h / 12, heat: h, hit: [], boss: false, parts: [], t: 0 };
+      addHeat(-h); S.qcd = QUENCH_CD; S.quenches++; S.heatHold = 0;
+      sh.grace = Math.max(sh.grace, RING_GRACE);
+      if (S.level === 1) S.tutor.quenched = true;
+      emit('quench', { x: sh.x, y: sh.y, heat: h, R: S.ring.R });
       return true;
     }
-    function attach(side) { var D = S.drone; D.state = side; D.vx = 0; emit('droneAttach', { side: side }); }
-    function updateDrone(dt) {
-      var D = S.drone, sh = S.ship, scroll = S.hold || S.cx >= S.lv.len ? 0 : SCROLL;
-      D.spin += dt * 3; if (D.glow > 0) D.glow -= dt;
-      if (D.state === 'front' || D.state === 'back') { D.x = sh.x + (D.state === 'front' ? DRONE_OFF : -DRONE_OFF); D.y = sh.y; }
-      else if (D.state === 'launch') {
-        D.x += (D.vx + scroll) * dt; D.y += Math.max(-DRONE_FOLLOW_V, Math.min(DRONE_FOLLOW_V, (sh.y - D.y) * 2)) * dt * 0.5;
-        var sx = D.x - S.cx;
-        if ((D.vx > 0 && sx >= W - 70) || (D.vx < 0 && sx <= 40)) { D.state = 'free'; D.homeSX = Math.max(40, Math.min(W - 70, sx)); D.vx = 0; }
-      } else if (D.state === 'free') {
-        D.x += scroll * dt; D.x = S.cx + D.homeSX;
-        D.y += Math.max(-DRONE_FOLLOW_V, Math.min(DRONE_FOLLOW_V, (sh.y - D.y) * 3)) * dt;
-      } else if (D.state === 'return') {
-        var dx = sh.x - D.x, dy = sh.y - D.y, d = Math.hypot(dx, dy) || 1;
-        D.x += dx / d * DRONE_RETURN_V * dt + scroll * dt; D.y += dy / d * DRONE_RETURN_V * dt;
-      }
-      // стыковка: подлетел к кораблю — к носу или к корме, смотря откуда
-      if (!sh.dead && (D.state === 'free' || D.state === 'return') && Math.hypot(D.x - sh.x, D.y - sh.y) < DRONE_OFF + 6) attach(D.x >= sh.x ? 'front' : 'back');
-      // глотает вражеские пули
-      for (var i = S.bullets.length - 1; i >= 0; i--) {
-        var b = S.bullets[i];
-        if (Math.hypot(b.x - D.x, b.y - D.y) < DRONE_R + b.r) { S.bullets.splice(i, 1); S.absorbed++; D.glow = 0.15; emit('absorb', { x: b.x, y: b.y, by: 'drone' }); }
-      }
-      // жжёт касанием (на вылете — вдвое сильнее)
-      var dps = DRONE_DPS * (D.state === 'launch' || D.state === 'return' ? 2 : 1);
-      for (var j = 0; j < S.enemies.length; j++) {
-        var e = S.enemies[j]; if (!e.alive) continue;
-        if (Math.hypot(e.x - D.x, e.y - D.y) < DRONE_R + e.r) { damage(e, dps * dt, 'drone'); if (!e.burnT || e.burnT <= 0) { e.burnT = 0.25; emit('burn', { x: e.x, y: e.y }); } }
-        if (e.burnT > 0) e.burnT -= dt;
+    function updateRing(dt) {
+      var Rg = S.ring; if (!Rg) return;
+      var sh = S.ship; Rg.x = sh.x; Rg.y = sh.y; Rg.t += dt;
+      Rg.r = Math.min(Rg.R, Rg.r + RING_V * dt);
+      var n = 0, i;
+      for (i = S.bullets.length - 1; i >= 0; i--) { var b = S.bullets[i]; if (Math.hypot(b.x - Rg.x, b.y - Rg.y) < Rg.r + b.r) { S.bullets.splice(i, 1); n++; } }
+      if (n) { S.doused += n; emit('douse', { n: n, x: Rg.x, y: Rg.y }); }
+      for (i = 0; i < S.enemies.length; i++) {
+        var e = S.enemies[i]; if (!e.alive || e.warn > 0 || Rg.hit.indexOf(e) >= 0) continue;
+        if (Math.hypot(e.x - Rg.x, e.y - Rg.y) < Rg.r + e.r) { Rg.hit.push(e); damage(e, Rg.dmg, 'ring'); }
       }
       var B = S.boss;
-      if (B && B.alive && B.open && Math.hypot(B.weak.x - D.x, B.weak.y - D.y) < DRONE_R + B.weak.r) bossDamage(dps * dt, 'drone');
-    }
-    function updateOptics(dt) {
-      var sh = S.ship;
-      for (var i = 0; i < S.optics.length; i++) {
-        var o = S.optics[i], ty = sh.y + (i === 0 ? -OPTIC_DY : OPTIC_DY), tx = sh.x - 4;
-        o.x += (tx - o.x) * Math.min(1, dt * 12); o.y += (ty - o.y) * Math.min(1, dt * 12); o.t += dt;
-        for (var j = S.bullets.length - 1; j >= 0; j--) {
-          var b = S.bullets[j];
-          if (Math.hypot(b.x - o.x, b.y - o.y) < OPTIC_R + b.r) { S.bullets.splice(j, 1); S.absorbed++; emit('absorb', { x: b.x, y: b.y, by: 'optic' }); }
-        }
+      if (B && B.alive && B.enter <= 0) {
+        if (!Rg.boss && B.open && Math.hypot(B.weak.x - Rg.x, B.weak.y - Rg.y) < Rg.r + B.weak.r) { Rg.boss = true; bossDamage(Rg.dmg * 2, 'ring'); }
+        B.parts.forEach(function (p) { if (p.alive && Rg.parts.indexOf(p) < 0 && Math.hypot(p.x - Rg.x, p.y - Rg.y) < Rg.r + 18) { Rg.parts.push(p); partDamage(p, Rg.dmg); } });
       }
+      if (Rg.r >= Rg.R) S.ring = null;
     }
 
     // ---------- Снаряды игрока ----------
     function hitTest(s) {   // → true: снаряд поглощён
       var i, rad = s.r || 3;
       for (i = 0; i < S.enemies.length; i++) {
-        var e = S.enemies[i]; if (!e.alive) continue;
-        if (Math.abs(e.x - s.x) < e.r + (s.kind === 'beam' ? 8 : rad) && Math.abs(e.y - s.y) < e.r + rad) {
-          if (s.kind === 'beam') {
-            if (s.hitIds.indexOf(e) >= 0) continue;
-            s.hitIds.push(e); var hp = e.hp; damage(e, s.pierce, 'beam'); s.pierce -= Math.max(1, Math.ceil(hp));
-            if (s.pierce <= 0) return true; continue;
-          }
-          damage(e, s.dmg, s.kind); return true;
-        }
+        var e = S.enemies[i]; if (!e.alive || e.warn > 0) continue;
+        if (Math.abs(e.x - s.x) < e.r + rad && Math.abs(e.y - s.y) < e.r + rad) { damage(e, s.dmg, s.kind); return true; }
       }
       var B = S.boss;
       if (B && B.alive) {
-        if (B.open && Math.hypot(B.weak.x - s.x, B.weak.y - s.y) < B.weak.r + rad) { bossDamage(s.kind === 'beam' ? s.pierce : s.dmg, s.kind); return true; }
-        for (i = 0; i < B.armor.length; i++) { var a = B.armor[i]; if (Math.hypot(a.x - s.x, a.y - s.y) < a.r + rad) { if (a.part) partDamage(a.part, s.kind === 'beam' ? s.pierce : s.dmg); else emit('clang', { x: s.x, y: s.y }); return true; } }
+        if (B.open && Math.hypot(B.weak.x - s.x, B.weak.y - s.y) < B.weak.r + rad) { bossDamage(s.dmg, s.kind); return true; }
+        for (i = 0; i < B.armor.length; i++) { var a = B.armor[i]; if (Math.hypot(a.x - s.x, a.y - s.y) < a.r + rad) { if (a.part) partDamage(a.part, s.dmg); else emit('clang', { x: s.x, y: s.y }); return true; } }
       }
       return false;
     }
@@ -475,25 +453,9 @@
         s.t += dt; if (s.t > s.life) { S.shots.splice(i, 1); continue; }
         var dist = Math.hypot(s.vx, s.vy) * dt, n = Math.max(1, Math.ceil(dist / 8));
         for (var k = 0; k < n && !dead; k++) {
-          var h = dt / n;
-          if (s.kind === 'crawl' && s.mode === 'crawl') {
-            s.x += s.dir * 330 * h;
-            var ny = s.vside < 0 ? ceilY(s.x) + 5 : floorY(s.x) - 5;
-            if (Math.abs(ny - s.y) > 14 || mechHit(s.x, ny, 1, 1)) { dead = true; break; }
-            s.y = ny;
-          } else {
-            var nx = s.x + s.vx * h, ny2 = s.y + s.vy * h;
-            if (solid(nx, ny2)) {
-              if (s.kind === 'ric' && s.bounces > 0 && !mechHit(nx, ny2, 0.5, 0.5)) {
-                s.bounces--; s.vy = -s.vy; ny2 = s.y; if (solid(nx, ny2)) nx = s.x;   // крутой склон — отскок на месте
-                if (solid(nx, ny2)) { dead = true; break; }
-                emit('ricochet', { x: nx, y: s.y });
-              } else if (s.kind === 'crawl' && s.mode === 'seek' && !mechHit(nx, ny2, 0.5, 0.5)) {
-                s.mode = 'crawl'; s.y = s.vside < 0 ? ceilY(s.x) + 5 : floorY(s.x) - 5; continue;
-              } else { dead = true; emit('wallHit', { x: nx, y: ny2, kind: s.kind }); break; }
-            }
-            s.x = nx; s.y = ny2;
-          }
+          var h = dt / n, nx = s.x + s.vx * h, ny = s.y + s.vy * h;
+          if (solid(nx, ny)) { dead = true; emit('wallHit', { x: nx, y: ny, kind: s.kind }); break; }
+          s.x = nx; s.y = ny;
           var sx = s.x - S.cx;
           if (sx > W + 20 || sx < -20 || s.y < TOP - 10 || s.y > H + 10) { dead = true; break; }
           if (hitTest(s)) dead = true;
@@ -512,31 +474,13 @@
         if (!sh.dead && sh.grace <= 0 && Math.abs(b.x - sh.x) < SHIP_HW + b.r - 2 && Math.abs(b.y - sh.y) < SHIP_HH + b.r - 1) { S.bullets.splice(i, 1); shipHit('bullet'); return; }
       }
     }
-    function updateCaps(dt) {
-      var sh = S.ship, D = S.drone;
-      for (var i = S.caps.length - 1; i >= 0; i--) {
-        var c = S.caps[i]; c.t += dt; c.x += (S.hold || S.cx >= S.lv.len ? -20 : SCROLL - 24) * dt; c.y += Math.sin(c.t * 3) * 10 * dt;
-        if (c.x - S.cx < -20) { S.caps.splice(i, 1); continue; }
-        var byShip = !sh.dead && Math.hypot(c.x - sh.x, c.y - sh.y) < 18, byDrone = (D.state === 'front' || D.state === 'back') && Math.hypot(c.x - D.x, c.y - D.y) < 18;
-        if (byShip || byDrone) { S.caps.splice(i, 1); pickup(c.type); }
-      }
-    }
-    function pickup(type) {
-      var D = S.drone;
-      if (type === 'O') {
-        if (S.optics.length < 2) S.optics.push({ x: S.ship.x, y: S.ship.y, t: 0 }); else addScore(500);
-      } else if (D.kind === type) D.lvl = Math.min(2, D.lvl + 1);
-      else { D.kind = type; D.lvl = Math.max(1, D.lvl); }
-      addScore(100); D.glow = 0.5;
-      emit('pickup', { type: type, lvl: D.lvl, optics: S.optics.length });
-    }
 
     // ---------- Боссы ----------
-    var BOSS_HP = { crucible: 36, hammer: 42, worm: 30, hive: 48, mirror: 50, heart: 72 };
+    var BOSS_HP = { crucible: 30, hammer: 34, worm: 26, hive: 40, mirror: 42, heart: 52 };
     function spawnBoss() {
       var L = S.lv, type = L.def.boss, hp = Math.round(BOSS_HP[type] * S.prm.bossHp);
       var B = { type: type, x: L.len + W - 130, y: MID, bx: L.len + W - 130, hp: hp, max: hp, t: 0, fireT: 2.0, alive: true, open: false, flash: 0,
-        weak: { x: 0, y: 0, r: 13 }, armor: [], parts: [], segs: [], phase2: false, enter: 1.6 };
+        weak: { x: 0, y: 0, r: 13 }, armor: [], parts: [], segs: [], hot: 9, phase2: false, enter: 1.6 };
       if (type === 'heart') B.parts = [{ dy: -96, hp: 12, max: 12, alive: true, fireT: 1.5 }, { dy: 96, hp: 12, max: 12, alive: true, fireT: 2.2 }];
       if (type === 'worm') for (var i = 0; i < 10; i++) B.segs.push({ x: B.x, y: B.y });
       S.boss = B; layoutBoss(B, 0);
@@ -562,13 +506,14 @@
           B.armor.push(B.head);
           break;
         }
-        case 'worm': {   // Многоножка: петля «восьмёркой», уязвим только хвост
+        case 'worm': {   // Цепь: звенья петляют «восьмёркой»; раскалённое звено бежит от хвоста к голове — уязвимо только оно
           var cx = S.cx + W - 230, path = function (tt) { return { x: cx + 160 * Math.cos(tt * 0.7), y: MID + 105 * Math.sin(tt * 1.4) }; };
           if (B.enter > 0) cx += B.enter * 220;
           for (var i = 0; i < B.segs.length; i++) { var q = path(t - i * 0.2); B.segs[i].x = q.x; B.segs[i].y = q.y; }
           B.x = B.segs[0].x; B.y = B.segs[0].y; B.open = true;
-          for (i = 0; i < B.segs.length - 1; i++) B.armor.push({ x: B.segs[i].x, y: B.segs[i].y, r: i === 0 ? 18 : 15 });
-          var tl = B.segs[B.segs.length - 1]; B.weak = { x: tl.x, y: tl.y, r: 13 };
+          B.hot = 9 - Math.floor((t * sp) / 1.2) % 9;   // 9..1, по 1.2 с
+          for (i = 0; i < B.segs.length; i++) if (i !== B.hot) B.armor.push({ x: B.segs[i].x, y: B.segs[i].y, r: i === 0 ? 18 : 15 });
+          var hs = B.segs[B.hot]; B.weak = { x: hs.x, y: hs.y, r: 14 };
           break;
         }
         case 'hive':   // Улей: ядро открыто, пока выпускает рой
@@ -602,11 +547,11 @@
     function bossDamage(dmg, by) {
       var B = S.boss; if (!B || !B.alive || B.enter > 0) return;
       B.hp -= dmg; B.flash = 0.1;
-      if (by !== 'drone') { addScore(20); emit('bossHit', { x: B.weak.x, y: B.weak.y, hp: B.hp }); }
+      addScore(20); emit('bossHit', { x: B.weak.x, y: B.weak.y, hp: B.hp, by: by });
       if (!B.phase2 && B.hp <= B.max / 2) { B.phase2 = true; emit('bossRage', {}); }
       if (B.hp <= 0) {
         B.alive = false; S.kills++; var pts = 5000 + 1000 * S.level; addScore(pts);
-        S.bullets = []; S.laser = null; S.enemies.forEach(function (e) { e.alive = false; }); S.enemies = [];
+        S.bullets = []; S.laser = null; S.ring = null; S.enemies.forEach(function (e) { e.alive = false; }); S.enemies = [];
         emit('bossDie', { x: B.x, y: B.y, pts: pts, type: B.type });
         S.clearBonus = 1000 * S.level; addScore(S.clearBonus);
         S.phase = 'clear'; S.phaseT = 2.6;
@@ -618,11 +563,11 @@
       if (p.hp <= 0 && p.alive) { p.alive = false; addScore(800); emit('partDie', { x: p.x, y: p.y }); }
     }
     function bossFire(B) {
-      var P = S.prm, v, k, a, rate = S.prm.bossRate * (B.phase2 ? 0.8 : 1);
-      var bv = P.bulletV;
+      var P = S.prm, v, k, a, rate = S.prm.bossRate * (B.phase2 ? 0.85 : 1) * 1.2;
+      var bv = P.bulletV * 0.85;
       switch (B.type) {
         case 'crucible':
-          if (B.open) { for (k = -2; k <= 2; k++) { a = Math.PI + k * 0.24 + Math.atan2(S.ship.y - B.weak.y, -(S.ship.x - B.weak.x)) * -0.0; v = aimAt(B.weak.x, B.weak.y, bv, k * 0.24); eBullet(B.weak.x - 6, B.weak.y, v.vx, v.vy); } B.fireT = 1.0 * rate; }
+          if (B.open) { for (k = -2; k <= 2; k++) { v = aimAt(B.weak.x, B.weak.y, bv, k * 0.24); eBullet(B.weak.x - 6, B.weak.y, v.vx, v.vy); } B.fireT = 1.0 * rate; }
           else { var vy = (B.vent = !B.vent) ? -58 : 58; v = aimAt(B.x + 12, B.y + vy, bv * 1.05); eBullet(B.x + 12, B.y + vy, v.vx, v.vy, 'big'); B.fireT = 0.85 * rate; }
           break;
         case 'hammer':
@@ -631,17 +576,17 @@
           B.fireT = (B.phase2 ? 1.6 : 1.3) * rate; break;
         case 'worm': {
           var hd = B.segs[0]; v = aimAt(hd.x, hd.y, bv * 0.9); eBullet(hd.x, hd.y, v.vx, v.vy, 'big');
-          B.fireT = (B.phase2 ? 1.25 : 1.5) * rate; break;
+          B.fireT = (B.phase2 ? 2.0 : 2.6) * rate; break;
         }
         case 'hive':
-          if (B.open) { enemy('moth', B.weak.x - 10, B.weak.y, { y0: B.weak.y + rr(-60, 60), amp: rr(20, 50), ph: rr(0, TAU), vx: -S.prm.mothV - SCROLL * 0, hive: true }); B.fireT = 0.65 * rate; }
+          if (B.open) { enemy('moth', B.weak.x - 10, B.weak.y, { y0: B.weak.y + rr(-60, 60), amp: rr(20, 50), ph: rr(0, TAU), vx: -S.prm.mothV, hive: true }); B.fireT = 0.65 * rate; }
           else { [-0.12, 0.12].forEach(function (o) { var w = aimAt(B.x - 30, B.y, bv, o); eBullet(B.x - 30, B.y, w.vx, w.vy); }); B.fireT = 1.2 * rate; }
           break;
         case 'mirror':
           if (B.mode === 'move') { [-0.25, 0, 0.25].forEach(function (o) { var w = aimAt(B.x - 20, B.y, bv, o); eBullet(B.x - 20, B.y, w.vx, w.vy); }); }
-          B.fireT = 1.1 * rate; break;
+          B.fireT = 1.5 * rate; break;
         case 'heart':
-          if (B.open) { B.spin = (B.spin || 0) + 0.5; for (k = 0; k < 5; k++) { a = Math.PI + (k - 2) * 0.32 + Math.sin(B.spin) * 0.3; eBullet(B.weak.x, B.weak.y, Math.cos(a) * bv * 0.9, Math.sin(a) * bv * 0.9); } B.fireT = 0.55 * rate; }
+          if (B.open) { B.spin = (B.spin || 0) + 0.5; for (k = 0; k < 4; k++) { a = Math.PI + (k - 1.5) * 0.36 + Math.sin(B.spin) * 0.3; eBullet(B.weak.x, B.weak.y, Math.cos(a) * bv * 0.9, Math.sin(a) * bv * 0.9); } B.fireT = 0.85 * rate; }
           else { v = aimAt(B.weak.x, B.weak.y, bv * 1.1); eBullet(B.weak.x, B.weak.y, v.vx, v.vy, 'big'); B.fireT = 1.0 * rate; }
           break;
       }
@@ -656,7 +601,7 @@
       B.fireT -= dt; if (B.fireT <= 0 && S.phase === 'play' && !S.ship.dead) bossFire(B);
       if (B.type === 'heart') B.parts.forEach(function (p) {
         if (!p.alive) return; p.fireT -= dt;
-        if (p.fireT <= 0) { var v = aimAt(p.x, p.y, S.prm.bulletV); eBullet(p.x - 14, p.y, v.vx, v.vy); p.fireT = (B.phase2 ? 1.2 : 1.6) * S.prm.bossRate; }
+        if (p.fireT <= 0) { var v = aimAt(p.x, p.y, S.prm.bulletV); eBullet(p.x - 14, p.y, v.vx, v.vy); p.fireT = (B.phase2 ? 1.5 : 1.9) * S.prm.bossRate; }
       });
       var sh = S.ship; if (sh.dead || sh.grace > 0) return;
       var all = B.armor.concat(B.open ? [B.weak] : []);
@@ -671,7 +616,7 @@
       if (S.banner > 0) S.banner -= dt;
       var L = S.lv;
       if (S.phase === 'intro') {
-        S.phaseT -= dt; moveShip(dt); updateFire(dt); updateDrone(dt); updateOptics(dt); updateShots(dt);
+        S.phaseT -= dt; moveShip(dt); updateHeat(dt); updateFire(dt); updateRing(dt); updateShots(dt);
         if (S.phaseT <= 0) S.phase = 'play';
         return;
       }
@@ -681,7 +626,7 @@
         return;
       }
       if (S.phase === 'clear') {
-        S.phaseT -= dt; moveShip(dt); updateDrone(dt); updateOptics(dt); updateShots(dt);
+        S.phaseT -= dt; moveShip(dt); updateShots(dt); S.skim = 0;
         if (S.phaseT <= 0) {
           if (S.level >= S.maxLevel) { S.over = true; S.won = true; S.phase = 'over'; emit('win', { score: S.score }); }
           else { S.level++; setupLevel(); }
@@ -693,32 +638,41 @@
       while (S.cpIdx + 1 < L.cps.length && S.cx >= L.cps[S.cpIdx + 1]) { S.cpIdx++; S.cp = L.cps[S.cpIdx]; emit('checkpoint', { idx: S.cpIdx, x: S.cp }); }
       while (S.spawnIdx < L.spawns.length && L.spawns[S.spawnIdx].x <= S.cx + W) spawn(L.spawns[S.spawnIdx++]);
       moveShip(dt); if (S.phase !== 'play') return;
+      updateHeat(dt);
       updateFire(dt);
-      updateDrone(dt);
-      updateOptics(dt);
+      updateRing(dt);
       updateShots(dt);
       if (S.phase !== 'play') return;
       updateEnemies(dt); if (S.phase !== 'play') return;
       updateBoss(dt); if (S.phase !== 'play') return;
       updateBullets(dt); if (S.phase !== 'play') return;
-      updateCaps(dt);
       L.mechs.forEach(function (m) { if (Math.abs(m.x - S.cx - W / 2) < W) mechRects(m); });
     }
+
+    // ---------- Реклама за награду (площадки) ----------
+    function reviveAd() {   // «ещё один шанс»: после последнего корабля — 1 корабль у контрольной точки
+      if (!S.over || S.won) return false;
+      S.over = false; S.lives = 1; resetToCheckpoint(false); S.ship.grace = 2.5; S.phase = 'play';
+      emit('respawn', { cp: S.cp, ad: true });
+      return true;
+    }
+    function canBoost() { return !S.over && S.lives < LIFE_MAX; }
+    function boost() { if (!canBoost()) return false; S.lives++; addHeat(HEAT_MAX); emit('life', { lives: S.lives, ad: true }); return true; }
 
     var api = {
       start: function () { setupLevel(); return api; },
       update: update,
       setDir: function (x, y) { dir.x = x > 0 ? 1 : x < 0 ? -1 : 0; dir.y = y > 0 ? 1 : y < 0 ? -1 : 0; },
-      setFire: function (v) { fireHeld = !!v; },
-      tap: function () { fireHeld = true; updateFire(0); fireHeld = false; updateFire(0); },
-      drone: droneToggle,
+      quench: quench,
+      canQuench: function () { return !S.ship.dead && S.heat >= QUENCH_MIN && S.qcd <= 0; },
+      reviveAd: reviveAd, canBoost: canBoost, boost: boost,
       state: function () { return S; },
       _S: S,
       // для тестов и ботов
       _setupLevel: function (n) { S.level = n; setupLevel(); return S; },
-      _ceilY: ceilY, _floorY: floorY, _solid: solid, _terrainHit: terrainHit, _mechRects: mechRects,
-      _spawn: spawn, _enemy: enemy, _bullet: eBullet, _pickup: pickup, _spawnBoss: spawnBoss, _layoutBoss: layoutBoss,
-      _shipHit: shipHit, _volley: volley, _beam: chargeBeam, _bossDamage: bossDamage
+      _ceilY: ceilY, _floorY: floorY, _solid: solid, _terrainHit: terrainHit, _mechRects: mechRects, _skimGap: skimGap,
+      _spawn: spawn, _enemy: enemy, _bullet: eBullet, _heat: function (v) { addHeat(v - S.heat); }, _spawnBoss: spawnBoss, _layoutBoss: layoutBoss,
+      _shipHit: shipHit, _volley: volley, _bossDamage: bossDamage
     };
     return api;
   }
@@ -726,8 +680,9 @@
   Sp.Game = Game;
   Sp.logic = {
     W: W, H: H, TOP: TOP, MID: MID, COL: COL, SCROLL: SCROLL, SHIP_V: SHIP_V, SHIP_HW: SHIP_HW, SHIP_HH: SHIP_HH, SHIP_TW: SHIP_TW, SHIP_TH: SHIP_TH,
-    SHOT_V: SHOT_V, SHOT_MAX: SHOT_MAX, CHARGE_DELAY: CHARGE_DELAY, CHARGE_TIME: CHARGE_TIME, CHARGE_MIN: CHARGE_MIN, BEAM_V: BEAM_V,
-    DRONE_R: DRONE_R, DRONE_OFF: DRONE_OFF, DRONE_DPS: DRONE_DPS, OPTIC_R: OPTIC_R, OPTIC_DY: OPTIC_DY, ARENA: ARENA,
-    EXTRA_LIFE: EXTRA_LIFE, EN: EN, CAPS: CAPS, LEVELS: LEVELS, params: params, buildLevel: buildLevel, mulberry32: mulberry32
+    SHOT_V: SHOT_V, FIRE_CD: FIRE_CD, HEAT_MAX: HEAT_MAX, SKIM: SKIM, SKIM_RATE: SKIM_RATE, HEAT_DECAY: HEAT_DECAY, HEAT_HOLD: HEAT_HOLD,
+    TIER1: TIER1, TIER2: TIER2, KILL_HEAT: KILL_HEAT, INGOT_HEAT: INGOT_HEAT, GUARD_HEAT: GUARD_HEAT,
+    QUENCH_MIN: QUENCH_MIN, QUENCH_CD: QUENCH_CD, RING_V: RING_V, RING_R0: RING_R0, RING_PER: RING_PER, ARENA: ARENA, LIFE_MAX: LIFE_MAX,
+    EXTRA_LIFE: EXTRA_LIFE, EN: EN, LEVELS: LEVELS, params: params, buildLevel: buildLevel, mulberry32: mulberry32, tierOf: tierOf
   };
 })(typeof window !== 'undefined' ? window : globalThis);

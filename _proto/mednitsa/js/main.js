@@ -25,7 +25,8 @@
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#fca044', muted: '#bcbcbc', warn: '#fcc838' })
   };
   var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'mednitsa', strings: M.STR, theme: 'modern', themes: themes,
-    leaderboard: 'mednitsa', flags: flagDefaults, products: { starter: {} } });
+    leaderboard: 'mednitsa', flags: flagDefaults, products: { starter: {} },
+    autoPause: false });   // idle: экономика идёт сама, за скрытую вкладку — окно «пока вас не было» (econ.offline); экран паузы поверх него не нужен (движок v2.10)
   M.g = g;
   function t(k) { return g.t(k); }
   function lang() { return g.i18n.lang; }

@@ -267,16 +267,16 @@
   (function () {
     var b = document.getElementById('bFire');
     if (b) {
-      var on = function (e) { e.preventDefault(); padFire = true; }, off = function (e) { e.preventDefault(); padFire = false; };
+      var on = function (e) { if (!Arcade.touchOk(e)) return; padFire = true; }, off = function (e) { if (!Arcade.touchOk(e)) return; padFire = false; };
       b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('touchend', off, { passive: false }); b.addEventListener('touchcancel', off, { passive: false });
       b.addEventListener('mousedown', on); b.addEventListener('mouseup', off); b.addEventListener('mouseleave', off);
     }
     var bb = document.getElementById('bBoil');
-    if (bb) { var hb = function (e) { e.preventDefault(); padBoil = true; }; bb.addEventListener('touchstart', hb, { passive: false }); bb.addEventListener('mousedown', hb); }
+    if (bb) { var hb = function (e) { if (!Arcade.touchOk(e)) return; padBoil = true; }; bb.addEventListener('touchstart', hb, { passive: false }); bb.addEventListener('mousedown', hb); }
     var bp = document.getElementById('bPause');
-    if (bp) { var h = function (e) { e.preventDefault(); if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); }; bp.addEventListener('touchstart', h, { passive: false }); bp.addEventListener('mousedown', h); }
+    if (bp) { var h = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); }; bp.addEventListener('touchstart', h, { passive: false }); bp.addEventListener('mousedown', h); }
     var br = document.getElementById('bReset');
-    if (br) { var hr = function (e) { e.preventDefault(); if (inPlay()) game.puzzleReset(); }; br.addEventListener('touchstart', hr, { passive: false }); br.addEventListener('mousedown', hr); }
+    if (br) { var hr = function (e) { if (!Arcade.touchOk(e)) return; if (inPlay()) game.puzzleReset(); }; br.addEventListener('touchstart', hr, { passive: false }); br.addEventListener('mousedown', hr); }
   })();
 
   // ---------- DOM: подгонка канвы, подписи, тема страницы ----------

@@ -12,8 +12,10 @@
                 + EN-проход 390×844), нет горизонтального скролла страницы.
      catalog  — /, /en/ (1280×720 и 390×844): 0 ошибок, все карточки, счётчик, пейджинг (страницы, «на странице: все»), фильтры по жанрам,
                 все ссылки на игры и картинки превью обеих тем — HTTP 200; sitemap — каждый адрес отдаётся локально.
+     touch    — tools/touch-sweep.browser.mjs по тем же играм (порт --port + 1, свой браузер — после раздела browser): тапы у краёв и по
+                центру каждой тач-цели — 0 «Ignored attempt to cancel a touch…», 0 двойных нажатий, touch-action:none у целей, без прокрутки/зума.
    Статусы: ok / warn (жёлтый: стоит посмотреть) / fail (красный). Код выхода 1 — есть красные.
-   Запуск:  node tools/qa-run.mjs [--port 8463] [--only slug,slug] [--skip tests,browser,catalog,static] [--jobs N] [--timeout 900]
+   Запуск:  node tools/qa-run.mjs [--port 8463] [--only slug,slug] [--skip tests,browser,catalog,static,touch] [--jobs N] [--timeout 900]
                                   [--slow 120] [--input 10] [--pages 2] [--out qa-report]
    Сервер статики поднимается сам (127.0.0.1:<port>), браузер — один на прогон, вкладок одновременно — --pages. */
 import http from 'node:http';
@@ -375,7 +377,7 @@ async function gameRun(browser, slug, vp) {
           window.dispatchEvent(new Event('blur')); document.dispatchEvent(new Event('visibilitychange'));
           await new Promise((r) => setTimeout(r, 400));
           const ac = g.audio && g.audio.ac;
-          const out = { scene: g._sceneName, ac: ac ? ac.state : null, sound: g.audio ? !!g.audio.on : null };
+          const out = { scene: g._sceneName, ac: ac ? ac.state : null, sound: g.audio ? !!g.audio.on : null, optOut: g.autoPause === false, frozen: !!g._hiddenFreeze, hasPause: !!(g.scenes && g.scenes.pause) };
           delete document.hidden; delete document.visibilityState;
           window.dispatchEvent(new Event('focus')); document.dispatchEvent(new Event('visibilitychange'));
           return out;
@@ -424,8 +426,9 @@ async function gameRun(browser, slug, vp) {
 
 function judgeGame(slug, r) {
   const where = r.vp;
-  // 4xx/5xx — отдельной проверкой ниже; «Ignored attempt to cancel a touchstart…» — вмешательство Chrome (касание пришло неотменяемым,
-  // пока страница считает, что идёт прокрутка): в эмуляции тача под нагрузкой бывает и на холсте с touch-action:none — жёлтым, с виновником
+  // 4xx/5xx — отдельной проверкой ниже; «Ignored attempt to cancel a touchstart…» — вмешательство Chrome: касание пришло неотменяемым
+  // (точка вне «блокирующих» обработчиков — край кнопки/щель пульта, цель подобрал touch adjustment), а код игры позвал preventDefault
+  // без проверки e.cancelable (движок v2.10 — Arcade.touchOk(e)) — жёлтым, с виновником
   const TOUCH_IV = /^Ignored attempt to cancel a touch/;
   const ce = r.consoleErrors.filter((t) => !/^Failed to load resource/.test(t) && !TOUCH_IV.test(t));
   const iv = r.consoleErrors.filter((t) => TOUCH_IV.test(t)).length;
@@ -461,12 +464,18 @@ async function browserGames(browser) {
       done++; log(`  [${done}/${jobs.length}] ${red ? 'FAIL' : 'ok  '} ${slug} ${sec(Date.now() - st)} с${red ? ' — красных ' + red : ''}`);
     }
   }));
-  // автопауза при потере фокуса — одной строкой на весь каталог: без площадки движок v2.9 паузу по blur/скрытой вкладке не ставит
-  // (только с window.Platform, см. _shared/engine.js «v2.7»), поэтому это вопрос движка, а не каждой игры
-  const noPause = [], tested = [];
-  for (const [s, rs] of Object.entries(R.browser)) for (const r of rs) if (r.focus) { tested.push(s); if (r.focus.scene !== 'pause') noPause.push(`${s} (${r.vp})`); }
+  // автопауза при потере фокуса — одной строкой на весь каталог. Движок v2.10: скрытая вкладка в play → пауза и на сайте;
+  // засчитывается и осознанный опт-аут игры (createGame({ autoPause:false }) — idle и т. п.), и заморозка цикла у игры без сцены pause
+  const noPause = [], tested = [], optOut = [], frozen = [];
+  for (const [s, rs] of Object.entries(R.browser)) for (const r of rs) if (r.focus) {
+    tested.push(s); const f = r.focus;
+    if (f.scene === 'pause') continue; if (f.optOut) { optOut.push(s); continue; } if (f.frozen && !f.hasPause) { frozen.push(s); continue; }
+    noPause.push(`${s} (${r.vp})`);
+  }
+  const uniq = (xs) => [...new Set(xs)].join(', ');
   if (tested.length) add('browser', 'каталог', 'автопауза при потере фокуса (blur + скрытая вкладка)', noPause.length ? 'warn' : 'ok',
-    noPause.length ? `нет паузы в ${noPause.length} из ${tested.length} проходов — движок без площадки не ставит паузу (нужна правка engine.js): ${noPause.join(', ')}` : `${tested.length} проходов`);
+    (noPause.length ? `нет паузы в ${noPause.length} из ${tested.length} проходов (движок v2.10 ставит паузу по скрытой вкладке — проверь игру): ${noPause.join(', ')}` : `${tested.length} проходов`) +
+    (optOut.length ? `; опт-аут autoPause:false: ${uniq(optOut)}` : '') + (frozen.length ? `; без сцены pause — заморозка цикла: ${uniq(frozen)}` : ''));
   R.timings.browser = sec(Date.now() - t);
 }
 
@@ -576,6 +585,31 @@ async function catalogRun(browser) {
 }
 
 // ======================================================================
+// 5. Тач-проход (tools/touch-sweep.browser.mjs) — отдельным процессом, после раздела browser (один браузер за раз)
+// ======================================================================
+async function runTouch() {
+  const t = Date.now();
+  const json = path.join(os.tmpdir(), `qa-touch-${process.pid}.json`);
+  const args = [path.join(ROOT, 'tools/touch-sweep.browser.mjs'), ...SLUGS, '--port', String(A.port + 1), '--json', json];
+  log(`touch: ${SLUGS.length} игр (tools/touch-sweep.browser.mjs)…`);
+  const code = await new Promise((res) => {
+    const ch = spawn(process.execPath, args, { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
+    let err = '';
+    ch.stdout.on('data', (d) => { for (const l of String(d).split('\n')) if (/^FAIL /.test(l)) log('  ' + l.slice(0, 200)); });
+    ch.stderr.on('data', (d) => { err += d; });
+    ch.on('close', (c) => { if (c && c !== 1) add('touch', 'touch-sweep', 'запуск', 'fail', `код ${c}: ${err.slice(-600)}`); res(c); });
+  });
+  let rs = []; try { rs = JSON.parse(fs.readFileSync(json, 'utf8')); fs.unlinkSync(json); } catch (e) { if (code === 0 || code === 1) add('touch', 'touch-sweep', 'результаты', 'fail', 'нет JSON: ' + e.message); }
+  for (const r of rs) {
+    const d = [r.warn.length ? `предупреждений Chrome ${r.warn.length}` : '', r.bad.length ? 'preventDefault у неотменяемых: ' + r.bad.slice(0, 2).join(' | ') : '',
+      r.doubles.length ? 'двойные: ' + r.doubles.slice(0, 4).join('; ') : '', r.ta.length ? 'touch-action не none: ' + r.ta.slice(0, 4).join('; ') : '',
+      r.perr.length ? 'pageerror: ' + r.perr.slice(0, 2).join(' | ') : '', r.scroll].filter(Boolean).join(' · ');
+    add('touch', r.slug, `тач-цели: края + центр (${r.targets} целей, ${r.taps} касаний)`, r.status === 'FAIL' ? 'fail' : 'ok', d || (r.status === 'ok' ? '' : r.status));
+  }
+  R.timings.touch = sec(Date.now() - t);
+}
+
+// ======================================================================
 // отчёт
 // ======================================================================
 function writeReport() {
@@ -591,7 +625,7 @@ function writeReport() {
     Object.entries(R.timings).filter(([k2]) => k2 !== 'total').map(([k2, v]) => `, ${k2} ${fmtT(v)}`).join('') + '.');
   L.push(`Параметры: jobs ${A.jobs}, timeout ${A.timeout} с, slow ${A.slow} с, ввод ${A.input} с, вкладок ${A.pages}${SKIP.size ? ', пропущено: ' + [...SKIP].join(',') : ''}.`, '');
   L.push('| раздел | ok | warn | fail |', '|---|---:|---:|---:|');
-  for (const a of ['static', 'tests', 'browser', 'catalog']) if (R.items.some((x) => x.area === a)) L.push(`| ${a} | ${cnt('ok', a)} | ${cnt('warn', a)} | ${cnt('fail', a)} |`);
+  for (const a of ['static', 'tests', 'browser', 'catalog', 'touch']) if (R.items.some((x) => x.area === a)) L.push(`| ${a} | ${cnt('ok', a)} | ${cnt('warn', a)} | ${cnt('fail', a)} |`);
   L.push(`| **всего** | ${cnt('ok')} | ${cnt('warn')} | **${cnt('fail')}** |`, '');
   const sect = (st, title) => {
     const xs = R.items.filter((x) => x.status === st); L.push(`## ${title} (${xs.length})`, '');
@@ -634,6 +668,7 @@ const fmtT = (s) => s >= 60 ? `${Math.floor(s / 60)} мин ${Math.round(s % 60)
       if (!SKIP.has('catalog')) { log('catalog…'); await catalogRun(browser); }
       if (!SKIP.has('browser')) await browserGames(browser);
     }
+    if (!SKIP.has('touch')) { if (browser) { await browser.close().catch(() => {}); browser = null; } await runTouch(); }
   } catch (e) { add('qa-run', 'qa-run', 'сбой инструмента', 'fail', e.stack || e.message); console.error(e); }
   finally { if (browser) await browser.close().catch(() => {}); if (srv) srv.close(); }
   const out = writeReport();

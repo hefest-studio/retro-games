@@ -70,7 +70,7 @@ addEventListener('keydown',function(e){ if(g._sceneName!=='play'||!game) return;
   else if(e.code==='KeyJ'||e.code==='KeyX'){ game.shoot(); e.preventDefault(); }
 });
 (function(){ var fb=document.getElementById('bFire'); if(!fb) return;
-  var fire=function(e){ e.preventDefault(); if(g._sceneName==='play'&&game) game.shoot(); };
+  var fire=function(e){ if (!Arcade.touchOk(e)) return; if(g._sceneName==='play'&&game) game.shoot(); };
   fb.addEventListener('touchstart',fire,{passive:false}); fb.addEventListener('mousedown',fire);
 })();
 g.start('title');

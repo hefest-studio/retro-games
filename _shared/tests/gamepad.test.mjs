@@ -72,8 +72,8 @@ function ok(c, m) { if (!c) throw new Error(m || 'ложь'); }
 const near = (a, b, e = 1e-6) => Math.abs(a - b) < e;
 
 // ---------- версия, отсутствие API ----------
-test('версия движка 2.9.0; API геймпада экспортировано', () => {
-  const A = makeEnv().A; eq(A.version, '2.9.0'); ok(typeof A.Gamepads === 'function' && A.padNames.includes('start') && A.padKeys.a === 'Space');
+test('версия движка 2.10.0; API геймпада экспортировано', () => {
+  const A = makeEnv().A; eq(A.version, '2.10.0'); ok(typeof A.Gamepads === 'function' && A.padNames.includes('start') && A.padKeys.a === 'Space');
 });
 test('без navigator.getGamepads: игра стартует, кадры идут, count 0, rumble false — без ошибок', () => {
   const env = makeEnv({ nav: false }), g = game(env);

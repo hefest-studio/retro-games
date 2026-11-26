@@ -76,7 +76,7 @@ function syncCfg(){ S.gfx=g.themeName==='retro'?'retro':'modern'; RUSLO.cfg.soun
 addEventListener('keydown',function(e){ if(e.code==='KeyG'&&!e.repeat) g.toggleTheme(); });
 addEventListener('blur',function(){ ['left','right','up','down','fire'].forEach(function(k){ T.hold(k,false); }); });
 document.addEventListener('visibilitychange',function(){ if(document.hidden&&g._sceneName==='play') g.pause(); });
-(function(){ var b=document.getElementById('bPause'); var f=function(e){ e.preventDefault(); if(g._sceneName==='play') g.pause(); else if(g._sceneName==='pause') g.goto('play',{resume:true}); };
+(function(){ var b=document.getElementById('bPause'); var f=function(e){ if (!Arcade.touchOk(e)) return; if(g._sceneName==='play') g.pause(); else if(g._sceneName==='pause') g.goto('play',{resume:true}); };
   b.addEventListener('touchstart',f,{passive:false}); b.addEventListener('mousedown',f); })();
 
 g.useStandardScreens({get subtitle(){ return g.t('subtitle',''); },lives:3});

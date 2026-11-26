@@ -258,7 +258,7 @@
   function bindBtn(id, act) {
     var b = document.getElementById(id); if (!b) return;
     var on = function (e) {
-      e.preventDefault();
+      if (!Arcade.touchOk(e)) return;
       if (act === 'run') { pad.run = !pad.run; b.classList.toggle('on', pad.run); return; }
       if (inPlay()) game.press(act); else if (g._sceneName === 'brief') g.scenes.brief.press.call(g, 'action');
     };
@@ -267,7 +267,7 @@
   bindBtn('bPunch', 'punch'); bindBtn('bKick', 'kick'); bindBtn('bItem', 'item'); bindBtn('bRun', 'run'); bindBtn('bFlash', 'flash');
   (function () {
     var b = document.getElementById('bPause'); if (!b) return;
-    var h = function (e) { e.preventDefault(); if (g._sceneName === 'play') g.goto('pause'); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); };
+    var h = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play') g.goto('pause'); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); };
     b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h);
   })();
 

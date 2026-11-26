@@ -276,7 +276,7 @@
   });
   addEventListener('keyup', function (e) { if (JUMP[e.code]) { held[e.code] = false; extra.jump = !!(held.KeyZ || held.KeyK); } });
   addEventListener('blur', function () { held = {}; extra.jump = false; pad.jump = false; });
-  function tap(id, fn) { var b = document.getElementById(id); if (!b) return; var h = function (e) { e.preventDefault(); fn(); b.classList.add('on'); setTimeout(function () { b.classList.remove('on'); }, 120); }; b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h); }
+  function tap(id, fn) { var b = document.getElementById(id); if (!b) return; var h = function (e) { if (!Arcade.touchOk(e)) return; fn(); b.classList.add('on'); setTimeout(function () { b.classList.remove('on'); }, 120); }; b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h); }
   tap('bBoom', function () { if (inLevel()) game.throwBoom(); });
   tap('bFox', function () { if (inLevel()) game.callFox(); });
   tap('bPause', function () { if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); });

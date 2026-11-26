@@ -73,7 +73,7 @@ addEventListener('keydown',function(e){ if(g._sceneName!=='play'||!game) return;
   else if(e.code==='KeyK'||e.code==='ShiftLeft'||e.code==='ShiftRight'){ game.grapple(); e.preventDefault(); }
 });
 (function(){ function bind(id,fn){ var el=document.getElementById(id); if(!el) return;
-    var h=function(e){ e.preventDefault(); if(g._sceneName==='play'&&game) fn(); };
+    var h=function(e){ if (!Arcade.touchOk(e)) return; if(g._sceneName==='play'&&game) fn(); };
     el.addEventListener('touchstart',h,{passive:false}); el.addEventListener('mousedown',h); }
   bind('bFire',function(){ game.shoot(); }); bind('bHook',function(){ game.grapple(); });
 })();

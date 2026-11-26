@@ -166,8 +166,8 @@
       this.text(this.t('cardNext'), W / 2, H / 2 + 56, { size: 15, align: 'center', color: th.muted, weight: 600, maxWidth: W - 160 });
     }
   });
-  g.canvas.addEventListener('mousedown', function () { if (g._sceneName === 'card') cardGo(); });
-  g.canvas.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { e.preventDefault(); cardGo(); } }, { passive: false });
+  g.canvas.addEventListener('mousedown', function (e) { if (g._sceneName === 'card' && Arcade.touchOk(e)) cardGo(); });
+  g.canvas.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { Arcade.touchOk(e); cardGo(); } }, { passive: false });
   // Tab не уводит фокус из игры
   global.addEventListener('keydown', function (e) { if (e.code === 'Tab' && g._sceneName === 'play') e.preventDefault(); });
   // пауза: тёмная плашка поверх замершего кадра
@@ -202,13 +202,13 @@
   // ---------- тач: прыжок, действие, переключение, пауза ----------
   function hold(id, key) {
     var b = document.getElementById(id); if (!b) return;
-    var on = function (e) { e.preventDefault(); touch[key] = true; }, off = function (e) { e.preventDefault(); touch[key] = false; };
+    var on = function (e) { if (!Arcade.touchOk(e)) return; touch[key] = true; }, off = function (e) { if (!Arcade.touchOk(e)) return; touch[key] = false; };
     b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('touchend', off, { passive: false }); b.addEventListener('touchcancel', off, { passive: false });
     b.addEventListener('mousedown', on); b.addEventListener('mouseup', off); b.addEventListener('mouseleave', off);
   }
   hold('bJump', 'jump'); hold('bAct', 'act'); hold('bSw', 'sw');
   var bp = document.getElementById('bPause');
-  if (bp) { var tp = function (e) { e.preventDefault(); if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); }; bp.addEventListener('touchstart', tp, { passive: false }); bp.addEventListener('mousedown', tp); }
+  if (bp) { var tp = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); }; bp.addEventListener('touchstart', tp, { passive: false }); bp.addEventListener('mousedown', tp); }
 
   var lastLang = null;
   g.onCloud(function () { if (g._sceneName === 'title') refreshMenu(); });

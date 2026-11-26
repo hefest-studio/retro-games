@@ -101,7 +101,7 @@
   });
   function tbtn(selr, fn) {
     var b = pad && pad.querySelector(selr); if (!b) return;
-    var on = function (e) { e.preventDefault(); if (g._sceneName === 'play') fn(); };
+    var on = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play') fn(); };
     b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('mousedown', on);
   }
   tbtn('[data-jump]', function () { if (sel) selConfirm(0); else if (game) game.jump(0); });

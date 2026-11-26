@@ -176,14 +176,14 @@
   addEventListener('blur', function () { held = {}; recompute(); padShift = false; });
   function hold(id, on, off) {
     var b = document.getElementById(id); if (!b) return;
-    var h1 = function (e) { e.preventDefault(); on(); b.classList.add('on'); }, h0 = function (e) { e.preventDefault(); off(); b.classList.remove('on'); };
+    var h1 = function (e) { if (!Arcade.touchOk(e)) return; on(); b.classList.add('on'); }, h0 = function (e) { if (!Arcade.touchOk(e)) return; off(); b.classList.remove('on'); };
     b.addEventListener('touchstart', h1, { passive: false }); b.addEventListener('touchend', h0, { passive: false }); b.addEventListener('touchcancel', h0, { passive: false });
     b.addEventListener('mousedown', h1); b.addEventListener('mouseup', h0); b.addEventListener('mouseleave', function () { if (b.classList.contains('on')) { off(); b.classList.remove('on'); } });
   }
   hold('bStep', function () { padShift = true; }, function () { padShift = false; });
   (function () {
     var b = document.getElementById('bPause'); if (!b) return;
-    var h = function (e) { e.preventDefault(); if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); };
+    var h = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); };
     b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h);
   })();
 

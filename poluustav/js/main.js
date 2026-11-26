@@ -203,16 +203,16 @@
   // ---------- тач: прыжок, действие, пауза; свайп вверх по канве — прыжок ----------
   function hold(id, key) {
     var b = document.getElementById(id); if (!b) return;
-    var on = function (e) { e.preventDefault(); touch[key] = true; }, off = function (e) { e.preventDefault(); touch[key] = false; };
+    var on = function (e) { if (!Arcade.touchOk(e)) return; touch[key] = true; }, off = function (e) { if (!Arcade.touchOk(e)) return; touch[key] = false; };
     b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('touchend', off, { passive: false }); b.addEventListener('touchcancel', off, { passive: false });
     b.addEventListener('mousedown', on); b.addEventListener('mouseup', off); b.addEventListener('mouseleave', off);
   }
   hold('bJump', 'jump'); hold('bAct', 'act');
   var bp = document.getElementById('bPause');
-  if (bp) { var tp = function (e) { e.preventDefault(); if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); }; bp.addEventListener('touchstart', tp, { passive: false }); bp.addEventListener('mousedown', tp); }
+  if (bp) { var tp = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); }; bp.addEventListener('touchstart', tp, { passive: false }); bp.addEventListener('mousedown', tp); }
   var cv = g.canvas, sw = null;
-  cv.addEventListener('touchstart', function (e) { if (g._sceneName !== 'play') return; var t0 = e.changedTouches[0]; sw = { x: t0.clientX, y: t0.clientY, t: Date.now() }; e.preventDefault(); }, { passive: false });
-  cv.addEventListener('touchmove', function (e) { if (!sw || g._sceneName !== 'play') return; var t0 = e.changedTouches[0]; if (sw.y - t0.clientY > 36 && Date.now() - sw.t < 400) { tj = 0.12; sw = null; } e.preventDefault(); }, { passive: false });
+  cv.addEventListener('touchstart', function (e) { if (g._sceneName !== 'play') return; var t0 = e.changedTouches[0]; sw = { x: t0.clientX, y: t0.clientY, t: Date.now() }; Arcade.touchOk(e); }, { passive: false });
+  cv.addEventListener('touchmove', function (e) { if (!sw || g._sceneName !== 'play') return; var t0 = e.changedTouches[0]; if (sw.y - t0.clientY > 36 && Date.now() - sw.t < 400) { tj = 0.12; sw = null; } Arcade.touchOk(e); }, { passive: false });
   cv.addEventListener('touchend', function () { sw = null; });
 
   // подпись под канвой — по языку

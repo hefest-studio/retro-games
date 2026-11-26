@@ -36,12 +36,12 @@
   if (stick) {
     var sid = null;
     var center = function () { var r = stick.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
-    stick.addEventListener('touchstart', function (e) { e.preventDefault(); var tch = e.changedTouches[0]; sid = tch.identifier; var c = center(); setStick(tch.clientX - c[0], tch.clientY - c[1]); }, { passive: false });
-    stick.addEventListener('touchmove', function (e) { e.preventDefault(); for (var i = 0; i < e.changedTouches.length; i++) { var tch = e.changedTouches[i]; if (tch.identifier === sid) { var c = center(); setStick(tch.clientX - c[0], tch.clientY - c[1]); } } }, { passive: false });
-    var end = function (e) { e.preventDefault(); sid = null; setStick(0, 0); };
+    stick.addEventListener('touchstart', function (e) { Arcade.touchOk(e); var tch = e.changedTouches[0]; sid = tch.identifier; var c = center(); setStick(tch.clientX - c[0], tch.clientY - c[1]); }, { passive: false });
+    stick.addEventListener('touchmove', function (e) { Arcade.touchOk(e); for (var i = 0; i < e.changedTouches.length; i++) { var tch = e.changedTouches[i]; if (tch.identifier === sid) { var c = center(); setStick(tch.clientX - c[0], tch.clientY - c[1]); } } }, { passive: false });
+    var end = function (e) { Arcade.touchOk(e); sid = null; setStick(0, 0); };
     stick.addEventListener('touchend', end, { passive: false }); stick.addEventListener('touchcancel', end, { passive: false });
     var md = false;
-    stick.addEventListener('mousedown', function (e) { md = true; var c = center(); setStick(e.clientX - c[0], e.clientY - c[1]); });
+    stick.addEventListener('mousedown', function (e) { if (!Arcade.touchOk(e)) return; md = true; var c = center(); setStick(e.clientX - c[0], e.clientY - c[1]); });
     addEventListener('mousemove', function (e) { if (md) { var c = center(); setStick(e.clientX - c[0], e.clientY - c[1]); } });
     addEventListener('mouseup', function () { if (md) { md = false; setStick(0, 0); } });
   }
@@ -91,7 +91,7 @@
   [0, 1].forEach(function (pi) { g.input.player(pi).onPress(function (name) { act(pi, name); }); });
   if (pad) pad.querySelectorAll('[data-act]').forEach(function (b) {
     var name = b.getAttribute('data-act');
-    var on = function (e) { e.preventDefault(); act(0, name); };
+    var on = function (e) { if (!Arcade.touchOk(e)) return; act(0, name); };
     b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('mousedown', on);
   });
 

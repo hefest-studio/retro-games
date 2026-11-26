@@ -1,252 +1,216 @@
-/* РОЙ · рендер 8-БИТ (retro). ROY.classic = { bg, draw, icon }
-   Свой пиксель-арт: спрайты — массивы строк (символ = цвет из палитры спрайта),
-   пререндер в offscreen-canvas ×3, повороты в пике — шагами по 22.5° (как в старых играх),
-   ограниченная палитра, сканлайны. Логику не трогает — только читает состояние. */
+/* РОЙ · рендер 8-БИТ (retro). ROY.classic = { P, bg, draw, icon }
+   Свой пиксель-арт: спрайты — массивы строк (символ = цвет палитры спрайта), пререндер в offscreen-canvas ×3,
+   ограниченная палитра, сканлайны. Рой — семена-мошки, Матка — соты, корабль «Огниво». Логику не трогает. */
 (function (global) {
   'use strict';
   var R = global.ROY = global.ROY || {};
-  var PX = 3; // размер «пикселя»
+  var PX = 3;
 
-  // ---------- Спрайты (оригинальные) ----------
+  var P = {
+    pixel: true, font: '"Courier New", ui-monospace, monospace', ink: '#fcfcfc', muted: '#a4a4bc', accent: '#fca044', good: '#80d010', bad: '#e40058',
+    panel: '#000008', line: '#fca044', hudBg: '#000008', bar: '#383848', queenBar: '#b870f8', tipEdge: '#80d010'
+  };
+
   var SPR = {
     ship: [[
-      '.....a.....',
-      '....aca....',
-      '....aca....',
-      '...aacaa...',
-      '...aaaaa...',
-      'b..aaaaa..b',
-      'b.aaadaaa.b',
-      'bbaaadaaabb',
-      'baaaadaaaab',
-      'b.aa.d.aa.b',
-      '...o...o...'
+      '....a....',
+      '...aaa...',
+      '..aacaa..',
+      'b.accca.b',
+      'bbaacaabb',
+      'b.aaaaa.b',
+      '...aaa...',
+      '....o....'
     ], [
-      '.....a.....',
-      '....aca....',
-      '....aca....',
-      '...aacaa...',
-      '...aaaaa...',
-      'b..aaaaa..b',
-      'b.aaadaaa.b',
-      'bbaaadaaabb',
-      'baaaadaaaab',
-      'b.aa.d.aa.b',
-      '...y...y...'
+      '....a....',
+      '...aaa...',
+      '..aacaa..',
+      'b.accca.b',
+      'bbaacaabb',
+      'b.aaaaa.b',
+      '...aaa...',
+      '....y....'
     ]],
-    spore: [[
-      'x....x....x',
-      '.x.ggggg.x.',
-      '..ggggggg..',
-      '.gggwwwggg.',
-      'xggwwewwggx',
-      '.gggwwwggg.',
-      '..ggggggg..',
-      '.x.ggggg.x.',
-      'x....x....x'
+    gnat: [[
+      '.......',
+      '..ggg..',
+      '..glgg.',
+      'wwgggww',
+      '.gkgkg.',
+      '..ggg..',
+      '.......'
     ], [
-      '.....x.....',
-      '...ggggg...',
-      'x.ggggggg.x',
-      '.gggwwwggg.',
-      'xggwwewwggx',
-      '.gggwwwggg.',
-      'x.ggggggg.x',
-      '...ggggg...',
-      '.....x.....'
+      '.......',
+      'w.ggg.w',
+      'wwglggw',
+      '.ggggg.',
+      '.gkgkg.',
+      '..ggg..',
+      '.......'
     ]],
-    wedge: [[
-      'r.........r',
-      'rr...k...rr',
-      '.rr.kkk.rr.',
-      '.rrrkykrrr.',
-      '..rrkkkrr..',
-      '...rrkrr...',
-      '....rkr....',
-      '.....r.....',
-      '.....r.....'
-    ], [
-      '...........',
-      'r....k....r',
-      'rr..kkk..rr',
-      '.rrrkykrrr.',
-      '..rrkkkrr..',
-      '...rrkrr...',
-      '....rkr....',
-      '.....r.....',
-      '.....r.....'
+    shell: [[
+      '...sss...',
+      '.ss...ss.',
+      's..ggg..s',
+      's.gglgg.s',
+      's.gkgkg.s',
+      's..ggg..s',
+      '.ss...ss.',
+      '...sss...'
     ]],
-    medusa: [[
-      '....mmmmm....',
-      '..mmmmmmmmm..',
-      '.mmmmmmmmmmm.',
-      '.mmwwmmmwwmm.',
-      'mmmwkmmmkwmmm',
-      'mmmmmmmmmmmmm',
-      'nmnmnmnmnmnmn',
-      '.t.t..t..t.t.',
-      't..t..t..t..t',
-      't...t.t.t...t',
-      '....t...t....'
+    powder: [[
+      '....y.',
+      '...f..',
+      '..rrr.',
+      '.rrlrr',
+      '.rkrkr',
+      '.rrrrr',
+      '..rrr.'
     ], [
-      '....mmmmm....',
-      '..mmmmmmmmm..',
-      '.mmmmmmmmmmm.',
-      '.mmwwmmmwwmm.',
-      'mmmwkmmmkwmmm',
-      'mmmmmmmmmmmmm',
-      'nmnmnmnmnmnmn',
-      '.t.t..t..t.t.',
-      '.t..t.t.t..t.',
-      '..t.t...t.t..',
-      '..t.......t..'
+      '...y..',
+      '...f..',
+      '..rrr.',
+      '.rrlrr',
+      '.rkrkr',
+      '.rrrrr',
+      '..rrr.'
+    ]],
+    burn: [[
+      '..y.y..',
+      '.yoyoy.',
+      'yowwwoy',
+      'owwwwwo',
+      'yowwwoy',
+      '.oyoyo.',
+      '..o.o..'
+    ], [
+      '.y...y.',
+      '..yoy..',
+      '.owwwo.',
+      'yowwwoy',
+      '.owwwo.',
+      '..oyo..',
+      '...o...'
+    ]],
+    queen: [[
+      '.....mmmmmmm.....',
+      '....mhhhmhhhm....',
+      '...mhhhmmmhhhm...',
+      '..mmmmmhhhmmmmm..',
+      '.mhhhmhhhhhmhhhm.',
+      'mhhhmhhcccchmhhhm',
+      'mmmmmhhcwcchmmmmm',
+      'mhhhmhhcccchmhhhm',
+      '.mhhhmhhhhhmhhhm.',
+      '..mmmmmhhhmmmmm..',
+      '...mhhhmmmhhhm...',
+      '....mhhhmhhhm....',
+      '.....mmmmmmm.....'
+    ]],
+    lure: [[
+      '...p...',
+      '..ppp..',
+      '.ppwpp.',
+      'ppwwwpp',
+      '.ppwpp.',
+      '..ppp..',
+      '...p...'
+    ], [
+      '.......',
+      '...p...',
+      '..pwp..',
+      '.pwwwp.',
+      '..pwp..',
+      '...p...',
+      '.......'
     ]]
   };
-  // Ограниченная палитра (тона 8-битных консолей, свои сочетания)
   var PAL = {
-    ship:    { a: '#fcfcfc', b: '#ea6a12', c: '#3cbcfc', d: '#7c7c9c', o: '#fca044', y: '#f8d878' },
-    captive: { a: '#f87898', b: '#a80020', c: '#fcfcfc', d: '#7c2040', o: '#a80020', y: '#a80020' },
-    spore:   { g: '#58d854', x: '#b8f818', w: '#fcfcfc', e: '#0c2c0c' },
-    wedge:   { r: '#e40058', k: '#fca044', y: '#fcfcfc' },
-    medusa:  { m: '#9878f8', n: '#6844fc', w: '#fcfcfc', k: '#000000', t: '#3cbcfc' },
-    medusaH: { m: '#f878f8', n: '#d800cc', w: '#fcfcfc', k: '#000000', t: '#fca044' }
+    ship: { a: '#3cbcfc', b: '#fcfcfc', c: '#fca044', o: '#f83800', y: '#fcd8a8' },
+    gnat: { g: '#80d010', l: '#d8f878', k: '#000000', w: '#bcbcbc' },
+    shell: { s: '#6888fc', g: '#80d010', l: '#d8f878', k: '#000000' },
+    powder: { r: '#f83800', l: '#fca044', k: '#000000', f: '#a4a4a4', y: '#fcfc00' },
+    burn: { y: '#fcfc00', o: '#f87800', w: '#fcfcfc' },
+    queen: { m: '#6844fc', h: '#b870f8', c: '#fca044', w: '#fcfcfc' },
+    queenH: { m: '#fcfcfc', h: '#fcbcfc', c: '#fcfcfc', w: '#fca044' },
+    lure: { p: '#f878f8', w: '#fcfcfc' }
   };
-  var STAR_COL = ['#fcfcfc', '#3cbcfc', '#f8d878', '#f87898', '#7c7c9c'];
+  var STAR_COL = ['#fcfcfc', '#f878f8', '#fcd8a8', '#3cbcfc', '#7c7c9c'];
 
   var cache = {};
   function sprite(name, frame, palName, scale) {
-    scale = scale || PX;
-    var key = name + frame + palName + scale;
-    if (cache[key]) return cache[key];
-    var rows = SPR[name][frame], pal = PAL[palName];
+    scale = scale || PX; var fr = SPR[name][frame % SPR[name].length] ? frame % SPR[name].length : 0;
+    var key = name + fr + palName + scale; if (cache[key]) return cache[key];
+    var rows = SPR[name][fr], pal = PAL[palName || name];
     var c = document.createElement('canvas'); c.width = rows[0].length * scale; c.height = rows.length * scale;
     var x = c.getContext('2d');
     for (var y = 0; y < rows.length; y++) for (var i = 0; i < rows[y].length; i++) {
-      var ch = rows[y][i]; if (ch === '.' || !pal[ch]) continue;
-      x.fillStyle = pal[ch]; x.fillRect(i * scale, y * scale, scale, scale);
+      var ch = rows[y][i]; if (ch === '.' || !pal[ch]) continue; x.fillStyle = pal[ch]; x.fillRect(i * scale, y * scale, scale, scale);
     }
     cache[key] = c; return c;
   }
-  function blit(ctx, img, x, y, ang) {
-    ctx.save(); ctx.translate(Math.round(x), Math.round(y));
-    if (ang) ctx.rotate(Math.round(ang / (Math.PI / 8)) * (Math.PI / 8)); // повороты шагами
-    ctx.drawImage(img, -img.width / 2, -img.height / 2); ctx.restore();
-  }
+  function blit(ctx, img, x, y) { ctx.drawImage(img, Math.round(x - img.width / 2), Math.round(y - img.height / 2)); }
 
-  // ---------- Фон: «пиксельные» звёзды ----------
   var stars = null, lastT = 0;
-  function initStars(W, H) {
-    stars = [];
-    for (var i = 0; i < 70; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, v: 20 + Math.random() * 60, c: STAR_COL[i % STAR_COL.length], ph: Math.random() * 6 });
-  }
   function bg(ctx, g) {
-    var W = g.W, H = g.H; if (!stars) initStars(W, H);
+    var W = g.W, H = g.H;
+    if (!stars) { stars = []; for (var i = 0; i < 64; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, v: 16 + Math.random() * 44, c: STAR_COL[i % STAR_COL.length], ph: Math.random() * 6 }); }
     var dt = Math.min(0.1, Math.max(0, g.time - lastT)); lastT = g.time;
     ctx.fillStyle = '#000008'; ctx.fillRect(0, 0, W, H);
-    for (var i = 0; i < stars.length; i++) {
-      var s = stars[i]; s.y += s.v * dt; if (s.y > H) { s.y = -4; s.x = Math.random() * W; }
-      if (Math.sin(g.time * 3 + s.ph) < -0.6) continue; // мерцание
-      ctx.fillStyle = s.c; var z = s.v > 55 ? 3 : 2;
-      ctx.fillRect((s.x / 3 | 0) * 3, (s.y / 3 | 0) * 3, z, z);
+    for (var j = 0; j < stars.length; j++) {
+      var s = stars[j]; s.y += s.v * dt; if (s.y > H) { s.y = -4; s.x = Math.random() * W; }
+      if (Math.sin(g.time * 3 + s.ph) < -0.6) continue;
+      ctx.fillStyle = s.c; ctx.fillRect((s.x / 3 | 0) * 3, (s.y / 3 | 0) * 3, s.v > 45 ? 3 : 2, s.v > 45 ? 3 : 2);
     }
   }
 
-  function txt(g, s, x, y, size, color, align) { g.text(s, x, y, { size: size, color: color, align: align || 'left', weight: 900 }); }
+  function drone(ctx, d, fr) {
+    if (d.state === 'burn') { blit(ctx, sprite('burn', fr), d.x, d.y); return; }
+    if (d.kind === 'shell') { blit(ctx, d.shell ? sprite('shell', 0) : sprite('gnat', fr), d.x, d.y); if (!d.shell && d.crackT > 0 && fr) blit(ctx, sprite('shell', 0), d.x, d.y); return; }
+    blit(ctx, sprite(d.kind, fr), d.x, d.y);
+  }
 
-  // ---------- Кадр ----------
-  function draw(ctx, st, g) {
-    var W = st.W, i, e, fr = ((g.time * 3) | 0) % 2;
+  function draw(ctx, S, g, o) {
+    o = o || {}; var i, t = g.time, fr = ((t * 6) | 0) % 2, C = R.consts;
     bg(ctx, g);
-
-    // луч Медузы — под ней
-    for (i = 0; i < st.enemies.length; i++) {
-      e = st.enemies[i];
-      if (e.state === 'dive' && (e.sub === 'beam' || e.sub === 'hold')) beam(ctx, e, st, g);
+    ctx.fillStyle = '#181828'; for (var x = 0; x < S.W; x += 12) ctx.fillRect(x, C.PY0 - 16, 6, 3);
+    var L = S.lure;
+    if (L) { var u = (t * 0.8) % 1, rad = 14 + u * 90; ctx.fillStyle = '#f878f8'; for (var a = 0; a < 24; a++) { var an = a / 24 * 6.283; if (((a + fr) % 2)) ctx.fillRect(Math.round(L.x + Math.cos(an) * rad), Math.round(L.y + Math.sin(an) * rad), 3, 3); } }
+    var q = S.queen;
+    if (q && q.alive) {
+      if (q.warn > 0 && fr) { ctx.fillStyle = '#e40058'; ctx.fillRect(q.x - 30, q.y - 30, 60, 3); ctx.fillRect(q.x - 30, q.y + 27, 60, 3); ctx.fillRect(q.x - 30, q.y - 30, 3, 60); ctx.fillRect(q.x + 27, q.y - 30, 3, 60); }
+      blit(ctx, sprite('queen', 0, q.hurtT > 0 ? 'queenH' : 'queen'), q.x, q.y);
     }
-    // враги
-    for (i = 0; i < st.enemies.length; i++) {
-      e = st.enemies[i];
-      if (e.state === 'dead' || e.state === 'wait') continue;
-      var pal = e.kind === 'medusa' && e.hurt ? 'medusaH' : e.kind;
-      var f = e.state === 'form' ? fr : ((g.time * 8) | 0) % 2;
-      blit(ctx, sprite(e.kind, f, pal), e.x, e.y, e.ang);
-      if (e.carry) {
-        var ox = 26 * Math.sin(e.ang), oy = -26 * Math.cos(e.ang);
-        blit(ctx, sprite('ship', 0, 'captive'), e.x + ox, e.y + oy, e.ang + Math.PI);
-      }
+    for (i = 0; i < S.drones.length; i++) { var d = S.drones[i]; if (d.state !== 'dead') drone(ctx, d, (fr + d.id) % 2); }
+    if (L) blit(ctx, sprite('lure', fr), L.x, L.y);
+    for (i = 0; i < S.sparks.length; i++) { var s = S.sparks[i]; ctx.fillStyle = '#fcfcfc'; ctx.fillRect(s.x - 3, s.y - 3, 6, 6); ctx.fillStyle = '#fcfc00'; ctx.fillRect(s.x - 1.5, s.y + 3, 3, 6); ctx.fillStyle = '#f87800'; ctx.fillRect(s.x - 1.5, s.y + 9, 3, 4); }
+    for (i = 0; i < S.spores.length; i++) { var b = S.spores[i]; ctx.fillStyle = fr ? '#b870f8' : '#fcfcfc'; ctx.fillRect(b.x - 4, b.y - 4, 8, 8); ctx.fillStyle = '#6844fc'; ctx.fillRect(b.x - 1.5, b.y - 1.5, 3, 3); }
+    var p = S.player;
+    if (p.alive && !(p.inv > 0 && ((t * 12) | 0) % 2)) blit(ctx, sprite('ship', ((t * 14) | 0) % 2), p.x, p.y);
+    if (!o.bare) {
+      R.ui.hud(g, ctx, S, P, DRAW);
+      R.ui.chainPop(g, ctx, S, P);
+      R.ui.tip(g, ctx, S, P, DRAW);
+      R.ui.banner(g, ctx, S, P);
     }
-    if (st.captive) blit(ctx, sprite('ship', 0, 'captive'), st.captive.x, st.captive.y, st.captive.t * 9);
-    if (st.rescue && ((g.time * 10) | 0) % 2) blit(ctx, sprite('ship', 0, 'ship'), st.rescue.x, st.rescue.y, 0);
-
-    // пули
-    ctx.fillStyle = '#fcfcfc';
-    for (i = 0; i < st.pb.length; i++) { var b = st.pb[i]; ctx.fillStyle = '#fcfcfc'; ctx.fillRect(b.x - 1.5, b.y - 6, 3, 9); ctx.fillStyle = '#f8d878'; ctx.fillRect(b.x - 1.5, b.y - 6, 3, 3); }
-    for (i = 0; i < st.eb.length; i++) { var q = st.eb[i]; ctx.fillStyle = fr ? '#fc7460' : '#fcfcfc'; ctx.fillRect(q.x - 1.5, q.y - 4, 3, 9); ctx.fillStyle = '#e40058'; ctx.fillRect(q.x - 1.5, q.y + 2, 3, 3); }
-
-    // игрок
-    var p = st.player;
-    if (p.alive && !(p.inv > 0 && ((g.time * 12) | 0) % 2)) {
-      var sf = ((g.time * 14) | 0) % 2;
-      blit(ctx, sprite('ship', sf, 'ship'), p.x, st.PLAYER_Y, 0);
-      if (p.dual) blit(ctx, sprite('ship', sf, 'ship'), p.x + st.HULL_GAP, st.PLAYER_Y, 0);
-    }
-
-    hud(ctx, st, g);
-    banner(ctx, st, g);
-    // сканлайны
-    ctx.fillStyle = 'rgba(0,0,0,.22)';
-    for (var y = 0; y < st.H; y += 3) ctx.fillRect(0, y, W, 1);
+    ctx.fillStyle = 'rgba(0,0,0,.2)'; for (var y = 0; y < S.H; y += 3) ctx.fillRect(0, y, S.W, 1);
   }
 
-  function beam(ctx, e, st, g) {
-    var top = e.y + 16, bottom = st.PLAYER_Y + 16;
-    var k = e.sub === 'hold' ? 1 : Math.min(1, e.beamT / 0.8);
-    var fade = e.sub === 'beam' && e.beamT > 2.7 ? Math.max(0, (3.2 - e.beamT) / 0.5) : 1;
-    var len = (bottom - top) * k, band = 6, ph = ((g.time * 12) | 0);
-    for (var y = 0, n = 0; y < len; y += band, n++) {
-      var w = 10 + (st.BEAM_HALF * 2 - 10) * (y / (bottom - top));
-      ctx.fillStyle = (n + ph) % 3 === 0 ? '#a4e4fc' : (n + ph) % 3 === 1 ? '#3cbcfc' : '#0058f8';
-      ctx.globalAlpha = 0.75 * fade;
-      ctx.fillRect(Math.round(e.x - w / 2), Math.round(top + y), Math.round(w), band - 2);
-    }
-    ctx.globalAlpha = 1;
+  var DRAW = {
+    lifeIcon: function (ctx, x, y) { blit(ctx, sprite('ship', 0, 'ship', 2), x, y); },
+    chargeIcon: function (ctx, x, y, on) { ctx.fillStyle = on ? '#fcfc00' : '#383848'; ctx.fillRect(x - 4, y - 4, 8, 8); },
+    lureIcon: function (ctx, x, y, k) { blit(ctx, sprite('lure', 0, 'lure', k >= 1 ? 3 : 2), x, y); if (k < 1) { ctx.fillStyle = '#f878f8'; ctx.fillRect(x - 12, y + 12, Math.round(24 * k), 3); } },
+    btnIcon: function (ctx, x, y, key) { if (key === 'lure') blit(ctx, sprite('lure', 0), x, y); else { ctx.fillStyle = '#fcfc00'; ctx.fillRect(x - 5, y - 5, 10, 10); ctx.fillStyle = '#fcfcfc'; ctx.fillRect(x - 2, y - 2, 4, 4); } },
+    queenIcon: function (ctx, x, y) { blit(ctx, sprite('queen', 0, 'queen', 2), x, y); }
+  };
+
+  function icon(ctx, kind, x, y, g) {
+    var fr = ((g.time * 6) | 0) % 2;
+    if (kind === 'ship') blit(ctx, sprite('ship', fr), x, y);
+    else if (kind === 'queen') blit(ctx, sprite('queen', 0, 'queen', 2), x, y);
+    else if (kind === 'lure') blit(ctx, sprite('lure', fr), x, y);
+    else drone(ctx, { kind: kind, x: x, y: y, state: 'live', shell: kind === 'shell', id: 0, crackT: 0 }, fr);
   }
 
-  function hud(ctx, st, g) {
-    var W = st.W, best = Math.max(g.state.best || 0, st.score);
-    txt(g, g.t('score').toUpperCase(), 12, 18, 12, '#f83800');
-    txt(g, String(st.score), 12, 36, 18, '#fcfcfc');
-    txt(g, g.t('best').toUpperCase(), W - 12, 18, 12, '#f83800', 'right');
-    txt(g, String(best), W - 12, 36, 18, '#fcfcfc', 'right');
-    txt(g, g.t('level').toUpperCase() + ' ' + st.wave + '/' + st.waves, W / 2, 26, 15, '#f8d878', 'center');
-    // запасные корабли (без текущего)
-    var res = Math.max(0, st.lives - (st.player.alive ? 1 : 0)), icon = sprite('ship', 0, 'ship', 2);
-    for (var i = 0; i < Math.min(res, 6); i++) ctx.drawImage(icon, 10 + i * 26, st.H - 26);
-    // флажки пройденных волн
-    for (var w = 0; w < st.wave; w++) {
-      var fx = W - 16 - w * 14, fy = st.H - 24;
-      ctx.fillStyle = '#fcfcfc'; ctx.fillRect(fx, fy, 2, 16);
-      ctx.fillStyle = w < st.wave - 1 || st.phase === 'clear' ? '#ea6a12' : '#7c7c9c'; ctx.fillRect(fx + 2, fy, 8, 6);
-    }
-  }
-
-  function banner(ctx, st, g) {
-    if (!st.banner) return;
-    if (st.banner !== 'wave' && ((g.time * 4) | 0) % 2 === 0 && st.banner === 'captured') return; // мигает
-    var s = st.banner === 'wave' ? g.t('wave') + ' ' + st.wave : g.t(st.banner);
-    var col = st.banner === 'captured' ? '#e40058' : st.banner === 'twin' ? '#58d854' : '#f8d878';
-    var y = st.H * 0.56;
-    ctx.fillStyle = '#000008'; ctx.fillRect(0, y - 30, st.W, 44);
-    ctx.fillStyle = '#ea6a12'; ctx.fillRect(0, y - 30, st.W, 3); ctx.fillRect(0, y + 11, st.W, 3);
-    txt(g, s, st.W / 2, y, 24, col, 'center');
-    if (st.banner === 'wave' && st.wave === 1) txt(g, g.t('controls'), st.W / 2, y + 36, 12, '#a4a4bc', 'center');
-  }
-
-  // Иконка для титульного экрана
-  function icon(ctx, kind, x, y, g, frame) {
-    var pal = kind === 'ship' ? 'ship' : kind;
-    blit(ctx, sprite(kind, frame || 0, pal), x, y, 0);
-  }
-
-  R.classic = { bg: bg, draw: draw, icon: icon, _SPR: SPR };
+  R.classic = { P: P, bg: bg, draw: draw, icon: icon, _SPR: SPR };
 })(typeof window !== 'undefined' ? window : globalThis);

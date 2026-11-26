@@ -1,6 +1,6 @@
-/* ПУЗЫРЬ · рендер RETRO (8-бит). PUZYR.classic = { P, bg, draw, face, item }
-   Пиксельные спрайты (пиксель = 2 px), палитра ранних 8-битных машин: кирпичные платформы
-   в цвет зоны, шары — пиксельные кольца с бликом, сканлайны. Логику не трогает. */
+/* ПУЗЫРЬ · рендер RETRO (8-бит). PUZYR.classic = { P, bg, draw, face }
+   Пиксельные спрайты (пиксель = 2 px), палитра ранних 8-битных машин: кирпичные платформы в цвет зоны,
+   ванны расплава — мигающие полосы, пузырь на трубке — пиксельное кольцо, хлопок — пиксельные дуги, сканлайны. Логику не трогает. */
 (function (global) {
   'use strict';
   var Z = global.PUZYR = global.PUZYR || {};
@@ -9,10 +9,9 @@
   var P = {
     pixel: true, font: '"Courier New", ui-monospace, monospace',
     hudBg: '#000000', hudLine: '#5555ff', ink: '#ffffff', muted: '#aaaaaa', dim: '#444444', accent: '#ffff55', good: '#55ff55', bad: '#ff5555',
-    letter: '#ffff55', panel: '#000000', line: '#5555ff', bar: '#333333', bossBar: '#ff5555',
+    letter: '#ffff55', melt: '#ffaa00', panel: '#000000', line: '#5555ff', bar: '#333333', bossBar: '#ff5555',
     pl: ['#ffaa00', '#55ffff'], plDark: ['#aa5500', '#00aaaa'],
-    en: { cog: '#aaaaaa', spring: '#55ff55', soot: '#aa55ff', spark: '#ff5555' },
-    sp: { fire: '#ff5555', water: '#5555ff', bolt: '#ffff55', letter: '#ffffff' }
+    en: { cog: '#aaaaaa', spring: '#55ff55', soot: '#aa55ff', spark: '#ffaa00' }
   };
   var ZONE = {
     workshop: ['#aa5500', '#ff9955', '#552200'], kiln: ['#aa0000', '#ff5555', '#550000'], glass: ['#00aaaa', '#55ffff', '#005555'],
@@ -39,15 +38,7 @@
     pot: ['....bbbbbbbbbbbbbb....', '..bbyyyyyyyyyyyyyybb..', '.bbyyrryyyyyyyyrryyybb.', '.bbbbbbbbbbbbbbbbbbbb.', 'b.aaaaaaaaaaaaaaaaaa.b', 'b.aaaaaaaaaaaaaaaaaa.b',
       'bbaayyyaaaaaaaayyyaabb', '.aaykyyaaaaaaaykyyaa..', '.aaayyyaaaaaaaayyyaaa.', '.aaaaaaaaaaaaaaaaaaaa.', '.aaaaaarrrrrrrraaaaaa.', '..aaaaaaaaaaaaaaaaaa..',
       '..aaaaaaaaaaaaaaaaaa..', '...aaaaaaaaaaaaaaaa...', '....aaaaaaaaaaaaaa....', '......aaaaaaaaaa......', '.....kk....kk....kk...', '.....kk....kk....kk...'],
-    apple: ['....g...', '...gg...', '.rr.rr..', 'rrrrrrr.', 'rwrrrrr.', 'rrrrrrr.', '.rrrrr..', '..r.r...'],
-    pear: ['...b....', '...y....', '..yyy...', '..yyy...', '.yyyyy..', 'yyyyyyy.', 'yyyyyyy.', '.yyyyy..'],
-    plum: ['...g....', '..aaa...', '.aaaaa..', 'awaaaaa.', 'aaaaaaa.', 'aaaaaaa.', '.aaaaa..', '..aaa...'],
-    nut: ['..wwww..', '.wwwwww.', 'wwwkkwww', 'wwk..kww', 'wwk..kww', 'wwwkkwww', '.wwwwww.', '..wwww..'],
-    gem: ['.cccccc.', 'cwcccccc', 'cccccccc', '.cccccc.', '..cccc..', '...cc...', '........', '........'],
-    crown: ['y..y..y.', 'yy.yy.yy', 'yyyyyyyy', 'yyryyryy', 'yyyyyyyy', 'yyyyyyyy', '........', '........']
   };
-  var ITEMCOL = { apple: { r: '#ff5555', g: '#55ff55', w: '#ffffff' }, pear: { y: '#aaff55', b: '#aa5500' }, plum: { a: '#aa55ff', g: '#55ff55', w: '#ffffff' },
-    nut: { w: '#aaaaaa', k: '#000000' }, gem: { c: '#55ffff', w: '#ffffff' }, crown: { y: '#ffff55', r: '#ff5555' } };
   function spr(ctx, name, x, y, pal, s, flip) {
     var rows = SPR[name], ps = PX * (s || 1), w = rows[0].length;
     for (var r = 0; r < rows.length; r++) for (var c = 0; c < w; c++) {
@@ -80,8 +71,6 @@
       x.fillRect(bx + ((r % 2) ? 4 : 14), by, 2, 9); x.fillRect(bx + ((r % 2) ? 14 : 4), by + 11, 2, 7);
       if (!frame && !G[(r - 1) * L.COLS + q]) { x.fillStyle = zc[1]; x.fillRect(bx, by, T, 2); }
     }
-    x.fillStyle = '#5555ff';
-    for (i = 0; i < 2; i++) { var ax = (L.GAP0 + 1 + i * 2) * T; x.fillRect(ax - 4, c.height - 12, 8, 2); x.fillRect(ax - 2, c.height - 10, 4, 2); x.fillRect(ax - 4, 6, 8, 2); x.fillRect(ax - 2, 8, 4, 2); }
     cache = c; cacheKey = key; return c;
   }
 
@@ -96,21 +85,27 @@
     for (var i = 0; i < RING.length; i++) ctx.fillRect(Math.round(cx + RING[i][0] * PX * s - PX / 2), Math.round(cy + RING[i][1] * PX * s - PX / 2), Math.ceil(PX * s), Math.ceil(PX * s));
     ctx.fillStyle = '#ffffff'; ctx.fillRect(cx - 10 * s, cy - 10 * s, 4, 2); ctx.fillRect(cx - 12 * s, cy - 8 * s, 2, 4);
   }
-  function bubble(ctx, b, S, g) {
-    var cx = X(b.x), cy = Y(b.y), s = b.phase === 'shoot' ? Math.min(1, 0.5 + b.t * 6) : 1, col = '#55ffff';
-    if (b.enemy) {
-      spr(ctx, b.enemy.type === 'cog' ? 'cog' : b.enemy.type, cx - 12, cy - 11, pal(b.enemy.angry ? '#ff5555' : P.en[b.enemy.type]), 1);
-      col = b.trapT < 2.5 ? (Math.floor(b.t * 8) % 2 ? '#ff5555' : '#ffff55') : b.trapT < 4.5 ? '#ffff55' : '#55ffff';
-    } else if (b.kind === 'letter') {
-      col = '#ffffff'; g.text(g.t('word')[b.letter] || '?', cx, cy + 6, { size: 16, align: 'center', color: P.letter, weight: 900, font: P.font });
-    } else if (b.kind !== 'plain') {
-      col = P.sp[b.kind];
-      ctx.fillStyle = col;
-      if (b.kind === 'fire') { ctx.fillRect(cx - 4, cy - 2, 8, 8); ctx.fillRect(cx - 2, cy - 8, 4, 6); ctx.fillStyle = '#ffff55'; ctx.fillRect(cx - 2, cy + 2, 4, 4); }
-      else if (b.kind === 'water') { ctx.fillRect(cx - 2, cy - 8, 4, 4); ctx.fillRect(cx - 4, cy - 4, 8, 6); ctx.fillRect(cx - 2, cy + 2, 4, 2); }
-      else { ctx.fillRect(cx, cy - 8, 4, 4); ctx.fillRect(cx - 2, cy - 4, 4, 4); ctx.fillRect(cx - 4, cy, 8, 2); ctx.fillRect(cx, cy + 2, 2, 4); ctx.fillRect(cx - 2, cy + 6, 2, 2); }
-    } else if (b.life < 2 && Math.floor(b.t * 10) % 2) return;
-    ring(ctx, cx, cy, col, s);
+  // ---------- Ванны: полосы расплава ----------
+  function vats(ctx, S, t) {
+    (S.vats || []).forEach(function (v) {
+      var x0 = v.c0 * T, w = (v.c1 - v.c0 + 1) * T, y0 = Y(L.ROWS - 1) + 4;
+      ctx.fillStyle = '#aa0000'; ctx.fillRect(x0, y0, w, T - 4);
+      ctx.fillStyle = '#ff5555'; ctx.fillRect(x0, y0, w, 6);
+      ctx.fillStyle = '#ffff55'; for (var k = 0; k < w; k += 8) if ((Math.floor(t * 6) + k / 8) % 3 === 0) ctx.fillRect(x0 + k, y0, 4, 2);
+      ctx.fillStyle = Math.floor(t * 4) % 2 ? '#ffaa00' : '#ff5555';
+      var q = Math.floor(t * 8) % 6; ctx.fillRect(x0 + 6 + (q * 5) % (w - 10), y0 - 4 - q, 4, 4);
+    });
+  }
+  function blasts(ctx, S) {
+    S.blasts.forEach(function (b) {
+      var k = 1 - b.t / 0.32, cx = X(b.x), cy = Y(b.y), R0 = b.range * T * (0.25 + 0.75 * k);
+      if (Math.floor(k * 8) % 2 && k > 0.6) return;
+      for (var i = 0; i < 3; i++) {
+        var r = R0 * (0.5 + i * 0.25); ctx.fillStyle = i === 1 ? '#ffff55' : '#55ffff';
+        for (var a = -0.45; a <= 0.45; a += 0.09) { var px = cx + b.face * Math.cos(a) * r, py = cy + Math.sin(a) * r; ctx.fillRect(Math.round(px / 2) * 2 - 2, Math.round(py / 2) * 2 - 2, 4, 4); }
+      }
+      ctx.fillStyle = '#ffffff'; for (var j = 0; j < 6; j++) { var an = j * 1.05, d = 4 + k * 20; ctx.fillRect(Math.round(cx + Math.cos(an) * d), Math.round(cy + Math.sin(an) * d), 2, 2); }
+    });
   }
 
   // ---------- Кадр ----------
@@ -118,52 +113,35 @@
     o = o || {};
     ctx.drawImage(staticLayer(S), 0, OY);
     var t = S.time;
-    // потоки: пунктир
-    if (S.wind) S.wind.zones.forEach(function (Q) {
-      ctx.fillStyle = '#222266';
-      for (var k = 0; k < 6; k++) { var ph = (t * 0.4 + k * 0.17) % 1, x = Q.x0 + ((k * 0.61) % 1) * (Q.x1 - Q.x0) + Q.vx * ph * 2, y = Q.y0 + ((k * 0.37 + ph) % 1) * (Q.y1 - Q.y0); ctx.fillRect(X(x) - X(x) % 2, Y(y) - Y(y) % 2, 4, 2); }
-    });
-    S.items.forEach(function (it) { if (it.t < 2 && Math.floor(it.t * 10) % 2) return; spr(ctx, it.kind, X(it.x) - 8, Y(it.y) - 16, ITEMCOL[it.kind], 1); });
     S.enemies.forEach(function (e) {
       if (e.spawnT > 0 && Math.floor(t * 12) % 2) return;
-      var name = e.type === 'cog' && Math.floor(t * 6) % 2 ? 'cog2' : e.type, h = SPR[name].length * PX;
-      var col = e.angry ? '#ff5555' : P.en[e.type];
+      if (e.y > L.ROWS - 0.9 && Math.floor(t * 16) % 2) return;
+      var name = e.type === 'cog' && (e.mode === 'tumble' ? Math.floor(t * 16) % 2 : Math.floor(t * 6) % 2) ? 'cog2' : e.type, h = SPR[name].length * PX;
+      var col = e.mode === 'walk' ? P.en[e.type] : (e.mode === 'daze' ? '#ffffff' : P.en[e.type]);
       if (e.charge > 0 && Math.floor(t * 16) % 2) col = '#ffffff';
-      spr(ctx, name, X(e.x) - 12, Y(e.y) - h - (e.type === 'soot' ? 6 : 0), pal(col, '#555555'), 1, e.dir < 0);
+      var flip = e.mode === 'tumble' ? Math.floor(t * 12) % 2 === 0 : e.dir < 0;
+      var dy = e.mode === 'tumble' ? (Math.floor(t * 12) % 2) * 2 : 0;
+      spr(ctx, name, X(e.x) - 12, Y(e.y) - h - (e.type === 'soot' && !e.downed ? 6 : 0) - dy, pal(col, '#555555'), 1, flip);
+      if (e.mode === 'daze' && e.daze > 0) { ctx.fillStyle = Math.floor(t * 8) % 2 ? '#ffff55' : '#ffffff'; var a = t * 6; ctx.fillRect(X(e.x) + Math.round(Math.cos(a) * 8) - 2, Y(e.y) - h - 8, 4, 4); ctx.fillRect(X(e.x) - Math.round(Math.cos(a) * 8) - 2, Y(e.y) - h - 6, 4, 4); }
     });
     if (S.boss && S.boss.alive) {
       var B = S.boss, bw = 22 * 4, bh = 18 * 4;
-      if (!(B.spawnT > 0 && Math.floor(t * 12) % 2)) {
-        if (B.trapped) {
-          spr(ctx, 'pot', X(B.x) - bw / 3, Y(B.y - B.h / 2) - bh / 3, pal('#555555', '#aaaaaa'), 1.33);
-          var R0 = B.w * T * 0.62; ctx.fillStyle = Math.floor(t * 6) % 2 ? '#ffff55' : '#55ffff';
-          for (var a = 0; a < 64; a++) { var an = a / 64 * Math.PI * 2; ctx.fillRect(Math.round(X(B.x) + Math.cos(an) * R0) - 2, Math.round(Y(B.y - B.h / 2) + Math.sin(an) * R0) - 2, 4, 4); }
-        } else spr(ctx, 'pot', X(B.x) - bw / 2, Y(B.y) - bh, pal(B.flash > 0 ? '#ffffff' : '#555555', '#aaaaaa'), 2);
-      }
+      if (!(B.spawnT > 0 && Math.floor(t * 12) % 2) && !(B.dying && Math.floor(t * 10) % 2))
+        spr(ctx, 'pot', X(B.x) - bw / 2, Y(B.y) - bh, pal(B.flash > 0 ? '#ffffff' : '#555555', '#aaaaaa'), 2);
     }
+    vats(ctx, S, t);
     S.players.forEach(function (p) {
       if (p.out && !p.alive && p.deadT <= 0) return;
       if (!p.alive && Math.floor(t * 10) % 2) return;
       if (p.alive && p.inv > 0 && Math.floor(t * 12) % 2) return;
-      var name = p.blowT > 0 ? 'heroBlow' : (p.ground && p.walk && Math.floor(p.walk * 8) % 2) ? 'hero2' : 'hero';
-      spr(ctx, name, X(p.x) - 12, Y(p.y) - 32 + (p.alive ? 0 : (1.6 - p.deadT) * 10), pal(P.pl[p.i], P.plDark[p.i]), 1, p.face < 0);
+      var ch = p.charging ? Math.min(1, p.charge / L.CHARGE_MAX) : 0;
+      var name = ch > 0 || p.blastT > 0 ? 'heroBlow' : (p.ground && p.walk && Math.floor(p.walk * 8) % 2) ? 'hero2' : 'hero';
+      var hx = X(p.x) - 12, hy = Y(p.y) - 32 + (p.alive ? 0 : (1.6 - p.deadT) * 10);
+      spr(ctx, name, hx, hy, pal(P.pl[p.i], P.plDark[p.i]), 1, p.face < 0);
+      if (ch > 0) { var s = 0.25 + ch * 0.6, br = 9 * PX * s; ring(ctx, X(p.x) + p.face * (14 + br), hy + 12, ch >= 0.99 && Math.floor(t * 12) % 2 ? '#ff5555' : '#55ffff', s); }
     });
-    S.bubbles.forEach(function (b) { bubble(ctx, b, S, g); });
-    // эффекты
-    S.effects.forEach(function (f) {
-      if (f.kind === 'fire') {
-        if (!f.landed) { ctx.fillStyle = '#ff5555'; ctx.fillRect(X(f.x) - 4, Y(f.y) - 10, 8, 8); return; }
-        for (var c = f.c0; c <= f.c1; c++) { var hh = 8 + (Math.floor(t * 12 + c) % 3) * 4; ctx.fillStyle = '#ff5555'; ctx.fillRect(c * T + 2, Y(f.row) - hh, 16, hh); ctx.fillStyle = '#ffff55'; ctx.fillRect(c * T + 6, Y(f.row) - hh / 2, 8, hh / 2); }
-      } else if (f.kind === 'water') {
-        ctx.fillStyle = '#5555ff'; [{ x: f.x, y: f.y }].concat(f.trail).forEach(function (q) { ctx.fillRect(X(q.x) - 8, Y(q.y) - 14, 16, 12); });
-        ctx.fillStyle = '#55ffff'; ctx.fillRect(X(f.x) - 6, Y(f.y) - 12, 4, 4);
-      } else if (f.kind === 'bolt') {
-        ctx.fillStyle = Math.floor(t * 20) % 2 ? '#ffffff' : '#ffff55';
-        var n = 16; for (var i = 0; i <= n; i++) { var q = i / n; ctx.fillRect(X(f.x0 + (f.x - f.x0) * q) - 2, Y(f.y0 + (f.y - f.y0) * q) - 2 + (i % 2 ? 4 : -4), 6, 4); }
-      }
-    });
-    S.shots.forEach(function (s) { ctx.fillStyle = s.kind === 'drop' ? '#ff5555' : '#ffff55'; ctx.fillRect(X(s.x) - 4, Y(s.y) - 4, 8, 8); ctx.fillStyle = '#ffffff'; ctx.fillRect(X(s.x) - 2, Y(s.y) - 2, 2, 2); });
-
+    blasts(ctx, S);
+    S.shots.forEach(function (s) { ctx.fillStyle = s.back ? '#55ffff' : s.kind === 'drop' ? '#ff5555' : '#ffff55'; ctx.fillRect(X(s.x) - 4, Y(s.y) - 4, 8, 8); ctx.fillStyle = '#ffffff'; ctx.fillRect(X(s.x) - 2, Y(s.y) - 2, 2, 2); });
     // сканлайны
     ctx.fillStyle = 'rgba(0,0,0,.18)'; for (var yy = OY; yy < g.H; yy += 4) ctx.fillRect(0, yy, g.W, 1);
     if (o.bare) return;
@@ -172,8 +150,7 @@
     if (o.toasts) Z.ui.toasts(g, ctx, o.toasts, P);
   }
   function face(ctx, x, y, i, s) { spr(ctx, 'hero', x - 12 * s, y - 16 * s, pal(P.pl[i], P.plDark[i]), s); }
-  function item(ctx, kind, x, y, s) { spr(ctx, kind, x - 8 * (s || 1), y - 8 * (s || 1), ITEMCOL[kind], s || 1); }
 
-  var R = { P: P, bg: bg, draw: draw, face: face, item: item, spr: spr, pal: pal };
+  var R = { P: P, bg: bg, draw: draw, face: face, spr: spr, pal: pal, ring: ring };
   Z.classic = R;
 })(typeof window !== 'undefined' ? window : globalThis);

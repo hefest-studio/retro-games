@@ -1,11 +1,11 @@
-# Гефест Arcade — фреймворк (v2.9) · engine.js + host.js + mouse.js + platform.js + aspect.js
+# Гефест Arcade — фреймворк (v2.10) · engine.js + host.js + mouse.js + platform.js + aspect.js
 
 `engine.js` — vanilla JS, **0 зависимостей**. Расширен из микро-движка (v1) в фреймворк с общими
 системами, которые игры дублировали. Критерии проходимость/играбельность/непресность — встроены.
 
 ## Системы
 - **Цикл:** фикс-шаг (детерминированно) + realtime; `g.scene(name,{realtime,enter,update(dt),draw(ctx),press(a)})`.
-- **Ввод (унифиц.):** клавиатура WASD/стрелки + тач-дпад `g.input.bindDpad(root)`; `g.input.dir`, `pressed`, `onPress`. Space=action, Enter=start, P/Esc=pause, M=mute, L=lang, T=theme. Ввод по игрокам (кооп) и `g.input.touchOnly` — раздел «v2.2» ниже. **Геймпад (v2.9)** — раздел «Геймпад» ниже.
+- **Ввод (унифиц.):** клавиатура WASD/стрелки + тач-дпад `g.input.bindDpad(root)`; `g.input.dir`, `pressed`, `onPress`. Space=action, Enter=start, P/Esc=pause, M=mute, L=lang, T=theme. Свои тач-кнопки игры — через `Arcade.touchOk(e)` (раздел «v2.10»). Ввод по игрокам (кооп) и `g.input.touchOnly` — раздел «v2.2» ниже. **Геймпад (v2.9)** — раздел «Геймпад» ниже.
 - **i18n RU/EN (+ любые языки, v2.8):** `Arcade.createGame({strings:{ru,en,tr,…}})`, `g.t(key,fallback)`, `g.i18n.toggle()`, `g.i18n.has(key)`, `g.i18n.pick({ru,en,…})`; язык сохраняется (localStorage `arcade.lang`). Языки игры — ключи `strings` (подробно — раздел «v2.8» ниже).
   **Единое правило выбора языка (v2.3, во всех играх):** 1) параметр адреса `?lang=en|ru` — приоритет, сразу сохраняется в `arcade.lang`
   (EN-страницы каталога ссылаются на игры как `/<slug>/?lang=en`); 2) иначе сохранённый `arcade.lang`; 3) иначе `opts.lang` игры, иначе **ru**.
@@ -120,6 +120,38 @@ P1.onPress(name => …); // нажатие действия этого игро�
 | `bootKeep: true` | первый вход в title не сбрасывает игру (её мог запустить `?level=`) | saga, saga-2 |
 | `bootAdopt: true` | игра при загрузке уже в `play`/`sub` (`#demo=`/`#scene=`/`#wave=`) — движок сразу следует за ней | neon-yarost |
 
+## v2.10: касания без вмешательства Chrome, автопауза на сайте
+**Касания.** Причина предупреждения Chrome «Ignored attempt to cancel a touchstart event with cancelable=false» (жёлтое в QA у ~10 игр):
+касание у края кнопки или в щели пульта (точка вне элемента с блокирующим обработчиком) Chrome отправляет **неотменяемым**, а цель подбирает
+touch adjustment — ближайшую кнопку; её обработчик звал `e.preventDefault()` без проверки → предупреждение. Хуже: раз касание не отменено,
+браузер следом шлёт эмуляцию мыши (`mousedown/mouseup/click`), и у кнопок с парой `touchstart`+`mousedown` одно касание давало **два нажатия**
+(пауза ставилась и тут же снималась, пункт меню выбирался дважды).
+| API | Что делает |
+|---|---|
+| `Arcade.touchOk(e)` | в обработчиках касаний/мыши вместо голого `e.preventDefault()`: `touch*` — `preventDefault()` только если `e.cancelable`, → `true`; `mouse*`/`click` в течение 800 мс после любого касания на странице (эмуляция мыши) → `false` — пропустить; прочие → `true`. Образец: `var h = function (e) { if (!Arcade.touchOk(e)) return; fire(); }; b.addEventListener('touchstart', h, { passive:false }); b.addEventListener('mousedown', h);` |
+| (автоматически) | тач-дпад `bindDpad`, кнопка паузы `usePlayers({ pad })` и тап по меню на холсте — через `touchOk`; click-эмуляция по холсту после касания не выбирает пункт второй раз |
+| `[data-arcade-touch]` | движок ставит атрибут на холст, корень пульта `bindDpad(root)` (кроме `body`), его `[data-d]`-кнопки и `[data-pause]`; правило `:where([data-arcade-touch]){touch-action:none}` — **нулевой специфичности**: своё `touch-action` игры важнее. Прокрутка и двойной тап-зум над пультом/холстом не начинаются, поэтому отмена касания не нужна |
+Слушатели касаний, которые отменяют, — по-прежнему `{ passive:false }`. Игры, где источник был в своём коде, переведены на `touchOk`:
+dospeh, lednik, skok, otsek, kamerton, volok, otgon, poluustav (sborka, priisk, porubezhye — источник в движке).
+
+**Автопауза на сайте (решение владельца, 26.11).**
+| Событие | Сайт (без `platform.js`) | Площадка (`platform.js`) — без изменений |
+|---|---|---|
+| вкладка скрыта (`visibilitychange` → hidden) в `play` | **пауза** (`g.pause()`, `g.awayPaused = true`); звук спит (как раньше) | пауза (v2.6) |
+| вкладка снова видна | остаётся экран паузы — игрок сам жмёт «Продолжить» | так же |
+| у игры нет сцены `pause` | только **заморозка цикла** (`g._hiddenFreeze`): update/draw не идут, при возврате — без скачка `dt` | ничего (как раньше) |
+| `blur` окна / `pagehide` | **только звук** — как раньше (iframe, devtools, адресная строка дают ложные blur), паузы нет | тишина + пауза (v2.7, Яндекс 1.3) |
+| `createGame({ autoPause:false })` | выключено полностью (звук по-прежнему спит при скрытой вкладке) | выключено (blur/hidden — только звук) |
+`g.awayPaused` — `true`, пока стоит пауза, поставленная автопаузой (скрытая вкладка / blur площадки); снимается при уходе со сцены `pause`.
+Опт-аут: `_proto/mednitsa` (idle-кликер: экономика идёт сама, за скрытую вкладку — своё окно «пока вас не было»). Проверены все игры
+каталога (десктоп, `_shared/engine.js`): скрытая вкладка → `pause`, «Продолжить» → `play` без сброса партии — у всех, включая оболочки
+`host.js` и кампании RTS (ПРИИСК, ПОРУБЕЖЬЕ: пауза уместна). Новой игре: если пауза неуместна (idle, «время идёт само») — `autoPause:false`;
+сцена `play` должна понимать `enter({ resume:true })` (как для P).
+Тесты: `node _shared/tests/autopause.test.mjs` (Node: сайт/площадка/заморозка/opt-out, `touchOk`, дпад, холст, кнопка паузы) и
+`node _shared/tests/touch-autopause.browser.mjs [slug …] [--shared] [--input 6]` (Playwright: касания у краёв кнопок + случайные — 0 предупреждений,
+0 `preventDefault` у неотменяемых, одно касание — одно нажатие, без прокрутки/зума; автопауза сайт/«площадка»). `tools/qa-run.mjs` засчитывает
+опт-аут и заморозку как норму.
+
 ## Геймпад (v2.9)
 Gamepad API, раскладка **standard** (её отдают браузер и Electron для большинства геймпадов: буквы ABXY, фигуры, портативные ПК, виртуальный
 геймпад клиента площадки). Опрос — в цикле движка каждый кадр; **без Gamepad API** (или если `getGamepads` запрещён политикой iframe) всё
@@ -213,7 +245,7 @@ Chrome отдаёт геймпад странице только после на
 Без `platform.js` всё безопасно и игра работает как раньше: лидерборд недоступен, флаги = значения игры, покупки → `false`, время — часы устройства.
 | API | Что делает |
 |---|---|
-| (автоматически, с площадкой) | `blur` окна / `pagehide` → AudioContext спит, `play` → пауза; `focus` / `pageshow` → звук снова разрешён (Яндекс 1.3: «любая потеря фокуса»). Без площадки — только скрытая вкладка, как раньше |
+| (автоматически, с площадкой) | `blur` окна / `pagehide` → AudioContext спит, `play` → пауза; `focus` / `pageshow` → звук снова разрешён (Яндекс 1.3: «любая потеря фокуса»). Без площадки blur — только звук (спит при скрытой вкладке); скрытая вкладка — пауза с v2.10 |
 | `createGame({ leaderboard: 'score' })`, `g.leaderboard` | `available()`, `submit(score)` → `Promise<bool>`, `top({ limit })` → `{ entries:[{ rank, score, name, me }], me }`, `me()`, `open()`; с `leaderboard` в опциях новый рекорд из `g.saveBest()` уходит сам |
 | `createGame({ flags: { difficulty: 'normal' } })`, `g.flags` | `get(key, def)` — строка (удалённое значение площадки важнее), `num(key, def)`, `all()`, `ready` — Promise. Служебные: `ad_interstitial_gap` (с), `ad_breaks`, `ad_sticky`, `rewarded_continue`, `rewarded_bonus` (`'0'` — выкл.) |
 | `createGame({ products: { id: { consumable, grant() } } })` / `g.useProducts(map)` | объявить товары **до старта** — при каждом запуске проверяются необработанные покупки (Яндекс 1.13.1): расходуемые → `grant()` → consume |
@@ -236,7 +268,7 @@ Chrome отдаёт геймпад странице только после на
 | `g.useRewardedBonus({ key, scene:'pause'\|'title', label:{ru,en}\|fn, available(), grant(), once:true })` | пункт меню (в паузе — перед «В меню»); виден, только если реклама доступна, бонус ещё не взят в этой партии и `available()` |
 | `g.adBreak()` → `Promise<bool>` | межстраничная в естественной паузе (между уровнями/волнами — по действию игрока); частоту режет адаптер (Яндекс 60 с, GamePush 180 с) |
 | `g.persist(key, 'max'\|'last')`, `g.storeSet(key, v)` | свой ключ localStorage зеркалится в облако площадки; при старте — max (или облачное) |
-| `createGame({ autoPause:false })` | отключить автопаузу при скрытой вкладке (по умолчанию вкл. при площадке) |
+| `createGame({ autoPause:false })` | отключить автопаузу (скрытая вкладка; с площадкой — и blur/pagehide); по умолчанию вкл. — с v2.10 и на сайте |
 Поведение движка с площадкой: экран «Загрузка…» до `Platform.init()` (≤ 6 с), затем язык площадки → меню → `ready()`; межстраничная реклама —
 по нажатию на экране победы/поражения (не при входе); скрытая вкладка в `play` → пауза; `contextmenu/selectstart/dragstart` подавлены.
 Встроенные строки (`loading`, `rw_title`, `rw_continue`, `rw_no`, `rw_fail`, `rw_hint`) — RU/EN в движке, игра может переопределить в своих таблицах.

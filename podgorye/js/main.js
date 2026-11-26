@@ -108,8 +108,8 @@
       this.text(this.t('cardNext'), VW / 2, VH / 2 + 18, { size: 12, align: 'center', color: th.muted, weight: 700, maxWidth: VW - 40 });
     }
   });
-  g.canvas.addEventListener('mousedown', function () { if (g._sceneName === 'card') cardGo(); });
-  g.canvas.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { e.preventDefault(); cardGo(); } }, { passive: false });
+  g.canvas.addEventListener('mousedown', function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'card') cardGo(); });
+  g.canvas.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { Arcade.touchOk(e); cardGo(); } }, { passive: false });
   var title = g.scenes.title, tmenu = g.menu.get('title');
   // «Играть»: есть сохранения — выбор слота; первый запуск (все слоты пусты) — сразу новая игра в слоте 1 (меньше экранов до игры)
   tmenu.items[0].onSelect = function () {
@@ -243,14 +243,14 @@
   addEventListener('blur', function () { held = {}; pad = {}; });
   function hold(id, name) {
     var b = document.getElementById(id); if (!b) return;
-    var on = function (e) { e.preventDefault(); pad[name] = true; b.classList.add('on'); }, off = function (e) { e.preventDefault(); pad[name] = false; b.classList.remove('on'); };
+    var on = function (e) { if (!Arcade.touchOk(e)) return; pad[name] = true; b.classList.add('on'); }, off = function (e) { if (!Arcade.touchOk(e)) return; pad[name] = false; b.classList.remove('on'); };
     b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('touchend', off, { passive: false }); b.addEventListener('touchcancel', off, { passive: false });
     b.addEventListener('mousedown', on); b.addEventListener('mouseup', off); b.addEventListener('mouseleave', function () { if (pad[name]) { pad[name] = false; b.classList.remove('on'); } });
   }
   hold('bShoot', 'shoot'); hold('bDash', 'dash'); hold('bHook', 'hook'); hold('bBeam', 'beam');
   (function () {
     var b = document.getElementById('bPause'); if (!b) return;
-    var h = function (e) { e.preventDefault(); if (g._sceneName === 'play') { if (game && S().phase === 'lift') game.liftCancel(); else g.pause(); } else if (g._sceneName === 'pause') g.goto('play', { resume: true }); };
+    var h = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play') { if (game && S().phase === 'lift') game.liftCancel(); else g.pause(); } else if (g._sceneName === 'pause') g.goto('play', { resume: true }); };
     b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h);
   })();
 

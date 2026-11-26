@@ -175,8 +175,8 @@
       K.ui.txt(this, this.t('next') + ': ' + this.t('lv_' + cardLv) + ' · ' + this.t('tapstart'), W / 2, H / 2 + 40, { size: 12, align: 'center', color: th.muted, weight: 700, maxWidth: W - 40 }, P);
     }
   });
-  g.canvas.addEventListener('mousedown', function () { if (g._sceneName === 'card') cardGo(); });
-  g.canvas.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { e.preventDefault(); cardGo(); } }, { passive: false });
+  g.canvas.addEventListener('mousedown', function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'card') cardGo(); });
+  g.canvas.addEventListener('touchstart', function (e) { if (g._sceneName === 'card') { Arcade.touchOk(e); cardGo(); } }, { passive: false });
 
   // Z / X — тоже выстрел (пробел — действие движка)
   addEventListener('keydown', function (e) {

@@ -129,13 +129,13 @@
     touches[id] = p.x < L.W / 2 ? 'L' : 'R'; flipState(); return true;
   }
   function up(id) { if (touches[id]) { delete touches[id]; flipState(); } }
-  cv.addEventListener('touchstart', function (e) { if (!inPlay()) return; e.preventDefault(); for (var i = 0; i < e.changedTouches.length; i++) { var t = e.changedTouches[i]; down(t.identifier, t.clientX, t.clientY); } }, { passive: false });
+  cv.addEventListener('touchstart', function (e) { if (!inPlay()) return; Arcade.touchOk(e); for (var i = 0; i < e.changedTouches.length; i++) { var t = e.changedTouches[i]; down(t.identifier, t.clientX, t.clientY); } }, { passive: false });
   cv.addEventListener('touchend', function (e) { for (var i = 0; i < e.changedTouches.length; i++) up(e.changedTouches[i].identifier); }, { passive: false });
   cv.addEventListener('touchcancel', function (e) { for (var i = 0; i < e.changedTouches.length; i++) up(e.changedTouches[i].identifier); });
-  cv.addEventListener('mousedown', function (e) { if (down('m', e.clientX, e.clientY)) e.preventDefault(); });
+  cv.addEventListener('mousedown', function (e) { if (Arcade.touchOk(e) && down('m', e.clientX, e.clientY)) e.preventDefault(); });
   addEventListener('mouseup', function () { up('m'); });
   var bT = document.getElementById('bTilt'), bP = document.getElementById('bPause');
-  function onBtn(el, fn) { if (!el) return; var h = function (e) { e.preventDefault(); fn(); }; el.addEventListener('touchstart', h, { passive: false }); el.addEventListener('mousedown', h); }
+  function onBtn(el, fn) { if (!el) return; var h = function (e) { if (!Arcade.touchOk(e)) return; fn(); }; el.addEventListener('touchstart', h, { passive: false }); el.addEventListener('mousedown', h); }
   onBtn(bT, function () { if (inPlay() && game.state().phase === 'wave') game.tilt(); });
   onBtn(bP, function () { if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); });
 

@@ -174,7 +174,7 @@
   // палец / мышь: относительное перемещение
   var drag = null;
   cv.addEventListener('touchstart', function (e) {
-    if (g._sceneName !== 'play' || !game) return; e.preventDefault();
+    if (g._sceneName !== 'play' || !game) return; Arcade.touchOk(e);
     if (S().phase === 'cont') { doCont(); return; }
     for (var i = 0; i < e.changedTouches.length; i++) {
       var t = e.changedTouches[i];
@@ -183,7 +183,7 @@
     }
   }, { passive: false });
   cv.addEventListener('touchmove', function (e) {
-    if (!drag || !game) return; e.preventDefault();
+    if (!drag || !game) return; Arcade.touchOk(e);
     for (var i = 0; i < e.changedTouches.length; i++) {
       var t = e.changedTouches[i]; if (t.identifier !== drag.id) continue;
       var k = scale(); game.drag((t.clientX - drag.x) * k, (t.clientY - drag.y) * k); drag.x = t.clientX; drag.y = t.clientY;
@@ -191,12 +191,12 @@
   }, { passive: false });
   function tEnd(e) { if (!drag) return; for (var i = 0; i < e.changedTouches.length; i++) if (e.changedTouches[i].identifier === drag.id) drag = null; }
   cv.addEventListener('touchend', tEnd, { passive: true }); cv.addEventListener('touchcancel', tEnd, { passive: true });
-  cv.addEventListener('mousedown', function (e) { if (g._sceneName !== 'play' || !game) return; if (S().phase === 'cont') { doCont(); return; } drag = { id: 'm', x: e.clientX, y: e.clientY }; if (e.button === 2) doBomb(); });
+  cv.addEventListener('mousedown', function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName !== 'play' || !game) return; if (S().phase === 'cont') { doCont(); return; } drag = { id: 'm', x: e.clientX, y: e.clientY }; if (e.button === 2) doBomb(); });
   addEventListener('mousemove', function (e) { if (!drag || drag.id !== 'm' || !game) return; var k = scale(); game.drag((e.clientX - drag.x) * k, (e.clientY - drag.y) * k); drag.x = e.clientX; drag.y = e.clientY; });
   addEventListener('mouseup', function () { if (drag && drag.id === 'm') drag = null; });
   cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   // тач-кнопки
-  function btn(id, fn) { var b = document.getElementById(id); if (!b) return; var h = function (e) { e.preventDefault(); e.stopPropagation(); fn(b); }; b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h); }
+  function btn(id, fn) { var b = document.getElementById(id); if (!b) return; var h = function (e) { e.stopPropagation(); if (!Arcade.touchOk(e)) return; fn(b); }; b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h); }
   btn('bFocus', function (b) { focusToggle = !focusToggle; b.classList.toggle('on', focusToggle); });
   btn('bBomb', function () { if (game && S().phase === 'cont') doCont(); else doBomb(); });
   btn('bPause', function () { if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); });

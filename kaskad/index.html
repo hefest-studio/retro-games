@@ -203,7 +203,7 @@ g.useRewardedBonus({ key:'rwRows', scene:'pause', label:()=>g.t('rwRows'),
 // P / Esc на паузе — назад в игру
 g.scenes.pause.press=function(a){ if(a==='pause') this.goto('play',{resume:true}); };
 // пауза с тач-кнопки
-(function(){ const pb=document.querySelector('[data-pause]'); if(!pb) return; const h=e=>{ e.preventDefault(); if(g._sceneName==='play') g.pause(); else if(g._sceneName==='pause') g.goto('play',{resume:true}); };
+(function(){ const pb=document.querySelector('[data-pause]'); if(!pb) return; const h=e=>{ if (!Arcade.touchOk(e)) return; if(g._sceneName==='play') g.pause(); else if(g._sceneName==='pause') g.goto('play',{resume:true}); };
   pb.addEventListener('touchstart',h,{passive:false}); pb.addEventListener('mousedown',h); })();
 addEventListener('keydown', e=>{ if((e.code==='KeyC'||e.code==='ShiftLeft'||e.code==='ShiftRight') && g._sceneName==='play' && stack){ stack.hold(); e.preventDefault(); } });
 g.start('title');

@@ -1,9 +1,10 @@
-/* СКОК · рендер обеих тем. SKOK.R — примитивы (герой, враги, предметы, клетки), SKOK.renderLevel(g, ctx, S, ui),
-   SKOK.renderMap(g, ctx, M), SKOK.renderShop / renderLever(g, ctx, G).
+/* СКОК · рендер обеих тем. SKOK.R — примитивы (герой, враги, предметы, клетки, механизмы), SKOK.renderLevel(g, ctx, S, ui),
+   SKOK.renderSelect(g, ctx, M) — Верстак (выбор уровня).
    modern — мягкие градиенты и тени; retro — 16-цветная палитра ПК конца 80-х, жёсткие пиксели, без сглаживания.
-   Облик свой: лис Скок — рыжий, без головного убора, в коричневом кожаном жилете с бирюзовой и горчичной заплатками;
-   земля — «заплатная» (лоскуты со стежками и войлочной каймой), ящики — деревянные с выжженным клеймом-шестернёй.
-   Статичный слой клеток кэшируется в offscreen-canvas по (уровень, ревизия клеток, тема). */
+   Облик свой: лис Скок — рыжий, без головного убора, в коричневом кожаном жилете с бирюзовой и горчичной заплатками,
+   за спиной — большой латунный заводной ключ (удар — взмах ключом вперёд). Остановленный враг — серый, из него торчит ключ,
+   над ним тает кольцо-завод; лебёдка — столб с колесом-воротом и кольцом оставшегося завода.
+   Статичный слой клеток кэшируется в offscreen-canvas по (уровень, ревизия клеток, тема); механизмы рисуются каждый кадр. */
 (function (global) {
   'use strict';
   var SK = global.SKOK = global.SKOK || {};
@@ -14,8 +15,6 @@
     m: { fur: '#e8772e', furD: '#b5531c', white: '#fff4e6', dark: '#2a1a14', vest: '#6b4226', vestD: '#4e2e19', p1: '#3f8f86', p2: '#d9b13b', stitch: '#f2e2c4', leg: '#3a2418', eye: '#1b120d' },
     r: { fur: E.o, furD: E.O, white: E.w, dark: E.k, vest: E.n, vestD: '#552a00', p1: E.c, p2: E.y, stitch: E.w, leg: E.k, eye: E.k }
   };
-  var SUITC = { m: { apron: '#3c3a40', apronGlow: '#ff8a2a', wing: '#b03a6e', wingD: '#6e1f43', armor: '#c47a3a', armorD: '#8a4f22', rivet: '#ffd9a0', boot: '#d6a640', bootD: '#8f6a1e' },
-    r: { apron: E.d, apronGlow: E.y, wing: E.M, wingD: E.m, armor: E.O, armorD: E.n, rivet: E.y, boot: E.y, bootD: E.n } };
   var REG = {
     1: { m: { sky0: '#3b2a4f', sky1: '#f2a65a', far: '#8a4f3d', mid: '#5e3a2e', g: ['#9a5b3a', '#87503a', '#a8673f', '#7b4a33'], top: '#d9862f', topD: '#a85f1c', stitch: '#f0cf9a' },
          r: { sky0: E.k, sky1: E.b, far: '#552a00', mid: E.d, g: [E.n, E.n, '#552a00', E.n], top: E.y, topD: E.O, stitch: E.y } },
@@ -46,47 +45,36 @@
   }
 
   // ---------- Скок ----------
-  // o: { face, run (фаза), air, vy, low, slide, suit, suitHp, glide, pound, flash, inv }
+  // o: { face, run (фаза), air, swing (0..1 — взмах ключом), flash, inv }
+  var KEYC = { m: { brass: '#e0b040', brassD: '#9a7420', shine: '#fff0b0' }, r: { brass: E.y, brassD: E.n, shine: E.w } };
+  function windKey(ctx, x, y, a, s, C) {   // заводной ключ: стержень + бородка + кольцо-«бабочка»
+    ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.scale(s, s);
+    rect(ctx, -1, -1, 12, 2, C.brass); rect(ctx, 8, 1, 3, 3, C.brassD);
+    ctx.fillStyle = C.brass; ctx.beginPath(); ctx.ellipse(-4, -3, 3.2, 2.4, -0.5, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.ellipse(-4, 3, 3.2, 2.4, 0.5, 0, Math.PI * 2); ctx.fill();
+    circ(ctx, -1, 0, 1.8, C.brassD); rect(ctx, 1, -1, 4, 1, C.shine);
+    ctx.restore();
+  }
   function hero(ctx, x, y, o, retro, t) {
     if (o.flash && Math.floor(t * 18) % 2) return;
-    var K = FOX[retro ? 'r' : 'm'], C = SUITC[retro ? 'r' : 'm'], f = o.face || 1, suit = o.suit;
+    var K = FOX[retro ? 'r' : 'm'], C = KEYC[retro ? 'r' : 'm'], f = o.face || 1;
     ctx.save(); ctx.translate(retro ? Math.round(x) : x, retro ? Math.round(y) : y);
     if (!retro) { ctx.globalAlpha = 0.25; ell(ctx, 0, 0, 8, 2, '#000'); ctx.globalAlpha = 1; }
     ctx.scale(f, 1);
-    if (o.low) ctx.scale(1.12, 0.6);
     var ph = o.air ? 0 : Math.sin(o.run || 0), l1 = Math.round(ph * 2), l2 = -l1;
     if (o.air) { l1 = -2; l2 = 2; }
+    var sw = o.swing || 0;
+    // ключ за спиной (вне взмаха)
+    if (!sw) windKey(ctx, -6, -16, -1.2 + Math.sin((o.run || 0) * 0.5) * 0.05, 0.8, C);
     // хвост (за спиной; в прыжке — торчком)
     var tu = o.air ? -4 : Math.round(Math.sin((o.run || 0) * 0.5) * 1);
     poly(ctx, [-3, -8, -9, -12 + tu, -14, -11 + tu, -13, -6, -6, -5], K.fur);
     poly(ctx, [-11, -12 + tu, -14, -11 + tu, -14, -8, -12, -9 + tu], K.white);
-    // ноги
     rect(ctx, -4 + l1, -6, 3, 6, K.leg); rect(ctx, 1 + l2, -6, 3, 6, K.leg);
-    if (suit === 'boots') {
-      rect(ctx, -5 + l1, -4, 5, 3, C.boot); rect(ctx, 0 + l2, -4, 5, 3, C.boot);
-      rect(ctx, -4 + l1, -1, 3, 1, C.bootD); rect(ctx, 1 + l2, -1, 3, 1, C.bootD);
-    }
-    // зонтик за спиной (сложен)
-    if (suit === 'wings' && !o.glide) { line(ctx, -6, -22, -2, -5, C.wingD, 3); line(ctx, -6, -22, -3, -8, C.wing, 2); rect(ctx, -7, -23, 2, 2, C.wingD); }
     // туловище: жилет с заплатками, белая грудка
     rect(ctx, -5, -14, 10, 9, K.vest); rect(ctx, -5, -6, 10, 1, K.vestD);
     rect(ctx, 2, -14, 3, 8, K.white);
     rect(ctx, -4, -12, 3, 3, K.p1); rect(ctx, -1, -9, 3, 2, K.p2);
     if (!retro) { rect(ctx, -4, -12, 1, 1, K.stitch); rect(ctx, -2, -10, 1, 1, K.stitch); rect(ctx, 1, -9, 1, 1, K.stitch); }
-    if (suit === 'apron') {
-      rect(ctx, -3, -13, 8, 9, C.apron); rect(ctx, 3, -15, 1, 3, C.apron);
-      rect(ctx, 0, -9, 3, 2, (o.suitHp || 2) > 1 ? C.apronGlow : K.furD);
-      if ((o.suitHp || 2) < 2) { rect(ctx, -2, -12, 2, 1, K.dark); rect(ctx, 2, -6, 2, 1, K.dark); }
-    } else if (suit === 'armor') {
-      ell(ctx, -5, -10, 4, 6, C.armorD); rect(ctx, -5, -14, 10, 9, C.armor);
-      rect(ctx, -5, -11, 10, 1, C.armorD); rect(ctx, -5, -8, 10, 1, C.armorD);
-      rect(ctx, -3, -13, 1, 1, C.rivet); rect(ctx, 3, -13, 1, 1, C.rivet); rect(ctx, 0, -7, 1, 1, C.rivet);
-      rect(ctx, 2, -15, 4, 3, C.armor);
-    }
-    // лапа
-    var arm = o.air ? -3 : Math.round(-ph * 2);
-    if (suit === 'wings' && o.glide) { rect(ctx, 2, -20, 2, 7, K.fur); }
-    else rect(ctx, 1 + arm, -12, 2, 5, K.fur);
     // голова: без головного убора, острые уши, белая морда
     rect(ctx, -3, -21, 8, 7, K.fur); rect(ctx, -3, -15, 8, 1, K.furD);
     poly(ctx, [-3, -21, -2, -27, 1, -21], K.fur); poly(ctx, [1, -21, 3, -27, 5, -21], K.fur);
@@ -94,14 +82,13 @@
     poly(ctx, [4, -20, 10, -17, 4, -15], K.white); rect(ctx, 9, -18, 2, 2, K.dark);
     rect(ctx, 0, -17, 4, 2, K.white);
     rect(ctx, 2, -20, 2, 2, K.eye); if (!retro) rect(ctx, 3, -20, 1, 1, '#ffffff');
-    // раскрытый зонтик
-    if (suit === 'wings' && o.glide) {
-      line(ctx, 3, -14, 2, -33, C.wingD, 1.5);
-      ctx.fillStyle = C.wing; ctx.beginPath(); ctx.moveTo(-12, -30); ctx.quadraticCurveTo(2, -44, 16, -30); ctx.closePath(); ctx.fill();
-      for (var i = 0; i < 4; i++) { var ex = -12 + i * 7; poly(ctx, [ex, -30, ex + 7, -30, ex + 3.5, -28], C.wingD); }
-      line(ctx, 2, -38, -6, -31, C.wingD, 1); line(ctx, 2, -38, 10, -31, C.wingD, 1);
-    }
-    if (o.slide) { ctx.globalAlpha = 0.6; rect(ctx, -16, -8, 6, 1, K.white); rect(ctx, -20, -4, 7, 1, K.white); ctx.globalAlpha = 1; }
+    // лапа (во взмахе — вперёд с ключом)
+    if (sw) {
+      var a = -1.4 + sw * 1.9;
+      rect(ctx, 2, -13, 6, 2, K.fur);
+      windKey(ctx, 9, -12, a, 1.05, C);
+      if (!retro) { ctx.globalAlpha = 0.35 * (1 - sw); ctx.strokeStyle = C.shine; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(9, -12, 15, -1.4, a); ctx.stroke(); ctx.globalAlpha = 1; }
+    } else { var arm = o.air ? -3 : Math.round(-ph * 2); rect(ctx, 1 + arm, -12, 2, 5, K.fur); }
     ctx.restore();
   }
 
@@ -114,7 +101,7 @@
     if (!e.alive) {
       if (!(e.dead > 0)) return;
       ctx.save(); ctx.globalAlpha = Math.min(1, e.dead / 0.4);
-      if (e.how === 'stomp') { ctx.translate(x, y); ctx.scale(1.3, 0.35); ctx.translate(-x, -y); }
+      if (e.how === 'key') { var k = Math.min(1, e.dead / 0.7); ctx.translate(x, y); ctx.scale(0.4 + k * 0.6, 0.4 + k * 0.6); ctx.translate(-x, -y); }
       else { ctx.translate(x, y - e.h / 2 - (0.7 - e.dead) * 30); ctx.rotate((0.7 - e.dead) * 8); ctx.translate(-x, -y + e.h / 2); }
     } else ctx.save();
     if (!retro && e.alive && e.k !== 'v' && e.k !== 'P') { ctx.globalAlpha = 0.22; ell(ctx, x, y, e.hw + 1, 2, '#000'); ctx.globalAlpha = 1; }
@@ -159,6 +146,16 @@
       case 'Z': boss(ctx, e, t, retro); break;
     }
     ctx.restore();
+    if (e.alive && e.stop > 0) stopped(ctx, e, t, retro);
+  }
+  // остановленный враг: серая вуаль, ключ сверху, тающее кольцо оставшегося завода; перед пуском — дрожит
+  function stopped(ctx, e, t, retro) {
+    var C = KEYC[retro ? 'r' : 'm'], x = e.x, top = e.y - e.h, k = Math.max(0, Math.min(1, e.stop / L.K.STOP));
+    if (!retro) { ctx.save(); ctx.globalAlpha = 0.35; ctx.fillStyle = '#8a9099'; ctx.fillRect(x - e.hw - 1, top, e.hw * 2 + 2, e.h); ctx.restore(); }
+    else { for (var i = 0; i < e.h; i += 2) rect(ctx, x - e.hw, top + i, e.hw * 2, 1, E.d); }
+    windKey(ctx, x, top - 4, -Math.PI / 2 + (e.stop < 1.2 ? Math.sin(t * 30) * 0.3 : 0), 0.7, C);
+    ctx.strokeStyle = e.stop < 1.2 && Math.floor(t * 8) % 2 ? (retro ? E.R : '#ff6b5b') : C.brass; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, top - 6, 7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k); ctx.stroke();
   }
   var BC = { rust: ['#8a4b2a', '#5e3019', '#e07a3a'], boiler: ['#6d6f78', '#43454c', '#ff9a3a'], vane: ['#b7902a', '#7a5f17', '#ffe07a'], pendulum: ['#4d4a7a', '#2f2d50', '#9fe0ff'] };
   var BCr = { rust: [E.n, E.k, E.R], boiler: [E.l, E.d, E.y], vane: [E.y, E.n, E.w], pendulum: [E.B, E.b, E.C] };
@@ -179,12 +176,16 @@
     else if (kind === 'vane') { rect(ctx, x - 1, y - 38 + bob, 2, 10, C[1]); ctx.save(); ctx.translate(x, y - 38 + bob); ctx.scale(Math.cos(t * 2), 1); poly(ctx, [-9, 0, 7, -3, 9, 0, 7, 3], C[2]); ctx.restore(); }
     else if (kind === 'pendulum') { var a = Math.sin(t * 3) * 0.6; line(ctx, x, y - 28 + bob, x + Math.sin(a) * 12, y - 28 + bob - Math.cos(a) * 12 - 2, C[1], 2); circ(ctx, x + Math.sin(a) * 14, y - 28 + bob - Math.cos(a) * 14 - 2, 4, C[2]); }
     else { cog(ctx, x, y - 31 + bob, 4, 6, C[1], t); }
+    if (b.st === 'wind') {   // подзаводится: на спине крутится большой ключ — бей!
+      var KC = KEYC[retro ? 'r' : 'm'];
+      ctx.save(); ctx.translate(x - d * 15, y - 18 + bob); ctx.scale(Math.cos(t * 14), 1); windKey(ctx, 0, 0, Math.PI, 1.3, KC); ctx.restore();
+      if (Math.floor(t * 6) % 2) { ctx.strokeStyle = KC.shine; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x - d * 15, y - 18 + bob, 11, 0, Math.PI * 2); ctx.stroke(); }
+    }
   }
 
   // ---------- предметы ----------
-  var IC = { m: { nut: '#c9cdd4', nutD: '#7d838c', key: '#e7b93a', keyD: '#9a7419', heart: '#e2464f', chest: '#8a5a2b', chestD: '#5a3a18', lamp: '#ffd27a', post: '#5a3a24', bell: '#d19a3a', bellD: '#8f6420' },
-    r: { nut: E.l, nutD: E.d, key: E.y, keyD: E.n, heart: E.R, chest: E.n, chestD: '#552a00', lamp: E.y, post: E.n, bell: E.y, bellD: E.n } };
-  var SUITICON = { m: { apron: '#ff8a2a', wings: '#d0508a', armor: '#d9884a', boots: '#e8c24a' }, r: { apron: E.R, wings: E.M, armor: E.O, boots: E.y } };
+  var IC = { m: { nut: '#c9cdd4', nutD: '#7d838c', heart: '#e2464f', gold: '#e7b93a', goldD: '#9a7419', lamp: '#ffd27a', post: '#5a3a24', stone: '#9a8f86', stoneD: '#5e554f' },
+    r: { nut: E.l, nutD: E.d, heart: E.R, gold: E.y, goldD: E.n, lamp: E.y, post: E.n, stone: E.l, stoneD: E.d } };
   function nut(ctx, x, y, t, retro, s) {
     var C = IC[retro ? 'r' : 'm'], w = Math.abs(Math.cos(t * 3 + x * 0.05)) * 5 + 1; s = s || 1;
     if (retro) { var X0 = Math.round(x), Y0 = Math.round(y), ww = Math.max(1, Math.round(w)); rect(ctx, X0 - ww, Y0 - 3, ww * 2, 6, C.nut); rect(ctx, X0 - Math.max(1, ww - 2), Y0 - 5, Math.max(2, ww * 2 - 4), 10, C.nut); if (ww > 2) rect(ctx, X0 - 1, Y0 - 1, 2, 2, C.nutD); return; }
@@ -192,58 +193,55 @@
     poly(ctx, [-6, 0, -3, -5, 3, -5, 6, 0, 3, 5, -3, 5], C.nut); circ(ctx, 0, 0, 2, C.nutD); rect(ctx, -4, -4, 3, 1, '#ffffff');
     ctx.restore();
   }
-  function keyIcon(ctx, x, y, t, retro) { var C = IC[retro ? 'r' : 'm'], b = Math.sin(t * 3) * 2; circ(ctx, x - 3, y + b, 4, C.key); circ(ctx, x - 3, y + b, 1.6, C.keyD); rect(ctx, x, y - 1 + b, 7, 2, C.key); rect(ctx, x + 4, y + 1 + b, 2, 3, C.key); }
-  function heartGear(ctx, x, y, retro) { var C = IC[retro ? 'r' : 'm']; cog(ctx, x, y, 5, 8, C.keyD, 0); circ(ctx, x - 2, y - 1, 2.6, C.heart); circ(ctx, x + 2, y - 1, 2.6, C.heart); poly(ctx, [x - 4.5, y, x + 4.5, y, x, y + 4], C.heart); }
-  function chest(ctx, x, y, suit, t, retro) {
-    var C = IC[retro ? 'r' : 'm'], c = SUITICON[retro ? 'r' : 'm'][suit] || C.key;
-    rect(ctx, x - 7, y - 10, 14, 10, C.chest); rect(ctx, x - 7, y - 10, 14, 3, C.chestD); rect(ctx, x - 7, y - 5, 14, 1, C.chestD);
-    cog(ctx, x, y - 4, 2.4, 6, c, t * 2);
-    if (!retro) { ctx.globalAlpha = 0.35 + Math.sin(t * 6) * 0.15; circ(ctx, x, y - 5, 9, c); ctx.globalAlpha = 1; }
-  }
-  function suitIcon(ctx, x, y, suit, retro) {
-    var C = SUITC[retro ? 'r' : 'm'];
-    if (suit === 'apron') { rect(ctx, x - 4, y - 5, 8, 9, C.apron); rect(ctx, x - 1, y - 1, 3, 2, C.apronGlow); }
-    else if (suit === 'wings') { ctx.fillStyle = C.wing; ctx.beginPath(); ctx.moveTo(x - 7, y); ctx.quadraticCurveTo(x, y - 10, x + 7, y); ctx.closePath(); ctx.fill(); line(ctx, x, y - 5, x, y + 5, C.wingD, 1.5); }
-    else if (suit === 'armor') { ell(ctx, x, y, 6, 5, C.armor); rect(ctx, x - 6, y - 1, 12, 1, C.armorD); rect(ctx, x - 1, y - 4, 1, 1, C.rivet); }
-    else if (suit === 'boots') { rect(ctx, x - 5, y - 3, 4, 5, C.boot); rect(ctx, x + 1, y - 3, 4, 5, C.boot); line(ctx, x - 5, y + 4, x - 1, y + 3, C.bootD, 1); line(ctx, x + 1, y + 4, x + 5, y + 3, C.bootD, 1); }
-  }
+  function heartGear(ctx, x, y, retro, s) { var C = IC[retro ? 'r' : 'm']; s = s || 1; ctx.save(); ctx.translate(x, y); ctx.scale(s, s); cog(ctx, 0, 0, 5, 8, C.goldD, 0); circ(ctx, -2, -1, 2.6, C.heart); circ(ctx, 2, -1, 2.6, C.heart); poly(ctx, [-4.5, 0, 4.5, 0, 0, 4], C.heart); ctx.restore(); }
+  function heartIcon(ctx, x, y, full, retro) { var c = full ? IC[retro ? 'r' : 'm'].heart : (retro ? E.d : 'rgba(255,255,255,.22)'); circ(ctx, x - 2.2, y - 1, 2.8, c); circ(ctx, x + 2.2, y - 1, 2.8, c); poly(ctx, [x - 5, y, x + 5, y, x, y + 5], c); }
   function lantern(ctx, x, y, lit, t, retro) {
     var C = IC[retro ? 'r' : 'm'];
     rect(ctx, x - 1, y - 26, 2, 26, C.post); rect(ctx, x - 1, y - 27, 6, 2, C.post);
     rect(ctx, x + 2, y - 25, 5, 7, lit ? C.lamp : '#3a3030'); rect(ctx, x + 2, y - 26, 5, 1, C.post);
     if (lit && !retro) { ctx.globalAlpha = 0.25 + Math.sin(t * 5) * 0.06; circ(ctx, x + 4, y - 21, 12, C.lamp); ctx.globalAlpha = 1; }
   }
-  function door(ctx, x, y, open, t, retro, glow) {
-    var C = IC[retro ? 'r' : 'm'];
-    rect(ctx, x - 8, y - 30, 16, 30, retro ? E.k : '#2a1a10');
-    rect(ctx, x - 7, y - 28, 14, 28, retro ? E.n : '#7a4c28'); ctx.fillStyle = retro ? E.n : '#7a4c28'; ctx.beginPath(); ctx.arc(x, y - 28, 7, Math.PI, 0); ctx.fill();
-    rect(ctx, x - 1, y - 28, 1, 28, retro ? '#552a00' : '#5a3418'); rect(ctx, x - 6, y - 20, 12, 1, retro ? '#552a00' : '#5a3418'); rect(ctx, x - 6, y - 9, 12, 1, retro ? '#552a00' : '#5a3418');
-    rect(ctx, x + 3, y - 15, 2, 3, C.key);
-    if (glow && Math.floor(t * 3) % 2) { rect(ctx, x - 1, y - 40, 2, 5, C.key); rect(ctx, x - 1, y - 33, 2, 2, C.key); }
+  // финиш: деталь Большого Механизма — золотая шестерня с циферблатом на каменном постаменте
+  function finishPart(ctx, x, gy, t, retro, done) {
+    var C = IC[retro ? 'r' : 'm'], lift = done ? Math.min(30, t * 0) : 0, y = gy - 40 - Math.sin(t * 2) * 2 - lift;
+    rect(ctx, x - 12, gy - 14, 24, 14, C.stone); rect(ctx, x - 14, gy - 16, 28, 4, C.stoneD); rect(ctx, x - 10, gy - 4, 20, 1, C.stoneD);
+    if (!retro) { ctx.globalAlpha = 0.25 + Math.sin(t * 4) * 0.1; circ(ctx, x, y, 22, '#ffd27a'); ctx.globalAlpha = 1; }
+    cog(ctx, x, y, 13, 10, C.goldD, t * 0.6); cog(ctx, x, y, 11.5, 10, C.gold, t * 0.6);
+    circ(ctx, x, y, 7, retro ? E.w : '#fff6e0'); line(ctx, x, y, x + Math.cos(t * 2) * 5, y + Math.sin(t * 2) * 5, retro ? E.k : '#2a1a14', 1.5); line(ctx, x, y, x, y - 4, retro ? E.k : '#2a1a14', 1.5);
   }
-  // столб-часовня с колоколом
-  function chapel(ctx, x, gy, bellY, t, retro, ring) {
-    var C = IC[retro ? 'r' : 'm'], H = L.K.POST_H * T, top = gy - H;
-    // часовенка справа
-    var wc = retro ? E.l : '#d8c7a8', rc = retro ? E.r : '#8b3a2e';
-    rect(ctx, x + 14, gy - 40, 34, 40, wc); poly(ctx, [x + 10, gy - 40, x + 31, gy - 58, x + 52, gy - 40], rc);
-    rect(ctx, x + 26, gy - 18, 10, 18, retro ? E.n : '#6b4226'); circ(ctx, x + 31, gy - 30, 5, retro ? E.w : '#fff6e0'); line(ctx, x + 31, gy - 30, x + 31, gy - 33, retro ? E.k : '#2a1a14', 1); line(ctx, x + 31, gy - 30, x + 33, gy - 30, retro ? E.k : '#2a1a14', 1);
-    // столб с крышей-навершием
-    rect(ctx, x - 2, top, 4, H, C.post); rect(ctx, x - 3, top, 6, 3, C.bellD); poly(ctx, [x - 7, top, x, top - 9, x + 7, top], rc);
-    for (var yy = top + 12; yy < gy; yy += 16) rect(ctx, x - 3, yy, 6, 1, C.bellD);
-    // колокол на ползунке
-    var sw = ring ? Math.sin(t * 25) * 3 : 0;
-    rect(ctx, x - 4, bellY - 9, 8, 2, C.bellD);
-    poly(ctx, [x - 4 + sw, bellY - 7, x + 4 + sw, bellY - 7, x + 7 + sw, bellY + 5, x - 7 + sw, bellY + 5], C.bell);
-    rect(ctx, x - 7 + sw, bellY + 4, 14, 2, C.bellD); circ(ctx, x + sw * 1.6, bellY + 7, 1.6, C.bellD);
-    if (!retro) { rect(ctx, x - 2 + sw, bellY - 5, 2, 7, '#f6d48a'); }
+  // лебёдка: столб, колесо-ворот с ручкой, над ним — кольцо оставшегося завода (или мигающий ключ-подсказка)
+  function winch(ctx, x, gy, gr, t, retro) {
+    var C = KEYC[retro ? 'r' : 'm'], on = gr.t > 0, k = on ? gr.t / L.K.WIND : 0, wy = gy - 16;
+    rect(ctx, x - 2, gy - 22, 4, 22, retro ? E.n : '#6b4426'); rect(ctx, x - 6, gy - 3, 12, 3, retro ? '#552a00' : '#4a2e18');
+    var rot = on ? t * 6 : 0;
+    cog(ctx, x, wy, 6, 8, retro ? E.l : '#8a9099', rot, 2, retro ? E.d : '#4b4f57');
+    line(ctx, x, wy, x + Math.cos(rot) * 9, wy + Math.sin(rot) * 9, C.brass, 2); circ(ctx, x + Math.cos(rot) * 9, wy + Math.sin(rot) * 9, 2, C.brassD);
+    if (on) { ctx.strokeStyle = gr.t < 2 && Math.floor(t * 8) % 2 ? (retro ? E.R : '#ff6b5b') : C.brass; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, wy - 18, 6, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k); ctx.stroke(); }
+    else { var b = Math.sin(t * 5) * 2; ctx.globalAlpha = 0.6 + 0.4 * Math.sin(t * 5); windKey(ctx, x, wy - 20 + b, Math.PI / 2, 0.8, C); ctx.globalAlpha = 1; }
+  }
+  // механизмы куска: звенья моста (выдвинуты / контур-подсказка) и пружинные плиты
+  function mechTiles(ctx, LV, gr, t, retro) {
+    var on = gr.t > 0, warn = on && gr.t < 2 && Math.floor(t * 8) % 2;
+    gr.tiles.forEach(function (q) {
+      var X = q.tx * T, Y = q.ty * T, ch = L.tileAt(LV, q.tx, q.ty);
+      if (q.k === 'b') {
+        if (ch === 'Y') { var pw = retro ? E.n : (warn ? '#d07a45' : '#b07a45'); rect(ctx, X, Y, T, 5, pw); rect(ctx, X, Y + 4, T, 1, retro ? '#552a00' : '#6b4524'); rect(ctx, X + 7, Y + 5, 2, 3, retro ? E.l : '#7d838c'); rect(ctx, X + 1, Y + 1, 2, 2, retro ? E.l : '#c9cdd4'); }
+        else if (!retro || Math.floor(t * 2) % 2) { ctx.globalAlpha = 0.28; ctx.strokeStyle = retro ? E.y : '#ffe2a8'; ctx.lineWidth = 1; ctx.setLineDash([2, 3]); ctx.strokeRect(X + 0.5, Y + 0.5, T - 1, 4); ctx.setLineDash([]); ctx.globalAlpha = 1; }
+      } else {
+        var act = ch === 'Q', sq = act ? Math.abs(Math.sin(t * 10)) * 2 : 0;
+        rect(ctx, X, Y + 6, T, 10, retro ? E.d : '#4b4f57');
+        for (var i = 0; i < 3; i++) line(ctx, X + 2, Y + 7 + i * 2 - sq / 2, X + 14, Y + 8 + i * 2 - sq / 2, retro ? E.w : '#c9cdd4', 1.5);
+        rect(ctx, X - 1, Y + 2 - sq, T + 2, 4, act ? (retro ? E.y : '#e0b040') : (retro ? E.l : '#8a9099')); rect(ctx, X - 1, Y + 2 - sq, T + 2, 1, retro ? E.w : '#ffffff');
+        if (act && !retro) { ctx.globalAlpha = 0.25; circ(ctx, X + 8, Y + 2, 10, '#ffd27a'); ctx.globalAlpha = 1; }
+      }
+    });
   }
 
   // ---------- клетки ----------
   function crateTile(ctx, X, Y, ch, retro) {
     var wood = retro ? E.n : '#a8672e', woodD = retro ? '#552a00' : '#6e4019', band = retro ? E.d : '#4b4f57', stamp = retro ? E.k : '#3d2210';
     if (ch === 'u') { rect(ctx, X, Y, T, T, retro ? '#552a00' : '#5c3a1e'); rect(ctx, X, Y, T, 1, retro ? E.n : '#7a5230'); rect(ctx, X + 2, Y + 2, 2, 2, band); rect(ctx, X + 12, Y + 2, 2, 2, band); rect(ctx, X + 2, Y + 12, 2, 2, band); rect(ctx, X + 12, Y + 12, 2, 2, band); return; }
-    if (ch === 'x') { rect(ctx, X, Y, T, T, retro ? E.y : '#d7b27a'); rect(ctx, X, Y, T, 1, retro ? E.w : '#ecd3a5'); line(ctx, X + 2, Y + 2, X + 14, Y + 14, retro ? E.n : '#8a6a3a', 2); line(ctx, X + 14, Y + 2, X + 2, Y + 14, retro ? E.n : '#8a6a3a', 2); rect(ctx, X, Y + 15, T, 1, retro ? E.n : '#8a6a3a'); return; }
+    if (ch === 'X') { rect(ctx, X, Y, T, T, retro ? E.y : '#d7b27a'); rect(ctx, X, Y, T, 1, retro ? E.w : '#ecd3a5'); line(ctx, X + 2, Y + 2, X + 14, Y + 14, retro ? E.n : '#8a6a3a', 2); line(ctx, X + 14, Y + 2, X + 2, Y + 14, retro ? E.n : '#8a6a3a', 2); rect(ctx, X, Y + 15, T, 1, retro ? E.n : '#8a6a3a'); return; }
     rect(ctx, X, Y, T, T, wood); rect(ctx, X, Y + 5, T, 1, woodD); rect(ctx, X, Y + 10, T, 1, woodD);
     rect(ctx, X, Y, T, 2, band); rect(ctx, X, Y + 14, T, 2, band); rect(ctx, X, Y, 2, T, band); rect(ctx, X + 14, Y, 2, T, band);
     cog(ctx, X + 8, Y + 8, 3.2, 6, stamp, 0.3, retro ? 0 : 1.2, wood);
@@ -283,7 +281,7 @@
     else if (ch === '/' || ch === '\\') slopeTile(ctx, ch, X, Y, P, retro, tx, ty);
     else if (ch === 'T') { var pw = retro ? E.n : '#b07a45'; rect(ctx, X, Y, T, 5, pw); rect(ctx, X, Y + 4, T, 1, retro ? '#552a00' : '#6b4524'); rect(ctx, X + 2, Y + 1, 1, 1, retro ? E.y : '#e9c98f'); rect(ctx, X + 13, Y + 1, 1, 1, retro ? E.y : '#e9c98f'); if (L.tileAt(LV, tx - 1, ty) !== 'T') rect(ctx, X, Y, 1, 5, retro ? '#552a00' : '#6b4524'); }
     else if (ch === '^') { rect(ctx, X, Y + 6, T, 10, P.g[1]); rect(ctx, X, Y + 6, T, 1, P.topD); var sc = retro ? E.w : '#cfd6de', sd = retro ? E.l : '#8b939d'; for (var i = 0; i < 4; i++) { poly(ctx, [X + i * 4, Y + 7, X + i * 4 + 2, Y + 1, X + i * 4 + 4, Y + 7], sc); rect(ctx, X + i * 4 + 2, Y + 3, 1, 4, sd); } }
-    else if (L.isCrate(ch) || ch === 'u' || ch === 'x') crateTile(ctx, X, Y, ch, retro);
+    else if (ch === 'x') crateTile(ctx, X, Y, ch, retro);
   }
   var cache = { key: null, cv: null };
   function levelLayer(LV, retro) {
@@ -294,19 +292,7 @@
     cv.height = LV.h * T;
     var c = cv.getContext('2d'); c.clearRect(0, 0, cv.width, cv.height); c.imageSmoothingEnabled = !retro;
     var P = REG[regOf(LV)][retro ? 'r' : 'm'];
-    for (var ty = 0; ty < LV.h; ty++) for (var tx = 0; tx < LV.w; tx++) { var ch = LV.t[ty].charAt(tx); if (ch !== '.' && ch !== '~') drawTile(c, LV, ch, tx, ty, P, retro); }
-    // висячие ящики: верёвка с крюком уходит вверх (ящики подвешены, а не парят)
-    var rope = retro ? E.y : '#c9a878', hook = retro ? E.l : '#7d838c';
-    for (ty = 1; ty < LV.h; ty++) for (tx = 0; tx < LV.w; tx++) {
-      var cc = LV.t[ty].charAt(tx);
-      if (!(L.isCrate(cc) || cc === 'u')) continue;
-      var below = L.tileAt(LV, tx, ty + 1), above = L.tileAt(LV, tx, ty - 1);
-      if (L.isSolid(below) || L.isSolid(above) || above === 'T') continue;
-      var X = tx * T, Y = ty * T, top = ty - 1; while (top > 0 && L.tileAt(LV, tx, top - 1) === '.') top--;
-      if (LV.fort && top <= 0) continue;
-      line(c, X + 3, Y, X + 8, Y - 6, rope, 1); line(c, X + 13, Y, X + 8, Y - 6, rope, 1);
-      rect(c, X + 7, Y - 9, 2, 4, hook); rect(c, X + 7.5, top * T, 1, Y - 9 - top * T, rope);
-    }
+    for (var ty = 0; ty < LV.h; ty++) for (var tx = 0; tx < LV.w; tx++) { var ch = LV.t[ty].charAt(tx); if (ch !== '.' && ch !== '~' && ch !== 'b' && ch !== 'Y' && ch !== 'S' && ch !== 'Q') drawTile(c, LV, ch, tx, ty, P, retro); }
     cache.key = key; cache.cv = cv; return cv;
   }
   // ---------- фон ----------
@@ -367,36 +353,28 @@
     clear: function () { this.list = []; } };
 
   // ---------- уровень ----------
-  function heroOpts(P, ui, S) { return { face: P.face, run: ui.runPh, air: !P.ground, vy: P.vy, low: P.low, slide: P.slide, suit: P.suit, suitHp: P.suitHp, glide: P.glide, pound: P.pound, flash: P.inv > 0 && S.phase === 'play' }; }
+  function heroOpts(P, ui, S) { return { face: P.face, run: ui.runPh, air: !P.ground, swing: S.key && S.key.t > 0 ? 1 - S.key.t / L.K.KEY_T : 0, flash: P.inv > 0 && S.phase === 'play' }; }
   function renderLevel(g, ctx, S, ui) {
     var retro = rt(g), LV = S.LV, t = g.time, cam = Math.round(ui.cam || 0), reg = regOf(LV);
     ctx.imageSmoothingEnabled = !retro;
     background(ctx, reg, cam, retro, t);
     ctx.save(); ctx.translate(-cam, 0);
-    // предметы за клетками: дверь, часовня, фонари
-    if (LV.door) door(ctx, LV.door.tx * T + 8, (LV.door.ty + 1) * T, false, t, retro, S.keyGot);
     LV.camps.forEach(function (c) { lantern(ctx, c.tx * T + 8, (c.ty + 1) * T, !!c.lit, t, retro); });
-    if (LV.exit) chapel(ctx, S.bell.x, S.bell.gy, S.phase === 'clear' && S.ring && S.ring.bell ? S.ring.y : (S.bell.y || S.bell.gy - 22), t, retro, S.phase === 'clear');
+    if (LV.exit) finishPart(ctx, LV.exit.tx * T + 8, (LV.exit.ty + 1) * T, t, retro, S.phase === 'clear');
     ctx.drawImage(levelLayer(LV, retro), 0, 0);
     tar(ctx, LV, cam, t, retro);
-    // гайки и ключ
+    LV.groups.forEach(function (gr) { mechTiles(ctx, LV, gr, t, retro); winch(ctx, gr.winch.tx * T + 8, (gr.winch.ty + 1) * T, gr, t, retro); });
     LV.items.forEach(function (it) {
       if (S.got[it.id]) return; var x = it.tx * T + 8, y = it.ty * T + 8;
       if (x < cam - 20 || x > cam + VW + 20) return;
-      if (it.k === 'nut') nut(ctx, x, y, t, retro); else keyIcon(ctx, x, y, t, retro);
+      if (it.k === 'nut') nut(ctx, x, y, t, retro); else heartGear(ctx, x, y + Math.sin(t * 3) * 1.5, retro, 1.2);
     });
-    S.pickups.forEach(function (q) { if (q.k === 'suit') chest(ctx, q.x, q.y, q.suit, t, retro); else heartGear(ctx, q.x, q.y - 6, retro); });
-    S.enemies.forEach(function (e) { if ((e.alive || e.dead > 0) && e.x > cam - 60 && e.x < cam + VW + 60) { if (e.k === 'Z') e.kindName = LV.boss; enemy(ctx, e, t, retro); } });
-    // заклёпки и болты
-    S.rivets.forEach(function (r) { if (retro) { rect(ctx, Math.round(r.x) - 2, Math.round(r.y) - 2, 4, 4, E.y); rect(ctx, Math.round(r.x) - 1, Math.round(r.y) - 1, 2, 2, E.R); } else { circ(ctx, r.x, r.y, 4, 'rgba(255,140,40,.35)'); circ(ctx, r.x, r.y, 2.4, '#ffd24a'); rect(ctx, r.x - 1, r.y - 1, 2, 2, '#fff3c0'); } });
+    S.enemies.forEach(function (e) { if ((e.alive || e.dead > 0) && e.x > cam - 60 && e.x < cam + VW + 60) { if (e.k === 'Z') e.kindName = LV.boss; var sh = e.stop > 0 && e.stop < 1.2 ? Math.sin(t * 60) * 1 : 0; e.x += sh; enemy(ctx, e, e.stop > 0 ? 0 : t, retro); e.x -= sh; } });
     S.bolts.forEach(function (b) { rect(ctx, b.x - 3, b.y - 2, 6, 4, retro ? E.R : '#ff6a2a'); rect(ctx, b.x - 1, b.y - 1, 2, 2, retro ? E.y : '#ffe08a'); });
     var P = S.hero;
-    var inChapel = S.phase === 'clear' && S.ring && S.ring.bell != null && P.x > S.bell.x + 26;   // вошёл в часовню
-    if (inChapel) { /* скрыт */ }
-    else if (S.phase !== 'dead' || S.phaseT < 0.15) hero(ctx, P.x, P.y, heroOpts(P, ui, S), retro, t);
+    if (S.phase !== 'dead' || S.phaseT < 0.15) hero(ctx, P.x, P.y, heroOpts(P, ui, S), retro, t);
     else { var dt2 = S.phaseT - 0.15; hero(ctx, P.x, Math.min(P.y, LV.h * T) - 60 * dt2 + 500 * dt2 * dt2, { face: P.face, air: true, run: 0 }, retro, t); }
     FX.draw(ctx, 0, retro);
-    // всплывающие очки
     ui.toasts.forEach(function (q) {
       var a = Math.min(1, q.t / q.life * 2), yy = q.y - (1 - q.t / q.life) * 18;
       ctx.globalAlpha = a; g.text(q.text, q.x, yy, { size: q.big ? 12 : 10, align: 'center', color: q.color, weight: 800 }); ctx.globalAlpha = 1;
@@ -404,18 +382,17 @@
     ctx.restore();
     hud(g, ctx, S, ui, retro);
     if (ui.banner) banner(g, ctx, ui.banner, retro);
-    if (ui.msg && !ui.banner) { ctx.globalAlpha = Math.min(1, ui.msg.a * 2); g.text(ui.msg.text, VW / 2, VH - 16, { size: 12, align: 'center', color: ui.msg.color, weight: 800 }); ctx.globalAlpha = 1; }
+    if (ui.msg && !ui.banner) { ctx.globalAlpha = Math.min(1, ui.msg.a * 2); g.text(ui.msg.text, VW / 2, VH - 16, { size: 12, align: 'center', color: ui.msg.color, weight: 800, maxWidth: VW - 24, minSize: 8 }); ctx.globalAlpha = 1; }
   }
   function foxHead(ctx, x, y, retro) { var K = FOX[retro ? 'r' : 'm']; rect(ctx, x - 4, y - 3, 8, 6, K.fur); poly(ctx, [x - 4, y - 3, x - 3, y - 7, x - 1, y - 3], K.fur); poly(ctx, [x + 1, y - 3, x + 3, y - 7, x + 4, y - 3], K.fur); rect(ctx, x - 2, y + 1, 4, 2, K.white); rect(ctx, x - 2, y - 1, 1, 1, K.dark); rect(ctx, x + 1, y - 1, 1, 1, K.dark); }
   function hud(g, ctx, S, ui, retro) {
-    var th = g.th(), P = S.hero;
+    var th = g.th();
     if (!retro) { ctx.fillStyle = 'rgba(16,10,8,.55)'; ctx.fillRect(0, 0, VW, 20); } else rect(ctx, 0, 0, VW, 20, E.k);
     foxHead(ctx, 12, 10, retro); g.text('×' + Math.max(0, S.lives), 20, 14, { size: 11, color: th.ink, weight: 800 });
-    nut(ctx, 62, 10, 0, retro, 0.8); g.text(String(S.nuts).padStart(2, '0'), 70, 14, { size: 11, color: th.ink, weight: 800 });
-    g.text(g.t('score') + ' ' + S.score, 104, 14, { size: 11, color: th.ink, weight: 800 });
-    if (P && P.suit) { suitIcon(ctx, 222, 10, P.suit, retro); g.text(g.t('s_' + P.suit) + (P.suit === 'apron' && P.suitHp > 1 ? ' ×2' : ''), 232, 14, { size: 10, color: th.accent, weight: 800 }); }
-    if (S.keyGot) keyIcon(ctx, 352, 9, 0, retro);
-    g.text(g.t('n_' + S.id), VW - 8, 14, { size: 10, align: 'right', color: th.muted, weight: 700 });
+    for (var i = 0; i < L.K.HEARTS; i++) heartIcon(ctx, 54 + i * 13, 9, i < S.hearts, retro);
+    nut(ctx, 104, 10, 0, retro, 0.8); g.text(String(S.nuts).padStart(2, '0'), 112, 14, { size: 11, color: th.ink, weight: 800 });
+    g.text(g.t('score') + ' ' + S.score, 146, 14, { size: 11, color: th.ink, weight: 800 });
+    g.text(g.t('n_' + S.id), VW - 8, 14, { size: 10, align: 'right', color: th.muted, weight: 700, maxWidth: 200, minSize: 8 });
     var B = S.boss;
     if (B && B.st !== 'sleep' && B.alive) {
       var w = 120, x = VW / 2 - w / 2, y = 26;
@@ -446,135 +423,46 @@
     ctx.globalAlpha = 1;
   }
 
-  // ---------- карта мира ----------
-  function nodeIcon(ctx, n, M, t, retro, th, g) {
-    var MAP = SK.MAP, p = M.prog, open = MAP.isOpen(p, n.id), done = MAP.done(p, n.id), x = n.x, y = n.y;
-    var ring = retro ? (open ? E.y : E.d) : (open ? '#ffd27a' : '#6a6070'), fill = retro ? (done ? E.n : E.k) : (done ? '#8a5a2b' : '#2b2230');
-    if (!open) { circ(ctx, x, y, 5, ring); return; }
-    if (n.kind === 'level') {
-      circ(ctx, x, y, 11, ring); circ(ctx, x, y, 9, fill);
-      g.text(n.k, x, y + 4, { size: 11, align: 'center', color: retro ? E.w : '#fff4e6', weight: 900 });
-      if (done) { var C = IC[retro ? 'r' : 'm']; poly(ctx, [x + 6, y - 14, x + 10, y - 14, x + 12, y - 8, x + 4, y - 8], C.bell); }
-      if (p.secret && p.secret[n.id]) { cog(ctx, x - 10, y - 10, 3, 6, retro ? E.C : '#7fe0d0', t); }
-    } else if (n.kind === 'fort') {
-      var c = retro ? E.l : '#7d6a66', cd = retro ? E.d : '#4a3c3a';
-      rect(ctx, x - 12, y - 16, 24, 26, c); for (var i = 0; i < 4; i++) rect(ctx, x - 12 + i * 7, y - 20, 4, 4, c);
-      rect(ctx, x - 4, y - 2, 8, 12, cd); if (done) { rect(ctx, x - 1, y - 32, 2, 14, cd); poly(ctx, [x + 1, y - 32, x + 10, y - 29, x + 1, y - 26], retro ? E.y : '#ffd27a'); }
-    } else if (n.kind === 'shop') {
-      var a1 = retro ? E.R : '#d9534f', a2 = retro ? E.w : '#f5ecd8';
-      rect(ctx, x - 11, y - 4, 22, 13, retro ? E.n : '#8a5a2b');
-      for (var s = 0; s < 4; s++) poly(ctx, [x - 13 + s * 6.5, y - 4, x - 6.5 + s * 6.5, y - 4, x - 9.75 + s * 6.5, y + 1], s % 2 ? a1 : a2);
-      poly(ctx, [x - 13, y - 4, x, y - 14, x + 13, y - 4], a1);
-      if (done) { ctx.globalAlpha = 0.55; rect(ctx, x - 13, y - 14, 26, 24, retro ? E.k : '#000'); ctx.globalAlpha = 1; }
-    } else if (n.kind === 'lever') {
-      rect(ctx, x - 10, y - 2, 20, 10, retro ? E.d : '#4b4f57'); line(ctx, x - 2, y - 2, x + 6, y - 14, retro ? E.l : '#c9cdd4', 2); circ(ctx, x + 6, y - 14, 3, retro ? E.R : '#d9534f');
-    }
-    if (M.fresh[n.id] && Math.floor(t * 3) % 2) g.text(g.t('newTag'), x, y - 18, { size: 9, align: 'center', color: th.warn, weight: 800 });
-  }
-  function wanderer(ctx, x, y, t, retro) {
-    // бродяга: ржавый чайник на ножках
-    var c = retro ? E.r : '#9a4a32', cd = retro ? E.k : '#5a2a1a', b = Math.abs(Math.sin(t * 6)) * 2;
-    rect(ctx, x - 4, y - 2, 2, 4, cd); rect(ctx, x + 2, y - 2, 2, 4, cd);
-    ell(ctx, x, y - 7 - b, 7, 6, c); rect(ctx, x - 3, y - 15 - b, 6, 3, cd); poly(ctx, [x + 6, y - 9 - b, x + 12, y - 13 - b, x + 7, y - 6 - b], c);
-    rect(ctx, x - 3, y - 9 - b, 2, 2, retro ? E.y : '#ffe07a'); rect(ctx, x + 1, y - 9 - b, 2, 2, retro ? E.y : '#ffe07a');
-  }
-  function renderMap(g, ctx, M) {
-    var retro = rt(g), t = g.time, th = g.th(), MAP = SK.MAP, p = M.prog;
+  // ---------- Верстак: выбор уровня ----------
+  // M = { prog, sel (id), note, noteA }; клетки 5 в ряд на край, звёзды и рекорд уровня
+  function star(ctx, x, y, r, c) { ctx.fillStyle = c; ctx.beginPath(); for (var i = 0; i < 10; i++) { var a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); }
+  var SEL = { x0: 132, dx: 72, y0: 62, dy: 50, w: 58, h: 40 };
+  function selCell(id) { var n = SK.MAP.node(id); return { x: SEL.x0 + (n.n - 1) * SEL.dx, y: SEL.y0 + (n.r - 1) * SEL.dy }; }
+  function renderSelect(g, ctx, M) {
+    var retro = rt(g), t = g.time, th = g.th(), MAP = SK.MAP, p = M.prog, cur = MAP.node(M.sel);
     ctx.imageSmoothingEnabled = !retro;
-    var cur = MAP.node(M.sel), r = M.region || cur.r, P = REG[r][retro ? 'r' : 'm'];
-    background(ctx, r, t * 6, retro, t);
-    if (!retro) { ctx.fillStyle = 'rgba(10,6,4,.25)'; ctx.fillRect(0, 0, VW, VH); }
-    // «ткань» края: лоскуты внизу
-    for (var i = 0; i < 16; i++) { rect(ctx, i * 32, VH - 18, 32, 18, P.g[i % 4]); rect(ctx, i * 32, VH - 18, 32, 3, P.top); }
-    // тропы: стежки-нитки
-    MAP.EDGES.forEach(function (e) {
-      var a = MAP.node(e.a), b = MAP.node(e.b); if (a.r !== r && b.r !== r) return;
-      var open = MAP.edgeOpen(p, e) && MAP.isOpen(p, e.b);
-      if (e.secret && !open) return;
-      var ax, ay, bx, by;
-      if (a.r === r && b.r === r) { ax = a.x; ay = a.y; bx = b.x; by = b.y; }
-      else if (a.r === r) { ax = a.x; ay = a.y; bx = VW + 30; by = a.y; }
-      else { ax = -30; ay = b.y; bx = b.x; by = b.y; }
-      ctx.save(); ctx.setLineDash(open ? [5, 4] : [2, 6]); ctx.lineDashOffset = -t * 8;
-      line(ctx, ax, ay, bx, by, open ? (e.secret ? (retro ? E.C : '#7fe0d0') : (retro ? E.y : '#ffe2a8')) : (retro ? E.d : 'rgba(255,255,255,.25)'), open ? 2 : 1.5);
-      ctx.restore();
-    });
-    MAP.NODES.forEach(function (n) { if (n.r === r) nodeIcon(ctx, n, M, t, retro, th, g); });
-    // бродяга края
-    var w = p.wand && p.wand[r];
-    if (w && !w.dead && MAP.isOpen(p, w.at)) { var wn = MAP.node(w.at); wanderer(ctx, wn.x + 12, wn.y + 10, t, retro); }
-    // Скок
-    var hx = M.pos.x, hy = M.pos.y;
-    if (M.pos.r != null && M.pos.r !== r) hx = M.pos.r > r ? VW + 20 : -20;
-    hero(ctx, hx, hy - 6, { face: M.face, run: M.moving ? t * 14 : 0, air: false, suit: M.suit }, retro, t);
-    // заголовок и подписи
-    if (!retro) { ctx.fillStyle = 'rgba(16,10,8,.6)'; ctx.fillRect(0, 0, VW, 22); } else rect(ctx, 0, 0, VW, 22, E.k);
-    g.text(g.t('mapTitle') + ' · ' + g.t('r' + r), 10, 15, { size: 12, color: th.accent, weight: 900 });
-    foxHead(ctx, VW - 150, 11, retro); g.text('×' + M.lives, VW - 142, 15, { size: 11, color: th.ink, weight: 800 });
-    nut(ctx, VW - 110, 11, 0, retro, 0.8); g.text(String(M.nuts).padStart(2, '0'), VW - 102, 15, { size: 11, color: th.ink, weight: 800 });
-    if (M.suit) suitIcon(ctx, VW - 70, 11, M.suit, retro);
-    var st = SK.save.stats(p); g.text('✓' + st.cleared + '/' + st.total, VW - 8, 15, { size: 10, align: 'right', color: th.muted, weight: 800 });
-    var name = g.t('n_' + M.sel), tag = MAP.done(p, M.sel) ? ' ✓' : '';
-    if (!retro) { ctx.fillStyle = 'rgba(16,10,8,.55)'; ctx.fillRect(0, VH - 40, VW, 22); } else rect(ctx, 0, VH - 40, VW, 22, E.k);
-    g.text(name + tag, VW / 2, VH - 25, { size: 12, align: 'center', color: th.ink, weight: 800 });
-    g.text(M.note || g.t('mapHint'), VW / 2, VH - 6, { size: 10, align: 'center', color: M.note ? th.warn : (retro ? E.w : '#fff4e6'), weight: 700 });
-  }
-
-  // ---------- мини-игры ----------
-  function stall(g, ctx, title, retro) {
-    var th = g.th();
-    background(ctx, 1, 0, retro, g.time);
-    if (!retro) { ctx.fillStyle = 'rgba(20,10,6,.55)'; ctx.fillRect(0, 0, VW, VH); } else rect(ctx, 0, 0, VW, VH, E.k);
-    // навес
-    for (var s = 0; s < 16; s++) poly(ctx, [s * 32, 24, s * 32 + 32, 24, s * 32 + 16, 40], s % 2 ? (retro ? E.R : '#d9534f') : (retro ? E.w : '#f5ecd8'));
-    rect(ctx, 0, 0, VW, 24, retro ? E.R : '#b8423a');
-    g.text(title, VW / 2, 17, { size: 14, align: 'center', color: retro ? E.y : '#fff4e6', weight: 900 });
-    return th;
-  }
-  function renderShop(g, ctx, G) {
-    var retro = rt(g), t = g.time, th = stall(g, ctx, g.t('shopTitle'), retro);
-    rect(ctx, 60, 190, VW - 120, 14, retro ? E.n : '#7a4c28'); rect(ctx, 60, 204, VW - 120, 40, retro ? '#552a00' : '#5a3418');
-    for (var i = 0; i < 3; i++) {
-      var x = 136 + i * 120, y = 186, sel = G.sel === i, op = G.opened === i || G.reveal;
-      var lift = sel && G.opened == null ? Math.sin(t * 6) * 2 - 2 : 0;
-      if (op) {
-        rect(ctx, x - 26, y - 30, 52, 30, retro ? E.k : '#2b1d14'); rect(ctx, x - 26, y - 34, 52, 6, retro ? E.n : '#8a5a2b');
-        var pr = G.boxes[i];
-        ctx.save(); if (G.opened !== i) ctx.globalAlpha = 0.5;
-        if (pr.k === 'suit') { suitIcon(ctx, x, y - 16, pr.suit, retro); }
-        else if (pr.k === 'life') heartGear(ctx, x, y - 16, retro);
-        else { nut(ctx, x - 6, y - 16, t, retro); nut(ctx, x + 6, y - 14, t + 1, retro); }
-        ctx.restore();
-        g.text(pr.k === 'suit' ? g.t('s_' + pr.suit) : g.t('prize_' + pr.k), x, y + 34, { size: 10, align: 'center', color: G.opened === i ? th.good : th.muted, weight: 800 });
-      } else {
-        crateTile(ctx, x - 24, y - 48 + lift, 'B', retro); crateTile(ctx, x - 8, y - 48 + lift, 'B', retro); crateTile(ctx, x + 8, y - 48 + lift, 'B', retro);
-        crateTile(ctx, x - 24, y - 32 + lift, 'B', retro); crateTile(ctx, x - 8, y - 32 + lift, 'B', retro); crateTile(ctx, x + 8, y - 32 + lift, 'B', retro);
-        crateTile(ctx, x - 24, y - 16 + lift, 'u', retro); crateTile(ctx, x - 8, y - 16 + lift, 'u', retro); crateTile(ctx, x + 8, y - 16 + lift, 'u', retro);
-      }
-      if (sel) poly(ctx, [x - 6, y - 64, x + 6, y - 64, x, y - 56], th.accent);
+    background(ctx, cur.r, t * 6, retro, t);
+    if (!retro) { ctx.fillStyle = 'rgba(10,6,4,.45)'; ctx.fillRect(0, 0, VW, VH); }
+    if (!retro) { ctx.fillStyle = 'rgba(16,10,8,.6)'; ctx.fillRect(0, 0, VW, 24); } else rect(ctx, 0, 0, VW, 24, E.k);
+    g.text(g.t('selTitle'), 10, 16, { size: 13, color: th.accent, weight: 900 });
+    var st = SK.save.stats(p);
+    g.text('★ ' + st.stars + '/' + st.maxStars + '   ' + g.t('total') + ': ' + SK.save.total(p), VW - 10, 16, { size: 11, align: 'right', color: th.ink, weight: 800, maxWidth: 300, minSize: 8 });
+    for (var r = 1; r <= MAP.REGIONS; r++) {
+      var y = SEL.y0 + (r - 1) * SEL.dy, P = REG[r][retro ? 'r' : 'm'];
+      g.text(g.t('r' + r), 12, y + 4, { size: 10, color: r === cur.r ? th.accent : th.muted, weight: 800, maxWidth: SEL.x0 - SEL.w / 2 - 18, minSize: 7 });
+      MAP.region(r).forEach(function (id) {
+        var c = selCell(id), n = MAP.node(id), open = MAP.isOpen(p, id), stars = p.cleared[id] | 0, sel = id === M.sel;
+        var X = c.x - SEL.w / 2, Y = c.y - SEL.h / 2;
+        rect(ctx, X, Y, SEL.w, SEL.h, open ? P.g[n.n % 4] : (retro ? E.k : 'rgba(40,30,30,.8)'));
+        rect(ctx, X, Y, SEL.w, 3, open ? P.top : (retro ? E.d : '#4a3c3a'));
+        if (sel) { ctx.strokeStyle = retro ? E.w : '#fff4e6'; ctx.lineWidth = 2; ctx.strokeRect(X - 2, Y - 2, SEL.w + 4, SEL.h + 4); }
+        if (!open) { rect(ctx, c.x - 4, c.y - 2, 8, 7, retro ? E.d : '#6a6070'); ctx.strokeStyle = retro ? E.d : '#6a6070'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(c.x, c.y - 3, 3.5, Math.PI, 0); ctx.stroke(); return; }
+        if (n.kind === 'fort') { var fc = retro ? E.l : '#d8c7a8'; rect(ctx, c.x - 9, c.y - 12, 18, 16, fc); for (var i = 0; i < 3; i++) rect(ctx, c.x - 9 + i * 7, c.y - 15, 4, 3, fc); rect(ctx, c.x - 3, c.y - 4, 6, 8, retro ? E.k : '#4a3c3a'); }
+        else g.text(String(n.n), c.x, c.y + 2, { size: 16, align: 'center', color: retro ? E.w : '#fff4e6', weight: 900 });
+        for (var s2 = 0; s2 < 3; s2++) star(ctx, c.x - 12 + s2 * 12, c.y + 13, 4.2, s2 < stars ? (retro ? E.y : '#ffd34d') : (retro ? E.d : 'rgba(0,0,0,.35)'));
+      });
     }
-    hero(ctx, 136 + G.sel * 120, 262, { face: 1, run: 0, suit: G.suit }, retro, t);
-    g.text(G.msg || g.t('shopHint'), VW / 2, VH - 8, { size: 11, align: 'center', color: G.msg ? th.good : th.ink, weight: 800 });
+    var sc = selCell(M.sel);
+    hero(ctx, sc.x + SEL.w / 2 - 6, sc.y + SEL.h / 2 - 1, { face: -1, run: 0, air: false }, retro, t);
+    if (!retro) { ctx.fillStyle = 'rgba(16,10,8,.6)'; ctx.fillRect(0, VH - 40, VW, 40); } else rect(ctx, 0, VH - 40, VW, 40, E.k);
+    var best = p.best[M.sel] | 0, tag = (p.cleared[M.sel] ? '  ★' + p.cleared[M.sel] : '') + (best ? '  ' + g.t('best') + ': ' + best : '');
+    g.text(g.t('n_' + M.sel) + tag, VW / 2, VH - 24, { size: 12, align: 'center', color: th.ink, weight: 800, maxWidth: VW - 20, minSize: 8 });
+    g.text(M.note || g.t('selHint'), VW / 2, VH - 8, { size: 10, align: 'center', color: M.note ? th.warn : th.muted, weight: 700, maxWidth: VW - 20, minSize: 7 });
   }
-  function renderLever(g, ctx, G) {
-    var retro = rt(g), t = g.time, th = stall(g, ctx, g.t('leverTitle'), retro);
-    // ворота
-    var gx = VW / 2, gy = 120, open = G.win ? Math.min(1, G.openT || 0) : 0;
-    rect(ctx, gx - 60, gy - 60, 120, 70, retro ? E.d : '#4b4f57');
-    for (var b = 0; b < 7; b++) rect(ctx, gx - 54 + b * 17, gy - 54 - open * 50, 4, 60, retro ? E.l : '#9aa3ad');
-    if (G.win) { heartGear(ctx, gx - 14, gy - 16, retro); nut(ctx, gx + 14, gy - 16, t, retro); }
-    for (var i = 0; i < G.n; i++) {
-      var x = 116 + i * 94, y = 216, pulled = G.pulled.indexOf(i) >= 0, sel = G.sel === i;
-      rect(ctx, x - 14, y, 28, 18, retro ? E.d : '#3a3e47'); rect(ctx, x - 3, y - 2, 6, 4, retro ? E.l : '#7d838c');
-      var a = pulled ? 0.7 : -0.7; line(ctx, x, y, x + Math.sin(a) * 30, y - Math.cos(a) * 30, retro ? E.l : '#c9cdd4', 3);
-      circ(ctx, x + Math.sin(a) * 30, y - Math.cos(a) * 30, 5, pulled ? (i === G.good ? (retro ? E.G : '#7be08f') : (retro ? E.r : '#8a3a3a')) : (retro ? E.R : '#d9534f'));
-      if (sel && !G.done) poly(ctx, [x - 6, y - 50, x + 6, y - 50, x, y - 42], th.accent);
-      g.text(String(i + 1), x, y + 32, { size: 11, align: 'center', color: th.muted, weight: 800 });
-    }
-    g.text(G.msg || g.t('leverHint').replace('{n}', G.tries), VW / 2, VH - 8, { size: 11, align: 'center', color: G.msg ? (G.win ? th.good : th.warn) : th.ink, weight: 800 });
-  }
+  // клик/тап по клетке Верстака → id уровня или null
+  function selectAt(x, y) { var hit = null; SK.MAP.NODES.forEach(function (n) { var c = selCell(n.id); if (Math.abs(x - c.x) <= SEL.w / 2 + 3 && Math.abs(y - c.y) <= SEL.h / 2 + 3) hit = n.id; }); return hit; }
 
-  SK.R = { VW: VW, VH: VH, E: E, FX: FX, REG: REG, hero: hero, enemy: enemy, boss: boss, nut: nut, keyIcon: keyIcon, chest: chest, suitIcon: suitIcon, heartGear: heartGear,
-    lantern: lantern, door: door, chapel: chapel, crateTile: crateTile, background: background, cog: cog, wanderer: wanderer, foxHead: foxHead };
-  SK.renderLevel = renderLevel; SK.renderMap = renderMap; SK.renderShop = renderShop; SK.renderLever = renderLever;
+  SK.R = { VW: VW, VH: VH, E: E, FX: FX, REG: REG, hero: hero, enemy: enemy, boss: boss, nut: nut, heartGear: heartGear, heartIcon: heartIcon, windKey: windKey,
+    lantern: lantern, finishPart: finishPart, winch: winch, crateTile: crateTile, background: background, cog: cog, foxHead: foxHead, star: star, selectAt: selectAt, KEYC: KEYC };
+  SK.renderLevel = renderLevel; SK.renderSelect = renderSelect;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -207,7 +207,7 @@
   // ---------- тач-кнопка «сменить» ----------
   (function () {
     var b = document.getElementById('bSwap');
-    if (b) { var h = function (e) { e.preventDefault(); if (game && g._sceneName === 'play') game.swap(0, 1); }; b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h); }
+    if (b) { var h = function (e) { if (!Arcade.touchOk(e)) return; if (game && g._sceneName === 'play') game.swap(0, 1); }; b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h); }
   })();
 
   // ---------- DOM: подгонка канвы, подписи, тема страницы ----------

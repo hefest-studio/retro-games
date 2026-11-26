@@ -100,7 +100,7 @@
       var pb = $('bPause');
       if (pb) {
         var onPause = function (e) {
-          e.preventDefault(); e.stopPropagation();
+          e.stopPropagation(); if (!Arcade.touchOk(e)) return;
           if (g._sceneName === 'play') g.pause();
           else if (g._sceneName === 'pause') g.goto('play', { resume: true });
         };

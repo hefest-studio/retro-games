@@ -114,7 +114,7 @@ g.scene('play',{realtime:true,
 addEventListener('keydown',function(e){ if(g._sceneName!=='play'||!game||e.repeat) return;
   if(e.code==='KeyZ'||e.code==='KeyQ'||e.code==='Comma'){ dig(-1); e.preventDefault(); }
   else if(e.code==='KeyX'||e.code==='KeyE'||e.code==='Period'){ dig(1); e.preventDefault(); } });
-function tapBtn(id,fn){ var b=document.getElementById(id); if(!b) return; var h=function(e){ e.preventDefault(); fn(); };
+function tapBtn(id,fn){ var b=document.getElementById(id); if(!b) return; var h=function(e){ if (!Arcade.touchOk(e)) return; fn(); };
   b.addEventListener('touchstart',h,{passive:false}); b.addEventListener('mousedown',h); }
 tapBtn('bDigL',function(){ dig(-1); }); tapBtn('bDigR',function(){ dig(1); });
 tapBtn('bPause',function(){ if(g._sceneName==='play') g.pause(); else if(g._sceneName==='pause') g.goto('play',{resume:true}); });

@@ -1,5 +1,5 @@
 /* ПУЗЫРЬ · интерфейс: DOM-обвязка (подгонка канвы, подписи страницы, тема) и общие для обеих тем
-   элементы на канве — HUD (жизни, счёт, слово «ГЕФЕСТ», уровень), баннеры, всплывашки.
+   элементы на канве — HUD (жизни, счёт, сколько врагов переплавлено, комбо, уровень), баннеры, всплывашки, подсказки обучения.
    Палитру P и значки передаёт активный рендерер (modern/classic), тексты — только через g.t(). PUZYR.ui */
 (function (global) {
   'use strict';
@@ -10,10 +10,12 @@
   // ---------- DOM ----------
   function fit(g) {
     var c = g.canvas, wrap = c.parentElement;
-    var pad = document.querySelector('.pad'), padH = pad && getComputedStyle(pad).display !== 'none' ? pad.offsetHeight + 20 : 0;
-    var availH = innerHeight - padH - 70;
-    var w = Math.min(g.W * 1.5, (wrap && wrap.clientWidth) || g.W, availH * g.W / g.H);
-    w = Math.max(240, Math.floor(w));
+    var pad = document.querySelector('.pad'), cs = pad && getComputedStyle(pad), over = cs && cs.position === 'fixed';
+    var padH = pad && cs.display !== 'none' && !over ? pad.offsetHeight + 20 : 0;
+    var foot = document.getElementById('foot'), footH = foot && getComputedStyle(foot).display !== 'none' ? foot.offsetHeight + 18 : 0;
+    var availH = innerHeight - padH - footH - (over ? 34 : 40);
+    var w = Math.min(g.W * 1.6, (wrap && wrap.clientWidth) || g.W, availH * g.W / g.H);
+    w = Math.max(200, Math.floor(w));
     c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
   }
   var lastLang = null, lastTheme = null;
@@ -50,13 +52,13 @@
   function playerBlock(g, ctx, S, i, R) {
     var P = R.P, W = g.W, right = i === 1, p = S.players[i], cx = right ? W - 22 : 22;
     if (!p) {
-      if (Math.floor(S.time * 2) % 2 === 0) txt(g, up(P, g.t('press2')), W - 10, 25, { size: 11, align: 'right', color: P.muted, weight: 700 }, P);
+      if (Math.floor(S.time * 2) % 2 === 0) txt(g, up(P, g.t('press2')), W - 10, 25, { size: 11, align: 'right', color: P.muted, weight: 700, maxWidth: 150 }, P);
       return;
     }
     ctx.globalAlpha = p.out ? 0.35 : 1;
     R.face(ctx, cx, 20, i, 0.8);
     var lx = right ? cx - 20 : cx + 20, al = right ? 'right' : 'left';
-    txt(g, up(P, g.t(i ? 'p2' : 'p1')), lx, 16, { size: 11, align: al, color: P.pl[i], weight: 800 }, P);
+    txt(g, up(P, g.t(i ? 'p2' : 'p1')), lx, 16, { size: 11, align: al, color: P.pl[i], weight: 800, maxWidth: 110 }, P);
     txt(g, p.out ? up(P, g.t('out')) : '×' + Math.max(0, p.lives), lx, 33, { size: 14, align: al, color: P.ink, weight: 900 }, P);
     ctx.globalAlpha = 1;
   }
@@ -65,23 +67,27 @@
     ctx.fillStyle = P.hudBg; ctx.fillRect(0, 0, W, OY);
     ctx.fillStyle = P.hudLine; ctx.fillRect(0, OY - 2, W, 2);
     txt(g, String(S.score), W / 2, 19, { size: 18, align: 'center', color: P.accent, weight: 900 }, P);
-    // слово «ГЕФЕСТ»: собранные буквы — яркие
-    var word = g.t('word'), n = word.length, sp = 15, x0 = W / 2 - (n - 1) * sp / 2;
-    for (var i = 0; i < n; i++) {
-      var on = S.letters[i];
-      txt(g, word[i], x0 + i * sp, 34, { size: 11, align: 'center', color: on ? P.letter : P.dim, weight: 900 }, P);
-    }
+    // переплавлено врагов: значки-капли (полные — уже в ванне)
     var B = S.boss;
-    if (B && B.alive && !B.trapped) {
+    if (!B) {
+      var n = S.total, sp = 11, x0 = W / 2 - (n - 1) * sp / 2, done = S.total - S.enemies.length;
+      for (var i = 0; i < n; i++) {
+        var on = i < done, cx = x0 + i * sp, cy = 31;
+        ctx.fillStyle = on ? P.melt : P.dim;
+        if (P.pixel) { ctx.fillRect(cx - 3, cy - 3, 6, 6); }
+        else { ctx.beginPath(); ctx.arc(cx, cy, 3.6, 0, Math.PI * 2); ctx.fill(); }
+      }
+    }
+    if (B && B.alive && !B.dying) {
       var bw = 120, bx = W / 2 + 70, by = 15, f = Math.max(0, B.hp / B.max);
       ctx.fillStyle = P.bar; if (P.pixel) ctx.fillRect(bx, by, bw, 8); else { roundRect(ctx, bx, by, bw, 8, 4); ctx.fill(); }
       if (f > 0) { ctx.fillStyle = P.bossBar; if (P.pixel) ctx.fillRect(bx, by, Math.round(bw * f / 4) * 4, 8); else { roundRect(ctx, bx, by, Math.max(8, bw * f), 8, 4); ctx.fill(); } }
       txt(g, up(P, g.t('boss')), bx + bw / 2, by + 20, { size: 9, align: 'center', color: P.muted, weight: 700 }, P);
-    } else {
-      txt(g, up(P, g.t('level')) + ' ' + S.level, W / 2 - 110, 19, { size: 12, align: 'center', color: P.ink, weight: 800 }, P);
-      txt(g, up(P, g.t('z_' + S.zone)), W / 2 - 110, 33, { size: 9, align: 'center', color: P.muted, weight: 700 }, P);
-      if (S.hurry && Math.floor(S.time * 3) % 2 === 0) txt(g, up(P, g.t(S.angryAll ? 'angry' : 'hurry')), W / 2 + 110, 25, { size: 11, align: 'center', color: P.bad, weight: 900 }, P);
+    } else if (S.combo > 1 && S.comboT > 0) {
+      txt(g, up(P, g.t('combo')) + ' ×' + Math.min(5, S.combo), W / 2 + 110, 25, { size: 12, align: 'center', color: P.melt, weight: 900 }, P);
     }
+    txt(g, up(P, g.t('level')) + ' ' + Math.min(S.level, 30) + (S.boss ? '+' : ''), W / 2 - 110, 19, { size: 12, align: 'center', color: P.ink, weight: 800 }, P);
+    txt(g, up(P, g.t('z_' + S.zone)), W / 2 - 110, 33, { size: 9, align: 'center', color: P.muted, weight: 700, maxWidth: 120 }, P);
     playerBlock(g, ctx, S, 0, R);
     playerBlock(g, ctx, S, 1, R);
   }
@@ -91,12 +97,12 @@
     if (S.phase === 'ready') {
       title = S.boss ? g.t('z_boss') : g.t('ready') + ' ' + S.level + ' · ' + g.t('z_' + S.zone);
       sub = S.boss ? g.t('bossGoal') : g.t('goal'); col = P.accent;
-    } else if (S.phase === 'clear' && S.phaseT > 1.2) { title = g.t('clear'); col = P.good; }
+    } else if (S.phase === 'clear' && S.phaseT > 1.2) { title = g.t('clear'); col = P.good; if (S.timeBonus) sub = '+' + S.timeBonus + ' · ' + g.t('timeBonus'); }
     if (!title) return;
-    var w = 440, h = sub ? 74 : 54, x = (g.W - w) / 2, y = OY + 8 * T;
+    var w = 460, h = sub ? 74 : 54, x = (g.W - w) / 2, y = OY + 8 * T;
     panel(ctx, x, y, w, h, P, col);
-    txt(g, up(P, title), g.W / 2, y + (sub ? 32 : 35), { size: P.pixel ? 18 : 21, align: 'center', color: col, weight: 900 }, P);
-    if (sub) txt(g, up(P, sub), g.W / 2, y + 56, { size: P.pixel ? 10 : 12, align: 'center', color: P.muted, weight: 600 }, P);
+    txt(g, up(P, title), g.W / 2, y + (sub ? 32 : 35), { size: P.pixel ? 18 : 21, align: 'center', color: col, weight: 900, maxWidth: w - 24 }, P);
+    if (sub) txt(g, up(P, sub), g.W / 2, y + 56, { size: P.pixel ? 10 : 12, align: 'center', color: P.muted, weight: 600, maxWidth: w - 24 }, P);
   }
 
   // Всплывающие подписи (очки, бонусы, буквы)

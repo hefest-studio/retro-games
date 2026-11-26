@@ -99,7 +99,7 @@ function syncShell(){
 var DIRK={ArrowUp:[0,-1],KeyW:[0,-1],ArrowDown:[0,1],KeyS:[0,1],ArrowLeft:[-1,0],KeyA:[-1,0],ArrowRight:[1,0],KeyD:[1,0]};
 addEventListener('keydown',function(e){ if(e.repeat&&DIRK[e.code]&&g._sceneName==='play'&&game){ game.move(DIRK[e.code][0],DIRK[e.code][1]); } });
 document.addEventListener('visibilitychange',function(){ if(document.hidden&&g._sceneName==='play') g.pause(); });
-(function(){ var b=$('bPause'); var f=function(e){ e.preventDefault(); if(g._sceneName==='play') g.pause(); else if(g._sceneName==='pause') g.goto('play',{resume:true}); };
+(function(){ var b=$('bPause'); var f=function(e){ if (!Arcade.touchOk(e)) return; if(g._sceneName==='play') g.pause(); else if(g._sceneName==='pause') g.goto('play',{resume:true}); };
   b.addEventListener('touchstart',f,{passive:false}); b.addEventListener('mousedown',f); })();
 
 g.useStandardScreens({get subtitle(){ return g.t('subtitle',''); },lives:3});

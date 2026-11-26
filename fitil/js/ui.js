@@ -115,7 +115,7 @@
       sync(g); setInterval(function () { sync(g); }, 250);
       var det = document.querySelector('[data-det]');
       if (det) {
-        var h = function (e) { e.preventDefault(); e.stopPropagation(); onDet(); };
+        var h = function (e) { e.stopPropagation(); if (!Arcade.touchOk(e)) return; onDet(); };
         det.addEventListener('touchstart', h, { passive: false }); det.addEventListener('mousedown', h);
       }
     },

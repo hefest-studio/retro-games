@@ -69,7 +69,7 @@
   // Тач-кнопка второго оружия (только И1)
   var sb = pad && pad.querySelector('[data-sec]');
   if (sb) {
-    var onSec = function (e) { e.preventDefault(); if (g._sceneName === 'play' && game) { if (game.state().phase === 'cont') game.cont(); else game.sec(0); } };
+    var onSec = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play' && game) { if (game.state().phase === 'cont') game.cont(); else game.sec(0); } };
     sb.addEventListener('touchstart', onSec, { passive: false }); sb.addEventListener('mousedown', onSec);
   }
 
