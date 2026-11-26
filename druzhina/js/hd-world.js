@@ -1,13 +1,13 @@
 /* ДРУЖИНА · тема HD v2 — фоны этапов: спокойный параллакс прямо пикселями палитры (матрицы индексов → холсты, один раз на этап).
    Слои: небо (неподвижно, полосы со «ступенькой»-шахматкой вместо градиента), дальний (×0.15), средний (×0.5), земля (×1);
-   слои — бесшовные плитки. Пар — живые частицы из видимых источников: трубы кузниц и литейни, горячие ключи в лесу,
+   слои — бесшовные плитки (земля — 512 px, швы кладки и решётки — с разбросом шага, чтобы повтор не бросался в глаза; волна 48). Пар — живые частицы из видимых источников: трубы кузниц и литейни, горячие ключи в лесу,
    туман над рекой, решётки в полу; клубы — пиксельные круги двумя тонами. Фон меню — те же слои на 2 ступени темнее (без полупрозрачности).
    Поле 480×270 (×2 к холсту игры 960×540); линия ног z=0 — y=161. DRUZHINA.hdWorld */
 (function (global) {
   'use strict';
   var D = global.DRUZHINA = global.DRUZHINA || {};
   var S = D.hdSprites, PAL = S.PAL, K = S.KEY, SH = S.SHADE;
-  var VW = 480, VH = 270, HZ = 148, PAR = { far: 0.15, mid: 0.5 }, TW = { far: 512, mid: 640, floor: 256 };
+  var VW = 480, VH = 270, HZ = 148, PAR = { far: 0.15, mid: 0.5 }, TW = { far: 512, mid: 640, floor: 512 };
 
   function grid(w, h) { return { w: w, h: h, a: new Uint8Array(w * h) }; }
   function rng(seed) { var s = seed >>> 0; return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
@@ -57,7 +57,7 @@
       grass(L.floorP, r, TW.floor, 0, 13, 't', 'v');
       L.floorP('w', 0, 13, TW.floor, 122);
       for (var y = 16, row = 0; y < 122; row++) { var rh = 6 + Math.min(6, row); L.floorP('p', 0, y + rh - 1, TW.floor, 1); for (var s = 0; s < TW.floor / 20; s++) if (r() < 0.5) L.floorP(r() < 0.3 ? 'r' : 'p', r() * TW.floor, y + 1 + r() * (rh - 3), 3 + r() * 4, 1); y += rh; }
-      for (var v = 60; v < TW.floor; v += 128) { L.floorP('k', v, 6, 16, 6); for (var k = 1; k < 16; k += 3) L.floorP('l', v + k, 7, 1, 4); L.src.push({ layer: 'floor', x: v + 8, y: HZ + 6, rate: 0.04, size: 3, t: 0.3 }); }
+      for (var v = 60; v < TW.floor; v += 96 + (r() * 90 | 0)) { L.floorP('k', v, 6, 16, 6); for (var k = 1; k < 16; k += 3) L.floorP('l', v + k, 7, 1, 4); L.src.push({ layer: 'floor', x: v + 8, y: HZ + 6, rate: 0.04, size: 3, t: 0.3 }); }
     },
     village: function (L, r) {
       bands(L.skyP, VW, [[0, 'l'], [50, 'b'], [100, 'm'], [132, 'W']]);
@@ -106,8 +106,8 @@
       }
       L.floorP('l', 0, 0, TW.floor, 13); for (var m2 = 0; m2 < 20; m2++) L.floorP('b', r() * TW.floor, r() * 12, 6, 1);
       L.floorP('w', 0, 13, TW.floor, 122);
-      for (var y = 13, row = 0; y < 135; row++) { var rh = 7 + Math.min(5, row); L.floorP('p', 0, y + rh - 1, TW.floor, 1); L.floorP('r', 0, y, TW.floor, 1); for (var n = (row % 2) * 30; n < TW.floor; n += 64) { L.floorP('p', n, y, 1, rh); L.floorP('k', n + 2, y + 2, 1, 1); } y += rh; }
-      for (var v = 30; v < TW.floor; v += 128) L.src.push({ layer: 'floor', x: v, y: HZ + 4, rate: 0.05, size: 4, t: r() });
+      for (var y = 13, row = 0; y < 135; row++) { var rh = 7 + Math.min(5, row); L.floorP('p', 0, y + rh - 1, TW.floor, 1); L.floorP('r', 0, y, TW.floor, 1); for (var n = (row % 2) * 30; n < TW.floor; n += 54 + (r() * 22 | 0)) { L.floorP('p', n, y, 1, rh); L.floorP('k', n + 2, y + 2, 1, 1); } y += rh; }
+      for (var v = 30; v < TW.floor; v += 96 + (r() * 90 | 0)) L.src.push({ layer: 'floor', x: v, y: HZ + 4, rate: 0.05, size: 4, t: r() });
     },
     walls: function (L, r) {
       bands(L.skyP, VW, [[0, 'n'], [80, 'p'], [124, 'w']]);
@@ -123,7 +123,7 @@
         L.midP('w', t + 50, HZ - 66, 22, 40); L.midP('r', t + 50, HZ - 66, 22, 2); checker(L.midP, 'p', t + 50, HZ - 30, 22, 4); L.midP('c', t + 58, HZ - 54, 6, 6); L.midP('o', t + 60, HZ - 52, 2, 2);
       }
       L.floorP('n', 0, 0, TW.floor, 135); L.floorP('l', 0, 0, TW.floor, 3);
-      for (var y2 = 4, rw = 0; y2 < 135; rw++) { var rh = 10 + Math.min(8, rw); L.floorP('k', 0, y2 + rh - 1, TW.floor, 1); L.floorP('l', 0, y2, TW.floor, 1); for (var n = (rw % 2) * 16; n < TW.floor; n += 32) L.floorP('n', n, y2, 1, rh); y2 += rh; }
+      for (var y2 = 4, rw = 0; y2 < 135; rw++) { var rh = 10 + Math.min(8, rw); L.floorP('k', 0, y2 + rh - 1, TW.floor, 1); L.floorP('l', 0, y2, TW.floor, 1); for (var n = (rw % 2) * 16; n < TW.floor; n += 24 + (r() * 16 | 0)) L.floorP('n', n, y2, 1, rh); y2 += rh; }
       for (var k = 0; k < 30; k++) L.floorP('l', r() * TW.floor, 10 + r() * 110, 3, 1);
     },
     foundry: function (L, r) {
@@ -140,8 +140,8 @@
         L.src.push({ layer: 'mid', x: x2 + 100, y: HZ - 90, rate: 0.07, size: 3, t: r(), jet: true });
       }
       L.floorP('n', 0, 0, TW.floor, 135);
-      for (var y = 0, row = 0; y < 135; row++) { var rh = 10 + Math.min(6, row); L.floorP('k', 0, y + rh - 1, TW.floor, 1); L.floorP('l', 0, y, TW.floor, 1); for (var n = (row % 2) * 24; n < TW.floor; n += 48) { L.floorP('k', n, y, 1, rh); L.floorP('l', n + 3, y + 3, 1, 1); } y += rh; }
-      for (var g = 50; g < TW.floor; g += 128) { L.floorP('k', g, 20, 22, 8); for (var q = 2; q < 22; q += 4) L.floorP('c', g + q, 21, 2, 6); L.floorP('o', g + 8, 23, 6, 2); L.src.push({ layer: 'floor', x: g + 11, y: HZ + 20, rate: 0.06, size: 4, t: r() }); }
+      for (var y = 0, row = 0; y < 135; row++) { var rh = 10 + Math.min(6, row); L.floorP('k', 0, y + rh - 1, TW.floor, 1); L.floorP('l', 0, y, TW.floor, 1); for (var n = (row % 2) * 24; n < TW.floor; n += 38 + (r() * 22 | 0)) { L.floorP('k', n, y, 1, rh); L.floorP('l', n + 3, y + 3, 1, 1); } y += rh; }
+      for (var g = 50; g < TW.floor; g += 100 + (r() * 80 | 0)) { L.floorP('k', g, 20, 22, 8); for (var q = 2; q < 22; q += 4) L.floorP('c', g + q, 21, 2, 6); L.floorP('o', g + 8, 23, 6, 2); L.src.push({ layer: 'floor', x: g + 11, y: HZ + 20, rate: 0.06, size: 4, t: r() }); }
     },
     camp: function (L, r) {
       bands(L.skyP, VW, [[0, 'n'], [90, 'p'], [130, 'w']]);

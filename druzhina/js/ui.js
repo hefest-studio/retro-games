@@ -104,15 +104,17 @@
     if (P.hd) { ctx.fillStyle = P.outline; ctx.fillRect(x - 2, 6, 38, 38); }
     ctx.fillStyle = col; if (P.pixel || P.hd) ctx.fillRect(x, 8, 34, 34); else { ctx.beginPath(); ctx.arc(x + 17, 25, 17, 0, Math.PI * 2); ctx.fill(); }
     txt(g, g.t('h_' + h.hero).charAt(0), x + 17, 33, { size: 20, align: 'center', color: '#15161a', weight: 900, shadow: false }, P);
-    var name = (S.players === 2 ? g.t(h.pi ? 'p2' : 'p1') + ' · ' : '') + g.t('h_' + h.hero);
-    txt(g, up(P, name), x + 42, 17, { size: 12, color: col, weight: 800, shadow: false }, P);
-    txt(g, '×' + Math.max(0, h.lives), x + 200, 17, { size: 12, align: 'right', color: P.ink, weight: 800, shadow: false }, P);
+    var big = P.hd && D.hdFont.minScale(ctx) > 2;   // HD на узком экране: шрифт ≥ 3 — строки HUD рассажены заново, без подписи «Счёт» и «Ур»
+    var name = (S.players === 2 && !big ? g.t(h.pi ? 'p2' : 'p1') + ' · ' : '') + g.t('h_' + h.hero);
+    txt(g, up(P, name), x + 42, big ? 24 : 17, { size: 12, color: col, weight: 800, shadow: false, maxWidth: big ? 118 : 0 }, P);
+    txt(g, '×' + Math.max(0, h.lives), x + 200, big ? 24 : 17, { size: 12, align: 'right', color: P.ink, weight: 800, shadow: false }, P);
     var f = h.hp / h.max;
     bar(ctx, x + 42, 23, 158, 9, dim ? 0 : f, f > 0.5 ? P.good : f > 0.25 ? P.warn : P.bad, P, 8);
     // кувшины и уровень магии
     var lvl = 0, costs = h.def.magic.costs; for (var i = 0; i < costs.length; i++) if (h.jugs >= costs[i]) lvl = i + 1;
     for (var j = 0; j < L.JUG_MAX; j++) jugIcon(ctx, x + 48 + j * 13, 49, j < h.jugs, P);
-    txt(g, lvl ? g.t('lvl') + lvl : '', x + 200, 50, { size: 11, align: 'right', color: lvl ? P.magic : P.muted, weight: 900, shadow: false }, P);
+    if (big) { if (lvl) txt(g, '✦' + lvl, x + 200, 55, { size: 12, align: 'right', color: P.magic, weight: 900, shadow: false }, P); }
+    else txt(g, lvl ? g.t('lvl') + lvl : '', x + 200, 50, { size: 11, align: 'right', color: lvl ? P.magic : P.muted, weight: 900, shadow: false }, P);
   }
   function hud(g, ctx, S, P) {
     var L = D.logic, W = g.W, H = L.HUD;
@@ -120,26 +122,27 @@
     ctx.fillStyle = P.line; ctx.fillRect(0, H - 2, W, 2);
     if (P.hd) { ctx.fillStyle = P.outline; ctx.fillRect(0, H, W, 3); ctx.fillStyle = P.panelHi; ctx.fillRect(0, 0, W, 3); }
     S.heroes.forEach(function (h, i) { heroBlock(g, ctx, S, h, 10 + i * 250, P); });
-    var scx = S.players === 2 ? W - 250 : W / 2;
-    txt(g, String(S.score), scx, 30, { size: 22, align: 'center', color: P.accent, shadow: false }, P);
-    txt(g, up(P, g.t('score')), scx, 46, { size: 10, align: 'center', color: P.muted, weight: 700, shadow: false }, P);
+    var big = P.hd && D.hdFont.minScale(ctx) > 2, scx = S.players === 2 ? W - 250 : W / 2;
+    txt(g, String(S.score), scx, big ? 40 : 30, { size: 22, align: 'center', color: P.accent, shadow: false }, P);
+    if (!big) txt(g, up(P, g.t('score')), scx, 46, { size: 10, align: 'center', color: P.muted, weight: 700, shadow: false }, P);
     var rx = W - 12;
-    txt(g, up(P, g.t('stageShort')) + ' ' + S.stage + '/' + S.maxStage, rx, 22, { size: 13, align: 'right', color: P.ink, shadow: false }, P);
-    txt(g, up(P, g.t('s_' + S.key)), rx, 40, { size: 11, align: 'right', color: P.muted, weight: 700, shadow: false }, P);
+    txt(g, up(P, g.t('stageShort')) + ' ' + S.stage + '/' + S.maxStage, rx, big ? 26 : 22, { size: 13, align: 'right', color: P.ink, shadow: false }, P);
+    txt(g, up(P, g.t('s_' + S.key)), rx, big ? 52 : 40, { size: 11, align: 'right', color: P.muted, weight: 700, shadow: false, maxWidth: big ? 410 : 0 }, P);
   }
 
   // ---------- Баннеры и оверлеи ----------
   function banner(g, ctx, P, title, sub, col, y) {
-    var w = 600, h = 80, x = (g.W - w) / 2; y = y || 130;
+    var ph = P.hd;   // HD на узком экране: панель шире и выше, подпись — в две строки (не мельче минимального масштаба)
+    var w = ph ? 780 : 600, h = ph ? 112 : 80, x = (g.W - w) / 2; y = y || 130;
     panel(ctx, x, y, w, h, P, col);
-    txt(g, up(P, title), g.W / 2, y + 38, { size: P.pixel ? 22 : 26, align: 'center', color: col }, P);
-    txt(g, up(P, sub), g.W / 2, y + 62, { size: P.pixel ? 10 : 12, align: 'center', color: P.muted, weight: 600, shadow: false }, P);
+    txt(g, up(P, title), g.W / 2, y + (ph ? 40 : 38), { size: P.pixel ? 22 : 26, align: 'center', color: col, maxWidth: w - 24 }, P);
+    txt(g, up(P, sub), g.W / 2, y + (ph ? 72 : 62), { size: P.pixel ? 10 : 12, align: 'center', color: P.muted, weight: 600, shadow: false, maxWidth: w - 24, wrap: ph }, P);
   }
   function overlays(g, ctx, S, P) {
     var L = D.logic, bosses = S.foes.filter(function (f) { return f.kind === 'boss' && f.alive; });
     if (bosses.length) {
       var hp = 0, mx = 0; bosses.forEach(function (b) { hp += Math.max(0, b.hp); mx += b.max; });
-      var B = bosses[0], bw = 420, bx = (g.W - bw) / 2, by = L.HUD + 16;
+      var B = bosses[0], bw = 420, bx = (g.W - bw) / 2, by = L.HUD + (P.hd && D.hdFont.minScale(ctx) > 2 ? 34 : 16);
       txt(g, up(P, g.t('b_' + B.type)) + (B.def.phases && B.stage ? '  ·  ' + up(P, g.t('phase')) + ' ' + B.stage : ''), g.W / 2, by + 2, { size: 12, align: 'center', color: P.boss, weight: 800 }, P);
       bar(ctx, bx, by + 8, bw, 9, hp / mx, P.boss, P);
       if (B.intro > 0) { ctx.globalAlpha = P.hd ? 1 : Math.min(1, B.intro / 0.4); banner(g, ctx, P, g.t('b_' + B.type), g.t('bossSub'), P.boss, 150); ctx.globalAlpha = 1; }
@@ -192,11 +195,37 @@
   }
 
   // ---------- Экран выбора героя ----------
+  // Выбор героя, HD на узком экране: карточки компактные (портрет, имя, роль, статус), силы/скорость/дальность и описание выбранного героя
+  // (И1) — панелью шириной во всё поле внизу; шрифт не меньше минимального масштаба темы (js/hd-font.js, minScale)
+  function selectPhone(g, ctx, sel, P, t) {
+    var L = D.logic, W = g.W, keys = L.HERO_KEYS, cw = 290, gap = 10, y = 108, ch = 286;
+    keys.forEach(function (k, i) {
+      var x = W / 2 + (i - 1) * (cw + gap) - cw / 2;
+      var who = []; for (var p = 0; p < sel.n; p++) if (sel.cur[p] === i) who.push(p);
+      panel(ctx, x, y, cw, ch, P, who.length ? P.hero[k] : P.line);
+      ctx.fillStyle = P.hudBg; ctx.fillRect(x + 12, y + 12, cw - 24, 150);
+      var ready = who.some(function (p) { return sel.ready[p]; });
+      D.render.portrait(ctx, P, k, x + cw / 2 - 6, y + 152, 1.1, t + i, ready ? (k === 'olha' ? 'shoot' : 'over') : 'idle');
+      txt(g, up(P, g.t('h_' + k)), x + cw / 2, y + 198, { size: 24, align: 'center', color: P.hero[k], weight: 900, maxWidth: cw - 16 }, P);
+      txt(g, g.t('r_' + k), x + cw / 2, y + 226, { size: 12, align: 'center', color: P.muted, weight: 700, maxWidth: cw - 12, wrap: true }, P);
+      who.forEach(function (p, q) {
+        var tag = (sel.n === 2 ? g.t(p ? 'p2' : 'p1') + ' ' : '') + (sel.ready[p] ? '✔ ' + g.t('ready') : '▲');
+        txt(g, up(P, tag), x + cw / 2, y + ch - 12 - (who.length - 1 - q) * 24, { size: 14, align: 'center', color: sel.ready[p] ? P.good : P.hero[k], weight: 900, maxWidth: cw - 12 }, P);
+      });
+    });
+    var cur = keys[sel.cur[0]], H = L.HEROES[cur], py = y + ch + 8, ph = g.H - py - 8, px = 24, pw = W - 48;
+    panel(ctx, px, py, pw, ph, P, P.hero[cur]);
+    var st = [['st_power', { zhdan: 0.95, secha: 0.55, olha: 0.6 }[cur]], ['st_speed', H.speed / 190], ['st_reach', { zhdan: 0.55, secha: 0.4, olha: 0.95 }[cur]]];
+    st.forEach(function (s, j) { txt(g, g.t(s[0]), px + 18, py + 34 + j * 28, { size: 12, color: P.ink, weight: 700, maxWidth: 176 }, P); bar(ctx, px + 200, py + 18 + j * 28, 150, 10, s[1], P.hero[cur], P); });
+    txt(g, g.t('m_' + H.magic.kind), px + 376, py + 34, { size: 12, color: P.magic, weight: 800, maxWidth: pw - 394 }, P);
+    txt(g, g.t('d_' + cur), px + 376, py + 62, { size: 12, color: P.muted, weight: 600, maxWidth: pw - 394, wrap: true }, P);
+  }
   function select(g, ctx, sel, P, t) {
     var L = D.logic, W = g.W, keys = L.HERO_KEYS;
     if (P.hd) D.hd.dim(g, ctx); else { ctx.fillStyle = P.pixel ? 'rgba(0,0,0,.6)' : 'rgba(10,10,14,.55)'; ctx.fillRect(0, 0, W, g.H); }
     txt(g, up(P, g.t('select')), W / 2, 70, { size: 34, align: 'center', color: P.accent, weight: 900 }, P);
     txt(g, g.t('selHint'), W / 2, 96, { size: 13, align: 'center', color: P.muted, weight: 600, shadow: false }, P);
+    if (P.hd) return selectPhone(g, ctx, sel, P, t);   // HD на телефоне (портрет): подробности — одной панелью внизу, шрифт ≥ 3
     keys.forEach(function (k, i) {
       var cw = 270, x = W / 2 + (i - 1) * (cw + 24) - cw / 2, y = 120, ch = 360;
       var who = []; for (var p = 0; p < sel.n; p++) if (sel.cur[p] === i) who.push(p);

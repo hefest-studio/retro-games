@@ -270,7 +270,12 @@
   function variant(base, map, extra) { var o = {}; ['n', 'a', 'h'].forEach(function (e) { var m = map ? recolor(base[e], cmap(map)) : clone(base[e]); if (extra) extra(m, e); o[e] = m; }); return o; }
   HEADS.twins0 = variant(HEADS.brute, null, function (m) { for (var x = 0; x < HW; x++) if (SK(x, 11)) { put(m, x, 11, KEY.c); put(m, x, 10, KEY.r); } seg(m, [[12, 3, 'cr'], [13, 2, 'cr']]); });
   HEADS.twins1 = variant(HEADS.brute, null, function (m) { for (var x = 0; x < HW; x++) if (SK(x, 11)) { put(m, x, 11, KEY.v); put(m, x, 10, KEY.t); } seg(m, [[12, 3, 'vt'], [13, 2, 'vt']]); });
-  HEADS.cepnik = variant(HEADS.shield, { m: 'b', b: 'l', l: 'n', c: 'g' });
+  // Цепник (волна 48): не шлем, как у Воеводы, а широкополая кожаная шляпа перевозчика с латунной лентой — силуэт с полями, без плюмажа
+  HEADS.cepnik = variant(HEADS.brute, null, function (m) {
+    bevel(m, function (x, y) { return (y >= 4 && y <= 10 && x >= (y === 4 ? 9 : y === 5 ? 8 : 7) && x <= (y === 4 ? 19 : y === 5 ? 20 : 21)) || ((y === 11 || y === 12) && x >= 1 + (y - 11) && x <= 26 - (y - 11)); }, 'rwp');
+    for (var x = 7; x <= 21; x++) { if (get(m, x, 9)) put(m, x, 9, KEY.g); if (get(m, x, 10)) put(m, x, 10, KEY.w); }
+    for (var x2 = 2; x2 <= 26; x2++) if (get(m, x2, 12)) put(m, x2, 12, KEY.p);
+  });
   HEADS.lovchiy = variant(HEADS.spear, null, function (m) { bevel(m, function (x, y) { return dilate(SK, 2)(x, y) && y <= 12; }, 'rwp', function (x, y, v, hi, mid, sh) { return v === mid && (x + y) % 3 === 0 ? sh : v === mid && (x * 2 + y) % 5 === 0 ? hi : v; }); });
   HEADS.stenoboy = variant(HEADS.brute, null, function (m) { bevel(m, helmMask(12), 'lnk'); seg(m, [[5, 4, 'W'], [4, 3, 'mW'], [3, 2, 'mW'], [2, 2, 'W'], [5, 22, 'W'], [4, 23, 'Wm'], [3, 24, 'Wm'], [2, 25, 'W'], [9, 13, 'bb']]); });
 
@@ -335,7 +340,7 @@
   };
   TORSO.twins0 = { m: TORSO.brute.m, J: TORSO.brute.J }; TORSO.twins1 = TORSO.twins0;
   TORSO.cepnik = { m: recolor(TORSO.shield.m, cmap({})), J: TORSO.shield.J };
-  TORSO.cepnik = torso(24, 21, 15, { chest: 'lnk', belt: 'p', buckle: 'g', hips: 'lnk' }, function (m, inT) { for (var i = 0; i < 14; i++) put(m, 3 + i, 2 + Math.round(i * 0.8), i % 2 ? KEY.m : KEY.b); }, true);
+  TORSO.cepnik = torso(24, 21, 15, { chest: 'rwp', belt: 'k', buckle: 'g', hips: 'wpk' }, function (m, inT) { for (var i = 0; i < 14; i++) put(m, 3 + i, 2 + Math.round(i * 0.8), i % 2 ? KEY.m : KEY.b); }, true);
   TORSO.stenoboy = torso(24, 21, 15, { chest: 'lnk', belt: 'k', buckle: 'c', hips: 'lnk' }, function (m, inT) { for (var y = 3; y < 15; y += 4) for (var x = 3; x < 21; x += 5) if (inT(x, y)) put(m, x, y, KEY.b); }, true);
   TORSO.lovchiy = torso(16, 15, 10, { chest: 'rwp', belt: 'k', buckle: 'g', hips: 'lnk', tex: function (x, y, v, hi, mid, sh) { return v === mid && (x + y) % 3 === 0 ? sh : v; } });
 
@@ -432,7 +437,7 @@
     twins0: { body: 'big', upper: 'mbl', fore: 'mbl', thigh: 'wpk', shin: 'wpk', hand: 'mbl', boot: 'pkk', weapon: 'hammer', atk: 'over', boss: 1 },
     twins1: { body: 'big', upper: 'mbl', fore: 'mbl', thigh: 'lnk', shin: 'lnk', hand: 'mbl', boot: 'pkk', weapon: 'hammer', atk: 'over', boss: 1 },
     lovchiy: { body: 'std', upper: 'rwp', fore: 'ssS', thigh: 'lnk', shin: 'lnk', hand: 'rwp', boot: 'wpk', weapon: 'spear', cape: 'rwp', atk: 'over', boss: 1, rider: 1 },
-    cepnik: { body: 'big', upper: 'lnk', fore: 'bln', thigh: 'lnk', shin: 'lnk', hand: 'bln', boot: 'pkk', weapon: 'flail', atk: 'swing', boss: 1 },
+    cepnik: { body: 'big', upper: 'rwp', fore: 'bln', thigh: 'wpk', shin: 'wpk', hand: 'bln', boot: 'pkk', weapon: 'flail', atk: 'swing', boss: 1 },
     stenoboy: { body: 'big', upper: 'lnk', fore: 'lnk', thigh: 'lnk', shin: 'lnk', hand: 'lnk', boot: 'nkk', weapon: 'ram', atk: 'thrust', boss: 1 }
   };
   var STORED = ['zhdan', 'secha', 'olha', 'shield', 'spear', 'raider', 'brute', 'voevoda', 'liteyshchik'];   // ключевые позы — матрицами из js/hd-poses.js
@@ -630,6 +635,19 @@
     for (var y = 0; y < p.h; y++) for (var x = 0; x < p.w; x++) { var v = p.a[y * p.w + x]; if (v) put(f, x + m.ox, y + m.oy, v); }
     return f;
   }
+  // Чёрный Литейщик на тёмном фоне (литейня, горн): подсветка горном (волна 48) — тёмные ступени доспеха на ступень светлее (ночь → сланец,
+  // сланец → сталь), а кромка силуэта сверху и слева — медный ободок (раньше — почти чернила, фигура сливалась с фоном). Только палитра темы.
+  var GLOW = [], i0; for (i0 = 0; i0 < 17; i0++) GLOW[i0] = i0; GLOW[KEY.n] = KEY.l; GLOW[KEY.l] = KEY.b;
+  function forgeGlow(f) {
+    var w = f.w, h = f.h, s = f.a, a = new Uint8Array(s.length), x, y, i;
+    for (i = 0; i < s.length; i++) a[i] = s[i] === KEY.k ? s[i] : GLOW[s[i]];
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      i = y * w + x; if (!s[i]) continue;
+      var up = y === 0 || !s[i - w], lf = x === 0 || !s[i - 1], dn = y < h - 1 && !s[i + w], rt = x < w - 1 && !s[i + 1];
+      if (up || lf) a[i] = up ? KEY.o : KEY.c; else if (dn || rt) a[i] = s[i] === KEY.k ? KEY.k : a[i];
+    }
+    f.a = a;
+  }
   var SETS = {};
   function frames(key) {
     if (SETS[key]) return SETS[key];
@@ -638,6 +656,7 @@
     if (miss.length) { var r = renderSet(key, miss); Object.keys(r).forEach(function (n) { out[n] = r[n]; }); }
     if (have) kp.forEach(function (n) { if (have[n]) out[n] = unpack(key, have[n]); });
     var B = parts(key).B;
+    if (key === 'liteyshchik') Object.keys(out).forEach(function (n) { forgeGlow(out[n]); });
     return (SETS[key] = { f: out, B: B, stored: !!have });
   }
   function crop(f) {   // для запекания: обрезка по рамке
