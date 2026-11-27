@@ -1,674 +1,142 @@
-/* ============================================================================
-   КРОТ · main.js — сборка: цикл, ввод, настройки, события движка, debug-хеши
-   Владелец: Lead. См. CONTRACT.md §6.5.
-   ========================================================================== */
+/* МУРАВЕЙНИК · сборка: фреймворк Гефест Arcade (engine.js) + логика (game.js) + рендер обеих тем (render.js) + звук.
+   Сцены title/pause/win/gameover — g.useStandardScreens; титул: колония сама ходит по туннелям на фоне + меню движка. Партия: 8 ярусов
+   подряд, 3 жизни (+1 после 2-го, 4-го и 6-го яруса). ИИ-бота в игре нет. Ввод: стрелки/WASD/геймпад — вести колонну (движок), Пробел/A — обвал;
+   тач — плавающий стик (держи в сторону) + кнопка ▼ «Обвал». Площадка: лидерборд, «Без рекламы», реклама за награду, adBreak между ярусами. */
 (function (global) {
   'use strict';
-  var KROT = global.KROT = global.KROT || {};
-  var doc = global.document;
-
-  /* ------------------------------- настройки ------------------------------ */
-  var SET_KEY = KROT.STORE_KEYS.settings;
-  var HI_KEY = KROT.STORE_KEYS.hi;
-  try { KROT.migrateStorage(global.localStorage); } catch (e) { /* нет хранилища */ }
-
-  var defaults = { gfx: 'classic', lang: 'ru', music: true, sfx: true, crt: true };
-  var settings = { gfx: defaults.gfx, lang: defaults.lang, music: defaults.music, sfx: defaults.sfx, crt: defaults.crt };
-  KROT.settings = settings;
-
-  function storeGet(key) {
-    try { var raw = global.localStorage.getItem(key); return raw ? JSON.parse(raw) : null; }
-    catch (e) { return null; }
-  }
-  function storeSet(key, value) {
-    try { global.localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* file:// / приватный режим */ }
-  }
-
-  /* Графика при каждом запуске — ретро (8-бит), независимо от прошлой сессии.
-     Переключение на «Неон» действует в текущей сессии; сохраняются только язык,
-     музыка, звуки и CRT. */
-  settings.gfx = 'classic';
-  var saved = storeGet(SET_KEY);
-  if (saved && typeof saved === 'object') {
-    if (saved.lang === 'ru' || saved.lang === 'en') settings.lang = saved.lang;
-    if (typeof saved.music === 'boolean') settings.music = saved.music;
-    if (typeof saved.sfx === 'boolean') settings.sfx = saved.sfx;
-    if (typeof saved.crt === 'boolean') settings.crt = saved.crt;
-  }
-  var hiscore = Math.max(0, (storeGet(HI_KEY) | 0));
-
-  /* -------------------------------- DOM ----------------------------------- */
-  var canvas = doc.getElementById('game');
-  var stage = doc.getElementById('stage');
-  var uiRoot = doc.getElementById('ui');
-  var errBox = doc.getElementById('err');
-  var testBox = doc.getElementById('testout');
-  var ctx = canvas.getContext('2d', { alpha: false });
-
-  function showError(err) {
-    if (!errBox) return;
-    errBox.style.display = 'block';
-    errBox.textContent = 'КРОТ error:\n' + (err && (err.stack || err.message || String(err)));
-  }
-  global.addEventListener('error', function (ev) { showError(ev.error || ev.message); });
-  global.addEventListener('unhandledrejection', function (ev) { showError(ev.reason); });
-
-  var audio = KROT.audio || null;
-  function tryAudio(fn, arg) { if (!audio || typeof audio[fn] !== 'function') return; try { audio[fn](arg); } catch (e) { showError(e); } }
-
-  /* ------------------------------ параметры -------------------------------- */
-  var hash = (global.location.hash || '').replace(/^#/, '');
-  var params = {};
-  hash.split('&').forEach(function (part) {
-    if (!part) return;
-    var i = part.indexOf('=');
-    var k = i < 0 ? part : part.slice(0, i);
-    var v = i < 0 ? '' : decodeURIComponent(part.slice(i + 1));
-    params[k] = v;
-  });
-
-  if (params.gfx === 'modern' || params.gfx === 'classic') settings.gfx = params.gfx;
-  if (params.lang === 'ru' || params.lang === 'en') settings.lang = params.lang;
-  if ('mute' in params) { settings.music = false; settings.sfx = false; }
-  if (params.crt === '0') settings.crt = false;
-  if (params.crt === '1') settings.crt = true;
-  var shotMode = params.shot || null;
-  var testMode = 'test' in params;
-  var freeze = 'freeze' in params || shotMode || testMode;
-
-  KROT.i18n.setLang(settings.lang);
-
-  /* ------------------------------- движок --------------------------------- */
-  var seed = (Date.now() ^ ((global.Math.random() * 0x7fffffff) | 0)) >>> 0;
-  var engine = KROT.Game({
-    seed: freeze ? 20240501 : seed,
-    hiscore: hiscore,
-    onEvent: onEngineEvent
-  });
-  KROT.engine = engine;
-  var S = engine.state;
-
-  /* ------------------------------- аудио ---------------------------------- */
-  var audioReady = false;
-  var lastDigAt = 0;
-  var currentMusic = null;
-
-  function audioUnlock() {
-    if (!audio) return;
-    tryAudio('unlock');
-    audioReady = !!(audio.isReady && audio.isReady());
-    applyAudioSettings();
-    if (!audioReady) return;
-    if (currentMusic == null) setMusic(S.mode === 'title' ? 'title' : (S.bonus ? 'bonus' : 'game'));
-  }
-
-  function applyAudioSettings() {
-    if (!audio) return;
-    if (typeof audio.setMusicEnabled === 'function') tryAudio('setMusicEnabled', settings.music);
-    if (typeof audio.setSfxEnabled === 'function') tryAudio('setSfxEnabled', settings.sfx);
-    else if (typeof audio.setMuted === 'function') tryAudio('setMuted', !settings.music && !settings.sfx);
-  }
-
-  function setMusic(mode) {
-    if (!audio) return;
-    if (currentMusic === mode) return;
-    currentMusic = mode;
-    if (typeof audio.startMusic === 'function') tryAudio('startMusic', mode);
-  }
-  function stopMusic() {
-    currentMusic = null;
-    if (audio && typeof audio.stopMusic === 'function') tryAudio('stopMusic', 180);
-  }
-
-  function sfx(name) {
-    if (!audio || !audioReady || !settings.sfx) return;
-    tryAudio('sfx', name);
-  }
-  function sfxThrottled(name, ms) {
-    var now = (global.performance ? global.performance.now() : Date.now());
-    if (now - lastDigAt < ms) return;
-    lastDigAt = now;
-    sfx(name);
-  }
-
-  function onEngineEvent(type, data) {
-    switch (type) {
-      case 'dig': sfxThrottled('dig', 60); break;
-      case 'gem': sfx('gem'); break;
-      case 'gold': sfx('gold'); break;
-      case 'bagPush': sfx('bag_push'); break;
-      case 'bagWobble': sfx('bag_wobble'); break;
-      case 'bagFall': sfx('bag_fall'); break;
-      case 'bagBreak': sfx('bag_break'); break;
-      case 'shoot': sfx('shoot'); break;
-      case 'monsterDie': sfx('monster_die'); break;
-      case 'squash': sfx('squash'); break;
-      case 'cherry': sfx('cherry'); break;
-      case 'bonusStart': sfx('bonus'); setMusic('bonus'); break;
-      case 'bonusEnd': setMusic('game'); break;
-      case 'eat': sfx('eat'); break;
-      case 'playerDie': sfx('player_die'); setMusic('death'); break;
-      case 'extraLife': sfx('extra_life'); break;
-      case 'levelClear': sfx('level_clear'); setMusic('clear'); break;
-      case 'levelStart':
-        setMusic('game');
-        if (audio && typeof audio.setGameTheme === 'function') tryAudio('setGameTheme', (data.level || S.level) % 2);
-        break;
-      case 'gameOver':
-        setMusic('gameover');
-        saveHiscore(data.hi);
-        showGameOver(data);
-        break;
-      case 'pause': break;
-      default: break;
-    }
-  }
-
-  function saveHiscore(value) {
-    var v = Math.max(hiscore, value | 0);
-    if (v > hiscore) { hiscore = v; storeSet(HI_KEY, v); }
-  }
-
-  /* ------------------------------- UI ------------------------------------- */
-  var panel = null;            // 'settings' | 'help' | 'about'
-  var panelPausedGame = false;
-  var lastScreen = '@none';
-
-  function uiShow(name, data) {
-    if (!KROT.ui || typeof KROT.ui.show !== 'function') return;
-    try { KROT.ui.show(name, data); } catch (e) { showError(e); }
-  }
-  function uiCurrent() {
-    if (!KROT.ui || typeof KROT.ui.current !== 'function') return null;
-    try { return KROT.ui.current(); } catch (e) { return null; }
-  }
-
-  function initUI() {
-    if (!KROT.ui || typeof KROT.ui.init !== 'function') return;
-    KROT.ui.init({
-      getSettings: function () { return settings; },
-      setSetting: function (key, value) { applySetting(key, value); },
-      start: startGame,
-      resume: resumeGame,
-      restart: startGame,
-      menu: goMenu,
-      getHiscore: function () { return Math.max(hiscore, S.hi); },
-      resetHi: function () { resetHiscore(); },
-      openPanel: function (name) { openPanel(name); },
-      closePanel: function () { closePanel(); }
-    });
-  }
-
-  function openPanel(name) {
-    if (S.mode === 'play' || S.mode === 'bonus' || S.mode === 'ready') {
-      if (!S.paused) { engine.pause(true); panelPausedGame = true; }
-    }
-    panel = name;
-    uiShow(name);
-  }
-  function closePanel() {
-    panel = null;
-    if (panelPausedGame) { panelPausedGame = false; engine.pause(false); }
-    syncScreens(true);
-  }
-
-  function showGameOver(data) {
-    panel = null;
-    uiShow('gameover', {
-      score: data.score,
-      hi: Math.max(data.hi, hiscore),
-      record: !!data.record,
-      stats: data.stats || S.stats
-    });
-  }
-
-  function syncScreens(force) {
-    if (panel) { if (force) uiShow(panel); return; }
-    var want = null, data = null;
-    if (S.mode === 'title') want = 'title';
-    else if (S.paused) want = 'pause';
-    else if (S.mode === 'gameover') {
-      want = 'gameover';
-      data = { score: S.score, hi: Math.max(hiscore, S.hi), record: false, stats: S.stats };
-    }
-    if (want === null) {
-      if (lastScreen !== null) { uiShow(null); lastScreen = null; }
-      return;
-    }
-    var key = want + '|' + (data ? data.score : '');
-    if (force || key !== lastScreen) {
-      lastScreen = key;
-      uiShow(want, data);
-    }
-  }
-
-  /* ----------------------------- настройки -------------------------------- */
-  function syncBodyClasses() {
-    var body = doc.body;
-    body.classList.remove('gfx-classic', 'gfx-modern');
-    body.classList.add('gfx-' + settings.gfx);
-    body.classList.toggle('crt-on', !!settings.crt);
-    body.classList.toggle('lang-ru', settings.lang === 'ru');
-    body.classList.toggle('lang-en', settings.lang === 'en');
-  }
-
-  function applySetting(key, value) {
-    if (key === 'lang') {
-      settings.lang = value === 'en' ? 'en' : 'ru';
-      KROT.i18n.setLang(settings.lang);
-      doc.documentElement.setAttribute('lang', settings.lang);
-    } else if (key === 'gfx') {
-      settings.gfx = value === 'modern' ? 'modern' : 'classic';
-    } else if (key === 'music') {
-      settings.music = !!value;
-      applyAudioSettings();
-      if (settings.music && !audioReady) audioUnlock();
-    } else if (key === 'sfx') {
-      settings.sfx = !!value;
-    } else if (key === 'crt') {
-      settings.crt = !!value;
-    } else if (key === 'resetHi') {
-      resetHiscore();
-    }
-    syncBodyClasses();
-    persistSettings();
-    if (KROT.ui && typeof KROT.ui.refresh === 'function') {
-      try { KROT.ui.refresh(); } catch (e) { showError(e); }
-    }
-  }
-  KROT.applySetting = applySetting;
-
-  function resetHiscore() {
-    hiscore = 0;
-    engine.resetHi(0);
-    storeSet(HI_KEY, 0);
-  }
-
-  function persistSettings() {
-    storeSet(SET_KEY, {
-      lang: settings.lang,
-      music: settings.music,
-      sfx: settings.sfx,
-      crt: settings.crt
-    });
-  }
-  function saveSettings() { persistSettings(); }
-
-  /* ----------------------------- управление ------------------------------- */
-  var DIR_KEYS = {
-    ArrowUp: 0, KeyW: 0, ArrowRight: 1, KeyD: 1,
-    ArrowDown: 2, KeyS: 2, ArrowLeft: 3, KeyA: 3
+  var MU = global.MURAV, R = MU.render, C = MU.consts;
+  var mig = { migrated: false, oldBest: 0, notice: false };
+  try { mig = MU.save.migrate({ get: function (k) { return localStorage.getItem(k); }, set: function (k, v) { localStorage.setItem(k, v); }, del: function (k) { localStorage.removeItem(k); } }); } catch (e) { }
+  var TH = Arcade.themes || {};
+  var themes = {
+    modern: Object.assign({}, TH.modern, { bg: '#15110d', panel: '#221a12', ink: '#f7efe0', muted: '#a99c86', accent: '#ffb23e', grid: '#4a3b2a' }),
+    retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#ffff55', muted: '#aaaaaa' })
   };
-  var dirStack = [];
-  var lastSentDir = -2;
-  var shootHeld = false;
-  var started = false;
+  var g = Arcade.createGame({ canvas: '#c', width: 450, height: 660, gameId: 'krot', leaderboard: 'krot', strings: MU.STR, theme: 'modern', lives: C.LIVES, themes: themes });
+  MU.g = g; MU.ui.init(g);
+  var pad = document.getElementById('pad');
+  var TUT_KEY = 'arcade.krot.tut';
+  g.persist(TUT_KEY, 'max'); g.persist('arcade.best.krot', 'max');
+  function tutSeen() { return Arcade.Store.getNum(TUT_KEY, 0) > 0; }
+  function P() { return R.pal(g); }
 
-  function currentDir() { return dirStack.length ? dirStack[dirStack.length - 1].dir : -1; }
+  g.useStandardScreens({ lives: C.LIVES });
+  g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
+  var LB = 'krot';
+  function lbSubmit(score) { if (score > 0) g.leaderboard.submit(score | 0, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: 'krot', label: function () { return g.t('lbAll'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbSubmit(g.state.best); });   // облако слито: рекорд с другого устройства — в таблицу
+  g.useOwnGames(); g.useShortcut(); g.useReview({ minSessions: 3, gap: 3 });
+  // «ещё шанс»: после последней жизни — продолжить ярус с 1 жизнью; бонус в паузе — два муравья в колонию (раз за партию)
+  g.useRewardedContinue({ revive: function () { if (game) game.revive(); } });
+  g.useRewardedBonus({ key: 'rwAnts', scene: 'pause', label: function () { return g.t('rwBonus'); }, available: function () { return !!game && game.state().ants.length <= 8 && !game.state().pend; }, grant: function () { if (game) game.addAnts(2); } });
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
 
-  function pushDir(code, dir) {
-    for (var i = 0; i < dirStack.length; i++) if (dirStack[i].code === code) return;
-    dirStack.push({ code: code, dir: dir });
+  // ---------- партия ----------
+  var game = null, toasts = [], tutT = 0, lastLevel = -1;
+  function toast(text, color, x, y, size) { toasts.push({ text: text, color: color, x: x, y: y, t: 1.2, size: size }); if (toasts.length > 6) toasts.shift(); }
+  function burst(x, y, color, n, sp) { var G = R.geo(g), p = R.pt(G, x, y); g.particles.spawn(p.x, p.y, { color: color, count: n, speed: sp || 110, life: 0.5, size: P().pixel ? 4 : 3 }); }
+  function onEvent(type, d) {
+    MU.sfx(g, type, d); var pal = P();
+    if (type === 'dig') burst(d.x, d.y, pal.pixel ? '#5555ff' : '#e3b867', 3, 60);
+    else if (type === 'pick') burst(d.x, d.y, pal.crumb, 6, 80);
+    else if (type === 'deliver') { toast('+' + d.pts, d.n > 1 ? pal.warn : pal.ink, d.x, 1.1, 14 + Math.min(d.n, 5) * 2); burst(d.x, 0.5, pal.warn, 8, 90); }
+    else if (type === 'hatch') { toast(g.t('hatch'), pal.good, d.x, 1.2, 14); burst(d.x, d.y, pal.good, 8, 80); }
+    else if (type === 'collapse') { d.cells.forEach(function (c) { burst(c[0], c[1], pal.pixel ? '#5555ff' : '#c9913f', 8, 100); }); g.rumble({ ms: 160, strong: 0.5, weak: 0.5 }); }
+    else if (type === 'entomb') toast(g.t('entomb'), pal.good, 5, 6, 18);
+    else if (type === 'bite') { toast(g.t('bite'), pal.bad, d.x, d.y - 0.5, 16); burst(d.x, d.y, pal.bad, 12, 120); g.rumble({ ms: 120, strong: 0.4, weak: 0.3 }); }
+    else if (type === 'hurt') { burst(d.x, d.y, pal.bad, 22, 150); g.rumble({ ms: 220, strong: 0.7, weak: 0.4 }); }
+    else if (type === 'life') toast(g.t('life'), pal.good, 5, 6, 20);
+    else if (type === 'clear') { burst(5, 0.5, pal.good, 30, 160); if (d.level >= 1) g.adBreak(); }
+    else if (type === 'level') { toast(g.t('go'), pal.accent, 5, 3, 26); tutT = 0; }
   }
-  function popDir(code) {
-    for (var i = dirStack.length - 1; i >= 0; i--) if (dirStack[i].code === code) { dirStack.splice(i, 1); return; }
-  }
+  function sync() { if (!game) return; var S = game.state(); g.state.lives = Math.max(0, S.lives); g.state.level = S.level + 1; g.state.score = S.score; }
+  function newRun() { toasts = []; tutT = 0; game = MU.Game({ level: 0, seed: (Math.random() * 1e9) | 0, onEvent: onEvent }); MU.current = game; sync(); toast(g.t('go'), P().accent, 5, 3, 26); }
 
-  function startGame() {
-    audioUnlock();
-    panel = null;
-    panelPausedGame = false;
-    engine.start();
-    syncScreens(true);
-    setMusic('game');
+  // ---------- титул: колония сама ходит по туннелям ----------
+  var demo = null, demoSeed = 3, demoT = 0;
+  function makeDemo() { var s = demoSeed++; demo = MU.Game({ level: s % 3, seed: s, lives: 9, length: 4 }); demo.state().beetles = []; demoT = 0; }
+  makeDemo();
+  function demoDir(S) {   // жадный автопилот: к ближайшей крошке, с грузом — домой
+    var h = S.ants[0], load = S.ants.filter(function (a) { return a.c; }).length, home = load >= 2 || !S.crumbs.some(function (c) { return c.on; }), tx, ty, best = 1e9;
+    if (home) { if (h.y === 0) return h.x < 5 ? 1 : 3; tx = h.x; ty = 0; }
+    else S.crumbs.forEach(function (c) { var dd = Math.abs(c.x - h.x) + Math.abs(c.y - h.y); if (c.on && dd < best) { best = dd; tx = c.x; ty = c.y; } });
+    var dx = tx - h.x, dy = ty - h.y, ds = [];
+    if (Math.abs(dy) >= Math.abs(dx)) { if (dy) ds.push(dy < 0 ? 0 : 2); if (dx) ds.push(dx < 0 ? 3 : 1); } else { if (dx) ds.push(dx < 0 ? 3 : 1); if (dy) ds.push(dy < 0 ? 0 : 2); }
+    ds.push(2, 1, 3, 0);
+    for (var i = 0; i < ds.length; i++) { var d = ds[i], x = h.x + C.DX[d], y = h.y + C.DY[d]; if (x < 0 || y < 0 || x >= C.COLS || y >= C.ROWS || S.map[y][x] === '#' || S.ants.some(function (a) { return a.x === x && a.y === y; })) continue; return d; }
+    return -1;
   }
-  function resumeGame() {
-    panel = null;
-    if (S.paused) engine.pause(false);
-    syncScreens(true);
-    setMusic(S.bonus ? 'bonus' : 'game');
+  function demoStep(dt) {
+    var S = demo.state(); demoT += dt;
+    if (S.mode !== 'play') { if (S.mode === 'clear' && S.clearT > 0.3) S.clearT = 0.3; if (S.mode === 'clear' && S.level >= C.MAX_LEVEL - 1 || S.mode === 'victory') makeDemo(); else if (S.mode === 'dying') makeDemo(); }
+    demo.setDir(S.mode === 'play' ? demoDir(S) : -1); S.inv = 5; demo.step(Math.min(dt, 1 / 30)); S.beetles = []; if (demoT > 45) makeDemo();
   }
-  function goMenu() {
-    panel = null;
-    panelPausedGame = false;
-    engine.toTitle();
-    syncScreens(true);
-    setMusic('title');
-    if (audio && typeof audio.setGameTheme === 'function') tryAudio('setGameTheme', 0);
-  }
-  function togglePause() {
-    if (S.mode !== 'play' && S.mode !== 'bonus' && S.mode !== 'ready') return;
-    engine.togglePause();
-    if (S.paused) stopMusic(); else setMusic(S.bonus ? 'bonus' : 'game');
-    syncScreens(true);
-  }
+  var title = g.scenes.title, menu = title._menu;
+  title.update = function (dt) { demoStep(dt); };
+  title.draw = function (ctx) {
+    var th = this.th(), pal = R.pal(this), W = this.W, H = this.H, L = R.land(this), S = demo.state();
+    R.bare(ctx, S, this);
+    ctx.fillStyle = pal.pixel ? 'rgba(0,0,0,.78)' : 'rgba(16,11,6,.74)'; ctx.fillRect(0, 0, W, H);
+    var pw = Math.min(400, W - 30), ph = Math.min(L ? H - 24 : 350, H - 40), px = (W - pw) / 2, py = (H - ph) / 2;
+    if (pal.pixel) { ctx.fillStyle = '#000'; ctx.fillRect(px, py, pw, ph); ctx.fillStyle = pal.line; ctx.fillRect(px, py, pw, 4); ctx.fillRect(px, py + ph - 4, pw, 4); ctx.fillRect(px, py, 4, ph); ctx.fillRect(px + pw - 4, py, 4, ph); }
+    else { ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 30; ctx.fillStyle = th.panel; R.rr(ctx, px, py, pw, ph, 18); ctx.fill(); ctx.restore(); ctx.strokeStyle = '#4a3b2a'; ctx.lineWidth = 1; R.rr(ctx, px + 0.5, py + 0.5, pw - 1, ph - 1, 18); ctx.stroke(); }
+    this.text(this.t('title'), W / 2, py + (L ? 30 : 46), { size: L ? 32 : 36, align: 'center', color: pal.accent, weight: 900, maxWidth: pw - 30 });
+    var by = py + (L ? 80 : 108); for (var i = 0; i < 5; i++) R.antIcon(ctx, W / 2 - 60 + i * 30, by, 11, pal);
+    this.text(this.t('subtitle'), W / 2, py + (L ? 108 : 148), { size: 12, align: 'center', color: th.muted, weight: 600, maxWidth: pw - 24, minSize: 9 });
+    var top = py + (L ? 132 : 188), mf = menuFit(menu, top, 32, top - 6, py + ph - (L ? 24 : 52)); menu.draw(this, W / 2, mf[0], mf[1]);
+    var foot = this.state.best ? this.t('best') + ': ' + this.state.best : ''; if (mig.oldBest) foot += (foot ? ' · ' : '') + this.t('oldBest') + ': ' + mig.oldBest;
+    if (foot) this.text(foot, W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600, maxWidth: pw - 24 });
+    if (mig.notice) this.text(this.t('migrated'), W / 2, py + ph + 14, { size: 10, align: 'center', color: pal.good, weight: 700, maxWidth: W - 30 });
+    this.text(this.t(this.input.touchOnly ? 'hintTouch' : 'hint'), W / 2, H - (L ? 4 : 18), { size: 12, align: 'center', color: th.muted, weight: 600, maxWidth: W - 20 });
+  };
+  { var tm = g.menu.get('title'); tm.items[tm.indexOf('play')].onSelect = function () { g.resetRun(); game = null; g.goto('play'); }; }
 
-  function toggleFullscreen() {
-    try {
-      if (!doc.fullscreenElement) {
-        if (stage.requestFullscreen) stage.requestFullscreen();
-        else if (doc.documentElement.requestFullscreen) doc.documentElement.requestFullscreen();
-      } else if (doc.exitFullscreen) doc.exitFullscreen();
-    } catch (e) { /* игнор */ }
+  // ---------- ввод ----------
+  var stick = global.ArcadeStick.create(pad && pad.querySelector('[data-stick]'), {});
+  function heldDir() {
+    var dx = 0, dy = 0, d = g.input.dir;
+    if (stick.active) { dx = stick.x; dy = stick.y; if (Math.hypot(dx, dy) < 0.45) { dx = 0; dy = 0; } } else if (d) { dx = d.x; dy = d.y; }
+    if (!dx && !dy) return -1;
+    return Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0);
   }
-
-  function onKeyDown(e) {
-    if (e.repeat) {
-      if (e.code === 'Space' && (S.mode === 'play' || S.mode === 'bonus')) e.preventDefault();
-      return;
-    }
-    audioUnlock();
-    var code = e.code;
-    if (code in DIR_KEYS) {
-      e.preventDefault();
-      pushDir(code, DIR_KEYS[code]);
-      return;
-    }
-    if (code === 'Space') {
-      e.preventDefault();
-      shootHeld = true;
-      return;
-    }
-    if (code === 'Enter' || code === 'NumpadEnter') {
-      e.preventDefault();
-      if (panel) { if (KROT.ui && KROT.ui.activate) KROT.ui.activate(); return; }
-      if (S.mode === 'title') { startGame(); return; }
-      if (S.mode === 'gameover') { startGame(); return; }
-      if (S.paused) { resumeGame(); return; }
-      return;
-    }
-    if (code === 'Escape') {
-      e.preventDefault();
-      if (panel) { closePanel(); return; }
-      if (S.mode === 'title') return;
-      if (S.mode === 'gameover') { goMenu(); return; }
-      togglePause();
-      return;
-    }
-    if (code === 'KeyP') { e.preventDefault(); if (panel) closePanel(); else togglePause(); return; }
-    if (code === 'KeyL') { e.preventDefault(); applySetting('lang', settings.lang === 'ru' ? 'en' : 'ru'); return; }
-    if (code === 'KeyM') { e.preventDefault(); applySetting('music', !settings.music); return; }
-    if (code === 'KeyK') { e.preventDefault(); applySetting('sfx', !settings.sfx); return; }
-    if (code === 'KeyG') { e.preventDefault(); applySetting('gfx', settings.gfx === 'classic' ? 'modern' : 'classic'); return; }
-    if (code === 'KeyC') { e.preventDefault(); applySetting('crt', !settings.crt); return; }
-    if (code === 'KeyH') { e.preventDefault(); if (panel === 'help') closePanel(); else openPanel('help'); return; }
-    if (code === 'KeyR') {
-      e.preventDefault();
-      if (S.mode === 'gameover' || S.mode === 'play' || S.mode === 'bonus' || S.mode === 'paused' || S.mode === 'ready') startGame();
-      return;
-    }
-    if (code === 'KeyF') { e.preventDefault(); toggleFullscreen(); return; }
+  var bB = pad && pad.querySelector('[data-act="collapse"]');
+  if (bB) {
+    var on = function (e) { if (!Arcade.touchOk(e)) return; if (game && g._sceneName === 'play') game.collapse(); bB.classList.add('on'); }, off = function (e) { if (e && e.type.indexOf('mouse') === 0 && !Arcade.touchOk(e)) return; bB.classList.remove('on'); };
+    bB.addEventListener('touchstart', on, { passive: false }); bB.addEventListener('mousedown', on);
+    ['touchend', 'touchcancel', 'mouseup', 'mouseleave'].forEach(function (n) { bB.addEventListener(n, off, { passive: false }); });
   }
+  var pb = pad && pad.querySelector('[data-pause]');
+  if (pb) { var hp = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); }; pb.addEventListener('touchstart', hp, { passive: false }); pb.addEventListener('mousedown', hp); }
+  addEventListener('blur', function () { if (game) game.setDir(-1); });
 
-  function onKeyUp(e) {
-    var code = e.code;
-    if (code in DIR_KEYS) { e.preventDefault(); popDir(code); return; }
-    if (code === 'Space') { shootHeld = false; }
+  // ---------- игровая сцена ----------
+  function tutText() {
+    if (!game) return ''; var S = game.state(), t = g.input.touchOnly || g.input.device === 'touch' ? '' : 'K';
+    if (S.level === 0 && !tutSeen()) return tutT < 9 ? g.t('tut' + t + '1') : tutT < 40 ? g.t('tut' + t + '2') : '';
+    if (S.level === 1 && tutT < 10) return g.t('tut' + t + '3');
+    if (S.level === 3 && tutT < 14) return g.t('tut' + t + '4');
+    if (S.level === 6 && tutT < 9) return g.t('tut' + t + '5');
+    return '';
   }
+  g.scene('play', {
+    realtime: true,
+    enter: function (d) { if (!(d && d.resume) || !game) { newRun(); } if (game) game.setDir(-1); },
+    press: function (a) { if (a === 'pause') this.pause(); else if (a === 'action' && game) game.collapse(); },
+    update: function (dt) {
+      if (!game) return; var S = game.state();
+      game.setDir(heldDir()); game.step(Math.min(dt, 1 / 30)); tutT += dt;
+      var i; for (i = 0; i < toasts.length; i++) toasts[i].t -= dt; toasts = toasts.filter(function (o) { return o.t > 0; });
+      if (S.level !== lastLevel) { lastLevel = S.level; if (S.level >= 1) g.storeSet(TUT_KEY, '1'); }
+      sync();
+      if (S.mode === 'gameover') { lbSubmit(S.score); g.gameover(); } else if (S.mode === 'victory') { lbSubmit(S.score); g.win(); }
+    },
+    draw: function (ctx) { if (game) R.draw(ctx, game.state(), this, { toasts: toasts, score: game.state().score, tutText: tutText() }); else this.clear(); }
+  });
 
-  global.addEventListener('keydown', onKeyDown, { passive: false });
-  global.addEventListener('keyup', onKeyUp, { passive: false });
-
-  /* --------------------------- касания/свайпы ----------------------------- */
-  var touchState = null;
-  function onPointerDown(e) {
-    if (e.pointerType === 'mouse') return;
-    audioUnlock();
-    touchState = { x: e.clientX, y: e.clientY, moved: false };
-  }
-  function onPointerMove(e) {
-    if (!touchState) return;
-    var dx = e.clientX - touchState.x;
-    var dy = e.clientY - touchState.y;
-    if (Math.abs(dx) < 26 && Math.abs(dy) < 26) return;
-    var dir;
-    if (Math.abs(dx) > Math.abs(dy)) dir = dx > 0 ? 1 : 3;
-    else dir = dy > 0 ? 2 : 0;
-    engine.setDir(dir);
-    dirStack = [{ code: '@touch', dir: dir }];
-    touchState = null;
-    e.preventDefault();
-  }
-  function onPointerUp(e) {
-    if (!touchState) return;
-    var wasTap = !touchState.moved;
-    touchState = null;
-    if (wasTap) {
-      if (S.mode === 'title') { audioUnlock(); return; }
-      engine.shoot();
-    }
-  }
-  var touchArea = stage || canvas;
-  function inUiPanel(target) {
-    return !!(uiRoot && target && target.closest && target.closest('#ui'));
-  }
-  if (touchArea) {
-    touchArea.addEventListener('pointerdown', function (e) {
-      if (inUiPanel(e.target)) return;
-      onPointerDown(e);
-    }, { passive: true });
-    touchArea.addEventListener('pointermove', function (e) {
-      if (inUiPanel(e.target)) return;
-      onPointerMove(e);
-    }, { passive: false });
-    touchArea.addEventListener('pointerup', function (e) {
-      if (inUiPanel(e.target)) return;
-      onPointerUp(e);
-    }, { passive: true });
-  }
-  global.addEventListener('pointerdown', function () { audioUnlock(); }, { passive: true });
-  global.addEventListener('touchstart', function () { audioUnlock(); }, { passive: true });
-
-  /* ------------------------------- рендер --------------------------------- */
-  function draw() {
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = 'source-over';
-    var renderer = KROT.render && KROT.render[settings.gfx];
-    if (renderer && typeof renderer.draw === 'function') {
-      try { renderer.draw(ctx, S); return; }
-      catch (e) { showError(e); }
-    }
-    ctx.fillStyle = '#0a0d18';
-    ctx.fillRect(0, 0, 960, 600);
-    ctx.fillStyle = '#7dd3fc';
-    ctx.font = '600 28px ui-monospace, Menlo, Consolas, monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('КРОТ · renderer "' + settings.gfx + '" is not loaded', 480, 300);
-    ctx.textAlign = 'left';
-  }
-
-  function tick(dt) {
-    // ввод направления: движку отправляем только изменения
-    var dir = currentDir();
-    if (dir !== lastSentDir) {
-      engine.setDir(dir);
-      lastSentDir = dir;
-    }
-    if (shootHeld && (S.mode === 'play' || S.mode === 'bonus')) engine.shoot();
-    engine.update(dt);
-    syncScreens();
-  }
-
-  var lastTs = 0;
-  var running = true;
-
-  function frame(ts) {
-    if (!running) return;
-    var now = ts / 1000;
-    var dt = lastTs ? Math.min(0.05, now - lastTs) : 1 / 60;
-    lastTs = now;
-    tick(dt);
-    draw();
-    global.requestAnimationFrame(frame);
-  }
-
-  /* ------------------------------- boot ----------------------------------- */
-  function setupShot(name) {
-    var level = Math.max(1, parseInt(params.level || '2', 10) || 2);
-    var steps = 0;
-    function advance(seconds) {
-      var n = Math.round(seconds * 60);
-      for (var i = 0; i < n; i++) { engine.update(1 / 60); steps++; }
-    }
-    engine.setLevel(level);
-    if (name === 'title') {
-      engine.toTitle();
-    } else if (name === 'gameover') {
-      S.score = Math.max(12450, level * 3200);
-      S.lives = 0;
-      engine.forceMode('gameover');
-      showGameOver({ score: S.score, hi: Math.max(S.hi, 25000), record: false, stats: S.stats });
-    } else if (name === 'help' || name === 'settings' || name === 'about') {
-      engine.forceMode('play');
-      advance(0.7);
-      if (name === 'help') openPanel('help');
-      else if (name === 'settings') openPanel('settings');
-      else openPanel('about');
-    } else if (name === 'pause') {
-      engine.forceMode('play');
-      advance(0.9);
-      engine.pause(true);
-      syncScreens(true);
-    } else if (name === 'ready') {
-      engine.setLevel(level);
-      S.mode = 'ready';
-      S.readyT = 1.2;
-      advance(0.25);
-    } else if (name === 'levelclear') {
-      engine.forceMode('play');
-      advance(0.7);
-      engine.forceMode('levelclear');
-      advance(0.35);
-    } else if (name === 'bonus') {
-      engine.forceMode('play');
-      advance(0.8);
-      engine.forceMode('bonus');
-      advance(0.45);
-    } else if (name === 'dying') {
-      engine.forceMode('play');
-      advance(0.6);
-      engine.forceMode('dying');
-      advance(0.35);
-    } else {
-      engine.forceMode('play');
-      advance(1.1);
-    }
-    syncScreens(true);
-    draw();
-    if (testBox) testBox.style.display = 'none';
-  }
-
-  /* ------------------------------ self-tests ------------------------------ */
-  function runSelfTests() {
-    var results = [];
-    function t(name, fn) {
-      try {
-        var res = fn();
-        results.push({ name: name, ok: !!res, detail: '' });
-      } catch (e) {
-        results.push({ name: name, ok: false, detail: (e && e.message) || String(e) });
-      }
-    }
-    var g = KROT.Game({ seed: 11 });
-    t('engine/state fields', function () {
-      return g.state && g.state.grid && g.state.grid.length === 150 && g.state.player && g.state.stats;
-    });
-    t('level: gems and bags', function () {
-      g.setLevel(2);
-      return g.state.gemsLeft > 0 && g.state.items.some(function (i) { return i.type === 'bag'; });
-    });
-    t('level: player stands in tunnel', function () {
-      var p = g.state.player;
-      return g.state.grid[p.cy * 15 + p.cx] === 1;
-    });
-    t('level: monster spawn is tunnel', function () { return g.state.grid[14] === 1; });
-    t('level: deterministic seed', function () {
-      var a = KROT.Game({ seed: 5 }).state, b = KROT.Game({ seed: 5 }).state;
-      for (var i = 0; i < 150; i++) if (a.grid[i] !== b.grid[i]) return false;
-      return true;
-    });
-    t('digging removes dirt', function () {
-      var e = KROT.Game({ seed: 3 }); e.start(); e.state.mode = 'play';
-      var p = e.state.player, before = 0, i;
-      for (i = 0; i < 150; i++) if (e.state.grid[i] === 0) before++;
-      var dirs = [0, 1, 2, 3];
-      for (i = 0; i < 4; i++) e.setDir(dirs[i]);
-      for (i = 0; i < 30; i++) e.update(1 / 60);
-      var after = 0;
-      for (i = 0; i < 150; i++) if (e.state.grid[i] === 0) after++;
-      return after < before;
-    });
-    t('shooting creates bullet', function () {
-      var e = KROT.Game({ seed: 4 }); e.start(); e.state.mode = 'play'; e.state.readyT = 0;
-      e.state.player.shootCd = 0;
-      e.shoot();
-      return e.state.bullets.length > 0 || e.state.stats.shots > 0;
-    });
-    t('i18n ru/en', function () {
-      return KROT.t('score').length > 0 && KROT.i18n.setLang('en') && KROT.t('score') === 'SCORE' && KROT.i18n.setLang('ru');
-    });
-    t('renderers registered', function () {
-      return !!(KROT.render && KROT.render.classic && KROT.render.classic.draw && KROT.render.modern && KROT.render.modern.draw);
-    });
-    t('ui api', function () { return !!(KROT.ui && KROT.ui.show && KROT.ui.init && KROT.ui.refresh); });
-    t('audio api', function () { return !!(KROT.audio && KROT.audio.sfx && KROT.audio.startMusic && KROT.audio.unlock); });
-    t('canvas 960x600', function () { return canvas.width === 960 && canvas.height === 600; });
-    t('simulation 15s stays finite', function () {
-      var e = KROT.Game({ seed: 9 }); e.start();
-      var r = KROT.rng(3);
-      for (var i = 0; i < 900; i++) {
-        if (i % 17 === 0) e.setDir(Math.floor(r() * 4));
-        if (i % 29 === 0) e.setDir(-1);
-        if (i % 23 === 0) e.shoot();
-        e.update(1 / 60);
-        if (!isFinite(e.state.player.x) || !isFinite(e.state.player.y)) return false;
-      }
-      return true;
-    });
-    var passed = results.filter(function (r) { return r.ok; }).length;
-    var lines = results.map(function (r) { return (r.ok ? 'PASS  ' : 'FAIL  ') + r.name + (r.detail ? '  — ' + r.detail : ''); });
-    var report = 'КРОТ TESTS ' + passed + '/' + results.length + (passed === results.length ? ' PASS' : ' FAIL');
-    doc.title = report;
-    if (testBox) { testBox.style.display = 'block'; testBox.textContent = lines.join('\n') + '\n\n' + report; }
-    return passed === results.length;
-  }
-
-  function boot() {
-    doc.documentElement.setAttribute('lang', settings.lang);
-    syncBodyClasses();
-    if ('nofx' in params) doc.body.classList.add('shot');
-    initUI();
-    if (audio && typeof audio.setVolume === 'function') { try { audio.setVolume(0.6); } catch (e) {} }
-    applyAudioSettings();
-
-    if (testMode) {
-      running = false;
-      runSelfTests();
-      draw();
-      return;
-    }
-    if (shotMode) {
-      doc.body.classList.add('shot');
-      running = false;
-      setupShot(shotMode);
-      return;
-    }
-
-    syncScreens(true);
-    if (S.mode === 'title' && KROT.ui) uiShow('title');
-    global.requestAnimationFrame(function (ts) { lastTs = ts / 1000; global.requestAnimationFrame(frame); });
-    global.addEventListener('blur', function () {
-      if (S.mode === 'play' || S.mode === 'bonus') { if (!S.paused) { engine.pause(true); stopMusic(); syncScreens(true); } }
-    });
-    doc.addEventListener('visibilitychange', function () {
-      if (doc.hidden && (S.mode === 'play' || S.mode === 'bonus') && !S.paused) {
-        engine.pause(true); stopMusic(); syncScreens(true);
-      }
-    });
-    global.addEventListener('pagehide', function () { saveHiscore(S.hi); saveSettings(); });
-  }
-
-  if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', boot);
-  else boot();
-})(window);
+  global.__i18nScenes = [];   // для tools/promo/i18n-overflow.mjs
+  g.start('title');
+  MU.app = { g: g, game: function () { return game; }, newRun: newRun, clear: function () { toasts = []; tutT = 99; }, toast: function (t) { toast(t, P().warn, 5, 4, 20); },
+    setLevel: function (lv, len) { toasts = []; game = MU.Game({ level: lv, seed: 7, length: len || 4, onEvent: onEvent }); MU.current = game; sync(); tutT = 99; return game; } };
+})(typeof window !== 'undefined' ? window : globalThis);

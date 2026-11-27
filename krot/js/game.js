@@ -1,1035 +1,221 @@
-/* ============================================================================
-   КРОТ · движок (DOM-free, детерминированный)
-   Механика жанра подземных раскопок:
-   копание, алмазы, мешки золота, ползуны/грызуны, вишня и бонус-режим.
-   Владелец: Lead. Интерфейс — CONTRACT.md §3-§4.
-   ========================================================================== */
+/* МУРАВЕЙНИК · логика (DOM-free). MURAV.Game / MURAV.level. Колония муравьёв идёт змейкой по туннелям, которые прокладывает
+   головной муравей (стик). Земля копается медленно, готовый туннель — быстро. Крошки (груз) подбирают по одной на муравья:
+   чем длиннее колония, тем больше несёшь за ходку; в камере (верхний ряд) груз сдаётся, каждые 2 сданные крошки выводят нового
+   муравья. Жуки заходят в туннели; кнопка «Обвал» засыпает 4 клетки туннеля позади колонны — жук внутри замурован на 12 с,
+   остальные отрезаны. Укус в середину цепочки отрывает хвост, укус в голову — минус жизнь. Мир портретный 11×13.
+   Состояние S — чистые данные (JSON-клон для бота). Запускается и в браузере, и в node (vm без DOM). */
 (function (global) {
   'use strict';
-  var KROT = global.KROT = global.KROT || {};
+  var MU = global.MURAV = global.MURAV || {};
+  var COLS = 11, ROWS = 13, MAX_LEVEL = 8, DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];     // 0 вверх, 1 вправо, 2 вниз, 3 влево
+  var QUOTA = [3, 4, 5, 6, 6, 7, 8, 9];
+  var BEETLES = [[], ['W'], ['W', 'W'], ['W', 'H'], ['H', 'W'], ['W', 'W', 'H'], ['W', 'H', 'G'], ['H', 'W', 'G']];
+  var BDUR = { W: 0.44, H: 0.26, G: 0.28 }, GDIG = 1.0;
+  var C = { COLS: COLS, ROWS: ROWS, MAX_LEVEL: MAX_LEVEL, DX: DX, DY: DY, LIVES: 3, WALK: 0.2, DIG: 0.4, CD: 6, MAXLEN: 10, MINLEN: 3, BURY: 12, QUOTA: QUOTA };
+  MU.consts = C; MU.beetleTypes = BEETLES;
 
-  /* Миграция localStorage: ключи прежнего рабочего имени → ключи КРОТа.
-     Старый → новый (если нового ещё нет) → удалить старый. Вызывают main.js (legacy.html)
-     и index.html до первого чтения настроек/рекорда. ls — объект Storage (для тестов — подделка). */
-  KROT.STORE_KEYS = { settings: 'krot.settings.v1', hi: 'krot.hi.v1' };
-  // прежний префикс — кодами символов, чтобы имя не попадало в текст репо (правило имён)
-  var OLD_PREFIX = String.fromCharCode(100, 105, 103, 103, 101, 114);
-  var LEGACY_STORE_KEYS = [[OLD_PREFIX + '.settings.v1', 'krot.settings.v1'], [OLD_PREFIX + '.hi.v1', 'krot.hi.v1']];
-  KROT.migrateStorage = function (ls) {
-    try {
-      if (!ls) return;
-      LEGACY_STORE_KEYS.forEach(function (pair) {
-        var v = ls.getItem(pair[0]);
-        if (v == null) return;
-        if (ls.getItem(pair[1]) == null) ls.setItem(pair[1], v);
-        ls.removeItem(pair[0]);
-      });
-    } catch (e) { /* file:// / приватный режим */ }
-  };
+  function rnd(S) { S.rs = S.rs + 0x6D2B79F5 | 0; var t = Math.imul(S.rs ^ S.rs >>> 15, 1 | S.rs); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+  function inb(x, y) { return x >= 0 && y >= 0 && x < COLS && y < ROWS; }
 
-  var COLS = 15, ROWS = 10;
-  var DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]]; // up, right, down, left
-  var MOVE_TIME = 0.105;                       // сек. на клетку у игрока
-  var MOVE_SPEED = 1 / MOVE_TIME;
-  var BULLET_SPEED = 16;                       // клеток в секунду
-  var FALL_SPEED = 8;
-  var WOBBLE_TIME = 0.8;
-  var SPEED_CRAWLER = 0.30;                     // сек. на клетку (растёт на ранних уровнях)
-  var SPEED_GNAWER = 0.42;
-  var SPEED_SCARED = 0.22;
-  var SPAWN_INTERVAL = 2.0;
-  var READY_TIME = 1.8;
-  var DEATH_TIME = 1.6;
-  var CLEAR_TIME = 2.0;
-  var EXTRA_LIFE = 20000;
-  var MAX_PARTICLES = 260;
-  var MAX_POPUPS = 40;
-
-  var GEM_SHAPES = [
-    [[0, 0]],
-    [[0, 0], [1, 0]],
-    [[0, 0], [0, 1]],
-    [[0, 0], [1, 0], [0, 1], [1, 1]],
-    [[0, -1], [0, 0], [0, 1], [-1, 0], [1, 0]],
-    [[0, 0], [0, 1], [0, 2]],
-    [[0, 0], [1, 0], [2, 0]]
-  ];
-
-  KROT.G = { COLS: COLS, ROWS: ROWS, DIRS: DIRS, W: 960, H: 600, MOVE_TIME: MOVE_TIME };
-
-  /* Детерминированный PRNG (mulberry32). */
-  KROT.rng = function (seed) {
-    var a = (seed >>> 0);
-    if (a === 0) a = 0x9E3779B9;
-    return function () {
-      a = (a + 0x6D2B79F5) | 0;
-      var t = Math.imul(a ^ (a >>> 15), 1 | a);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  };
-
-  function inBounds(cx, cy) { return cx >= 0 && cy >= 0 && cx < COLS && cy < ROWS; }
-  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
-  function shuffle(arr, rnd) {
-    for (var i = arr.length - 1; i > 0; i--) {
-      var j = Math.floor(rnd() * (i + 1));
-      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  // ---------- уровни: фиксированные по номеру ----------
+  function level(i) {
+    var R = { rs: 7919 + i * 104729 }, map = [], x, y, k, tries;
+    for (y = 0; y < ROWS; y++) { map.push([]); for (x = 0; x < COLS; x++) map[y].push(y === 0 ? 'c' : '1'); }
+    var types = BEETLES[i], bt = [], caves = [];
+    types.forEach(function (t, n) {
+      for (tries = 0; tries < 300; tries++) {
+        var w = 3 + (rnd(R) * 2 | 0), h = 1 + (rnd(R) * 2 | 0), x0 = 1 + (rnd(R) * (COLS - 2 - w) | 0), y0 = 4 + (rnd(R) * (ROWS - 5 - h) | 0), bad = false;
+        caves.forEach(function (c) { if (x0 < c.x + c.w + 1 && c.x < x0 + w + 1 && y0 < c.y + c.h + 1 && c.y < y0 + h + 1) bad = true; });
+        if (bad) continue;
+        caves.push({ x: x0, y: y0, w: w, h: h });
+        for (y = y0; y < y0 + h; y++) for (x = x0; x < x0 + w; x++) map[y][x] = '.';
+        bt.push({ t: t, x: x0 + (w >> 1), y: y0 }); break;
+      }
+    });
+    var rocks = 5 + i;
+    for (k = 0, tries = 0; k < rocks && tries < 200; tries++) { x = rnd(R) * COLS | 0; y = 2 + (rnd(R) * (ROWS - 2) | 0); if (map[y][x] !== '1' || (x === 5 && y < 4)) continue; map[y][x] = '#'; k++; }
+    var cr = [], total = QUOTA[i] + 3;
+    for (tries = 0; cr.length < total && tries < 600; tries++) {
+      var f = Math.pow(rnd(R), i === 0 ? 1.6 : 1.1); y = 2 + Math.floor(f * (ROWS - 3)); x = 1 + (rnd(R) * (COLS - 2) | 0);
+      if (i === 0) { y = Math.min(y, 5); }
+      if (map[y][x] === '#' || cr.some(function (c) { return Math.abs(c[0] - x) + Math.abs(c[1] - y) < 2; }) || bt.some(function (b) { return b.x === x && b.y === y; })) continue;
+      cr.push([x, y]);
     }
-    return arr;
+    return { map: map.map(function (r) { return r.join(''); }), crumbs: cr, beetles: bt, quota: QUOTA[i], start: [5, 0] };
+  }
+  MU.level = level;
+
+  // ---------- состояние ----------
+  function place(S, n) {
+    var hx = Math.min(COLS - 1, Math.max(5, n - 1)); S.ants = [];
+    for (var i = 0; i < n; i++) S.ants.push({ x: hx - i, y: 0, c: 0 });
+    S.mv = null; S.face = 2; S.dir = -1; S.want = -1; S.wantT = 0; S.flipT = 0;
+  }
+  function load(S, lv, len) {
+    var L = level(lv); S.level = lv; S.map = L.map.map(function (r) { return r.split(''); }); S.quota = L.quota; S.got = 0;
+    S.crumbs = L.crumbs.map(function (c) { return { x: c[0], y: c[1], on: true }; });
+    S.beetles = L.beetles.map(function (b, i) { return { id: i, t: b.t, hx: b.x, hy: b.y, x: b.x, y: b.y, cx: b.x, cy: b.y, tx: -1, ty: -1, p: 0, dur: 1, dig: false, d: i % 2 ? 1 : 3, st: 'walk', tm: 0.8, wait: 0 }; });
+    place(S, len); S.cd = 3; S.inv = 0; S.combo = 0; S.comboT = 0; S.pend = 0; S.hatchN = 0; S.time = 0; S.mode = 'play'; S.dieT = 0; S.clearT = 0;
+  }
+  function pk(S, x, y) { return S.ants.some(function (a) { return a.x === x && a.y === y; }); }
+  function buriedAt(S, x, y) { return S.beetles.some(function (b) { return b.st === 'buried' && b.cx === x && b.cy === y; }); }
+  function open(S, x, y) { return inb(x, y) && S.map[y][x] === '.'; }
+
+  function dropCrumb(S, x, y) {   // потерянный груз ложится на ближайшую свободную клетку
+    for (var r = 0; r < 6; r++) for (var dy = -r; dy <= r; dy++) for (var dx = -r; dx <= r; dx++) {
+      var X = x + dx, Y = y + dy; if (!inb(X, Y) || Y < 1 || S.map[Y][X] === '#' || S.map[Y][X] === 'c') continue;
+      if (S.crumbs.some(function (c) { return c.on && c.x === X && c.y === Y; })) continue;
+      S.crumbs.push({ x: X, y: Y, on: true }); return;
+    }
+  }
+  function bfs(S, b, canDig, maxD) {   // шаг жука к ближайшему муравью (не в камере): направление или -1
+    var seen = {}, q = [[b.cx, b.cy, -1, 0]], k = 0; seen[b.cx + ',' + b.cy] = 1;
+    while (k < q.length) {
+      var c = q[k++]; if (c[3] > maxD) break;
+      if (c[3] > 0 && c[1] > 0 && pk(S, c[0], c[1])) return c[2];
+      for (var d = 0; d < 4; d++) {
+        var x = c[0] + DX[d], y = c[1] + DY[d], key = x + ',' + y;
+        if (!inb(x, y) || y < 1 || seen[key]) continue; var ch = S.map[y][x];
+        if (ch !== '.' && !(canDig && ch === '1')) continue; seen[key] = 1; q.push([x, y, c[3] ? c[2] : d, c[3] + 1]);
+      }
+    }
+    return -1;
+  }
+  function decide(S, b) {
+    var d = -1;
+    if (b.t === 'H') d = bfs(S, b, false, 10); else if (b.t === 'G') d = bfs(S, b, true, 8);
+    if (d >= 0 && !b.chase) { b.chase = 1; b.tm = 0.7; b.alert = 0.7; return false; }
+    if (d < 0) b.chase = 0;
+    if (d < 0) {
+      var opts = [], back = (b.d + 2) % 4, k;
+      for (k = 0; k < 4; k++) { if (k !== back && open(S, b.cx + DX[k], b.cy + DY[k])) opts.push(k); }
+      if (!opts.length) { if (open(S, b.cx + DX[back], b.cy + DY[back])) d = back; }
+      else if (opts.indexOf(b.d) >= 0 && rnd(S) < 0.85) d = b.d; else d = opts[rnd(S) * opts.length | 0];
+    }
+    if (d < 0) return false;
+    var x = b.cx + DX[d], y = b.cy + DY[d]; b.d = d; b.tx = x; b.ty = y; b.p = 0; b.dig = S.map[y][x] === '1'; b.dur = b.dig ? GDIG : BDUR[b.t]; return true;
+  }
+  function moveBeetles(S, dt) {
+    S.beetles.forEach(function (b) {
+      if (b.st !== 'walk') { b.tm -= dt; if (b.tm <= 0) { if (b.st === 'buried') S.map[b.cy][b.cx] = '.'; b.st = 'walk'; b.tm = 0; } return; }
+      var left = dt;
+      if (b.tm > 0) { b.tm -= dt; return; }
+      while (left > 0) {
+        if (b.tx < 0) { if (b.wait > 0) { b.wait -= left; return; } if (!decide(S, b)) { if (!b.chase || b.tm <= 0) b.wait = 0.4; return; } }
+        var need = (1 - b.p) * b.dur;
+        if (left >= need) {
+          left -= need; if (b.dig) S.map[b.ty][b.tx] = '.';
+          b.cx = b.tx; b.cy = b.ty; b.x = b.cx; b.y = b.cy; b.tx = -1; b.p = 0;
+        } else { b.p += left / b.dur; left = 0; b.x = b.cx + (b.tx - b.cx) * b.p; b.y = b.cy + (b.ty - b.cy) * b.p; }
+      }
+    });
+  }
+  function apos(S, i) { var a = S.ants[i]; if (!S.mv) return [a.x, a.y]; var to = i === 0 ? [S.mv.tx, S.mv.ty] : [S.ants[i - 1].x, S.ants[i - 1].y]; return [a.x + (to[0] - a.x) * S.mv.t, a.y + (to[1] - a.y) * S.mv.t]; }
+
+  function startStep(S, ev) {
+    var d = S.dir >= 0 ? S.dir : (S.wantT > 0 ? S.want : -1); if (d < 0) return false;
+    var a = S.ants, h = a[0], tx = h.x + DX[d], ty = h.y + DY[d];
+    if (!inb(tx, ty) && h.y === 0 && d === 0) {   // упёрся в потолок камеры: колонна сама идёт вдоль камеры, подтягивая хвост
+      var free = [1, 3].filter(function (k) { var x = h.x + DX[k]; return x >= 0 && x < COLS && !pk(S, x, 0); });
+      if (free.length) { d = free.length === 2 ? (h.x < 5 ? 1 : 3) : free[0]; tx = h.x + DX[d]; ty = 0; }
+    }
+    if (!inb(tx, ty) || S.map[ty][tx] === '#' || buriedAt(S, tx, ty)) { S.wantT = 0; return false; }
+    if (a.length > 1 && a[1].x === tx && a[1].y === ty) { if (S.flipT > 0) return false; a.reverse(); S.flipT = 0.3; S.wantT = 0; ev('flip', { x: a[0].x, y: a[0].y }); return false; }
+    for (var i = 1; i < a.length; i++) if (a[i].x === tx && a[i].y === ty && !(i === a.length - 1 && !S.pend)) { S.wantT = 0; return false; }
+    var dig = S.map[ty][tx] === '1'; S.face = d; S.mv = { d: d, tx: tx, ty: ty, t: 0, dur: dig ? C.DIG : C.WALK, dig: dig }; S.wantT = 0; return true;
+  }
+  function finishStep(S, ev) {
+    var a = S.ants, m = S.mv, n = a.length, tail = { x: a[n - 1].x, y: a[n - 1].y }, i;
+    for (i = n - 1; i > 0; i--) { a[i].x = a[i - 1].x; a[i].y = a[i - 1].y; } a[0].x = m.tx; a[0].y = m.ty; S.mv = null;
+    if (m.dig) { S.map[m.ty][m.tx] = '.'; ev('dig', { x: m.tx, y: m.ty }); } else ev('step', {});
+    if (S.pend > 0 && n < C.MAXLEN) { a.push({ x: tail.x, y: tail.y, c: 0 }); S.pend--; ev('hatch', { x: tail.x, y: tail.y }); }
+    S.crumbs.forEach(function (c) {
+      if (!c.on || c.x !== m.tx || c.y !== m.ty) return;
+      for (var k = 0; k < a.length; k++) if (!a[k].c) { a[k].c = 1; c.on = false; ev('pick', { x: c.x, y: c.y, load: a.filter(function (z) { return z.c; }).length }); return; }
+    });
+    a.forEach(function (z) {
+      if (!z.c || z.y !== 0) return; z.c = 0; S.got++; S.combo++; S.comboT = 3; S.hatchN++; if (S.hatchN % 2 === 0) S.pend++;
+      var pts = 50 * Math.min(6, S.combo); S.score += pts; ev('deliver', { x: z.x, y: 0, pts: pts, n: S.combo });
+    });
+    if (S.got >= S.quota && S.mode === 'play') { var bonus = 200 + 50 * S.lives; S.score += bonus; S.mode = 'clear'; S.clearT = 2.2; S.bonus = bonus; ev('clear', { level: S.level, bonus: bonus }); }
+  }
+  function moveAnts(S, dt, ev) {
+    var left = dt, guard = 0;
+    while (left > 0 && S.mode === 'play' && guard++ < 20) {
+      if (S.mv) { var need = (1 - S.mv.t) * S.mv.dur; if (left >= need) { left -= need; finishStep(S, ev); } else { S.mv.t += left / S.mv.dur; left = 0; } }
+      else if (!startStep(S, ev)) break;
+    }
+  }
+  function respawn(S) {
+    S.ants.forEach(function (a) { if (a.c) dropCrumb(S, a.x, a.y); });
+    S.beetles.forEach(function (b) { if (b.st === 'buried') S.map[b.cy][b.cx] = '.'; b.x = b.cx = b.hx; b.y = b.cy = b.hy; b.tx = -1; b.p = 0; b.st = 'walk'; b.tm = 1.5; });
+    place(S, C.MINLEN); S.inv = 1.8; S.mode = 'play'; S.combo = 0; S.pend = 0;
+  }
+  function collide(S, ev) {
+    if (S.inv > 0 || S.mode !== 'play') return;
+    for (var bi = 0; bi < S.beetles.length; bi++) {
+      var b = S.beetles[bi]; if (b.st !== 'walk' || b.tm > 0) continue;
+      for (var i = 0; i < S.ants.length; i++) {
+        var p = apos(S, i); if (Math.abs(p[0] - b.x) + Math.abs(p[1] - b.y) > 0.8) continue;
+        b.st = 'stun'; b.tm = 2.0; b.tx = -1; b.p = 0; b.x = b.cx; b.y = b.cy;
+        if (i === 0 && b.t === 'W' && S.ants.length > 2) { if (S.ants[0].c) dropCrumb(S, S.ants[0].x, S.ants[0].y); S.inv = 1.0; S.mv = null; S.ants.shift(); ev('bite', { x: p[0], y: p[1], lost: 1, by: b.t, head: 1 }); }
+        else if (i === 0) { S.lives--; S.mode = 'dying'; S.dieT = 1.2; ev('hurt', { x: p[0], y: p[1], by: b.t }); }
+        else { for (var k = i; k < S.ants.length; k++) if (S.ants[k].c) dropCrumb(S, S.ants[k].x, S.ants[k].y); S.ants.length = i; S.inv = 0.8; ev('bite', { x: p[0], y: p[1], lost: i, by: b.t }); }
+        return;
+      }
+    }
+  }
+  function collapse(S, ev) {
+    if (S.mode !== 'play') return false;
+    if (S.cd > 0) { ev('nogo', {}); return false; }
+    var t = S.ants[S.ants.length - 1], seen = {}, q = [[t.x, t.y, 0]], k = 0, cells = [];
+    seen[t.x + ',' + t.y] = 1;
+    while (k < q.length) {
+      var c = q[k++]; if (c[2] >= 4) continue;
+      for (var d = 0; d < 4; d++) {
+        var x = c[0] + DX[d], y = c[1] + DY[d], key = x + ',' + y; if (!inb(x, y) || seen[key] || !open(S, x, y) || pk(S, x, y)) continue;
+        if (S.mv && S.mv.tx === x && S.mv.ty === y) continue; seen[key] = 1; q.push([x, y, c[2] + 1]); cells.push([x, y]);
+      }
+    }
+    if (!cells.length) { ev('nogo', {}); return false; }
+    var ent = 0;
+    cells.forEach(function (c) { S.map[c[1]][c[0]] = '1'; });
+    S.beetles.forEach(function (b) {
+      if (b.st === 'buried') return;
+      var hit = cells.filter(function (c) { return (c[0] === b.cx && c[1] === b.cy) || (c[0] === b.tx && c[1] === b.ty); })[0];
+      if (!hit) return; b.cx = hit[0]; b.cy = hit[1]; b.x = b.cx; b.y = b.cy; b.tx = -1; b.p = 0; b.st = 'buried'; b.tm = C.BURY; S.score += 100; ent++;
+    });
+    S.cd = C.CD; ev('collapse', { cells: cells, ent: ent }); if (ent) ev('entomb', { n: ent }); return true;
   }
 
-  function makePlayer(cx, cy) {
-    return {
-      cx: cx, cy: cy, x: cx + 0.5, y: cy + 0.5,
-      tx: cx + 0.5, ty: cy + 0.5,
-      dir: 0, inputDir: -1, moving: false, alive: true,
-      invuln: 2.0, shootCd: 0, shootMax: 1.2, shootAnim: 0, walkPhase: 0
-    };
+  function step(S, dt, ev) {
+    if (S.mode === 'clear') { S.clearT -= dt; if (S.clearT <= 0) { if (S.level >= MAX_LEVEL - 1) { S.mode = 'victory'; ev('victory', {}); } else { if (S.level === 1 || S.level === 3 || S.level === 5) { S.lives = Math.min(5, S.lives + 1); ev('life', {}); } load(S, S.level + 1, Math.max(C.MINLEN, Math.min(8, S.ants.length))); ev('level', { level: S.level }); } } return; }
+    if (S.mode === 'dying') { S.dieT -= dt; if (S.dieT <= 0) { if (S.lives <= 0) { S.mode = 'gameover'; ev('gameover', {}); } else respawn(S); } return; }
+    if (S.mode !== 'play') return;
+    S.time += dt; S.cd = Math.max(0, S.cd - dt); S.inv = Math.max(0, S.inv - dt); S.wantT = Math.max(0, S.wantT - dt); S.flipT = Math.max(0, S.flipT - dt);
+    if (S.comboT > 0 && (S.comboT -= dt) <= 0) S.combo = 0;
+    moveAnts(S, dt, ev); moveBeetles(S, dt); collide(S, ev);
   }
 
-  /* ------------------------------------------------------------------------- */
-  KROT.Game = function (opts) {
-    opts = opts || {};
-    var onEventFn = typeof opts.onEvent === 'function' ? opts.onEvent : null;
-    var seed = (opts.seed == null ? 1337 : opts.seed) >>> 0;
-    var vrng = KROT.rng((seed ^ 0x5F356495) >>> 0); // только для визуальных эффектов
-    var levelRng = KROT.rng(seed);
-
-    var S = {
-      seed: seed, level: 1, score: 0, hi: opts.hiscore || 0, hiAtStart: opts.hiscore || 0,
-      lives: 3, nextLife: EXTRA_LIFE,
-      mode: 'title', paused: false,
-      time: 0, anim: 0,
-      gemsLeft: 0, gemsTotal: 0, gemsCollected: 0, gemChain: 0,
-      bonus: false, bonusT: 0, bonusDur: 0, eatChain: 0,
-      spawnLeft: 0, spawnTimer: 0, monstersMax: 0, gnawerChance: 0,
-      cherrySpawned: false, kills: 0,
-      shake: 0, readyT: 0, deadT: 0, clearT: 0,
-      grid: new Uint8Array(COLS * ROWS),
-      items: [], player: makePlayer(0, 0), monsters: [],
-      bullets: [], particles: [], popups: [],
-      stats: { dug: 0, bagKills: 0, shots: 0, gems: 0, levels: 0 }
-    };
-
-    /* ------------------------------ события -------------------------------- */
-    function emit(type, data) {
-      if (!onEventFn) return;
-      try { onEventFn(type, data || {}); } catch (e) {
-        if (global.console && console.error) console.error('KROT event error:', e);
-      }
-    }
-
-    /* ------------------------------ утилиты -------------------------------- */
-    function isTunnel(cx, cy) { return inBounds(cx, cy) && S.grid[cy * COLS + cx] === 1; }
-    function digCell(cx, cy) { if (inBounds(cx, cy)) S.grid[cy * COLS + cx] = 1; }
-    function isPlaying() { return S.mode === 'play' || S.mode === 'bonus'; }
-
-    function itemAtCell(cx, cy) {
-      for (var i = 0; i < S.items.length; i++) {
-        var it = S.items[i];
-        if (it.cx === cx && it.cy === cy) return it;
-      }
-      return null;
-    }
-    function removeItem(it) {
-      var i = S.items.indexOf(it);
-      if (i >= 0) S.items.splice(i, 1);
-    }
-    function monsterAtCell(cx, cy) {
-      for (var i = 0; i < S.monsters.length; i++) {
-        var m = S.monsters[i];
-        if (m.dying <= 0 && m.cx === cx && m.cy === cy) return m;
-      }
-      return null;
-    }
-    function aliveMonsters() {
-      var out = [];
-      for (var i = 0; i < S.monsters.length; i++) if (S.monsters[i].dying <= 0) out.push(S.monsters[i]);
-      return out;
-    }
-    function addItem(type, cx, cy) {
-      var it = { type: type, cx: cx, cy: cy, x: cx + 0.5, y: cy + 0.5 };
-      if (type === 'bag') {
-        it.falling = false; it.wobble = -1; it.vy = 0; it.fallFrom = cy;
-      }
-      S.items.push(it);
-      return it;
-    }
-    function freeDirt(cx, cy) {
-      return inBounds(cx, cy) && S.grid[cy * COLS + cx] === 0 && !itemAtCell(cx, cy);
-    }
-    function bagSupported(bag) {
-      // низ поля считается опорой: мешок не улетает за экран
-      return !inBounds(bag.cx, bag.cy + 1) || !isTunnel(bag.cx, bag.cy + 1);
-    }
-
-    /* ------------------------------ эффекты -------------------------------- */
-    var PARTICLE_COLORS = {
-      dirt: ['#a05a2c', '#c0763b', '#7a4220'],
-      gem: ['#3ef08a', '#9dffc4', '#eafff2'],
-      gold: ['#ffd166', '#ffe9a8', '#e0a52a'],
-      spark: ['#ffffff', '#9ad9ff'],
-      monster: ['#ff5d8f', '#ffa7c4'],
-      eat: ['#ffd166', '#ff5d8f'],
-      death: ['#ff5d5d', '#ffb3b3', '#ffd166']
-    };
-    function spawnBurst(x, y, kind, count) {
-      var colors = PARTICLE_COLORS[kind] || PARTICLE_COLORS.dirt;
-      for (var i = 0; i < count; i++) {
-        if (S.particles.length >= MAX_PARTICLES) S.particles.shift();
-        var life = 0.35 + vrng() * 0.5;
-        S.particles.push({
-          x: x, y: y,
-          vx: (vrng() - 0.5) * 3.4,
-          vy: (vrng() - 0.5) * 3.4 - 0.7,
-          life: life, maxLife: life,
-          size: 0.07 + vrng() * 0.12,
-          color: colors[(vrng() * colors.length) | 0],
-          kind: kind
-        });
-      }
-    }
-    function addPopup(text, x, y, kind) {
-      if (S.popups.length >= MAX_POPUPS) S.popups.shift();
-      S.popups.push({ text: String(text), x: x, y: y, life: 0.9, maxLife: 0.9, kind: kind || 'score' });
-    }
-    function updateParticles(dt) {
-      for (var i = S.particles.length - 1; i >= 0; i--) {
-        var p = S.particles[i];
-        p.life -= dt;
-        if (p.life <= 0) { S.particles.splice(i, 1); continue; }
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.vy += 5 * dt;
-        p.vx *= (1 - 1.4 * dt);
-      }
-    }
-    function updatePopups(dt) {
-      for (var i = S.popups.length - 1; i >= 0; i--) {
-        var p = S.popups[i];
-        p.life -= dt;
-        if (p.life <= 0) { S.popups.splice(i, 1); continue; }
-        p.y -= 0.55 * dt;
-      }
-    }
-
-    /* --------------------------- генерация уровня -------------------------- */
-    function carveMain(R, px, py) {
-      var cx = COLS - 1, cy = 0, guard = 0;
-      digCell(cx, cy);
-      while (guard++ < 500) {
-        if (cy >= ROWS - 1) {
-          if (cx === px) break;
-          cx += cx < px ? 1 : -1;
-        } else {
-          var r = R();
-          if (r < 0.52) cy++;
-          else if (r < 0.82 && cx > 1) cx--;
-          else if (r < 0.90 && cx < COLS - 1) cx++;
-          else cy++;
-        }
-        digCell(cx, cy);
-      }
-      digCell(px, py);
-      digCell(px, Math.max(0, py - 1));
-    }
-
-    function carveExtras(R, count) {
-      for (var e = 0; e < count; e++) {
-        var kind = R(), k;
-        if (kind < 0.5) {
-          var y = 1 + Math.floor(R() * (ROWS - 2));
-          var len = 2 + Math.floor(R() * 5);
-          var x0 = Math.floor(R() * (COLS - len + 1));
-          for (k = 0; k < len; k++) digCell(x0 + k, y);
-        } else if (kind < 0.8) {
-          var x = 1 + Math.floor(R() * (COLS - 2));
-          var len2 = 2 + Math.floor(R() * 5);
-          var y0 = Math.floor(R() * (ROWS - len2 + 1));
-          for (k = 0; k < len2; k++) digCell(x, y0 + k);
-        } else {
-          var wx = 1 + Math.floor(R() * (COLS - 3));
-          var wy = 1 + Math.floor(R() * (ROWS - 3));
-          digCell(wx, wy); digCell(wx + 1, wy);
-          digCell(wx, wy + 1); digCell(wx + 1, wy + 1);
-        }
-      }
-    }
-
-    function shapeFits(ax, ay, shape) {
-      for (var i = 0; i < shape.length; i++) {
-        var cx = ax + shape[i][0], cy = ay + shape[i][1];
-        if (cx === COLS - 1 && cy === 0) return false;
-        if (S.player && cx === S.player.cx && cy === S.player.cy) return false;
-        if (!freeDirt(cx, cy)) return false;
-      }
-      return true;
-    }
-
-    function generateLevel(level) {
-      var R = KROT.rng(((seed * 1000003) ^ (level * 7919) ^ 0x9E3779B9) >>> 0);
-      levelRng = R;
-      S.level = level;
-      var i;
-      for (i = 0; i < COLS * ROWS; i++) S.grid[i] = 0;
-      S.items.length = 0;
-      S.monsters.length = 0;
-      S.bullets.length = 0;
-      S.particles.length = 0;
-      S.popups.length = 0;
-      S.bonus = false; S.bonusT = 0; S.eatChain = 0; S.gemChain = 0;
-      S.kills = 0; S.cherrySpawned = false; S.spawnTimer = 1.2;
-      S.readyT = 0; S.deadT = 0; S.clearT = 0;
-
-      var px = 2 + Math.floor(R() * (COLS - 4)); // 2..12
-      var py = ROWS - 1;
-      carveMain(R, px, py);
-      carveExtras(R, 2 + Math.floor(R() * 3) + Math.floor(level / 3));
-
-      S.player = makePlayer(px, py);
-      S.player.shootMax = Math.min(2.6, 1.2 + 0.12 * (level - 1));
-      S.player.invuln = 2.5;
-
-      /* алмазы: кластеры в земле */
-      var target = Math.min(26, 9 + level * 2);
-      var placed = 0, guard = 0;
-      while (placed < target && guard++ < 900) {
-        var ax = Math.floor(R() * COLS), ay = Math.floor(R() * ROWS);
-        var shape = GEM_SHAPES[Math.floor(R() * GEM_SHAPES.length)];
-        if (!shapeFits(ax, ay, shape)) continue;
-        for (i = 0; i < shape.length; i++) {
-          addItem('gem', ax + shape[i][0], ay + shape[i][1]);
-          placed++;
-        }
-      }
-      guard = 0;
-      while (placed < target && guard++ < 2000) {
-        var cx = Math.floor(R() * COLS), cy = Math.floor(R() * ROWS);
-        if (freeDirt(cx, cy)) { addItem('gem', cx, cy); placed++; }
-      }
-
-      /* мешки золота: в земле, с землёй под ними */
-      var bagTarget = 2 + Math.min(level, 3);
-      var cands = [];
-      for (var cy2 = 1; cy2 < ROWS - 1; cy2++) {
-        for (var cx2 = 0; cx2 < COLS; cx2++) {
-          if (!freeDirt(cx2, cy2)) continue;
-          if (isTunnel(cx2, cy2 + 1)) continue;
-          cands.push([cx2, cy2]);
-        }
-      }
-      shuffle(cands, R);
-      for (i = 0; i < bagTarget && i < cands.length; i++) {
-        addItem('bag', cands[i][0], cands[i][1]);
-      }
-
-      /* монстры */
-      S.spawnLeft = Math.min(1 + level, 9);
-      S.monstersMax = Math.min(1 + Math.floor((level - 1) / 2), 4);
-      S.gnawerChance = clamp((level - 3) * 0.15, 0, 0.65);
-
-      var gems = 0;
-      for (i = 0; i < S.items.length; i++) if (S.items[i].type === 'gem') gems++;
-      S.gemsTotal = gems;
-      S.gemsLeft = gems;
-      S.gemsCollected = 0;
-      S.spawnTimer = 1.2;
-    }
-
-    /* ------------------------------ монстры -------------------------------- */
-    function spawnMonster(cx, cy, kind) {
-      var m = {
-        kind: kind || 'crawler',
-        cx: cx, cy: cy, x: cx + 0.5, y: cy + 0.5, tx: cx + 0.5, ty: cy + 0.5,
-        dir: 2, scared: !!S.bonus, dying: 0, spawnT: 0, moving: false,
-        think: 0.2, fromX: cx, fromY: cy - 1, walkPhase: 0
-      };
-      S.monsters.push(m);
-      emit('monsterSpawn', { kind: m.kind, x: m.x, y: m.y });
-      return m;
-    }
-
-    function bfsFrom(sx, sy, allowDirt) {
-      var dist = new Int16Array(COLS * ROWS);
-      dist.fill(-1);
-      if (!inBounds(sx, sy)) return dist;
-      var q = [sy * COLS + sx], head = 0;
-      dist[q[0]] = 0;
-      while (head < q.length) {
-        var c = q[head++];
-        var cx = c % COLS, cy = (c / COLS) | 0, d = dist[c];
-        for (var k = 0; k < 4; k++) {
-          var nx = cx + DIRS[k][0], ny = cy + DIRS[k][1];
-          if (!inBounds(nx, ny)) continue;
-          var ni = ny * COLS + nx;
-          if (dist[ni] !== -1) continue;
-          if (!isTunnel(nx, ny) && !allowDirt) continue;
-          dist[ni] = d + 1;
-          q.push(ni);
-        }
-      }
-      return dist;
-    }
-
-    function monsterCanEnter(m, cx, cy) {
-      if (!inBounds(cx, cy)) return false;
-      if (isTunnel(cx, cy)) return true;
-      return m.kind === 'gnawer' && !m.scared; // грызун копает
-    }
-
-    function startMonsterMove(m, dir, nx, ny) {
-      m.fromX = m.cx; m.fromY = m.cy;
-      m.dir = dir;
-      m.cx = nx; m.cy = ny;
-      m.tx = nx + 0.5; m.ty = ny + 0.5;
-      m.moving = true;
-      if (!isTunnel(nx, ny)) {
-        digCell(nx, ny);
-        emit('dig', { cx: nx, cy: ny, by: 'gnawer' });
-        var it = itemAtCell(nx, ny);
-        if (it) {
-          if (it.type === 'gem' && levelRng() < 0.25) {
-            removeItem(it);
-            S.gemsLeft = Math.max(0, S.gemsLeft - 1);
-            spawnBurst(nx + 0.5, ny + 0.5, 'gem', 5);
-          } else if (it.type === 'bag' && levelRng() < 0.5) {
-            removeItem(it);
-            spawnBurst(nx + 0.5, ny + 0.5, 'dirt', 6);
-          }
-        }
-      }
-    }
-
-    function chooseMonsterMove(m) {
-      var p = S.player;
-      var allowDig = (m.kind === 'gnawer' && !m.scared);
-      var dist = bfsFrom(p.cx, p.cy, allowDig);
-      var opts = [], k, nx, ny, d;
-      for (k = 0; k < 4; k++) {
-        nx = m.cx + DIRS[k][0]; ny = m.cy + DIRS[k][1];
-        if (!monsterCanEnter(m, nx, ny)) continue;
-        if (nx === m.fromX && ny === m.fromY) continue;
-        d = dist[ny * COLS + nx];
-        opts.push({ dir: k, nx: nx, ny: ny, d: d < 0 ? 999 : d });
-      }
-      if (!opts.length) {
-        for (k = 0; k < 4; k++) {
-          nx = m.cx + DIRS[k][0]; ny = m.cy + DIRS[k][1];
-          if (!monsterCanEnter(m, nx, ny)) continue;
-          d = dist[ny * COLS + nx];
-          opts.push({ dir: k, nx: nx, ny: ny, d: d < 0 ? 999 : d });
-        }
-      }
-      if (!opts.length) { m.think = 0.35; return; }
-      var best = opts[0];
-      for (var i = 1; i < opts.length; i++) {
-        if (m.scared ? opts[i].d > best.d : opts[i].d < best.d) best = opts[i];
-      }
-      if (levelRng() < 0.12) best = opts[Math.floor(levelRng() * opts.length)];
-      startMonsterMove(m, best.dir, best.nx, best.ny);
-    }
-
-    function updateMonsters(dt) {
-      for (var i = S.monsters.length - 1; i >= 0; i--) {
-        var m = S.monsters[i];
-        if (m.dying > 0) {
-          m.dying -= dt;
-          if (m.dying <= 0) S.monsters.splice(i, 1);
-          continue;
-        }
-        m.spawnT = Math.min(1, m.spawnT + dt * 2.5);
-        m.scared = !!S.bonus && m.dying <= 0;
-        var levelSlow = Math.max(0, 3 - S.level) * 0.04; // первые уровни — помягче
-        var secPerCell = m.scared ? SPEED_SCARED
-          : (m.kind === 'gnawer' ? SPEED_GNAWER : SPEED_CRAWLER) + levelSlow;
-        if (m.moving) {
-          var dx = m.tx - m.x, dy = m.ty - m.y;
-          var len = Math.sqrt(dx * dx + dy * dy);
-          var step = dt / secPerCell;
-          if (len <= step) {
-            m.x = m.tx; m.y = m.ty; m.moving = false; m.walkPhase = 0; m.think = 0;
-          } else {
-            m.x += dx / len * step;
-            m.y += dy / len * step;
-            m.walkPhase += dt * 11;
-          }
-        }
-        if (!m.moving) {
-          m.think -= dt;
-          if (m.think <= 0) chooseMonsterMove(m);
-        }
-      }
-    }
-
-    function maybeSpawnMonster(dt) {
-      if (S.spawnLeft <= 0) return;
-      if (aliveMonsters().length >= S.monstersMax) return;
-      S.spawnTimer -= dt;
-      if (S.spawnTimer > 0) return;
-      var spawnCx = COLS - 1, spawnCy = 0;
-      if (monsterAtCell(spawnCx, spawnCy) || (S.player.cx === spawnCx && S.player.cy === spawnCy)) {
-        S.spawnTimer = 0.35;
-        return;
-      }
-      var kind = levelRng() < S.gnawerChance ? 'gnawer' : 'crawler';
-      spawnMonster(spawnCx, spawnCy, kind);
-      S.spawnLeft--;
-      S.spawnTimer = Math.max(1.3, 3.0 - S.level * 0.18);
-    }
-
-    function maybeSpawnCherry() {
-      if (S.mode !== 'play' || S.spawnLeft > 0 || S.cherrySpawned) return;
-      if (S.gemsLeft <= 0) return;
-      var cx = COLS - 1, cy = 0;
-      if (itemAtCell(cx, cy) || monsterAtCell(cx, cy)) return;
-      if (S.player.cx === cx && S.player.cy === cy) return;
-      addItem('cherry', cx, cy);
-      S.cherrySpawned = true;
-    }
-
-    /* --------------------------- убийство/жизни ---------------------------- */
-    function checkExtraLife() {
-      var guard = 0;
-      while (S.score >= S.nextLife && guard++ < 20) {
-        S.nextLife += EXTRA_LIFE;
-        S.lives++;
-        emit('extraLife', { lives: S.lives });
-      }
-    }
-
-    function killMonster(m, by, points) {
-      if (m.dying > 0) return;
-      m.dying = 0.4;
-      m.scared = false;
-      var gain = points == null ? 250 : points;
-      S.score += gain;
-      S.kills++;
-      addPopup('+' + gain, m.x, m.y, 'score');
-      spawnBurst(m.x, m.y, by === 'eat' ? 'eat' : 'monster', 10);
-      emit('monsterDie', { x: m.x, y: m.y, by: by, score: gain });
-      if (by === 'bag') S.shake = Math.max(S.shake, 0.45);
-      checkExtraLife();
-      checkLevelClear();
-    }
-
-    function eatMonster(m) {
-      var gain = 200 * Math.pow(2, Math.min(S.eatChain, 5));
-      S.eatChain++;
-      killMonster(m, 'eat', gain);
-    }
-
-    function playerDie(cause) {
-      var p = S.player;
-      if (!p.alive || !isPlaying()) return;
-      p.alive = false;
-      S.lives = Math.max(0, S.lives - 1);
-      S.bonus = false; S.bonusT = 0; S.eatChain = 0;
-      S.shake = 1;
-      spawnBurst(p.x, p.y, 'death', 16);
-      emit('playerDie', { cause: cause || 'monster' });
-      S.mode = 'dying';
-      S.deadT = DEATH_TIME;
-    }
-
-    function checkLevelClear() {
-      if (!isPlaying()) return;
-      if (S.gemsLeft <= 0) { levelClear(); return; }
-      if (S.spawnLeft <= 0 && aliveMonsters().length === 0) levelClear();
-    }
-
-    function levelClear() {
-      if (!isPlaying()) return;
-      S.bonus = false; S.bonusT = 0; S.eatChain = 0;
-      S.score += 1000;
-      S.stats.levels++;
-      checkExtraLife();
-      S.shake = Math.max(S.shake, 0.3);
-      emit('levelClear', { level: S.level, score: S.score });
-      S.mode = 'levelclear';
-      S.clearT = CLEAR_TIME;
-    }
-
-    function afterDeath() {
-      if (S.lives > 0) {
-        generateLevel(S.level);
-        S.mode = 'ready'; S.readyT = READY_TIME;
-        emit('levelStart', { level: S.level, respawn: true });
-      } else {
-        var oldHi = S.hiAtStart;
-        S.hi = Math.max(S.hi, S.score);
-        S.mode = 'gameover';
-        emit('gameOver', {
-          score: S.score, hi: S.hi,
-          record: S.score > oldHi && S.score > 0,
-          stats: S.stats
-        });
-      }
-    }
-
-    function nextLevel() {
-      generateLevel(S.level + 1);
-      S.mode = 'ready'; S.readyT = READY_TIME;
-      emit('levelStart', { level: S.level, newLevel: true });
-    }
-
-    /* ------------------------------- сумки --------------------------------- */
-    function bagCrush(bag) {
-      var p = S.player;
-      if (p && p.alive) {
-        var dx = p.x - bag.x, dy = p.y - bag.y;
-        if (dx * dx + dy * dy < 0.5 * 0.5 && p.invuln <= 0) {
-          emit('squash', { x: bag.x, y: bag.y });
-          playerDie('bag');
-          return;
-        }
-      }
-      for (var i = 0; i < S.monsters.length; i++) {
-        var m = S.monsters[i];
-        if (m.dying > 0 || m.spawnT < 0.3) continue;
-        var mx = m.x - bag.x, my = m.y - bag.y;
-        if (mx * mx + my * my < 0.5 * 0.5) {
-          emit('squash', { x: bag.x, y: bag.y });
-          killMonster(m, 'bag', 250);
-        }
-      }
-    }
-
-    function landBag(bag) {
-      bag.falling = false;
-      bag.y = bag.cy + 0.5;
-      var fell = bag.cy - bag.fallFrom;
-      if (fell >= 2) breakBag(bag);
-      else bag.wobble = -1;
-    }
-
-    function breakBag(bag) {
-      var cx = bag.cx, cy = bag.cy, x = bag.x, y = bag.y;
-      removeItem(bag);
-      S.stats.bagKills++;
-      spawnBurst(x, y, 'gold', 14);
-      S.shake = Math.max(S.shake, 0.3);
-      emit('bagBreak', { x: x, y: y });
-      if (!itemAtCell(cx, cy)) {
-        var g = addItem('gold', cx, cy);
-        g.y = y;
-      }
-    }
-
-    function updateBags(dt) {
-      for (var i = S.items.length - 1; i >= 0; i--) {
-        var bag = S.items[i];
-        if (bag.type !== 'bag') continue;
-        if (bag.falling) {
-          var travel = FALL_SPEED * dt, guard = 0;
-          while (travel > 0 && bag.falling && guard++ < 10) {
-            var nextY = bag.cy + 1.5;
-            var need = nextY - bag.y;
-            if (need > travel) { bag.y += travel; travel = 0; }
-            else {
-              travel -= need;
-              bag.y = nextY;
-              bag.cy += 1;
-              bagCrush(bag);
-              if (bag.cy >= ROWS - 1 || !isTunnel(bag.cx, bag.cy + 1)) landBag(bag);
-            }
-          }
-          if (bag.falling) bagCrush(bag);
-        } else if (bag.wobble >= 0) {
-          bag.wobble -= dt;
-          if (bag.wobble < 0) {
-            bag.falling = true;
-            bag.fallFrom = bag.cy;
-            bag.wobble = -1;
-            emit('bagFall', { x: bag.x, y: bag.y });
-          }
-        } else if (!bagSupported(bag)) {
-          bag.wobble = WOBBLE_TIME;
-          emit('bagWobble', { x: bag.x, y: bag.y });
-        }
-      }
-    }
-
-    /* ------------------------------- игрок --------------------------------- */
-    function tryPlayerMove(dir) {
-      var p = S.player;
-      var dx = DIRS[dir][0], dy = DIRS[dir][1];
-      var nx = p.cx + dx, ny = p.cy + dy;
-      if (!inBounds(nx, ny)) { p.dir = dir; return false; }
-
-      var bag = itemAtCell(nx, ny);
-      if (bag && bag.type === 'bag') {
-        var ok = false;
-        if (dy === 0) {
-          var bx = bag.cx + dx, by = bag.cy;
-          if (inBounds(bx, by) && isTunnel(bx, by) && !itemAtCell(bx, by) && !monsterAtCell(bx, by)) {
-            bag.cx = bx; bag.x = bx + 0.5;
-            ok = true;
-            emit('bagPush', { x: bag.x, y: bag.y });
-            if (bagSupported(bag) === false && bag.wobble < 0) {
-              bag.wobble = WOBBLE_TIME;
-              emit('bagWobble', { x: bag.x, y: bag.y });
-            }
-          }
-        }
-        if (!ok) { p.dir = dir; return false; }
-      }
-
-      if (!isTunnel(nx, ny)) {
-        digCell(nx, ny);
-        S.stats.dug++;
-        emit('dig', { cx: nx, cy: ny, by: 'player' });
-        spawnBurst(nx + 0.5, ny + 0.5, 'dirt', 7);
-        var above = itemAtCell(nx, ny - 1);
-        if (above && above.type === 'bag' && above.wobble < 0 && !bagSupported(above)) {
-          above.wobble = WOBBLE_TIME;
-          emit('bagWobble', { x: above.x, y: above.y });
-        }
-      }
-
-      p.dir = dir;
-      p.cx = nx; p.cy = ny;
-      p.tx = nx + 0.5; p.ty = ny + 0.5;
-      p.moving = true;
-      return true;
-    }
-
-    function collectItem(it) {
-      var p = S.player;
-      if (it.type === 'gem') {
-        removeItem(it);
-        S.gemsLeft = Math.max(0, S.gemsLeft - 1);
-        S.gemsCollected++;
-        S.stats.gems++;
-        S.gemChain++;
-        var gain = 25;
-        if (S.gemChain % 8 === 0) {
-          gain += 250;
-          addPopup('+250', it.x, it.y - 0.45, 'bonus');
-        }
-        S.score += gain;
-        addPopup('+25', it.x, it.y, 'score');
-        spawnBurst(it.x, it.y, 'gem', 8);
-        emit('gem', { score: gain, chain: S.gemChain, x: it.x, y: it.y });
-        checkExtraLife();
-        if (S.gemsLeft <= 0) levelClear();
-      } else if (it.type === 'gold') {
-        removeItem(it);
-        S.score += 500;
-        S.gemChain = 0;
-        addPopup('+500', it.x, it.y, 'score');
-        spawnBurst(it.x, it.y, 'gold', 10);
-        emit('gold', { x: it.x, y: it.y });
-        checkExtraLife();
-      } else if (it.type === 'cherry') {
-        removeItem(it);
-        S.score += 1000;
-        S.gemChain = 0;
-        addPopup('+1000', it.x, it.y, 'score');
-        spawnBurst(it.x, it.y, 'gold', 12);
-        emit('cherry', { x: it.x, y: it.y });
-        checkExtraLife();
-        startBonus();
-      }
-    }
-
-    function startBonus() {
-      S.bonus = true;
-      S.bonusDur = Math.max(6, 15 - (S.level - 1) * 1.5);
-      S.bonusT = S.bonusDur;
-      S.eatChain = 0;
-      S.mode = 'bonus';
-      for (var i = 0; i < S.monsters.length; i++) S.monsters[i].scared = true;
-      S.shake = Math.max(S.shake, 0.35);
-      emit('bonusStart', { dur: S.bonusDur });
-    }
-
-    function endBonus() {
-      S.bonus = false; S.bonusT = 0; S.eatChain = 0;
-      for (var i = 0; i < S.monsters.length; i++) S.monsters[i].scared = false;
-      if (S.mode === 'bonus') S.mode = 'play';
-      emit('bonusEnd', {});
-      if (S.gemsLeft > 0 && S.spawnLeft <= 0) {
-        S.spawnLeft = Math.max(1, 1 + Math.floor(S.level / 2));
-        S.cherrySpawned = false;
-        S.spawnTimer = 1.2;
-      }
-    }
-
-    function updatePlayer(dt) {
-      var p = S.player;
-      if (!p || !p.alive) return;
-      p.invuln = Math.max(0, p.invuln - dt);
-      p.shootCd = Math.max(0, p.shootCd - dt);
-      p.shootAnim = Math.max(0, p.shootAnim - dt * 3.2);
-      if (p.moving) {
-        var dx = p.tx - p.x, dy = p.ty - p.y;
-        var len = Math.sqrt(dx * dx + dy * dy);
-        var step = MOVE_SPEED * dt;
-        p.walkPhase += dt * 12;
-        if (len <= step) {
-          p.x = p.tx; p.y = p.ty; p.moving = false; p.walkPhase = 0;
-          var it = itemAtCell(p.cx, p.cy);
-          if (it) collectItem(it);
-          if (!isPlaying()) return;
-        } else {
-          p.x += dx / len * step;
-          p.y += dy / len * step;
-          return;
-        }
-      }
-      if (p.inputDir >= 0) tryPlayerMove(p.inputDir);
-    }
-
-    function updateBullets(dt) {
-      for (var i = S.bullets.length - 1; i >= 0; i--) {
-        var b = S.bullets[i];
-        var dx = DIRS[b.dir][0], dy = DIRS[b.dir][1];
-        var total = BULLET_SPEED * dt;
-        var steps = Math.max(1, Math.ceil(total / 0.28));
-        var dead = false;
-        for (var s = 0; s < steps && !dead; s++) {
-          b.x += dx * total / steps;
-          b.y += dy * total / steps;
-          b.life -= dt / steps;
-          if (b.x < -0.5 || b.x > COLS + 0.5 || b.y < -0.5 || b.y > ROWS + 0.5) { dead = true; break; }
-          var cx = Math.floor(b.x), cy = Math.floor(b.y);
-          if (inBounds(cx, cy) && !isTunnel(cx, cy)) {
-            spawnBurst(b.x, b.y, 'spark', 5);
-            emit('bulletHit', { x: b.x, y: b.y });
-            dead = true; break;
-          }
-          for (var j = 0; j < S.monsters.length; j++) {
-            var m = S.monsters[j];
-            if (m.dying > 0) continue;
-            var mx = m.x - b.x, my = m.y - b.y;
-            if (mx * mx + my * my < 0.45 * 0.45) {
-              killMonster(m, 'bullet', 250);
-              spawnBurst(b.x, b.y, 'spark', 6);
-              dead = true; break;
-            }
-          }
-        }
-        if (dead || b.life <= 0) S.bullets.splice(i, 1);
-        if (!isPlaying()) return;
-      }
-    }
-
-    function checkContacts() {
-      var p = S.player;
-      if (!p.alive) return;
-      for (var i = 0; i < S.monsters.length; i++) {
-        var m = S.monsters[i];
-        if (m.dying > 0 || m.spawnT < 0.45) continue;
-        var dx = m.x - p.x, dy = m.y - p.y;
-        if (dx * dx + dy * dy < 0.58 * 0.58) {
-          if (S.bonus) {
-            eatMonster(m);
-            if (!isPlaying()) return;
-          } else if (p.invuln <= 0) {
-            playerDie('monster');
-            return;
-          } else {
-            // пока игрок неуязвим, монстр не может «сидеть» на нём — отбрасываем назад
-            if (m.cx === p.cx && m.cy === p.cy) {
-              m.moving = false; m.think = 0.35;
-              m.cx = m.fromX; m.cy = m.fromY;
-              m.x = m.cx + 0.5; m.y = m.cy + 0.5;
-            }
-          }
-        }
-      }
-    }
-
-    function updatePlay(dt) {
-      updatePlayer(dt);
-      if (!isPlaying()) return;
-      updateBags(dt);
-      if (!isPlaying()) return;
-      updateBullets(dt);
-      if (!isPlaying()) return;
-      updateMonsters(dt);
-      if (!isPlaying()) return;
-      checkContacts();
-      if (!isPlaying()) return;
-      maybeSpawnMonster(dt);
-      maybeSpawnCherry();
-      if (S.bonus) {
-        S.bonusT -= dt;
-        if (S.bonusT <= 0) endBonus();
-      }
-      checkLevelClear();
-    }
-
-    /* ------------------------------- титул --------------------------------- */
-    function tunnelSpots(n) {
-      var cells = [];
-      for (var cy = 0; cy < ROWS; cy++) {
-        for (var cx = 0; cx < COLS; cx++) {
-          if (!isTunnel(cx, cy)) continue;
-          if (S.player && cx === S.player.cx && cy === S.player.cy) continue;
-          if (cx === COLS - 1 && cy === 0) continue;
-          cells.push([cx, cy]);
-        }
-      }
-      shuffle(cells, vrng);
-      return cells.slice(0, n);
-    }
-
-    function updateTitle(dt) {
-      var slow = dt * 0.55;
-      S.player.invuln = 99;
-      updateMonsters(slow);
-      updateBags(slow);
-      maybeSpawnMonster(slow);
-    }
-
-    /* ----------------------------- управление ------------------------------ */
-    function start() {
-      S.score = 0; S.lives = 3; S.nextLife = EXTRA_LIFE; S.hiAtStart = S.hi;
-      S.stats = { dug: 0, bagKills: 0, shots: 0, gems: 0, levels: 0 };
-      S.paused = false;
-      generateLevel(1);
-      S.mode = 'ready'; S.readyT = READY_TIME;
-      S.player.invuln = 2.5;
-      emit('levelStart', { level: 1, newGame: true });
-    }
-
-    function toTitle() {
-      S.score = 0; S.lives = 3; S.paused = false;
-      generateLevel(1);
-      S.mode = 'title';
-      var spots = tunnelSpots(3);
-      for (var i = 0; i < spots.length; i++) {
-        var m = spawnMonster(spots[i][0], spots[i][1], i === 2 ? 'gnawer' : 'crawler');
-        m.spawnT = 1;
-      }
-      S.player.invuln = 99;
-      S.hi = Math.max(S.hi, opts.hiscore || 0);
-    }
-
-    function setLevel(n) {
-      var lv = clamp(n | 0, 1, 99);
-      generateLevel(lv);
-      S.mode = 'ready'; S.readyT = READY_TIME;
-      emit('levelStart', { level: lv, debug: true });
-    }
-
-    function forceMode(mode) {
-      if (mode === 'title') { toTitle(); return; }
-      if (mode === 'gameover') {
-        S.mode = 'gameover'; S.player.alive = false;
-        S.hi = Math.max(S.hi, S.score);
-        return;
-      }
-      if (mode === 'dying') {
-        S.mode = 'dying'; S.deadT = DEATH_TIME; S.player.alive = false; S.shake = 1;
-        return;
-      }
-      if (mode === 'levelclear') { S.mode = 'levelclear'; S.clearT = CLEAR_TIME; return; }
-      if (!S.gemsTotal) generateLevel(1);
-      S.player.alive = true;
-      S.player.invuln = 3;
-      S.mode = 'play';
-      if (aliveMonsters().length === 0) {
-        var spots = tunnelSpots(3);
-        for (var i = 0; i < spots.length; i++) {
-          var m = spawnMonster(spots[i][0], spots[i][1], i === 2 ? 'gnawer' : 'crawler');
-          m.spawnT = 1;
-        }
-      }
-      if (mode === 'bonus') {
-        S.bonus = true; S.bonusDur = 15; S.bonusT = 12; S.eatChain = 0;
-        for (var j = 0; j < S.monsters.length; j++) S.monsters[j].scared = true;
-        S.mode = 'bonus';
-      }
-      if (S.score === 0) S.score = S.level * 1250;
-      S.hi = Math.max(S.hi, S.score);
-    }
-
-    function setDir(dir) {
-      if (!isPlaying() || S.paused) return;
-      var p = S.player;
-      if (!p || !p.alive) return;
-      p.inputDir = (dir >= 0 && dir <= 3) ? dir : -1;
-      if (p.inputDir >= 0 && !p.moving) tryPlayerMove(p.inputDir);
-    }
-
-    function shoot() {
-      if (!isPlaying() || S.paused) return;
-      var p = S.player;
-      if (!p || !p.alive || p.shootCd > 0) return;
-      p.shootCd = p.shootMax;
-      p.shootAnim = 1;
-      S.stats.shots++;
-      var d = DIRS[p.dir];
-      S.bullets.push({
-        x: p.x + d[0] * 0.45,
-        y: p.y + d[1] * 0.45,
-        dir: p.dir,
-        life: 2.2
-      });
-      emit('shoot', { x: p.x, y: p.y, dir: p.dir });
-      S.shake = Math.max(S.shake, 0.1);
-    }
-
-    function pause(flag) {
-      var v = !!flag;
-      if (S.paused === v) return;
-      S.paused = v;
-      emit('pause', { paused: v });
-    }
-
-    function update(dt) {
-      if (typeof dt !== 'number' || !isFinite(dt) || dt <= 0) return;
-      dt = Math.min(dt, 0.05);
-      S.time += dt;
-      if (S.paused) return;
-      S.anim += dt;
-      S.shake = Math.max(0, S.shake - dt * 2.6);
-      updateParticles(dt);
-      updatePopups(dt);
-      switch (S.mode) {
-        case 'title': updateTitle(dt); break;
-        case 'ready':
-          S.readyT -= dt;
-          if (S.readyT <= 0) S.mode = 'play';
-          break;
-        case 'dying':
-          S.deadT -= dt;
-          if (S.deadT <= 0) afterDeath();
-          break;
-        case 'levelclear':
-          S.clearT -= dt;
-          if (S.clearT <= 0) nextLevel();
-          break;
-        case 'play':
-        case 'bonus':
-          updatePlay(dt);
-          break;
-        default: break;
-      }
-      if (S.score > S.hi) S.hi = S.score;
-    }
-
-    /* ------------------------------- API ----------------------------------- */
+  function wrap(S, onEvent) {
+    var ev = function (t, d) { if (onEvent) onEvent(t, d || {}); };
     var api = {
-      state: S,
-      start: start,
-      toTitle: toTitle,
-      update: update,
-      setDir: setDir,
-      shoot: shoot,
-      pause: pause,
-      togglePause: function () { pause(!S.paused); },
-      setLevel: setLevel,
-      forceMode: forceMode,
-      onEvent: function (fn) { onEventFn = typeof fn === 'function' ? fn : null; },
-      resetHi: function (h) { S.hi = Math.max(0, h | 0); S.hiAtStart = S.hi; }
+      state: function () { return S; },
+      step: function (dt) { step(S, dt, ev); },
+      setDir: function (d) { if (d !== S.dir && d >= 0) { S.want = d; S.wantT = 0.25; } S.dir = d; },
+      collapse: function () { return collapse(S, ev); },
+      clone: function () { return wrap(JSON.parse(JSON.stringify(S)), null); },
+      isOver: function () { return S.mode === 'gameover' || S.mode === 'victory'; },
+      revive: function () { S.lives = 1; respawn(S); S.inv = 2.5; },
+      addAnts: function (n) { S.pend += n; },
+      pos: function (i) { return apos(S, i); }
     };
-
-    /* ------------------------------- boot ---------------------------------- */
-    toTitle();
     return api;
+  }
+  MU.Game = function (o) {
+    o = o || {}; var S = { seed: o.seed || 1, rs: o.seed || 1, lives: o.lives || C.LIVES, score: 0, level: 0 };
+    load(S, o.level || 0, o.length || C.MINLEN);
+    return wrap(S, o.onEvent);
   };
-})(window);
+  MU.fromState = wrap;
+})(typeof window !== 'undefined' ? window : globalThis);

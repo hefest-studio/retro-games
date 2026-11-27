@@ -1,115 +1,31 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>СТАРАТЕЛЬ · Обвал в шахте — HTML5</title>
-<meta name="description" content="СТАРАТЕЛЬ — оригинальная головоломка-аркада студии «Гефест» на фреймворке Гефест Arcade: копай породу, собирай золото, роняй валуны на големов и уходи в выход. Темы retro (пиксель-арт) / modern, RU/EN, офлайн.">
-<meta name="theme-color" content="#120e14">
+<title>СТАРАТЕЛЬ · Шлюзы и шурфы — HTML5</title>
+<meta name="description" content="СТАРАТЕЛЬ — оригинальная головоломка студии «Гефест»: вода течёт по клеткам шахты, а ты открываешь шлюзы и пробиваешь шурфы, чтобы поток донёс вагонетки до подъёмника. 24 проверенные шахты, звёзды за ходы, отмена и подсказка. Темы retro/modern, RU/EN/TR/ES/PT, телефон и геймпад.">
+<meta name="theme-color" content="#10151c">
 <link rel="canonical" href="https://arcade.hefest.ru/staratel/">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
 <meta property="og:type" content="website"><meta property="og:site_name" content="Гефест · Зал ретро-игр">
-<meta property="og:title" content="СТАРАТЕЛЬ · Обвал в шахте"><meta property="og:url" content="https://arcade.hefest.ru/staratel/">
-<style>
-/* Палитра страницы и HUD следует теме движка: body.th-retro (пиксель-арт, как прежде) / body.th-modern */
-body.th-retro{--bg:#120e14;--ink:#f3e9da;--cell:#1d1620;--line:#3a2f26;--muted:#6b5d4e;--acc:#ea6a12;--cv:#17111c;--font:"Courier New",ui-monospace,monospace;--r:4px}
-body.th-modern{--bg:#0b0d14;--ink:#eef2f8;--cell:#161a24;--line:#222838;--muted:#5a6273;--acc:#4f8cff;--cv:#0e1016;--font:Inter,system-ui,sans-serif;--r:10px}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;
-  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden;transition:background .2s}
-.hud{width:min(94vw,520px);display:flex;justify-content:space-between;align-items:center;gap:6px;margin:10px 0 8px;font-weight:800;font-size:13px;font-family:var(--font)}
-.hud .cell{display:flex;align-items:center;gap:5px;background:var(--cell);border:1px solid var(--line);border-radius:var(--r);padding:6px 9px;white-space:nowrap}
-.hud .cell b{color:var(--ink)}
-.hud img{width:18px;height:18px;image-rendering:pixelated}
-.hud .coin{display:none;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff3c4,#ffc93c 50%,#d48a12);box-shadow:0 0 8px rgba(255,190,60,.6)}
-body.th-modern .hud img{display:none} body.th-modern .hud .coin{display:inline-block}
-body.th-modern .hud .lives{color:#ff5d6c}
-.lives{letter-spacing:1px}
-.wrap{position:relative;width:min(94vw,520px)}
-canvas{width:100%;display:block;border:2px solid var(--line);border-radius:12px;background:var(--cv);box-shadow:0 24px 70px -30px #000;touch-action:none}
-body.th-retro canvas{image-rendering:pixelated}
-.pad{width:min(94vw,520px);margin:12px 0 20px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,52px);gap:8px;max-width:260px}
-.pad button{background:var(--cell);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-size:22px;font-weight:800;cursor:pointer}
-.pad button:active{filter:brightness(1.3)}
-.pad .u{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
-.pad .p{grid-column:3;grid-row:1;font-size:15px;color:var(--muted)}
-.foot{color:var(--muted);font-size:11px;margin-bottom:16px;text-align:center;padding:0 12px;max-width:560px}
-a.back{position:fixed;z-index:60;left:10px;top:8px;color:var(--muted);font-size:12px;text-decoration:none}
-@media(min-width:760px){.pad{display:none}}
-</style></head><body class="th-modern">
-<a data-catalog-back="1" class="back" href="../" data-en="← Catalog">← Каталог</a>
-<div class="hud" id="hud">
-  <span class="cell"><img id="hudCoin" alt=""><i class="coin"></i><span data-t="hudScore">Счёт</span> <b id="score">0</b></span>
-  <span class="cell"><img id="hudCoin2" alt=""><i class="coin"></i><span data-t="hudGold">Золото</span> <b id="goal">0/0</b></span>
-  <span class="cell"><span data-t="hudLevel">Ур.</span><b id="level">1</b></span>
-  <span class="cell lives">♥<b id="lives">3</b></span>
+<meta property="og:title" content="СТАРАТЕЛЬ · Шлюзы и шурфы"><meta property="og:url" content="https://arcade.hefest.ru/staratel/">
+<link rel="stylesheet" href="./css/style.css">
+</head><body data-theme="modern">
+<a class="back" id="backLink" href="../" data-catalog-back="1" data-en="← Catalog" data-tr="← Katalog" data-es="← Catálogo" data-pt="← Catálogo">← Каталог</a>
+<div class="wrap"><canvas id="c" width="450" height="660" aria-label="СТАРАТЕЛЬ"></canvas></div>
+<div class="pad auto" id="pad">
+  <button data-arcade-touch data-act="undo" aria-label="Отмена">↶</button>
+  <button data-arcade-touch data-act="restart" aria-label="Заново">⟲</button>
+  <button data-arcade-touch data-act="hint" aria-label="Подсказка">?</button>
+  <button class="mini" data-arcade-touch data-pause="1" aria-label="Пауза">II</button>
 </div>
-<div class="wrap"><canvas id="c" width="480" height="480" aria-label="СТАРАТЕЛЬ"></canvas></div>
-<div class="pad">
-  <button class="u" data-d="U">▲</button><button class="l" data-d="L">◀</button>
-  <button class="d" data-d="D">▼</button><button class="r" data-d="R">▶</button>
-  <button class="p" id="bPause" aria-label="Пауза">❚❚</button>
-</div>
-<div class="foot" id="foot"></div>
+<div class="foot" id="foot"><b>СТАРАТЕЛЬ</b></div>
 <script src="./engine.js"></script>
 <script src="./js/music.js"></script>
-<script src="./js/mine.js"></script>
-<script src="./js/mine-sprites.js"></script>
-<script src="./js/mine-retro.js"></script>
-<script src="./js/mine-modern.js"></script>
-<script>
-'use strict';
-/* Оболочка v2: меню/пауза/темы/язык/счёт/рекорд/музыка — движок Arcade; правила шахты — js/mine.js
-   (перенесены 1:1 из прежней страницы, она сохранена как legacy.html); retro — прежний пиксель-арт,
-   modern — векторный рендер. DOM-HUD сверху сохранён и следует теме и языку движка.
-   Рекордов прежняя версия не хранила — переносить нечего, рекорд ведёт движок (arcade.best.staratel). */
-var STR={
- ru:{play:'Играть',language:'Язык',theme:'Тема',sound:'Звук',on:'вкл',off:'выкл',score:'Счёт',level:'Ур.',best:'Рекорд',win:'ПОБЕДА!',gameover:'СМЕНА ОКОНЧЕНА',pause:'ПАУЗА',resume:'Продолжить',menu:'В меню',tapstart:'пробел / тап',title:'СТАРАТЕЛЬ',subtitle:'Обвал в шахте · норма золота, валуны и големы',
-   hudScore:'Счёт',hudGold:'Золото',hudLevel:'Ур.',
-   foot:'<b>СТАРАТЕЛЬ</b> · стрелки/WASD — ход и копка, валуны толкаются вбок · P/Esc — пауза · L язык, T тема, M звук.<br>Спрайты retro-темы из pixel-art-atlas (CC0): imp · oval coin · crystal shard · wooden golem. Студия «Гефест».'},
- en:{play:'Play',language:'Language',theme:'Theme',sound:'Sound',on:'on',off:'off',score:'Score',level:'Lvl',best:'Best',win:'VICTORY!',gameover:'SHIFT OVER',pause:'PAUSE',resume:'Resume',menu:'Menu',tapstart:'space / tap',title:'STARATEL',subtitle:'Mine cave-in · gold quota, boulders and golems',
-   hudScore:'Score',hudGold:'Gold',hudLevel:'Lvl',
-   foot:'<b>STARATEL</b> · arrows/WASD — move and dig, push boulders sideways · P/Esc — pause · L language, T theme, M sound.<br>Retro sprites from pixel-art-atlas (CC0): imp · oval coin · crystal shard · wooden golem. Hefest studio.'}
-};
-var g=Arcade.createGame({canvas:'#c',width:480,height:480,gameId:'staratel',strings:STR,theme:'modern'});
-g.input.bindDpad(document.querySelector('.pad'));
-g.fit(520); addEventListener('resize',function(){g.fit(520);});
-var IMG=Arcade.loadSprites(STARATEL.SPRITES);
-document.getElementById('hudCoin').src=STARATEL.SPRITES.gold; document.getElementById('hudCoin2').src=STARATEL.SPRITES.gold;
-var game=null, lang=null, theme=null, $=function(id){ return document.getElementById(id); };
-function bp(f,d,t,v){ g.audio.beep(f,d,t,v); }
-// SFX — те же частоты/длительности, что beep() прежней страницы
-function onEvent(type,d){
-  if(type==='push') bp(120,.05,'square',.05);
-  else if(type==='exit') bp(1300,.2,'sawtooth');
-  else if(type==='pickup') bp(d.gem?980:760,.09);
-  else if(type==='quota') bp(1400,.14,'triangle',.06);
-  else if(type==='crush'){ bp(70,.25,'sawtooth',.09); bp(900,.12,'triangle'); }
-  else if(type==='hit') bp(140,.3,'sawtooth');
-  else if(type==='gameover'&&game){ g.state.score=game.state.score; g.state.level=game.state.level; syncHud(); g.gameover(); }
-}
-function syncHud(){ var S=game?game.state:null;
-  $('score').textContent=S?S.score:0; $('goal').textContent=S?Math.min(S.got,S.need)+'/'+S.need:'0/0';
-  $('level').textContent=S?S.level:1; $('lives').textContent=S?Math.max(0,S.lives):3; }
-function syncShell(){
-  if(theme!==g.themeName){ theme=g.themeName; document.body.className=theme==='retro'?'th-retro':'th-modern'; }
-  if(lang!==g.i18n.lang){ lang=g.i18n.lang; document.documentElement.lang=lang;
-    document.querySelectorAll('[data-t]').forEach(function(el){ el.textContent=g.t(el.getAttribute('data-t')); });
-    $('foot').innerHTML=g.t('foot',''); document.title=g.t('title')+(lang==='ru'?' · Обвал в шахте — HTML5':' · Mine cave-in — HTML5'); }
-}
-(function poll(){ syncShell(); if(game) syncHud(); requestAnimationFrame(poll); })();
-// Удержание клавиши — повтор шага с частотой автоповтора ОС (как в прежней версии); первый шаг — через движок.
-var DIRK={ArrowUp:[0,-1],KeyW:[0,-1],ArrowDown:[0,1],KeyS:[0,1],ArrowLeft:[-1,0],KeyA:[-1,0],ArrowRight:[1,0],KeyD:[1,0]};
-addEventListener('keydown',function(e){ if(e.repeat&&DIRK[e.code]&&g._sceneName==='play'&&game){ game.move(DIRK[e.code][0],DIRK[e.code][1]); } });
-document.addEventListener('visibilitychange',function(){ if(document.hidden&&g._sceneName==='play') g.pause(); });
-(function(){ var b=$('bPause'); var f=function(e){ if (!Arcade.touchOk(e)) return; if(g._sceneName==='play') g.pause(); else if(g._sceneName==='pause') g.goto('play',{resume:true}); };
-  b.addEventListener('touchstart',f,{passive:false}); b.addEventListener('mousedown',f); })();
-
-g.useStandardScreens({get subtitle(){ return g.t('subtitle',''); },lives:3});
-g.scene('play',{realtime:true,
-  enter:function(d){ if(!(d&&d.resume)){ game=STARATEL.Game({onEvent:onEvent}); game.start(); syncHud(); } },
-  press:function(a){ if(!game) return; if(a==='pause'){ this.pause(); return; }
-    if(a==='up') game.move(0,-1); else if(a==='down') game.move(0,1); else if(a==='left') game.move(-1,0); else if(a==='right') game.move(1,0); },
-  update:function(dt){ if(!game) return; game.update(dt*1000); this.state.score=game.state.score; this.state.level=game.state.level; this.state.lives=game.state.lives; },
-  draw:function(ctx){ if(!game){ this.clear(); return; }
-    if(this.themeName==='retro') STARATEL.retro.draw(ctx,game.state,IMG); else STARATEL.modern.draw(ctx,game.state,this.th()); }
-});
-g.start('title');
-</script></body></html>
+<script src="./js/i18n.js"></script>
+<script src="./js/levels.js"></script>
+<script src="./js/game.js"></script>
+<script src="./js/save.js"></script>
+<script src="./js/audio.js"></script>
+<script src="./js/render.js"></script>
+<script src="./js/ui.js"></script>
+<script src="./js/main.js"></script>
+</body></html>

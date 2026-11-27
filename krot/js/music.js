@@ -1,18 +1,15 @@
-/* КРОТ · музыка: оригинальная тема студии «Гефест» для секвенсора движка (engine.js ≥ 2.1).
-   Характер: подземный бур — упругий ми-минорный грув, «копающий» бас на октавах, 8 тактов.
-   Подключается сама: трек кладётся в Arcade.tracks.krot, движок берёт его по gameId. */
+/* МУРАВЕЙНИК · музыка: оригинальная тема студии «Гефест» для секвенсора движка — деловитый «семенящий» марш ре минор:
+   пиццикато-мелодия бежит мелкими нотами, бас шагает по тонике и квинте. Ключ = gameId (krot). */
 (function (A) {
   'use strict';
   A.tracks = A.tracks || {};
   A.tracks.krot = {
-    bpm: 138, div: 2, vol: 0.9, lead: { retro: 'square', modern: 'triangle' },
+    bpm: 124, div: 2, vol: 0.7, lead: { retro: 'square', modern: 'triangle' },
     melody: [
-      'E5 . G5 E5 B4 . E5 - | D5 . F#5 D5 A4 . D5 - | C5 . E5 G5 F#5 E5 D5 B4 | E5 - - . B4 . . .',
-      'G5 . A5 G5 F#5 . E5 - | F#5 . G5 F#5 D5 . B4 - | C5 E5 G5 C6 B5 A5 G5 F#5 | E5 - B4 - E5 - - .'
+      'D5 . F5 D5 A4 . D5 . | C5 . E5 C5 G4 . C5 . | Bb4 . D5 F5 E5 . D5 . | A4 - C#5 A4 E4 - - .',
+      'F5 . A5 F5 D5 . F5 . | E5 . G5 E5 C5 . E5 . | D5 . Bb4 D5 F5 E5 D5 C5 | D5 - - . A4 . D4 .'
     ],
-    bass: [
-      'E2 E3 E2 E3 E2 E3 E2 E3 | D2 D3 D2 D3 D2 D3 D2 D3 | C2 C3 C2 C3 A1 A2 B1 B2 | E2 E3 E2 E3 E2 . B1 .'
-    ],
-    drums: 'k . h . s . h k | k . h k s . h h'
+    bass: 'D2 . D3 . A2 . A3 . | C2 . C3 . G2 . G3 . | Bb1 . Bb2 . F2 . F3 . | A1 . A2 . A1 . E2 .',
+    drums: 'k . h . s . h h | k . h k s . h .'
   };
 })(window.Arcade = window.Arcade || {});

@@ -1,132 +1,30 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>КРОТ · Подземные туннели — HTML5</title>
-<meta name="description" content="КРОТ — оригинальная аркада студии «Гефест» о подземном буре на фреймворке Гефест Arcade: копай туннели, собирай алмазы, роняй мешки золота на монстров. Темы retro/modern, RU/EN, офлайн.">
-<meta name="theme-color" content="#05060a">
+<title>МУРАВЕЙНИК · Колония в туннелях — HTML5</title>
+<meta name="description" content="МУРАВЕЙНИК — оригинальная аркада студии «Гефест»: колония муравьёв идёт змейкой по туннелям, которые ты роешь. Неси крошки в камеру, выводи новых муравьёв и замуровывай жуков обвалом. 8 ярусов, телефон и геймпад. Темы retro/modern, RU/EN/TR/ES/PT.">
+<meta name="theme-color" content="#15110d">
 <link rel="canonical" href="https://arcade.hefest.ru/krot/">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
 <meta property="og:type" content="website"><meta property="og:site_name" content="Гефест · Зал ретро-игр">
-<meta property="og:title" content="КРОТ · Подземные туннели"><meta property="og:url" content="https://arcade.hefest.ru/krot/">
-<style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:#05060a;color:#e8edf7;font-family:Inter,system-ui,sans-serif;
-  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
-.wrap{position:relative;width:min(96vw,620px);margin-top:4px}
-canvas{width:100%;display:block;border:1px solid #222838;border-radius:10px;background:#05060a;touch-action:none}
-.pad{width:min(96vw,620px);margin:10px 0;display:grid;grid-template-columns:repeat(3,1fr) 1.2fr;grid-template-rows:repeat(2,50px);gap:8px;max-width:360px}
-.pad button{background:#161a24;border:1px solid #222838;border-radius:12px;color:#eef2f8;font-size:20px;font-weight:800}
-.pad button:active{background:#232a38}
-.pad .u{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
-.pad .f{grid-column:4;grid-row:1/3;font-size:26px;color:#ffb020}
-.foot{color:#5a6273;font-size:11px;margin:2px 12px 16px;text-align:center;max-width:620px}
-a.back{position:relative;align-self:flex-start;margin:6px 0 0 10px;z-index:60;color:#5a6273;font-size:12px;line-height:16px;text-decoration:none} /* в потоке над полем — не налезает на canvas */
-@media(min-width:760px){.pad{display:none}}
-/* Телефон лёжа: поле по высоте экрана (fitField), крестовина — в левом поле, огонь — в правом */
-@media (orientation:landscape) and (max-height:520px) and (pointer:coarse){
-  body{justify-content:center}
-  a.back{position:fixed;left:max(10px,env(safe-area-inset-left));top:8px;margin:0}
-  .wrap{margin:0}
-  .foot{display:none}
-  .pad{display:contents}
-  .pad button{position:fixed;width:46px;height:48px;font-size:18px}
-  .pad .l{left:max(8px,env(safe-area-inset-left));bottom:10px}
-  .pad .d{left:calc(max(8px,env(safe-area-inset-left)) + 50px);bottom:10px}
-  .pad .r{left:calc(max(8px,env(safe-area-inset-left)) + 100px);bottom:10px}
-  .pad .u{left:calc(max(8px,env(safe-area-inset-left)) + 50px);bottom:62px}
-  .pad .f{right:max(8px,env(safe-area-inset-right));bottom:10px;width:64px;height:100px}
-}
-</style></head><body>
-<a data-catalog-back="1" class="back" href="../" data-en="← Catalog">← Каталог</a>
-<div class="wrap"><canvas id="c" width="960" height="600" aria-label="КРОТ"></canvas></div>
-<div class="pad">
-  <button class="u" data-d="U">▲</button><button class="l" data-d="L">◀</button>
-  <button class="d" data-d="D">▼</button><button class="r" data-d="R">▶</button>
-  <button class="f" data-d="A" aria-label="Огонь">●</button>
+<meta property="og:title" content="МУРАВЕЙНИК · Колония в туннелях"><meta property="og:url" content="https://arcade.hefest.ru/krot/">
+<link rel="stylesheet" href="./css/style.css">
+</head><body data-theme="modern">
+<a class="back" id="backLink" href="../" data-catalog-back="1" data-en="← Catalog" data-tr="← Katalog" data-es="← Catálogo" data-pt="← Catálogo">← Каталог</a>
+<div class="wrap"><canvas id="c" width="450" height="660" aria-label="МУРАВЕЙНИК"></canvas></div>
+<div class="pad auto" id="pad">
+  <div class="stick" data-stick="1" aria-label="Стик"></div>
+  <button class="mini" data-arcade-touch data-pause="1" aria-label="Пауза">II</button>
+  <div class="acts"><button class="a" data-arcade-touch data-act="collapse" aria-label="Обвал">▼</button></div>
 </div>
-<div class="foot" id="foot"></div>
+<div class="foot" id="foot"><b>МУРАВЕЙНИК</b></div>
 <script src="./engine.js"></script>
 <script src="./js/music.js"></script>
 <script src="./js/i18n.js"></script>
-<script src="./js/audio.js"></script>
 <script src="./js/game.js"></script>
-<script src="./js/classic.js"></script>
-<script src="./js/modern.js"></script>
-<script>
-'use strict';
-// Ключи прежнего имени → krot.* (KROT.migrateStorage), затем перенос старого рекорда (krot.hi.v1)
-// в общий ключ движка — один раз.
-(function(){ try{ KROT.migrateStorage(localStorage); }catch(e){} })();
-(function(){ try{ var S=Arcade.Store, k='arcade.best.krot';
-  if(S.get('arcade.migrated.krot',null)) return;
-  var old=parseInt(JSON.parse(S.get(KROT.STORE_KEYS.hi,'0')),10)||0;
-  if(old>S.getNum(k,0)) S.set(k,String(old)); S.set('arcade.migrated.krot','1');
-}catch(e){} })();
-var STR={
- ru:{play:'Играть',language:'Язык',theme:'Тема',sound:'Звук',on:'вкл',off:'выкл',score:'Счёт',level:'Ур.',best:'Рекорд',win:'ПОБЕДА!',gameover:'КОНЕЦ ИГРЫ',pause:'ПАУЗА',resume:'Продолжить',menu:'В меню',tapstart:'пробел / тап',title:'КРОТ',subtitle:'Подземные туннели · алмазы и мешки золота',
-   foot:'<b>КРОТ</b> · стрелки/WASD — копать, пробел/● — выстрел, P/Esc — пауза · L язык, T тема, M звук.'},
- en:{play:'Play',language:'Language',theme:'Theme',sound:'Sound',on:'on',off:'off',score:'Score',level:'Lvl',best:'Best',win:'VICTORY!',gameover:'GAME OVER',pause:'PAUSE',resume:'Resume',menu:'Menu',tapstart:'space / tap',title:'KROT',subtitle:'Underground tunnels · gems and gold bags',
-   foot:'<b>KROT</b> · arrows/WASD — dig, space/● — fire, P/Esc — pause · L language, T theme, M sound.'}
-};
-var g=Arcade.createGame({canvas:'#c',width:960,height:600,gameId:'krot',strings:STR,theme:'modern'});
-g.input.bindDpad(document.querySelector('.pad'));
-// Поле вписывается и по ширине, и по высоте окна (масштаб по min): без обрезки и прокрутки.
-// Телефон лёжа (LAND): поле по высоте экрана, тач-кнопки — в боковых полях, «← Каталог» — в левом верхнем углу.
-var LAND='(orientation:landscape) and (max-height:520px) and (pointer:coarse)';
-function fitField(maxW, vwPart, side){ var c=document.getElementById('c'), wrap=c.parentNode, pad=document.querySelector('.pad');
-  var vw=document.documentElement.clientWidth, vh=window.innerHeight, aw, ah;
-  if(matchMedia(LAND).matches){ aw=vw-2*side; ah=vh-12; }
-  else { aw=Math.min(maxW, vw*vwPart); ah=vh-wrap.getBoundingClientRect().top-(getComputedStyle(pad).display!=='none'?pad.offsetHeight+20:0)-6; }
-  var w=Math.floor(Math.max(160, Math.min(aw, ah*g.W/g.H)));
-  wrap.style.width=w+'px'; c.style.width=w+'px'; c.style.height=(w*g.H/g.W)+'px'; }
-fitField(620,0.96,160); addEventListener('resize',function(){fitField(620,0.96,160);});
-var game=null, lang=null;
-
-// Родной звук КРОТА (SFX) — только эффекты; музыку ведёт движок (js/music.js).
-var DA=window.KROT&&KROT.audio;
-if(DA){ try{ DA.setMusicEnabled(false); DA.setVolume(0.6); }catch(e){} }
-function unlockSfx(){ if(DA){ try{ DA.unlock(); DA.setMusicEnabled(false); }catch(e){} } }
-['keydown','pointerdown','touchstart'].forEach(function(ev){ addEventListener(ev,unlockSfx,{passive:true}); });
-var lastDig=0;
-function sfx(n){ if(!DA||!g.audio.enabled) return; try{ DA.sfx(n); }catch(e){} }
-var SFX={dig:'dig',gem:'gem',gold:'gold',bagPush:'bag_push',bagWobble:'bag_wobble',bagFall:'bag_fall',bagBreak:'bag_break',
-  shoot:'shoot',monsterDie:'monster_die',squash:'squash',cherry:'cherry',bonusStart:'bonus',eat:'eat',playerDie:'player_die',
-  extraLife:'extra_life',levelClear:'level_clear'};
-function syncLang(){ if(lang!==g.i18n.lang){ lang=g.i18n.lang; KROT.i18n.setLang(lang); document.documentElement.lang=lang;
-  document.getElementById('foot').innerHTML=g.t('foot',''); } }
-
-function mkGame(){ return KROT.Game({ seed:(Date.now()^((Math.random()*0x7fffffff)|0))>>>0, hiscore:g.state.best,
-  onEvent:function(type){
-    if(type==='dig'){ var now=performance.now(); if(now-lastDig<60) return; lastDig=now; }
-    if(SFX[type]) sfx(SFX[type]);
-    if(type==='gameOver'&&game){ g.state.score=game.state.score; g.gameover(); }
-  }}); }
-function render(ctx){ if(!game){ g.clear(); return; }
-  ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
-  (g.themeName==='retro'?KROT.render.classic:KROT.render.modern).draw(ctx,game.state); }
-
-// Направление: последняя нажатая клавиша (как в оригинале), тач-крестовина — через движок.
-var DIRK={ArrowUp:0,KeyW:0,ArrowRight:1,KeyD:1,ArrowDown:2,KeyS:2,ArrowLeft:3,KeyA:3};
-var stack=[], lastSent=-2;
-addEventListener('keydown',function(e){ if(!(e.code in DIRK)) return; for(var i=0;i<stack.length;i++) if(stack[i].c===e.code) return; stack.push({c:e.code,d:DIRK[e.code]}); });
-addEventListener('keyup',function(e){ for(var i=stack.length-1;i>=0;i--) if(stack[i].c===e.code){ stack.splice(i,1); return; } });
-addEventListener('blur',function(){ stack=[]; });
-function curDir(){ if(stack.length) return stack[stack.length-1].d; var d=g.input.dir;
-  return d.y<0?0:d.x>0?1:d.y>0?2:d.x<0?3:-1; }
-// G — графика (старая клавиша) = смена темы движка.
-addEventListener('keydown',function(e){ if(e.code==='KeyG'&&!e.repeat) g.toggleTheme(); });
-document.addEventListener('visibilitychange',function(){ if(document.hidden&&g._sceneName==='play') g.pause(); });
-
-// заголовок и подзаголовок меню — по текущему языку движка
-g.useStandardScreens({get subtitle(){ return g.t('subtitle',''); },lives:3});
-(function poll(){ syncLang(); requestAnimationFrame(poll); })();
-g.scene('play',{realtime:true,
-  enter:function(d){ if(!(d&&d.resume)){ game=mkGame(); game.start(); lastSent=-2; } },
-  press:function(a){ if(a==='pause') this.pause(); },
-  update:function(dt){ if(!game) return; var S=game.state;
-    var dir=curDir(); if(dir!==lastSent){ game.setDir(dir); lastSent=dir; }
-    if(this.input.keys.action&&(S.mode==='play'||S.mode==='bonus')) game.shoot();
-    game.update(dt); this.state.score=S.score; this.state.level=S.level; this.state.lives=S.lives; },
-  draw:function(ctx){ render(ctx); }
-});
-g.start('title');
-</script></body></html>
+<script src="./js/audio.js"></script>
+<script src="./js/render.js"></script>
+<script src="./js/stick.js"></script>
+<script src="./js/ui.js"></script>
+<script src="./js/save.js"></script>
+<script src="./js/main.js"></script>
+</body></html>

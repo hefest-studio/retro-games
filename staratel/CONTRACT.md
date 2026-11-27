@@ -1,31 +1,14 @@
-# СТАРАТЕЛЬ — контракт модулей (v2, «Обвал в шахте»)
+# СТАРАТЕЛЬ — контракт модулей (v2, «Водосброс»)
 
-Игра офлайн: HTML/CSS/Canvas без сборки, CDN и сети.
+Игра офлайн: HTML/CSS/Canvas без сборки, CDN и сети. Порядок загрузки (`index.html`): `engine.js` → `js/music.js` → `js/i18n.js` → `js/levels.js` → `js/game.js` → `js/save.js` → `js/audio.js` → `js/render.js` → `js/ui.js` → `js/main.js`.
 
-## Порядок загрузки (`index.html`)
+## Логика — `js/game.js` (DOM-free, без Math.random), пространство имён `window.STARATEL`
+- `parse(def)` → уровень `L` (`W,H,N,kind[],lift[],gates[],soils[],springs[],carts[],open0`); символы карты — в шапке `levels.js`.
+- `flow(L, gates, dug)` → `{ wet, par, dir, depth, solid }` — установившийся поток (мемоизован). `settle(L, F, carts)` → `{ pos, paths }`. `apply(L, st, cell)` → `{ st, F, paths }` или `null`.
+- `solve(L, from?, cap?)` → `{ solved, moves, path[], explored }` (поиск в ширину); `starsFor(moves, par)`.
+- `Game({ level, par, onEvent })` → `state()`, `act(cell)`, `undo()`, `restart()`, `hint()`, `stuck()`, `canAct()`, `tick(dt)`; события `dig`, `gateOpen`, `gateShut`, `cart`, `undo`, `restart`, `clear`.
 
-`engine.js` → `js/music.js` → `js/mine.js` → `js/mine-sprites.js` → `js/mine-retro.js` → `js/mine-modern.js` → инлайн-оболочка.
-
-## `js/mine.js` — логика (DOM-free)
-
-- Пространство имён `window.STARATEL`.
-- `STARATEL.Game({ onEvent, random })` → `{ state, start(), update(dtMs), move(dx, dy) }`.
-- `STARATEL.T` — константы: `N` (15), `TS`, коды клеток `WALL/DIRT/EMPTY/BOULDER/GOLD/GEM/EXIT`, `STEP` (165 мс).
-- Звук/HUD — через `onEvent(type, data)`; оболочка превращает события в SFX движка.
-
-## Рендеры
-
-- `STARATEL` retro (`js/mine-retro.js`, спрайты `js/mine-sprites.js`) и modern (`js/mine-modern.js`)
-  только читают `state`, логику не меняют.
-
-## Хранилище
-
-Рекорд — `arcade.best.staratel` (движок). Язык/тема/звук — общие ключи движка `arcade.*`.
-
-## `legacy.html`
-
-Прежняя страница «Обвала» — самостоятельная (весь код инлайн), внешних файлов папки не использует.
-
-## Тесты
-
-`node staratel/tests/engine.test.mjs` — логика, трек музыки, оболочка (порядок скриптов, DOM-HUD, legacy.html).
+## Остальное
+- `js/levels.js` — `STARATEL.LEVELS` (24 карты, `par`). `js/save.js` — `migrate(io)`, `Progress(store, count)`; ключи `arcade.staratel.*`, рекорд `arcade.best.staratel` (звёзды × 100).
+- `js/render.js` — `STARATEL.render` (обе темы, портрет 450×660 и альбом 800×450). `js/main.js` — сцены `title → levels → play → clear → win`, площадка. `STARATEL.app` — служебный доступ для промо/тестов.
+- Названия, спрайты, музыка и палитры — оригинальные. Тесты — `node staratel/tests/engine.test.mjs`.
