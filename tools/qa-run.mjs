@@ -185,9 +185,17 @@ function staticChecks() {
         }
       })(src, dst);
       const r = scanBuild(dst);
+      const fmt = (f) => `${f.file}:${f.line} «${f.word}» (Яндекс ${f.req}) — ${JSON.stringify(f.text)}`;
       // строка-идентификатор ('demo' — значение флага издания, ключ) — не текст для игрока: жёлтым, решить вручную
       const ident = (e) => /— "[a-z_][a-z0-9_]*"$/.test(e);
-      const errs = r.errors.filter((e) => !ident(e)), soft = [...r.errors.filter(ident).map((e) => e + ' [идентификатор?]'), ...r.warnings];
+      // У игр с js/edition.js публичное издание — демо по решению владельца: «демо» и «полная версия» здесь — его метка.
+      // Издание для площадок собирает arcade-full (platform/prepare.mjs): подменяет эти строки и проверяет копию тем же
+      // модулем banned-words (ошибка = сборка падает). Поэтому здесь — жёлтым, с пометкой.
+      const demoEdition = fs.existsSync(path.join(src, 'js', 'edition.js'));
+      const byDesign = (f) => demoEdition && (f.id === 'demo' || f.id === 'full-version');
+      const errors = r.findings.filter((f) => f.level === 'error' && !byDesign(f)).map(fmt);
+      const designed = r.findings.filter((f) => f.level === 'error' && byDesign(f)).map((e) => fmt(e) + ' [демо-издание; площадки — arcade-full]');
+      const errs = errors.filter((e) => !ident(e)), soft = [...errors.filter(ident).map((e) => e + ' [идентификатор?]'), ...designed, ...r.warnings];
       add('static', s, 'запрещённые слова', errs.length ? 'fail' : soft.length ? 'warn' : 'ok',
         errs.length ? errs.slice(0, 8).join('; ') : soft.length ? 'проверить: ' + soft.slice(0, 5).join('; ') : '');
     }

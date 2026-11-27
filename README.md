@@ -206,6 +206,7 @@ node tools/qa-run.mjs                       # everything: static + tests + catal
 node tools/qa-run.mjs --only kaskad,bolt    # selected games
 node tools/qa-run.mjs --skip tests          # without game tests
 ```
+The banned-words check (Yandex 1.15 / 8.2.2) treats "demo" and "full version" as yellow in games with `js/edition.js`: their public edition is a demo by design, and the platform edition is built by `arcade-full`, which swaps those strings and runs the same check.
 It writes `qa-report/<date>.md` (summary, red, yellow, slowest tests, per-game table) and `.json`
 (all measurements); the folder is in `.gitignore`. Exit code 1 means there are red items.
 The full list of checks and options is in the [Russian README](README.ru.md#qa-прогон).
