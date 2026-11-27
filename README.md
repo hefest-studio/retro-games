@@ -42,7 +42,7 @@ Order as in the catalog (`assets/catalog/games.json`); names as in the English c
 | 15 | [KOLOBOK — Adventure](kolobok/) | Puzzle | retro / modern |
 | 16 | [PLASHCH — Night Avenger](plashch/) | Action platformer | retro / modern |
 | 17 | [SPARKFENCE — A Light-beam Fence Against the Gloom](redut/) | Arcade | retro / modern |
-| 18 | [ZVERO-OTRYAD — The Old Workshop](zvero-otryad/) | Platformer | retro / modern |
+| 18 | [TWINLEASH — Two on one rope](zvero-otryad/) | Puzzle | retro / modern |
 | 19 | [ZVERO-OTRYAD 2 — New Levels](zvero-otryad-2/) | Platformer | retro / modern |
 | 20 | [KINDLEBROOD — Fire Chain](roy/) | Shoot'em-up | retro / modern |
 | 21 | [SLICEWARD — Field Capture](razrez/) | Arcade | retro / modern |
