@@ -217,19 +217,6 @@ const STUDIO = () => (LANG === 'en' ? 'HEFEST ARCADE' : 'ГЕФЕСТ ARCADE');
    ------------------------------------------------------------------------- */
 const CFG_KEY = 'vihr.cfg.v1';
 const HI_KEY = 'vihr.hi.v1';
-// Устаревшие ключи (прежнее рабочее имя) — только для однократной миграции:
-// старый → новый (если нового ещё нет) → удалить старый.
-const LEGACY_KEYS = [['silkworm.cfg.v1', CFG_KEY], ['silkworm.hi.v1', HI_KEY]];
-(function migrateStorage() {
-  try {
-    LEGACY_KEYS.forEach(([from, to]) => {
-      const v = localStorage.getItem(from);
-      if (v == null) return;
-      if (localStorage.getItem(to) == null) localStorage.setItem(to, v);
-      localStorage.removeItem(from);
-    });
-  } catch (e) { /* приватный режим */ }
-})();
 const CFG = { lang: 'ru', gfx: 'retro', sound: true }; // gfx живёт только в текущей сессии: при запуске всегда 8-бит
 
 function loadCfg() {

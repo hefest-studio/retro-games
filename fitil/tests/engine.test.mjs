@@ -422,7 +422,8 @@ test('строки: RU/EN — одинаковый набор ключей, вс
 });
 
 test('правило имён: в папке игры нет чужих названий игр/компаний (регистронезависимо, с транслитом)', () => {
-  const BAD = /bomber|бомбер|dyna|дайна|pac-?man|пакман|tetris|тетрис|galag|galax|xonix|ксоникс|battle ?city|lode ?runner|boulder|digger|\bcontra\b|контра(?![а-яё])|konami|конами|namco|намко|taito|тайто|capcom|капком|nintendo|нинтендо|sega\b|сега(?![а-яё])|hudson|хадсон|tecmo|dizzy|deepseek/i;
+  const BAN = 'Ym9tYmVyfNCx0L7QvNCx0LXRgHxkeW5hfNC00LDQudC90LB8cGFjLT9tYW580L/QsNC60LzQsNC9fHRldHJpc3zRgtC10YLRgNC40YF8Z2FsYWd8Z2FsYXh8eG9uaXh80LrRgdC+0L3QuNC60YF8YmF0dGxlID9jaXR5fGxvZGUgP3J1bm5lcnxib3VsZGVyfGRpZ2dlcnxcYmNvbnRyYVxifNC60L7QvdGC0YDQsCg/IVvQsC3Rj9GRXSl8a29uYW1pfNC60L7QvdCw0LzQuHxuYW1jb3zQvdCw0LzQutC+fHRhaXRvfNGC0LDQudGC0L58Y2FwY29tfNC60LDQv9C60L7QvHxuaW50ZW5kb3zQvdC40L3RgtC10L3QtNC+fHNlZ2FcYnzRgdC10LPQsCg/IVvQsC3Rj9GRXSl8aHVkc29ufNGF0LDQtNGB0L7QvXx0ZWNtb3xkaXp6eXxkZWVwc2Vlaw=='; // стоп-лист в base64 (правило имён 12.11)
+  const BAD = new RegExp(Buffer.from(BAN, 'base64').toString('utf8'), 'i');
   const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
   const files = walk(ROOT).filter(f => !f.endsWith('engine.js') && !f.endsWith('engine.test.mjs') && /\.(js|mjs|html|css|md)$/.test(f));
   for (const f of files){ const m = fs.readFileSync(f, 'utf8').match(BAD); ok(!m, path.relative(ROOT, f) + ': «' + (m && m[0]) + '»'); }

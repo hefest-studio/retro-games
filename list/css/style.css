@@ -16,8 +16,10 @@ a.back:hover{color:var(--accent)}
 .pad{width:min(96vw,600px);margin:10px 0 4px;display:flex;justify-content:space-between;align-items:center;gap:12px}
 .pad button{background:var(--panel);border:1px solid var(--line);border-radius:14px;color:var(--ink);font-size:20px;font-weight:800;touch-action:none}
 .pad button:active{filter:brightness(1.4)}
-.dpad{display:grid;grid-template-columns:52px 52px 52px;grid-template-rows:46px 46px 46px;gap:4px}
-.dpad .u{grid-column:2;grid-row:1}.dpad .l{grid-column:1;grid-row:2}.dpad .r{grid-column:3;grid-row:2}.dpad .d{grid-column:2;grid-row:3}
+.stick{position:relative;width:150px;height:150px;border-radius:50%;border:1px dashed var(--line);touch-action:none;flex:none}
+.stick-base,.stick-knob{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;opacity:.55}
+.stick-base{width:104px;height:104px;border:2px solid var(--line);background:rgba(255,255,255,.04)}
+.stick-knob{width:50px;height:50px;background:var(--panel);border:2px solid var(--accent)}
 .acts{display:flex;gap:8px;align-items:center}
 .acts .hit{width:74px;height:74px;border-radius:50%;background:#4a1d14;border-color:var(--accent);color:var(--accent);font-size:28px}
 .acts .grab{width:58px;height:58px;border-radius:50%;font-size:22px}
@@ -26,10 +28,11 @@ a.back:hover{color:var(--accent)}
 .foot{color:var(--mut);font-size:11px;margin:6px 12px 12px;text-align:center;max-width:780px;font-family:Inter,system-ui,sans-serif}
 .foot b{color:var(--ink)}
 @media(min-width:900px) and (hover:hover){.pad{display:none}}
+/* низкий экран / окно площадки: подсказка-подвал не нужна (иначе страница выше экрана) */
+@media (max-height:800px){.foot{display:none}}
 /* узкий телефон стоя (≤ 440 px): кнопки компактнее, чтобы «Удар» у правого края не уходил за экран (QA-прогон: макет шире экрана) */
 @media (max-width:440px){
-  .pad{gap:6px}
-  .dpad{grid-template-columns:44px 44px 44px;grid-template-rows:42px 42px 42px;gap:3px}
+  .pad{gap:6px}.stick{width:118px;height:118px}.stick-base{width:88px;height:88px}
   .acts{gap:5px}.acts .hit{width:62px;height:62px}.acts .grab{width:50px;height:50px}.acts .use{width:44px;height:44px}.acts .slot{width:36px;height:36px}
 }
 /* телефон «лёжа»: кнопки по бокам поверх полей, канва — на всю высоту */
@@ -38,6 +41,6 @@ a.back:hover{color:var(--accent)}
   .foot{display:none}
   .pad{position:fixed;left:0;right:0;bottom:8px;width:100%;max-width:none;margin:0;padding:0 8px;pointer-events:none}
   .pad>div{pointer-events:auto}
-  .dpad{grid-template-columns:44px 44px 44px;grid-template-rows:42px 42px 42px}
+  .stick{width:140px;height:140px}
   .acts{flex-wrap:wrap;width:150px;justify-content:flex-end;gap:6px}
 }

@@ -50,20 +50,6 @@
   const DEFAULTS = { lang: 'ru', gfx: 'retro', music: true, sfx: true, crt: true };
   const SETTINGS_KEY = 'proryv.settings';
   const RECORD_KEY = 'proryv.record';
-  /* Устаревшие ключи (до переименования игры) — только для однократной миграции:
-     старый → новый (если нового ещё нет) → удалить старый. */
-  const LEGACY_KEYS = [['exolon.settings', SETTINGS_KEY], ['exolon.record', RECORD_KEY]];
-  function migrateStorage() {
-    try {
-      LEGACY_KEYS.forEach(function (pair) {
-        const v = localStorage.getItem(pair[0]);
-        if (v == null) return;
-        if (localStorage.getItem(pair[1]) == null) localStorage.setItem(pair[1], v);
-        localStorage.removeItem(pair[0]);
-      });
-    } catch (e) { /* приватный режим */ }
-  }
-  migrateStorage();
 
   function parseHash() {
     const out = {};
