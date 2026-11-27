@@ -175,9 +175,11 @@
     for (var i = 0; i < puffs.length; i++) {
       var p = puffs[i]; if (p.s.layer !== layer) continue;
       var rr = Math.min(7, Math.max(1, p.r - (p.age > p.life * 0.75 ? 1 : 0) - (p.age > p.life * 0.9 ? 1 : 0)));
-      var img = layer === 'far' || dark ? PUFF['far' + rr] : PUFF[rr - 1];
       var x = Math.round(p.x - ox) - rr, y = Math.round(p.y - oy) - rr;
       if (x < -16 || x > VW + 16) continue;
+      var calm = HB.world.mute && x + rr > HB.world.mute.x0 && x + rr < HB.world.mute.x1;   // захват: пар рядом приглушён
+      if (calm && layer === 'floor') continue;
+      var img = layer === 'far' || dark || calm ? PUFF['far' + rr] : PUFF[rr - 1];
       ctx.drawImage(img, x, y);
     }
   }

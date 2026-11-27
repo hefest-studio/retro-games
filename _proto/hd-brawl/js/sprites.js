@@ -306,6 +306,9 @@
   function rotN(p, k) { for (var i = 0; i < (k || 0); i++) p = rot90(p); return p; }
   function flipX(p) { var o = { w: p.w, h: p.h, a: new Uint8Array(p.a.length) };
     for (var y = 0; y < p.h; y++) for (var x = 0; x < p.w; x++) o.a[y * p.w + x] = p.a[y * p.w + p.w - 1 - x]; return o; }
+  // Утончение по высоте матрицы (для лёжа/полёта): новая высота = round(h·k), ряд источника — ближайший.
+  function squashY(p, k) { var h = Math.max(2, Math.round(p.h * k)), o = { w: p.w, h: h, a: new Uint8Array(p.w * h) };
+    for (var y = 0; y < h; y++) { var sy = Math.min(p.h - 1, Math.round((y + 0.5) / k - 0.5)); for (var x = 0; x < p.w; x++) o.a[y * p.w + x] = p.a[sy * p.w + x]; } return o; }
   // Наклон торса без поворота на дробный угол: ряд y сдвигается на round(lean·(низ − y)) — целые сдвиги, без потерь.
   function shear(p, lean) {
     var sh = [], mn = 0, mx = 0, y, x;
@@ -380,8 +383,10 @@
   // lag: { belt:[x,y], knot:[x,y] } — точки крепления из предыдущих кадров (вторичное движение). Возвращает { f, anchors }.
   function renderPose(spec, ch, lag, tick) {
     var C = PARTS[ch], J = C.d.J, Ln = J.len || LEN, rot = spec.rot || 0, F = layer();
-    var t0 = shear(C.torso, spec.lean || 0), tor = rotN(t0, rot);
-    function tp(pt) { var m = t0.map(pt[0], pt[1]); return rotPt(m[0], m[1], t0.w, t0.h, rot); }
+    var t0 = shear(C.torso, spec.lean || 0), tor = rotN(t0, rot), thin = spec.thin || 1, rs = spec.rs || 1;
+    // thin — «лёжа/в полёте»: повёрнутый корпус тоньше (перспектива, вид сбоку): ряды выбираются по ближайшему, суставы едут следом
+    if (thin < 1) tor = squashY(tor, thin);
+    function tp(pt) { var m = t0.map(pt[0], pt[1]), q = rotPt(m[0], m[1], t0.w, t0.h, rot); return thin < 1 ? [q[0], Math.round(q[1] * thin)] : q; }
     var hipL = tp(J.hip), org = [spec.hip[0] - hipL[0], spec.hip[1] - hipL[1]];
     function TP(pt) { var q = tp(pt); return [org[0] + q[0], org[1] + q[1]]; }
     var head = rotN(C.head[spec.face || 'n'], rot), hn = rotPt(J.headNeck[0], J.headNeck[1], C.head.n.w, C.head.n.h, rot);
@@ -391,14 +396,14 @@
     var d = C.d, L;
     function arm(sh, hand, eb, hrot, shade, edge) {
       var s = ik(sh, hand, Ln.up, Ln.fore, eb || [0.3, 1]); L = layer();
-      capsuleL(L, sh, s.mid, J.r[0], d.upper); capsuleL(L, s.mid, s.end, J.r[1], d.fore);
+      capsuleL(L, sh, s.mid, J.r[0] * rs, d.upper); capsuleL(L, s.mid, s.end, J.r[1] * rs, d.fore);
       var dir = [s.end[0] - s.mid[0], s.end[1] - s.mid[1]], hp = C.hand; if (dir[0] < -0.5) hp = flipX(hp); hp = rotN(hp, hrot || 0);
       var e = R(s.end); stampL(L, hp, e[0] - (hp.w >> 1) + (dir[0] < -0.5 ? -1 : 1), e[1] - (hp.h >> 1));
       comp(F, L, { shade: shade, edge: edge });
     }
     function leg(hp, foot, kb, brot, shade, edge) {
       var s = ik(hp, foot, Ln.thigh, Ln.shin, kb || [1, 0]); L = layer();
-      capsuleL(L, hp, s.mid, J.r[2], d.thigh); capsuleL(L, s.mid, s.end, J.r[3], d.shin);
+      capsuleL(L, hp, s.mid, J.r[2] * rs, d.thigh); capsuleL(L, s.mid, s.end, J.r[3] * rs, d.shin);
       var b = rotN(C.boot, brot || 0), a = rotPt(3, 0, C.boot.w, C.boot.h, brot || 0), e = R(s.end); stampL(L, b, e[0] - a[0], e[1] - a[1]);
       comp(F, L, { shade: shade, edge: edge });
     }
