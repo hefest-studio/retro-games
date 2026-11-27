@@ -1,5 +1,5 @@
-/* ДОЗОР · общий рендер мира (поле, реки, стены, дома, бараки, площадки, крепость, броневики, враги артели,
-   поезд, пленные, снаряды, взрывы). Один рендер на обе темы: палитра P = DOZOR.modern | DOZOR.classic.
+/* ОБОЗ · общий рендер мира (поле, реки, стены, дома, депо, узловая станция, тягачи с обозом, враги артели,
+   поезд, брошенные вагоны, снаряды, взрывы). Один рендер на обе темы: палитра P = DOZOR.modern | DOZOR.classic.
    В retro (P.pixel) — без градиентов и мягких теней, мир рисуется в буфер половинного размера (ui.js).
    world(ctx, S, P, time) рисует в мировых координатах: вызывающий уже сдвинул ctx на (0, −camY). DOZOR.render */
 (function (global) {
@@ -39,7 +39,7 @@
         else ell(ctx, x + 12, y + 12, 16 + h * 60, 10 + h * 40, shade(g0, 0.94));
         if (h < 0.025) { circ(ctx, x + 12, y + 12, 7, shade(g0, 0.78)); circ(ctx, x + 11, y + 11, 4, shade(g0, 0.68)); }
       }
-      if (t === C.G || t === C.PAD || breakableBase(t, C)) {
+      if (t === C.G || breakableBase(t, C)) {
         if (h < 0.35) rect(ctx, x + Math.floor(h * 40) % 20, y + Math.floor(h * 97) % 20, P.pixel ? 2 : 3, 2, shade(g0, 0.86));
         else if (h > 0.85) rect(ctx, x + Math.floor(h * 53) % 18, y + Math.floor(h * 71) % 18, 2, P.pixel ? 2 : 3, shade(g0, 1.12));
       }
@@ -89,39 +89,24 @@
   function breakableBase(t, C) { return t === C.BLD || t === C.TREE || t === C.SAND; }
 
   // ---------- Объекты ----------
-  function pad(ctx, P, pd, time) {
-    var x = pd.x, y = pd.y, R = 34;
-    box(ctx, P, x - R, y - R, 2 * R, 2 * R, P.pad, 6);
-    if (P.pixel) { rect(ctx, x - 26, y - 26, 52, 2, P.padRing); rect(ctx, x - 26, y + 24, 52, 2, P.padRing); rect(ctx, x - 26, y - 26, 2, 52, P.padRing); rect(ctx, x + 24, y - 26, 2, 52, P.padRing); }
-    else { ctx.strokeStyle = P.padRing; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(x, y, 25, 0, PI * 2); ctx.stroke(); }
-    // знак площадки — крест-шестерёнка студии (не буква)
-    rect(ctx, x - 12, y - 3, 24, 6, P.padMark); rect(ctx, x - 3, y - 12, 6, 24, P.padMark);
-    var blink = (time * 2) % 1 < 0.5;
-    [[-30, -30], [26, -30], [-30, 26], [26, 26]].forEach(function (o) { rect(ctx, x + o[0], y + o[1], 4, 4, blink ? P.padMark : shade(P.pad, 1.3)); });
-    if (pd.heliT > 0) rescueHeli(ctx, P, x, y - 4 - Math.max(0, pd.heliT - 2) * 60, time);
-  }
-  function rescueHeli(ctx, P, x, y, time) {
-    shadow(ctx, P, x, y + 10, 18, 8);
-    box(ctx, P, x - 10, y - 14, 20, 30, P.rescue, 9); rect(ctx, x - 10, y - 2, 20, 4, P.rescueStripe);
-    box(ctx, P, x - 6, y - 12, 12, 8, P.waterLight, 4);
-    rect(ctx, x - 2, y + 14, 4, 18, P.rescue); rect(ctx, x - 6, y + 30, 12, 3, P.rescueStripe);
-    var a = time * 22;
-    for (var k = 0; k < 2; k++) { var aa = a + k * PI / 2; line(ctx, x - Math.cos(aa) * 30, y - Math.sin(aa) * 30, x + Math.cos(aa) * 30, y + Math.sin(aa) * 30, P.pixel ? 2 : 2.5, P.metalDark); }
-  }
-  function barracks(ctx, P, b, time) {
+  function depot(ctx, P, b, time) {
     var x = b.x - 24, y = b.y - 24;
     if (!P.pixel) rect(ctx, x + 4, y + 6, 48, 46, P.shadow);
     var fl = b.flash > 0;
     box(ctx, P, x + 1, y + 1, 46, 46, fl ? '#ffffff' : P.barracks, 4);
-    rect(ctx, x + 3, y + 3, 42, 18, P.barracksRoof); rect(ctx, x + 3, y + 21, 42, 3, shade(P.barracksRoof, 0.7));
-    for (var k = 0; k < 4; k++) rect(ctx, x + 6 + k * 10, y + 5, 2, 14, shade(P.barracksRoof, 1.25));
-    rect(ctx, x + 18, y + 32, 12, 14, P.barracksDoor); rect(ctx, x + 5, y + 30, 8, 6, P.barracksDoor); rect(ctx, x + 35, y + 30, 8, 6, P.barracksDoor);
-    // решётка на окнах — внутри пленные
-    rect(ctx, x + 8, y + 30, 1, 6, P.metalLight); rect(ctx, x + 38, y + 30, 1, 6, P.metalLight);
+    rect(ctx, x + 3, y + 3, 42, 14, P.barracksRoof); rect(ctx, x + 3, y + 17, 42, 3, shade(P.barracksRoof, 0.7));
+    for (var k = 0; k < 5; k++) rect(ctx, x + 6 + k * 8, y + 5, 2, 10, shade(P.barracksRoof, 1.25));
+    // ворота депо: внутри видны платформы-вагоны
+    rect(ctx, x + 6, y + 22, 36, 23, P.barracksDoor);
+    for (var q = 0; q < b.n; q++) {
+      var wx = x + 8 + q * (b.n === 3 ? 12 : 17);
+      rect(ctx, wx, y + 25, 10, 16, fl ? '#ffffff' : P.metal); rect(ctx, wx + 1, y + 27, 8, 3, P.metalLight); rect(ctx, wx - 1, y + 28, 2, 4, P.tire); rect(ctx, wx + 9, y + 28, 2, 4, P.tire);
+    }
+    rect(ctx, x + 6, y + 21, 36, 2, P.padMark);
     var dmg = 1 - b.hp / b.max;
     if (dmg > 0.3) rect(ctx, x + 10, y + 8, 7, 5, P.rubble);
     if (dmg > 0.6) { rect(ctx, x + 28, y + 12, 9, 6, P.rubble); rect(ctx, x + 22, y + 24, 5, 4, P.rubble); }
-    if (b.flag) {
+    if (b.flag) {   // маяк: в депо — бронированная платформа
       rect(ctx, x + 44, y - 14, 2, 22, P.metalDark);
       var on = (time * 3) % 1 < 0.6;
       rect(ctx, x + 46, y - 14, 12, 8, on ? P.flag : shade(P.flag, 0.6)); rect(ctx, x + 49, y - 12, 5, 4, P.rustDark);
@@ -141,16 +126,60 @@
       rect(ctx, cx, y - 30, 10, 32, P.metalDark); rect(ctx, cx - 2, y - 32, 14, 5, P.metal);
       if (!B.dead) { var s = (time * 0.8 + i * 0.5) % 1; circ(ctx, cx + 5 + s * 6, y - 36 - s * 22, 4 + s * 6, P.pixel ? P.rubble : 'rgba(90,80,75,' + (0.6 - s * 0.5) + ')'); }
     });
+    if (!B.open && !B.dead) {   // ядро закрыто, пока живы орудия на стене
+      var sp = (time * 3) % 1;
+      if (P.pixel) { for (var sy = 0; sy < h; sy += 8) rect(ctx, x, y + sy + 2, w, 3, P.waterLight); }
+      else { ctx.globalAlpha = 0.28 + 0.1 * Math.sin(time * 6); rect(ctx, x, y, w, h, P.waterLight); ctx.globalAlpha = 1; rect(ctx, x, y + h * sp, w, 2, '#ffffff'); }
+    }
     if (hp < 0.66) rect(ctx, x + 30, y + 14, 12, 8, P.rubble);
     if (hp < 0.33) { rect(ctx, x + w - 46, y + 18, 14, 9, P.rubble); rect(ctx, x + 60, y + 26, 8, 6, P.coreGlow); }
   }
-  function pow(ctx, P, p, time) {
-    var x = p.x, y = p.y, wv = Math.sin(time * 10 + p.wander * 3) > 0;
-    shadow(ctx, P, x, y + 4, 4, 2);
-    rect(ctx, x - 3, y - 2, 6, 7, P.powShirt);
-    rect(ctx, x - 2, y - 7, 5, 5, P.pow);
-    if (p.master) rect(ctx, x - 3, y - 9, 7, 3, P.powCap);
-    rect(ctx, wv ? x - 6 : x - 5, wv ? y - 7 : y - 1, 2, 5, P.pow); rect(ctx, wv ? x + 4 : x + 3, wv ? y - 1 : y - 7, 2, 5, P.pow);
+  function wagonShape(ctx, P, p, time, o) {   // платформа-вагон: колёса, дека, два борта-орудия
+    var ang = Math.atan2(p.hx, -p.hy), col = o.col, dk = o.dark, fl = o.flash;
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(ang);
+    rect(ctx, -10, -9, 4, 18, P.tire); rect(ctx, 6, -9, 4, 18, P.tire);
+    box(ctx, P, -8, -10, 16, 20, fl ? '#ffffff' : dk, 3);
+    box(ctx, P, -7, -9, 14, 18, fl ? '#ffffff' : col, 3);
+    rect(ctx, -5, -6, 10, 3, shade(col, 1.25)); rect(ctx, -5, 1, 10, 2, dk);
+    if (o.armor) { rect(ctx, -7, -9, 14, 2, P.flag); rect(ctx, -7, 7, 14, 2, P.flag); }
+    var kick = o.kick > 0;
+    rect(ctx, -13, -3, 6, 6, o.gun); rect(ctx, 7, -3, 6, 6, o.gun);
+    if (kick) { rect(ctx, -17, -2, 4, 4, P.warn); rect(ctx, 13, -2, 4, 4, P.warn); }
+    if (o.hp != null && o.hp < o.max) rect(ctx, -3, -1, 6, 4, P.rubble);
+    ctx.restore();
+  }
+  function wagons(ctx, P, S, time) {
+    S.heroes.forEach(function (h) {
+      if (!h.alive) return;
+      var i = h.id, prev = { x: h.x, y: h.y };
+      h.wp.forEach(function (p, k) {
+        line(ctx, prev.x, prev.y, p.x, p.y, 3, P.metalDark); prev = p;
+      });
+      for (var k = h.wp.length - 1; k >= 0; k--) {
+        var w = h.wag[k], p = h.wp[k]; if (!w || !p) continue;
+        if (!P.pixel) shadow(ctx, P, p.x, p.y, 9, 11);
+        wagonShape(ctx, P, p, time, { col: w.armor ? shade(P.hero[i], 0.8) : P.wag[i], dark: P.heroDark[i], gun: P.gun, flash: w.flash > 0, kick: w.kick, armor: w.armor, hp: w.hp, max: w.max });
+      }
+    });
+  }
+  function looseWagon(ctx, P, p, time) {
+    var on = (time * 3) % 1 < 0.55, a = p.t > 0 ? 0.5 : 1;
+    if (!P.pixel) shadow(ctx, P, p.x, p.y, 9, 11);
+    ctx.globalAlpha = a;
+    wagonShape(ctx, P, { x: p.x, y: p.y, hx: 0, hy: -1 }, time, { col: p.armor ? P.flag : P.metalLight, dark: P.metalDark, gun: P.metalDark, hp: null });
+    ctx.globalAlpha = 1;
+    circ(ctx, p.x, p.y - 13, 3, on ? P.flag : P.metalDark);
+    if (!P.pixel) { ctx.strokeStyle = P.flag; ctx.globalAlpha = 0.5; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(p.x, p.y, 13 + (time * 8) % 5, 0, PI * 2); ctx.stroke(); ctx.globalAlpha = 1; }
+  }
+  function post(ctx, P, o, time) {
+    if (!P.pixel) shadow(ctx, P, o.x, o.y, 11, 11);
+    var hi = o.t < 2 && (time * 10) % 1 < 0.5, i = o.pi;
+    box(ctx, P, o.x - 10, o.y - 10, 20, 20, hi ? '#ffffff' : P.heroDark[i], 4);
+    box(ctx, P, o.x - 8, o.y - 8, 16, 16, P.wag[i], 3);
+    var a = time * 5;
+    for (var k = 0; k < 4; k++) { var aa = a + k * PI / 2; line(ctx, o.x + Math.cos(aa) * 4, o.y + Math.sin(aa) * 4, o.x + Math.cos(aa) * 13, o.y + Math.sin(aa) * 13, 3, P.gun); }
+    circ(ctx, o.x, o.y, 3, P.heroLight[i]);
+    ctx.strokeStyle = P.flag; ctx.lineWidth = P.pixel ? 2 : 2; ctx.beginPath(); ctx.arc(o.x, o.y, 15, -PI / 2, -PI / 2 + PI * 2 * Math.max(0, o.t / o.max)); ctx.stroke();
   }
   function hero(ctx, P, h, time) {
     if (!h.alive) return;
@@ -158,20 +187,23 @@
     var i = h.id, x = h.x, y = h.y;
     shadow(ctx, P, x, y, 14, 15);
     ctx.save(); ctx.translate(x, y); ctx.rotate(h.ang);
-    var sp = h.moving ? Math.floor(time * 20) % 2 : 0;
-    // колёса
-    [[-12, -11], [7, -11], [-12, 5], [7, 5]].forEach(function (o) { rect(ctx, o[0], o[1], 5, 8, P.tire); if (sp) rect(ctx, o[0] + 1, o[1] + 2, 3, 2, P.metalDark); });
-    box(ctx, P, -9, -15, 18, 30, P.heroDark[i], 4);
-    box(ctx, P, -8, -14, 16, 27, P.hero[i], 4);
-    rect(ctx, -6, -14, 12, 4, P.heroLight[i]);           // нос с фарами
-    rect(ctx, -7, -15, 3, 2, P.warn); rect(ctx, 4, -15, 3, 2, P.warn);
-    rect(ctx, -6, 8, 12, 4, P.heroDark[i]);               // корма
-    rect(ctx, -2, -3, 4, 13, P.heroDark[i]);
+    var sp = h.moving ? Math.floor(time * 16) % 3 : 0;
+    // гусеницы
+    rect(ctx, -13, -14, 5, 28, P.tire); rect(ctx, 8, -14, 5, 28, P.tire);
+    for (var q = 0; q < 5; q++) { var ty = -13 + ((q * 6 + sp * 2) % 28); rect(ctx, -13, ty, 5, 2, P.metalDark); rect(ctx, 8, ty, 5, 2, P.metalDark); }
+    // котёл, кабина, лемех
+    box(ctx, P, -9, -13, 18, 28, P.heroDark[i], 5);
+    box(ctx, P, -8, -12, 16, 20, P.hero[i], 6);
+    rect(ctx, -8, -4, 16, 2, P.heroDark[i]); rect(ctx, -8, 1, 16, 2, P.heroDark[i]);
+    box(ctx, P, -7, 6, 14, 8, P.heroDark[i], 2); rect(ctx, -4, 8, 8, 3, P.warn);
+    ctx.fillStyle = P.metalLight; ctx.beginPath(); ctx.moveTo(-9, -13); ctx.lineTo(0, -20); ctx.lineTo(9, -13); ctx.closePath(); ctx.fill();
     ctx.restore();
+    // труба и дымок — в мировых осях
+    circ(ctx, x, y - 7, 4.5, P.gun); circ(ctx, x, y - 7, 2, P.heroDark[i]);
+    if (!P.pixel && h.moving) { var s = (time * 2.2 + i * 0.4) % 1; ctx.globalAlpha = 0.45 * (1 - s); circ(ctx, x + 3 + s * 6, y - 10 - s * 16, 3 + s * 5, '#ffffff'); ctx.globalAlpha = 1; }
     // пулемётная башенка — всегда смотрит вверх
-    circ(ctx, x, y + 1, 5.5, P.gun); rect(ctx, x - 1.5, y - 13, 3, 12, P.gun);
-    circ(ctx, x, y + 1, 2.5, P.heroLight[i]);
-    if (h.carried) { rect(ctx, x + 9, y + 9, 9, 9, P.panel); ctx.fillStyle = P.powCap; ctx.font = '700 9px ' + P.font; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillText(String(h.carried), x + 13.5, y + 17); }
+    circ(ctx, x, y + 3, 4.5, P.gun); rect(ctx, x - 1.5, y - 14, 3, 14, P.gun);
+    circ(ctx, x, y + 3, 2, P.heroLight[i]);
   }
   function enemy(ctx, P, e, time) {
     var x = e.x, y = e.y, fl = e.flash > 0, warn = e.warn > 0 && (time * 16) % 1 < 0.6;
@@ -241,18 +273,9 @@
     [6, 474].forEach(function (x) { rect(ctx, x - 2, tr.y - 22, 4, 12, P.metalDark); circ(ctx, x, tr.y - 24, 4, bl ? P.ebullet : P.metal); });
   }
   function bullets(ctx, P, S, time) {
-    S.bullets.forEach(function (b) { rect(ctx, b.x - 1.5, b.y - 5, 3, 8, P.bullet); });
-    S.shots.forEach(function (s) {
-      var W = D.logic.SEC[s.tier];
-      if (W.name === 'grenade') {
-        var f = s.d / s.range, hgt = Math.sin(f * PI) * 14;   // дуга: тень на земле, граната — выше
-        circ(ctx, s.x, s.y, 3, P.shadow === 'rgba(0,0,0,.28)' ? 'rgba(0,0,0,.3)' : P.metalDark);
-        circ(ctx, s.x, s.y - hgt, 4 + hgt * 0.12, P.grenade); rect(ctx, s.x - 1, s.y - hgt - 4, 2, 2, P.metalLight);
-      } else {
-        var a = Math.atan2(s.vy, s.vx);
-        line(ctx, s.x - Math.cos(a) * 9, s.y - Math.sin(a) * 9, s.x - Math.cos(a) * 16, s.y - Math.sin(a) * 16, 3, P.flame);
-        line(ctx, s.x, s.y, s.x - Math.cos(a) * 9, s.y - Math.sin(a) * 9, 4, s.tier === 3 ? P.padMark : P.rocket);
-      }
+    S.bullets.forEach(function (b) {
+      if (b.wg) { line(ctx, b.x - (b.vx || 0) * 0.04, b.y - b.vy * 0.04, b.x, b.y, 3.5, P.wbullet); circ(ctx, b.x, b.y, 2, '#ffffff'); }
+      else rect(ctx, b.x - 1.5, b.y - 5, 3, 8, P.bullet);
     });
     S.ebullets.forEach(function (b) {
       if (!P.pixel) circ(ctx, b.x, b.y, b.r + 3, P.eglow);
@@ -282,18 +305,19 @@
   function world(ctx, S, P, time) {
     tiles(ctx, S, P, time);
     S.trains.forEach(function (tr) { trainSignal(ctx, P, tr, time); });
-    S.pads.forEach(function (pd) { if (pd.y > S.camY - 60 && pd.y < S.camY + 660) pad(ctx, P, pd, time); });
     marks(ctx, P, S, time);
-    S.barracks.forEach(function (b) { if (!b.dead && b.y > S.camY - 60 && b.y < S.camY + 660) barracks(ctx, P, b, time); });
+    S.depots.forEach(function (b) { if (!b.dead && b.y > S.camY - 60 && b.y < S.camY + 660) depot(ctx, P, b, time); });
     if (S.boss && S.camY < S.boss.y1 + 40) core(ctx, P, S.boss, time);
-    S.pows.forEach(function (p) { pow(ctx, P, p, time); });
+    S.loose.forEach(function (p) { looseWagon(ctx, P, p, time); });
+    S.posts.forEach(function (o) { post(ctx, P, o, time); });
     S.enemies.forEach(function (e) { if (!e.dead && !e.air && e.active) enemy(ctx, P, e, time); });
     S.trains.forEach(function (tr) { train(ctx, P, tr, time); });
+    wagons(ctx, P, S, time);
     S.heroes.forEach(function (h) { hero(ctx, P, h, time); });
     bullets(ctx, P, S, time);
     S.enemies.forEach(function (e) { if (!e.dead && e.air && e.active) enemy(ctx, P, e, time); });
     booms(ctx, P, S);
   }
 
-  D.render = { world: world, hero: hero, enemy: enemy, pow: pow, barracks: barracks, rescueHeli: rescueHeli, shade: shade, rrect: rrect, box: box };
+  D.render = { world: world, hero: hero, wagonShape: wagonShape, enemy: enemy, depot: depot, shade: shade, rrect: rrect, box: box };
 })(typeof window !== 'undefined' ? window : globalThis);

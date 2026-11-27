@@ -12,7 +12,7 @@
     roof: '#a4564a', roofTop: '#c4705e', bldWall: '#cdbda4', barracks: '#7d6c4c', barracksRoof: '#5c4b34', barracksDoor: '#3a2e20', flag: '#ffcf4a',
     pad: '#4c525c', padRing: '#e8ecf0', padMark: '#ffcf4a', core: '#4c3c3c', coreTop: '#6a5450', coreGlow: '#ff7a2a', coreDark: '#2a2020',
     rust: '#b55e2c', rustDark: '#7a3a1c', metal: '#6c6662', metalLight: '#9a948e', metalDark: '#3a3430', eye: '#ff4a2a', warn: '#fff07a',
-    hero: ['#d9c25e', '#5cb6de'], heroDark: ['#8a7a2e', '#2e6e8e'], heroLight: ['#f2e39a', '#a6dcf2'], tire: '#24262b', gun: '#2e3036',
+    hero: ['#e0782e', '#34b3a2'], heroDark: ['#8a4614', '#1c6b60'], heroLight: ['#ffc080', '#9ae6da'], wag: ['#c8642a', '#2a978a'], wbullet: '#9ef0ff', tire: '#24262b', gun: '#2e3036',
     pow: '#f2d2a6', powShirt: '#e9edf2', powCap: '#ffcf4a', bullet: '#fff4a6', ebullet: '#ff5a3a', eglow: 'rgba(255,90,58,.35)', shell: '#ffb04a',
     grenade: '#3c4a2c', rocket: '#e8e8e8', flame: '#ffb04a', boom: ['#fff3c0', '#ffb04a', '#e0502a', 'rgba(60,40,30,.6)'], mark: '#ff4a2a',
     rescue: '#e9edf2', rescueStripe: '#ea6a12', shadow: 'rgba(0,0,0,.28)',

@@ -1,325 +1,243 @@
-/* ХРУМ · «Лабиринт» — движок (DOM-free). PM.Game / PM.consts / PM.validate
-   Чистая логика: лабиринт, точки, Хрумик, 4 призрака с классическим ИИ (scatter/chase/fright).
-   Запускается и в браузере, и в node (node:vm с шимом window) — без DOM и внешних зависимостей. */
+/* КАТЫШ · логика (DOM-free). KATYSH.Game / KATYSH.level / KATYSH.analyze
+   Хомяк-катыш в прозрачном шаре катится по гладкому полу гумна: любое направление — и шар катится ДО СТЕНЫ или до стога
+   (стог гасит ход). По пути подбирает семечки (чем длиннее накат — тем выше множитель). Коты-сторожа ходят по своим правилам;
+   тормоз (раз в 3 с) останавливает шар на ближайшей клетке. Мир всегда портретный 13×17; в альбоме рендер поворачивает его.
+   Запускается и в браузере, и в node (vm без DOM). Состояние S — чистые данные (клонируется JSON-ом: бот считает прогоны вперёд). */
 (function (global) {
   'use strict';
-  var PM = global.PM = global.PM || {};
+  var KT = global.KATYSH = global.KATYSH || {};
+  var COLS = 13, ROWS = 17, MAX_LEVEL = 8;
+  var DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];                 // 0 вверх, 1 вправо, 2 вниз, 3 влево
+  var NAMES = ['up', 'right', 'down', 'left'];
+  // типы котов по уровням: P — сторож (ходит туда-сюда), L — обходчик (идёт вдоль стены по часовой), H — ловчий (прыжок вдоль линии)
+  var CATS = [[], ['P'], ['P', 'P'], ['P', 'L'], ['P', 'H'], ['P', 'L', 'H'], ['P', 'P', 'L', 'H'], ['P', 'L', 'H', 'H']];
+  var SEEDS = [8, 10, 11, 12, 13, 14, 15, 16];
+  var C = { COLS: COLS, ROWS: ROWS, MAX_LEVEL: MAX_LEVEL, DX: DX, DY: DY, HERO_V: 9, BRAKE_T: 3, LIVES: 3 };
+  KT.consts = C;
 
-  // ----- Лабиринт: левая половина 14×31, зеркалится в полную карту 28×31 -----
-  // '#'=стена  '.'=точка  'o'=энергетик  '-'=проходимо без точки  '='=ворота дома  ' '=пустота(непроходима)
-  var LEFT = [
-    '##############',
-    '#............#',
-    '#.####.#####.#',
-    '#o####.#####.#',
-    '#.####.#####.#',
-    '#.............',
-    '#.####.##.####',
-    '#.####.##.####',
-    '#......##....-',
-    '######.#####.-',
-    '     #.#####.-',
-    '     #.#####.-',
-    '     #.## ###=',
-    '######.## #---',
-    '------.---#---',
-    '######.## #---',
-    '     #.## ####',
-    '     #.##-----',
-    '     #.#####.#',
-    '######.#####.#',
-    '#............#',
-    '#.####.#####.#',
-    '#.####.#####.#',
-    '#o..##.......-',
-    '###.##.##.####',
-    '###.##.##.####',
-    '#......##....#',
-    '#.##########.#',
-    '#.##########.#',
-    '#.............',
-    '##############'
-  ];
+  function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
-  function buildMaze() {
-    var rows = [];
-    for (var i = 0; i < LEFT.length; i++) {
-      var l = LEFT[i];
-      while (l.length < 14) l += ' ';
-      l = l.slice(0, 14);
-      rows.push((l + l.split('').reverse().join('')).split(''));
+  // ---------- карта ----------
+  function wall(map, x, y) { return x < 0 || y < 0 || x >= COLS || y >= ROWS || map[y][x] === '#'; }
+  // Анализ скольжения: stops — клетки, где шар может стоять (от старта), trav — клетки, которые шар может пересечь.
+  function analyze(map, sx, sy) {
+    var stops = {}, trav = {}, q = [[sx, sy]], ns = 1, rev = {}; stops[sx + ',' + sy] = 1; trav[sx + ',' + sy] = 1;
+    while (q.length) {
+      var c = q.pop();
+      for (var d = 0; d < 4; d++) {
+        var x = c[0], y = c[1], moved = 0;
+        while (!wall(map, x + DX[d], y + DY[d])) { x += DX[d]; y += DY[d]; moved++; trav[x + ',' + y] = 1; if (map[y][x] === 'h') break; }
+        if (moved) { var kk = x + ',' + y; (rev[kk] = rev[kk] || []).push(c[0] + ',' + c[1]); if (!stops[kk]) { stops[kk] = 1; ns++; q.push([x, y]); } }
+      }
     }
-    return rows;
+    // «замок»: из любой остановки можно вернуться на старт (иначе шар запирается в тупике навсегда)
+    var back = {}, st = [sx + ',' + sy], nb = 1; back[st[0]] = 1;
+    while (st.length) { var k0 = st.pop(), rr = rev[k0] || []; for (var ri = 0; ri < rr.length; ri++) if (!back[rr[ri]]) { back[rr[ri]] = 1; nb++; st.push(rr[ri]); } }
+    return { stops: stops, nStops: ns, trav: trav, nTrav: Object.keys(trav).length, strong: nb === ns };
   }
+  KT.analyze = analyze;
 
-  var ROWS = 31, COLS = 28;
-  var DIRS = { up: { x: 0, y: -1 }, left: { x: -1, y: 0 }, down: { x: 0, y: 1 }, right: { x: 1, y: 0 } };
-  var ORDER = ['up', 'left', 'down', 'right'];            // приоритет при равной дистанции
-  var OPP = { up: 'down', down: 'up', left: 'right', right: 'left' };
-  var TUNNEL_ROW = 14;
-
-  function isWall(ch) { return ch === '#' || ch === ' '; }
-  function isDot(ch) { return ch === '.' || ch === 'o'; }
-
-  // Проходимо ли из клетки (cx,cy) в сторону dir. Хрумик не ходит сквозь ворота '='.
-  function canGo(maze, cx, cy, dir, ghost) {
-    var tx = cx + DIRS[dir].x, ty = cy + DIRS[dir].y;
-    if (ty === TUNNEL_ROW && (tx < 0 || tx >= COLS)) return true; // туннель
-    if (ty < 0 || ty >= ROWS || tx < 0 || tx >= COLS) return false;
-    var ch = maze[ty][tx];
-    if (isWall(ch)) return false;
-    if (ch === '=') return !!ghost;         // ворота — только призракам
-    return true;
-  }
-
-  // ----- RNG -----
-  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-
-  var consts = {
-    ROWS: ROWS, COLS: COLS, TUNNEL_ROW: TUNNEL_ROW,
-    GHOSTS: ['ember', 'rose', 'frost', 'amber'],
-    COLORS: { ember: '#ff2a2a', rose: '#ff9ed6', frost: '#36d6ff', amber: '#ffb347' },
-    // стартовые клетки (в «шахте»/доме), целевые углы для режима scatter
-    START: { ember: [13, 11], rose: [14, 11], frost: [13, 13], amber: [14, 13] },
-    SCATTER: { ember: [26, 1], rose: [1, 1], frost: [26, 29], amber: [1, 29] },
-    HOME: [13, 13], HOME_DOOR: [13, 11],
-    // расписание scatter/chase (сек); последний chase — бесконечный
-    PHASES: [['scatter', 7], ['chase', 20], ['scatter', 7], ['chase', 20], ['scatter', 5], ['chase', 20], ['scatter', 5], ['chase', 1e9]]
-  };
-  PM.consts = consts;
-
-  // ----- Проверка карты (для тестов и разработки) -----
-  PM.validate = function () {
-    var maze = buildMaze(), problems = [];
-    for (var y = 0; y < maze.length; y++) if (maze[y].length !== COLS) problems.push('строка ' + y + ' ширина ' + maze[y].length);
-    // flood fill из старта Хрумика (13,23)
-    var seen = {}, stack = [[13, 23]], dots = 0, reachDots = 0;
-    for (var yy = 0; yy < ROWS; yy++) for (var xx = 0; xx < COLS; xx++) if (isDot(maze[yy][xx])) dots++;
-    function key(x, y) { return x + ',' + y; }
-    while (stack.length) {
-      var p = stack.pop(), x = p[0], y = p[1];
-      if (x < 0 || x >= COLS || y < 0 || y >= ROWS) continue;
-      if (seen[key(x, y)]) continue;
-      var ch = maze[y][x];
-      if (isWall(ch) || ch === '=') continue;
-      seen[key(x, y)] = 1;
-      if (isDot(ch)) reachDots++;
-      ['up', 'left', 'down', 'right'].forEach(function (d) {
-        var tx = x + DIRS[d].x, ty = y + DIRS[d].y;
-        if (ty === TUNNEL_ROW && tx < 0) tx = COLS - 1;
-        if (ty === TUNNEL_ROW && tx >= COLS) tx = 0;
-        stack.push([tx, ty]);
-      });
-    }
-    if (reachDots !== dots) problems.push('достижимо точек ' + reachDots + ' из ' + dots);
-    return { ok: problems.length === 0, dots: dots, reachDots: reachDots, problems: problems };
-  };
-
-  // ----- Игра -----
-  PM.Game = function (opts) {
-    opts = opts || {};
-    var rng = opts.rng || Math.random;
-    var onEvent = opts.onEvent || function () {};
-    var MAX_LEVEL = 8;
-    var S = {
-      maze: null, ROWS: ROWS, COLS: COLS,
-      mode: 'title', level: 1, score: 0, hi: opts.hi || 0, lives: 3,
-      dotsTotal: 0, dotsLeft: 0,
-      pac: null, ghosts: [], chain: 0,
-      fright: false, frightT: 0,
-      phaseIdx: 0, phaseT: 0, globalMode: 'scatter',
-      time: 0, anim: 0, ready: 0, flash: 0
-    };
-
-    function emit(t, d) { try { onEvent(t, d); } catch (e) {} }
-
-    function loadLevel() {
-      S.maze = buildMaze();
-      var dots = 0;
-      for (var y = 0; y < ROWS; y++) for (var x = 0; x < COLS; x++) if (isDot(S.maze[y][x])) dots++;
-      S.dotsTotal = dots; S.dotsLeft = dots;
-      S.pac = { x: 13.5, y: 23, dir: 'left', next: 'left', mouth: 0, alive: true };
-      S.ghosts = consts.GHOSTS.map(function (n) {
-        var s = consts.START[n];
-        return { name: n, x: s[0], y: s[1], dir: 'up', mode: 'house', eaten: false, home: s };
-      });
-      S.phaseIdx = 0; S.phaseT = 0; S.globalMode = 'scatter';
-      S.fright = false; S.frightT = 0; S.chain = 0;
-    }
-
-    function resetActors() {
-      S.pac.x = 13.5; S.pac.y = 23; S.pac.dir = 'left'; S.pac.next = 'left'; S.pac.alive = true;
-      S.ghosts.forEach(function (g) { g.x = g.home[0]; g.y = g.home[1]; g.dir = 'up'; g.mode = 'house'; g.eaten = false; });
-      S.fright = false; S.frightT = 0; S.phaseIdx = 0; S.phaseT = 0; S.globalMode = 'scatter';
-    }
-
-    // ---- движение одного актёра на расстояние dist (сетка, со снапом в центрах) ----
-    function moveActor(e, dist, decide, ghost) {
-      var guard = 0;
-      while (dist > 1e-9 && guard++ < 80) {
-        var cx = Math.round(e.x), cy = Math.round(e.y);
-        var atCenter = Math.abs(e.x - cx) < 1e-6 && Math.abs(e.y - cy) < 1e-6;
-        if (atCenter) {
-          e.x = cx; e.y = cy;
-          if (cy === TUNNEL_ROW) { if (cx <= 0) { e.x = cx = COLS - 1; } else if (cx >= COLS - 1) { e.x = cx = 0; } }
-          decide(e, cx, cy);
-          if (!canGo(S.maze, cx, cy, e.dir, ghost)) return;
-        }
-        var dx = DIRS[e.dir].x, dy = DIRS[e.dir].y, tx, ty;
-        if (atCenter) { tx = cx + dx; ty = cy + dy; }       // следующий центр в сторону движения
-        else {                                              // середина клетки — целимся в ближайший центр по ходу
-          tx = cx; ty = cy;
-          if (dx < 0) tx = Math.floor(e.x); else if (dx > 0) tx = Math.ceil(e.x);
-          if (dy < 0) ty = Math.floor(e.y); else if (dy > 0) ty = Math.ceil(e.y);
-        }
-        var toTarget = Math.abs(tx - e.x) + Math.abs(ty - e.y);
-        if (toTarget < 1e-9) { if (!atCenter) { e.x = tx; e.y = ty; continue; } break; }
-        var mv = Math.min(dist, toTarget);
-        e.x += dx * mv; e.y += dy * mv; dist -= mv;
-        if (Math.abs(e.x - tx) < 1e-6 && Math.abs(e.y - ty) < 1e-6) { e.x = tx; e.y = ty; } // дошли до центра — цикл переспросит направление
-        else break;                                         // кончилось расстояние посреди клетки
+  // Уровень строится детерминированно из номера: рамка, россыпь камней, стога, семечки на путях шара, коты по таблице.
+  var cache = {};
+  function level(i) {
+    i = Math.max(0, Math.min(MAX_LEVEL - 1, i | 0)); if (cache[i]) return cache[i];
+    for (var attempt = 0; attempt < 400; attempt++) {
+      var rnd = mulberry(7001 + i * 131 + attempt * 17), map = [], x, y;
+      for (y = 0; y < ROWS; y++) { var row = ''; for (x = 0; x < COLS; x++) row += (x === 0 || y === 0 || x === COLS - 1 || y === ROWS - 1) ? '#' : '.'; map.push(row.split('')); }
+      var nb = 20 + i, k, bx, by;
+      for (k = 0; k < nb; k++) {
+        bx = 1 + Math.floor(rnd() * (COLS - 2)); by = 1 + Math.floor(rnd() * (ROWS - 2)); map[by][bx] = '#';
+        if (rnd() < 0.35) { var bd = Math.floor(rnd() * 4), nx = bx + DX[bd], ny = by + DY[bd]; if (nx > 0 && ny > 0 && nx < COLS - 1 && ny < ROWS - 1) map[ny][nx] = '#'; }
       }
-    }
-
-    function decidePac(e, cx, cy) {
-      if (e.next !== e.dir && canGo(S.maze, cx, cy, e.next, false)) { e.dir = e.next; emit('turn'); }
-      else if (!canGo(S.maze, cx, cy, e.dir, false)) { /* стена — стоим */ }
-    }
-
-    function dist2(ax, ay, bx, by) { var dx = ax - bx, dy = ay - by; return dx * dx + dy * dy; }
-
-    function ghostTarget(g) {
-      var p = S.pac, pcx = Math.round(p.x), pcy = Math.round(p.y);
-      if (g.mode === 'eyes') return consts.HOME_DOOR;
-      if (g.mode === 'fright') return null;
-      if (S.globalMode === 'scatter') return consts.SCATTER[g.name];
-      // chase
-      if (g.name === 'ember') return [pcx, pcy];
-      if (g.name === 'rose') return [pcx + DIRS[p.dir].x * 4, pcy + DIRS[p.dir].y * 4];
-      if (g.name === 'amber') return (dist2(g.x, g.y, pcx, pcy) > 64) ? [pcx, pcy] : consts.SCATTER.amber;
-      // frost: вектор от Уголька к точке в 2 клетки перед Хрумиком, удвоенный
-      var b = S.ghosts[0], ax = pcx + DIRS[p.dir].x * 2, ay = pcy + DIRS[p.dir].y * 2;
-      return [ax + (ax - b.x), ay + (ay - b.y)];
-    }
-
-    function decideGhost(g, cx, cy) {
-      // дом: подняться к воротам и выйти
-      if (g.mode === 'house') {
-        if (cy > 11) { g.dir = 'up'; if (!canGo(S.maze, cx, cy, 'up', true)) g.dir = (cx < 14 ? 'right' : 'left'); return; }
-        g.mode = S.globalMode; // вышли
+      var sx = 6, sy = 14; map[sy][sx] = '.';
+      var nh = i === 0 ? 3 : 2 + (i % 3);
+      for (k = 0; k < nh; k++) { bx = 1 + Math.floor(rnd() * (COLS - 2)); by = 1 + Math.floor(rnd() * (ROWS - 2)); if (map[by][bx] === '.' && !(bx === sx && by === sy)) map[by][bx] = 'h'; }
+      var an = analyze(map, sx, sy), floor = 0;
+      for (y = 0; y < ROWS; y++) for (x = 0; x < COLS; x++) if (map[y][x] !== '#') floor++;
+      if (!an.strong || an.nStops < 22 || an.nTrav < floor * 0.72) continue;
+      // неоткатываемые клетки — в камень (никаких недоступных карманов)
+      for (y = 0; y < ROWS; y++) for (x = 0; x < COLS; x++) if (map[y][x] !== '#' && !an.trav[x + ',' + y]) map[y][x] = '#';
+      var cells = []; for (var key in an.trav) { var p = key.split(','); cells.push([+p[0], +p[1]]); }
+      // семечки: разбросаны, не ближе 3 клеток друг к другу
+      var seeds = [], want = SEEDS[i];
+      for (k = cells.length - 1; k > 0; k--) { var j = Math.floor(rnd() * (k + 1)), t = cells[k]; cells[k] = cells[j]; cells[j] = t; }
+      for (var md = 4; md >= 2 && seeds.length < want; md--) for (k = 0; k < cells.length && seeds.length < want; k++) {
+        var c = cells[k]; if ((c[0] === sx && c[1] === sy) || map[c[1]][c[0]] === 'h') continue;
+        var far = true; for (j = 0; j < seeds.length; j++) if (Math.abs(seeds[j][0] - c[0]) + Math.abs(seeds[j][1] - c[1]) < md) { far = false; break; }
+        if (far && !seeds.some(function (s) { return s[0] === c[0] && s[1] === c[1]; })) seeds.push(c);
       }
-      if (g.mode === 'eyes' && cx === consts.HOME[0] && cy >= consts.HOME[1]) { revive(g); return; }
-
-      var opts2 = ORDER.filter(function (d) {
-        if (d === OPP[g.dir]) return false;                 // нельзя разворот
-        return canGo(S.maze, cx, cy, d, true);
-      });
-      if (!opts2.length) { opts2 = [OPP[g.dir]]; }           // тупик — только назад
-      if (g.mode === 'fright') { g.dir = opts2[Math.floor(rng() * opts2.length)]; return; }
-      var tgt = ghostTarget(g), best = opts2[0], bestD = Infinity;
-      for (var i = 0; i < opts2.length; i++) {
-        var d = opts2[i], nx = cx + DIRS[d].x, ny = cy + DIRS[d].y, dd = dist2(nx, ny, tgt[0], tgt[1]);
-        if (dd < bestD) { bestD = dd; best = d; }
-      }
-      g.dir = best;
-    }
-
-    function revive(g) { g.mode = S.globalMode; g.eaten = false; g.x = consts.HOME[0]; g.y = consts.HOME[1]; g.dir = 'up'; }
-
-    function speedPac() { return 5.4 + (S.level - 1) * 0.15; }
-    function speedGhost(g) {
-      if (g.mode === 'eyes') return 9.5;
-      if (g.mode === 'fright') return 3.3;
-      var base = 5.1 + (S.level - 1) * 0.12;
-      var cy = Math.round(g.y);
-      if (cy === TUNNEL_ROW) base *= 0.5;                    // в туннеле призраки медленнее
-      return base;
-    }
-
-    function eatAt(cx, cy) {
-      var ch = S.maze[cy][cx];
-      if (ch === '.') { S.maze[cy][cx] = '-'; S.score += 10; S.dotsLeft--; emit('chomp'); }
-      else if (ch === 'o') {
-        S.maze[cy][cx] = '-'; S.score += 50; S.dotsLeft--; S.chain = 0;
-        S.fright = true; S.frightT = Math.max(2, 7 - (S.level - 1) * 0.5);
-        S.ghosts.forEach(function (g) { if (g.mode !== 'eyes' && g.mode !== 'house') { g.mode = 'fright'; g.dir = OPP[g.dir]; } });
-        emit('power');
-      }
-      if (S.dotsLeft <= 0) winLevel();
-    }
-
-    function winLevel() { S.mode = 'win'; S.flash = 1.6; emit('win'); }
-
-    function loseLife() {
-      S.pac.alive = false; S.mode = 'dying'; S.ready = 1.4; emit('death');
-    }
-
-    function collide() {
-      var p = S.pac, pcx = Math.round(p.x), pcy = Math.round(p.y);
-      for (var i = 0; i < S.ghosts.length; i++) {
-        var g = S.ghosts[i];
-        if (Math.round(g.x) === pcx && Math.round(g.y) === pcy) {
-          if (g.mode === 'fright') {
-            S.chain++; var pts = 200 * Math.pow(2, Math.min(S.chain - 1, 3));
-            S.score += pts; g.mode = 'eyes'; emit('eatghost', { pts: pts });
-          } else if (g.mode !== 'eyes') {
-            if (S.lives > 0) { S.lives--; loseLife(); } else { S.mode = 'gameover'; S.pac.alive = false; emit('gameover', { score: S.score }); }
-            return;
+      if (seeds.length < want) continue;
+      // коты
+      var cats = [], okc = true;
+      CATS[i].forEach(function (tp) {
+        var best = null;
+        for (var tr = 0; tr < 200 && !best; tr++) {
+          var c2 = cells[Math.floor(rnd() * cells.length)], cx = c2[0], cy = c2[1];
+          if (Math.abs(cx - sx) + Math.abs(cy - sy) < 7 || map[cy][cx] === 'h') continue;
+          if (cats.some(function (o) { return Math.abs(o.x - cx) + Math.abs(o.y - cy) < 4; })) continue;
+          var d, run = [0, 0, 0, 0];
+          for (d = 0; d < 4; d++) { var xx = cx, yy = cy; while (!wall(map, xx + DX[d], yy + DY[d]) && run[d] < 9) { xx += DX[d]; yy += DY[d]; run[d]++; } }
+          if (tp === 'P') {
+            var ax = run[1] + run[3], ay = run[0] + run[2]; if (Math.max(ax, ay) < 5) continue;
+            var pd = ax >= ay ? 1 : 0, tm = map.map(function (r) { return r.slice(); }), dr, qx, qy, e;   // линия сторожа не должна быть единственным проходом к семечкам
+            tm[cy][cx] = '#';
+            for (dr = 0; dr < 2; dr++) { e = (pd + 2 * dr) % 4; qx = cx; qy = cy; while (!wall(map, qx + DX[e], qy + DY[e])) { qx += DX[e]; qy += DY[e]; tm[qy][qx] = '#'; } }
+            var an2 = analyze(tm, sx, sy); if (!seeds.every(function (s) { return tm[s[1]][s[0]] === '#' || an2.trav[s[0] + ',' + s[1]]; })) continue;
+            best = { t: 'P', x: cx, y: cy, d: pd };
           }
+          else if (tp === 'L') { for (d = 0; d < 4; d++) if (wall(map, cx + DX[(d + 1) % 4], cy + DY[(d + 1) % 4]) && !wall(map, cx + DX[d], cy + DY[d])) { best = { t: 'L', x: cx, y: cy, d: d }; break; }
+            if (best) {   // орбита обходчика не должна быть единственным проходом: моделируем обход и «закрываем» его клетки
+              var tl = map.map(function (r) { return r.slice(); }), ox = cx, oy = cy, od = best.d, seenS = {}, ord = [1, 0, 3, 2], nn, kq;
+              for (nn = 0; nn < 500; nn++) {
+                tl[oy][ox] = '#'; kq = ox + ',' + oy + ',' + od; if (seenS[kq]) break; seenS[kq] = 1;
+                for (kq = 0; kq < 4; kq++) { var nd = (od + ord[kq]) % 4; if (!wall(map, ox + DX[nd], oy + DY[nd])) { od = nd; ox += DX[nd]; oy += DY[nd]; break; } }
+              }
+              var an3 = analyze(tl, sx, sy); if (!seeds.every(function (s) { return tl[s[1]][s[0]] !== '#' && an3.trav[s[0] + ',' + s[1]]; })) best = null;
+            } }
+          else { if (Math.max.apply(null, run) < 4) continue; best = { t: 'H', x: cx, y: cy, d: 0 }; }
         }
-      }
+        if (!best) okc = false; else cats.push(best);
+      });
+      if (!okc) continue;
+      return (cache[i] = { map: map.map(function (r) { return r.join(''); }), start: [sx, sy], seeds: seeds, cats: cats, stops: an.nStops, trav: an.nTrav });
+    }
+    throw new Error('не удалось построить уровень ' + i);
+  }
+  KT.level = level;
+  KT.catTypes = CATS;
+
+  // ---------- игра ----------
+  KT.Game = function (opts) {
+    opts = opts || {};
+    var onEvent = opts.onEvent || null, S;
+    function emit(t, d) { if (onEvent) { try { onEvent(t, d || {}); } catch (e) { } } }
+    function rnd() { var a = S.rng = (S.rng + 0x6D2B79F5) | 0, t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+    function blocked(x, y) { return wall(S.map, x, y); }
+
+    function mkCat(c, i) {
+      var sp = c.t === 'H' ? 9 : c.t === 'L' ? 2.5 + S.level * 0.12 : 2.6 + S.level * 0.12;
+      return { id: i, t: c.t, cx: c.x, cy: c.y, d: c.d, p: 0, moving: c.t !== 'H', v: sp, st: 'idle', tm: 0, x: c.x, y: c.y, hx: c.x, hy: c.y, hd: c.d, sees: -1 };
+    }
+    function loadLevel(lv) {
+      var L = level(lv);
+      S.level = lv; S.map = L.map.map(function (r) { return r.split(''); }); S.sx = L.start[0]; S.sy = L.start[1];
+      S.seeds = L.seeds.map(function (s) { return { x: s[0], y: s[1], on: true }; }); S.left = S.seeds.length; S.total = S.seeds.length;
+      S.cats = L.cats.map(mkCat); S.time = 0;
+      respawn();
+    }
+    function respawn() {
+      S.hero = { cx: S.sx, cy: S.sy, d: 0, p: 0, moving: false, x: S.sx, y: S.sy, stopNext: false, chain: 0, face: 0 };
+      S.want = -1; S.wantT = 0; S.brakeC = 1; S.inv = 1.8;
+      S.cats.forEach(function (c, i) { var L = level(S.level).cats[i]; if (L) S.cats[i] = mkCat(L, i); });
+    }
+    function fresh() {
+      S = { mode: 'play', level: 0, score: 0, lives: opts.lives == null ? C.LIVES : opts.lives, hi: opts.hi || 0, rng: (opts.seed == null ? 12345 : opts.seed) | 0,
+        shield: 0, t: 0, clearT: 0, dieT: 0, map: null, seeds: [], cats: [], hero: null, bumped: 0, stats: { slides: 0, brakes: 0, deaths: 0, best: 0 } };
+      loadLevel(opts.level || 0);
     }
 
-    function updatePhases(dt) {
-      if (S.fright) return;                                  // при испуге общий таймер режима стоит
-      S.phaseT += dt;
-      var ph = consts.PHASES[S.phaseIdx];
-      if (S.phaseT >= ph[1]) {
-        S.phaseIdx = Math.min(S.phaseIdx + 1, consts.PHASES.length - 1); S.phaseT = 0;
-        var nm = consts.PHASES[S.phaseIdx][0];
-        if (nm !== S.globalMode) { S.globalMode = nm; S.ghosts.forEach(function (g) { if (g.mode === 'scatter' || g.mode === 'chase') { g.mode = nm; g.dir = OPP[g.dir]; } }); }
+    // общий мув по клеткам: e.cx,e.cy — последняя клетка; движется к соседней по e.d, прогресс e.p ∈ [0,1)
+    function advance(e, dist, onArrive) {
+      var guard = 0;
+      while (dist > 1e-9 && e.moving && guard++ < 40) {
+        var need = 1 - e.p;
+        if (dist >= need - 1e-9) { dist -= need; e.cx += DX[e.d]; e.cy += DY[e.d]; e.p = 0; onArrive(e); }
+        else { e.p += dist; dist = 0; }
       }
+      e.x = e.cx + DX[e.d] * e.p; e.y = e.cy + DY[e.d] * e.p;
+    }
+    function heroArrive(h) {
+      var i, hit = false;
+      for (i = 0; i < S.seeds.length; i++) {
+        var s = S.seeds[i];
+        if (s.on && s.x === h.cx && s.y === h.cy) { s.on = false; S.left--; h.chain++; var pts = 10 * Math.min(h.chain, 6); S.score += pts; hit = true; emit('seed', { x: h.cx, y: h.cy, pts: pts, chain: h.chain }); }
+      }
+      if (S.map[h.cy][h.cx] === 'h') { h.moving = false; emit('hay', { x: h.cx, y: h.cy }); }
+      else if (blocked(h.cx + DX[h.d], h.cy + DY[h.d])) { h.moving = false; emit('bump', { x: h.cx, y: h.cy, d: h.d }); }
+      else if (h.stopNext) { h.moving = false; emit('stop', { x: h.cx, y: h.cy }); }
+      if (!h.moving) { h.stopNext = false; if (h.chain > S.stats.best) S.stats.best = h.chain; h.chain = 0; }
+      if (S.left <= 0) clearLevel();
+    }
+    function clearLevel() {
+      if (S.mode !== 'play') return;
+      var bonus = 150 + Math.max(0, Math.round((70 - S.time) * 3)) + (S.lives >= 3 ? 50 : 0);
+      S.score += bonus; if ((S.level === 2 || S.level === 5) && S.lives < 5) { S.lives++; emit('life', {}); } S.mode = 'clear'; S.clearT = 1.6; S.bonus = bonus; emit('clear', { bonus: bonus, level: S.level });
+    }
+    function startSlide(h, d) {
+      if (blocked(h.cx + DX[d], h.cy + DY[d])) { h.d = d; S.bumped = 0.2; emit('nogo', { d: d }); return false; }
+      h.d = d; h.face = d; h.moving = true; h.p = 0; h.chain = 0; h.stopNext = false; S.stats.slides++; emit('roll', { d: d }); return true;
+    }
+
+    // ----- коты -----
+    function catArrive(c) {
+      if (c.t === 'P') { if (blocked(c.cx + DX[c.d], c.cy + DY[c.d])) { c.d = (c.d + 2) % 4; if (blocked(c.cx + DX[c.d], c.cy + DY[c.d])) c.moving = false; } }
+      else if (c.t === 'L') {
+        var order = [1, 0, 3, 2];
+        for (var k = 0; k < 4; k++) { var d = (c.d + order[k]) % 4; if (!blocked(c.cx + DX[d], c.cy + DY[d])) { c.d = d; return; } }
+        c.moving = false;
+      } else if (c.st === 'dash') { if (blocked(c.cx + DX[c.d], c.cy + DY[c.d])) { c.moving = false; c.st = 'rest'; c.tm = 1.4; } }
+    }
+    function sight(c) {      // ловчий видит героя по линии без стен (до 10 клеток)
+      var h = S.hero, hx = Math.round(h.x), hy = Math.round(h.y);
+      for (var d = 0; d < 4; d++) {
+        var x = c.cx, y = c.cy, n = 0;
+        while (n < 10 && !blocked(x + DX[d], y + DY[d])) { x += DX[d]; y += DY[d]; n++; if (x === hx && y === hy) return d; }
+      }
+      return -1;
+    }
+    function stepCat(c, dt) {
+      if (c.t === 'H') {
+        if (c.st === 'idle') { var d = sight(c); if (d >= 0) { c.st = 'alert'; c.tm = 0.45; c.hd = d; c.d = d; emit('alert', { id: c.id }); } }
+        else if (c.st === 'alert') { c.tm -= dt; if (c.tm <= 0) { c.st = 'dash'; c.moving = true; c.p = 0; c.v = 9; emit('pounce', { id: c.id }); } }
+        else if (c.st === 'rest') { c.tm -= dt; if (c.tm <= 0) c.st = 'idle'; }
+        if (c.st === 'dash') advance(c, c.v * dt, catArrive); else { c.x = c.cx + (c.moving ? DX[c.d] * c.p : 0); c.y = c.cy + (c.moving ? DY[c.d] * c.p : 0); }
+        return;
+      }
+      if (!c.moving) { c.tm += dt; if (c.tm > 0.5) { c.tm = 0; c.moving = true; c.d = (c.d + 2) % 4; } }
+      advance(c, c.v * dt, catArrive);
     }
 
     function step(dt) {
-      if (dt > 0.1) dt = 0.1;
-      S.time += dt;
-      if (S.mode === 'ready') { S.ready -= dt; if (S.ready <= 0) S.mode = 'play'; return; }
-      if (S.mode === 'dying') { S.ready -= dt; S.pac.mouth += dt * 6; if (S.ready <= 0) { resetActors(); S.mode = 'ready'; S.ready = 1.0; } return; }
-      if (S.mode === 'win') { S.flash -= dt; if (S.flash <= 0) { if (S.level >= MAX_LEVEL) { S.mode = 'victory'; emit('victory', { score: S.score }); return; } S.level++; loadLevel(); S.mode = 'ready'; S.ready = 1.2; } return; }
+      if (dt > 0.05) dt = 0.05;
+      S.t += dt;
+      if (S.bumped > 0) S.bumped -= dt;
+      if (S.mode === 'clear') { S.clearT -= dt; if (S.clearT <= 0) { if (S.level + 1 >= MAX_LEVEL) { S.mode = 'victory'; emit('victory', { score: S.score }); } else { S.score += 0; loadLevel(S.level + 1); S.mode = 'play'; emit('level', { level: S.level }); } } return; }
+      if (S.mode === 'dying') { S.dieT -= dt; if (S.dieT <= 0) { if (S.lives <= 0) { S.mode = 'gameover'; emit('gameover', { score: S.score }); } else { respawn(); S.mode = 'play'; } } return; }
       if (S.mode !== 'play') return;
-
-      S.anim += dt;
-      S.pac.mouth += dt * 10;
-      // Хрумик
-      moveActor(S.pac, speedPac() * dt, decidePac, false);
-      eatAt(Math.round(S.pac.x), Math.round(S.pac.y));
-      collide();
+      S.time += dt; if (S.inv > 0) S.inv -= dt;
+      if (S.brakeC < 1) S.brakeC = Math.min(1, S.brakeC + dt / C.BRAKE_T);
+      var h = S.hero;
+      if (S.wantT > 0) { S.wantT -= dt; if (S.wantT <= 0) S.want = -1; }
+      if (!h.moving && S.want >= 0) { var w = S.want; S.want = -1; startSlide(h, w); }
+      if (h.moving) advance(h, C.HERO_V * dt, heroArrive); else { h.x = h.cx; h.y = h.cy; }
       if (S.mode !== 'play') return;
-      // призраки
-      for (var i = 0; i < S.ghosts.length; i++) {
-        var g = S.ghosts[i];
-        moveActor(g, speedGhost(g) * dt, decideGhost, true);
+      if (!h.moving && S.want >= 0) { var w2 = S.want; S.want = -1; startSlide(h, w2); }   // буфер сработал сразу после остановки
+      for (var i = 0; i < S.cats.length; i++) stepCat(S.cats[i], dt);
+      if (S.inv > 0) return;
+      for (i = 0; i < S.cats.length; i++) {
+        var c = S.cats[i], dx = c.x - h.x, dy = c.y - h.y;
+        if (dx * dx + dy * dy < 0.5) { hurt(c); break; }
       }
-      collide();
-      // таймеры режимов
-      if (S.fright) { S.frightT -= dt; if (S.frightT <= 0) { S.fright = false; S.ghosts.forEach(function (gg) { if (gg.mode === 'fright') gg.mode = S.globalMode; }); } }
-      updatePhases(dt);
+    }
+    function hurt(c) {
+      if (S.shield > 0) { S.shield--; S.inv = 1.6; emit('shield', { x: S.hero.x, y: S.hero.y }); return; }
+      S.lives--; S.stats.deaths++; S.mode = 'dying'; S.dieT = 1.1; S.hero.moving = false; emit('hurt', { x: S.hero.x, y: S.hero.y, id: c.id, lives: S.lives });
     }
 
-    loadLevel();
-
-    return {
-      COLS: COLS, ROWS: ROWS, consts: consts,
-      start: function () { loadLevel(); S.mode = 'ready'; S.ready = 1.2; S.score = 0; S.lives = 3; S.level = 1; },
-      reset: function () { loadLevel(); S.mode = 'title'; },
-      step: step,
-      state: function () { return S; },
-      pause: function () { if (S.mode === 'play') S._paused = true, S.mode = 'paused'; else if (S.mode === 'paused') { S.mode = 'play'; S._paused = false; } },
-      isPaused: function () { return S.mode === 'paused'; },
-      setDir: function (d) { if (DIRS[d]) S.pac.next = d; },
-      // тест-хуки
-      _S: S, _canGo: function (x, y, d, g) { return canGo(S.maze, x, y, d, g); }, _eatAt: eatAt, _ghostTarget: ghostTarget, _step: step
+    fresh();
+    var api = {
+      state: function () { return S; }, step: step, consts: C,
+      start: function () { fresh(); },
+      // направление: 0..3 или 'up'/'right'/'down'/'left'
+      setDir: function (d) { if (typeof d === 'string') d = NAMES.indexOf(d); if (d < 0 || d > 3 || S.mode !== 'play') return; if (!S.hero.moving) { S.want = -1; startSlide(S.hero, d); } else { S.want = d; S.wantT = 0.4; } },
+      brake: function () { var h = S.hero; if (S.mode !== 'play' || !h.moving || S.brakeC < 1 || h.stopNext) return false; h.stopNext = true; S.brakeC = 0; S.stats.brakes++; emit('brake', {}); return true; },
+      canRoll: function (d) { var h = S.hero; return !blocked(h.cx + DX[d], h.cy + DY[d]); },
+      addShield: function () { S.shield = Math.min(2, S.shield + 1); },
+      revive: function () { if (S.mode === 'gameover' || S.mode === 'dying') { S.lives = 1; S.shield = 0; respawn(); S.mode = 'play'; S.inv = 2.5; } },
+      isOver: function () { return S.mode === 'gameover' || S.mode === 'victory'; },
+      clone: function () { var o = KT.Game({ level: 0, lives: 1 }); o._set(JSON.parse(JSON.stringify(S))); return o; },
+      _set: function (s) { S = s; }
     };
+    return api;
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,9 +1,9 @@
-/* ДОЗОР · логика (без DOM, детерминирована при заданном rng). DOZOR.Game(opts), DOZOR.logic
-   Вертикально скроллящийся экшен с видом сверху на 1–2 игроков: дозорные броневики мастерской «Гефест»
-   освобождают пленных мастеровых с заводов механической Ржавой артели. Машина едет в 8 сторон, пулемёт
-   бьёт всегда вверх (по курсу экрана), второе оружие — по направлению машины и перелетает стены:
-   гранаты → ракеты → самонаводящиеся ракеты (ступень растёт, когда подобран мастер из меченого барака).
-   Пленные: взорви барак, подбери (до 8 на борту), отвези на вертолётную площадку. Гибель — пленные разбегаются.
+/* ОБОЗ (папка dozor) · логика (без DOM, детерминирована при заданном rng). DOZOR.Game(opts), DOZOR.logic
+   Вертикально скроллящийся экшен с видом сверху на 1–2 игроков: паровой тягач мастерской «Гефест» ведёт за собой
+   обоз — цепочку до 5 платформ-вагонов, каждый вагон бьёт ИЗ БОРТОВ (перпендикулярно своему курсу), а тягач — пулемётом вверх.
+   Свернул боком — весь обоз стреляет вверх и вниз («борт» подставляется врагу). Второе действие — «заслон»: последний
+   вагон отцепляется и стоит 9 с как четырёхствольная турель, потом взрывается. Вагоны берут в депо (разбей их пулями)
+   и подбирают, проехав по брошенным. Конец этапа — узловая станция артели: сначала вывести орудия, потом бить ядро.
    Координаты мира: x, y — центр объекта; y растёт вниз; карта — ASCII-строки по COLS символов (parseMap).
    Камера — только вверх (camY уменьшается). */
 (function (global) {
@@ -12,14 +12,13 @@
 
   // ---------- Константы ----------
   var T = 24, COLS = 20, VIEW_W = COLS * T, HUD = 40, VIEW_H = 600, SCREEN_H = HUD + VIEW_H;
-  var SPEED = 108, HB = 10, HIT_R = 8, CAPACITY = 8, LIVES = 3, CONTINUES = 2, CONT_T = 10;
-  var INV_SPAWN = 2.6, RESPAWN_T = 1.6, EXTRA_LIFE = 27000, MAX_TIER = 3;
+  var SPEED = 108, HB = 10, HIT_R = 8, LIVES = 3, CONTINUES = 2, CONT_T = 10;
+  var INV_SPAWN = 2.6, RESPAWN_T = 1.6, EXTRA_LIFE = 27000;
   var MG = { cd: 0.11, speed: 430, dmg: 1 };
-  var SEC = {   // второе оружие по ступеням: летит по направлению машины, над стенами
-    1: { name: 'grenade', cd: 0.34, speed: 230, range: 132, r: 30, dmg: 3, max: 2, air: false },
-    2: { name: 'rocket', cd: 0.28, speed: 340, range: 230, r: 34, dmg: 4, max: 3, air: true },
-    3: { name: 'homing', cd: 0.26, speed: 310, range: 300, r: 38, dmg: 5, max: 3, air: true, turn: 5 }
-  };
+  // Обоз: до MAX вагонов, звенья по LINK px пути, борта бьют перпендикулярно курсу вагона
+  var WAG = { max: 5, first: 24, link: 20, hp: 2, armorHp: 4, cd: 0.5, speed: 290, life: 0.62, r: 8 };
+  // Заслон: отцепленный вагон — турель на POST.t секунд, затем взрыв
+  var POST = { t: 9, cd: 0.42, speed: 300, life: 0.85, r: 44, dmg: 5, max: 2, scd: 0.7 };
   var ENEMIES = {
     infantry: { r: 7, hp: 1, speed: 30, cd: 3.8, bullet: 100, score: 100, near: 64 },
     turret:   { r: 11, hp: 5, cd: 2.4, bullet: 128, score: 300, solid: true, burst: 2 },
@@ -29,13 +28,13 @@
     cannon:   { r: 11, hp: 8, cd: 2.6, bullet: 124, score: 1500, solid: true }
   };
   var CAR = { w: 70, h: 22, gap: 8, hp: 8, speed: 118, cd: 2.6, bullet: 120, score: 600 };
-  var BARRACKS_HP = 6, CORE_W = 6, CORE_H = 3;
-  var SCORE = { pickup: 100, deliver: 1000, barracks: 500, block: 20, stage: 3000 };
-  var BOSS_HP = 46, BOSS_HP_STEP = 12;
+  var DEPOT_HP = 10, CORE_W = 6, CORE_H = 3;
+  var SCORE = { pickup: 100, wagon: 300, depot: 500, block: 20, stage: 3000 };
+  var BOSS_HP = 90, BOSS_HP_STEP = 26;
   var PATTERN_CD = { spread: 1.9, ring: 2.6, mortar: 2.8, spawn: 4.6, sweep: 3.0 };
 
   // Клетки поля
-  var G = 0, WALL = 1, WATER = 2, BRIDGE = 3, BLD = 4, TREE = 5, ROCK = 6, RAIL = 7, SAND = 8, RUBBLE = 9, BARR = 10, CORE = 11, ROAD = 12, PADC = 13;
+  var G = 0, WALL = 1, WATER = 2, BRIDGE = 3, BLD = 4, TREE = 5, ROCK = 6, RAIL = 7, SAND = 8, RUBBLE = 9, BARR = 10, CORE = 11, ROAD = 12;
   var CH = { '.': G, '#': WALL, '~': WATER, '=': BRIDGE, 'X': BLD, 't': TREE, 'o': ROCK, 'r': RAIL, 's': SAND, ':': ROAD };
   var TILE_HP = {}; TILE_HP[BLD] = 5; TILE_HP[TREE] = 2; TILE_HP[SAND] = 3;
   function solidV(t) { return t === WALL || t === WATER || t === BLD || t === TREE || t === ROCK || t === SAND || t === BARR || t === CORE; }
@@ -57,12 +56,12 @@
 
   // ---------- Этапы: генератор из кусков ----------
   var STAGES = [
-    { name: 'sand', boss: 'bolt', pats: ['spread', 'spawn'], cannons: [5, 14], segs: ['field', 'barracksF', 'pad', 'field', 'fence', 'barracks', 'field', 'pad', 'tanks1'] },
-    { name: 'wharf', boss: 'smelter', pats: ['spread', 'mortar'], cannons: [4, 15], segs: ['field', 'river', 'barracksF', 'pad', 'fence', 'field', 'river', 'barracks', 'tanks', 'pad'] },
-    { name: 'rail', boss: 'boiler', pats: ['ring', 'spawn', 'spread'], cannons: [3, 9, 16], segs: ['field', 'rail', 'barracksF', 'pad', 'tanks', 'field', 'rail', 'town', 'barracks', 'pad'] },
-    { name: 'slag', boss: 'lock', pats: ['sweep', 'mortar', 'spread'], cannons: [3, 9, 16], segs: ['fieldH', 'river', 'barracksF', 'pad', 'tanks', 'fence', 'rail', 'barracks', 'fieldH', 'pad'] },
-    { name: 'quarter', boss: 'forge', pats: ['ring', 'mortar', 'spawn', 'spread'], cannons: [2, 6, 13, 17], segs: ['town', 'barracksF', 'pad', 'rail', 'river', 'tanks', 'townH', 'barracks', 'pad', 'fence'] },
-    { name: 'hold', boss: 'works', pats: ['sweep', 'ring', 'mortar', 'spawn'], cannons: [2, 6, 13, 17], segs: ['fieldH', 'fence', 'barracksF', 'pad', 'rail', 'river', 'tanks', 'townH', 'rail', 'barracks', 'pad', 'tanks'] }
+    { name: 'sand', boss: 'bolt', pats: ['spread', 'spawn'], cannons: [5, 14], segs: ['field', 'depotF', 'field', 'fence', 'depot', 'field', 'tanks1'] },
+    { name: 'wharf', boss: 'smelter', pats: ['spread', 'mortar'], cannons: [4, 15], segs: ['field', 'river', 'depotF', 'fence', 'field', 'river', 'depot', 'tanks'] },
+    { name: 'rail', boss: 'boiler', pats: ['ring', 'spawn', 'spread'], cannons: [3, 9, 16], segs: ['field', 'rail', 'depotF', 'tanks', 'field', 'rail', 'town', 'depot'] },
+    { name: 'slag', boss: 'lock', pats: ['sweep', 'mortar', 'spread'], cannons: [3, 9, 16], segs: ['fieldH', 'river', 'depotF', 'tanks', 'fence', 'rail', 'depot', 'fieldH'] },
+    { name: 'quarter', boss: 'forge', pats: ['ring', 'mortar', 'spawn', 'spread'], cannons: [2, 6, 13, 17], segs: ['town', 'depotF', 'rail', 'river', 'tanks', 'townH', 'depot', 'fence'] },
+    { name: 'hold', boss: 'works', pats: ['sweep', 'ring', 'mortar', 'spawn'], cannons: [2, 6, 13, 17], segs: ['fieldH', 'fence', 'depotF', 'rail', 'river', 'tanks', 'townH', 'rail', 'depot', 'tanks'] }
   ];
 
   function blank(h, edge) { var a = []; for (var i = 0; i < h; i++) { var r = []; for (var c = 0; c < COLS; c++) r.push(c === 0 || c === COLS - 1 ? (edge || 'o') : '.'); a.push(r); } return a; }
@@ -111,17 +110,17 @@
       scatter(a, rng, 'i', 2, 0, 1); scatter(a, rng, 't', 3, 8, 9);
       return a;
     },
-    barracks: function (rng, n, flag) {
+    depot: function (rng, n, flag) {
       var a = blank(11, 't'), c1 = ri(rng, 2, 7), c2 = ri(rng, 11, 15);
       box(a, c1, 3, 2, 2, flag ? 'F' : 'H', 'h');
       if (!flag || n >= 2) box(a, c2, 4, 2, 2, 'H', 'h');
-      for (var k = -1; k <= 2; k++) if (rng() < 0.6) put(a, c1 + k, 6, 's');
+      [-2, 3].forEach(function (k) { if (rng() < 0.7) put(a, c1 + k, 6, 's'); });   // мешки — по бокам: депо берётся пулей
       scatter(a, rng, 'i', 2 + Math.min(3, n), 0, 9);
       if (n >= 2) scatter(a, rng, 'u', 1, 0, 2);
       scatter(a, rng, 't', 2, 8, 10);
+      for (var rr = 5; rr <= 10; rr++) for (var cc = c1; cc <= c1 + 1; cc++) if (at(a, cc, rr) === 't') put(a, cc, rr, '.');
       return a;
     },
-    pad: function (rng) { var a = blank(8, 't'); box(a, 8, 2, 3, 3, 'P', 'p'); scatter(a, rng, 't', 4, 1, 6, 2, 6); scatter(a, rng, 't', 3, 1, 6, 13, 17); return a; },
     rail: function (rng, n) {
       var a = blank(8);
       for (var c = 0; c < COLS; c++) put(a, c, 3, 'r');
@@ -150,7 +149,7 @@
     },
     boss: function (rng, n, M) {
       var a = blank(15, 'o'), c, r;
-      for (c = 0; c < COLS; c++) { put(a, c, 0, 'o'); put(a, c, 1, '#'); put(a, c, 5, '#'); }
+      for (c = 0; c < COLS; c++) { put(a, c, 0, 'o'); put(a, c, 1, '#'); if (c < 7 || c > 12) put(a, c, 5, '#'); }
       for (r = 2; r <= 4; r++) for (c = 1; c < COLS - 1; c++) put(a, c, r, '#');
       box(a, 7, 2, CORE_W, CORE_H, 'C', 'c');
       M.cannons.forEach(function (cc) { put(a, cc, 5, 'n'); });
@@ -164,7 +163,7 @@
     var M = STAGES[n - 1], rng = mulberry32(n * 977 + 13), parts = [SEG.start(rng, n)];
     M.segs.forEach(function (s) {
       var heli = /H$/.test(s), k = s.replace(/H$/, '');
-      if (k === 'barracksF') parts.push(SEG.barracks(rng, n, true));
+      if (k === 'depotF') parts.push(SEG.depot(rng, n, true));
       else if (k === 'tanks1') parts.push(SEG.tanks(rng, n, true));
       else parts.push(SEG[k](rng, n, heli));
     });
@@ -177,7 +176,7 @@
   // ---------- Разбор карты ----------
   function parseMap(rows) {
     var H = rows.length, W = COLS, grid = new Uint8Array(W * H), hp = new Float32Array(W * H);
-    var L = { W: W, H: H, grid: grid, hp: hp, start: null, barracks: [], pads: [], enemies: [], helis: [], rails: [], core: null, cannons: [] };
+    var L = { W: W, H: H, grid: grid, hp: hp, start: null, depots: [], enemies: [], helis: [], rails: [], core: null, cannons: [] };
     for (var r = 0; r < H; r++) {
       if (rows[r].length !== W) throw new Error('ДОЗОР: строка ' + r + ' длиной ' + rows[r].length + ' вместо ' + W);
       for (var c = 0; c < W; c++) {
@@ -185,10 +184,8 @@
         if (CH[ch] != null) { grid[i] = CH[ch]; if (TILE_HP[grid[i]]) hp[i] = TILE_HP[grid[i]]; continue; }
         switch (ch) {
           case 'S': grid[i] = ROAD; L.start = { x: x + T / 2, y: y }; break;
-          case 'H': case 'F': grid[i] = BARR; L.barracks.push({ tx: c, ty: r, flag: ch === 'F' }); break;
+          case 'H': case 'F': grid[i] = BARR; L.depots.push({ tx: c, ty: r, flag: ch === 'F' }); break;
           case 'h': grid[i] = BARR; break;
-          case 'P': grid[i] = PADC; L.pads.push({ tx: c, ty: r }); break;
-          case 'p': grid[i] = PADC; break;
           case 'C': grid[i] = CORE; L.core = { tx: c, ty: r }; break;
           case 'c': grid[i] = CORE; break;
           case 'n': grid[i] = WALL; L.cannons.push({ x: x, y: y }); break;
@@ -207,10 +204,10 @@
   }
 
   // Достижимость: от старта до арены босса (строка над воротами) по клеткам, проходимым машиной;
-  // разрушаемые (дома, деревья, мешки) считаются проходимыми — их сносит второе оружие.
+  // разрушаемое тоже считается преградой: путь к концу этапа есть без взрывов.
   function solveMap(rows) {
     var Lv = parseMap(rows), W = Lv.W, H = Lv.H, seen = new Uint8Array(W * H), q = [];
-    var pass = function (c, r) { if (c < 0 || r < 0 || c >= W || r >= H) return false; var t = Lv.grid[r * W + c]; return !solidV(t) || breakable(t); };
+    var pass = function (c, r) { if (c < 0 || r < 0 || c >= W || r >= H) return false; return !solidV(Lv.grid[r * W + c]); };
     if (!Lv.start) return { ok: false, top: H };
     var sc = Math.floor(Lv.start.x / T), sr = Math.floor(Lv.start.y / T);
     seen[sr * W + sc] = 1; q.push(sc, sr);
@@ -220,11 +217,11 @@
       [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) { var nc = c + d[0], nr = r + d[1]; if (pass(nc, nr) && !seen[nr * W + nc]) { seen[nr * W + nc] = 1; q.push(nc, nr); } });
     }
     var arenaRow = 12, near = function (tx, ty, tw, th) { for (var y = ty - 1; y <= ty + th; y++) for (var x = tx - 1; x <= tx + tw; x++) if (x >= 0 && y >= 0 && x < W && y < H && seen[y * W + x]) return true; return false; };
-    return { ok: top <= arenaRow, top: top, pads: Lv.pads.every(function (p) { return near(p.tx, p.ty, 3, 3); }), barracks: Lv.barracks.every(function (b) { return near(b.tx, b.ty, 2, 2); }) };
+    return { ok: top <= arenaRow, top: top, depots: Lv.depots.every(function (b) { return near(b.tx, b.ty, 2, 2); }) };
   }
 
   function params(stage, players) {
-    return { fire: (1 + 0.08 * (stage - 1)) * (players === 2 ? 1.25 : 1), bspeed: (1 + 0.04 * (stage - 1)) * (players === 2 ? 1.06 : 1), hp: players === 2 ? 1.5 : 1 };
+    return { fire: (1 + 0.14 * (stage - 1)) * (players === 2 ? 1.25 : 1), bspeed: (1 + 0.06 * (stage - 1)) * (players === 2 ? 1.06 : 1), hp: (players === 2 ? 1.5 : 1) * (1 + 0.12 * (stage - 1)) };
   }
 
   // ---------- Игра ----------
@@ -235,12 +232,12 @@
     var S = {
       stage: opts.stage || 1, maxStage: opts.maxStage || STAGES.length, players: NP, score: 0, phase: 'play', phaseT: 0, time: 0, banner: 0,
       continues: opts.continues != null ? opts.continues : CONTINUES, contT: 0, nextLife: EXTRA_LIFE * (NP === 2 ? 1.5 : 1),
-      heroes: [], enemies: [], bullets: [], shots: [], ebullets: [], booms: [], marks: [], pows: [], barracks: [], pads: [], trains: [], helis: [],
-      grid: null, hp: null, W: COLS, H: 0, camY: 0, boss: null, rescued: 0, totalRescued: 0, lost: 0, kills: 0, name: '', bossKey: '', over: false, won: false
+      heroes: [], enemies: [], bullets: [], ebullets: [], booms: [], marks: [], loose: [], posts: [], depots: [], trains: [], helis: [],
+      grid: null, hp: null, W: COLS, H: 0, camY: 0, boss: null, lost: 0, kills: 0, boosts: 0, hold: false, name: '', bossKey: '', over: false, won: false
     };
     var P = params(S.stage, NP);
     for (var i = 0; i < NP; i++) S.heroes.push({ id: i, x: 0, y: 0, alive: true, out: false, lives: LIVES, deadT: 0, inv: 0, face: { x: 0, y: -1 }, ang: 0,
-      dx: 0, dy: 0, fire: false, cd: 0, scd: 0, tier: 1, carried: 0, unT: 0, moving: false, trail: 0 });
+      dx: 0, dy: 0, fire: false, cd: 0, scd: 0, wag: [], wp: [], path: [], moving: false });
 
     function ev(t, d) { emit(t, d || {}); }
     function addScore(n) {
@@ -260,9 +257,8 @@
       var Lv = parseMap(m.rows);
       P = params(n, NP);
       S.stage = n; S.name = m.name; S.bossKey = m.boss; S.grid = Lv.grid; S.hp = Lv.hp; S.H = Lv.H; S.W = Lv.W;
-      S.enemies = []; S.bullets = []; S.shots = []; S.ebullets = []; S.booms = []; S.marks = []; S.pows = [];
-      S.barracks = Lv.barracks.map(function (b) { return { tx: b.tx, ty: b.ty, x: b.tx * T + T, y: b.ty * T + T, hp: BARRACKS_HP * P.hp, max: BARRACKS_HP * P.hp, flag: b.flag, dead: false, flash: 0, pows: b.flag ? 4 : 3 }; });
-      S.pads = Lv.pads.map(function (p) { return { tx: p.tx, ty: p.ty, x: p.tx * T + 1.5 * T, y: p.ty * T + 1.5 * T, heliT: 0 }; });
+      S.enemies = []; S.bullets = []; S.ebullets = []; S.booms = []; S.marks = []; S.loose = []; S.posts = [];
+      S.depots = Lv.depots.map(function (b) { return { tx: b.tx, ty: b.ty, x: b.tx * T + T, y: b.ty * T + T, hp: DEPOT_HP * P.hp, max: DEPOT_HP * P.hp, flag: b.flag, dead: false, flash: 0, n: b.flag ? 3 : 2 }; });
       S.helis = Lv.helis.slice();
       S.trains = Lv.rails.map(function (r) { return { row: r, y: r * T + T / 2, state: 'wait', t: 0, dir: 1, x: 0, cars: null, done: false, runs: 0 }; });
       Lv.enemies.forEach(function (e) { spawn(e.type, e.x, e.y); });
@@ -276,10 +272,11 @@
       S.camY = Math.max(0, S.H * T - VIEW_H);
       var st = Lv.start || { x: VIEW_W / 2, y: S.H * T - 3 * T };
       S.heroes.forEach(function (h, k) {
-        h.x = NP === 2 ? st.x + (k ? 36 : -36) : st.x; h.y = st.y; h.face = { x: 0, y: -1 }; h.ang = 0; h.carried = 0; h.cd = 0; h.scd = 0; h.inv = 1.2;
+        h.x = NP === 2 ? st.x + (k ? 36 : -36) : st.x; h.y = st.y; h.face = { x: 0, y: -1 }; h.ang = 0; h.cd = 0; h.scd = 0; h.inv = 1.2;
+        while (h.wag.length < 2) h.wag.push(newWagon(false)); h.wag.forEach(function (w) { w.hp = Math.max(w.hp, WAG.hp); }); seedPath(h);
         if (!h.out) { h.alive = true; h.deadT = 0; }
       });
-      S.rescued = 0; S.lost = 0; S.phase = 'play'; S.phaseT = 0; S.banner = 2.4;
+      S.lost = 0; S.phase = 'play'; S.phaseT = 0; S.banner = 2.4;
       ev('stage', { stage: n });
     }
     function spawn(type, x, y) {
@@ -299,6 +296,36 @@
       spd *= P.bspeed;
       S.ebullets.push({ x: x, y: y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r: o.r || 3, air: !!o.air, kind: o.kind || 'b', from: o.from || 'boss', life: 4 });
     }
+
+    // ---------- Обоз: путь тягача и вагоны ----------
+    function newWagon(armor) { var hp = armor ? WAG.armorHp : WAG.hp; return { hp: hp, max: hp, armor: !!armor, flash: 0, cd: rng() * WAG.cd }; }
+    function seedPath(h) { h.path = []; for (var i = 28; i >= 1; i--) h.path.push({ x: h.x - h.face.x * 4 * i, y: h.y - h.face.y * 4 * i }); calcWagons(h); }
+    function calcWagons(h) {   // позиции вагонов — точки на следе тягача (вдоль пройденного пути) и курс вагона (к голове)
+      var out = [], px = h.x, py = h.y, acc = 0, idx = h.path.length - 1, want = WAG.first, k = 0, n = h.wag.length;
+      while (k < n) {
+        if (idx < 0) { var f = h.face; out.push({ x: px - f.x * (want - acc), y: py - f.y * (want - acc), hx: f.x, hy: f.y }); want += WAG.link; k++; continue; }
+        var nx = h.path[idx].x, ny = h.path[idx].y, seg = dist(px, py, nx, ny);
+        if (seg < 0.001) { idx--; continue; }
+        if (acc + seg >= want) { var t = (want - acc) / seg; out.push({ x: px + (nx - px) * t, y: py + (ny - py) * t, hx: (px - nx) / seg, hy: (py - ny) / seg }); want += WAG.link; k++; }
+        else { acc += seg; px = nx; py = ny; idx--; }
+      }
+      h.wp = out;
+    }
+    function dropWagon(h, i, from) {   // вагоны с номера i отцеплены: остаются на месте и ждут, пока их снова подберут
+      for (var j = i; j < h.wag.length; j++) { var p = h.wp[j], w = h.wag[j]; if (p) S.loose.push({ x: p.x, y: p.y, hp: w.hp, armor: w.armor, t: from === 'die' ? 0.9 : 0.5 }); }
+    }
+    function breakWagon(h, i) {
+      var p = h.wp[i]; if (!p) return;
+      ev('wagDie', { pi: h.id, x: p.x, y: p.y });
+      var after = h.wag.length - i - 1;
+      dropWagon(h, i + 1, 'cut'); h.wag.length = i; calcWagons(h);
+      if (after > 0) ev('wagCut', { pi: h.id, n: after, x: p.x, y: p.y });
+    }
+    function hurtWagon(h, i, d) {
+      var w = h.wag[i]; if (!w) return; w.hp -= d; w.flash = 0.12; ev('wagHit', { pi: h.id, x: h.wp[i].x, y: h.wp[i].y });
+      if (w.hp <= 0) breakWagon(h, i);
+    }
+    function wagonBullet(x, y, vx, vy, pi, life, speed) { S.bullets.push({ x: x, y: y, vx: vx * speed, vy: vy * speed, pi: pi, life: life, wg: true }); }
 
     // ---------- Герои ----------
     function moveHero(h, mx, my) {
@@ -344,43 +371,68 @@
         var dd = dist(h.x, h.y, e.x, e.y), need = e.r + HB;
         if (dd < need && dd > 0.01) moveHero(h, (h.x - e.x) / dd * (need - dd), (h.y - e.y) / dd * (need - dd));
       }
-      // пулемёт — всегда вверх
+      // след и вагоны
+      if (h.moving) {
+        var last = h.path[h.path.length - 1];
+        if (!last || dist(h.x, h.y, last.x, last.y) >= 4) { h.path.push({ x: h.x, y: h.y }); if (h.path.length > 90) h.path.shift(); }
+      }
+      calcWagons(h);
+      // пулемёт — всегда вверх; борта вагонов — перпендикулярно курсу вагона
       h.cd -= dt; h.scd -= dt;
       if (h.fire && h.cd <= 0) {
         h.cd = MG.cd; var side = (Math.floor(S.time / MG.cd) % 2) ? 4 : -4;
-        S.bullets.push({ x: h.x + side, y: h.y - 12, vy: -MG.speed, pi: h.id });
+        S.bullets.push({ x: h.x + side, y: h.y - 12, vx: 0, vy: -MG.speed, pi: h.id });
         ev('mg', { pi: h.id });
       }
-      // пехота под колёсами
+      h.wag.forEach(function (w, i) {
+        if (w.flash > 0) w.flash -= dt;
+        w.cd -= dt;
+        if (h.fire && w.cd <= 0 && h.wp[i]) {
+          w.cd = WAG.cd; var p = h.wp[i];
+          wagonBullet(p.x - p.hy * 9, p.y + p.hx * 9, -p.hy, p.hx, h.id, WAG.life, WAG.speed);
+          wagonBullet(p.x + p.hy * 9, p.y - p.hx * 9, p.hy, -p.hx, h.id, WAG.life, WAG.speed);
+          w.kick = 0.08;
+        }
+        if (w.kick > 0) w.kick -= dt;
+      });
+      // пехота под колёсами тягача и вагонов
       for (var j = 0; j < S.enemies.length; j++) {
         var f = S.enemies[j];
-        if (!f.dead && f.type === 'infantry' && dist(h.x, h.y, f.x, f.y) < f.r + HB) killEnemy(f, h.id, 'squash');
+        if (f.dead || f.type !== 'infantry') continue;
+        if (dist(h.x, h.y, f.x, f.y) < f.r + HB) { killEnemy(f, h.id, 'squash'); continue; }
+        for (var q = 0; q < h.wp.length; q++) if (dist(h.wp[q].x, h.wp[q].y, f.x, f.y) < f.r + 8) { killEnemy(f, h.id, 'squash'); break; }
       }
-      // пленные: подобрать
-      S.pows.forEach(function (p) {
-        if (p.gone || h.carried >= CAPACITY || p.t > 0) return;
-        if (dist(h.x, h.y, p.x, p.y) < 17) {
-          p.gone = true; h.carried++; addScore(SCORE.pickup); ev('pow', { pi: h.id, x: p.x, y: p.y, master: p.master });
-          if (p.master && h.tier < MAX_TIER) { h.tier++; ev('upgrade', { pi: h.id, tier: h.tier, x: h.x, y: h.y }); }
+      // брошенные вагоны: подцепить в хвост
+      S.loose.forEach(function (p) {
+        if (p.gone || h.wag.length >= WAG.max || p.t > 0) return;
+        if (dist(h.x, h.y, p.x, p.y) < 18) {
+          p.gone = true; var w = newWagon(p.armor); w.hp = Math.max(1, Math.min(w.max, p.hp || w.max)); h.wag.push(w); calcWagons(h);
+          addScore(SCORE.pickup); ev('hook', { pi: h.id, x: p.x, y: p.y, n: h.wag.length });
         }
       });
-      // площадка: высадка по одному
-      var onPad = false;
-      S.pads.forEach(function (pd) { if (Math.abs(h.x - pd.x) < 1.5 * T + 2 && Math.abs(h.y - pd.y) < 1.5 * T + 2) { onPad = true; if (h.carried > 0) pd.heliT = 2.5; } });
-      if (onPad && h.carried > 0) {
-        h.unT -= dt;
-        if (h.unT <= 0) { h.unT = 0.2; h.carried--; S.rescued++; S.totalRescued++; addScore(SCORE.deliver); ev('deliver', { pi: h.id, x: h.x, y: h.y, left: h.carried }); }
-      } else h.unT = 0.3;
     }
+    // «Заслон»: последний вагон отцепляется и стоит турелью
     function secondary(pi) {
       var h = S.heroes[pi]; if (!h || !h.alive || S.phase !== 'play') return false;
-      var W = SEC[h.tier], mine = 0;
-      S.shots.forEach(function (s) { if (s.pi === pi) mine++; });
-      if (h.scd > 0 || mine >= W.max) return false;
-      h.scd = W.cd;
-      S.shots.push({ pi: pi, tier: h.tier, x: h.x + h.face.x * 12, y: h.y + h.face.y * 12, vx: h.face.x * W.speed, vy: h.face.y * W.speed, d: 0, range: W.range, t: 0 });
-      ev('sec', { pi: pi, tier: h.tier });
+      var mine = 0; S.posts.forEach(function (o) { if (o.pi === pi) mine++; });
+      if (h.scd > 0 || !h.wag.length || mine >= POST.max) return false;
+      var i = h.wag.length - 1, p = h.wp[i], w = h.wag[i];
+      h.wag.length = i; calcWagons(h); h.scd = POST.scd;
+      S.posts.push({ pi: pi, x: p.x, y: p.y, t: POST.t, max: POST.t, cd: 0.2, vol: 0, armor: w.armor });
+      ev('post', { pi: pi, x: p.x, y: p.y });
       return true;
+    }
+    function updatePosts(dt) {
+      S.posts = S.posts.filter(function (o) {
+        o.t -= dt; o.cd -= dt;
+        if (o.cd <= 0) {
+          o.cd = POST.cd; var a0 = (o.vol++ % 2) * Math.PI / 4;
+          for (var k = 0; k < 4; k++) { var a = a0 + k * Math.PI / 2; wagonBullet(o.x + Math.cos(a) * 9, o.y + Math.sin(a) * 9, Math.cos(a), Math.sin(a), o.pi, POST.life, POST.speed); }
+          ev('postShot', { x: o.x, y: o.y });
+        }
+        if (o.t <= 0) { blast(o.x, o.y, POST.r, POST.dmg, { air: true, pi: o.pi }); return false; }
+        return true;
+      });
     }
     function respawn(h) {
       var mate = S.heroes.filter(function (o) { return o !== h && o.alive; })[0];
@@ -393,20 +445,17 @@
       }
       if (!best) best = { x: x, y: y };
       h.x = best.x; h.y = best.y; h.alive = true; h.inv = INV_SPAWN; h.cd = 0; h.scd = 0; h.face = { x: 0, y: -1 }; h.ang = 0;
+      h.wag = [newWagon(false)]; seedPath(h);
       S.ebullets = S.ebullets.filter(function (b) { return dist(b.x, b.y, h.x, h.y) > 90; });
       ev('respawn', { pi: h.id });
     }
     function killHero(h, src) {
       if (!h.alive || h.inv > 0 || S.phase !== 'play') return;
       h.alive = false; h.lives--; h.deadT = RESPAWN_T;
-      ev('heroDie', { pi: h.id, x: h.x, y: h.y, src: src, carried: h.carried });
-      for (var k = 0; k < h.carried; k++) {
-        var a = rng() * Math.PI * 2;
-        S.pows.push({ x: h.x, y: h.y, vx: Math.cos(a) * 70, vy: Math.sin(a) * 70, gone: false, master: false, t: 0.9, wander: rng() * 6 });
-      }
-      if (h.carried) ev('scatter', { pi: h.id, n: h.carried, x: h.x, y: h.y });
-      h.carried = 0;
-      if (h.tier > 1) h.tier--;
+      var nw = h.wag.length;
+      ev('heroDie', { pi: h.id, x: h.x, y: h.y, src: src, wagons: nw });
+      if (nw) { dropWagon(h, 0, 'die'); ev('scatter', { pi: h.id, n: nw, x: h.x, y: h.y }); }
+      h.wag = []; h.wp = [];
       if (h.lives <= 0) { h.out = true; ev('out', { pi: h.id }); }
       if (S.heroes.every(function (o) { return o.out; })) {
         if (S.continues > 0) { S.phase = 'cont'; S.contT = CONT_T; ev('contAsk', { left: S.continues }); }
@@ -426,9 +475,12 @@
       o = o || {};
       S.booms.push({ x: x, y: y, r: r, t: 0.45, max: 0.45, enemy: !!o.enemy });
       ev('boom', { x: x, y: y, r: r, enemy: !!o.enemy });
-      if (o.enemy) { S.heroes.forEach(function (h) { if (h.alive && dist(h.x, h.y, x, y) < r + HIT_R - 2) killHero(h, o.src || 'blast'); }); return; }
+      if (o.enemy) {
+        S.heroes.forEach(function (h) { if (h.alive && dist(h.x, h.y, x, y) < r + HIT_R - 2) killHero(h, o.src || 'blast'); for (var i = h.wp.length - 1; i >= 0; i--) if (h.wag[i] && dist(h.wp[i].x, h.wp[i].y, x, y) < r + 6) hurtWagon(h, i, 2); });
+        return;
+      }
       S.enemies.forEach(function (e) { if (!e.dead && e.active && (!e.air || o.air) && dist(e.x, e.y, x, y) < r + e.r) hurtEnemy(e, dmg, o.pi); });
-      S.barracks.forEach(function (b) { if (!b.dead && circRect(x, y, r, b.x - T, b.y - T, b.x + T, b.y + T)) hurtBarracks(b, dmg); });
+      S.depots.forEach(function (b) { if (!b.dead && circRect(x, y, r, b.x - T, b.y - T, b.x + T, b.y + T)) hurtDepot(b, dmg); });
       var c0 = Math.floor((x - r) / T), c1 = Math.floor((x + r) / T), r0 = Math.floor((y - r) / T), r1 = Math.floor((y + r) / T);
       for (var rr = r0; rr <= r1; rr++) for (var c = c0; c <= c1; c++) {
         if (c < 0 || c >= COLS || rr < 0 || rr >= S.H) continue;
@@ -448,23 +500,22 @@
       e.dead = true; S.kills++; addScore(ENEMIES[e.type].score);
       ev('kill', { type: e.type, x: e.x, y: e.y, how: how, pi: pi });
     }
-    function hurtBarracks(b, dmg) {
-      b.hp -= dmg; b.flash = 0.12; ev('barracksHit', { x: b.x, y: b.y });
+    function hurtDepot(b, dmg) {
+      b.hp -= dmg; b.flash = 0.12; ev('depotHit', { x: b.x, y: b.y });
       if (b.hp > 0) return;
-      b.dead = true; addScore(SCORE.barracks);
+      b.dead = true; addScore(SCORE.depot);
       for (var dy = 0; dy < 2; dy++) for (var dx = 0; dx < 2; dx++) S.grid[(b.ty + dy) * COLS + b.tx + dx] = RUBBLE;
-      for (var k = 0; k < b.pows; k++) {
-        var a = Math.PI / 2 + (k - (b.pows - 1) / 2) * 0.7;
-        S.pows.push({ x: b.x + (k - 1.5) * 6, y: b.y + 8, vx: Math.cos(a) * 50, vy: Math.sin(a) * 60, gone: false, master: b.flag && k === 0, t: 0.5, wander: rng() * 6 });
-      }
-      ev('barracks', { x: b.x, y: b.y, flag: b.flag, n: b.pows });
+      for (var k = 0; k < b.n; k++) S.loose.push({ x: b.x + (k - (b.n - 1) / 2) * 24, y: b.y + 34, hp: 0, armor: b.flag && k === 0, t: 0.4 });
+      ev('depot', { x: b.x, y: b.y, flag: b.flag, n: b.n });
     }
     function hurtCar(tr, cr, dmg) {
       cr.hp -= dmg; cr.flash = 0.1; ev('hit', { x: cr.x, y: tr.y, type: 'car' });
       if (cr.hp <= 0) { cr.dead = true; S.kills++; addScore(CAR.score); ev('kill', { type: 'car', x: cr.x, y: tr.y }); }
     }
+    function bossOpen() { return !S.enemies.some(function (e) { return !e.dead && e.boss; }); }
     function hurtBoss(dmg) {
       var B = S.boss; if (!B || B.dead || B.shift > 0 || B.intro > 0) return;
+      if (!bossOpen()) { ev('bossShield', { x: B.x, y: B.y1 }); return; }
       B.hp -= dmg; B.flash = 0.1; ev('bossHit', { x: B.x, y: B.y1, hp: B.hp });
       if (B.hp <= 0) { B.hp = 0; B.dead = true; B.deadT = 2.2; addScore(10000 * S.stage); ev('bossDie', { x: B.x, y: B.y, key: B.key }); return; }
       var ph = Math.min(2, Math.floor((1 - B.hp / B.max) * 3));
@@ -473,68 +524,40 @@
 
     // ---------- Снаряды ----------
     function updateBullets(dt) {
-      var top = S.camY - 10;
+      var top = S.camY - 10, bot = S.camY + VIEW_H + 10;
       S.bullets = S.bullets.filter(function (b) {
-        b.y += b.vy * dt;
-        if (b.y < top) return false;
+        b.x += (b.vx || 0) * dt; b.y += b.vy * dt;
+        if (b.life != null) { b.life -= dt; if (b.life <= 0) return false; }
+        if (b.y < top || b.y > bot || b.x < -6 || b.x > VIEW_W + 6) return false;
         for (var i = 0; i < S.enemies.length; i++) {
           var e = S.enemies[i];
-          if (!e.dead && e.active && Math.abs(e.x - b.x) < e.r + 2 && Math.abs(e.y - b.y) < e.r + 4) { hurtEnemy(e, MG.dmg, b.pi); return false; }
+          if (!e.dead && e.active && Math.abs(e.x - b.x) < e.r + 2 && Math.abs(e.y - b.y) < e.r + 3) { hurtEnemy(e, MG.dmg, b.pi); return false; }
         }
         for (var t = 0; t < S.trains.length; t++) {
           var tr = S.trains[t]; if (!tr.cars || Math.abs(b.y - tr.y) > CAR.h / 2) continue;
           for (var k = 0; k < tr.cars.length; k++) { var cr = tr.cars[k]; if (!cr.dead && Math.abs(b.x - cr.x) < CAR.w / 2) { hurtCar(tr, cr, MG.dmg); return false; } }
         }
+        var B = S.boss;
+        if (B && B.active && !B.dead && b.x > B.x0 && b.x < B.x1 && b.y > B.y0 && b.y < B.y1) { if (bossOpen()) hurtBoss(MG.dmg); else ev('wall', { x: b.x, y: b.y }); return false; }
         var c = cell(b.x, b.y);
-        if (blockB(c)) { ev('wall', { x: b.x, y: b.y }); return false; }
-        return true;
-      });
-      S.shots = S.shots.filter(function (s) {
-        var W = SEC[s.tier];
-        s.t += dt;
-        if (W.turn) {   // самонаведение
-          var tg = homingTarget(s);
-          if (tg) {
-            var want = Math.atan2(tg.y - s.y, tg.x - s.x), cur = Math.atan2(s.vy, s.vx), da = want - cur;
-            while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
-            cur += clamp(da, -W.turn * dt, W.turn * dt); s.vx = Math.cos(cur) * W.speed; s.vy = Math.sin(cur) * W.speed;
-          }
+        if (c === BARR) {
+          for (var d = 0; d < S.depots.length; d++) { var dp = S.depots[d]; if (!dp.dead && Math.abs(dp.x - b.x) < T && Math.abs(dp.y - b.y) < T) { hurtDepot(dp, MG.dmg); return false; } }
         }
-        s.x += s.vx * dt; s.y += s.vy * dt; s.d += W.speed * dt;
-        if (s.x < -20 || s.x > VIEW_W + 20 || s.y < S.camY - 30 || s.y > S.camY + VIEW_H + 30) return false;
-        if (W.name !== 'grenade' && shotHits(s)) { blast(s.x, s.y, W.r, W.dmg, { air: W.air, pi: s.pi }); return false; }
-        if (s.d >= s.range) { blast(s.x, s.y, W.r, W.dmg, { air: W.air, pi: s.pi }); return false; }
+        if (blockB(c)) { ev('wall', { x: b.x, y: b.y }); return false; }
         return true;
       });
       S.ebullets = S.ebullets.filter(function (b) {
         b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
         if (b.life <= 0 || b.y > S.camY + VIEW_H + 20 || b.y < S.camY - 40 || b.x < -10 || b.x > VIEW_W + 10) return false;
         if (!b.air && blockB(cell(b.x, b.y))) return false;
-        for (var i = 0; i < S.heroes.length; i++) { var h = S.heroes[i]; if (h.alive && h.inv <= 0 && dist(h.x, h.y, b.x, b.y) < b.r + HIT_R) { killHero(h, b.from); return false; } }
+        for (var i = 0; i < S.heroes.length; i++) {
+          var h = S.heroes[i]; if (!h.alive || h.inv > 0) continue;
+          if (dist(h.x, h.y, b.x, b.y) < b.r + HIT_R) { killHero(h, b.from); return false; }
+          for (var w = 0; w < h.wp.length; w++) if (dist(h.wp[w].x, h.wp[w].y, b.x, b.y) < b.r + WAG.r) { hurtWagon(h, w, b.kind === 'shell' ? 2 : 1); return false; }
+        }
         return true;
       });
     }
-    function shotHits(s) {
-      for (var i = 0; i < S.enemies.length; i++) { var e = S.enemies[i]; if (!e.dead && e.active && dist(e.x, e.y, s.x, s.y) < e.r + 4) return true; }
-      for (var j = 0; j < S.barracks.length; j++) { var b = S.barracks[j]; if (!b.dead && Math.abs(b.x - s.x) < T && Math.abs(b.y - s.y) < T) return true; }
-      var c = cell(s.x, s.y); if (breakable(c)) return true;
-      var B = S.boss; if (B && B.active && !B.dead && s.x > B.x0 && s.x < B.x1 && s.y > B.y0 && s.y < B.y1) return true;
-      for (var t = 0; t < S.trains.length; t++) { var tr = S.trains[t]; if (tr.cars && Math.abs(s.y - tr.y) < CAR.h / 2) for (var k = 0; k < tr.cars.length; k++) if (!tr.cars[k].dead && Math.abs(s.x - tr.cars[k].x) < CAR.w / 2) return true; }
-      return false;
-    }
-    function homingTarget(s) {
-      var best = null, bd = 260, vl = Math.sqrt(s.vx * s.vx + s.vy * s.vy) || 1;
-      var consider = function (x, y) {
-        var dx = x - s.x, dy = y - s.y, dd = Math.sqrt(dx * dx + dy * dy);
-        if (dd < bd && (dx * s.vx + dy * s.vy) / (dd * vl + 0.01) > 0.15) { bd = dd; best = { x: x, y: y }; }
-      };
-      S.enemies.forEach(function (e) { if (!e.dead && e.active) consider(e.x, e.y); });
-      S.barracks.forEach(function (b) { if (!b.dead) consider(b.x, b.y); });
-      var B = S.boss; if (B && B.active && !B.dead) consider(B.x, B.y1 - 10);
-      S.trains.forEach(function (tr) { if (tr.cars) tr.cars.forEach(function (cr) { if (!cr.dead) consider(cr.x, tr.y); }); });
-      return best;
-    }
-
     // ---------- Враги ----------
     function updateEnemies(dt) {
       var vTop = S.camY - 30, vBot = S.camY + VIEW_H + 30;
@@ -606,7 +629,7 @@
     }
     function stepEnemy(e, mx, my) {
       var h = Math.max(5, e.r - 3);
-      if (mx && boxFree(e.x + mx, e.y, h) && cell(e.x + mx, e.y) !== PADC) e.x += mx; else if (e.type === 'infantry') e.vx = -e.vx;
+      if (mx && boxFree(e.x + mx, e.y, h) ) e.x += mx; else if (e.type === 'infantry') e.vx = -e.vx;
       if (my && boxFree(e.x, e.y + my, h) && e.y + my < S.camY + VIEW_H + 40) e.y += my; else if (e.type === 'infantry') e.vy = -e.vy;
       e.x = clamp(e.x, 12, VIEW_W - 12);
     }
@@ -638,7 +661,10 @@
           if (cr.flash > 0) cr.flash -= dt;
           if (cr.dead) return; alive++;
           if (cr.x > -CAR.w / 2 && cr.x < VIEW_W + CAR.w / 2) onScreen = true;
-          S.heroes.forEach(function (h) { if (h.alive && Math.abs(h.x - cr.x) < CAR.w / 2 + HB - 2 && Math.abs(h.y - tr.y) < CAR.h / 2 + HB - 2) killHero(h, 'train'); });
+          S.heroes.forEach(function (h) {
+            if (h.alive && Math.abs(h.x - cr.x) < CAR.w / 2 + HB - 2 && Math.abs(h.y - tr.y) < CAR.h / 2 + HB - 2) killHero(h, 'train');
+            for (var q = h.wp.length - 1; q >= 0; q--) if (h.alive && h.wag[q] && Math.abs(h.wp[q].x - cr.x) < CAR.w / 2 + 6 && Math.abs(h.wp[q].y - tr.y) < CAR.h / 2 + 6) { breakWagon(h, q); break; }
+          });
           if (cr.x < 10 || cr.x > VIEW_W - 10) return;
           var h = heroTarget(cr.x, tr.y); if (!h) return;
           if (cr.warn > 0) { cr.warn -= dt; if (cr.warn <= 0) { eshot(cr.x, tr.y, h.x, h.y, CAR.bullet, { from: 'car' }); ev('eshot', { x: cr.x, y: tr.y, kind: 'car' }); } return; }
@@ -650,28 +676,18 @@
       });
     }
 
-    // ---------- Пленные и площадки ----------
-    function updatePows(dt) {
-      S.pows.forEach(function (p) {
+    // ---------- Брошенные вагоны и депо ----------
+    function updateLoose(dt) {
+      S.loose.forEach(function (p) {
         if (p.gone) return;
         if (p.t > 0) p.t -= dt;
-        var h = null, bd = 150;
-        S.heroes.forEach(function (o) { if (o.alive && o.carried < CAPACITY) { var dd = dist(o.x, o.y, p.x, p.y); if (dd < bd) { bd = dd; h = o; } } });
-        var vx, vy;
-        if (p.t > 0) { vx = p.vx; vy = p.vy; }
-        else if (h) { var dd2 = Math.max(1, bd); vx = (h.x - p.x) / dd2 * 46; vy = (h.y - p.y) / dd2 * 46; }
-        else { p.wander += dt; vx = Math.cos(p.wander * 0.9) * 14; vy = Math.sin(p.wander * 1.3) * 10; }
-        var nx = p.x + vx * dt, ny = p.y + vy * dt;
-        if (!solidV(cell(nx, p.y))) p.x = clamp(nx, 8, VIEW_W - 8);
-        if (!solidV(cell(p.x, ny))) p.y = ny;
-        if (p.y > S.camY + VIEW_H + 16) { p.gone = true; S.lost++; ev('powLost', { x: p.x, y: p.y }); }
+        if (p.y > S.camY + VIEW_H + 16) { p.gone = true; S.lost++; ev('wagLostFar', { x: p.x, y: p.y }); }
       });
-      S.pows = S.pows.filter(function (p) { return !p.gone; });
-      S.pads.forEach(function (pd) { if (pd.heliT > 0) pd.heliT -= dt; });
-      S.barracks.forEach(function (b) { if (b.flash > 0) b.flash -= dt; });
+      S.loose = S.loose.filter(function (p) { return !p.gone; });
+      S.depots.forEach(function (b) { if (b.flash > 0) b.flash -= dt; });
     }
 
-    // ---------- Крепость ----------
+    // ---------- Узловая станция (конец этапа) ----------
     function updateBoss(dt) {
       var B = S.boss; if (!B) return;
       if (!B.active) {
@@ -684,6 +700,7 @@
         if (B.deadT <= 0 && S.phase === 'play') stageClear();
         return;
       }
+      B.open = bossOpen();
       if (B.flash > 0) B.flash -= dt;
       if (B.intro > 0) { B.intro -= dt; return; }
       if (B.shift > 0) { B.shift -= dt; return; }
@@ -725,11 +742,11 @@
     }
     function stageClear() {
       var bonus = SCORE.stage * S.stage, left = 0;
-      S.heroes.forEach(function (h) { left += h.carried; S.rescued += h.carried; S.totalRescued += h.carried; h.carried = 0; });
-      addScore(bonus + left * SCORE.deliver);
+      S.heroes.forEach(function (h) { left += h.wag.length; });
+      addScore(bonus + left * SCORE.wagon);
       S.enemies.forEach(function (e) { if (!e.dead) { e.dead = true; ev('kill', { type: e.type, x: e.x, y: e.y, how: 'clear' }); } });
       S.ebullets = []; S.marks = [];
-      S.phase = 'clear'; S.phaseT = 3.6; ev('clear', { stage: S.stage, bonus: bonus, rescued: S.rescued });
+      S.phase = 'clear'; S.phaseT = 3.6; ev('clear', { stage: S.stage, bonus: bonus, wagons: left });
     }
 
     // ---------- Камера ----------
@@ -753,6 +770,7 @@
       if (S.phase === 'clear') {
         S.phaseT -= dt; updateMarks(dt);
         S.heroes.forEach(function (h) { if (h.alive) { h.y -= 30 * dt; } });
+        if (S.phaseT <= 0 && S.hold) S.phaseT = 0.01;   // карточка «дальше» перед межстраничной — ждём действия игрока
         if (S.phaseT <= 0) {
           if (S.stage >= S.maxStage) { if (!S.won) { S.won = true; S.phase = 'won'; ev('win', { score: S.score }); } }
           else { S.heroes.forEach(function (h) { if (h.out) { h.out = false; h.lives = 1; } }); loadStage(S.stage + 1); }
@@ -762,28 +780,39 @@
       if (S.phase === 'won') return;
       S.heroes.forEach(function (h) { updateHero(h, dt); });
       updateCamera();
-      updateEnemies(dt); updateTrains(dt); updateBullets(dt); updatePows(dt); updateBoss(dt); updateMarks(dt);
+      updateEnemies(dt); updateTrains(dt); updateBullets(dt); updateLoose(dt); updatePosts(dt); updateBoss(dt); updateMarks(dt);
     }
 
+    // Реклама за награду: «ещё один шанс» после конца игры и +1 жизнь в паузе
+    function reviveAd() {
+      if (S.phase !== 'over' && S.phase !== 'cont') return false;
+      S.over = false; S.phase = 'play'; S.phaseT = 0;
+      S.heroes.forEach(function (h) { h.out = false; h.lives = 1; h.alive = false; h.deadT = 0; respawn(h); });
+      return true;
+    }
+    function boost() { if (S.phase !== 'play' || S.boosts >= 2) return false; S.boosts++; S.heroes.forEach(function (h) { if (!h.out) { h.lives++; ev('extraLife', { pi: h.id }); } }); return true; }
     var api = {
       start: function () { loadStage(S.stage); return api; },
       update: function (dt) { var n = Math.max(1, Math.ceil(dt / (1 / 60) - 1e-6)), h = dt / n; for (var i = 0; i < n; i++) step(h); },
       setDir: function (pi, dx, dy) { var h = S.heroes[pi]; if (h) { h.dx = dx; h.dy = dy; } },
       setFire: function (pi, on) { var h = S.heroes[pi]; if (h) h.fire = !!on; },
       sec: secondary,
+      reviveAd: reviveAd,
+      boost: boost,
+      canBoost: function () { return S.phase === 'play' && S.boosts < 2; },
       cont: continueGame,
       state: function () { return S; },
-      _S: S, _spawn: function (t, x, y) { return spawn(t, x, y); }, _blast: blast, _kill: killHero, _boxFree: boxFree, _cell: cell, _cellSolid: cellSolid,
+      _S: S, _bossOpen: bossOpen, _spawn: function (t, x, y) { return spawn(t, x, y); }, _blast: blast, _kill: killHero, _boxFree: boxFree, _cell: cell, _cellSolid: cellSolid,
       _hurtBoss: hurtBoss, _clear: stageClear, _P: function () { return P; }
     };
     return api;
   };
 
   D.logic = {
-    T: T, COLS: COLS, VIEW_W: VIEW_W, VIEW_H: VIEW_H, HUD: HUD, SCREEN_H: SCREEN_H, SPEED: SPEED, HB: HB, HIT_R: HIT_R, CAPACITY: CAPACITY,
-    LIVES: LIVES, CONTINUES: CONTINUES, CONT_T: CONT_T, EXTRA_LIFE: EXTRA_LIFE, MAX_TIER: MAX_TIER, MG: MG, SEC: SEC, ENEMIES: ENEMIES, CAR: CAR,
-    BARRACKS_HP: BARRACKS_HP, CORE_W: CORE_W, CORE_H: CORE_H, SCORE: SCORE, PATTERN_CD: PATTERN_CD, STAGES: STAGES, BIND: BIND,
-    CELL: { G: G, WALL: WALL, WATER: WATER, BRIDGE: BRIDGE, BLD: BLD, TREE: TREE, ROCK: ROCK, RAIL: RAIL, SAND: SAND, RUBBLE: RUBBLE, BARR: BARR, CORE: CORE, ROAD: ROAD, PAD: PADC },
+    T: T, COLS: COLS, VIEW_W: VIEW_W, VIEW_H: VIEW_H, HUD: HUD, SCREEN_H: SCREEN_H, SPEED: SPEED, HB: HB, HIT_R: HIT_R,
+    LIVES: LIVES, CONTINUES: CONTINUES, CONT_T: CONT_T, EXTRA_LIFE: EXTRA_LIFE, MG: MG, WAG: WAG, POST: POST, ENEMIES: ENEMIES, CAR: CAR,
+    DEPOT_HP: DEPOT_HP, CORE_W: CORE_W, CORE_H: CORE_H, SCORE: SCORE, PATTERN_CD: PATTERN_CD, STAGES: STAGES, BIND: BIND,
+    CELL: { G: G, WALL: WALL, WATER: WATER, BRIDGE: BRIDGE, BLD: BLD, TREE: TREE, ROCK: ROCK, RAIL: RAIL, SAND: SAND, RUBBLE: RUBBLE, BARR: BARR, CORE: CORE, ROAD: ROAD },
     solidV: solidV, blockB: blockB, breakable: breakable, parseMap: parseMap, genStage: genStage, solveMap: solveMap, params: params, mulberry32: mulberry32
   };
 })(typeof window !== 'undefined' ? window : globalThis);
