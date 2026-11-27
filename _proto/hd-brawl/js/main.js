@@ -99,7 +99,7 @@
     game = { hero: fighter('hero', 80, 40, 100, 1), foes: [], fx: [], nums: [], cam: 0, lock: VW, wave: 0, active: false, stop: 0, shake: 0, shakeA: 0, clear: 0, banner: 90, over: 0, frame: 0 };
   }
 
-  function setSt(f, st) { f.st = st; f.t = 0; }
+  function setSt(f, st) { f.st = st; f.t = 0; if (st !== 'fall') f.thrown = 0; }
   function startAtk(f, name) { setSt(f, 'atk'); f.atk = name; f.hitSet = []; f.buf = false; }
 
   // ---------- Ввод ----------
@@ -265,10 +265,10 @@
         game.stop = 3; game.shake = 4; game.shakeA = 1; sfx('heavy');
       } else if (e.t >= BIG.lunge) { setSt(e, 'idle'); e.cd = 80; }
     } else if (e.st === 'grab') {
-      e.t++; h.x = e.x + e.face * 27; h.z = e.z; h.y = 5;
+      e.t++; h.x = e.x + e.face * 30; h.z = e.z; h.y = 5;
       if (h.mash >= BIG.mash) release(e, h, true);
       else if (e.t >= BIG.hold) {   // бросок: герой летит вперёд и падает
-        setSt(e, 'throw'); release(e, h, false); h.hp -= BIG.throwDmg; h.flash = 2; setSt(h, 'fall'); h.vx = e.face * 2.6; h.vy = 3.4; h.y = 6;
+        setSt(e, 'throw'); release(e, h, false); h.hp -= BIG.throwDmg; h.flash = 2; setSt(h, 'fall'); h.thrown = 1; h.vx = e.face * 2.6; h.vy = 3.4; h.y = 6;
         game.nums.push({ x: h.x, y: Wd.FLOOR_TOP + h.z - 50, v: BIG.throwDmg, life: 40, c: 5 }); game.stop = 4; game.shake = 8; game.shakeA = 3; sfx('heavy'); e.cd = 110;
       }
     } else if (e.st === 'throw') { e.t++; if (e.t >= BIG.throwLen) setSt(e, 'idle'); }
@@ -319,7 +319,7 @@
       case 'wind': return big ? 'wind' : 'cross_a';
       case 'jump': return 'jump';
       case 'hurt': return 'hurt';
-      case 'fall': return T < 10 ? 'fall0' : 'fall1';
+      case 'fall': if (f.thrown) return T < 12 ? 'thrown0' : 'thrown1'; return T < 10 ? 'fall0' : 'fall1';
       case 'down': return 'down';
       case 'getup': return T < 8 ? 'getup0' : (T < 16 || big) ? 'getup1' : 'getup2';
       default: return 'idle' + ((T / 30 | 0) % 2);
@@ -368,6 +368,8 @@
     var cam = Math.round(game.cam), ox = 0, oy = 0;
     if (game.shake > 0) { var a = game.shakeA * (game.shake > 2 ? 1 : 0.5); ox = Math.round((Math.random() * 2 - 1) * a); oy = Math.round((Math.random() * 2 - 1) * a); }
     ctx.save(); ctx.translate(ox, oy);
+    // в захвате пар рядом с парой приглушён (дальние клубы — тёмной ступенью, передние не рисуются), цифры урона не рисуются
+    Wd.mute = game.hero.st === 'held' && game.hero.grab ? { x0: Math.round(game.hero.grab.x - cam) - 70, x1: Math.round(game.hero.x - cam) + 70 } : null;
     Wd.draw(ctx, cam);
     // в захвате герой рисуется ПОД литейщиком: рукавицы лежат поверх героя
     var held = game.hero.st === 'held';
@@ -379,7 +381,7 @@
       if (p.ring) { var r = 12 - p.life * 1.5 | 0; ctx.fillStyle = PAL[p.c]; ctx.fillRect(x - r, y, r * 2 + 1, 1); ctx.fillRect(x, y - r, 1, r * 2 + 1); ctx.fillRect(x - 2, y - 2, 5, 5); return; }
       ctx.fillStyle = PAL[p.life < 5 ? 4 : p.c]; ctx.fillRect(x, y, p.s, p.s);
     });
-    game.nums.forEach(function (n) { if (n.life < 8 && n.life % 2) return; digits(n.v, Math.round(n.x - cam) - 4, Math.round(n.y), n.c, 2); });
+    game.nums.forEach(function (n) { if (Wd.mute && Math.round(n.x - cam) > Wd.mute.x0 && Math.round(n.x - cam) < Wd.mute.x1) return; if (n.life < 8 && n.life % 2) return; digits(n.v, Math.round(n.x - cam) - 4, Math.round(n.y), n.c, 2); });
     ctx.restore();
     drawHud();
   }

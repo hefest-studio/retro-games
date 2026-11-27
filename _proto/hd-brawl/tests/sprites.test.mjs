@@ -88,4 +88,20 @@ ok('шрифт 5×7: все символы текстов RU/EN и движка 
   for (const k of Object.keys(F.glyphs)) { assert.equal(F.glyphs[k].rows.length, 7, k); for (const r of F.glyphs[k].rows) assert.equal(r.length, F.glyphs[k].w, k); }
   assert.equal(F.measure('AB', 2), (5 + 1 + 5) * 2);
 });
+// ---- v4: поза «бросили», тонкое лёжа литейщика, замахи героя ----
+ok('v4: thrown0/thrown1 героя — матрицы 80×72, отличаются от fall и друг от друга, руки и ноги раскинуты', () => {
+  const d = (a, b) => a.a.reduce((s, v, i) => s + (v !== b.a[i]), 0), H = S.SETS.hero;
+  for (const k of ['thrown0', 'thrown1']) { assert.ok(POSES.hero[k] && POSES.foe[k], k); assert.equal(H[k].w, S.FW); assert.ok(d(H[k], H.fall0) > 120 && d(H[k], H.fall1) > 120, k + ' ≠ fall'); }
+  assert.ok(d(H.thrown0, H.thrown1) > 200);
+  const b = bbox(H.thrown0); assert.ok(b.w >= 38, 'раскинуто по ширине: ' + b.w);
+});
+ok('v4: литейщик лёжа/в полёте — корпус тоньше (высота лёжа ≤ 26, ниже героя-в-захвате вдвое), подошва на земле', () => {
+  const B = S.SETS.founder, bb = k => bbox(B[k]);
+  assert.ok(bb('down').h <= 26, 'down h=' + bb('down').h); assert.ok(bb('fall1').h <= 36, 'fall1 h=' + bb('fall1').h);
+  assert.equal(bb('down').y1, S.FH - 1);
+});
+ok('v4: замахи героя — силуэт отличается от стойки (≥120 px) и откинут назад (левее по корпусу)', () => {
+  const d = (a, b) => a.a.reduce((s, v, i) => s + (v !== b.a[i]), 0), H = S.SETS.hero;
+  for (const k of ['jab_a', 'cross_a', 'kick_a']) assert.ok(d(H[k], H.idle0) >= 120, k + ' ' + d(H[k], H.idle0));
+});
 console.log(n + ' тестов прошло');

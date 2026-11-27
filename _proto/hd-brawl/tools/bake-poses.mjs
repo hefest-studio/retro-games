@@ -14,20 +14,24 @@ const G = S.GROUND - 4;
 
 // Цепочки (prev/prev2) задают отставание вторичных деталей: полог — на 1 кадр, хвосты повязки — на 2.
 const KEYP = {
-  jab_a:   { hip: [39, 49], lean: -0.05, face: 'a', aF: [46, 41], aN: [43, 43], lN: [35, G], lF: [47, G], prev: 'idle0', prev2: 'idle1' },
+  // v4: замахи — предвосхищение: корпус откинут, ведущее плечо назад, локоть согнут и отведён
+  jab_a:   { hip: [37, 49], lean: -0.3, face: 'a', aN: [33, 38], ebN: [-1, -0.3], aF: [48, 41], ebF: [0.3, 1], lN: [33, G], lF: [46, G], kbF: [1, 0], prev: 'idle0', prev2: 'idle1' },
   jab:     { hip: [42, 49], lean: 0.2, face: 'a', aF: [61, 39], ebF: [0, 1], aN: [45, 42], lN: [35, G], lF: [51, G], prev: 'jab_a', prev2: 'idle0' },
   jab_r:   { hip: [41, 49], lean: 0.1, face: 'a', aF: [54, 40], aN: [44, 42], lN: [35, G], lF: [49, G], prev: 'jab', prev2: 'jab_a' },
-  cross_a: { hip: [38, 49], lean: -0.15, face: 'a', aN: [35, 42], ebN: [0, 1], aF: [50, 40], lN: [33, G], lF: [47, G], prev: 'jab_r', prev2: 'jab' },
+  cross_a: { hip: [37, 49], lean: -0.3, face: 'a', aN: [28, 42], ebN: [-1, 0.7], aF: [51, 41], lN: [32, G], lF: [47, G], prev: 'jab_r', prev2: 'jab' },
   cross:   { hip: [43, 49], lean: 0.35, face: 'a', aN: [65, 39], ebN: [0, 1], aF: [48, 44], lN: [36, G], lF: [53, G], prev: 'cross_a', prev2: 'jab_r' },
   cross_r: { hip: [42, 49], lean: 0.2, face: 'a', aN: [56, 41], aF: [49, 42], lN: [35, G], lF: [50, G], prev: 'cross', prev2: 'cross_a' },
-  kick_a:  { hip: [39, 48], lean: -0.1, face: 'a', lN: [47, 56], kbN: [0.6, -1], lF: [38, G], aN: [45, 41], aF: [50, 39], prev: 'cross_r', prev2: 'cross' },
+  kick_a:  { hip: [38, 48], lean: -0.25, face: 'a', lN: [48, 56], kbN: [0.6, -1], lF: [37, G], aN: [40, 44], aF: [52, 38], prev: 'cross_r', prev2: 'cross' },
   kick:    { hip: [37, 48], lean: -0.3, face: 'a', lN: [62, 46], bootN: 3, lF: [37, G], aN: [29, 43], aF: [47, 40], prev: 'kick_a', prev2: 'cross_r' },
   kick_r:  { hip: [38, 48], lean: -0.15, face: 'a', lN: [49, 58], kbN: [0.6, -1], lF: [38, G], aN: [43, 42], aF: [49, 40], prev: 'kick', prev2: 'kick_a' },
   hurt:    { hip: [37, 49], lean: -0.35, face: 'h', head: [-1, 0], aN: [30, 45], ebN: [1, 1], aF: [45, 48], lN: [36, G], lF: [46, G], prev: 'jab', prev2: 'jab' },
   // v3: в полёте руки выброшены вперёд-вверх (видны обе кисти), лицо открыто — руки ниже и правее головы
   fall0:   { air: true, hip: [44, 52], lean: -0.8, face: 'h', aN: [61, 45], ebN: [0, 1], aF: [60, 38], ebF: [0, 1], lN: [58, 58], kbN: [0, -1], lF: [54, 63], kbF: [0, -1], prev: 'hurt', prev2: 'hurt' },
   fall1:   { air: true, hip: [52, 52], rot: 3, head: [0, -6], face: 'h', aN: [44, 34], ebN: [-1, 0], aF: [50, 36], ebF: [-1, 0], lN: [69, 44], kbN: [0, -1], lF: [66, 48], kbF: [0, -1], bootN: 3, bootF: 3, noTails: true, prev: 'fall0', prev2: 'fall0' },
-  down:    { hip: [52, 62], rot: 3, head: [0, -6], face: 'h', aN: [52, 67], ebN: [0, 1], aF: [44, 55], ebF: [-1, 0], lN: [70, G], kbN: [0, -1], lF: [66, G], kbF: [0, -1], noTails: true, prev: 'fall1', prev2: 'fall1' },
+  // v4: героя БРОСИЛИ — дуга, раскинутые руки и ноги, лицо «урон»: взлёт и верх дуги (вид сбоку, корпус тоньше)
+  thrown0: { air: true, hip: [42, 50], lean: -0.7, face: 'h', head: [-1, -1], aN: [27, 40], ebN: [-0.5, -1], aF: [62, 32], ebF: [0, -1], lN: [58, 62], kbN: [0, -1], lF: [27, 62], kbF: [0, -1], prev: 'hurt', prev2: 'hurt' },
+  thrown1: { air: true, hip: [50, 50], rot: 3, thin: 0.7, rs: 0.85, head: [0, -3], face: 'h', aN: [46, 25], ebN: [-1, 0], aF: [30, 56], ebF: [0, 1], lN: [74, 36], kbN: [0, -1], lF: [66, 62], kbF: [0, 1], bootN: 3, bootF: 3, noTails: true, prev: 'thrown0', prev2: 'thrown0' },
+  down:    { hip: [52, 62], rot: 3, thin: 0.7, rs: 0.85, head: [0, -4], face: 'h', aN: [52, 67], ebN: [0, 1], aF: [44, 55], ebF: [-1, 0], lN: [70, G], kbN: [0, -1], lF: [66, G], kbF: [0, -1], noTails: true, prev: 'fall1', prev2: 'fall1' },
   getup0:  { hip: [40, 64], lean: -0.35, face: 'n', lN: [57, G], kbN: [0, -1], lF: [54, G], kbF: [0, -1], aN: [31, 64], ebN: [-1, 0], aF: [36, 62], prev: 'down', prev2: 'down' },
   getup2:  { hip: [40, 52], lean: 0.12, face: 'n', lN: [46, G], lF: [33, G], kbF: [0.4, 1], aN: [47, 47], aF: [51, 45], prev: 'getup1', prev2: 'getup0' },
   // захвачен крупным врагом: ноги оторваны от земли, руки вцепились в его запястья
@@ -41,13 +45,13 @@ const BIG_WALK = [[0, 50, G, 32, G - 1, 1], [1, 46, G, 35, G - 2, 0.5], [-1, 41,
 const BIG = {
   idle0:  { hip: [40, 45], lean: 0.05, aN: [47, 47], aF: [57, 45], lN: [33, G], lF: [49, G], prev: 'idle1' },
   idle1:  { hip: [40, 46], lean: 0.05, aN: [47, 48], aF: [57, 46], lN: [33, G], lF: [49, G], prev: 'idle0' },
-  wind:   { hip: [38, 45], lean: -0.25, face: 'a', aN: [31, 15], ebN: [-1, 0], armBehind: true, aF: [57, 26], ebF: [0.3, 1], lN: [32, G], lF: [49, G], prev: 'idle0' },
+  wind:   { hip: [37, 45], lean: -0.35, face: 'a', aN: [19, 24], ebN: [-0.4, -1], armBehind: true, aF: [57, 26], ebF: [0.3, 1], lN: [30, G], lF: [50, G], prev: 'idle0' },
   grab:   { hip: [43, 45], lean: 0.25, face: 'a', aN: [64, 42], aF: [68, 38], lN: [35, G], lF: [54, G], prev: 'wind' },
-  throw:  { hip: [44, 46], lean: 0.4, face: 'a', aN: [67, 54], aF: [63, 49], lN: [33, G], lF: [57, G], prev: 'grab' },
+  throw:  { hip: [42, 47], lean: 0.75, face: 'a', head: [3, 2], aN: [69, 58], ebN: [0, 1], aF: [65, 53], lN: [30, G], lF: [56, G], kbF: [1, -0.3], prev: 'grab' },
   hurt:   { hip: [37, 45], lean: -0.3, face: 'h', head: [-1, 0], aN: [30, 44], ebN: [1, 1], aF: [46, 48], lN: [35, G], lF: [47, G], prev: 'idle0' },
   fall0:  { air: true, hip: [44, 48], lean: -0.7, face: 'h', aN: [59, 36], ebN: [0, 1], aF: [55, 29], lN: [60, 58], kbN: [0, -1], lF: [56, 63], kbF: [0, -1], prev: 'hurt' },
-  fall1:  { air: true, hip: [50, 48], rot: 3, head: [0, -6], face: 'h', aN: [44, 30], ebN: [-1, 0], aF: [52, 30], ebF: [-1, 0], lN: [74, 40], kbN: [0, -1], lF: [72, 44], kbF: [0, -1], bootN: 3, bootF: 3, prev: 'fall0' },
-  down:   { hip: [50, 58], rot: 3, head: [0, -6], face: 'h', aN: [54, 67], ebN: [0, 1], aF: [44, 54], ebF: [-1, 0], lN: [75, G], kbN: [0, -1], lF: [71, G], kbF: [0, -1], prev: 'fall1' },
+  fall1:  { air: true, hip: [50, 50], rot: 3, thin: 0.62, rs: 0.8, head: [0, -3], face: 'h', aN: [44, 34], ebN: [-1, 0], aF: [52, 34], ebF: [-1, 0], lN: [76, 40], kbN: [0, -1], lF: [72, 46], kbF: [0, -1], bootN: 3, bootF: 3, prev: 'fall0' },
+  down:   { hip: [50, 60], rot: 3, thin: 0.62, rs: 0.8, head: [0, -3], face: 'h', aN: [54, 67], ebN: [0, 1], aF: [40, 60], ebF: [-1, 0], lN: [76, G], kbN: [0, -1], lF: [72, G - 1], kbF: [0, -1], prev: 'fall1' },
   getup0: { hip: [40, 61], lean: -0.35, face: 'n', lN: [58, G], kbN: [0, -1], lF: [55, G], kbF: [0, -1], aN: [29, 64], ebN: [-1, 0], aF: [34, 62], prev: 'down' },
   getup1: { hip: [40, 53], lean: 0.25, face: 'n', lN: [50, G], lF: [31, G], kbF: [0.4, 1], aN: [49, 50], aF: [54, 48], prev: 'getup0' }
 };
