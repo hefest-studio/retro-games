@@ -306,7 +306,7 @@
     var baseText = g.text, baseOverlay = g.overlay;
     g.text = function (s, x, y, o) {
       if (this.themeName !== 'hd') return baseText.apply(this, arguments);
-      o = o || {}; F.draw(this.ctx, s, x, y, { size: o.size, color: o.color || this.th().ink, align: o.align, baseline: o.baseline, maxWidth: o.maxWidth, ink: P.outline, shadow: o.shadow });
+      o = o || {}; F.draw(this.ctx, s, x, y, { size: o.size, color: o.color || this.th().ink, align: o.align, baseline: o.baseline, maxWidth: o.maxWidth, wrap: o.wrap, ink: P.outline, shadow: o.shadow });
     };
     g.overlay = function (title, sub, color) {
       if (this.themeName !== 'hd') return baseOverlay.apply(this, arguments);

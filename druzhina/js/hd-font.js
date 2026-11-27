@@ -66,11 +66,43 @@
   }
   // Масштаб по «размеру шрифта» движка (поле 960×540, пиксель арта = 2): кратен 2, чтобы буквы стояли на сетке арта
   function scaleFor(size) { return size >= 50 ? 8 : size >= 34 ? 6 : size >= 22 ? 4 : 2; }
-  // draw(ctx, текст, x, y, { size|scale, color, align, baseline, maxWidth, ink, shadow })
+  // Читаемость на телефоне (волна 48): поле 960 px сжато до ~374 css px (k ≈ 0.39) — буква 7×2 даёт 5,5 css px. Минимальный масштаб
+  // подбирается так, чтобы высота заглавной была ≥ 8 css px: ceil(8 / (7·k)), не меньше 2 (на ПК и телефоне «лёжа» остаётся 2).
+  // Если строка с минимальным масштабом шире maxWidth — при o.wrap переносится по словам, иначе (запасной путь) ужимается и попадает в
+  // DRUZHINA.hdFont.over (проверка вёрстки: tools/ — i18n-hd).
+  var over = [];
+  var msT = -1e9, msV = 2;
+  function minScale(ctx) {
+    var c = ctx && ctx.canvas; if (!c || c.id !== 'c') return 2;
+    var now = Date.now(); if (now - msT < 250) return msV; msT = now;
+    var cw = c.clientWidth, g = global.DRUZHINA && global.DRUZHINA.g, W = (g && g.W) || 960;
+    return (msV = cw ? Math.max(2, Math.min(4, Math.ceil(7.6 / (7 * cw / W)))) : 2);
+  }
+  function wrapLines(s, sc, mw) {
+    var words = s.split(' '), lines = [], cur = '';
+    for (var i = 0; i < words.length; i++) {
+      var t = cur ? cur + ' ' + words[i] : words[i];
+      if (cur && measure(t, sc) > mw) { lines.push(cur); cur = words[i]; } else cur = t;
+    }
+    if (cur) lines.push(cur); return lines;
+  }
+  // draw(ctx, текст, x, y, { size|scale, color, align, baseline, maxWidth, ink, shadow, wrap })
   function draw(ctx, s, x, y, o) {
     o = o || {}; s = String(s == null ? '' : s); if (!s) return 0;
-    var sc = o.scale || scaleFor(o.size || 16);
-    if (o.maxWidth) while (sc > 1 && measure(s, sc) > o.maxWidth) sc = sc > 2 ? sc - 2 : 1;
+    var minSc = minScale(ctx), sc = Math.max(o.scale || scaleFor(o.size || 16), minSc);
+    if (o.maxWidth) {
+      while (sc > minSc && measure(s, sc) > o.maxWidth) sc = Math.max(minSc, sc - 2);
+      if (measure(s, sc) > o.maxWidth) {
+        if (o.wrap && s.indexOf(' ') > 0) {
+          var ls = wrapLines(s, sc, o.maxWidth), lh = 9 * sc, mw = 0, ow = Object.assign({}, o, { wrap: false, maxWidth: 0, scale: sc });
+          ls.forEach(function (l, i) { mw = Math.max(mw, draw(ctx, l, x, y + i * lh, ow)); if (measure(l, sc) > o.maxWidth) over.push(l); });
+          draw.lines = ls.length; return mw;
+        }
+        over.push(s);
+        while (sc > 1 && measure(s, sc) > o.maxWidth) sc = sc > 2 ? sc - 2 : 1;
+      }
+    }
+    draw.lines = 1;
     var sh = o.shadow === false ? 0 : Math.max(2, sc >> 1) >> 1 << 1 || 2;
     var img = render(s, o.color || '#fff3df', sc, o.ink || '#140e14', sh), w = img.width - sh;
     var x0 = o.align === 'center' ? x - (w >> 1) : o.align === 'right' ? x - w : x;
@@ -79,5 +111,5 @@
     return w;
   }
   var D = global.DRUZHINA = global.DRUZHINA || {};
-  D.hdFont = { draw: draw, measure: measure, scaleFor: scaleFor, glyphs: GL };
+  D.hdFont = { draw: draw, measure: measure, scaleFor: scaleFor, minScale: minScale, glyphs: GL, over: over };
 })(typeof window !== 'undefined' ? window : globalThis);

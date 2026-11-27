@@ -298,7 +298,12 @@ test('страница: фавикон студии, «← Каталог», can
   ok(/class="back"[^>]*href="\.\.\/"/.test(html), 'ссылка в каталог');
   ok(/<canvas id="c" width="960" height="540"/.test(html), 'canvas');
   const order = [...html.matchAll(/<script src="\.\/([^"]+)"/g)].map(m => m[1]);
-  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/modern.js', 'js/classic.js', 'js/render.js', 'js/hd-font.js', 'js/hd-sprites.js', 'js/hd-poses.js', 'js/hd-world.js', 'js/hd.js', 'js/stick.js', 'js/ui.js', 'js/main.js']);
+  eq(order, ['engine.js', 'js/music.js', 'js/i18n.js', 'js/game.js', 'js/audio.js', 'js/modern.js', 'js/classic.js', 'js/render.js', 'js/stick.js', 'js/ui.js', 'js/main.js']);
+  ok(!/hd-(font|sprites|poses|world)|js\/hd\.js/.test(html), 'тема HD грузится лениво, не из index.html');
+  const mainJs = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
+  ok(/HD_FILES = \['hd-font', 'hd-sprites', 'hd-poses', 'hd-world', 'hd'\]/.test(mainJs) && /async = false/.test(mainJs), 'ленивая загрузка hd-*.js по порядку');
+  for (const f of ['hd-font', 'hd-sprites', 'hd-poses', 'hd-world', 'hd']) ok(fs.existsSync(path.join(ROOT, 'js', f + '.js')), f + '.js есть');
+  ok(/savedTheme === null \|\| savedTheme === 'hd' \? 'hd'/.test(mainJs), 'по умолчанию hd (нет druzhina.theme)');
   ok(/data-stick/.test(html) && /data-jump/.test(html) && /data-magic/.test(html) && /data-pause/.test(html) && /data-d="A"/.test(html), 'тач-кнопки');
   eq(fs.readFileSync(path.join(ROOT, 'engine.js'), 'utf8'), fs.readFileSync(path.join(ROOT, '..', '_shared', 'engine.js'), 'utf8'), 'engine.js не копия _shared');
 });
