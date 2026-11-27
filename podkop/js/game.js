@@ -1,1117 +1,201 @@
-/* ==========================================================================
-   ПОДКОП — игровая логика (лестницы, канаты, ямы-ловушки)
-   Сетка 28×16, движение по клеткам с плавной интерполяцией.
-   Классическая механика: золото, лестницы, канаты, кирпич, ямы-ловушки, враги.
-   ========================================================================== */
-(function () {
+/* ПОДКОП · логика (без DOM): клеточный сыпучий песок + герой-землекоп.
+   Песок — не жидкость: зерно падает вниз, а если внизу занято — съезжает по диагонали, только когда и боковая, и диагональная клетки свободны
+   (откос ровно 45°). Герой копает песок (зерно уходит в мешок) и сыплет его обратно; песок засыпает врагов и самого героя, если падает на голову.
+   Цель яруса — дойти до двери. PODKOP.Game({level, seed, onEvent, lives}) → state(), setInput(), step(dt), … */
+(function (global) {
   'use strict';
+  var PK = global.PODKOP = global.PODKOP || {};
+  var COLS = 22, ROWS = 18, CAP = 12, LIVES = 3;
+  var AIR = 0, SAND = 1, WALL = 2, SPOUT = 3, SPIKE = 4;
+  var T = { sand: 1 / 24, hero: 0.11, fall: 0.06, dig: 0.16, pour: 0.13, walker: 0.42, chaser: 0.28, efall: 0.08, spout: 0.5, dying: 1.1, clear: 1.7 };
+  PK.consts = { COLS: COLS, ROWS: ROWS, CAP: CAP, LIVES: LIVES, AIR: AIR, SAND: SAND, WALL: WALL, SPOUT: SPOUT, SPIKE: SPIKE, T: T, MAX_LEVEL: 0 };
+  var N = COLS * ROWS;
+  function idx(x, y) { return y * COLS + x; }
+  function inb(x, y) { return x >= 0 && y >= 0 && x < COLS && y < ROWS; }
 
-  var COLS = 28;
-  var ROWS = 16;
-
-  var WALK_MS = 105;      // шаг по горизонтали
-  var CLIMB_MS = 125;     // шаг по лестнице
-  var FALL_MS = 82;       // клетка падения
-  var DIG_WINDUP = 150;   // замах перед рытьём
-  var DIG_TOTAL = 300;    // полная анимация копания
-  var HOLE_TIME = 4.6;    // сколько яма остаётся открытой
-  var RESPAWN_TIME = 3.6; // возрождение врага
-  var ESCAPE_TIME = 0.4;  // сколько сидим в яме, прежде чем можно выпрыгнуть
-  var FREEZE_TIME = 0.7;  // пауза на старте уровня
-
-  /* Цены шагов для поиска пути врага (Дейкстра, см. _pathTo).
-   * Падение на одну клетку стоит заметно дороже шага/лестницы: иначе враг
-   * считает «прыжок в шахту на 6–10 клеток» одним дешёвым действием и уходит
-   * вниз напрямик вместо спуска по лестнице — со стороны это выглядит как
-   * бессмысленное самоубийство с платформы. */
-  var COST_STEP = 1;
-  var COST_CLIMB = 1.1;
-  var COST_FALL_CELL = 3;
-  var ENEMY_RETRY = 0.12;         // пауза перед повторной попыткой, если шаг сорвался
-  var ENEMY_FALLBACK_RETRY = 0.3; // пауза, когда игрок недостижим (враг караулит у ямы)
-
-  var DIRS = {
-    left: { dx: -1, dy: 0 },
-    right: { dx: 1, dy: 0 },
-    up: { dx: 0, dy: -1 },
-    down: { dx: 0, dy: 1 }
-  };
-
-  function key(x, y) { return x + ',' + y; }
-  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
-  function lerp(a, b, t) { return a + (b - a) * t; }
-  function rand(a, b) { return a + Math.random() * (b - a); }
-
-  function makeEntity(x, y, kind) {
-    return {
-      kind: kind,
-      x: x, y: y,
-      px: x, py: y,
-      dir: 1,
-      move: null,
-      state: 'idle',        // idle | walk | climb | fall | hole | dig | spawn | dead
-      anim: Math.random() * 10,
-      stepPhase: 0,
-      hole: null,
-      escape: 0,
-      spawnTimer: 0,
-      deadTimer: 0,
-      spawnX: x, spawnY: y,
-      digSide: 0,
-      digT: 0,
-      dug: false,
-      // ИИ врага: cooldown до следующего решения и закэшированный маршрут.
-      actCooldown: 0,
-      path: null,
-      pathKey: '',
-      pathHoles: ''
-    };
-  }
-
-  function Game(levels, hooks) {
-    this.levels = levels || [];
-    this.hooks = hooks || {};
-    this.audio = null;
-
-    this.levelIndex = 0;
-    this.lives = 3;
-    this.score = 0;
-    this.levelStartScore = 0;
-    this.levelTime = 0;
-    this.time = 0;
-    this.state = 'idle'; // idle | playing | dying | complete | gameover | victory
-    this.freeze = 0;
-    this.shake = 0;
-
-    this.input = { left: false, right: false, up: false, down: false };
-
-    this.base = [];
-    this.gold = new Set();
-    this.totalGold = 0;
-    this.exit = { x: 0, y: 0, open: false };
-    this.spawn = { x: 1, y: 1 };
-    this.enemySpawns = [];
-
-    this.player = makeEntity(1, 1, 'player');
-    this.enemies = [];
-    this.holes = new Map();
-    this.particles = [];
-    this.floaters = [];
-
-    this.deathTimer = 0;
-    this.deathReason = '';
-    this.lastExitHint = 0;
-    this.enemyId = 0;
-
-    this._load(0);
-    this.state = 'idle';
-  }
-
-  /* --------------------------------------------------------------------- */
-  /*  Загрузка уровня                                                       */
-  /* --------------------------------------------------------------------- */
-
-  Game.prototype._load = function (index) {
-    var lvl = this.levels[index];
-    if (!lvl) return;
-    this.levelIndex = index;
-    this.levelTime = 0;
-    this.freeze = FREEZE_TIME;
-    this.shake = 0;
-    this.particles = [];
-    this.floaters = [];
-    this.holes.clear();
-    this.gold.clear();
-    this.enemySpawns = [];
-    this.enemies = [];
-    this.deathTimer = 0;
-
-    var rows = lvl.rows || [];
-    this.base = [];
-    this.totalGold = 0;
-    this.spawn = { x: 1, y: ROWS - 2 };
-    this.exit = { x: COLS - 2, y: 1, open: false };
-
-    for (var y = 0; y < ROWS; y++) {
-      var line = String(rows[y] || '').padEnd(COLS, '#');
-      var row = [];
-      for (var x = 0; x < COLS; x++) {
-        var ch = line.charAt(x);
-        if (ch === '@') { this.spawn = { x: x, y: y }; ch = '.'; }
-        else if (ch === 'X') { this.enemySpawns.push({ x: x, y: y }); ch = '.'; }
-        else if (ch === '$') { this.gold.add(key(x, y)); this.totalGold++; ch = '.'; }
-        else if (ch === 'E') { this.exit = { x: x, y: y, open: false }; ch = '.'; }
-        else if (ch !== '#' && ch !== '=' && ch !== 'H' && ch !== '-') { ch = '.'; }
-        row.push(ch);
-      }
-      this.base.push(row);
+  // ---------- уровни ----------
+  // Строки карты — снизу вверх по высоте поля: недостающие верхние строки достраиваются монолитом. Символы: # скала, s песок, ^ шипы, V пескопад,
+  // H герой, E дверь, w ходок, c охотник, пробел — воздух.
+  PK.level = function (i) {
+    var L = PK.LEVELS[i], rows = L.map.slice(), g = new Uint8Array(N), hero = null, exit = null, enemies = [], spouts = [];
+    while (rows.length < ROWS) rows.unshift(new Array(COLS + 1).join('#'));
+    for (var y = 0; y < ROWS; y++) for (var x = 0; x < COLS; x++) {
+      var ch = rows[y].charAt(x) || '#', v = AIR;
+      if (ch === '#') v = WALL; else if (ch === 's') v = SAND; else if (ch === '^') v = SPIKE;
+      else if (ch === 'V') { v = SPOUT; spouts.push({ x: x, y: y, c: 0.2 }); }
+      else if (ch === 'H') hero = { x: x, y: y }; else if (ch === 'E') exit = { x: x, y: y };
+      else if (ch === 'w' || ch === 'W' || ch === 'c') enemies.push({ t: ch === 'c' ? 'c' : 'w', fast: ch === 'W', x: x, y: y, d: ch === 'c' ? 1 : -1, mc: 0.3, fc: 0, alive: true });
+      g[idx(x, y)] = v;
     }
+    var top = 0; while (top < ROWS - 1 && rows[top + 1].replace(/#/g, '') === '') top++;
+    return { id: L.id, name: L.name, hint: L.hint, bag: L.bag || 0, top: top, g: g, hero: hero, exit: exit, enemies: enemies, spouts: spouts, par: L.par || 60 };
+  };
 
-    this.player = makeEntity(this.spawn.x, this.spawn.y, 'player');
-    this.player.dir = 1;
-    if (!this.isSupported(this.spawn.x, this.spawn.y)) {
-      // страховка: ставим игрока на ближайшую опору ниже
-      for (var sy = this.spawn.y; sy < ROWS; sy++) {
-        if (this.isSupported(this.spawn.x, sy)) {
-          this.player.y = sy; this.player.py = sy;
-          this.spawn.y = sy;
-          break;
-        }
-      }
+  function Game(o) {
+    o = o || {};
+    var onEvent = o.onEvent || function () {}, S = o.state || null;
+    function ev(t, d) { onEvent(t, d || {}); }
+    function load(level, keep) {
+      var L = PK.level(level), prev = S;
+      S = {
+        level: level, top: L.top, hint: L.hint, g: L.g, fl: new Uint8Array(N), exit: L.exit, spouts: L.spouts, enemies: L.enemies, tick: 0, t: 0, sacc: 0, timer: 0,
+        hero: { x: L.hero.x, y: L.hero.y, f: 1, bag: L.bag, mc: 0, fc: 0, dc: 0, pc: 0, ac: 0 },
+        mode: 'play', lives: keep ? prev.lives : (o.lives || LIVES), score: keep ? prev.score : 0, buried: 0, why: '', par: L.par,
+        input: { dx: 0, dy: 0, dig: false, pour: false }, seed: o.seed || 1, bonus: null
+      };
     }
+    if (!S) load(o.level || 0, false);
 
-    for (var i = 0; i < this.enemySpawns.length; i++) {
-      var sp = this.enemySpawns[i];
-      var en = makeEntity(sp.x, sp.y, 'enemy');
-      en.id = ++this.enemyId;
-      en.spawnTimer = 0.5 + i * 0.12;
-      en.state = 'spawn';
-      en.dir = i % 2 === 0 ? 1 : -1;
-      this.enemies.push(en);
+    function actorAt(x, y) {
+      var h = S.hero; if (S.mode === 'play' && h.x === x && h.y === y) return h;
+      for (var i = 0; i < S.enemies.length; i++) { var e = S.enemies[i]; if (e.alive && e.x === x && e.y === y) return e; }
+      return null;
     }
-
-    if (this.hooks.onEvent) this.hooks.onEvent('level', { index: index, level: lvl });
-  };
-
-  Game.prototype.startRun = function () {
-    this.lives = 3;
-    this.score = 0;
-    this.levelStartScore = 0;
-    this._load(0);
-    this.state = 'playing';
-    if (this.hooks.onEvent) this.hooks.onEvent('run', { lives: this.lives });
-    this._sfx('click');
-  };
-
-  Game.prototype.startLevel = function (index) {
-    this._load(index);
-    this.state = 'playing';
-  };
-
-  Game.prototype.nextLevel = function () {
-    if (this.state !== 'complete') return;
-    var next = this.levelIndex + 1;
-    if (next >= this.levels.length) {
-      this.state = 'victory';
-      if (this.hooks.onEvent) this.hooks.onEvent('victory', { score: this.score });
-      return;
+    function cell(x, y) { return inb(x, y) ? S.g[idx(x, y)] : (y >= ROWS ? 9 : WALL); }   // 9 — бездна под полем
+    function freeCell(x, y) { return inb(x, y) && S.g[idx(x, y)] === AIR && !actorAt(x, y); }
+    function solid(v) { return v === SAND || v === WALL || v === SPOUT || v === SPIKE; }
+    function hurt(why) {
+      if (S.mode !== 'play') return; S.mode = 'dying'; S.timer = T.dying; S.why = why; ev('hurt', { x: S.hero.x, y: S.hero.y, why: why });
     }
-    this.levelStartScore = this.score;
-    this._load(next);
-    this.state = 'playing';
-  };
-
-  Game.prototype.restartRun = function () { this.startRun(); };
-
-  // Красивый фон для титульного экрана: уровень 1, всё замерло.
-  Game.prototype.showTitlePreview = function () {
-    this.lives = 3;
-    this.score = 0;
-    this.levelStartScore = 0;
-    this._load(0);
-    this.state = 'idle';
-  };
-
-  Game.prototype.levelName = function (lang) {
-    var lvl = this.levels[this.levelIndex] || {};
-    if (lang === 'en' && lvl.nameEn) return lvl.nameEn;
-    return lvl.name || '???';
-  };
-
-  Game.prototype.levelHint = function (lang) {
-    var lvl = this.levels[this.levelIndex] || {};
-    if (lang === 'en' && lvl.hintEn) return lvl.hintEn;
-    return lvl.hint || '';
-  };
-
-  /* --------------------------------------------------------------------- */
-  /*  Тайлы и опоры                                                         */
-  /* --------------------------------------------------------------------- */
-
-  Game.prototype.tileAt = function (x, y) {
-    if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return '#';
-    return this.base[y][x];
-  };
-
-  Game.prototype.isHole = function (x, y) {
-    return this.holes.has(key(x, y));
-  };
-
-  Game.prototype.isPassable = function (x, y) {
-    if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return false;
-    var t = this.base[y][x];
-    return t !== '#' && t !== '=';
-  };
-
-  Game.prototype.isLadder = function (x, y) {
-    return this.tileAt(x, y) === 'H';
-  };
-
-  Game.prototype.isRope = function (x, y) {
-    return this.tileAt(x, y) === '-';
-  };
-
-  // Опора: клетка ниже — твёрдая/кирпич/лестница/канат; либо сам герой на лестнице/канате.
-  Game.prototype.isSupported = function (x, y) {
-    var here = this.tileAt(x, y);
-    if (here === 'H' || here === '-') return true;
-    var below = this.tileAt(x, y + 1);
-    return below === '#' || below === '=' || below === 'H' || below === '-';
-  };
-
-  Game.prototype.exitIsUsable = function () {
-    return this.exit.open && this.gold.size === 0;
-  };
-
-  /* --------------------------------------------------------------------- */
-  /*  Движение                                                             */
-  /* --------------------------------------------------------------------- */
-
-  function finishMove(ent) {
-    var m = ent.move;
-    ent.x = m.toX; ent.y = m.toY;
-    ent.px = ent.x; ent.py = ent.y;
-    ent.move = null;
-    ent.stepPhase = (ent.stepPhase + 1) % 2;
-    return m;
-  }
-
-  Game.prototype._startMove = function (ent, dx, dy, ms, kind) {
-    ent.move = {
-      fromX: ent.x, fromY: ent.y,
-      toX: ent.x + dx, toY: ent.y + dy,
-      dx: dx, dy: dy,
-      t: 0, dur: ms / 1000, kind: kind || 'walk'
-    };
-    if (dx !== 0) ent.dir = dx;
-    ent.state = kind === 'fall' ? 'fall' : (dy !== 0 ? 'climb' : 'walk');
-  };
-
-  Game.prototype._progressMove = function (ent, dt) {
-    var m = ent.move;
-    if (!m) return null;
-    m.t += dt;
-    var k = clamp(m.t / m.dur, 0, 1);
-    ent.px = lerp(m.fromX, m.toX, k);
-    ent.py = lerp(m.fromY, m.toY, k);
-    if (k >= 1) {
-      var done = finishMove(ent);
-      ent.anim += 0.1;
-      return done;
+    function killEnemy(e, why) {
+      if (!e.alive) return; e.alive = false; S.buried++; S.score += 100; ev('bury', { x: e.x, y: e.y, t: e.t, why: why });
     }
-    return null;
-  };
+    function hit(a) { if (a === S.hero) hurt('sand'); else killEnemy(a, 'sand'); }
 
-  Game.prototype.landing = function (x, y) {
-    // куда приземлится объект, начавший падение из (x,y); null — улетел за карту
-    var yy = y;
-    while (yy < ROWS) {
-      if (this.isHole(x, yy)) return { x: x, y: yy, hole: true };
-      if (this.isSupported(x, yy)) return { x: x, y: yy, hole: false };
-      yy++;
-    }
-    return null;
-  };
-
-  /* --------------------------------------------------------------------- */
-  /*  Игрок                                                                */
-  /* --------------------------------------------------------------------- */
-
-  Game.prototype.canWalk = function (ent, dx) {
-    return this.isPassable(ent.x + dx, ent.y);
-  };
-
-  Game.prototype.canUp = function (ent) {
-    return this.isLadder(ent.x, ent.y) && this.isPassable(ent.x, ent.y - 1) && !this.isHole(ent.x, ent.y - 1);
-  };
-
-  Game.prototype.canDown = function (ent) {
-    var ladderHere = this.isLadder(ent.x, ent.y);
-    var ladderBelow = this.isLadder(ent.x, ent.y + 1);
-    if (!(ladderHere || ladderBelow)) return false;
-    if (!this.isPassable(ent.x, ent.y + 1)) return false;
-    if (this.isHole(ent.x, ent.y + 1)) return false;
-    return true;
-  };
-
-  // ↓ на канате — разжать руки и упасть (только игрок; стража с канатов не прыгает).
-  Game.prototype.canDropFromRope = function (ent) {
-    return this.isRope(ent.x, ent.y) && !this.isLadder(ent.x, ent.y + 1) && this.isPassable(ent.x, ent.y + 1);
-  };
-
-  Game.prototype._entitySupported = function (ent) {
-    if (this.isHole(ent.x, ent.y)) return false;
-    return this.isSupported(ent.x, ent.y);
-  };
-
-  Game.prototype._beginFall = function (ent) {
-    if (ent.y >= ROWS - 1) {
-      if (ent.kind === 'player') this.killPlayer('fall');
-      return;
-    }
-    this._startMove(ent, 0, 1, FALL_MS, 'fall');
-  };
-
-  Game.prototype._arrive = function (ent) {
-    if (ent.kind === 'player') {
-      this._collectGoldAt(ent.x, ent.y);
-      // Выход открыт — касание завершает уровень
-      if (this.exitIsUsable() && ent.x === this.exit.x && ent.y === this.exit.y) {
-        this.completeLevel();
-        return;
-      }
-    }
-
-    if (this.isHole(ent.x, ent.y)) {
-      this._trapInHole(ent);
-      return;
-    }
-
-    if (!this._entitySupported(ent)) {
-      this._beginFall(ent);
-      return;
-    }
-
-    ent.state = ent.kind === 'player' ? 'idle' : 'idle';
-    ent.escape = 0;
-  };
-
-  Game.prototype._trapInHole = function (ent) {
-    var h = this.holes.get(key(ent.x, ent.y));
-    if (!h) { this._beginFall(ent); return; }
-    ent.state = 'hole';
-    ent.hole = key(ent.x, ent.y);
-    ent.escape = 0;
-    if (ent.kind === 'enemy') {
-      // пока враг в яме, маршрут не нужен — сбрасываем кэш
-      ent.path = null;
-      ent.pathKey = '';
-      this._sfx('trap');
-      this._burst(ent.x, ent.y, 10, '#ff5c8a');
-    } else {
-      this._sfx('trap');
-      this.shake = Math.max(this.shake, 4);
-    }
-  };
-
-  Game.prototype.updatePlayer = function (dt) {
-    var p = this.player;
-    p.anim += dt;
-
-    if (p.state === 'hole') {
-      p.escape += dt;
-      var hk = p.hole;
-      if (!hk || !this.holes.has(hk)) { // яма закрылась — смерть
-        this.killPlayer('hole');
-        return;
-      }
-      // выбраться из ямы можно вверх после короткой задержки
-      if (p.escape > ESCAPE_TIME && this.input.up && this.isPassable(p.x, p.y - 1)) {
-        p.hole = null;
-        p.state = 'climb';
-        this._startMove(p, 0, -1, 165, 'climb');
-        this._sfx('step');
-      }
-      return;
-    }
-
-    if (p.state === 'digging') {
-      p.digT += dt;
-      if (!p.dug && p.digT >= DIG_WINDUP / 1000) {
-        p.dug = true;
-        this._makeHole(p.x + p.digSide, p.y + 1);
-      }
-      if (p.digT >= DIG_TOTAL / 1000) {
-        p.state = 'idle';
-        p.digT = 0;
-      }
-      return;
-    }
-
-    // смертельная анимация обрабатывается на уровне Game.state
-
-    if (p.move) {
-      this._progressMove(p, dt);
-      if (p.move) return;
-      // прибыли в новую клетку
-      this._arrive(p);
-      return;
-    }
-
-    if (p.state === 'fall') {
-      this._beginFall(p);
-      return;
-    }
-
-    // после прибытия — проверить опору
-    if (!this._entitySupported(p)) {
-      if (p.state === 'idle' || p.state === 'walk' || p.state === 'climb') {
-        this._beginFall(p);
-        return;
-      }
-    }
-
-    if (p.state === 'spawn') { p.state = 'idle'; return; }
-    if (p.state !== 'idle' && p.state !== 'walk') p.state = 'idle';
-
-    // управление по удержанию клавиш
-    var inp = this.input;
-    if (inp.up && this.canUp(p)) { this._startMove(p, 0, -1, CLIMB_MS, 'climb'); return; }
-    if (inp.down && this.canDown(p)) { this._startMove(p, 0, 1, CLIMB_MS, 'climb'); return; }
-    if (inp.down && this.canDropFromRope(p)) { this._startMove(p, 0, 1, FALL_MS, 'fall'); return; }
-    if (inp.left && this.canWalk(p, -1)) { this._startMove(p, -1, 0, WALK_MS, 'walk'); return; }
-    if (inp.right && this.canWalk(p, 1)) { this._startMove(p, 1, 0, WALK_MS, 'walk'); return; }
-    p.state = 'idle';
-  };
-
-  Game.prototype.movePlayer = function () {
-    var p = this.player;
-    if (p.state === 'idle' || p.state === 'walk') {
-      // ускоренное решение в тот же кадр, чтобы ввод был отзывчивым
-      var inp = this.input;
-      if (inp.up && this.canUp(p)) { this._startMove(p, 0, -1, CLIMB_MS, 'climb'); return true; }
-      if (inp.down && this.canDown(p)) { this._startMove(p, 0, 1, CLIMB_MS, 'climb'); return true; }
-      if (inp.down && this.canDropFromRope(p)) { this._startMove(p, 0, 1, FALL_MS, 'fall'); return true; }
-      if (inp.left && this.canWalk(p, -1)) { this._startMove(p, -1, 0, WALK_MS, 'walk'); return true; }
-      if (inp.right && this.canWalk(p, 1)) { this._startMove(p, 1, 0, WALK_MS, 'walk'); return true; }
-    }
-    return false;
-  };
-
-  Game.prototype.dig = function (side) {
-    var p = this.player;
-    if (this.state !== 'playing' || this.freeze > 0) return false;
-    if (p.move || p.state === 'hole' || p.state === 'digging' || p.state === 'fall') return false;
-    if (!this._entitySupported(p)) return false;
-    var tx = p.x + (side < 0 ? -1 : 1);
-    var ty = p.y + 1;
-    if (ty >= ROWS) return false;
-    if (this.tileAt(tx, ty) !== '=') return false;
-    if (this.holes.has(key(tx, ty))) return false;
-    // не выкапываем опору из-под золота или выхода
-    if (this.gold.has(key(tx, ty - 1))) return false;
-    if (this.exit.x === tx && this.exit.y === ty - 1) return false;
-    p.state = 'digging';
-    p.digSide = side < 0 ? -1 : 1;
-    p.digT = 0;
-    p.dug = false;
-    p.dir = p.digSide;
-    this._sfx('dig');
-    return true;
-  };
-
-  Game.prototype._makeHole = function (x, y) {
-    if (this.tileAt(x, y) !== '=') return;
-    this.base[y][x] = '.';
-    this.holes.set(key(x, y), { timer: HOLE_TIME, max: HOLE_TIME, x: x, y: y });
-    this._burst(x + 0.5, y + 0.5, 12, '#ff9f43');
-    this.shake = Math.max(this.shake, 2.5);
-  };
-
-  Game.prototype._collectGoldAt = function (x, y) {
-    var k = key(x, y);
-    if (!this.gold.has(k)) return;
-    this.gold.delete(k);
-    this.score += 100;
-    this._sfx('gold');
-    this._burst(x + 0.5, y + 0.5, 14, '#ffd166');
-    this._float('+100', x, y, '#ffd166');
-    if (this.hooks.onEvent) {
-      this.hooks.onEvent('gold', { left: this.gold.size, total: this.totalGold, score: this.score });
-    }
-    if (this.gold.size === 0) {
-      this.exit.open = true;
-      this.exit.openAt = this.time;
-      this._sfx('exit');
-      this.shake = Math.max(this.shake, 5);
-      this._burst(this.exit.x + 0.5, this.exit.y + 0.5, 30, '#7cf6ff');
-      if (this.hooks.onEvent) this.hooks.onEvent('exitOpen', { x: this.exit.x, y: this.exit.y });
-    }
-  };
-
-  Game.prototype.killPlayer = function (reason) {
-    if (this.state !== 'playing') return;
-    this.state = 'dying';
-    this.deathTimer = 1.15;
-    this.deathReason = reason || 'enemy';
-    this.shake = 10;
-    this._sfx('die');
-    this._burst(this.player.px + 0.5, this.player.py + 0.5, 26, '#ff4d6d');
-    if (this.hooks.onEvent) this.hooks.onEvent('die', { reason: this.deathReason });
-  };
-
-  Game.prototype._finishDeath = function () {
-    this.lives -= 1;
-    if (this.lives <= 0) {
-      this.lives = 0;
-      this.state = 'gameover';
-      if (this.hooks.onEvent) this.hooks.onEvent('gameover', { score: this.score });
-      return;
-    }
-    this.score = this.levelStartScore;
-    this._load(this.levelIndex);
-    this.state = 'playing';
-    if (this.hooks.onEvent) this.hooks.onEvent('respawn', { lives: this.lives });
-  };
-
-  Game.prototype.completeLevel = function () {
-    if (this.state !== 'playing') return;
-    this.state = 'complete';
-    var timeBonus = Math.max(0, Math.round(420 - this.levelTime * 5));
-    var levelBonus = 250;
-    var total = timeBonus + levelBonus;
-    this.score += total;
-    this._sfx('win');
-    this.shake = Math.max(this.shake, 6);
-    this._burst(this.player.px + 0.5, this.player.py + 0.5, 36, '#7cf6ff');
-    if (this.hooks.onEvent) {
-      this.hooks.onEvent('complete', {
-        level: this.levelIndex,
-        time: this.levelTime,
-        timeBonus: timeBonus,
-        levelBonus: levelBonus,
-        total: total,
-        score: this.score,
-        last: this.levelIndex >= this.levels.length - 1
-      });
-    }
-  };
-
-  /* --------------------------------------------------------------------- */
-  /*  Враги                                                                */
-  /* --------------------------------------------------------------------- */
-
-  // Клетки, куда враг может шагнуть из (x, y), и цена такого шага.
-  // Общая логика для поиска пути и для «достижимой компоненты».
-  Game.prototype._enemyMoves = function (x, y) {
-    var moves = [];
-    var self = this;
-    function add(ax, ay, baseCost) {
-      var nx = x + ax, ny = y + ay;
-      var land = self.landing(nx, ny);
-      if (!land || land.hole) return; // в открытую яму враг сам не полезет
-      var fallCells = Math.max(0, land.y - ny); // сколько клеток летим после шага
-      moves.push({
-        land: land,
-        action: { dx: ax, dy: ay },
-        cost: baseCost + fallCells * COST_FALL_CELL
-      });
-    }
-    if (this.isPassable(x - 1, y) && !this.isHole(x - 1, y)) add(-1, 0, COST_STEP);
-    if (this.isPassable(x + 1, y) && !this.isHole(x + 1, y)) add(1, 0, COST_STEP);
-    if (this.isLadder(x, y) && this.isPassable(x, y - 1) && !this.isHole(x, y - 1)) add(0, -1, COST_CLIMB);
-    var ladderDown = this.isLadder(x, y) || this.isLadder(x, y + 1);
-    if (ladderDown && this.isPassable(x, y + 1) && !this.isHole(x, y + 1)) add(0, 1, COST_CLIMB);
-    return moves;
-  };
-
-  Game.prototype._enemyReachable = function (sx, sy) {
-    // Узлы (x,y) — позиции с опорой; рёбра — _enemyMoves. Ямы недостижимы.
-    var startK = key(sx, sy);
-    var seen = new Set([startK]);
-    var nodes = [{ x: sx, y: sy }];
-    var q = [{ x: sx, y: sy }];
-    var head = 0;
-    while (head < q.length) {
-      var cur = q[head++];
-      var moves = this._enemyMoves(cur.x, cur.y);
-      for (var i = 0; i < moves.length; i++) {
-        var land = moves[i].land;
-        var nk = key(land.x, land.y);
-        if (seen.has(nk)) continue;
-        seen.add(nk);
-        nodes.push(land);
-        q.push(land);
-      }
-    }
-    return { seen: seen, nodes: nodes, startK: startK };
-  };
-
-  // --- маленькая двоичная куча для Дейкстры ---------------------------------
-  function heapPush(h, item) {
-    h.push(item);
-    var i = h.length - 1;
-    while (i > 0) {
-      var p = (i - 1) >> 1;
-      if (h[p].c <= h[i].c) break;
-      var t = h[p]; h[p] = h[i]; h[i] = t;
-      i = p;
-    }
-  }
-  function heapPop(h) {
-    var top = h[0];
-    var last = h.pop();
-    if (h.length) {
-      h[0] = last;
-      var i = 0;
-      for (;;) {
-        var l = i * 2 + 1, r = l + 1, m = i;
-        if (l < h.length && h[l].c < h[m].c) m = l;
-        if (r < h.length && h[r].c < h[m].c) m = r;
-        if (m === i) break;
-        var t = h[m]; h[m] = h[i]; h[i] = t;
-        i = m;
-      }
-    }
-    return top;
-  }
-
-  /* Маршрут врага. Раньше это был BFS «по числу действий»: длинное падение
-   * считалось одним дешёвым действием, поэтому враг регулярно выбирал не
-   * лестницу, а «прыжок в шахту» на 6–10 клеток — со стороны это выглядело
-   * как бессмысленное падение с платформы. Теперь — Дейкстра по стоимости,
-   * где каждая клетка падения добавляет штраф (COST_FALL_CELL). */
-  Game.prototype._pathTo = function (sx, sy, targets) {
-    if (!targets || !targets.length) return null;
-    var startK = key(sx, sy);
-    var targetSet = new Set();
-    for (var t = 0; t < targets.length; t++) targetSet.add(key(targets[t].x, targets[t].y));
-
-    var best = new Map();
-    var prev = new Map();
-    var heap = [];
-    best.set(startK, 0);
-    prev.set(startK, null);
-    heapPush(heap, { x: sx, y: sy, c: 0 });
-
-    while (heap.length) {
-      var cur = heapPop(heap);
-      var curK = key(cur.x, cur.y);
-      if (cur.c > (best.has(curK) ? best.get(curK) : Infinity)) continue;
-
-      if (curK !== startK && targetSet.has(curK)) {
-        var actions = [];
-        var node = { x: cur.x, y: cur.y };
-        var info = prev.get(key(node.x, node.y));
-        while (info && info.from) {
-          actions.push({ dx: info.action.dx, dy: info.action.dy });
-          node = info.from;
-          info = prev.get(key(node.x, node.y));
-        }
-        actions.reverse();
-        return actions;
-      }
-
-      var moves = this._enemyMoves(cur.x, cur.y);
-      for (var i = 0; i < moves.length; i++) {
-        var mv = moves[i];
-        var nk = key(mv.land.x, mv.land.y);
-        var nc = cur.c + mv.cost;
-        if (nc >= (best.has(nk) ? best.get(nk) : Infinity)) continue;
-        best.set(nk, nc);
-        prev.set(nk, { from: { x: cur.x, y: cur.y }, action: mv.action });
-        heapPush(heap, { x: mv.land.x, y: mv.land.y, c: nc });
-      }
-    }
-    return null;
-  };
-
-  Game.prototype._enemyPickTarget = function (en) {
-    var p = this.player;
-    var targets = [];
-    if (this.state === 'playing' && p.state !== 'dead') targets.push({ x: p.x, y: p.y });
-    return targets;
-  };
-
-  /* Одно решение врага. Вызывается только когда враг стоит на опоре.
-   * Держит закэшированный маршрут к игроку и продолжает его от шага к шагу:
-   * пока игрок стоит на месте, враг не пересчитывает путь и не «передумывает»
-   * на каждой клетке. */
-  Game.prototype._enemyClassicStep = function (en) {
-    var p = this.player;
-    var dx = p.x > en.x ? 1 : (p.x < en.x ? -1 : 0);
-    var dy = p.y > en.y ? 1 : (p.y < en.y ? -1 : 0);
-    // 1) к ряду игрока по лестнице
-    if (dy > 0 && this.canDown(en)) return this._enemyStep(en, { dx: 0, dy: 1 });
-    if (dy < 0 && this.canUp(en)) return this._enemyStep(en, { dx: 0, dy: -1 });
-    // 2) к колонне игрока по горизонтали (сход с края = падение к игроку)
-    if (dx !== 0 && this.canWalk(en, dx)) return this._enemyStep(en, { dx: dx, dy: 0 });
-    // 3) затык: любая доступная вертикаль к игроку, затем обход в сторону
-    if (dy >= 0 && this.canDown(en)) return this._enemyStep(en, { dx: 0, dy: 1 });
-    if (dy <= 0 && this.canUp(en)) return this._enemyStep(en, { dx: 0, dy: -1 });
-    if (dx !== 0 && this.canWalk(en, -dx)) return this._enemyStep(en, { dx: -dx, dy: 0 });
-    return false;
-  };
-
-  Game.prototype._enemyAct = function (en) {
-    if (en.move || en.state === 'hole' || en.state === 'dead' || en.state === 'spawn') return;
-    if (!this._entitySupported(en)) {
-      this._beginFall(en);
-      return;
-    }
-
-    // Классическая эвристика стражи: читаемое преследование.
-    // Если ничего не вышло (тупик) — ниже фолбэк на поиск пути, чтобы страж не зависал.
-    if (this._enemyClassicStep(en)) { en.actCooldown = 0; return; }
-
-    var targets = this._enemyPickTarget(en);
-    var playerReachableTarget = targets.length > 0;
-    // Маршрут валиден, пока цель (клетка игрока) и состояние ям/золота не менялись.
-    var goalKey = playerReachableTarget ? ('p:' + targets[0].x + ',' + targets[0].y) : 'none';
-    var worldKey = this.holes.size + ':' + this.gold.size + ':' + (this.exit.open ? 1 : 0);
-    if (!en.path || en.pathKey !== goalKey || en.pathHoles !== worldKey) {
-      en.path = playerReachableTarget ? (this._pathTo(en.x, en.y, targets) || []) : [];
-      en.pathKey = goalKey;
-      en.pathHoles = worldKey;
-    }
-
-    var hadPath = false;
-    while (en.path && en.path.length) {
-      hadPath = true;
-      var action = en.path.shift();
-      if (this._enemyStep(en, action)) {
-        en.actCooldown = 0;
-        return;
-      }
-      // Шаг сорвался (яма/кирпич появились после расчёта) — пересчитаем путь.
-      en.path = null;
-      en.pathKey = '';
-    }
-    en.path = null;
-    en.pathKey = '';
-    if (hadPath) {
-      // Маршрут к игроку был, но шаг не начался: короткая пауза и пересчёт,
-      // чтобы не гонять Дейкстру каждый кадр.
-      en.actCooldown = ENEMY_RETRY;
-      return;
-    }
-
-    // Игрок недостижим (например, сидит в яме). Без случайного блуждания:
-    // 1) подходим как можно ближе к игроку по достижимой части уровня;
-    // 2) если ближе некуда — идём к награде (золото/открытый выход);
-    // 3) иначе караулим на месте.
-    var px = this.player.px, py = this.player.py;
-    var myDist = Math.abs(en.x - px) + Math.abs(en.y - py);
-    var comp = this._enemyReachable(en.x, en.y);
-    var bestNode = null, bestDist = Infinity;
-    for (var i = 0; i < comp.nodes.length; i++) {
-      var n = comp.nodes[i];
-      if (n.x === en.x && n.y === en.y) continue;
-      var d = Math.abs(n.x - px) + Math.abs(n.y - py);
-      if (d < bestDist) { bestDist = d; bestNode = n; }
-    }
-    if (bestNode && bestDist < myDist) {
-      var bp = this._pathTo(en.x, en.y, [bestNode]);
-      if (bp && bp.length && this._enemyStep(en, bp[0])) { en.actCooldown = 0; return; }
-    }
-
-    var rewards = [];
-    this.gold.forEach(function (v) {
-      var p2 = v.split(',');
-      rewards.push({ x: +p2[0], y: +p2[1] });
-    });
-    if (this.exit.open) rewards.push({ x: this.exit.x, y: this.exit.y });
-    var rp = this._pathTo(en.x, en.y, rewards);
-    if (rp && rp.length && this._enemyStep(en, rp[0])) { en.actCooldown = 0; return; }
-
-    en.actCooldown = ENEMY_FALLBACK_RETRY;
-  };
-
-  // Возвращает true, если шаг реально начался.
-  Game.prototype._enemyStep = function (en, action) {
-    if (!action) return false;
-    if (action.dy === -1) {
-      if (!this.canUp(en)) return false;
-      this._startMove(en, 0, -1, CLIMB_MS + 20, 'climb');
-      return true;
-    }
-    if (action.dy === 1) {
-      if (!this.canDown(en)) return false;
-      this._startMove(en, 0, 1, CLIMB_MS + 20, 'climb');
-      return true;
-    }
-    if (action.dx !== 0) {
-      if (!this.canWalk(en, action.dx)) return false;
-      this._startMove(en, action.dx, 0, WALK_MS + 45, 'walk');
-      return true;
-    }
-    return false;
-  };
-
-  Game.prototype.updateEnemies = function (dt) {
-    for (var i = 0; i < this.enemies.length; i++) {
-      var en = this.enemies[i];
-      en.anim += dt;
-
-      if (en.state === 'dead') {
-        en.deadTimer -= dt;
-        if (en.deadTimer <= 0) this._enemyRespawn(en);
-        continue;
-      }
-      if (en.state === 'spawn') {
-        en.spawnTimer -= dt;
-        if (en.spawnTimer <= 0) { en.state = 'idle'; en.actCooldown = 0; }
-        continue;
-      }
-      if (en.state === 'hole') {
-        if (!this.holes.has(en.hole)) {
-          this._enemyDie(en);
-        }
-        continue;
-      }
-      if (en.move) {
-        this._progressMove(en, dt);
-        if (en.move) continue;
-        this._arrive(en);
-        // Прибыли в клетку — сразу продолжаем маршрут в этом же кадре.
-        // Раньше здесь была случайная пауза 20–120 мс перед каждым шагом,
-        // из-за неё враг «дёргался»: шаг — стоп — шаг.
-        if (!en.move && en.state !== 'hole' && en.state !== 'dead' &&
-            en.state !== 'spawn' && en.actCooldown <= 0) {
-          this._enemyAct(en);
-        }
-        continue;
-      }
-      if (en.state === 'fall') {
-        this._beginFall(en);
-        continue;
-      }
-      if (!this._entitySupported(en)) {
-        this._beginFall(en);
-        continue;
-      }
-      if (en.actCooldown > 0) { en.actCooldown -= dt; continue; }
-      this._enemyAct(en);
-    }
-  };
-
-  /* Возрождение врага: возвращаем на его точку старта, но только если она
-   * всё ещё пригодна (игрок мог выкопать под ней яму или застроить проход).
-   * Иначе ищем ближайшую опорную клетку рядом — враг не должен появляться
-   * внутри кирпича или ямы. */
-  Game.prototype._enemyRespawn = function (en) {
-    var sx = en.spawnX, sy = en.spawnY;
-    var ok = function (x, y) {
-      return this.isPassable(x, y) && !this.isHole(x, y) && this.isSupported(x, y);
-    }.bind(this);
-    if (!ok(sx, sy)) {
-      var found = null;
-      for (var r = 1; r <= 4 && !found; r++) {
-        for (var dy = -r; dy <= r && !found; dy++) {
-          for (var dx = -r; dx <= r && !found; dx++) {
-            if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
-            if (ok(sx + dx, sy + dy)) found = { x: sx + dx, y: sy + dy };
+    // ---------- песок ----------
+    function sandTick() {
+      var g = S.g, fl = S.fl, nf = new Uint8Array(N), tk = S.tick++;
+      for (var y = ROWS - 1; y >= 0; y--) {
+        for (var k = 0; k < COLS; k++) {
+          var x = (tk & 1) ? COLS - 1 - k : k, i = y * COLS + x; if (g[i] !== SAND) continue;
+          if (y === ROWS - 1) { g[i] = AIR; continue; }          // зерно ушло в бездну
+          var b = i + COLS;
+          if (g[b] === AIR) {
+            var a = actorAt(x, y + 1);
+            if (!a) { g[b] = SAND; g[i] = AIR; nf[b] = 1; continue; }
+            if (fl[i]) { g[b] = SAND; g[i] = AIR; nf[b] = 1; hit(a); }
+            continue;
+          }
+          var s0 = ((x * 5 + y * 3 + tk) & 1) ? 1 : -1;
+          for (var q = 0; q < 2; q++) {
+            var s = q ? -s0 : s0, nx = x + s; if (nx < 0 || nx >= COLS) continue;
+            if (g[y * COLS + nx] === AIR && g[(y + 1) * COLS + nx] === AIR && !actorAt(nx, y) && !actorAt(nx, y + 1)) { g[(y + 1) * COLS + nx] = SAND; g[i] = AIR; nf[(y + 1) * COLS + nx] = 1; break; }
           }
         }
       }
-      if (found) {
-        sx = found.x; sy = found.y;
-      } else {
-        // Совсем некуда поставить — попробуем позже, но не спавним в стене.
-        en.deadTimer = 0.5;
+      S.fl = nf;
+    }
+
+    // ---------- герой ----------
+    function heroMoveTo(x, y) { S.hero.x = x; S.hero.y = y; checkContact(); }
+    function checkContact() {
+      if (S.mode !== 'play') return; var h = S.hero;
+      for (var i = 0; i < S.enemies.length; i++) { var e = S.enemies[i]; if (e.alive && e.x === h.x && e.y === h.y) { hurt('bite'); return; } }
+      if (S.exit && h.x === S.exit.x && h.y === S.exit.y) win();
+    }
+    function win() {
+      var h = S.hero, tb = Math.max(0, Math.round((S.par - S.t) * 3)), sb = h.bag * 10, tot = 200 + tb + sb;
+      S.score += tot; S.mode = 'clear'; S.timer = T.clear; S.bonus = { base: 200, time: tb, sand: sb, total: tot };
+      ev('clear', { level: S.level, bonus: S.bonus });
+    }
+    function aimCell() {
+      var h = S.hero, inp = S.input; if (inp.dy < 0) return [h.x, h.y - 1, 'up']; if (inp.dy > 0) return [h.x, h.y + 1, 'down']; return [h.x + h.f, h.y, 'front'];
+    }
+    function heroUpdate(dt) {
+      var h = S.hero, inp = S.input; h.mc -= dt; h.fc -= dt; h.dc -= dt; h.pc -= dt;
+      if (inp.dx && (inp.dig || inp.pour)) h.f = inp.dx > 0 ? 1 : -1;   // с кнопкой действия стик только поворачивает
+      var below = cell(h.x, h.y + 1);
+      if (below === AIR || below === 9) {                 // падение
+        if (h.fc <= 0) { h.fc = T.fall; if (h.y + 1 >= ROWS) { hurt('void'); return; } h.y++; checkContact(); }
         return;
       }
-    }
-    en.x = sx; en.y = sy;
-    en.px = sx; en.py = sy;
-    en.state = 'spawn';
-    en.spawnTimer = 0.55;
-    en.move = null;
-    en.hole = null;
-    en.path = null;
-    en.pathKey = '';
-    en.actCooldown = 0.2;
-  };
-
-  Game.prototype._enemyDie = function (en) {
-    if (en.state === 'dead') return;
-    en.state = 'dead';
-    en.deadTimer = RESPAWN_TIME;
-    en.move = null;
-    en.path = null;
-    en.pathKey = '';
-    this.score += 150;
-    this._sfx('trap');
-    this._burst(en.px + 0.5, en.py + 0.5, 22, '#ff5c8a');
-    this._float('+150', en.px, en.py, '#ff5c8a');
-    if (this.hooks.onEvent) this.hooks.onEvent('enemyTrap', { score: this.score });
-  };
-
-  Game.prototype._checkCollisions = function () {
-    if (this.state !== 'playing') return;
-    var p = this.player;
-    if (p.state === 'hole') {
-      // в яме игрок ещё может погибнуть от врага, свалившегося сверху
-    }
-    for (var i = 0; i < this.enemies.length; i++) {
-      var en = this.enemies[i];
-      if (en.state === 'dead' || en.state === 'spawn' || en.state === 'hole') continue;
-      var dx = Math.abs((en.px + 0.5) - (p.px + 0.5));
-      var dy = Math.abs((en.py + 0.5) - (p.py + 0.5));
-      if (dx < 0.62 && dy < 0.7) {
-        this.killPlayer('enemy');
-        return;
+      if (below === SPIKE) { hurt('spike'); return; }
+      var i;
+      if (inp.dig && h.dc <= 0) {
+        var a = aimCell(), v = cell(a[0], a[1]);
+        if (v === SAND) { if (h.bag < CAP) { S.g[idx(a[0], a[1])] = AIR; S.fl[idx(a[0], a[1])] = 0; h.bag++; h.dc = T.dig; ev('dig', { x: a[0], y: a[1], aim: a[2] }); } else { h.dc = 0.4; ev('full', {}); } }
+        else if (v !== AIR) { h.dc = 0.3; ev('nogo', {}); }
       }
-    }
-  };
-
-  /* --------------------------------------------------------------------- */
-  /*  Ямы                                                                  */
-  /* --------------------------------------------------------------------- */
-
-  Game.prototype.updateHoles = function (dt) {
-    var self = this;
-    var closed = [];
-    this.holes.forEach(function (h, k) {
-      h.timer -= dt;
-      if (h.timer <= 0) closed.push(k);
-    });
-    for (var i = 0; i < closed.length; i++) {
-      var k = closed[i];
-      var h = this.holes.get(k);
-      var xy = k.split(',');
-      var x = +xy[0], y = +xy[1];
-
-      // игрок внутри закрывающейся ямы — погибает
-      if (this.player.x === x && this.player.y === y &&
-          (this.player.state === 'hole' || this.player.state === 'falling' || this.player.state === 'fall')) {
-        this.holes.delete(k);
-        this.base[y][x] = '=';
-        this.killPlayer('hole');
-        continue;
+      if (inp.pour && h.pc <= 0) {
+        var tx = h.x + h.f, ty = h.y;
+        if (h.bag > 0 && freeCell(tx, ty)) { S.g[idx(tx, ty)] = SAND; S.fl[idx(tx, ty)] = 1; h.bag--; h.pc = T.pour; ev('pour', { x: tx, y: ty }); }
+        else { h.pc = 0.3; ev('nogo', {}); }
       }
-
-      for (var j = 0; j < this.enemies.length; j++) {
-        var en = this.enemies[j];
-        if (en.state !== 'dead' && en.x === x && en.y === y) {
-          this._enemyDie(en);
+      if (inp.dx && !(inp.dig || inp.pour) && h.mc <= 0) {
+        var dx = inp.dx > 0 ? 1 : -1, nx = h.x + dx; h.f = dx;
+        if (inb(nx, h.y)) {
+          var c = S.g[idx(nx, h.y)];
+          if (c === AIR) { h.mc = T.hero; heroMoveTo(nx, h.y); ev('step', { x: nx, y: h.y }); }
+          else if (inb(nx, h.y - 1) && S.g[idx(nx, h.y - 1)] === AIR && S.g[idx(h.x, h.y - 1)] === AIR) { h.mc = T.hero * 1.2; heroMoveTo(nx, h.y - 1); ev('step', { x: nx, y: h.y - 1 }); }
+          else h.mc = 0.05;
         }
       }
-
-      this.holes.delete(k);
-      this.base[y][x] = '=';
-      this._burst(x + 0.5, y + 0.5, 16, '#9aa4c7');
     }
-  };
 
-  /* --------------------------------------------------------------------- */
-  /*  Эффекты                                                              */
-  /* --------------------------------------------------------------------- */
-
-  Game.prototype._burst = function (x, y, count, color) {
-    for (var i = 0; i < count; i++) {
-      var a = Math.random() * Math.PI * 2;
-      var sp = rand(0.6, 4.2);
-      this.particles.push({
-        x: x, y: y,
-        vx: Math.cos(a) * sp,
-        vy: Math.sin(a) * sp - rand(0.2, 1.6),
-        life: rand(0.35, 0.9),
-        max: 1,
-        size: rand(0.04, 0.12),
-        color: color,
-        gravity: rand(3, 8)
-      });
-    }
-    if (this.particles.length > 400) this.particles.splice(0, this.particles.length - 400);
-  };
-
-  Game.prototype._float = function (text, x, y, color) {
-    this.floaters.push({ text: text, x: x, y: y, life: 1.0, max: 1.0, color: color, vy: -0.7 });
-    if (this.floaters.length > 12) this.floaters.shift();
-  };
-
-  Game.prototype.updateEffects = function (dt) {
-    var i;
-    for (i = this.particles.length - 1; i >= 0; i--) {
-      var p = this.particles[i];
-      p.life -= dt;
-      if (p.life <= 0) { this.particles.splice(i, 1); continue; }
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.vy += p.gravity * dt;
-    }
-    for (i = this.floaters.length - 1; i >= 0; i--) {
-      var f = this.floaters[i];
-      f.life -= dt;
-      f.y += f.vy * dt;
-      if (f.life <= 0) this.floaters.splice(i, 1);
-    }
-    this.shake = Math.max(0, this.shake - dt * 22);
-  };
-
-  /* --------------------------------------------------------------------- */
-  /*  Главный цикл                                                         */
-  /* --------------------------------------------------------------------- */
-
-  Game.prototype.update = function (dt) {
-    dt = Math.min(dt, 0.05);
-    this.time += dt;
-
-    if (this.state === 'playing') {
-      if (this.freeze > 0) {
-        this.freeze -= dt;
-        this._checkCollisions();
-        this.updateEffects(dt);
-        return;
+    // ---------- враги ----------
+    function floorOk(x, y) { var v = cell(x, y + 1); return v === SAND || v === WALL || v === SPOUT; }
+    function enemyUpdate(dt) {
+      for (var i = 0; i < S.enemies.length; i++) {
+        var e = S.enemies[i]; if (!e.alive) continue; e.mc -= dt; e.fc -= dt;
+        var below = cell(e.x, e.y + 1);
+        if (below === AIR || below === 9) { if (e.fc <= 0) { e.fc = T.efall; if (e.y + 1 >= ROWS) { e.alive = false; continue; } e.y++; } continue; }
+        if (below === SPIKE) { killEnemy(e, 'spike'); continue; }
+        if (e.mc > 0) continue;
+        var h = S.hero, d = e.d;
+        if (e.t === 'c' && S.mode === 'play' && Math.abs(h.x - e.x) <= 10 && Math.abs(h.y - e.y) <= 7 && h.x !== e.x) d = h.x > e.x ? 1 : -1;
+        e.d = d; var nx = e.x + d;
+        if (!inb(nx, e.y)) { e.d = -d; e.mc = 0.2; continue; }
+        if (S.g[idx(nx, e.y)] === AIR && floorOk(nx, e.y)) { e.x = nx; e.mc = e.t === 'c' ? T.chaser : (e.fast ? 0.3 : T.walker); }
+        else if (e.t === 'c' && S.g[idx(nx, e.y)] !== AIR && cell(nx, e.y - 1) === AIR && cell(e.x, e.y - 1) === AIR) { e.x = nx; e.y--; e.mc = T.chaser * 1.3; }
+        else { if (e.t === 'w' || !(h.x !== e.x && Math.abs(h.x - e.x) <= 10)) e.d = -d; e.mc = e.t === 'c' ? 0.12 : (e.fast ? 0.25 : 0.8); }
+        checkContact();
       }
-      this.levelTime += dt;
-      this.updateHoles(dt);
-      if (this.state !== 'playing') { this.updateEffects(dt); return; }
-      this.updatePlayer(dt);
-      this.updateEnemies(dt);
-      this._checkCollisions();
-      this.updateEffects(dt);
-      return;
+    }
+    function spoutUpdate(dt) {
+      for (var i = 0; i < S.spouts.length; i++) {
+        var p = S.spouts[i]; p.c -= dt; if (p.c > 0) continue;
+        var by = p.y + 1; if (!inb(p.x, by) || S.g[idx(p.x, by)] !== AIR) { p.c = 0.1; continue; }
+        p.c = T.spout; var a = actorAt(p.x, by); S.g[idx(p.x, by)] = SAND; S.fl[idx(p.x, by)] = 1; ev('spout', { x: p.x, y: by }); if (a) hit(a);
+      }
     }
 
-    if (this.state === 'dying') {
-      this.deathTimer -= dt;
-      this.updateEffects(dt);
-      if (this.deathTimer <= 0) this._finishDeath();
-      return;
+    function step(dt) {
+      if (S.mode === 'play') {
+        S.t += dt; heroUpdate(dt);
+        if (S.mode === 'play') enemyUpdate(dt);
+        if (S.mode === 'play') spoutUpdate(dt);
+        S.sacc += dt; var n = 0; while (S.sacc >= T.sand && n++ < 4) { S.sacc -= T.sand; sandTick(); }
+        if (S.mode === 'play') checkContact();
+      } else if (S.mode === 'dying') {
+        S.timer -= dt; S.sacc += dt; var m = 0; while (S.sacc >= T.sand && m++ < 4) { S.sacc -= T.sand; sandTick(); }
+        if (S.timer <= 0) { S.lives--; if (S.lives <= 0) { S.mode = 'gameover'; ev('gameover', { score: S.score }); } else { load(S.level, true); ev('retry', { level: S.level }); } }
+      } else if (S.mode === 'clear') {
+        S.timer -= dt; S.sacc += dt; var k2 = 0; while (S.sacc >= T.sand && k2++ < 4) { S.sacc -= T.sand; sandTick(); }
+        if (S.timer <= 0) next();
+      }
     }
-
-    if (this.state === 'complete') {
-      this.updateEffects(dt);
-      return;
+    function next() {
+      if (S.mode !== 'clear') return;
+      var lv = S.level + 1, lives = S.lives; if ((S.level === 2 || S.level === 5) && lives < 5) { lives++; ev('life', {}); }
+      if (lv >= PK.consts.MAX_LEVEL) { S.mode = 'victory'; ev('victory', { score: S.score }); return; }
+      S.lives = lives; load(lv, true); ev('level', { level: lv });
     }
+    function skip() { if (S.mode === 'clear') { S.timer = 0; next(); } }
+    function restart() { if (S.mode !== 'play') return; S.lives--; if (S.lives <= 0) { S.mode = 'gameover'; ev('gameover', { score: S.score }); } else { load(S.level, true); ev('retry', { level: S.level }); } }
+    function setInput(i) { var I = S.input; I.dx = i.dx || 0; I.dy = i.dy || 0; I.dig = !!i.dig; I.pour = !!i.pour; }
 
-    if (this.state === 'gameover' || this.state === 'victory') {
-      this.updateEffects(dt);
-      return;
-    }
-
-    this.updateEffects(dt);
-  };
-
-  Game.prototype.setInput = function (input) {
-    this.input.left = !!input.left;
-    this.input.right = !!input.right;
-    this.input.up = !!input.up;
-    this.input.down = !!input.down;
-  };
-
-  Game.prototype._sfx = function (name) {
-    if (this.hooks.audio && this.hooks.audio.sfx) {
-      try { this.hooks.audio.sfx(name); } catch (e) { /* тишина */ }
-    }
-  };
-
-  Game.prototype.getHud = function () {
-    var lvl = this.levels[this.levelIndex] || {};
     return {
-      level: this.levelIndex + 1,
-      totalLevels: this.levels.length,
-      name: lvl.name || '',
-      nameEn: lvl.nameEn || lvl.name || '',
-      goldLeft: this.gold.size,
-      goldTotal: this.totalGold,
-      score: this.score,
-      lives: this.lives,
-      best: 0,
-      exitOpen: this.exit.open && this.gold.size === 0,
-      time: this.levelTime,
-      state: this.state
+      state: function () { return S; }, step: step, setInput: setInput, next: next, skip: skip, restart: restart,
+      isOver: function () { return S.mode === 'gameover' || S.mode === 'victory'; },
+      revive: function () { S.lives = 1; load(S.level, true); },
+      addSand: function (n) { S.hero.bag = Math.min(CAP, S.hero.bag + n); },
+      load: function (lv) { load(lv, true); },
+      clone: function () { return PK.fromState(clone(S), o); }
     };
-  };
-
-  Game.COLS = COLS;
-  Game.ROWS = ROWS;
-  Game.HOLE_TIME = HOLE_TIME;
-
-  window.PODKOP = window.PODKOP || {};
-  window.PODKOP.Game = Game;
-  window.PODKOP.COLS = COLS;
-  window.PODKOP.ROWS = ROWS;
-})();
+  }
+  function clone(S) {
+    var c = Object.assign({}, S); c.g = S.g.slice(); c.fl = S.fl.slice(); c.hero = Object.assign({}, S.hero); c.input = Object.assign({}, S.input);
+    c.enemies = S.enemies.map(function (e) { return Object.assign({}, e); }); c.spouts = S.spouts.map(function (p) { return Object.assign({}, p); }); return c;
+  }
+  PK.Game = Game; PK.fromState = function (S, o) { return Game(Object.assign({}, o, { state: S })); };
+})(typeof window !== 'undefined' ? window : globalThis);

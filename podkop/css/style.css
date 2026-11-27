@@ -1,0 +1,39 @@
+/* ПОДКОП · стили страницы (игра рисуется в canvas). Тема страницы — body[data-theme]. Пульт: стик слева, справа две кнопки — ⛏ копать и ▼ сыпать. */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#10131f;--panel:#181c30;--line:#37406a;--ink:#eef1fb;--mut:#8f98b8;--accent:#ffc857}
+body[data-theme="retro"]{--bg:#000000;--panel:#000000;--line:#5555aa;--ink:#ffffff;--mut:#aaaaaa;--accent:#ffff55}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;-webkit-user-select:none;overflow:hidden;overscroll-behavior:none}
+body[data-theme="retro"]{font-family:"Courier New",ui-monospace,monospace}
+.wrap{position:relative;margin-top:26px;display:flex;justify-content:center}
+canvas{display:block;border:1px solid var(--line);border-radius:10px;background:var(--bg);touch-action:none}
+body[data-theme="retro"] canvas{border-radius:2px;image-rendering:pixelated}
+a.back{position:fixed;left:10px;top:6px;color:var(--mut);font-size:12px;text-decoration:none;font-weight:700;z-index:3}
+a.back:hover{color:var(--accent)}
+.pad{width:min(96vw,520px);margin:8px 0 4px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pad[hidden]{display:none}
+.stick{position:relative;width:170px;height:130px;border-radius:24px;border:1px dashed var(--line);touch-action:none;flex:none}
+.stick-base,.stick-knob{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;opacity:.55}
+.stick-base{width:104px;height:104px;border:2px solid var(--line);background:rgba(255,255,255,.04)}
+.stick-knob{width:50px;height:50px;background:var(--panel);border:2px solid var(--accent)}
+.acts{display:flex;gap:12px;align-items:center}
+.acts button{width:74px;height:74px;border-radius:50%;background:var(--panel);border:2px solid var(--line);color:var(--ink);font-size:26px;font-weight:800;touch-action:none;padding:0}
+.acts button.a{border-color:var(--accent);color:var(--accent);width:84px;height:84px}
+.acts button.b{border-color:#6fe0a0;color:#6fe0a0;width:84px;height:84px}
+.acts button.on,.acts button:active{filter:brightness(1.6)}
+.pad .mini{position:fixed;right:10px;top:4px;width:40px;height:30px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--ink);font-size:13px;font-weight:800;z-index:3;padding:0}
+body[data-theme="retro"] .acts button,body[data-theme="retro"] .pad .mini{border-radius:2px}
+.foot{color:var(--mut);font-size:11px;margin:8px 12px 8px;text-align:center;max-width:820px}
+.foot b{color:var(--ink)}
+/* десктоп с мышью и клавиатурой: пульт не нужен (появляется, если игрок коснулся экрана) */
+@media (hover:hover) and (pointer:fine){.pad.auto{display:none}.pad.auto .mini{display:none}}
+html[data-input="touch"] .pad.auto{display:flex}
+html[data-input="touch"] .pad.auto .mini{display:block}
+@media (max-height:620px){.foot{display:none}.wrap{margin-top:22px}}
+/* телефон «лёжа»: стик слева, кнопки справа — поверх полей по бокам холста */
+@media (max-height:520px) and (orientation:landscape){
+  .pad{position:fixed;left:0;right:0;bottom:8px;width:100%;max-width:none;margin:0;padding:0 10px;pointer-events:none;align-items:flex-end;z-index:2}
+  .pad>*{pointer-events:auto}
+  .stick{width:210px;height:180px}
+  .acts button{width:66px;height:66px}.acts button.a,.acts button.b{width:74px;height:74px}
+}

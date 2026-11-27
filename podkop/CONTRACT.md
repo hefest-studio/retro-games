@@ -1,70 +1,8 @@
-# ПОДКОП — контракт модулей
-
-Игра офлайн: HTML/Canvas без сборки, CDN и сети. Порт «оболочкой» на движок Гефест Arcade v2:
-движок даёт меню/паузу/темы/язык/звук/рекорд, родные `js/game.js` + `js/render.js` + `js/levels.js`
-переиспользованы (перенесены из папки СТАРАТЕЛЯ, где игра жила раньше).
-
-## §0 · Порядок загрузки (`index.html`)
-
-`engine.js` → `js/music.js` → `js/levels.js` → `js/game.js` → `js/render.js` → инлайн-оболочка.
-Рекорд — `arcade.best.podkop` (движок читает его при создании).
-
-## §1 · Пространство имён
-
-Классические `<script>`, общий объект `window.PODKOP`: `Game`, `Renderer`, `COLS` (28), `ROWS` (16),
-Уровни — `window.PODKOP_LEVELS`.
-
-## §2 · `js/levels.js` — уровни
-
-Ровно 10 уровней `{ name, nameEn, hint, hintEn, rows }`, `rows` — 16 строк по 28 символов (строка 0 — верх).
-
-| Символ | Значение |
-|---|---|
-| `#` | монолит (не копается) |
-| `=` | кирпич (копается; для прохождения **не требуется**) |
-| `H` | лестница |
-| `-` | канат |
-| `$` | золото |
-| `@` | старт игрока (ровно один) |
-| `X` | старт стража (1–3) |
-| `E` | выход (ровно один) |
-| `.` | пусто |
-
-Требования: периметр из `#`; `@` и `X` на опоре; **всё золото и выход достижимы от `@` без копания**
-(BFS-валидатор `tools/validate-levels.mjs`, запускается и из тестов).
-
-Правила движения (валидатор и движок совпадают):
-- проходимы `. $ H - @ X E`; непроходимы `# =`;
-- опора в `(x,y)`: снизу `# = H -` или сама клетка `H`/`-`; без опоры — падение до опоры;
-- вверх — только по `H`; вниз — если `H` здесь или снизу; по канату — только горизонтально;
-- игрок (не страж) может **разжать руки на канате** клавишей ↓ и упасть вниз (добавлено в ПОДКОПЕ;
-  валидатор этот ход не использует — достижимость от него только растёт).
-
-## §3 · `js/game.js` — логика (DOM-free, без своего цикла)
-
-- `new PODKOP.Game(levels, { onEvent(type, data), audio: { sfx(name) } })`.
-- Методы: `startRun()`, `startLevel(i)`, `nextLevel()` (из `complete`), `update(dt)` (сек), `setInput({left,right,up,down})`,
-  `dig(side)` (−1/+1: яма в кирпиче слева/справа снизу), `getHud()`, `levelName(lang)`, `levelHint(lang)`.
-- Состояния `state`: `idle · playing · dying · complete · gameover · victory`.
-- События: `level`, `run`, `gold`, `exitOpen`, `enemyTrap`, `die`, `respawn`, `complete {total,…}`, `gameover {score}`, `victory {score}`.
-- SFX-имена: `click step dig trap gold exit die win` — оболочка играет их через `g.audio.beep`.
-- Яма живёт `Game.HOLE_TIME` с; страж в зарастающей яме гибнет (+150), игрок — теряет жизнь.
-- Всё золото → `exit.open = true`, `exit.openAt = time` (для анимации лестницы); касание `E` → `complete` (+250 и бонус за время).
-
-## §4 · `js/render.js` — рендер
-
-`new PODKOP.Renderer(canvas)` рисует в свой холст 1792×1024 (поле 896×512 ×2): `setTheme('retro'|'modern')`,
-`draw(game, dt)`. retro — 8-бит в буфер 448×256 и апскейл без сглаживания; modern — векторный.
-Когда выход открыт, над ним прорастает «проявившаяся лестница» до свода (`_exitLadder`, только визуально).
-Оболочка переносит холст поля на холст движка 896×560 под HUD высотой 48.
-
-## §5 · Хранилище
-
-Рекорд — `arcade.best.podkop` (движок). Язык/тема/звук — общие ключи движка `arcade.*`.
-Миграция прежнего ключа удалена (волна 51).
-
-## §6 · Тесты
-
-`node podkop/tests/engine.test.mjs` — уровни (+валидатор), бег/лестница/канат/падение, копание и ямы,
-ловушка стражи, смерть/gameover, золото→выход→следующий уровень→victory, ИИ стражи, миграция рекорда,
-оболочка (engine.js = `_shared`, трек, порядок скриптов, фавикон, «← Каталог», RU/EN).
+# ПОДКОП · контракт модулей
+- `js/game.js` — `PODKOP.Game({ level, seed, lives, onEvent, state })` → `{ state(), step(dt), setInput({dx,dy,dig,pour}), next(), skip(), restart(), revive(), addSand(n), isOver(), load(lv), clone() }`; `PODKOP.level(i)`, `PODKOP.consts`, `PODKOP.fromState(S, o)`.
+  Состояние `S`: `g` — поле `Uint8Array(22×18)` (0 воздух, 1 песок, 2 скала, 3 пескопад, 4 шипы), `fl` — «падающие» зёрна (бьют по врагам и герою), `hero` {x,y,f,bag}, `enemies[]` {t:'w'|'c', fast, x, y, d, alive}, `spouts[]`, `exit`, `top` (первая показываемая строка), `mode`: play/dying/clear/gameover/victory.
+  События: dig, pour, step, full, nogo, spout, bury, hurt, retry, clear, level, life, gameover, victory.
+- `js/levels.js` — `PODKOP.LEVELS[]` `{ id, name:{ru,en}, bag, par, hint, map[] }`; символы: `#` скала, `s` песок, `^` шипы, `V` пескопад, `H` герой, `E` дверь, `w`/`W` краб/быстрый краб, `c` скорпион; строки снизу вверх, 22 символа.
+- `js/render.js` — `PODKOP.render.draw(ctx, S, scene, { toasts, tutText })`, `.bare(ctx, S, scene)` (поле без HUD), `.geo`, `.pal`, `.pt`; рендер только читает состояние.
+- `js/main.js` — сборка движка v2; `PODKOP.app` — служебный доступ для промо-сценариев (`setLevel(lv)`, `game()`, `clear()`).
+- Порядок: `engine.js → music → i18n → game → levels → audio → render → stick → ui → save → main`. Рекорд `arcade.best.podkop`, подсказки `arcade.podkop.tut`, миграция `arcade.podkop.v/oldBest/notice`.
