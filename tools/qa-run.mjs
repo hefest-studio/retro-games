@@ -2,7 +2,7 @@
 /* tools/qa-run.mjs — регулярный QA-прогон всего каталога аркады. Один запуск — один отчёт qa-report/<дата>.md + .json.
    Что проверяет (раздел «QA-прогон» в README репо):
      static   — каталог ↔ папки игр; копии общих файлов (engine.js во всех играх = _shared/engine.js, версия; host/mouse/кампании/площадка —
-                там, где build.sh их пересинхронизирует); sitemap.xml и robots.txt; счётчики «N игр / N games» в RU/EN-страницах и README;
+                там, где build.sh их пересинхронизирует); sitemap.xml и robots.txt; счётчики «N игр / N games» в RU/EN-страницах и README (EN и RU);
                 запрещённые слова (tools/lib/banned-words.mjs) в файлах, которые попадают в сборку игры.
      tests    — <игра>/tests/*.test.mjs и _shared/tests/*.test.mjs: параллельно (--jobs, по умолчанию — число ядер), таймаут на файл
                 (--timeout, 900 с), медленные (> --slow, 120 с) — жёлтым.
@@ -162,7 +162,7 @@ function staticChecks() {
   };
   const RU = [/(\d+)\s+(?:оригинальн\S+\s+)?(?:браузерн\S+\s+)?(?:игр|игры|игра|аркад)(?![\p{L}])/giu, /(?:Показано|показано)\s+[\d–-]+\s+из\s+(\d+)/g, /(?:Всего|всего)\s+(\d+)/g];
   const EN = [/(\d+)\s+(?:original\s+)?(?:browser\s+)?(?:arcade\s+)?games\b/gi, /Showing\s+[\d–-]+\s+of\s+(\d+)/g];
-  for (const [file, res] of [['index.html', [...RU, ...EN]], ['en/index.html', EN], ['README.md', [/(\d+)\s+игр(?![\p{L}])/giu]]]) {
+  for (const [file, res] of [['index.html', [...RU, ...EN]], ['en/index.html', EN], ['README.md', EN], ['README.ru.md', RU]]) {
     const bad = count(file, res);
     add('static', file, `счётчики игр = ${N}`, bad.length ? 'fail' : 'ok', bad.length ? 'расходятся с games.json: ' + [...new Set(bad)].join(', ') : 'совпадают');
   }
