@@ -1,8 +1,9 @@
-/* ДЕСАНТ · логика (без DOM, детерминирована при заданном rng/seed). DESANT.Game(opts), DESANT.logic.
-   Кооперативный run-and-gun с видом сверху: пеший десант мастерской «Гефест» идёт вверх по вертикальной карте
-   пяти зон, камера едет только вверх. Ствол — 8 направлений по ходу; при зажатом огне направление фиксируется (стрейф).
-   Гранаты летят дугой на фиксированную дальность и перелетают укрытия. Брошенные танкетки: свой ствол (снаряды),
-   броня и топливо, садишься — наездом, выходишь — клавишей гранаты. В конце зоны — машина-босс, по пути — чекпоинты. */
+/* ЗАРЕВО (папка desant) · логика (без DOM, детерминирована при заданном rng/seed). DESANT.Game(opts), DESANT.logic.
+   Run-and-gun с видом сверху: боец мастерской «Гефест» идёт вверх по вертикальной карте пяти зон, камера едет только вверх.
+   Ствол — 8 направлений по ходу; при зажатом огне направление фиксируется (стрейф). Главная механика — ОГНЕВОЙ ВАЛ:
+   кнопка «вал» пускает через всю ширину полосу огня, она сама идёт вверх, пока хватает заряда или пока не нажмёшь ещё раз;
+   вал сжигает заграждения (частоколы, мешки, ящики), косит пехоту, бьёт гнёзда, дзоты, броневики и части машин-боссов,
+   гасит вражеские пули — но жжёт и своего: держись позади. Заряд копится сам и с ящиков со снарядами. */
 (function (global) {
   'use strict';
   var DS = global.DESANT = global.DESANT || {};
@@ -11,11 +12,13 @@
   var T = 24, COLS = 20, W = COLS * T, VIEW_H = 640, HUD = 30, ARENA = 26;
   var G = 0, SOLID = 1, WATER = 2, BRIDGE = 3, COVER = 4, CRATE = 5, MUD = 6, WALL = 7, RUBBLE = 8, BUNKER = 9, BODY = 10;
   var WALK = [1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0];      // проходимо пешком (G, BRIDGE, MUD, RUBBLE)
-  var TANKOK = [1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0];    // танкетка ещё и давит ящики/заборы (CRATE)
+  var BURN = [0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0];      // сгорает в огненном валу (укрытия, ящики, частоколы)
   var SHOTBLK = [0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0];   // гасит пули (деревья/скалы, укрытия, ящики, стены, дзоты)
-  var SPEED = 112, HERO_R = 7, HP = 3, LIVES = 3, NADES0 = 6, NADES_MAX = 9, CONTINUES = 2, EXTRA_LIFE = 50000;
-  var TANK = { r: 13, speed: 122, armor: 14, fuelMove: 1 / 50, fuelIdle: 1 / 300, cd: 0.5, shell: 300, range: 280, boomR: 28, dmg: 7 };
-  var NADE = { range: 150, dur: 0.6, r: 36, dmg: 6, cd: 0.45 };
+  var SPEED = 112, HERO_R = 7, HP = 3, LIVES = 3, CONTINUES = 2, EXTRA_LIFE = 120000;
+  // Огневой вал: полоса высотой h через всю ширину; стартует lead px впереди бойца (метка-«свист» wind с), идёт вверх со скоростью speed,
+  // тратит drain зарядов/с (всего max); повторное нажатие — отбой (остаток заряда сохраняется), полоса догорает linger с.
+  var BAR = { max: 100, h: 46, lead: 84, wind: 0.55, linger: 0.6, speed: 78, drain: 24, start: 6, min: 16, regen: 2.1, regenWait: 1.8, tick: 0.2,
+    dmg: 3, car: 5, bossDmg: 1.2, shell: 30 };
   var GUN = { rifle: { cd: 0.16, n: 1, spread: 0 }, spread: { cd: 0.22, n: 3, spread: 0.2 }, rapid: { cd: 0.085, n: 1, spread: 0.03 } };
   var BULLET = { speed: 430, life: 1.15, r: 3 };
   var ENEMIES = {
@@ -35,17 +38,17 @@
     engine: { body: 9, parts: [['boiler', -84, -34, 15, 10], ['boiler', 84, -34, 15, 10], ['boiler', -84, 46, 15, 10], ['boiler', 84, 46, 15, 10], ['core', 0, 6, 24, 40]] }
   };
   var ZONES = [
-    { key: 'taiga', rows: 140, dens: 0.11, mud: 0, rivers: 2, lines: 2, bunkers: 1, roads: 1, tanks: 1, walls: 0, boats: 0, gren: 0, ruins: 0, boss: 'icebreaker' },
-    { key: 'marsh', rows: 148, dens: 0.05, mud: 0.5, rivers: 3, lines: 2, bunkers: 1, roads: 1, tanks: 1, walls: 0, boats: 1, gren: 0.2, ruins: 0, boss: 'dredger' },
-    { key: 'quarry', rows: 152, dens: 0.09, mud: 0, rivers: 2, lines: 3, bunkers: 2, roads: 2, tanks: 2, walls: 0, boats: 0, gren: 0.25, ruins: 0, boss: 'crusher' },
-    { key: 'rapids', rows: 156, dens: 0.07, mud: 0.15, rivers: 4, lines: 2, bunkers: 2, roads: 1, tanks: 1, walls: 0, boats: 2, gren: 0.3, ruins: 0, boss: 'dam' },
-    { key: 'fort', rows: 160, dens: 0.04, mud: 0, rivers: 1, lines: 2, bunkers: 3, roads: 2, tanks: 1, walls: 3, boats: 0, gren: 0.35, ruins: 1, boss: 'engine' }
+    { key: 'taiga', pri: ['river', 'bunker', 'line', 'road'], rows: 140, dens: 0.11, mud: 0, rivers: 2, lines: 2, bunkers: 1, roads: 1, depots: 2, stock: 1, boats: 0, gren: 0, ruins: 0, boss: 'icebreaker' },
+    { key: 'marsh', pri: ['river', 'bunker', 'road', 'line'], rows: 148, dens: 0.05, mud: 0.5, rivers: 3, lines: 2, bunkers: 1, roads: 1, depots: 2, stock: 2, boats: 1, gren: 0.2, ruins: 0, boss: 'dredger' },
+    { key: 'quarry', pri: ['bunker', 'road', 'line', 'river'], rows: 152, dens: 0.09, mud: 0, rivers: 2, lines: 3, bunkers: 2, roads: 2, depots: 3, stock: 2, boats: 0, gren: 0.25, ruins: 0, boss: 'crusher' },
+    { key: 'rapids', pri: ['river', 'bunker', 'line', 'road'], rows: 156, dens: 0.07, mud: 0.15, rivers: 4, lines: 2, bunkers: 2, roads: 1, depots: 3, stock: 2, boats: 2, gren: 0.3, ruins: 0, boss: 'dam' },
+    { key: 'fort', pri: ['bunker', 'road', 'line', 'river'], rows: 160, dens: 0.04, mud: 0, rivers: 1, lines: 2, bunkers: 3, roads: 2, depots: 3, stock: 3, boats: 0, gren: 0.35, ruins: 1, boss: 'engine' }
   ];
   var MAX_ZONE = ZONES.length;
   var DIRS = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
   var BIND = {
-    p1: { left: ['KeyA'], right: ['KeyD'], up: ['KeyW'], down: ['KeyS'], fire: ['KeyF', 'Space'], nade: ['KeyG'] },
-    p2: { left: ['ArrowLeft'], right: ['ArrowRight'], up: ['ArrowUp'], down: ['ArrowDown'], fire: ['Period', 'Numpad0'], nade: ['Slash', 'NumpadDecimal'] }
+    p1: { left: ['KeyA'], right: ['KeyD'], up: ['KeyW'], down: ['KeyS'], fire: ['KeyF', 'Space'], bar: ['KeyG', 'KeyE'] },
+    p2: { left: ['ArrowLeft'], right: ['ArrowRight'], up: ['ArrowUp'], down: ['ArrowDown'], fire: ['Period', 'Numpad0'], bar: ['Slash', 'NumpadDecimal'] }
   };
 
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -60,7 +63,7 @@
   // Карта: COLS×R тайлов, строка 0 — верх (арена босса: строки 0..ARENA-1), старт — внизу.
   function genZone(n, seed) {
     var Z = ZONES[n - 1], rng = mulberry32(((seed | 0) * 7919 + n * 104729 + 13) | 0);
-    var R = Z.rows + ARENA, tl = new Uint8Array(COLS * R), spawns = [], items = [], tanks = [], crates = {};
+    var R = Z.rows + ARENA, tl = new Uint8Array(COLS * R), spawns = [], items = [], crates = {};
     function ri(a, b) { return a + Math.floor(rng() * (b - a + 1)); }
     function at(x, y) { return x < 0 || x >= COLS || y < 0 || y >= R ? SOLID : tl[x + y * COLS]; }
     function set(x, y, v) { if (x > 0 && x < COLS - 1 && y >= 0 && y < R) tl[x + y * COLS] = v; }
@@ -68,7 +71,7 @@
     function px(tx) { return tx * T + T / 2; }
     function mob(type, tx, ty, o) { spawns.push(Object.assign({ type: type, x: px(tx), y: px(ty) }, o || {})); }
     function crate(tx, ty, kind) { set(tx, ty, CRATE); if (kind) crates[tx + ty * COLS] = kind; }
-    function loot() { var r = rng(); return r < 0.4 ? 'nade' : r < 0.6 ? 'med' : r < 0.75 ? 'spread' : r < 0.88 ? 'rapid' : 'fuel'; }
+    function loot() { var r = rng(); return r < 0.46 ? 'shell' : r < 0.62 ? 'med' : r < 0.82 ? 'spread' : 'rapid'; }
     function infantry(y0, y1, k) {
       for (var i = 0; i < k; i++) {
         for (var tries = 0; tries < 12; tries++) {
@@ -92,7 +95,7 @@
         }
         if (Z.key === 'marsh' && rng() < 0.6) { var px0 = ri(3, COLS - 7), py0 = ri(y0, Math.max(y0, y1 - 2)); for (var a = 0; a < 3; a++) for (var b = 0; b < 2; b++) set(px0 + a, py0 + b, WATER); }
         for (var c = 0; c < ri(1, 2); c++) { var qx = ri(2, COLS - 3), qy = ri(y0, y1); if (at(qx, qy) === G) crate(qx, qy, rng() < 0.6 ? loot() : null); }
-        infantry(y0, y1, ri(1, 2) + (n >= 3 ? 1 : 0));
+        infantry(y0, y1, ri(2, 3) + (n >= 3 ? 1 : 0));
         if (rng() < 0.25) { var ix = ri(2, COLS - 3), iy = ri(y0, y1); if (at(ix, iy) === G) items.push({ kind: loot(), x: px(ix), y: px(iy) }); }
       },
       river: function (y0, y1) {
@@ -119,7 +122,7 @@
           for (var t2 = 0; t2 < 10; t2++) { var nx = ri(3, COLS - 4); if (gaps.every(function (g) { return Math.abs(g - nx) > 1 && Math.abs(g + 1 - nx) > 1; })) { mob('nest', nx, ly - 1); break; } }
         }
         infantry(y0, y0 + 1, ri(1, 2));
-        if (rng() < 0.6) items.push({ kind: 'nade', x: px(ri(3, COLS - 4)), y: px(y1) });
+        if (rng() < 0.5) items.push({ kind: 'shell', x: px(ri(3, COLS - 4)), y: px(y1) });
       },
       bunker: function (y0, y1) {
         clear(1, y0, COLS - 2, y1);
@@ -137,34 +140,37 @@
         infantry(y0, y0, 1);
         if (rng() < 0.5) crate(ri(2, COLS - 3), y1, loot());
       },
-      tank: function (y0, y1) {
+      depot: function (y0, y1) {   // склад снарядов: ящики с зарядом вала, пара часовых
         clear(1, y0, COLS - 2, y1);
-        var tx = ri(5, COLS - 6), ty = y0 + 4;
-        tanks.push({ x: tx * T + T / 2, y: ty * T + T / 2 });
-        items.push({ kind: 'fuel', x: px(tx + (tx < 10 ? 3 : -3)), y: px(ty + 1) });
-        for (var i = 0; i < 4; i++) { var sx = ri(1, COLS - 2), sy = ri(y0, y1); if (Math.abs(sx - tx) > 2 && at(sx, sy) === G) crate(sx, sy, rng() < 0.5 ? loot() : null); }
+        var dx = ri(4, COLS - 8);
+        for (var i = 0; i < 3; i++) crate(dx + i * 2, y0 + 3, i === 1 ? 'shell' : (rng() < 0.5 ? 'shell' : loot()));
+        items.push({ kind: 'shell', x: px(dx + 2), y: px(y0 + 5) });
+        for (var k = 0; k < 3; k++) { var sx = ri(1, COLS - 2), sy = ri(y0, y1); if (Math.abs(sx - dx - 2) > 3 && at(sx, sy) === G) crate(sx, sy, rng() < 0.5 ? loot() : null); }
         infantry(y0, y0 + 1, 2);
       },
-      wall: function (y0, y1) {
+      stockade: function (y0, y1) {   // частокол: сплошная стена в два ряда — берётся только огненным валом; за ней — стрелки
         clear(1, y0, COLS - 2, y1);
-        var gx = ri(3, COLS - 6), bx;
-        for (var x = 1; x < COLS - 1; x++) { set(x, y0 + 1, WALL); set(x, y0 + 2, WALL); }
-        for (var g = gx; g < gx + 3; g++) { set(g, y0 + 1, G); set(g, y0 + 2, G); }
-        do { bx = ri(2, COLS - 4); } while (Math.abs(bx - gx) < 5);
-        crate(bx, y0 + 1, null); crate(bx, y0 + 2, null); crate(bx + 1, y0 + 1, null); crate(bx + 1, y0 + 2, 'nade');
-        var nx = gx > 6 ? gx - 3 : gx + 5;
-        mob('nest', nx, y0 + 3); set(nx - 1, y0 + 4, COVER); set(nx, y0 + 4, COVER); set(nx + 1, y0 + 4, COVER);
-        infantry(y0, y0, 2);
+        for (var x = 1; x < COLS - 1; x++) { set(x, y0 + 3, WALL); set(x, y0 + 4, WALL); }
+        for (var s2 = 0; s2 < 3; s2++) { var bx = ri(3, COLS - 5); set(bx, y0 + 5, COVER); set(bx + 1, y0 + 5, COVER); }
+        infantry(y0, y0 + 1, 2); mob('nest', ri(4, COLS - 5), y0 + 1);
+        items.push({ kind: 'shell', x: px(ri(3, COLS - 4)), y: px(y1) });
       }
     };
-    var H = { scatter: [7, 10], river: [5, 5], line: [6, 6], bunker: [8, 8], road: [9, 9], tank: [8, 8], wall: [6, 6] };
-    var req = [];
-    function add(k, c) { for (var i = 0; i < c; i++) req.push(k); }
-    add('river', Z.rivers); add('line', Z.lines); add('bunker', Z.bunkers); add('road', Z.roads); add('wall', Z.walls); add('tank', Z.tanks - 1);
-    for (var i = req.length - 1; i > 0; i--) { var j = Math.floor(rng() * (i + 1)), t = req[i]; req[i] = req[j]; req[j] = t; }
-    req.unshift('tank');    // первая танкетка — в начале зоны
+    var H = { scatter: [5, 8], river: [5, 5], line: [6, 6], bunker: [8, 8], road: [9, 9], depot: [8, 8], stockade: [8, 8] };
+    var opt = [];
+    function add(k, c) { for (var i = 0; i < c; i++) opt.push(k); }
+    var cnt = { river: Z.rivers, line: Z.lines, bunker: Z.bunkers, road: Z.roads };
+    Z.pri.forEach(function (k) { add(k, cnt[k]); });   // в порядке важности для зоны: при нехватке длины лишнее отбрасывается с конца
+    // обязательные частоколы и склады раскладываются по зоне ровно (первый частокол — в начале: обучение валу)
+    var cap = Math.floor((Z.rows - 10) / 13.8), keep = Math.max(2, cap - Z.stock - Z.depots);
+    opt = opt.slice(0, keep);
+    for (var i = opt.length - 1; i > 0; i--) { var j = Math.floor(rng() * (i + 1)), t = opt[i]; opt[i] = opt[j]; opt[j] = t; }
+    var ins = [];
+    for (var q = 0; q < Z.stock; q++) ins.push({ k: 'stockade', at: q === 0 ? 0 : (q + 0.3) * (opt.length + 1) / Z.stock });
+    for (var d = 0; d < Z.depots; d++) ins.push({ k: 'depot', at: (d === 0 ? 1.2 : d + 0.55) * (opt.length + 1) / Z.depots });
+    var seq = opt.map(function (k, ix) { return { k: k, at: ix + 0.5 }; }).concat(ins).sort(function (a, b) { return a.at - b.at; });
     var plan = [];
-    req.forEach(function (k) { plan.push('scatter'); plan.push(k); });
+    seq.forEach(function (o) { plan.push('scatter'); plan.push(o.k); });
     var cy = R - 1 - 8, top = ARENA + 2, segs = [];
     for (var p = 0; p < plan.length || cy > top + 10; p++) {
       var kind = p < plan.length ? plan[p] : 'scatter', hh = H[kind], h = hh[0] + Math.floor(rng() * (hh[1] - hh[0] + 1));
@@ -179,7 +185,7 @@
     [[4, 15], [14, 15], [9, 19]].forEach(function (c) { if (Z.boss !== 'crusher' && Z.boss !== 'dam') { set(c[0], c[1], COVER); set(c[0] + 1, c[1], COVER); } });
     // проходимость старт → арена: поиск 0-1 (через препятствия — «дорого»), препятствия на пути — расчищаются
     var repairs = 0;
-    function passable(k) { return WALK[tl[k]] === 1; }
+    function passable(k) { return WALK[tl[k]] === 1 || BURN[tl[k]] === 1; }   // стены/укрытия сгорают в валу — не «ремонтируются»
     var start = (COLS >> 1) + (R - 2) * COLS, goalRow = ARENA - 1;
     var dist = new Int32Array(COLS * R).fill(1e9), prev = new Int32Array(COLS * R).fill(-1);
     dist[start] = 0;
@@ -199,16 +205,20 @@
     for (var q = best; q >= 0 && q !== start; q = prev[q]) if (!passable(q)) { tl[q] = tl[q] === WATER ? BRIDGE : RUBBLE; delete crates[q]; repairs++; }
     // чекпоинты: 1/3, 2/3 зоны и вход на арену
     var cps = [Math.round(R - Z.rows / 3), Math.round(R - Z.rows * 2 / 3), ARENA + 1].map(function (row) {
-      var bx2 = COLS >> 1; for (var d = 0; d < COLS; d++) { var c1 = (COLS >> 1) + (d % 2 ? -1 : 1) * ((d + 1) >> 1); if (c1 > 0 && c1 < COLS - 1 && WALK[tl[c1 + row * COLS]]) { bx2 = c1; break; } }
+      var bx2 = COLS >> 1, found = false;
+      for (var dr = 0; dr < 14 && !found; dr++) for (var d = 0; d < COLS && !found; d++) {   // ближайшая к центру проходимая клетка; строка сдвигается вниз, если вся занята частоколом
+        var c1 = (COLS >> 1) + (d % 2 ? -1 : 1) * ((d + 1) >> 1);
+        if (c1 > 0 && c1 < COLS - 1 && WALK[tl[c1 + (row + dr) * COLS]] && WALK[tl[c1 + (row + dr + 1) * COLS]]) { bx2 = c1; row += dr; found = true; }
+      }
       return { row: row, y: row * T + T / 2, x: bx2 * T + T / 2 };
     });
     // мобы не стоят на непроходимом
     spawns = spawns.filter(function (s) { var tt = tl[Math.floor(s.x / T) + Math.floor(s.y / T) * COLS]; return s.type === 'bunker' || s.type === 'boat' || WALK[tt]; });
-    return { n: n, key: Z.key, boss: Z.boss, rows: R, w: COLS, h: R, tiles: tl, spawns: spawns, items: items, tanks: tanks, crates: crates, cps: cps, segs: segs, repairs: repairs,
+    return { n: n, key: Z.key, boss: Z.boss, rows: R, w: COLS, h: R, tiles: tl, spawns: spawns, items: items, crates: crates, cps: cps, segs: segs, repairs: repairs,
       start: { x: W / 2, y: (R - 2) * T } };
   }
   // BFS проходимости пешком (тесты и бот): от (sx,sy) в пикселях; → Uint8Array достижимых тайлов
-  function reach(D, tiles, sx, sy, rowMin, rowMax) {
+  function reach(D, tiles, sx, sy, rowMin, rowMax, burn) {
     tiles = tiles || D.tiles; rowMin = rowMin == null ? 0 : rowMin; rowMax = rowMax == null ? D.h - 1 : rowMax;
     var seen = new Uint8Array(COLS * D.h), s = Math.floor(sx / T) + Math.floor(sy / T) * COLS, q = [s]; seen[s] = 1;
     for (var i = 0; i < q.length; i++) {
@@ -216,7 +226,7 @@
       for (var d = 0; d < 4; d++) {
         var nx = x + [1, -1, 0, 0][d], ny = y + [0, 0, 1, -1][d];
         if (nx < 0 || nx >= COLS || ny < rowMin || ny > rowMax) continue;
-        var k = nx + ny * COLS; if (!seen[k] && WALK[tiles[k]]) { seen[k] = 1; q.push(k); }
+        var k = nx + ny * COLS; if (!seen[k] && (WALK[tiles[k]] || (burn && BURN[tiles[k]]))) { seen[k] = 1; q.push(k); }
       }
     }
     return seen;
@@ -227,23 +237,24 @@
     opts = opts || {};
     var rng = opts.rng || mulberry32((opts.seed || 1) * 977 + 5);
     var seed = opts.seed == null ? 1 : opts.seed;
-    var nPl = opts.players === 2 ? 2 : 1;
+    var nPl = 1;
     var maxZone = opts.maxZone || MAX_ZONE;
     var emit = opts.onEvent || function () {};
     var S = {
       zone: opts.zone || 1, maxZone: maxZone, players: nPl, score: 0, nextLife: EXTRA_LIFE, continues: CONTINUES,
       phase: 'play', phaseT: 0, time: 0, banner: 2.6, D: null, tiles: null, camY: 0, cp: -1, chp: {},
-      heroes: [], enemies: [], bullets: [], nades: [], booms: [], items: [], tanks: [], marks: [], boulders: [], boss: null,
-      runT: 4, kills: 0, zoneStats: [], lastCp: null, contT: 0
+      heroes: [], enemies: [], bullets: [], lobs: [], booms: [], items: [], marks: [], boulders: [], boss: null,
+      runT: 4, kills: 0, zoneStats: [], lastCp: null, contT: 0, hold: false, boosts: 0, barUsed: 0, tipBar: false,
+      charge: BAR.max, bar: { st: 'idle', y: 0, t: 0, tk: 0, idle: 0 }
     };
     var uid = 1;
     function hero(i) {
       return { id: i, x: 0, y: 0, hp: HP, lives: LIVES, alive: true, out: false, deadT: 0, inv: 1.5, face: [0, -1], mx: 0, my: 0, fire: false,
-        cd: 0, weapon: 'rifle', nades: NADES0, nadeCd: 0, tank: null, exitCd: 0, kills: 0, hurtT: 0, moving: false, shots: 0 };
+        cd: 0, weapon: 'rifle', kills: 0, hurtT: 0, moving: false, shots: 0 };
     }
     for (var i = 0; i < nPl; i++) S.heroes.push(hero(i));
     function scale() { return 1 + 0.12 * (S.zone - 1); }
-    function coop() { return S.players === 2 ? 1.25 : 1; }
+    function coop() { return 1; }
     function addScore(v) {
       S.score += v;
       while (S.score >= S.nextLife) { S.nextLife += EXTRA_LIFE; S.heroes.forEach(function (h) { if (!h.out) h.lives++; }); emit('life', {}); }
@@ -267,10 +278,6 @@
       for (var i = 1; i < n; i++) { var t = tileAt(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n); if (SHOTBLK[t] && (cover || t !== COVER)) return false; }
       return true;
     }
-    function crushCrates(x, y, r) {
-      var x0 = Math.floor((x - r) / T), x1 = Math.floor((x + r) / T), y0 = Math.floor((y - r) / T), y1 = Math.floor((y + r) / T);
-      for (var ty = y0; ty <= y1; ty++) for (var tx = x0; tx <= x1; tx++) if (tx > 0 && tx < COLS - 1 && ty >= 0 && ty < S.D.h && S.tiles[tx + ty * COLS] === CRATE) breakCrate(tx, ty);
-    }
     function breakCrate(tx, ty) {
       var k = tx + ty * COLS; S.tiles[k] = RUBBLE; delete S.chp[k];
       var kind = S.D.crates[k]; if (kind) { S.items.push({ kind: kind, x: tx * T + T / 2, y: ty * T + T / 2, taken: false }); delete S.D.crates[k]; }
@@ -280,14 +287,14 @@
       if (dx) { var nx = o.x + dx; if (!circleHits(nx, o.y, r, tbl)) o.x = nx; else { for (var s = -1; s <= 1; s += 2) { if (!circleHits(nx, o.y + s * 3, r, tbl) && !circleHits(o.x, o.y + s * 3, r, tbl) && !dy) { o.y += s * Math.min(1.2, Math.abs(dx)); break; } } } }
       if (dy) { var ny = o.y + dy; if (!circleHits(o.x, ny, r, tbl)) o.y = ny; else { for (var s2 = -1; s2 <= 1; s2 += 2) { if (!circleHits(o.x + s2 * 3, ny, r, tbl) && !circleHits(o.x + s2 * 3, o.y, r, tbl) && !dx) { o.x += s2 * Math.min(1.2, Math.abs(dy)); break; } } } }
     }
-    function blockers(o, r) {   // вытолкнуть из «твёрдых» объектов (гнёзда, броневики, пустые танкетки)
+    function blockers(o, r) {   // вытолкнуть из «твёрдых» объектов (гнёзда, броневики)
       S.enemies.forEach(function (e) {
         if (e.dead || !(e.type === 'nest' || e.type === 'car')) return;
         var dx = o.x - e.x, dy = o.y - e.y, d = Math.hypot(dx, dy), m = r + e.r;
         if (d < m && d > 0.01) { o.x = e.x + dx / d * m; o.y = e.y + dy / d * m; }
       });
     }
-    function walkSpot(x, y) {   // ближайшая проходимая точка (возрождение, выход из танкетки)
+    function walkSpot(x, y) {   // ближайшая проходимая точка (возрождение)
       for (var rad = 0; rad < 8; rad++) for (var a = 0; a < 16; a++) {
         var px = x + Math.cos(a / 16 * Math.PI * 2) * rad * 12, py = y + Math.sin(a / 16 * Math.PI * 2) * rad * 12;
         if (rad === 0 && a > 0) break;
@@ -301,23 +308,21 @@
       S.zone = n; S.D = (opts.zones && opts.zones[n - 1]) ? opts.zones[n - 1] : genZone(n, seed * 31 + n);
       S.D = JSON.parse(JSON.stringify(Object.assign({}, S.D, { tiles: Array.from(S.D.tiles) })));
       S.tiles = new Uint8Array(S.D.tiles); S.chp = {};
-      S.enemies = []; S.bullets = []; S.nades = []; S.booms = []; S.marks = []; S.boulders = []; S.boss = null; S.tanks = [];
+      S.enemies = []; S.bullets = []; S.lobs = []; S.booms = []; S.marks = []; S.boulders = []; S.boss = null; S.bar = { st: 'idle', y: 0, t: 0, tk: 0, idle: 0 }; S.tipBar = false;
       S.items = S.D.items.map(function (it) { return { kind: it.kind, x: it.x, y: it.y, taken: false }; });
-      S.D.tanks.forEach(function (t) { S.tanks.push(mkTank(t.x, t.y)); });
       S.pending = S.D.spawns.slice().sort(function (a, b) { return b.y - a.y; });
       S.cp = cpIdx == null ? -1 : cpIdx;
       var sy = cpIdx == null ? S.D.start.y : S.D.cps[cpIdx].y + 40, sx = cpIdx == null ? S.D.start.x : S.D.cps[cpIdx].x;
       S.camY = Math.max(0, Math.min(S.D.h * T - VIEW_H, sy + 90 - VIEW_H));
       if (cpIdx != null) S.pending = S.pending.filter(function (s) { return s.y < sy - 220; });   // пройденное и ближайшее к чекпоинту не оживает
       S.heroes.forEach(function (h, i) {
-        h.tank = null; h.x = sx + (nPl === 2 ? (i ? 22 : -22) : 0); h.y = sy; h.inv = 2; h.face = [0, -1];
+        h.x = sx; h.y = sy; h.inv = 2; h.face = [0, -1];
         var p = walkSpot(h.x, h.y); h.x = p[0]; h.y = p[1];
         if (!h.out) { h.alive = true; if (h.hp <= 0) h.hp = HP; }
       });
       S.runT = 4; S.banner = 2.6; S.phase = 'play'; S.phaseT = 0; S.zoneT = 0;
       emit('zone', { n: n, cp: cpIdx });
     }
-    function mkTank(x, y) { return { id: uid++, x: x, y: y, face: [0, -1], armor: TANK.armor, max: TANK.armor, fuel: 1, pilot: null, cd: 0, dead: false, wreckT: 0, moving: false, hurtT: 0 }; }
 
     // ---------- Враги ----------
     function spawn(type, x, y, o) {
@@ -337,9 +342,9 @@
     function eShoot(x, y, ang, spd, ign, src) {
       S.bullets.push({ k: 'e', x: x, y: y, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd, r: 3, life: 3.2, ign: ign || 0, dmg: 1, src: src || (S.boss && S.boss.active ? 'boss' : 'mob') });
     }
-    function eSpeed() { return (132 + 9 * (S.zone - 1)); }
+    function eSpeed() { return (140 + 9 * (S.zone - 1)); }
     function lobAt(x0, y0, x1, y1, r, dur, src) {   // навесной снаряд врага: метка на земле, затем взрыв
-      S.nades.push({ x0: x0, y0: y0, x1: x1, y1: y1, t: 0, dur: dur, r: r, enemy: true, src: src || 'lob' });
+      S.lobs.push({ x0: x0, y0: y0, x1: x1, y1: y1, t: 0, dur: dur, r: r, enemy: true, src: src || 'lob' });
       S.marks.push({ x: x1, y: y1, r: r, t: dur });
     }
     function updEnemy(e, dt) {
@@ -360,17 +365,17 @@
             moveBody(e, nd[0] * sp, nd[1] * sp, 7, WALK);
             if (ox === e.x && oy === e.y) { e.dir = DIRS[Math.floor(rng() * 8)]; e.turnT = e.t + 0.5 + rng() * 0.5; }
             if (e.cd <= 0 && h && onScreen(e.y, -10) && Math.hypot(h.x - e.x, h.y - e.y) < 380) {
-              if (e.type === 'rifle' ? los(e.x, e.y, h.x, h.y, false) : true) { e.state = 'aim'; e.warn = 0.55; e.flash = 0.55; emit('aim', { x: e.x, y: e.y }); }
+              if (e.type === 'rifle' ? los(e.x, e.y, h.x, h.y, false) : true) { e.state = 'aim'; e.warn = 0.52; e.flash = 0.52; emit('aim', { x: e.x, y: e.y }); }
               else e.cd = 0.4;
             }
           } else if (e.state === 'aim') {
             e.warn -= dt;
             if (e.warn <= 0) {
               if (h) {
-                if (e.type === 'rifle') { eShoot(e.x, e.y, Math.atan2(h.y - e.y, h.x - e.x) + (rng() - 0.5) * 0.2, eSpeed(), 0.05, 'rifle'); emit('eshot', { x: e.x, y: e.y }); }
+                if (e.type === 'rifle') { eShoot(e.x, e.y, Math.atan2(h.y - e.y, h.x - e.x) + (rng() - 0.5) * 0.17, eSpeed(), 0.05, 'rifle'); emit('eshot', { x: e.x, y: e.y }); }
                 else { var lx = h.x + (rng() - 0.5) * 30, ly = h.y + (rng() - 0.5) * 30, ld = Math.hypot(lx - e.x, ly - e.y); if (ld > 200) { lx = e.x + (lx - e.x) / ld * 200; ly = e.y + (ly - e.y) / ld * 200; } lobAt(e.x, e.y, lx, ly, 28, 0.85, 'grenade'); emit('lob', { x: e.x, y: e.y }); }
               }
-              e.state = 'walk'; e.cd = (e.type === 'rifle' ? 2.5 : 3.0) / sc + rng() * 1.0;
+              e.state = 'walk'; e.cd = (e.type === 'rifle' ? 2.2 : 2.8) / sc + rng() * 0.9;
             }
           }
           break;
@@ -382,7 +387,7 @@
             e.bt -= dt;
             if (e.bt <= 0) { e.burst--; e.bt = 0.1; var a = e.aim + (e.burst - 1.5) * 0.07; eShoot(e.x + Math.cos(a) * 14, e.y + Math.sin(a) * 14, a, eSpeed() + 20, 0.16, 'nest'); emit('eshot', { x: e.x, y: e.y, mg: true }); }
           } else if (e.warn > 0) { e.warn -= dt; if (e.warn <= 0) { e.burst = 4; e.bt = 0; e.aim = Math.atan2(h.y - e.y, h.x - e.x); } }
-          else { e.cd -= dt; if (e.cd <= 0 && Math.hypot(h.x - e.x, h.y - e.y) < 400) { e.warn = 0.5; e.flash = 0.5; e.cd = 2.9 / sc + rng() * 0.8; } }
+          else { e.cd -= dt; if (e.cd <= 0 && Math.hypot(h.x - e.x, h.y - e.y) < 400) { e.warn = 0.5; e.flash = 0.5; e.cd = 2.6 / sc + rng() * 0.8; } }
           break;
         }
         case 'bunker': {
@@ -410,7 +415,6 @@
     function hurtEnemy(e, dmg, pi, kind) {
       if (e.dead) return;
       if (e.type === 'bunker' && kind === 'bullet') { emit('armor', { x: e.x, y: e.y }); return; }
-      if (e.type === 'bunker') dmg = 1;
       if (e.type === 'car' && kind === 'bullet') dmg *= 0.5;
       e.hp -= dmg; e.flash = Math.max(e.flash, 0.08); emit('hit', { x: e.x, y: e.y });
       if (e.hp <= 0) killEnemy(e, pi);
@@ -420,35 +424,27 @@
       var hh = S.heroes[pi]; if (hh) hh.kills++;
       addScore(ENEMIES[e.type].score);
       if (e.type === 'bunker') for (var yy = 0; yy < 2; yy++) for (var xx = 0; xx < 2; xx++) setTile(e.tx + xx, e.ty + yy, RUBBLE);
-      if (e.type === 'car' || e.type === 'nest' || e.type === 'bunker') { S.booms.push({ x: e.x, y: e.y, r: 30, t: 0.5, max: 0.5 }); if (rng() < 0.6) S.items.push({ kind: rng() < 0.5 ? 'nade' : rng() < 0.5 ? 'med' : 'fuel', x: e.x, y: e.y + 20, taken: false }); }
-      else if (rng() < 0.08) S.items.push({ kind: rng() < 0.5 ? 'nade' : 'med', x: e.x, y: e.y, taken: false });
+      if (e.type === 'car' || e.type === 'nest' || e.type === 'bunker') { S.booms.push({ x: e.x, y: e.y, r: 30, t: 0.5, max: 0.5 }); if (rng() < 0.5) S.items.push({ kind: rng() < 0.8 ? 'shell' : 'med', x: e.x, y: e.y + 20, taken: false }); }
+      else if (rng() < 0.06) S.items.push({ kind: rng() < 0.5 ? 'shell' : 'med', x: e.x, y: e.y, taken: false });
       emit('kill', { type: e.type, x: e.x, y: e.y, pi: pi });
     }
 
-    // ---------- Взрывы ----------
+    // ---------- Взрывы (навесные снаряды врага) ----------
     function boom(x, y, r, dmg, pi, enemy, src) {
       S.booms.push({ x: x, y: y, r: r, t: 0.45, max: 0.45 });
       emit('boom', { x: x, y: y, r: r, enemy: !!enemy });
-      if (!enemy) {
-        S.enemies.forEach(function (e) { if (!e.dead && Math.hypot(e.x - x, e.y - y) < r + e.r) hurtEnemy(e, dmg, pi, 'boom'); });
-        crushCrates(x, y, r * 0.7);
-        if (S.boss && S.boss.active) S.boss.parts.forEach(function (p) { if (!p.dead && Math.hypot(p.x - x, p.y - y) < r + p.r) hurtPart(p, dmg * 0.85, pi); });
-        S.boulders.forEach(function (b) { if (Math.hypot(b.x - x, b.y - y) < r + b.r) b.hp -= 3; });
-      } else {
-        S.heroes.forEach(function (h) { if (h.alive && !h.out && Math.hypot(h.x - x, h.y - y) < r + HERO_R) hurtHero(h, src || 'boom', 3); });
-      }
+      S.heroes.forEach(function (h) { if (h.alive && !h.out && Math.hypot(h.x - x, h.y - y) < r + HERO_R) hurtHero(h, src || 'boom', 1); });
     }
 
     // ---------- Герои ----------
-    function hurtHero(h, src, tankDmg) {
+    function hurtHero(h, src) {
       if (!h.alive || h.out) return;
-      if (h.tank) { var tk = h.tank; tk.armor -= tankDmg || 1; tk.hurtT = 0.15; emit('tankHit', { x: tk.x, y: tk.y }); if (tk.armor <= 0) wreck(tk); return; }
       if (h.inv > 0) return;
       h.hp--; h.inv = 1.4; h.hurtT = 0.3; emit('heroHurt', { pi: h.id, x: h.x, y: h.y, src: src });
       if (h.hp <= 0) killHero(h, src);
     }
     function killHero(h, src) {
-      h.alive = false; h.deadT = 1.5; h.lives--; h.weapon = 'rifle'; h.fire = false;
+      h.alive = false; h.deadT = 1.5; h.lives--; h.weapon = 'rifle'; h.fire = false; if (S.bar.st !== 'idle') endBar(true);
       emit('heroDie', { pi: h.id, x: h.x, y: h.y, src: src });
       if (h.lives <= 0) { h.out = true; emit('out', { pi: h.id }); }
       if (S.heroes.every(function (q) { return q.out; })) {
@@ -458,30 +454,11 @@
     }
     function respawn(h) {
       var p = walkSpot(Math.max(T * 2, Math.min(W - T * 2, h.x)), S.camY + VIEW_H - 60);
-      h.x = p[0]; h.y = p[1]; h.alive = true; h.hp = HP; h.inv = 2.2; h.nades = Math.max(h.nades, 4); h.face = [0, -1]; h.tank = null;
+      h.x = p[0]; h.y = p[1]; h.alive = true; h.hp = HP; h.inv = 2.2; h.face = [0, -1]; S.charge = Math.max(S.charge, 40);
       emit('respawn', { pi: h.id, x: h.x, y: h.y });
-    }
-    function wreck(tk) {
-      tk.dead = true; tk.wreckT = 6; tk.armor = 0;
-      boom(tk.x, tk.y, 42, 6, tk.pilot == null ? 0 : tk.pilot, false);
-      if (tk.pilot != null) { var h = S.heroes[tk.pilot]; ejectHero(h); h.inv = 1.8; }
-      emit('tankDie', { x: tk.x, y: tk.y });
-    }
-    function ejectHero(h) {
-      var tk = h.tank; if (!tk) return;
-      tk.pilot = null; h.tank = null; h.exitCd = 0.8;
-      var offs = [[0, 26], [-26, 0], [26, 0], [0, -26], [-22, 22], [22, 22]];
-      for (var i = 0; i < offs.length; i++) { var x = tk.x + offs[i][0], y = tk.y + offs[i][1]; if (!circleHits(x, y, HERO_R + 1, WALK) && y < S.camY + VIEW_H - 10) { h.x = x; h.y = y; break; } }
-      if (h.x === tk.x && h.y === tk.y) { var p = walkSpot(tk.x, tk.y + 20); h.x = p[0]; h.y = p[1]; }
-      emit('exit', { pi: h.id, x: h.x, y: h.y });
     }
     function heroShoot(h) {
       var g = GUN[h.weapon], f = norm(h.face);
-      if (h.tank) {
-        var tk = h.tank; if (tk.cd > 0) return; tk.cd = TANK.cd;
-        S.bullets.push({ k: 's', pi: h.id, x: tk.x + f[0] * 18, y: tk.y + f[1] * 18, vx: f[0] * TANK.shell, vy: f[1] * TANK.shell, r: 4, life: TANK.range / TANK.shell, dmg: TANK.dmg });
-        emit('shell', { pi: h.id, x: tk.x, y: tk.y }); return;
-      }
       if (h.cd > 0) return; h.cd = g.cd; h.shots++;
       var a0 = Math.atan2(f[1], f[0]);
       for (var i = 0; i < g.n; i++) {
@@ -490,63 +467,74 @@
       }
       emit('shot', { pi: h.id, w: h.weapon });
     }
-    function throwNade(pi) {
-      var h = S.heroes[pi]; if (!h || !h.alive || h.out || S.phase !== 'play') return null;
-      if (h.tank) { ejectHero(h); return 'exit'; }
-      if (h.nadeCd > 0) return null;
-      if (h.nades <= 0) { emit('noNade', { pi: pi, x: h.x, y: h.y }); return 'empty'; }
-      var f = norm(h.face);
-      h.nades--; h.nadeCd = NADE.cd;
-      S.nades.push({ x0: h.x, y0: h.y, x1: h.x + f[0] * NADE.range, y1: h.y + f[1] * NADE.range, t: 0, dur: NADE.dur, r: NADE.r, pi: pi });
-      emit('nade', { pi: pi, x: h.x, y: h.y }); return 'nade';
+    // ---------- Огненный вал ----------
+    function startBar() {
+      var h = S.heroes[0]; if (!h || !h.alive || h.out || S.phase !== 'play') return null;
+      var b = S.bar;
+      if (b.st === 'wind' || b.st === 'run') { endBar(false); return 'stop'; }
+      if (b.st !== 'idle') return null;
+      if (S.charge < BAR.min) { emit('noCharge', { x: h.x, y: h.y }); return 'empty'; }
+      S.charge -= BAR.start; S.barUsed++;
+      b.st = 'wind'; b.t = BAR.wind; b.tk = 0; b.y = Math.max(S.camY + HUD + 26, h.y - BAR.lead);
+      emit('barStart', { x: h.x, y: b.y }); return 'start';
     }
+    function endBar(now) {
+      var b = S.bar; if (b.st === 'idle') return;
+      if (now || b.st === 'wind') { b.st = 'idle'; b.idle = 0; return; }
+      b.st = 'linger'; b.t = BAR.linger; emit('barEnd', { y: b.y });
+    }
+    function burnTiles(y) {
+      var r0 = Math.floor((y - BAR.h / 2) / T), r1 = Math.floor((y + BAR.h / 2) / T);
+      for (var ty = Math.max(0, r0); ty <= Math.min(S.D.h - 1, r1); ty++) for (var tx = 1; tx < COLS - 1; tx++) {
+        var k = tx + ty * COLS, t = S.tiles[k];
+        if (t === CRATE) breakCrate(tx, ty);
+        else if (t === COVER || t === WALL) { S.tiles[k] = RUBBLE; S.booms.push({ x: tx * T + T / 2, y: ty * T + T / 2, r: 16, t: 0.35, max: 0.35 }); emit('burn', { x: tx * T + T / 2, y: ty * T + T / 2 }); }
+      }
+    }
+    function updBar(dt) {
+      var b = S.bar, h = S.heroes[0];
+      if (b.st === 'idle') { b.idle += dt; if (b.idle > BAR.regenWait && S.charge < BAR.max) S.charge = Math.min(BAR.max, S.charge + BAR.regen * dt); return; }
+      if (b.st === 'wind') { b.t -= dt; if (b.t <= 0) { b.st = 'run'; b.tk = 0; } return; }
+      if (b.st === 'run') {
+        b.y -= BAR.speed * dt; S.charge -= BAR.drain * dt;
+        if (S.charge <= 0) { S.charge = 0; endBar(false); }
+        else if (b.y < S.camY + HUD + 6) endBar(false);
+      } else { b.t -= dt; if (b.t <= 0) { b.st = 'idle'; b.idle = 0; return; } }
+      b.tk -= dt; if (b.tk > 0) return; b.tk = BAR.tick;
+      var y0 = b.y - BAR.h / 2, y1 = b.y + BAR.h / 2;
+      S.enemies.forEach(function (e) {
+        if (e.dead || e.y + e.r < y0 || e.y - e.r > y1) return;
+        var k = e.type === 'bunker' ? 1 : e.type === 'rifle' || e.type === 'grenadier' ? 9 : e.type === 'car' ? BAR.car : e.type === 'nest' ? 2.5 : BAR.dmg;
+        hurtEnemy(e, k, 0, 'bar');
+      });
+      if (S.boss && S.boss.active && !S.boss.dead) S.boss.parts.forEach(function (p) { if (!p.dead && p.y + p.r > y0 && p.y - p.r < y1 && vuln(p)) hurtPart(p, BAR.bossDmg, 0); });
+      S.boulders.forEach(function (bo) { if (bo.y + bo.r > y0 && bo.y - bo.r < y1) bo.hp -= 1; });
+      S.bullets.forEach(function (q) { if (q.k === 'e' && q.y > y0 - 4 && q.y < y1 + 4) q.dead = true; });
+      S.lobs.forEach(function (q) { if (q.enemy && q.y1 > y0 && q.y1 < y1 && q.t > q.dur * 0.5) q.done = true; });
+      burnTiles(b.y);
+      if (h && h.alive && !h.out && h.y + HERO_R > y0 && h.y - HERO_R < y1) hurtHero(h, 'bar');
+    }
+
     function pickup(h, it) {
       it.taken = true; addScore(SCORE.pickup);
-      if (it.kind === 'nade') h.nades = Math.min(NADES_MAX, h.nades + 3);
+      if (it.kind === 'shell') S.charge = Math.min(BAR.max, S.charge + BAR.shell);
       else if (it.kind === 'med') h.hp = Math.min(HP, h.hp + 1);
       else if (it.kind === 'spread' || it.kind === 'rapid') h.weapon = it.kind;
-      else if (it.kind === 'fuel') { if (h.tank) { h.tank.fuel = 1; h.tank.armor = Math.min(h.tank.max, h.tank.armor + 5); } else { var tk = S.tanks.filter(function (t) { return !t.dead; }).sort(function (a, b) { return Math.hypot(a.x - h.x, a.y - h.y) - Math.hypot(b.x - h.x, b.y - h.y); })[0]; if (tk) tk.fuel = 1; addScore(100); } }
       emit('pickup', { kind: it.kind, x: it.x, y: it.y, pi: h.id });
     }
     function updHero(h, dt) {
       if (h.out) return;
       if (!h.alive) { h.deadT -= dt; if (h.deadT <= 0 && h.lives > 0) respawn(h); return; }
-      if (h.inv > 0) h.inv -= dt; if (h.cd > 0) h.cd -= dt; if (h.nadeCd > 0) h.nadeCd -= dt; if (h.exitCd > 0) h.exitCd -= dt; if (h.hurtT > 0) h.hurtT -= dt;
+      if (h.inv > 0) h.inv -= dt; if (h.cd > 0) h.cd -= dt; if (h.hurtT > 0) h.hurtT -= dt;
       var mv = (h.mx || h.my) ? norm([h.mx, h.my]) : [0, 0];
       h.moving = !!(h.mx || h.my);
       if (h.moving && !h.fire) h.face = [h.mx, h.my];
       var top = S.camY + 40, bot = S.camY + VIEW_H - 12;
-      if (h.tank) {
-        var tk = h.tank, sp = TANK.speed * dt * (tk.fuel > 0 ? 1 : 0);
-        if (tk.cd > 0) tk.cd -= dt;
-        tk.face = h.face;
-        if (h.moving && sp > 0) {
-          var ox = tk.x, oy = tk.y;
-          moveBody(tk, mv[0] * sp, mv[1] * sp, TANK.r, TANKOK); crushCrates(tk.x, tk.y, TANK.r - 1); blockers(tk, TANK.r);
-          tk.y = Math.max(top, Math.min(bot - 4, tk.y));
-          tk.moving = ox !== tk.x || oy !== tk.y;
-          tk.fuel = Math.max(0, tk.fuel - TANK.fuelMove * dt);
-          if (tk.fuel <= 0) emit('noFuel', { pi: h.id, x: tk.x, y: tk.y });
-          // наезд на пехоту
-          S.enemies.forEach(function (e) { if (!e.dead && (e.type === 'rifle' || e.type === 'grenadier') && Math.hypot(e.x - tk.x, e.y - tk.y) < TANK.r + e.r) { killEnemy(e, h.id); emit('crush', { x: e.x, y: e.y }); } });
-        } else { tk.moving = false; tk.fuel = Math.max(0, tk.fuel - TANK.fuelIdle * dt); }
-        h.x = tk.x; h.y = tk.y;
-        if (h.fire) heroShoot(h);
-        for (var ti = 0; ti < S.items.length; ti++) { var it2 = S.items[ti]; if (!it2.taken && Math.hypot(it2.x - h.x, it2.y - h.y) < 20) pickup(h, it2); }
-        return;
-      }
       var spd = SPEED * dt * (tileAt(h.x, h.y) === MUD ? 0.62 : 1) * (h.fire ? 0.9 : 1);
       if (h.moving) moveBody(h, mv[0] * spd, mv[1] * spd, HERO_R, WALK);
       blockers(h, HERO_R);
       h.y = Math.max(top, Math.min(bot, h.y));
       if (h.fire) heroShoot(h);
-      // посадка в танкетку
-      if (h.exitCd <= 0) S.tanks.forEach(function (tk) {
-        if (!tk.dead && tk.pilot == null && !h.tank && Math.hypot(tk.x - h.x, tk.y - h.y) < TANK.r + HERO_R + 3) {
-          if (tk.fuel <= 0) { if (!h._nf) emit('noFuel', { pi: h.id, x: tk.x, y: tk.y }); h._nf = 1; return; }
-          tk.pilot = h.id; h.tank = tk; h.face = tk.face.slice(); h.x = tk.x; h.y = tk.y; h.weapon = h.weapon; emit('board', { pi: h.id, x: tk.x, y: tk.y });
-        }
-      });
       for (var i = 0; i < S.items.length; i++) { var it = S.items[i]; if (!it.taken && Math.hypot(it.x - h.x, it.y - h.y) < 16) pickup(h, it); }
     }
 
@@ -555,24 +543,24 @@
       for (var i = 0; i < S.bullets.length; i++) {
         var b = S.bullets[i]; if (b.dead) continue;
         b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; if (b.ign > 0) b.ign -= dt;
-        if (b.life <= 0) { b.dead = true; if (b.k === 's') boom(b.x, b.y, TANK.boomR, TANK.dmg, b.pi); continue; }
+        if (b.life <= 0) { b.dead = true; continue; }
         if (b.y < S.camY - 30 || b.y > S.camY + VIEW_H + 30) { b.dead = true; continue; }
         var t = tileAt(b.x, b.y);
         if (b.k === 'e') {
           if (SHOTBLK[t] && !(t === COVER && b.ign > 0) && !(t === BUNKER && b.ign > 0)) { b.dead = true; emit('wallHit', { x: b.x, y: b.y, e: true }); continue; }
           for (var j = 0; j < S.heroes.length; j++) {
             var h = S.heroes[j]; if (!h.alive || h.out) continue;
-            if (Math.hypot(h.x - b.x, h.y - b.y) < (h.tank ? TANK.r : HERO_R) + b.r - 1) { b.dead = true; hurtHero(h, b.src === 'boss' ? 'boss' : b.src || 'bullet', 1); break; }
+            if (Math.hypot(h.x - b.x, h.y - b.y) < HERO_R + b.r - 1) { b.dead = true; hurtHero(h, b.src === 'boss' ? 'boss' : b.src || 'bullet'); break; }
           }
           continue;
         }
-        // пули героев и снаряды танкеток
+        // пули героя
         var hit = false;
         for (var k = 0; k < S.enemies.length; k++) {
           var e = S.enemies[k]; if (e.dead) continue;
           if (Math.abs(e.x - b.x) < e.r + b.r && Math.abs(e.y - b.y) < e.r + b.r && Math.hypot(e.x - b.x, e.y - b.y) < e.r + b.r) {
             b.dead = true; hit = true;
-            if (b.k === 's') boom(b.x, b.y, TANK.boomR, TANK.dmg, b.pi); else hurtEnemy(e, b.dmg, b.pi, 'bullet');
+            hurtEnemy(e, b.dmg, b.pi, 'bullet');
             break;
           }
         }
@@ -580,38 +568,33 @@
         if (S.boss && S.boss.active && !S.boss.dead) {
           for (var p = 0; p < S.boss.parts.length; p++) {
             var q = S.boss.parts[p]; if (q.dead) continue;
-            if (Math.hypot(q.x - b.x, q.y - b.y) < q.r + b.r) { b.dead = true; hit = true; if (b.k === 's') boom(b.x, b.y, TANK.boomR, TANK.dmg, b.pi); else hurtPart(q, 1, b.pi); break; }
+            if (Math.hypot(q.x - b.x, q.y - b.y) < q.r + b.r) { b.dead = true; hit = true; hurtPart(q, 1, b.pi); break; }
           }
           if (hit) continue;
         }
-        for (var bi = 0; bi < S.boulders.length; bi++) { var bo = S.boulders[bi]; if (Math.hypot(bo.x - b.x, bo.y - b.y) < bo.r + b.r) { b.dead = true; hit = true; bo.hp -= b.k === 's' ? 3 : 1; emit('hit', { x: bo.x, y: bo.y }); break; } }
+        for (var bi = 0; bi < S.boulders.length; bi++) { var bo = S.boulders[bi]; if (Math.hypot(bo.x - b.x, bo.y - b.y) < bo.r + b.r) { b.dead = true; hit = true; bo.hp -= 1; emit('hit', { x: bo.x, y: bo.y }); break; } }
         if (hit) continue;
         if (SHOTBLK[t]) {
           b.dead = true;
-          if (b.k === 's') { boom(b.x - b.vx * dt, b.y - b.vy * dt, TANK.boomR, TANK.dmg, b.pi); continue; }
           if (t === CRATE) { var tx = Math.floor(b.x / T), ty = Math.floor(b.y / T), ck = tx + ty * COLS; S.chp[ck] = (S.chp[ck] || 3) - 1; if (S.chp[ck] <= 0) breakCrate(tx, ty); }
           emit('wallHit', { x: b.x, y: b.y, t: t });
         }
       }
       S.bullets = S.bullets.filter(function (b) { return !b.dead; });
     }
-    function updNades(dt) {
-      for (var i = 0; i < S.nades.length; i++) {
-        var n = S.nades[i]; n.t += dt;
-        if (n.t >= n.dur) {
-          n.done = true;
-          if (n.enemy) boom(n.x1, n.y1, n.r, 1, null, true, n.src);
-          else boom(n.x1, n.y1, n.r, NADE.dmg, n.pi, false);
-        }
+    function updLobs(dt) {
+      for (var i = 0; i < S.lobs.length; i++) {
+        var n = S.lobs[i]; n.t += dt;
+        if (n.t >= n.dur) { n.done = true; boom(n.x1, n.y1, n.r, 1, null, true, n.src); }
       }
-      S.nades = S.nades.filter(function (n) { return !n.done; });
+      S.lobs = S.lobs.filter(function (n) { return !n.done; });
       S.marks.forEach(function (m) { m.t -= dt; }); S.marks = S.marks.filter(function (m) { return m.t > 0; });
       S.booms.forEach(function (b) { b.t -= dt; }); S.booms = S.booms.filter(function (b) { return b.t > 0; });
     }
 
     // ---------- Босс ----------
     function makeBoss(key) {
-      var B = BOSSES[key], hpK = S.players === 2 ? 1.4 : 1;
+      var B = BOSSES[key], hpK = 1.1;
       var b = { key: key, x: W / 2, y: key === 'dam' ? 84 : key === 'engine' ? 130 : key === 'crusher' ? 96 : 104, t: 0, active: false, intro: 0, dead: false, deadT: 0, spin: 0, summonT: 6, boulderT: 2.5, portT: 0, portI: 0, parts: [] };
       B.parts.forEach(function (p, i) { b.parts.push({ id: i, kind: p[0], dx: p[1], dy: p[2], r: p[3], hp: p[4] * hpK, max: p[4] * hpK, dead: false, cd: 1 + i * 0.5, warn: 0, open: p[0] !== 'port', flash: 0, burst: 0 }); });
       b.max = b.parts.reduce(function (a, p) { return a + p.max; }, 0);
@@ -628,7 +611,7 @@
         p.dead = true; addScore(1000); S.booms.push({ x: p.x, y: p.y, r: 34, t: 0.6, max: 0.6 }); emit('partDie', { x: p.x, y: p.y, kind: p.kind });
         if (b.parts.filter(function (q) { return q.kind === 'core' || q.kind === 'port'; }).every(function (q) { return q.dead; })) {
           b.dead = true; b.deadT = 2.2; addScore(SCORE.boss * S.zone);
-          S.bullets = S.bullets.filter(function (q) { return q.k !== 'e'; }); S.marks = []; S.nades = S.nades.filter(function (q) { return !q.enemy; });
+          S.bullets = S.bullets.filter(function (q) { return q.k !== 'e'; }); S.marks = []; S.lobs = [];
           S.enemies.forEach(function (e) { if (!e.dead) { e.dead = true; S.booms.push({ x: e.x, y: e.y, r: 18, t: 0.4, max: 0.4 }); } });
           emit('bossDie', { x: b.x, y: b.y, key: b.key });
         }
@@ -717,7 +700,7 @@
       S.boulders.forEach(function (bo) {
         if (bo.wait > 0) { bo.wait -= dt; return; }
         bo.y += bo.vy * dt; bo.rot = (bo.rot || 0) + dt * 5;
-        S.heroes.forEach(function (h) { if (h.alive && !h.out && Math.hypot(h.x - bo.x, h.y - bo.y) < bo.r + (h.tank ? TANK.r : HERO_R)) { hurtHero(h, 'boulder', 3); bo.hp = 0; } });
+        S.heroes.forEach(function (h) { if (h.alive && !h.out && Math.hypot(h.x - bo.x, h.y - bo.y) < bo.r + HERO_R) { hurtHero(h, 'boulder'); bo.hp = 0; } });
         if (bo.hp <= 0) { bo.dead = true; S.booms.push({ x: bo.x, y: bo.y, r: 20, t: 0.35, max: 0.35 }); emit('rock', { x: bo.x, y: bo.y }); }
         if (bo.y > S.camY + VIEW_H + 30) bo.dead = true;
       });
@@ -743,7 +726,7 @@
       if (!(S.boss && S.boss.active)) {
         S.runT -= dt;
         if (S.runT <= 0) {
-          S.runT = (5.6 - 0.45 * S.zone) / coop() + rng() * 2;
+          S.runT = (5.0 - 0.4 * S.zone) / coop() + rng() * 1.6;
           var mobile = S.enemies.filter(function (e) { return !e.dead && (e.type === 'rifle' || e.type === 'grenadier'); }).length;
           if (mobile < 3 + S.zone) {
             var row = Math.floor((S.camY + 8) / T), k = 1 + (rng() < 0.3 + 0.08 * S.zone ? 1 : 0);
@@ -768,35 +751,49 @@
       if (S.banner > 0) S.banner -= dt;
       if (S.phase === 'cont') { S.contT -= dt; if (S.contT <= 0) { S.phase = 'over'; emit('gameover', {}); } return; }
       if (S.phase === 'clear') {
+        S.bar.st = 'idle';
         S.phaseT -= dt;
+        if (S.phaseT <= 0 && S.hold && S.zone < S.maxZone) S.phaseT = 0.01;   // карточка «дальше» перед межстраничной — ждём действия игрока
         if (S.phaseT <= 0) { if (S.zone >= S.maxZone) { S.phase = 'won'; emit('win', {}); } else { S.heroes.forEach(function (h) { if (h.out && h.lives <= 0) { /* выбывший возвращается в новой зоне */ h.out = false; h.lives = 1; h.alive = true; h.hp = HP; } }); loadZone(S.zone + 1); } }
-        S.heroes.forEach(function (h) { if (h.alive && !h.out) { var m = norm([h.mx, h.my]); if (!h.tank) moveBody(h, m[0] * SPEED * dt, m[1] * SPEED * dt, HERO_R, WALK); } });
-        updNades(dt); return;
+        S.heroes.forEach(function (h) { if (h.alive && !h.out) { var m = norm([h.mx, h.my]); moveBody(h, m[0] * SPEED * dt, m[1] * SPEED * dt, HERO_R, WALK); } });
+        updLobs(dt); return;
       }
       if (S.phase !== 'play') return;
       S.zoneT = (S.zoneT || 0) + dt;
       S.heroes.forEach(function (h) { updHero(h, dt); });
-      S.tanks.forEach(function (tk) { if (tk.dead) tk.wreckT -= dt; if (tk.hurtT > 0) tk.hurtT -= dt; });
+      updBar(dt);
+      if (S.zone === 1 && !S.tipBar && S.barUsed === 0) {   // обучение: первый частокол близко — подсказка про вал
+        var hh = S.heroes[0], sg = S.D.segs.filter(function (q) { return q.kind === 'stockade'; })[0];
+        if (sg && hh && hh.y - (sg.y0 + 4) * T < 250 && hh.y > (sg.y0 + 4) * T) { S.tipBar = true; emit('tip', { k: 'bar' }); }
+      }
       updCamera(dt);
       for (var i = 0; i < S.enemies.length; i++) if (!S.enemies[i].dead) updEnemy(S.enemies[i], dt);
       // контакт с броневиком
-      S.enemies.forEach(function (e) { if (e.type !== 'car' || e.dead) return; S.heroes.forEach(function (h) { if (h.alive && !h.out && !h.tank && Math.hypot(h.x - e.x, h.y - e.y) < e.r + HERO_R + 2) hurtHero(h, 'car', 1); }); });
-      updBoss(dt); updBoulders(dt); updBullets(dt); updNades(dt);
+      S.enemies.forEach(function (e) { if (e.type !== 'car' || e.dead) return; S.heroes.forEach(function (h) { if (h.alive && !h.out && Math.hypot(h.x - e.x, h.y - e.y) < e.r + HERO_R + 2) hurtHero(h, 'car', 1); }); });
+      updBoss(dt); updBoulders(dt); updBullets(dt); updLobs(dt);
     }
     var api = {
       start: function () { loadZone(S.zone); return api; },
       update: function (dt) { var n = Math.ceil(dt / (1 / 60) - 1e-6); for (var i = 0; i < n; i++) step(dt / n); },
       setMove: function (pi, dx, dy) { var h = S.heroes[pi]; if (h) { h.mx = dx; h.my = dy; } },
       setFire: function (pi, on) { var h = S.heroes[pi]; if (h) h.fire = !!on; },
-      nade: throwNade,
+      bar: startBar,
+      reviveAd: function () {   // реклама за награду: «ещё один шанс» — с места, 1 жизнь, полный заряд
+        if (S.phase !== 'over' && S.phase !== 'cont') return false;
+        S.phase = 'play'; S.phaseT = 0; S.charge = BAR.max;
+        S.heroes.forEach(function (h) { h.out = false; h.lives = 1; h.alive = false; h.deadT = 0; h.hp = HP; respawn(h); });
+        return true;
+      },
+      boost: function () { if (S.phase !== 'play' || S.boosts >= 2) return false; S.boosts++; S.heroes.forEach(function (h) { if (!h.out) { h.lives++; emit('life', {}); } }); return true; },
+      canBoost: function () { return S.phase === 'play' && S.boosts < 2; },
       cont: function () {   // продолжить с последнего чекпоинта
         if (S.phase !== 'cont') return false;
-        S.continues--; S.heroes.forEach(function (h) { h.out = false; h.lives = LIVES; h.alive = true; h.hp = HP; h.nades = NADES0; h.weapon = 'rifle'; });
+        S.continues--; S.heroes.forEach(function (h) { h.out = false; h.lives = LIVES; h.alive = true; h.hp = HP; h.weapon = 'rifle'; }); S.charge = BAR.max;
         loadZone(S.zone, S.cp >= 0 ? S.cp : null); emit('continue', { left: S.continues }); return true;
       },
       state: function () { return S; },
       _S: S, _spawn: spawn, _loadZone: loadZone, _tileAt: tileAt, _setTile: setTile, _circleHits: circleHits, _los: los, _hurt: hurtHero,
-      _boom: boom, _kill: killHero, _makeBoss: function (k) { S.boss = makeBoss(k); return S.boss; }, _hurtPart: hurtPart, _vuln: vuln, _mkTank: function (x, y) { var t = mkTank(x, y); S.tanks.push(t); return t; }
+      _boom: boom, _kill: killHero, _makeBoss: function (k) { S.boss = makeBoss(k); return S.boss; }, _hurtPart: hurtPart, _vuln: vuln
     };
     return api;
   }
@@ -804,6 +801,6 @@
   DS.Game = Game;
   DS.logic = { genZone: genZone, reach: reach, mulberry32: mulberry32, oct: oct, T: T, COLS: COLS, W: W, VIEW_H: VIEW_H, HUD: HUD, ARENA: ARENA,
     G: G, SOLID: SOLID, WATER: WATER, BRIDGE: BRIDGE, COVER: COVER, CRATE: CRATE, MUD: MUD, WALL: WALL, RUBBLE: RUBBLE, BUNKER: BUNKER, BODY: BODY,
-    WALK: WALK, TANKOK: TANKOK, SHOTBLK: SHOTBLK, SPEED: SPEED, HERO_R: HERO_R, HP: HP, LIVES: LIVES, NADES0: NADES0, NADES_MAX: NADES_MAX, CONTINUES: CONTINUES,
-    TANK: TANK, NADE: NADE, GUN: GUN, BULLET: BULLET, ENEMIES: ENEMIES, BOSSES: BOSSES, ZONES: ZONES, MAX_ZONE: MAX_ZONE, BIND: BIND, SCORE: SCORE, EXTRA_LIFE: EXTRA_LIFE, DIRS: DIRS };
+    WALK: WALK, BURN: BURN, SHOTBLK: SHOTBLK, SPEED: SPEED, HERO_R: HERO_R, HP: HP, LIVES: LIVES, CONTINUES: CONTINUES,
+    BAR: BAR, GUN: GUN, BULLET: BULLET, ENEMIES: ENEMIES, BOSSES: BOSSES, ZONES: ZONES, MAX_ZONE: MAX_ZONE, BIND: BIND, SCORE: SCORE, EXTRA_LIFE: EXTRA_LIFE, DIRS: DIRS };
 })(typeof window !== 'undefined' ? window : globalThis);

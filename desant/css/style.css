@@ -1,26 +1,40 @@
-/* ДЕСАНТ · стили страницы (сама игра рисуется в canvas). Тема страницы — body[data-theme]. */
+/* ЗАРЕВО · стили страницы (сама игра рисуется в canvas). Тема страницы — body[data-theme]. */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{--bg:#11171a;--panel:#182024;--line:#34424a;--ink:#f2f4f2;--mut:#93a0a4;--accent:#ea6a12}
-body[data-theme="retro"]{--bg:#000000;--panel:#000000;--line:#5b6e85;--ink:#f4f4f4;--mut:#c8d4dc;--accent:#ea6a12}
+body[data-theme="retro"]{--bg:#000000;--panel:#000000;--line:#5b6e85;--ink:#ffffff;--mut:#a8a8a8;--accent:#ea6a12}
 html,body{background:var(--bg)}
 body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow-x:hidden}
 body[data-theme="retro"]{font-family:"Courier New",ui-monospace,monospace}
-.wrap{position:relative;width:100%;margin-top:30px;display:flex;justify-content:center;padding:0 8px}
-canvas{display:block;width:auto;height:auto;max-width:100%;max-height:calc(100dvh - 92px);border:1px solid var(--line);border-radius:10px;background:var(--bg);touch-action:none}
+.wrap{position:relative;width:100%;max-width:640px;margin-top:30px;display:flex;justify-content:center;padding:0 8px}
+canvas{display:block;border:1px solid var(--line);border-radius:10px;background:var(--bg);touch-action:none}
 body[data-theme="retro"] canvas{border-radius:2px;image-rendering:pixelated}
-a.back{position:fixed;left:10px;top:7px;color:var(--mut);font-size:13px;text-decoration:none;font-weight:700;z-index:5;padding:2px 6px;border-radius:6px;background:color-mix(in srgb,var(--bg) 70%,transparent)}
+a.back{position:fixed;left:10px;top:7px;color:var(--mut);font-size:12px;text-decoration:none;font-weight:700;z-index:5}
 a.back:hover{color:var(--accent)}
-.pad{width:min(96vw,520px);margin:10px 0 4px;display:flex;justify-content:space-between;align-items:center;gap:10px;position:relative;z-index:3}
-.pad button{width:64px;height:64px;background:var(--panel);border:1px solid var(--line);border-radius:14px;color:var(--ink);font-size:22px;font-weight:800;touch-action:none;padding:0}
+.pad{width:min(96vw,480px);margin:10px 0 4px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pad button{width:54px;height:54px;background:var(--panel);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-size:20px;font-weight:800;touch-action:none;padding:0}
 .pad button:active{filter:brightness(1.5)}
-.stick{width:132px;height:132px;border-radius:50%;background:var(--panel);border:1px solid var(--line);position:relative;touch-action:none;flex:none}
-.stick .knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:var(--line);border:2px solid var(--accent);pointer-events:none}
-.acts{display:flex;gap:10px;align-items:center}
-.acts .fire{width:84px;height:84px;border-radius:50%;border-color:var(--accent);color:var(--accent);font-size:28px}
+/* виртуальный стик (js/stick.js): палец в любом месте зоны — центр стика */
+.stick{position:relative;width:150px;height:150px;border-radius:50%;border:1px dashed var(--line);touch-action:none;flex:none}
+.stick-base,.stick-knob{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;opacity:.55}
+.stick-base{width:104px;height:104px;border:2px solid var(--line);background:rgba(255,255,255,.04)}
+.stick-knob{width:50px;height:50px;background:var(--panel);border:2px solid var(--accent)}
+.acts{display:grid;grid-template-columns:repeat(2,58px);grid-template-rows:repeat(2,58px);gap:6px}
+.acts button{width:58px;height:58px}
+.acts .fire{grid-column:1 / span 2;width:122px;border-color:var(--accent);color:var(--accent);font-size:24px}
+.acts [data-bar]{grid-column:1 / span 2;width:122px;color:#ffb04a;border-color:#b5601c}
 .pad .mini{width:44px;height:44px;font-size:14px}
-body[data-theme="retro"] .pad button,body[data-theme="retro"] .stick,body[data-theme="retro"] .stick .knob{border-radius:2px}
-.foot{color:var(--mut);font-size:11px;margin:12px 12px 12px;text-align:center;max-width:820px}
+body[data-theme="retro"] .pad button{border-radius:2px}
+.foot{color:var(--mut);font-size:11px;margin:6px 12px 12px;text-align:center;max-width:640px}
 .foot b{color:var(--ink)}
-@media(hover:none) and (pointer:coarse){canvas{max-height:calc(100dvh - 260px)}.wrap{margin-top:30px}}
 @media(min-width:900px) and (hover:hover){.pad{display:none}}
+@media (max-height:780px){.foot{display:none}}
+/* телефон «лёжа»: стик слева, кнопки справа — поверх полей по бокам холста */
+@media (max-height:520px) and (orientation:landscape){
+  .wrap{margin-top:24px}
+  .pad{position:fixed;left:0;right:0;bottom:6px;width:100%;max-width:none;margin:0;padding:0 8px;pointer-events:none;align-items:flex-end}
+  .pad>*{pointer-events:auto}
+  .pad .mini{position:fixed;right:10px;top:4px;width:40px;height:34px}
+  .stick{width:140px;height:140px}
+  .acts{grid-template-columns:repeat(2,52px);grid-template-rows:repeat(2,52px)}.acts button{width:52px;height:52px}.acts .fire,.acts [data-bar]{width:110px}
+}

@@ -1,24 +1,25 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ДЕСАНТ · Кооперативный run-and-gun — HTML5</title>
-<meta name="description" content="ДЕСАНТ — оригинальный кооперативный run-and-gun студии «Гефест» с видом сверху и вертикальным скроллом на 1–2 игроков: десант мастерской в маскхалатах-штормовках пробивается на север через тайгу, торфяные топи, каменоломню, сплавные пороги и старую крепость мастеровых. Ствол в 8 направлениях со стрейфом, гранаты через укрытия, брошенные танкетки с бронёй и топливом, пулемётные гнёзда, дзоты, броневики, катера и пять машин-боссов. Темы retro/modern, RU/EN, офлайн.">
+<title>ЗАРЕВО · Огненный вал и бой с видом сверху — HTML5</title>
+<meta name="description" content="ЗАРЕВО — оригинальный экшен студии «Гефест» с видом сверху и вертикальным скроллом: боец мастерской идёт на север сквозь тайгу, топи, каменоломню, пороги и старую крепость. Главная механика — огненный вал: пусти полосу пламени через всё поле, жги частоколы, пехоту и гнёзда, гаси вражеские пули и иди следом, не попав в свой огонь. Пять зон, пять машин-боссов, темы retro/modern, 5 языков, офлайн.">
 <meta name="theme-color" content="#11171a">
 <link rel="canonical" href="https://arcade.hefest.ru/desant/">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="stylesheet" href="./css/style.css">
 </head><body data-theme="modern">
 <a class="back" id="backLink" href="../" data-catalog-back="1" data-en="← Catalog">&larr; Каталог</a>
-<div class="wrap"><canvas id="c" width="480" height="640" aria-label="ДЕСАНТ"></canvas></div>
+<div class="wrap"><canvas id="c" width="480" height="640" aria-label="ЗАРЕВО"></canvas></div>
 <div class="pad">
-  <div class="stick" aria-label="Стик"><div class="knob"></div></div>
+  <div class="stick" data-stick="1" aria-label="Стик: ход"></div>
   <button class="mini" data-pause="1" aria-label="Пауза">II</button>
   <div class="acts">
-    <button data-act="nade" aria-label="Граната">✸</button>
+    <button data-bar="1" aria-label="Огненный вал">▲</button>
     <button class="fire" data-d="A" aria-label="Огонь">●</button>
   </div>
 </div>
-<div class="foot" id="foot" data-en="&lt;b&gt;SOOTBREAKERS&lt;/b&gt; · P1: WASD — move, F — fire (hold to strafe), G — grenade / leave tankette · P2: arrows — move, . — fire, / — grenade · 1/2 on the title — players · P/Esc pause · L language, T theme, M sound."><b>ДЕСАНТ</b> · И1: WASD — ход, F — огонь (держи — стрейф), G — граната / выйти из танкетки · И2: стрелки — ход, . — огонь, / — граната · 1/2 на заставке — игроки · P/Esc пауза · L язык, T тема, M звук.</div>
+<div class="foot" id="foot"><b>ЗАРЕВО</b> · WASD или стрелки — ход, F или пробел — огонь, G или E — огненный вал · P/Esc пауза · L язык, T тема, M звук.</div>
 <script src="./engine.js"></script>
+<script src="./js/stick.js"></script>
 <script src="./js/music.js"></script>
 <script src="./js/i18n.js"></script>
 <script src="./js/game.js"></script>

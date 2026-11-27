@@ -1,22 +1,22 @@
-/* ГРОМ · логика игры (без DOM, детерминирована при заданном rng).
-   Run-and-gun с исследованием больших уровней-лабиринтов: штурмовик мастерской «Гефест» в громовой броне.
-   Мир — сетка тайлов (клетка = 1 единица, y вниз). Уровень — решётка комнат 32×20 клеток: остовное дерево
-   (длинные коридоры) + петли (несколько путей к выходу) + тайники за трещинами, люками и тоннелями «колеса».
-   В дальней комнате — арена с боссом; после победы открывается портал-выход. Тело: x — центр, y — низ (ступни).
-   GROM.Game(opts) → api; GROM.logic — константы, генератор уровней, физика, граф проходимости (Nav) для тестов и бота. */
+/* РАСКАТ (папка grom) · логика игры (без DOM, детерминирована при заданном rng).
+   Run-and-gun с исследованием больших уровней-лабиринтов: штурмовик мастерской «Гефест». Главная механика — РАСКАТ:
+   бросок-молния (стик + одна кнопка) в 8 сторон; в точке старта через полсекунды бьёт гром. Бросок проходит
+   сквозь медные заслонки. Мир — сетка тайлов (клетка = 1 единица, y вниз). Уровень — решётка комнат 32×20:
+   остовное дерево коридоров + петли + тайники за трещинами, люками и медными заслонками. В дальней комнате — арена
+   с боссом; после победы открывается портал-выход. Тело: x — центр, y — низ (ступни).
+   GROM.Game(opts) → api; GROM.logic — константы, генератор, физика, граф проходимости (Nav) для тестов и бота. */
 (function (global) {
   'use strict';
   var GR = global.GROM = global.GROM || {};
 
   // ---------- Константы ----------
-  var T = 16, HUD = 32, VIEW_W = 40, VIEW_H = 22;            // экран 640×384: HUD 32 px + окно 40×22 клеток
+  var T = 16, HUD = 40, VIEW_W = 40, VIEW_H = 20;            // экран 640×360 (16:9): HUD 40 px + окно 40×20 клеток
   var RW = 32, RH = 20;                                      // комната: 31×19 клеток внутри + стена/пол
-  var E = 0, R = 1, P = 2, K = 3, B = 4, G = 5;              // пусто, скала, платформа, трещина, бонус-блок, ворота арены
-  var GRAV = 60, JUMP_V = 24.5, JUMP_CUT = 9, RUN = 7, VMAX = 22, HW = 0.38, HH = 1.8, WH = 0.85, WHEEL_V = 9, COYOTE = 0.08, JBUF = 0.12;
+  var E = 0, R = 1, P = 2, K = 3, B = 4, G = 5, M = 6;       // пусто, скала, платформа, трещина, бонус-блок, ворота арены, медная заслонка
+  var GRAV = 60, JUMP_V = 24.5, JUMP_CUT = 9, RUN = 7, VMAX = 22, HW = 0.38, HH = 1.8, COYOTE = 0.08, JBUF = 0.12;
   var HPMAX = 8, LIVES = 3, CONTS = 1, INV_T = 1.0, SPAWN_INV = 2.2, DEAD_T = 1.4, CONT_T = 9;
-  var CHARGE = 5, CH_REGEN = 0.5, CH_MIN = 0.6, MINE_COST = 0.6, MINE_R = 2.3, MINE_DMG = 9, MINE_T = 3, MINES_MAX = 3;
-  var THUNDER0 = 2, THUNDER_MAX = 5, THUNDER_DMG = 20, THUNDER_BOSS = 12;
-  var BEAM_LEN = 7, BEAM_DPS = 9, BEAM_ROT = 7;
+  var CHARGE = 3, DASH_REGEN = 1.0, DASH_V = 38, DASH_T = 0.17, DASH_DIAG = 0.8, DASH_UP = 0.72, DASH_DMG = 3, DASH_BOSS = 6, DASH_REFUND = 0.5;
+  var CLAP_T = 0.45, CLAP_R = 2.7, CLAP_DMG = 6;
   var EXTRA_LIFE = 25000, TIME_RESET = 120, ACTIVE_X = 24, ACTIVE_Y = 14;
   var KHP = {}; KHP[K] = 4; KHP[B] = 3;
   var PTS = { gem: 100, block: 50, beacon: 200, secret: 1000, crawler: 100, hopper: 150, flyer: 150, turret: 250, boss: 5000, timeBonus: 10 };
@@ -32,17 +32,17 @@
     turret: { hw: 0.5, hh: 0.8, hp: 5, dmg: 2 }
   };
   var BOSSES = {
-    anvil: { hp: 70, hw: 1.6, hh: 1.3, dmg: 3 },       // hw/hh — полуразмеры; x,y босса — центр
-    millstone: { hp: 85, hw: 1.6, hh: 1.6, dmg: 3 },
-    kite: { hp: 115, hw: 1.5, hh: 0.9, dmg: 2 },
-    horn: { hp: 175, hw: 2.0, hh: 1.6, dmg: 3 }
+    anvil: { hp: 56, hw: 1.6, hh: 1.3, dmg: 3 },       // hw/hh — полуразмеры; x,y босса — центр
+    millstone: { hp: 68, hw: 1.6, hh: 1.6, dmg: 3 },
+    kite: { hp: 90, hw: 1.5, hh: 0.9, dmg: 2 },
+    horn: { hp: 135, hw: 2.0, hh: 1.6, dmg: 3 }
   };
   var PHASES = 3, BOSS_HEAL = 0.2;   // гибель героя в бою — босс чинится на 20%
   var LEVELS = [
     { rx: 5, ry: 4, seed: 11, zone: 'foundry', boss: 'anvil', time: 300, dens: 1.8, loops: 0.25, foes: { crawler: 4, flyer: 2, turret: 2, hopper: 0 } },
     { rx: 6, ry: 4, seed: 23, zone: 'steam', boss: 'millstone', time: 360, dens: 2.4, loops: 0.25, foes: { crawler: 3, flyer: 2, turret: 2, hopper: 2 } },
-    { rx: 6, ry: 5, seed: 37, zone: 'copper', boss: 'kite', time: 420, dens: 2.8, loops: 0.22, foes: { crawler: 2, flyer: 3, turret: 3, hopper: 2 } },
-    { rx: 7, ry: 5, seed: 53, zone: 'storm', boss: 'horn', time: 480, dens: 2.9, loops: 0.2, foes: { crawler: 2, flyer: 3, turret: 3, hopper: 3 } }
+    { rx: 6, ry: 5, seed: 37, zone: 'copper', boss: 'kite', time: 540, dens: 2.8, loops: 0.22, foes: { crawler: 2, flyer: 3, turret: 3, hopper: 2 } },
+    { rx: 7, ry: 5, seed: 53, zone: 'storm', boss: 'horn', time: 540, dens: 2.9, loops: 0.2, foes: { crawler: 2, flyer: 3, turret: 3, hopper: 3 } }
   ];
 
   function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -108,7 +108,7 @@
       tree.forEach(function (c) { link(c.a, c.b, c.dir === 'h' ? 'door' : 'shaft', true); });
       boss = byDepth[bi]; boss.kind = 'X'; rooms[0].kind = 'S';
       ante = rooms[+Object.keys(boss.nb)[0]];
-      // тайники — листья за трещиной, люком или тоннелем «колеса» (соседи старта — не тайники)
+      // тайники — листья за трещиной, люком или медной заслонкой (соседи старта — не тайники)
       var cand = shuffle(leaves.filter(function (r) { return r !== boss && neigh(0).indexOf(r.i) < 0; }));
       var nsec = Math.max(1, Math.min(3, Math.round(cand.length * 0.5))), alt = 0;
       cand.slice(0, nsec).forEach(function (r) {
@@ -131,10 +131,8 @@
       if (c.dir !== 'h') return;
       var L0 = rooms[c.a], wall = L0.x0 + RW, F = L0.y0 + RH;
       c.wall = wall; c.F = F;
-      if (c.k === 'tunnel') {
-        for (var xx = wall - 5; xx <= wall + 5; xx++) { set(xx, F - 3, R); set(xx, F - 2, R); set(xx, F - 1, E); }
-        L0.tunR = true; rooms[c.b].tunL = true;
-      } else for (var yy = F - 3; yy < F; yy++) set(wall, yy, c.k === 'crack' ? K : E);
+      if (c.k === 'tunnel') { L0.tunR = true; rooms[c.b].tunL = true; }
+      for (var yy = F - 3; yy < F; yy++) set(wall, yy, c.k === 'crack' ? K : c.k === 'tunnel' ? M : E);
     });
     list.forEach(function (c) {
       if (c.dir !== 'v') return;
@@ -207,7 +205,7 @@
       var ng = 1 + Math.floor(rng() * 3);
       for (var kg = 0; kg < ng; kg++) { var gc = floorCol(0); if (gc > 0) { item('gem', gc + 0.5, F - 0.6); busy[gc] = 1; } }
       if (r.kind === 's') {   // тайник: сокровища, без врагов
-        var tc = floorCol(1); if (tc > 0) { item(rng() < 0.5 ? 'life' : 'thunder', tc + 0.5, F - 0.7); busy[tc] = 1; }
+        var tc = floorCol(1); if (tc > 0) { item(rng() < 0.5 ? 'life' : 'charge', tc + 0.5, F - 0.7); busy[tc] = 1; }
         var cc2 = floorCol(1); if (cc2 > 0) { item('cap', cc2 + 0.5, F - 0.7, { w: capsule() }); busy[cc2] = 1; }
         for (var kq = 0; kq < 4; kq++) { var gq = floorCol(0); if (gq > 0) { item('gem', gq + 0.5, F - 0.6); busy[gq] = 1; } }
         return;
@@ -244,7 +242,7 @@
     var BF = boss.y0 + RH, bk = C.boss, bp;
     if (bk === 'anvil') bp = { x: boss.x0 + 24, y: BF - BOSSES.anvil.hh };
     else if (bk === 'millstone') bp = { x: boss.x0 + 24, y: BF - BOSSES.millstone.hh };
-    else if (bk === 'kite') bp = { x: boss.x0 + 16, y: boss.y0 + 6 };
+    else if (bk === 'kite') bp = { x: boss.x0 + 16, y: boss.y0 + 8 };
     else bp = { x: boss.x0 + 16.5, y: boss.y0 + 4.2 };
     var pcx = boss.x0 + 16;
     if (boss.down && Math.abs(boss.down.h + 1.5 - pcx) < 5) pcx = boss.down.h + 1.5 > boss.x0 + 16 ? boss.x0 + 8 : boss.x0 + 24;
@@ -262,7 +260,7 @@
   function level(n) { return LV[n] || (LV[n] = buildLevel(n)); }
 
   // ---------- Физика (общая для игры, графа проходимости и бота) ----------
-  function solid(w, c, r) { if (c < 0 || r < 0 || c >= w.W || r >= w.H) return true; return w.t[r * w.W + c] !== E; }
+  function solid(w, c, r) { if (c < 0 || r < 0 || c >= w.W || r >= w.H) return true; var v = w.t[r * w.W + c]; return v !== E && !(w.pass && v === M); }
   function boxFree(w, x, y, hw, hh) {
     var c0 = Math.floor(x - hw + 1e-6), c1 = Math.floor(x + hw - 1e-6), r0 = Math.floor(y - hh + 1e-6), r1 = Math.floor(y - 1e-6);
     for (var r = r0; r <= r1; r++) for (var c = c0; c <= c1; c++) if (solid(w, c, r)) return false;
@@ -294,19 +292,46 @@
     return hit;
   }
   function newHero(x, y) {
-    return { x: x, y: y, vx: 0, vy: 0, face: 1, ground: true, coy: 0, jbuf: 0, jprev: false, form: 'man', hp: HPMAX, inv: 0, charge: CHARGE,
-      fireCd: 0, mineCd: 0, beam: { on: false, ang: 0, len: 0, ex: x, ey: y }, aim: { x: 1, y: 0 }, runT: 0, shotT: 0 };
+    return { x: x, y: y, vx: 0, vy: 0, face: 1, ground: true, coy: 0, jbuf: 0, jprev: false, hp: HPMAX, inv: 0, charge: CHARGE,
+      fireCd: 0, dash: 0, ddx: 1, ddy: 0, dext: 0, dhit: null, dpress: false, aim: { x: 1, y: 0 }, runT: 0, shotT: 0 };
   }
-  function bodyH(h) { return h.form === 'wheel' ? WH : HH; }
+  function bodyH() { return HH; }
+  // бросок-молния: направление — стик (8 сторон), без стика — вперёд; вниз с земли — вперёд; тратит ячейку заряда
+  function startDash(w, h, inp) {
+    if (h.dash > 0 || h.charge < 1) return false;
+    var dx = inp.dx | 0, dy = inp.dy | 0;
+    if (dy > 0 && h.ground) dy = 0;
+    if (!dx && !dy) dx = h.face;
+    var k = dx && dy ? DASH_DIAG : 1; if (dy < 0) k *= DASH_UP;
+    h.ddx = dx * (dx && dy ? 0.7071 : 1); h.ddy = dy * (dx && dy ? 0.7071 : 1);
+    h.dlen = k; h.dash = DASH_T * k; h.dext = 0; h.dhit = []; h.charge -= 1; h.vy = 0;
+    if (dx) h.face = dx > 0 ? 1 : -1;
+    h.inv = Math.max(h.inv, h.dash + 0.15);
+    return true;
+  }
   // шаг героя: inp {dx, dy, jump(удержание)}; возвращает биты событий: 1 — прыжок, 2 — приземление
   function heroPhys(w, h, inp, dt) {
-    var ev = 0, wheel = h.form === 'wheel', hh = wheel ? WH : HH, rooted = h.beam.on && !wheel;
-    var vx = rooted ? 0 : inp.dx * (wheel ? WHEEL_V : RUN);
-    if (inp.dx && !rooted) h.face = inp.dx > 0 ? 1 : -1;
+    var ev = 0, hh = HH, dashing = h.dash > 0;
+    w.pass = dashing;
+    if (dashing) {
+      var hitD = move(w, h, HW, hh, h.ddx * DASH_V * dt, h.ddy * DASH_V * dt);
+      h.vx = h.ddx * DASH_V; h.vy = 0; h.dash -= dt;
+      if ((hitD & 1) && h.ddx) h.dash = 0;
+      if ((hitD & 12) && h.ddy) h.dash = 0;
+      w.pass = false;
+      if (h.dash <= 0) {   // конец броска: не оставаться внутри заслонки — дотянуть вперёд
+        if (!boxFree(w, h.x, h.y, HW, hh) && h.dext < 0.3) { h.dash = dt; h.dext += dt; }
+        if (h.dash <= 0) { h.dash = 0; h.vy = h.ddy < 0 ? -6 : 0; }
+      }
+      h.ground = h.vy >= 0 && !boxFree(w, h.x, h.y + 0.03, HW, hh);
+      return ev;
+    }
+    var vx = inp.dx * RUN;
+    if (inp.dx) h.face = inp.dx > 0 ? 1 : -1;
     if (inp.jump && !h.jprev) h.jbuf = JBUF;
     h.jprev = !!inp.jump;
     if (h.ground) h.coy = COYOTE; else h.coy -= dt;
-    if (!wheel && !rooted && h.jbuf > 0 && h.coy > 0) { h.vy = -JUMP_V; h.coy = 0; h.jbuf = 0; h.ground = false; ev |= 1; }
+    if (h.jbuf > 0 && h.coy > 0) { h.vy = -JUMP_V; h.coy = 0; h.jbuf = 0; h.ground = false; ev |= 1; }
     h.jbuf -= dt;
     if (!inp.jump && h.vy < -JUMP_CUT) h.vy = -JUMP_CUT;
     h.vy = Math.min(VMAX, h.vy + GRAV * dt);
@@ -318,12 +343,6 @@
     if (h.ground && vx) h.runT += dt;
     return ev;
   }
-  function setForm(w, h, form) {
-    if (form === h.form) return true;
-    if (form === 'wheel') { if (h.charge < CH_MIN && h.charge < CHARGE) return false; h.form = 'wheel'; h.beam.on = false; return true; }
-    if (!boxFree(w, h.x, h.y, HW, HH)) return false;
-    h.form = 'man'; return true;
-  }
   function los(w, x0, y0, x1, y1) {
     var d = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(d / 0.3);
     for (var i = 1; i < n; i++) { var x = x0 + (x1 - x0) * i / n, y = y0 + (y1 - y0) * i / n; if (solid(w, Math.floor(x), Math.floor(y))) return false; }
@@ -332,24 +351,21 @@
 
   // ---------- Макросы движения (граф проходимости и бот используют одни и те же) ----------
   // walk d — шаг на соседнюю клетку (или сход с края); jump dc — прыжок с полным удержанием и ходом к столбцу c+dc;
-  // jumpD dc — прыжок, ход начинается через 8 кадров; roll d,n — свернуться в колесо, прокатиться на n клеток, развернуться.
+  // jumpD dc — прыжок, ход начинается через 8 кадров; dash d — бросок-молния в сторону d (сквозь медную заслонку).
   var ACTS = [];
   ACTS.push({ k: 'walk', d: -1 }, { k: 'walk', d: 1 });
   for (var dc = -7; dc <= 7; dc++) if (dc) ACTS.push({ k: 'jump', dc: dc });
   for (var dd = 1; dd <= 5; dd++) { ACTS.push({ k: 'jumpD', dc: dd }); ACTS.push({ k: 'jumpD', dc: -dd }); }
-  var ROLL0 = ACTS.length;
-  for (var rn = 3; rn <= 18; rn++) { ACTS.push({ k: 'roll', d: 1, n: rn }); ACTS.push({ k: 'roll', d: -1, n: rn }); }
+  var DASH0 = ACTS.length;
+  ACTS.push({ k: 'dash', d: 1 }, { k: 'dash', d: -1 });
   function Macro(ai, c) { this.ai = ai; this.a = ACTS[ai]; this.c = c; this.f = 0; this.air = false; this.done = false; this.fail = false; }
   Macro.prototype.input = function (h) {
-    var a = this.a, o = { dx: 0, dy: 0, jump: false, form: null };
+    var a = this.a, o = { dx: 0, dy: 0, jump: false, dash: false };
     if (a.k === 'walk') { var tx = this.c + a.d + 0.5; if (!this.air && Math.abs(h.x - tx) > 0.1) o.dx = h.x < tx ? 1 : -1; }
     else if (a.k === 'jump' || a.k === 'jumpD') {
       o.jump = true; var tj = this.c + a.dc + 0.5;
       if ((a.k === 'jump' || this.f >= 8) && Math.abs(h.x - tj) > 0.1) o.dx = h.x < tj ? 1 : -1;
-    } else if (a.k === 'roll') {
-      var tr = this.c + a.d * a.n + 0.5;
-      if (Math.abs(h.x - tr) > 0.12) { o.dx = h.x < tr ? 1 : -1; o.form = 'wheel'; } else o.form = 'man';
-    }
+    } else if (a.k === 'dash') { o.dx = a.d; o.dash = this.f === 0; }
     return o;
   };
   // вызывается после шага физики
@@ -359,11 +375,11 @@
     var a = this.a;
     if (a.k === 'walk') { if (h.ground && (this.air || Math.abs(h.x - (this.c + a.d + 0.5)) <= 0.1)) this.done = true; }
     else if (a.k === 'jump' || a.k === 'jumpD') { if (this.air && h.ground) this.done = true; }
-    else if (a.k === 'roll') { if (h.form === 'man' && h.ground && this.f > 2) this.done = true; }
+    else if (a.k === 'dash') { if (this.f > 3 && h.dash <= 0 && h.ground) this.done = true; }
     if (this.f > 200) this.fail = true;
   };
   function nodeOf(w, h) {
-    if (!h.ground || h.form !== 'man') return -1;
+    if (!h.ground || h.dash > 0) return -1;
     var r = Math.round(h.y); if (Math.abs(h.y - r) > 0.01) return -1;
     var c = Math.floor(h.x);
     return isNode(w, c, r) ? r * w.W + c : -1;
@@ -375,7 +391,7 @@
     if (!boxFree(w, h.x, h.y, HW, HH)) return null;
     while (!m.done && !m.fail) {
       var o = m.input(h);
-      if (o.form) { if (!setForm(w, h, o.form) && o.form === 'man') { /* нет места развернуться — катимся дальше */ } }
+      if (o.dash) startDash(w, h, o);
       heroPhys(w, h, o, dt); m.after(h);
       if (h.y > w.H + 2) { m.fail = true; }
     }
@@ -393,13 +409,14 @@
     function edges(id) {
       if (out.has(id)) return out.get(id);
       var c = id % w.W, r = Math.floor(id / w.W), best = {}, list = [];
-      var mouth = { '1': !solid(w, c + 1, r - 1) && solid(w, c + 1, r - 2), '-1': !solid(w, c - 1, r - 1) && solid(w, c - 1, r - 2) };
+      var mouth = { '1': 0, '-1': 0 };
+      for (var dq = 1; dq <= 5; dq++) { if (w.t[(r - 2) * w.W + c + dq] === M) mouth['1'] = 1; if (w.t[(r - 2) * w.W + c - dq] === M) mouth['-1'] = 1; }
       for (var ai = 0; ai < ACTS.length; ai++) {
         var a = ACTS[ai];
-        if (a.k === 'roll' && !mouth[a.d]) continue;
+        if (a.k === 'dash' && !mouth[a.d]) continue;
         var s1 = simulate(w, c, r, ai, 0.44); if (!s1 || s1.to === id) continue;
         var s2 = simulate(w, c, r, ai, 0.56); if (!s2 || s2.to !== s1.to) continue;
-        var tm = Math.max(s1.t, s2.t) + (a.k === 'roll' ? 0.8 : 0);
+        var tm = Math.max(s1.t, s2.t) + (a.k === 'dash' ? 0.3 : 0);
         if (!best[s1.to] || best[s1.to].t > tm) best[s1.to] = { to: s1.to, a: ai, t: tm };
       }
       for (var k in best) list.push(best[k]);
@@ -432,8 +449,8 @@
     opts = opts || {};
     var rng = opts.rng || mulberry32(1), emit = opts.onEvent || function () {}, dmgMul = opts.dmgMul == null ? 1 : opts.dmgMul;
     var S = { score: 0, lives: LIVES, conts: CONTS, time: 0, phase: 'play', phaseT: 0, nextLife: EXTRA_LIFE, kills: 0, level: 0,
-      maxLevel: opts.maxLevel || LEVELS.length, weapon: { k: 'S', lv: 1 }, thunder: THUNDER0, flash: 0, banner: 0, cam: { x: 0, y: 0 }, won: false, over: false, secrets: 0, gems: 0 };
-    var inp = { dx: 0, dy: 0, jump: false, fire: false, beam: false };
+      maxLevel: opts.maxLevel || LEVELS.length, weapon: { k: 'S', lv: 1 }, flash: 0, banner: 0, cam: { x: 0, y: 0 }, won: false, over: false, secrets: 0, gems: 0 };
+    var inp = { dx: 0, dy: 0, jump: false, fire: false };
     var api = {};
 
     function room(x, y) { var lv = S.lv, rx = clamp(Math.floor(x / RW), 0, lv.RX - 1), ry = clamp(Math.floor(y / RH), 0, lv.RY - 1); return lv.rooms[ry * lv.RX + rx]; }
@@ -443,7 +460,7 @@
       S.t = new Uint8Array(lv.t); S.thp = new Float32Array(lv.hp);
       S.items = lv.items.map(function (o) { var c = {}; for (var k in o) c[k] = o[k]; c.got = false; c.on = !!o.start; return c; });
       S.enemies = lv.spawns.map(function (s) { var f = FOES[s.type]; return { type: s.type, x: s.x, y: s.type === 'flyer' ? s.y + f.hh / 2 : s.y, hw: f.hw, hh: f.hh, hp: f.hp, max: f.hp, dir: rng() < 0.5 ? -1 : 1, vx: 0, vy: 0, cd: 1 + rng() * 1.5, warn: false, flash: 0, dead: false, mount: s.mount || null, ph: rng() * 6, room: s.room, ground: false }; });
-      S.bullets = []; S.eb = []; S.mines = []; S.waves = []; S.marks = []; S.booms = [];
+      S.bullets = []; S.eb = []; S.claps = []; S.waves = []; S.marks = []; S.booms = [];
       S.boss = null; S.bossActive = false; S.bossDone = false; S.portal = null;
       S.ltime = lv.time; S.visited = {}; S.cp = { x: lv.start.x, y: lv.start.y };
       S.hero = newHero(lv.start.x, lv.start.y); S.inp = inp;
@@ -465,7 +482,7 @@
         if (v === B) {
           var roll = rng(), it;
           if (roll < 0.42) it = { k: 'cap', w: 'SLB'[Math.floor(rng() * 3)] };
-          else if (roll < 0.62) it = { k: 'hp' }; else if (roll < 0.76) it = { k: 'thunder' }; else if (roll < 0.88) it = { k: 'charge' }; else it = { k: 'gem' };
+          else if (roll < 0.62) it = { k: 'hp' }; else if (roll < 0.88) it = { k: 'charge' }; else it = { k: 'gem' };
           it.x = c + 0.5; it.y = r + 0.5; it.got = false; it.id = 'd' + S.time.toFixed(3) + c; it.drop = true; it.vy = -6; S.items.push(it);
         }
       }
@@ -473,14 +490,14 @@
     }
     function hurt(d, why) {
       var h = S.hero;
-      if (S.phase !== 'play' || h.inv > 0 || h.form === 'wheel' || d <= 0) return false;
-      d *= dmgMul * (1 + 0.2 * (S.level - 1)); if (d <= 0) return false;
+      if (S.phase !== 'play' || h.inv > 0 || h.dash > 0 || d <= 0) return false;
+      d *= dmgMul * (1 + 0.18 * (S.level - 1)); if (d <= 0) return false;
       h.hp -= d; h.inv = INV_T; emit('hurt', { x: h.x, y: h.y - 1, why: why, hp: h.hp });
       if (h.hp <= 0) die(why);
       return true;
     }
     function die(why) {
-      var h = S.hero; h.hp = 0; h.beam.on = false;
+      var h = S.hero; h.hp = 0; h.dash = 0;
       S.phase = 'dead'; S.phaseT = DEAD_T; S.lives--;
       S.weapon.lv = Math.max(1, S.weapon.lv - 1);
       if (S.boss && S.bossActive && !S.boss.dead) { var b = S.boss; b.hp = Math.min(b.max, b.hp + b.max * BOSS_HEAL); b.phase = Math.min(PHASES - 1, Math.floor((1 - b.hp / b.max) * PHASES)); }
@@ -490,7 +507,6 @@
       var p = S.bossActive || S.bossDone ? S.lv.arenaSpawn : S.cp, h = newHero(p.x, p.y);
       h.inv = SPAWN_INV; h.face = S.hero.face; S.hero = h; S.phase = 'play';
       if (S.ltime <= 0) S.ltime = TIME_RESET;
-      S.thunder = Math.max(S.thunder, THUNDER0);
       S.eb = []; emit('respawn', {});
     }
     function hitEnemy(e, d, how) {
@@ -532,14 +548,6 @@
       }
       h.fireCd = Wp.cd; h.shotT = 0.08; emit('shot', { k: wk, lv: lv + 1 });
     }
-    function thunder() {
-      if (S.phase !== 'play' || S.thunder <= 0) return false;
-      S.thunder--; S.flash = 0.6;
-      S.enemies.forEach(function (e) { if (!e.dead && onScreen(e.x, e.y, 1)) hitEnemy(e, THUNDER_DMG, 'thunder'); });
-      if (S.boss && S.bossActive && !S.boss.dead) { var keep = S.boss.shift; S.boss.shift = 0; hitBoss(THUNDER_BOSS, 'thunder'); if (!S.boss.dead && S.boss.shift === 0) S.boss.shift = keep; }
-      S.eb = []; S.marks = [];
-      emit('thunder', { n: S.thunder }); return true;
-    }
     function boom(x, y, r, dmg, src) {
       S.booms.push({ x: x, y: y, r: r, t: 0.35 });
       S.enemies.forEach(function (e) { if (!e.dead && Math.hypot(e.x - x, e.y - e.hh / 2 - y) < r + e.hw) hitEnemy(e, dmg, src); });
@@ -556,7 +564,6 @@
       it.got = true;
       if (it.k === 'gem') { addScore(PTS.gem); S.gems++; }
       else if (it.k === 'hp') h.hp = Math.min(HPMAX, h.hp + 4);
-      else if (it.k === 'thunder') S.thunder = Math.min(THUNDER_MAX, S.thunder + 1);
       else if (it.k === 'life') S.lives++;
       else if (it.k === 'charge') h.charge = CHARGE;
       else if (it.k === 'cap') {
@@ -614,7 +621,7 @@
       } else if (b.key === 'kite') {
         // «Флюгер»: летает восьмёркой, очереди по три; с 2-й фазы — бомбы, с 3-й — зовёт летунов
         var cx = b.x0 + 16.5, tt = b.t * (0.55 + 0.1 * b.phase);
-        b.x = cx + 11 * Math.sin(tt); b.y = b.y0 + 6 + 2.5 * Math.sin(tt * 2);
+        b.x = cx + 11 * Math.sin(tt); b.y = b.y0 + 8 + 2.5 * Math.sin(tt * 2);
         if (b.cd <= 0) { var a1 = aimAt(b.x, b.y); for (var q = 0; q < 3; q++) ebullet(b.x, b.y + 0.5, a1 + (q - 1) * 0.12, 8.5 * sp); b.cd = 2 - 0.4 * b.phase; emit('eshot', { boss: true }); }
         if (b.phase >= 1 && b.cd2 <= 0) { ebullet(b.x, b.y + b.hh, Math.PI / 2, 2, { g: 18, r: 0.4, bomb: true }); b.cd2 = 1.3 - 0.2 * b.phase; }
         if (b.phase >= 2 && b.cd3 <= 0) {
@@ -630,7 +637,8 @@
         if (b.phase >= 2 && b.cd2 <= 0) { S.marks.push({ x: h.x, t: 0, warn: 1.1, strike: 0.25, y0: b.y0 + 1, y1: floor }); b.cd2 = 2.6; emit('markWarn', {}); }
       }
       // касание
-      if (heroOverlap(b.x, b.y + b.hh, b.hw - 0.1, 0) && h.y > b.y - b.hh) hurt(b.dmg, 'boss');
+      if (h.dash > 0) { if (h.dhit.indexOf(b) < 0 && bossBox(b, h.x, h.y - 0.9, HW + 0.2)) { h.dhit.push(b); hitBoss(DASH_BOSS, 'dash'); } }
+      else if (heroOverlap(b.x, b.y + b.hh, b.hw - 0.1, 0) && h.y > b.y - b.hh) hurt(b.dmg, 'boss');
     }
 
     // ---------- Враги ----------
@@ -669,7 +677,7 @@
         }
         // касание
         if (S.phase === 'play' && Math.abs(e.x - h.x) < e.hw + HW - 0.1 && e.y - e.hh < h.y - 0.1 && e.y > h.y - bodyH(h) + 0.1) {
-          if (h.form === 'wheel') hitEnemy(e, 4 * dt, 'wheel');
+          if (h.dash > 0) { if (h.dhit.indexOf(e) < 0) { h.dhit.push(e); hitEnemy(e, DASH_DMG, 'dash'); if (e.dead) h.charge = Math.min(CHARGE, h.charge + DASH_REFUND); } }
           else hurt(FOES[e.type].dmg, e.type);
         }
       }
@@ -711,27 +719,18 @@
       if (S.phase === 'play') {
         if (h.inv > 0) h.inv -= dt;
         if (h.shotT > 0) h.shotT -= dt;
-        // форма-колесо: заряд
-        if (h.form === 'wheel') { h.charge = Math.max(0, h.charge - dt); if (h.charge <= 0 && setForm(S, h, 'man')) emit('wheel', { on: false }); }
-        else h.charge = Math.min(CHARGE, h.charge + CH_REGEN * dt);
-        // луч-кнут: удержание, герой стоит, луч поворачивается к выбранному из 8 направлений
-        var wantBeam = inp.beam && h.form === 'man';
-        if (wantBeam && !h.beam.on) { h.beam.on = true; h.beam.ang = h.face > 0 ? 0 : Math.PI; emit('beam', { on: true }); }
-        if (!wantBeam && h.beam.on) { h.beam.on = false; emit('beam', { on: false }); }
+        // заряд броска: копится на земле
+        if (h.dash <= 0 && h.ground) h.charge = Math.min(CHARGE, h.charge + DASH_REGEN * dt);
+        else if (h.dash <= 0) h.charge = Math.min(CHARGE, h.charge + DASH_REGEN * 0.35 * dt);
         var ev = heroPhys(S, h, inp, dt);
         if (ev & 1) emit('jump', {});
         if (ev & 2) emit('land', {});
         if (h.y > S.H + 1) die('fall');
-        if (h.beam.on) updBeam(h, dt);
-        // огонь: основное оружие / мины в форме колеса
-        h.fireCd -= dt; h.mineCd -= dt;
-        if (inp.fire) {
-          if (h.form === 'wheel') {
-            if (h.mineCd <= 0 && h.charge >= MINE_COST && S.mines.length < MINES_MAX) { h.charge -= MINE_COST; h.mineCd = 0.35; S.mines.push({ x: h.x, y: h.y - 0.3, vy: 0, t: 0 }); emit('mine', {}); }
-          } else if (!h.beam.on && h.fireCd <= 0) shoot(h);
-        } else if (!h.beam.on) h.aim = aimDir(h);
+        // огонь: основное оружие (во время броска не стреляет)
+        h.fireCd -= dt;
+        if (inp.fire && h.dash <= 0) { if (h.fireCd <= 0) shoot(h); } else h.aim = aimDir(h);
       }
-      updBullets(dt); updMines(dt); updEnemies(dt); updEB(dt);
+      updBullets(dt); updClaps(dt); updEnemies(dt); updEB(dt);
       if (S.boss) updBoss(dt);
       updWaves(dt);
       if (S.phase === 'play') updItems(dt);
@@ -739,27 +738,6 @@
       updCam(dt);
       S.enemies = S.enemies.filter(function (e) { return !e.dead || false; });
     };
-    function updBeam(h, dt) {
-      var bm = h.beam, dx = inp.dx, dy = inp.dy;
-      if (dx || dy) {
-        var tgt = Math.atan2(dy, dx), d = tgt - bm.ang;
-        while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
-        var st = BEAM_ROT * dt; bm.ang += Math.abs(d) <= st ? d : sgn(d) * st;
-        if (dx) h.face = dx > 0 ? 1 : -1;
-      }
-      var ox = h.x + Math.cos(bm.ang) * 0.3, oy = h.y - 1.05, cx = Math.cos(bm.ang), cy = Math.sin(bm.ang), len = 0;
-      while (len < BEAM_LEN) {
-        var nx = ox + cx * (len + 0.2), ny = oy + cy * (len + 0.2), c = Math.floor(nx), r = Math.floor(ny);
-        if (solid(S, c, r)) { if (S.phase === 'play') tileHit(c, r, BEAM_DPS * dt); break; }
-        len += 0.2;
-      }
-      bm.len = len; bm.ox = ox; bm.oy = oy; bm.ex = ox + cx * len; bm.ey = oy + cy * len;
-      function segD(px, py) { var t = clamp(((px - ox) * cx + (py - oy) * cy), 0, len); return Math.hypot(ox + cx * t - px, oy + cy * t - py); }
-      S.enemies.forEach(function (e) { if (!e.dead && segD(e.x, e.y - e.hh / 2) < Math.max(e.hw, e.hh / 2) + 0.35) hitEnemy(e, BEAM_DPS * dt, 'beam'); });
-      if (S.boss && S.bossActive && !S.boss.dead && segD(S.boss.x, S.boss.y) < Math.min(S.boss.hw, S.boss.hh) + 0.5) hitBoss(BEAM_DPS * dt, 'beam');
-      S.eb = S.eb.filter(function (b) { if (segD(b.x, b.y) < b.r + 0.3) { b.dead = true; return false; } return true; });
-      S.items.forEach(function (it) { if (!it.got && it.k !== 'beacon' && segD(it.x, it.y) < 0.8) it.pull = true; });
-    }
     function updBullets(dt) {
       var out = [];
       for (var i = 0; i < S.bullets.length; i++) {
@@ -790,19 +768,13 @@
       }
       S.bullets = out;
     }
-    function updMines(dt) {
+    function updClaps(dt) {
       var out = [];
-      for (var i = 0; i < S.mines.length; i++) {
-        var m = S.mines[i]; m.t += dt; m.vy = Math.min(VMAX, m.vy + GRAV * dt);
-        var hit = move(S, m, 0.25, 0.4, 0, m.vy * dt); if (hit & 12) m.vy = 0;
-        var trig = m.t > MINE_T;
-        if (!trig && m.t > 0.25) {
-          for (var j = 0; j < S.enemies.length; j++) { var e = S.enemies[j]; if (!e.dead && Math.hypot(e.x - m.x, e.y - e.hh / 2 - m.y) < 1.1 + e.hw) { trig = true; break; } }
-          if (S.boss && S.bossActive && !S.boss.dead && bossBox(S.boss, m.x, m.y - 0.2, 0.8)) trig = true;
-        }
-        if (trig) boom(m.x, m.y - 0.2, MINE_R, MINE_DMG, 'mine'); else out.push(m);
+      for (var i = 0; i < S.claps.length; i++) {
+        var m = S.claps[i]; m.t += dt;
+        if (m.t >= CLAP_T) { boom(m.x, m.y, CLAP_R, CLAP_DMG, 'clap'); S.flash = Math.max(S.flash, 0.12); emit('clap', { x: m.x, y: m.y }); } else out.push(m);
       }
-      S.mines = out;
+      S.claps = out;
     }
     function updEB(dt) {
       var h = S.hero, out = [];
@@ -810,7 +782,7 @@
         var b = S.eb[i]; b.life -= dt; b.vy += b.g * dt; b.x += b.vx * dt; b.y += b.vy * dt;
         if (b.life <= 0 || solid(S, Math.floor(b.x), Math.floor(b.y))) { if (b.bomb) S.booms.push({ x: b.x, y: b.y, r: 1, t: 0.25 }); continue; }
         if (S.phase === 'play' && heroOverlap(b.x, b.y, b.r - 0.05, b.r - 0.05)) {
-          if (h.form === 'wheel') { emit('deflect', { x: b.x, y: b.y }); continue; }
+          if (h.dash > 0) { emit('deflect', { x: b.x, y: b.y }); continue; }
           if (h.inv <= 0) { hurt(b.dmg, 'bolt'); continue; }
         }
         out.push(b);
@@ -863,16 +835,25 @@
 
     // ---------- API ----------
     api.start = function () { loadLevel(opts.level || 1); if (opts.level > 1) S.weapon.lv = 2; return api; };
-    api.setInput = function (o) { inp.dx = o.dx | 0; inp.dy = o.dy | 0; inp.jump = !!o.jump; inp.fire = !!o.fire; inp.beam = !!o.beam; };
-    api.wheel = function () {
+    api.setInput = function (o) { inp.dx = o.dx | 0; inp.dy = o.dy | 0; inp.jump = !!o.jump; inp.fire = !!o.fire; };
+    // бросок-молния (тап): в точке старта через CLAP_T бьёт гром
+    api.dash = function () {
       var h = S.hero; if (S.phase !== 'play') return false;
-      var ok = setForm(S, h, h.form === 'wheel' ? 'man' : 'wheel');
-      emit(ok ? 'wheel' : 'noWheel', { on: h.form === 'wheel' }); return ok;
+      var x0 = h.x, y0 = h.y - 0.9;
+      if (!startDash(S, h, inp)) { emit('noDash', {}); return false; }
+      S.claps.push({ x: x0, y: y0, t: 0 });
+      emit('dash', { x: x0, y: y0, dx: h.ddx, dy: h.ddy }); return true;
     };
-    api.setForm = function (f) { var h = S.hero; if (S.phase !== 'play' || h.form === f) return h.form === f; var ok = setForm(S, h, f); if (ok) emit('wheel', { on: h.form === 'wheel' }); return ok; };
-    api.thunder = thunder;
     // продолжение: уровень заново с начала (босс — с полным здоровьем), счёт делится пополам
-    api.cont = function () { if (S.phase !== 'cont') return false; S.conts--; S.lives = LIVES; S.score = Math.floor(S.score / 2); S.nextLife = (Math.floor(S.score / EXTRA_LIFE) + 1) * EXTRA_LIFE; loadLevel(S.level); S.hero.inv = SPAWN_INV; S.thunder = Math.max(S.thunder, THUNDER0); emit('continue', {}); return true; };
+    api.cont = function () { if (S.phase !== 'cont') return false; S.conts--; S.lives = LIVES; S.score = Math.floor(S.score / 2); S.nextLife = (Math.floor(S.score / EXTRA_LIFE) + 1) * EXTRA_LIFE; loadLevel(S.level); S.hero.inv = SPAWN_INV; emit('continue', {}); return true; };
+    // «Ещё один шанс» за рекламу (после конца партии): одна жизнь, полная броня, возврат к последней отметке
+    api.revive = function () {
+      if (S.phase !== 'over') return false;
+      S.over = false; S.lives = 1; S.phase = 'dead'; S.phaseT = 0; respawn(); S.hero.inv = SPAWN_INV; emit('continue', {}); return true;
+    };
+    // бонус за рекламу: полная броня и полный заряд
+    api.canBoost = function () { return S.phase === 'play' && (S.hero.hp < HPMAX || S.hero.charge < CHARGE); };
+    api.boost = function () { if (S.phase !== 'play') return false; S.hero.hp = HPMAX; S.hero.charge = CHARGE; return true; };
     api.state = function () { return S; };
     // для тестов
     api._place = function (x, y) { S.hero.x = x; S.hero.y = y; S.hero.vy = 0; S.hero.ground = true; };
@@ -884,10 +865,10 @@
   GR.Game = Game;
   GR.logic = {
     T: T, HUD: HUD, VIEW_W: VIEW_W, VIEW_H: VIEW_H, RW: RW, RH: RH, E: E, R: R, P: P, K: K, B: B, G: G,
-    GRAV: GRAV, JUMP_V: JUMP_V, RUN: RUN, HW: HW, HH: HH, WH: WH, WHEEL_V: WHEEL_V, HPMAX: HPMAX, LIVES: LIVES, CONTS: CONTS,
-    CHARGE: CHARGE, CH_MIN: CH_MIN, MINE_COST: MINE_COST, THUNDER0: THUNDER0, THUNDER_MAX: THUNDER_MAX, BEAM_LEN: BEAM_LEN, BEAM_DPS: BEAM_DPS,
+    GRAV: GRAV, JUMP_V: JUMP_V, RUN: RUN, HW: HW, HH: HH, M: M, HPMAX: HPMAX, LIVES: LIVES, CONTS: CONTS,
+    CHARGE: CHARGE, DASH_V: DASH_V, DASH_T: DASH_T, CLAP_T: CLAP_T, CLAP_R: CLAP_R, CLAP_DMG: CLAP_DMG, DASH_REGEN: DASH_REGEN, startDash: startDash,
     PTS: PTS, WEAP: WEAP, FOES: FOES, BOSSES: BOSSES, LEVELS: LEVELS, PHASES: PHASES, BOSS_HEAL: BOSS_HEAL, EXTRA_LIFE: EXTRA_LIFE,
     mulberry32: mulberry32, buildLevel: buildLevel, level: level, solid: solid, boxFree: boxFree, move: move, heroPhys: heroPhys,
-    newHero: newHero, setForm: setForm, los: los, ACTS: ACTS, ROLL0: ROLL0, Macro: Macro, simulate: simulate, nodeOf: nodeOf, isNode: isNode, Nav: Nav
+    newHero: newHero, los: los, ACTS: ACTS, DASH0: DASH0, Macro: Macro, simulate: simulate, nodeOf: nodeOf, isNode: isNode, Nav: Nav
   };
 })(typeof window !== 'undefined' ? window : globalThis);

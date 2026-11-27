@@ -1,9 +1,8 @@
-/* ДЕСАНТ · общий рендер мира, HUD и баннеров для обеих тем. DESANT.render(ctx, S, P, o).
+/* ЗАРЕВО (папка desant) · общий рендер мира, HUD и баннеров для обеих тем. DESANT.render(ctx, g, S, P, o).
    Палитры — DESANT.palettes.modern / .retro (свои у каждой зоны). modern — сглаженные фигуры, мягкие тени и блики;
    retro — тот же мир в буфере 240×320 ×2 без сглаживания и ограниченная 16-цветная палитра.
-   Облик: десантники в маскхалатах-штормовках с капюшоном и шевроном мастерской (И1 «Ольха» — пепельный халат и
-   оранжевый шеврон, И2 «Пихта» — мшистый халат и бирюзовый шеврон); сажевики — тёмно-сливовые шинели, респираторы
-   с ядовито-зелёными окулярами; танкетка «Сверчок» — охристая. */
+   Облик: боец мастерской в маскхалате-штормовке с капюшоном и шевроном (пепельный халат, оранжевый шеврон); сажевики —
+   тёмно-сливовые шинели, респираторы с ядовито-зелёными окулярами; огненный вал — полоса пламени во всю ширину поля. */
 (function (global) {
   'use strict';
   var DS = global.DESANT = global.DESANT || {};
@@ -19,14 +18,14 @@
       fort: { ground: '#b5a58c', ground2: '#a8987f', rubble: '#968670', solid: '#7c7068', solidTop: '#958980', cap: '#a89c92', water: '#3a5560', water2: '#507480', edge: '#8fa6ac', bridge: '#7a5a3c', plank: '#9c7650', cover: '#9c8a70', coverTop: '#b5a284', mud: '#8a7a62', wall: '#8a5444', wallTop: '#a86a54', body: '#6a5a50', bodyTop: '#806e62', decor: '#c4b59c' }
     },
     crate: '#b08a4e', crateDark: '#7a5c30', bunker: '#6c7068', bunkerTop: '#8a8e86', slit: '#1a1a1e',
-    hero: [{ smock: '#e8e4d8', blot: '#a3aaa0', hood: '#d4cebe', chev: '#ea6a12', dark: '#3a3a36' }, { smock: '#7f8f74', blot: '#56644f', hood: '#a6b298', chev: '#2fb7c4', dark: '#262e24' }],
+    hero: [{ smock: '#e8e4d8', blot: '#a3aaa0', hood: '#d4cebe', chev: '#ea6a12', dark: '#3a3a36' }],
     gun: '#26282c', foe: { coat: '#3a2f45', coat2: '#4d3f5c', head: '#2a2530', eye: '#9cff57', mask: '#5e5468' },
     car: '#4a3d55', carTop: '#5f4f6d', tracks: '#2a2430', lamp: '#9cff57', boat: '#3d3448', boatTop: '#55486a',
-    tank: '#d9a441', tankTop: '#efc066', tankDark: '#6b4f1e', chev: '#ea6a12',
-    pbullet: '#ffd27a', ebullet: '#c6ff4a', eglow: 'rgba(198,255,74,.35)', shell: '#ffb14a', nade: '#4a5a3a',
+    chev: '#ea6a12', bar: ['#fff3c0', '#ffc24a', '#f06a22', '#a8321c'],
+    pbullet: '#ffd27a', ebullet: '#c6ff4a', eglow: 'rgba(198,255,74,.35)', shell: '#ffb14a',  nade: '#4a5a3a',
     boom: ['#fff3c0', '#ffb04a', '#e0502a', 'rgba(60,50,40,.55)'], mark: 'rgba(198,255,74,.55)',
     boss: '#3a3240', bossTop: '#524660', bossDark: '#231e28', bossGlow: '#9cff57', bossCore: '#ff8a3a', boulder: '#7a756c', boulderTop: '#9a958b',
-    item: { nade: '#4a5a3a', med: '#f2f2ee', spread: '#ea6a12', rapid: '#2fb7c4', fuel: '#d9a441' },
+    item: { shell: '#ffb04a', med: '#f2f2ee', spread: '#ea6a12', rapid: '#2fb7c4' },
     ink: '#f2f4f2', muted: '#a9b2b4', accent: '#ea6a12', good: '#6fd38a', bad: '#ff6a5a', warn: '#ffd166', hudBg: 'rgba(14,18,20,.88)', panel: 'rgba(16,20,22,.92)', line: '#3a464a',
     shadow: 'rgba(10,20,30,.22)', font: 'Inter, system-ui, sans-serif'
   };
@@ -42,14 +41,14 @@
       fort: { ground: C.t, ground2: C.t, rubble: C.b, solid: C.s, solidTop: C.l, cap: C.l, water: C.n, water2: C.s, edge: C.l, bridge: C.b, plank: C.t, cover: C.b, coverTop: C.t, mud: C.b, wall: C.r, wallTop: C.or, body: C.b, bodyTop: C.t, decor: C.y }
     },
     crate: C.t, crateDark: C.b, bunker: C.s, bunkerTop: C.l, slit: C.k,
-    hero: [{ smock: C.w, blot: C.s, hood: C.l, chev: C.or, dark: C.k }, { smock: C.o, blot: C.gd, hood: C.g, chev: C.tl, dark: C.k }],
+    hero: [{ smock: C.w, blot: C.s, hood: C.l, chev: C.or, dark: C.k }],
     gun: C.k, foe: { coat: C.v, coat2: C.v, head: C.k, eye: C.lm, mask: C.s },
     car: C.v, carTop: C.s, tracks: C.k, lamp: C.lm, boat: C.v, boatTop: C.s,
-    tank: C.y, tankTop: C.y, tankDark: C.b, chev: C.or,
-    pbullet: C.y, ebullet: C.lm, eglow: null, shell: C.or, nade: C.gd,
+    chev: C.or, bar: [C.w, C.y, C.or, C.r],
+    pbullet: C.y, ebullet: C.lm, eglow: null, shell: C.or,  nade: C.gd,
     boom: [C.w, C.y, C.or, C.b], mark: C.lm,
     boss: C.v, bossTop: C.s, bossDark: C.k, bossGlow: C.lm, bossCore: C.or, boulder: C.s, boulderTop: C.l,
-    item: { nade: C.gd, med: C.w, spread: C.or, rapid: C.tl, fuel: C.y },
+    item: { shell: C.y, med: C.w, spread: C.or, rapid: C.tl },
     ink: C.w, muted: C.l, accent: C.or, good: C.lm, bad: C.r, warn: C.y, hudBg: C.k, panel: C.k, line: C.s,
     shadow: null, font: '"Courier New", ui-monospace, monospace'
   };
@@ -126,7 +125,7 @@
 
   // ---------- Фигуры ----------
   function hero(c, P, h, t) {
-    if (!h.alive || h.out || h.tank) return;
+    if (!h.alive || h.out) return;
     var blink = h.inv > 0 && Math.floor(t * 12) % 2;   // мигание неуязвимости
     if (blink) c.globalAlpha = 0.45;
     var C2 = P.hero[h.id], f = h.face, a = Math.atan2(f[1], f[0]), x = h.x, y = h.yS;
@@ -207,36 +206,13 @@
     hpBar(c, P, x, y - 18, e.hp / e.max, 24);
   }
   function hpBar(c, P, x, y, f, w) { if (f >= 1) return; c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(x - w / 2, y, w, 3); c.fillStyle = P.bad; c.fillRect(x - w / 2, y, w * Math.max(0, f), 3); }
-  function tank(c, P, tk, t, S) {
-    var x = tk.x, y = tk.yS, a = Math.atan2(tk.face[1], tk.face[0]);
-    if (tk.dead) {
-      c.save(); c.translate(x, y); c.rotate(a + Math.PI / 2); rr(c, -13, -14, 26, 28, 4, P.tankDark); c.restore();
-      if (tk.wreckT > 0) for (var i = 0; i < 3; i++) circ(c, x + Math.sin(t * 2 + i) * 6, y - 8 - ((t * 20 + i * 9) % 26), 4 + i, 'rgba(60,60,60,' + (0.4 - i * 0.1) + ')');
-      return;
-    }
-    shadow(c, P, x, y + 3, 15, 12);
-    c.save(); c.translate(x, y); c.rotate(a + Math.PI / 2);
-    var tr = tk.moving ? (t * 30) % 6 : 0;
-    c.fillStyle = P.tankDark; c.fillRect(-14, -14, 7, 28); c.fillRect(7, -14, 7, 28);
-    c.fillStyle = P.gun; for (var k = 0; k < 5; k++) { c.fillRect(-14, -13 + k * 6 + tr % 6 - 1, 7, 1); c.fillRect(7, -13 + k * 6 + tr % 6 - 1, 7, 1); }
-    rr(c, -9, -12, 18, 24, P.pixel ? 1 : 4, tk.hurtT > 0 ? P.ink : P.tank);
-    rr(c, -6, -6, 12, 12, 3, P.tankTop);
-    c.fillStyle = P.gun; c.fillRect(-2, -22, 4, 16);
-    c.fillStyle = P.chev; c.beginPath(); c.moveTo(-6, 8); c.lineTo(0, 3); c.lineTo(6, 8); c.lineTo(6, 10); c.lineTo(0, 6); c.lineTo(-6, 10); c.fill();
-    c.restore();
-    if (tk.pilot == null) {   // метка «можно сесть»
-      var bobY = Math.sin(t * 4) * 2;
-      c.fillStyle = tk.fuel > 0 ? P.accent : P.bad; c.beginPath(); c.moveTo(x - 5, y - 26 + bobY); c.lineTo(x + 5, y - 26 + bobY); c.lineTo(x, y - 20 + bobY); c.fill();
-    } else { hpBar(c, P, x, y - 22, tk.armor / tk.max, 28); }
-  }
   function item(c, P, it, t) {
     var x = it.x, y = it.yS + Math.sin(t * 4 + x) * 1.5, col = P.item[it.kind];
     shadow(c, P, x, y + 4, 7, 3);
     rr(c, x - 8, y - 8, 16, 16, P.pixel ? 1 : 4, P.pixel ? C.k : 'rgba(20,24,26,.85)');
     c.strokeStyle = col; c.lineWidth = 2; c.strokeRect(x - 7, y - 7, 14, 14);
-    if (it.kind === 'nade') { circ(c, x, y + 1, 4, col); c.fillStyle = P.ink; c.fillRect(x - 1, y - 5, 2, 3); }
+    if (it.kind === 'shell') { c.fillStyle = col; c.beginPath(); c.moveTo(x, y - 6); c.quadraticCurveTo(x + 6, y, x + 3, y + 5); c.lineTo(x - 3, y + 5); c.quadraticCurveTo(x - 6, y, x, y - 6); c.fill(); c.fillStyle = P.ink; c.fillRect(x - 1, y + 1, 2, 3); }
     else if (it.kind === 'med') { c.fillStyle = P.bad; c.fillRect(x - 1.5, y - 5, 3, 10); c.fillRect(x - 5, y - 1.5, 10, 3); }
-    else if (it.kind === 'fuel') { c.fillStyle = col; c.fillRect(x - 4, y - 4, 8, 9); c.fillRect(x - 1, y - 6, 3, 2); }
     else { c.fillStyle = col; c.font = '800 10px ' + P.font; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(it.kind === 'spread' ? 'W' : 'R', x, y + 1); }
   }
 
@@ -310,7 +286,6 @@
     });
     S.marks.forEach(function (m) { var y = m.y - cam; c.strokeStyle = P.mark; c.lineWidth = 2; c.beginPath(); c.arc(m.x, y, m.r * (0.5 + 0.5 * (1 - Math.min(1, m.t))), 0, Math.PI * 2); c.stroke(); if (m.lane) { c.globalAlpha = 0.25; c.fillStyle = P.mark; c.fillRect(m.x - 14, y, 28, VH); c.globalAlpha = 1; } });
     S.items.forEach(function (it) { if (it.taken) return; it.yS = it.y - cam; item(c, P, it, t); });
-    S.tanks.forEach(function (tk) { tk.yS = tk.y - cam; if (tk.yS > -40 && tk.yS < VH + 40) tank(c, P, tk, t, S); });
     S.enemies.forEach(function (e) {
       if (e.dead) return; e.yS = e.y - cam; if (e.yS < -40 || e.yS > VH + 40) return;
       var h = nearest(S, e); e._tgt = h;
@@ -319,23 +294,51 @@
     if (S.boss) boss(c, P, S.boss, t, cam, Z);
     S.boulders.forEach(function (bo) { var y = bo.y - cam; shadow(c, P, bo.x, y + 4, bo.r, bo.r * 0.6); circ(c, bo.x, y, bo.r, P.boulder); c.save(); c.translate(bo.x, y); c.rotate(bo.rot || 0); c.fillStyle = P.boulderTop; c.fillRect(-bo.r * 0.6, -bo.r * 0.6, bo.r * 0.7, bo.r * 0.5); c.fillRect(2, 2, bo.r * 0.5, bo.r * 0.4); c.restore(); });
     S.heroes.forEach(function (h) { h.yS = h.y - cam; hero(c, P, h, t); });
-    // гранаты (дуга — по «высоте»)
-    S.nades.forEach(function (n) {
+    // навесные снаряды врага (дуга — по «высоте»)
+    S.lobs.forEach(function (n) {
       var k = n.t / n.dur, x = n.x0 + (n.x1 - n.x0) * k, y = n.y0 + (n.y1 - n.y0) * k - cam, z = Math.sin(k * Math.PI) * 34;
-      shadow(c, P, x, y + 2, 4, 2); circ(c, x, y - z, n.enemy ? 5 : 4, n.enemy ? P.foe.coat2 : P.nade);
+      shadow(c, P, x, y + 2, 4, 2); circ(c, x, y - z, 5, P.foe.coat2);
       if (!P.pixel) circ(c, x - 1, y - z - 1, 1.5, 'rgba(255,255,255,.6)');
     });
     S.bullets.forEach(function (b) {
       var y = b.y - cam;
       if (b.k === 'e') { if (P.eglow) circ(c, b.x, y, 6, P.eglow); circ(c, b.x, y, 3.2, P.ebullet); }
-      else if (b.k === 's') { circ(c, b.x, y, 5, P.shell); circ(c, b.x, y, 2.5, P.ink); }
       else { c.strokeStyle = P.pbullet; c.lineWidth = 3; c.beginPath(); c.moveTo(b.x, y); c.lineTo(b.x - b.vx * 0.018, y - b.vy * 0.018); c.stroke(); }
     });
+    barrage(c, S, P, t, cam);
     S.booms.forEach(function (b) {
       var k = 1 - b.t / b.max, y = b.y - cam;
       circ(c, b.x, y, b.r * (0.4 + 0.7 * k), P.boom[3]); circ(c, b.x, y, b.r * (0.3 + 0.6 * k) * (1 - k * 0.5), P.boom[2]);
       circ(c, b.x, y, b.r * 0.5 * (1 - k), P.boom[1]); circ(c, b.x, y, b.r * 0.25 * (1 - k), P.boom[0]);
     });
+  }
+  // огненный вал: полоса пламени во всю ширину; «свист» — мигающая метка с полосками
+  function barrage(c, S, P, t, cam) {
+    var b = S.bar; if (b.st === 'idle') return;
+    var y = b.y - cam, h = L.BAR.h, B = P.bar, a = 1;
+    if (b.st === 'wind') {
+      var on = Math.floor(t * 14) % 2;
+      c.globalAlpha = P.pixel ? 1 : 0.35; c.fillStyle = B[2]; if (!P.pixel || on) c.fillRect(0, y - h / 2, W, h); c.globalAlpha = 1;
+      c.fillStyle = on ? B[1] : B[3]; for (var x = 0; x < W; x += 24) c.fillRect(x + ((t * 60) % 24), y - 2, 12, 4);
+      c.fillStyle = B[0]; c.fillRect(0, y - h / 2, W, 2); c.fillRect(0, y + h / 2 - 2, W, 2);
+      return;
+    }
+    if (b.st === 'linger') a = Math.max(0, b.t / L.BAR.linger);
+    if (!P.pixel) c.globalAlpha = 0.5 * a + 0.3;
+    c.fillStyle = B[3]; c.fillRect(0, y - h / 2, W, h);
+    c.globalAlpha = P.pixel ? 1 : a;
+    c.fillStyle = B[2]; c.fillRect(0, y - h / 2 + 5, W, h - 10);
+    c.fillStyle = B[1]; c.fillRect(0, y - h / 2 + 12, W, h - 24);
+    if (b.st === 'run' || a > 0.4) {
+      c.fillStyle = B[1];
+      for (var x2 = 0; x2 < W; x2 += 14) {   // языки пламени по фронту
+        var hh = 8 + 9 * (0.5 + 0.5 * Math.sin(t * 16 + x2 * 0.7)) + hash(x2, Math.floor(t * 12)) * 6;
+        c.beginPath(); c.moveTo(x2, y - h / 2 + 4); c.lineTo(x2 + 7, y - h / 2 - hh); c.lineTo(x2 + 14, y - h / 2 + 4); c.fill();
+      }
+      c.fillStyle = B[0];
+      for (var x3 = 4; x3 < W; x3 += 28) { var h3 = 4 + 5 * (0.5 + 0.5 * Math.sin(t * 20 + x3)); c.beginPath(); c.moveTo(x3, y - h / 2 + 4); c.lineTo(x3 + 4, y - h / 2 - h3); c.lineTo(x3 + 8, y - h / 2 + 4); c.fill(); }
+    }
+    c.globalAlpha = 1;
   }
   function nearest(S, e) { var best = null, bd = 1e9; S.heroes.forEach(function (h) { if (!h.alive || h.out) return; var d = Math.hypot(h.x - e.x, h.y - e.y); if (d < bd) { bd = d; best = h; } }); return best; }
 
@@ -351,29 +354,19 @@
   }
   function hud(c, g, S, P) {
     c.fillStyle = P.hudBg; c.fillRect(0, 0, W, HUD);
-    S.heroes.forEach(function (h, i) {
-      var right = i === 1, x0 = right ? W - 8 : 8, al = right ? 'right' : 'left', H2 = P.hero[i];
-      var name = g.t(i ? 'p2' : 'p1');
-      txt(c, P, name, x0, 13, { size: 10, align: al, color: H2.chev });
-      if (h.out) { txt(c, P, g.t('out'), x0, 26, { size: 11, align: al, color: P.muted }); return; }
-      var dirS = right ? -1 : 1, x = x0;
-      for (var k = 0; k < L.HP; k++) { c.fillStyle = k < h.hp && h.alive ? P.bad : 'rgba(120,120,120,.5)'; c.fillRect(x + dirS * k * 10 - (right ? 8 : 0), 18, 8, 8); }
-      x += dirS * 34;
-      txt(c, P, '×' + h.lives, x, 26, { size: 11, align: al, color: P.ink });
-      x += dirS * 26;
-      circ(c, x + (right ? -4 : 4), 22, 4, P.item.nade); txt(c, P, String(h.nades), x + dirS * 11, 26, { size: 11, align: al, color: P.ink });
-      x += dirS * 28;
-      if (h.tank) {
-        var tk = h.tank, bw = 44, bx = right ? x - bw : x;
-        c.fillStyle = 'rgba(120,120,120,.4)'; c.fillRect(bx, 16, bw, 4); c.fillRect(bx, 23, bw, 4);
-        c.fillStyle = P.good; c.fillRect(bx, 16, bw * tk.armor / tk.max, 4); c.fillStyle = P.warn; c.fillRect(bx, 23, bw * tk.fuel, 4);
-        txt(c, P, g.t('tank'), right ? bx - 4 : bx + bw + 4, 26, { size: 9, align: al, color: P.tank });
-      } else txt(c, P, g.t('w_' + h.weapon), x, 26, { size: 10, align: al, color: h.weapon === 'rifle' ? P.muted : P.item[h.weapon] });
-    });
-    var mid = W / 2;
-    txt(c, P, String(S.score), mid, 14, { size: 13, align: 'center', color: P.ink });
-    txt(c, P, g.t('zone') + ' ' + S.zone + '/' + S.maxZone, mid, 26, { size: 9, align: 'center', color: P.muted, weight: 700 });
-    // полоска босса
+    var h = S.heroes[0], H2 = P.hero[0], bar = S.bar;
+    for (var k = 0; k < L.HP; k++) { c.fillStyle = k < h.hp && h.alive ? P.bad : 'rgba(120,120,120,.5)'; c.fillRect(8 + k * 11, 7, 9, 9); }
+    txt(c, P, '×' + h.lives, 8 + 3 * 11 + 4, 16, { size: 11, color: P.ink });
+    // заряд вала
+    var bw = 120, bx = 8, by = 20, f = Math.max(0, S.charge / L.BAR.max), act = bar.st === 'run' || bar.st === 'wind';
+    c.fillStyle = 'rgba(120,120,120,.4)'; c.fillRect(bx, by, bw, 6);
+    c.fillStyle = f < L.BAR.min / L.BAR.max ? P.bad : act ? P.bar[0] : P.bar[2]; c.fillRect(bx, by, bw * f, 6);
+    c.fillStyle = P.ink; c.fillRect(bx + bw * L.BAR.min / L.BAR.max, by - 1, 1, 8);
+    txt(c, P, g.t('barWord'), bx + bw + 6, 27, { size: 9, color: P.bar[1], weight: 800 });
+    txt(c, P, g.t('w_' + h.weapon), W - 8, 27, { size: 10, align: 'right', color: h.weapon === 'rifle' ? P.muted : P.item[h.weapon] });
+    var mid = W / 2 + 40;
+    txt(c, P, String(S.score), W - 8, 14, { size: 13, align: 'right', color: P.ink });
+    txt(c, P, g.t('zone') + ' ' + S.zone + '/' + S.maxZone, mid + 6, 14, { size: 9, align: 'center', color: P.muted, weight: 700 });
     var b = S.boss;
     if (b && b.active && !b.dead) {
       var hp = b.parts.reduce(function (a, p) { return a + Math.max(0, p.hp); }, 0), bw2 = W - 80;
@@ -402,6 +395,7 @@
       panel(c, P, 60, 250, W - 120, 80, P.good);
       txt(c, P, g.t('clear'), W / 2, 284, { size: 24, align: 'center', color: P.good });
       txt(c, P, g.t('score') + ': ' + S.score, W / 2, 310, { size: 12, align: 'center', color: P.muted });
+      if (S.hold) txt(c, P, g.t('cardNext'), W / 2, 324, { size: 10, align: 'center', color: P.muted, weight: 600, shadow: false });
     }
     if (S.phase === 'cont') {
       c.fillStyle = 'rgba(0,0,0,.55)'; c.fillRect(0, 0, W, VH);

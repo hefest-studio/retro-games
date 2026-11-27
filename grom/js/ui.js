@@ -11,7 +11,8 @@
   function fit(g) {
     var c = g.canvas, wrap = c.parentElement;
     var pad = document.querySelector('.pad'), cs = pad && getComputedStyle(pad), padH = cs && cs.display !== 'none' && cs.position !== 'fixed' ? pad.offsetHeight + 16 : 0;
-    var availH = innerHeight - padH - (padH ? 70 : 44);
+    var ft = document.getElementById('foot'), fcs = ft && getComputedStyle(ft), footH = fcs && fcs.display !== 'none' ? ft.offsetHeight + 20 : 0;
+    var availH = innerHeight - padH - (padH ? 70 : 44) - footH;
     var w = Math.min(1280, (wrap && wrap.clientWidth) || g.W, availH * g.W / g.H);
     w = Math.max(280, Math.floor(w));
     c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
@@ -95,14 +96,13 @@
     if (S.portal) R.portal(ctx, sx(S.portal.x), sy(S.portal.y), time);
     var i;
     for (i = 0; i < S.items.length; i++) { var it = S.items[i]; if (it.x > cx - 2 && it.x < cx + VW + 2 && it.y > cy - 2 && it.y < cy + VH + 2) R.item(ctx, it, sx(it.x), sy(it.y), time); }
-    for (i = 0; i < S.mines.length; i++) R.mine(ctx, sx(S.mines[i].x), sy(S.mines[i].y), S.mines[i], time);
+    for (i = 0; i < S.claps.length; i++) R.clap(ctx, sx(S.claps[i].x), sy(S.claps[i].y), S.claps[i], time);
     for (i = 0; i < S.enemies.length; i++) { var e = S.enemies[i]; if (!e.dead && e.x > cx - 3 && e.x < cx + VW + 3 && e.y > cy - 3 && e.y < cy + VH + 3) R.enemy(ctx, e, sx(e.x), sy(e.y), time); }
     if (S.boss && (!S.boss.dead || S.boss.deadT > 0)) R.boss(ctx, S.boss, sx(S.boss.x), sy(S.boss.y), time);
     for (i = 0; i < S.waves.length; i++) R.wave(ctx, sx(S.waves[i].x), sy(S.waves[i].y), S.waves[i], time);
     for (i = 0; i < S.marks.length; i++) R.mark(ctx, sx(S.marks[i].x), sy(S.marks[i].y0), sy(S.marks[i].y1), S.marks[i], time);
     var h = S.hero;
     if (h && !opts.noHero && S.phase !== 'cont' && S.phase !== 'over') {
-      if (h.beam.on) R.beam(ctx, sx(h.beam.ox), sy(h.beam.oy), sx(h.beam.ex), sy(h.beam.ey), time);
       if (S.phase !== 'dead' && !(h.inv > 0 && Math.floor(time * 16) % 2 === 0 && S.phase === 'play')) R.hero(ctx, h, sx(h.x), sy(h.y), time, S);
     }
     for (i = 0; i < S.bullets.length; i++) R.bullet(ctx, S.bullets[i], sx(S.bullets[i].x), sy(S.bullets[i].y));
@@ -134,6 +134,7 @@
     var W = g.W, h = S.hero;
     ctx.fillStyle = P.hudBg; ctx.fillRect(0, 0, W, HUD);
     ctx.fillStyle = P.hudLine; ctx.fillRect(0, HUD - 2, W, 2);
+    ctx.save(); ctx.translate(0, 4);
     // броня — сегменты
     txt(g, g.t('hp'), 8, 12, { size: 8, color: P.muted, weight: 800 }, P);
     var hp = Math.max(0, Math.ceil(h.hp));
@@ -148,11 +149,14 @@
     R.weaponIcon(ctx, 196, 16, S.weapon.k);
     txt(g, g.t('w_' + S.weapon.k), 212, 13, { size: 9, color: P.accent, weight: 900 }, P);
     for (var k = 0; k < 3; k++) { ctx.fillStyle = k < S.weapon.lv ? P.accent : P.barBg; ctx.fillRect(212 + k * 8, 18, 6, 6); }
-    // молнии
-    for (var q = 0; q < L.THUNDER_MAX; q++) R.boltIcon(ctx, 264 + q * 10, 17, q < S.thunder);
-    // колесо
-    txt(g, g.t('wheel'), 324, 13, { size: 8, color: h.form === 'wheel' ? P.accent : P.muted, weight: 800 }, P);
-    bar(ctx, 324, 18, 58, 6, h.charge / L.CHARGE, h.charge >= L.CH_MIN ? P.wheel : P.bad, P);
+    // раскат: три ячейки заряда броска (дробная часть — заполнение)
+    txt(g, g.t('dashHud'), 264, 13, { size: 8, color: h.charge >= 1 ? P.wheel : P.muted, weight: 800 }, P);
+    for (var q = 0; q < L.CHARGE; q++) {
+      var fill = Math.max(0, Math.min(1, h.charge - q)), px0 = 264 + q * 26;
+      ctx.fillStyle = P.barBg; ctx.fillRect(px0, 17, 22, 9);
+      ctx.fillStyle = fill >= 1 ? P.wheel : P.bad; ctx.fillRect(px0, 17, Math.round(22 * fill), 9);
+      if (fill >= 1) R.boltGlyph(ctx, px0 + 11, 21.5, 4, P.pixel ? '#000000' : '#10131a');
+    }
     // зона и таймер
     var lowT = S.ltime < 30 && !S.bossDone;
     txt(g, g.t('z_' + S.zone), 446, 13, { size: 9, align: 'center', color: P.muted, weight: 700 }, P);
@@ -161,6 +165,7 @@
     txt(g, String(S.score), 572, 13, { size: 11, align: 'right', color: P.accent }, P);
     txt(g, g.t('level') + ' ' + S.level, 572, 27, { size: 9, align: 'right', color: P.muted, weight: 700 }, P);
     miniMap(ctx, S, P, W - 8, 4);
+    ctx.restore();
   }
   function miniMap(ctx, S, P, right, top) {
     var lv = S.lv, cw = 7, ch = 5, x0 = right - lv.RX * cw, rm = Math.floor(S.hero.x / L.RW) + Math.floor((S.hero.y - 0.5) / L.RH) * lv.RX;
@@ -198,14 +203,14 @@
     init: function (g, acts) {
       fit(g); addEventListener('resize', function () { fit(g); });
       sync(g); setInterval(function () { sync(g); }, 250);
-      // тач-кнопки: удержание (прыжок, огонь, луч) и нажатия (колесо, молния, пауза)
-      document.querySelectorAll('.pad [data-hold]').forEach(function (b) {
+      // тач-кнопки: удержание (прыжок, огонь) и нажатия (бросок, пауза)
+      document.querySelectorAll('[data-hold]').forEach(function (b) {
         var name = b.getAttribute('data-hold');
         var on = function (e) { if (!Arcade.touchOk(e)) return; acts.hold(name, true); }, off = function (e) { if (!Arcade.touchOk(e)) return; acts.hold(name, false); };
         b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('touchend', off, { passive: false }); b.addEventListener('touchcancel', off, { passive: false });
         b.addEventListener('mousedown', on); b.addEventListener('mouseup', off); b.addEventListener('mouseleave', off);
       });
-      document.querySelectorAll('.pad [data-tap]').forEach(function (b) {
+      document.querySelectorAll('[data-tap]').forEach(function (b) {
         var name = b.getAttribute('data-tap'), h = function (e) { e.stopPropagation(); if (!Arcade.touchOk(e)) return; acts.tap(name); };
         b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h);
       });
