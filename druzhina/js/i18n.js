@@ -129,7 +129,7 @@
     play: 'Jogar', players: 'Jogadores', touch1p: 'toque — 1 jogador', language: 'Idioma', theme: 'Tema', sound: 'Som', on: 'lig.', off: 'desl.',
     score: 'Pontos', level: 'Fase', best: 'Recorde', win: 'A ESTRADA ESTÁ LIVRE!', gameover: 'A COMPANHIA CAIU…',
     pause: 'PAUSA', resume: 'Continuar', menu: 'Menu principal', tapstart: 'espaço / toque',
-    title: 'FORGEBAND', subtitle: 'A companhia da Hefest enfrenta a horda de ferro · 1–2 jogadores · 6 fases', subtitleS: 'Diante da horda de ferro|1–2 jogadores · 6 fases',
+    title: 'FORGEBAND', subtitle: 'A companhia da Hefest enfrenta a horda de ferro · 1–2 jogadores · 6 fases', subtitleS: 'Frente à horda de ferro|1–2 jogadores · 6 fases',
     back: 'Catálogo', p1: 'J1', p2: 'J2',
     h_zhdan: 'Zhdan', h_secha: 'Secha', h_olha: 'Olkha',
     r_zhdan: 'marreteiro', r_secha: 'espadachim', r_olha: 'arqueira vidente',

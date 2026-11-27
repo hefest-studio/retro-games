@@ -109,7 +109,7 @@
     txt(g, up(P, name), x + 42, big ? 24 : 17, { size: 12, color: col, weight: 800, shadow: false, maxWidth: big ? 118 : 0 }, P);
     txt(g, '×' + Math.max(0, h.lives), x + 200, big ? 24 : 17, { size: 12, align: 'right', color: P.ink, weight: 800, shadow: false }, P);
     var f = h.hp / h.max;
-    bar(ctx, x + 42, 23, 158, 9, dim ? 0 : f, f > 0.5 ? P.good : f > 0.25 ? P.warn : P.bad, P, 8);
+    bar(ctx, x + 42, big ? 28 : 23, 158, big ? 8 : 9, dim ? 0 : f, f > 0.5 ? P.good : f > 0.25 ? P.warn : P.bad, P, 8);   // HD, узко: полоса ниже имени (буква 21 px не липнет к ней)
     // кувшины и уровень магии
     var lvl = 0, costs = h.def.magic.costs; for (var i = 0; i < costs.length; i++) if (h.jugs >= costs[i]) lvl = i + 1;
     for (var j = 0; j < L.JUG_MAX; j++) jugIcon(ctx, x + 48 + j * 13, 49, j < h.jugs, P);
@@ -122,8 +122,8 @@
     ctx.fillStyle = P.line; ctx.fillRect(0, H - 2, W, 2);
     if (P.hd) { ctx.fillStyle = P.outline; ctx.fillRect(0, H, W, 3); ctx.fillStyle = P.panelHi; ctx.fillRect(0, 0, W, 3); }
     S.heroes.forEach(function (h, i) { heroBlock(g, ctx, S, h, 10 + i * 250, P); });
-    var big = P.hd && D.hdFont.minScale(ctx) > 2, scx = S.players === 2 ? W - 250 : W / 2;
-    txt(g, String(S.score), scx, big ? 40 : 30, { size: 22, align: 'center', color: P.accent, shadow: false }, P);
+    var big = P.hd && D.hdFont.minScale(ctx) > 2, scx = S.players === 2 ? (P.hd ? 585 : W - 250) : W / 2;   // HD на двоих: счёт — в просвете между блоками героев и названием этапа (не налезает на длинное имя этапа)
+    txt(g, String(S.score), scx, big && S.players === 2 ? 30 : big ? 40 : 30, { size: big ? 21 : 22, align: 'center', color: P.accent, shadow: false }, P);
     if (!big) txt(g, up(P, g.t('score')), scx, 46, { size: 10, align: 'center', color: P.muted, weight: 700, shadow: false }, P);
     var rx = W - 12;
     txt(g, up(P, g.t('stageShort')) + ' ' + S.stage + '/' + S.maxStage, rx, big ? 26 : 22, { size: 13, align: 'right', color: P.ink, shadow: false }, P);

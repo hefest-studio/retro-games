@@ -194,7 +194,7 @@
     var two = g.input.playerCount === 2;
     var row = two ? ['zhdan', 'secha', 'olha'] : ['zhdan', 'secha', 'olha'];
     row.forEach(function (k, i) { D.render.portrait(ctx, P, k, W / 2 + (i - 1) * 70, py + (phone ? 236 : P.hd ? 214 : 196), phone ? 0.85 : 0.9, demoT + i * 1.3, Math.floor(demoT * 0.7 + i) % 3 === 0 ? 'over' : 'idle'); });
-    var mf = phone ? menuFit(menu, py + 262, 28, py + 256, py + ph - 34) : menuFit(menu, py + 236, 30, py + 226, py + ph - 34); menu.draw(this, W / 2, mf[0], mf[1]);
+    var big = hdBig(ctx), mf = big ? menuFit(menu, py + 262, hdStep(ctx), py + 256, py + ph - 20, Math.ceil(10 * D.hdFont.minScale(ctx))) : phone ? menuFit(menu, py + 262, 28, py + 256, py + ph - 34) : menuFit(menu, py + 236, 30, py + 226, py + ph - 34); menu.draw(this, W / 2, mf[0], mf[1]);
     if (this.state.best) D.ui.txt(this, this.t('best') + ': ' + this.state.best, W / 2, py + ph - 14, { size: 12, align: 'center', color: th.muted, weight: 600, shadow: false }, P);
     this.menu._drawHint('title');
   };
@@ -202,6 +202,16 @@
   g.clear = function (c) {
     baseClear.call(this, c);
     if ((this._sceneName === 'win' || this._sceneName === 'gameover') && !hdWait()) D.ui.drawWorld(this, this.ctx, game ? game.state() : demoState(), pal(), {});
+  };
+  // Пауза, HD на узком экране: заголовок выше, пункты с шагом 11·sc (движок рисует с шагом 28 — слипаются)
+  var pauseDraw0 = g.scenes.pause.draw;
+  g.scenes.pause.draw = function () {
+    if (!hdBig(this.ctx)) return pauseDraw0.apply(this, arguments);
+    var pm = this._menu || g.scenes.pause._menu;
+    if (this.scenes.play && this.scenes.play.draw) this.scenes.play.draw.call(this, this.ctx);
+    D.hd.dim(this, this.ctx);
+    this.text(this.t('pause'), this.W / 2, this.H / 2 - 40, { size: 60, align: 'center', color: this.th().warn, maxWidth: this.W - 48 });
+    pm.draw(this, this.W / 2, this.H / 2 + 20, hdStep(this.ctx));
   };
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
 
@@ -219,7 +229,13 @@
   g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
     available: function () { return !!game && game.canBoost(); }, grant: function () { if (game) game.boost(); } });
   // Меню вмещает пункты площадки («Лидеры», «Без рекламы»): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
-  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
+  // fl — нижняя граница шага: HD на узком экране — 10·sc (буква 7·sc + промежуток ≥ 0,4 высоты буквы), иначе 19
+  function menuFit(m, y0, base, yMin, yMax, fl) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(fl || 19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
+  // HD, телефон-портрет: масштаб шрифта >2 (буква 7·sc u). Шаг строк меню 11·sc (промежуток ≈ 0,57 буквы), не меньше 10·sc
+  function hdBig(ctx) { return g.themeName === 'hd' && !!D.hdFont && D.hdFont.minScale(ctx || g.ctx) > 2; }
+  function hdStep(ctx) { return 11 * D.hdFont.minScale(ctx || g.ctx); }
+  // подсказка клавиш (hint1/hint2 движка) в узком HD не помещается в строку — на телефоне есть тач-управление и описание под полем
+  var baseHint = g.menu._drawHint; g.menu._drawHint = function (sc) { if (hdBig(this.g.ctx)) return; return baseHint.apply(this, arguments); };
   // ---------- Карточка «этап пройден» (только когда площадка готова показать межстраничную): нажатие → реклама → следующий этап ----------
   var cardSt = 0, cardGoing = false;
   function cardGo() { if (cardGoing || g._sceneName !== 'card') return; cardGoing = true; g.adBreak().then(function () { cardGoing = false; if (g._sceneName === 'card') g.goto('play', { resume: true }); }); }
