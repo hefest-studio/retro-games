@@ -1,93 +1,27 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>ХРУМ · Лабиринт — HTML5</title>
-<meta name="description" content="Оригинальная аркада-лабиринт студии «Гефест» на фреймворке Гефест Arcade: герой-грызун, призраки, темы retro/modern, RU/EN, офлайн.">
-<style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:#0e1016;color:#eef2f8;font-family:Inter,system-ui,sans-serif;
-  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
-.wrap{position:relative;width:min(94vw,430px);margin-top:4px}
-canvas{width:100%;display:block;border:1px solid #222838;border-radius:10px;background:#0e1016}
-.pad{width:min(94vw,430px);margin:10px 0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,52px);gap:8px;max-width:260px}
-.pad button{background:#161a24;border:1px solid #222838;border-radius:12px;color:#eef2f8;font-size:22px;font-weight:800}
-.pad .u{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .d{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
-.foot{color:#5a6273;font-size:11px;margin:2px 12px 16px;text-align:center}
-@media(min-width:760px){.pad{display:none}}
-a.back{position:relative;align-self:flex-start;margin:6px 0 0 10px;z-index:60;color:#5a6273;font-size:12px;line-height:16px;text-decoration:none} /* в потоке над полем — не налезает на canvas */
-/* Телефон лёжа: поле по высоте экрана (fitField), крестовина — справа от поля, ссылка — слева сверху */
-@media (orientation:landscape) and (max-height:520px) and (pointer:coarse){
-  body{justify-content:center}
-  a.back{position:fixed;left:max(10px,env(safe-area-inset-left));top:8px;margin:0}
-  .wrap{margin:0}
-  .foot{display:none}
-  .pad{display:grid;position:fixed;right:max(8px,env(safe-area-inset-right));bottom:10px;margin:0;width:184px;grid-template-rows:repeat(2,56px)}
-}
-</style></head><body>
-<a class="back" href="../" data-catalog-back="1" data-en="&larr; Catalog">&larr; Каталог</a>
-<div class="wrap"><canvas id="c" width="420" height="500"></canvas></div>
-<div class="pad"><button class="u" data-d="U">▲</button><button class="l" data-d="L">◀</button>
-<button class="d" data-d="D">▼</button><button class="r" data-d="R">▶</button></div>
-<div class="foot" data-en="&lt;b&gt;HRUM&lt;/b&gt; on the Hefest Arcade framework · arrows/d-pad — move, P — pause · L language, T theme, M sound. Eat all the dots, 8 levels to win."><b>ХРУМ</b> на фреймворке Гефест Arcade · стрелки/дпад — движение, P — пауза · L язык, T тема, M звук. Собери все точки, 8 уровней — победа.</div>
+<title>КАТЫШ · Хомяк в шаре — HTML5</title>
+<meta name="description" content="КАТЫШ — оригинальная аркада студии «Гефест»: хомяк в прозрачном шаре катится по гладкому полу гумна до самой стены, собирает семечки и уходит от котов. Стог гасит ход, тормоз ставит шар на месте. 8 гумен, телефон и геймпад. Темы retro/modern, RU/EN/TR/ES/PT.">
+<meta name="theme-color" content="#17130f">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="./css/style.css">
+</head><body data-theme="modern">
+<a class="back" id="backLink" href="../" data-catalog-back="1" data-en="← Catalog" data-tr="← Katalog" data-es="← Catálogo" data-pt="← Catálogo">← Каталог</a>
+<div class="wrap"><canvas id="c" width="450" height="660" aria-label="КАТЫШ"></canvas></div>
+<div class="pad auto" id="pad">
+  <div class="stick" data-stick="1" aria-label="Стик"></div>
+  <button class="mini" data-arcade-touch data-pause="1" aria-label="Пауза">II</button>
+  <div class="acts"><button class="a" data-arcade-touch data-act="brake" aria-label="Тормоз">◆</button></div>
+</div>
+<div class="foot" id="foot"><b>КАТЫШ</b></div>
 <script src="./engine.js"></script>
 <script src="./js/music.js"></script>
+<script src="./js/i18n.js"></script>
 <script src="./js/game.js"></script>
-<script>
-const STR={ ru:{play:'Играть',language:'Язык',theme:'Тема',sound:'Звук',on:'вкл',off:'выкл',score:'Счёт',level:'Ур.',best:'Рекорд',win:'ПОБЕДА!',gameover:'ИГРА ОКОНЧЕНА',pause:'ПАУЗА',resume:'Продолжить',menu:'В меню',tapstart:'пробел / тап',title:'ХРУМ',subtitle:'Собери все точки · 8 уровней',ready:'ГОТОВ'},
-  en:{play:'Play',language:'Language',theme:'Theme',sound:'Sound',on:'on',off:'off',score:'Score',level:'Lvl',best:'Best',win:'YOU WIN!',gameover:'GAME OVER',pause:'PAUSE',resume:'Resume',menu:'Menu',tapstart:'space / tap',title:'HRUM',subtitle:'Eat all dots · 8 levels',ready:'READY'} };
-const GHOST={ retro:['#ff5555','#ffb8de','#55ffff','#ffb852'], modern:['#ef4444','#ec4899','#22d3ee','#f59e0b'], neon:['#ff2f9c','#ff79c6','#39e7ff','#ffb020'] };
-const g = Arcade.createGame({ canvas:'#c', width:420, height:500, gameId:'hrum', strings:STR, theme:'modern' });
-g.input.bindDpad(document.querySelector('.pad'));
-// Поле вписывается и по ширине, и по высоте окна (масштаб по min): без обрезки и прокрутки.
-// Телефон лёжа (LAND): поле по высоте экрана, тач-кнопки — в боковых полях, «← Каталог» — в левом верхнем углу.
-var LAND='(orientation:landscape) and (max-height:520px) and (pointer:coarse)';
-function fitField(maxW, vwPart, side){ var c=document.getElementById('c'), wrap=c.parentNode, pad=document.querySelector('.pad');
-  var vw=document.documentElement.clientWidth, vh=window.innerHeight, aw, ah;
-  if(matchMedia(LAND).matches){ aw=vw-2*side; ah=vh-12; }
-  else { aw=Math.min(maxW, vw*vwPart); ah=vh-wrap.getBoundingClientRect().top-(getComputedStyle(pad).display!=='none'?pad.offsetHeight+20:0)-6; }
-  var w=Math.floor(Math.max(160, Math.min(aw, ah*g.W/g.H)));
-  wrap.style.width=w+'px'; c.style.width=w+'px'; c.style.height=(w*g.H/g.W)+'px'; }
-fitField(430,0.94,200); addEventListener('resize', ()=>fitField(430,0.94,200));
-// аудио-хук по теме: под modern — задел на не-8-бит музыку (TODO), сейчас только beeps
-g.audio.registerMusic('retro', null); g.audio.registerMusic('modern', null); // TODO: modern richer-плеер
-
-const OX=14, OY=40, CELL=14;
-let game=null;
-function newGame(){ return PM.Game({ hi:g.state.best, onEvent:(t,d)=>{
-  if(t==='chomp') g.audio.beep(520,0.02,'square',0.04);
-  else if(t==='power') g.audio.beep(300,0.12,'sawtooth');
-  else if(t==='eatghost') g.audio.beep(900,0.1,'triangle');
-  else if(t==='death') g.audio.beep(140,0.3,'sawtooth');
-  else if(t==='win') g.audio.beep(1100,0.15,'triangle');
-}}); }
-function dirFromInput(){ const d=g.input.dir; if(d.y<0)return'up'; if(d.y>0)return'down'; if(d.x<0)return'left'; if(d.x>0)return'right'; return null; }
-
-g.useStandardScreens({ title:'ХРУМ', subtitle:STR.ru.subtitle, lives:3 });
-g.scene('play',{ realtime:true,
-  enter(d){ if(!(d&&d.resume)){ game=newGame(); game.start(); } },
-  press(a){ if(!game) return; if(a==='pause'){ this.pause(); return; } const m={up:'up',down:'down',left:'left',right:'right'}[a]; if(m) game.setDir(m); },
-  update(dt){ if(!game) return; const nd=dirFromInput(); if(nd) game.setDir(nd); game.step(dt);
-    const s=game.state(); g.state.score=s.score; g.state.level=s.level; g.state.lives=s.lives;
-    if(s.mode==='gameover'){ g.gameover(); } else if(s.mode==='victory'){ g.win(); } },
-  draw(ctx){ const th=this.th(); this.clear(); if(!game) return; const s=game.state(), mz=s.maze, gc=GHOST[g.themeName]||GHOST.modern;
-    for(let y=0;y<mz.length;y++)for(let x=0;x<mz[y].length;x++){ const ch=mz[y][x], px=OX+x*CELL, py=OY+y*CELL;
-      if(ch==='#'){ ctx.fillStyle=th.accent; ctx.globalAlpha=th.pixel?1:0.9; ctx.fillRect(px+1,py+1,CELL-2,CELL-2); ctx.globalAlpha=1; }
-      else if(ch==='='){ ctx.fillStyle=th.muted; ctx.fillRect(px+1,py+CELL/2-1,CELL-2,2); }
-      else if(ch==='.'){ ctx.fillStyle=th.warn; ctx.fillRect(px+CELL/2-1,py+CELL/2-1,2,2); }
-      else if(ch==='o'){ const r=3+Math.sin(this.time*6)*1; ctx.fillStyle=th.warn; ctx.beginPath(); ctx.arc(px+CELL/2,py+CELL/2,r,0,7); ctx.fill(); }
-    }
-    // Хрумик
-    const p=s.pac, cx=OX+p.x*CELL+CELL/2, cy=OY+p.y*CELL+CELL/2, mo=Math.abs(Math.sin(p.mouth))*0.5+0.08;
-    const ang={right:0,down:Math.PI/2,left:Math.PI,up:-Math.PI/2}[p.dir||'right'];
-    ctx.fillStyle=th.pixel?'#ffff55':'#ffd60a'; ctx.beginPath(); ctx.moveTo(cx,cy);
-    ctx.arc(cx,cy,CELL/2-1, ang+mo, ang+Math.PI*2-mo); ctx.closePath(); ctx.fill();
-    // призраки
-    for(let i=0;i<s.ghosts.length;i++){ const gh=s.ghosts[i], gx=OX+gh.x*CELL+CELL/2, gy=OY+gh.y*CELL+CELL/2;
-      let col=gc[i%4]; if(gh.mode==='fright') col=(s.frightT<2&&((this.time*8)|0)%2)?'#fff':th.accent; if(gh.mode==='eyes') col=null;
-      if(col){ ctx.fillStyle=col; ctx.beginPath(); ctx.arc(gx,gy-1,CELL/2-1,Math.PI,0); ctx.lineTo(gx+CELL/2-1,gy+CELL/2-2); ctx.lineTo(gx-CELL/2+1,gy+CELL/2-2); ctx.closePath(); ctx.fill(); }
-      ctx.fillStyle='#fff'; ctx.fillRect(gx-3,gy-2,2,3); ctx.fillRect(gx+1,gy-2,2,3);
-    }
-    if(s.mode==='ready'){ this.text(this.t('ready','ГОТОВ'), this.W/2, OY+16*CELL, {size:20,align:'center',color:th.warn}); }
-    this.hud({ score:s.score, level:s.level, lives:s.lives }); },
-});
-g.start('title');
-</script></body></html>
+<script src="./js/audio.js"></script>
+<script src="./js/render.js"></script>
+<script src="./js/stick.js"></script>
+<script src="./js/ui.js"></script>
+<script src="./js/save.js"></script>
+<script src="./js/main.js"></script>
+</body></html>

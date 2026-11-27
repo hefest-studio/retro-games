@@ -1,41 +1,38 @@
-:root{ --bg:#0a0d1c; --panel:#10152e; --line:#273056; --ink:#eef2ff; --mut:#92a0c8; --amber:#ffd34d; --cyan:#3ea0ff; --accent:var(--amber); }
-body[data-ptheme="modern"]{ --accent:var(--cyan); }
-*{ box-sizing:border-box; margin:0; padding:0; }
-html,body{ background:
-  radial-gradient(1200px 600px at 50% -10%, #17204d, transparent 60%), var(--bg);
-  color:var(--ink); font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif; min-height:100%; }
-.shell{ max-width:1080px; margin:0 auto; padding:14px 16px 40px; }
-.bar{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
-.logo{ display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--ink); }
-.logo .mk{ width:26px; height:26px; border-radius:50%; background:radial-gradient(circle at 60% 40%, #fff2a0, var(--amber)); box-shadow:0 0 14px -2px var(--accent); }
-.logo b{ font-weight:900; letter-spacing:2px; }
-.logo i{ font-style:normal; font-size:11px; letter-spacing:2px; color:var(--mut); text-transform:uppercase; }
-.ctl{ display:flex; gap:7px; flex-wrap:wrap; }
-.b{ cursor:pointer; background:var(--panel); border:1px solid var(--line); color:var(--mut); border-radius:9px; padding:7px 11px; font:inherit; font-size:12px; font-weight:700; letter-spacing:.5px; }
-.b em{ font-style:normal; color:var(--accent); }
-.b:hover{ border-color:var(--accent); }
-.backlink{ display:inline-block; margin:12px 0 6px; color:var(--mut); text-decoration:none; font-size:13px; font-weight:700; border:1px solid var(--line); border-radius:999px; padding:6px 13px; background:var(--panel); }
-.backlink:hover{ color:var(--accent); border-color:var(--accent); }
-.stage{ position:relative; margin-top:8px; border:1px solid var(--line); border-radius:16px; overflow:hidden; background:#05070f; }
-canvas{ display:block; width:100%; height:auto; aspect-ratio:960/600; }
-.ov{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(5,8,18,.74); backdrop-filter:blur(3px); }
-.box{ text-align:center; max-width:480px; }
-.kick{ font-size:11px; letter-spacing:2px; color:var(--accent); font-weight:800; }
-.box h1{ font-size:clamp(34px,8vw,64px); line-height:1; letter-spacing:2px; margin:10px 0 2px; font-weight:900; }
-.box h1 span{ color:var(--accent); }
-.box h2{ font-size:clamp(26px,6vw,40px); letter-spacing:2px; margin-bottom:14px; font-weight:900; }
-.sub{ letter-spacing:4px; color:var(--mut); font-weight:800; font-size:13px; }
-.box p{ color:var(--mut); margin:12px auto 18px; max-width:380px; }
-.row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
-.big{ cursor:pointer; background:linear-gradient(135deg,var(--amber),#e8a33a); color:#1b1206; border:0; border-radius:12px; padding:12px 22px; font:inherit; font-weight:900; letter-spacing:1px; box-shadow:0 8px 22px -8px var(--accent); }
-body[data-ptheme="modern"] .big{ background:linear-gradient(135deg,var(--cyan),#4f7bff); color:#04121f; }
-.big kbd{ background:rgba(0,0,0,.25); border-radius:5px; padding:1px 6px; font-size:11px; margin-left:6px; }
-.ghost{ cursor:pointer; background:var(--panel); border:1px solid var(--line); color:var(--ink); border-radius:12px; padding:12px 18px; font:inherit; font-weight:800; }
-.ghost:hover{ border-color:var(--accent); }
-.helpbox{ margin:14px auto 0; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 16px; max-width:360px; }
-.helpbox ul{ list-style:none; text-align:left; }
-.helpbox li{ color:var(--mut); font-size:13px; padding:3px 0; }
-.hint{ margin-top:16px; color:var(--mut); font-size:12px; letter-spacing:.5px; }
-.stats{ display:flex; gap:22px; justify-content:center; margin-bottom:16px; color:var(--mut); font-size:13px; font-weight:700; }
-.stats b{ display:block; color:var(--accent); font-size:24px; }
-@media (max-width:560px){ .logo i{ display:none; } .b{ padding:6px 9px; } }
+/* КАТЫШ · стили страницы (игра рисуется в canvas). Тема страницы — body[data-theme]. Пульт: стик слева, ◆ тормоз справа. */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#17130f;--panel:#241d16;--line:#4a3b2a;--ink:#f6efe2;--mut:#a79b88;--accent:#ee8a3a}
+body[data-theme="retro"]{--bg:#000000;--panel:#000000;--line:#5555aa;--ink:#ffffff;--mut:#aaaaaa;--accent:#ffaa00}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;-webkit-user-select:none;overflow:hidden;overscroll-behavior:none}
+body[data-theme="retro"]{font-family:"Courier New",ui-monospace,monospace}
+.wrap{position:relative;margin-top:26px;display:flex;justify-content:center}
+canvas{display:block;border:1px solid var(--line);border-radius:10px;background:var(--bg);touch-action:none}
+body[data-theme="retro"] canvas{border-radius:2px;image-rendering:pixelated}
+a.back{position:fixed;left:10px;top:6px;color:var(--mut);font-size:12px;text-decoration:none;font-weight:700;z-index:3}
+a.back:hover{color:var(--accent)}
+.pad{width:min(96vw,520px);margin:8px 0 4px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pad[hidden]{display:none}
+.stick{position:relative;width:170px;height:130px;border-radius:24px;border:1px dashed var(--line);touch-action:none;flex:none}
+.stick-base,.stick-knob{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;opacity:.55}
+.stick-base{width:104px;height:104px;border:2px solid var(--line);background:rgba(255,255,255,.04)}
+.stick-knob{width:50px;height:50px;background:var(--panel);border:2px solid var(--accent)}
+.acts{display:flex;gap:12px;align-items:center}
+.acts button{width:74px;height:74px;border-radius:50%;background:var(--panel);border:2px solid var(--line);color:var(--ink);font-size:26px;font-weight:800;touch-action:none;padding:0}
+.acts button.a{border-color:var(--accent);color:var(--accent);width:84px;height:84px}
+.acts button.on,.acts button:active{filter:brightness(1.6)}
+.pad .mini{position:fixed;right:10px;top:4px;width:40px;height:30px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--ink);font-size:13px;font-weight:800;z-index:3;padding:0}
+body[data-theme="retro"] .acts button,body[data-theme="retro"] .pad .mini{border-radius:2px}
+.foot{color:var(--mut);font-size:11px;margin:8px 12px 8px;text-align:center;max-width:820px}
+.foot b{color:var(--ink)}
+/* десктоп с мышью и клавиатурой: пульт не нужен (появляется, если игрок коснулся экрана) */
+@media (hover:hover) and (pointer:fine){.pad.auto{display:none}.pad.auto .mini{display:none}}
+html[data-input="touch"] .pad.auto{display:flex}
+html[data-input="touch"] .pad.auto .mini{display:block}
+@media (max-height:620px){.foot{display:none}.wrap{margin-top:22px}}
+/* телефон «лёжа»: стик слева, кнопки справа — поверх полей по бокам холста */
+@media (max-height:520px) and (orientation:landscape){
+  .pad{position:fixed;left:0;right:0;bottom:8px;width:100%;max-width:none;margin:0;padding:0 10px;pointer-events:none;align-items:flex-end;z-index:2}
+  .pad>*{pointer-events:auto}
+  .stick{width:210px;height:180px}
+  .acts button{width:66px;height:66px}.acts button.a{width:76px;height:76px}
+}

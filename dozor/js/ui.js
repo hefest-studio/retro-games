@@ -1,4 +1,4 @@
-/* ДОЗОР · интерфейс: DOM-обвязка (подгонка канвы, подписи страницы, тема) и конвейер кадра —
+/* ОБОЗ · интерфейс: DOM-обвязка (подгонка канвы, подписи страницы, тема) и конвейер кадра —
    мир через камеру (retro — в буфер половинного размера и ×2 без сглаживания), HUD, полоса крепости,
    баннеры этапа/босса/итога, окно «Продолжить?», всплывающие надписи. Тексты — только через g.t(). DOZOR.ui */
 (function (global) {
@@ -8,14 +8,16 @@
 
   // ---------- DOM ----------
   function fit(g) {
-    var c = g.canvas, pad = document.querySelector('.pad');
-    var padH = pad && getComputedStyle(pad).display !== 'none' ? pad.offsetHeight + 16 : 0;
+    var c = g.canvas, pad = document.querySelector('.pad'), cs = pad && getComputedStyle(pad);
+    var padH = cs && cs.display !== 'none' && cs.position !== 'fixed' ? pad.offsetHeight + 16 : 0;   // телефон «лёжа»: пульт поверх полей (fixed)
     // ширина окна — clientWidth, а не innerWidth: на телефоне innerWidth — ширина «раздутого» макета (если что-то шире экрана),
     // и холст, подогнанный под неё, сам держит макет широким — края игры обрезаются (QA-прогон: «холст шире экрана»)
     var vw = Math.min(innerWidth, document.documentElement.clientWidth || innerWidth), vh = Math.min(innerHeight, (global.visualViewport && global.visualViewport.height) || innerHeight);
-    var availW = Math.min(vw - 16, 640), availH = vh - padH - 70;
+    var availW = Math.min(vw - 16, 640), availH = vh - padH - (padH ? 70 : 40);
     var w = Math.max(240, Math.floor(Math.min(availW, availH * g.W / g.H)));
     c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
+    var se = document.scrollingElement || document.documentElement, over = se.scrollHeight - vh;   // страховка от прокрутки (площадки)
+    if (over > 0 && w > 240) { w = Math.max(240, Math.floor(w - over * g.W / g.H) - 2); c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px'; }
   }
   var lastLang = null, lastTheme = null;
   function sync(g) {
@@ -80,10 +82,11 @@
     ctx.fillStyle = P.line; ctx.fillRect(0, L.HUD - (P.pixel ? 2 : 1), W, P.pixel ? 2 : 1);
     txt(g, up(P, g.t('score')) + ' ' + S.score, 8, 17, { size: 13, color: P.ink, weight: 800 }, P);
     txt(g, up(P, g.t('stageShort')) + ' ' + S.stage + '/' + S.maxStage, W / 2, 17, { size: 12, align: 'center', color: P.muted, weight: 700 }, P);
-    txt(g, up(P, g.t('rescued')) + ' ' + S.rescued, W - 8, 17, { size: 12, align: 'right', color: P.good, weight: 700 }, P);
+    txt(g, up(P, g.t('kills')) + ' ' + S.kills, W - 8, 17, { size: 12, align: 'right', color: P.good, weight: 700 }, P);
     S.heroes.forEach(function (h, i) {
       var x = two ? (i ? W - 8 : 8) : 8, al = two && i ? 'right' : 'left', y = 34;
-      var s = (two ? g.t('p' + (i + 1)) + ' ' : '') + (h.out ? g.t('out') : '♥' + h.lives) + '  ' + g.t('w_' + h.tier) + '  ' + h.carried + '/' + L.CAPACITY;
+      var wg = ''; for (var q = 0; q < L.WAG.max; q++) wg += q < h.wag.length ? '■' : '□';
+      var s = (two ? g.t('p' + (i + 1)) + ' ' : '') + (h.out ? g.t('out') : '♥' + h.lives + '  ' + wg);
       txt(g, up(P, s), x, y, { size: 11, align: al, color: P.hero[i], weight: 700 }, P);
     });
     if (!two) txt(g, up(P, g.t('best')) + ' ' + Math.max(g.state.best || 0, S.score), W - 8, 34, { size: 11, align: 'right', color: P.muted, weight: 600 }, P);
@@ -91,8 +94,8 @@
     if (B && B.active && !B.dead) {
       var bw = 260, bx = (W - bw) / 2, by = L.HUD + 8;
       if (!P.pixel) { ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(bx - 6, by - 4, bw + 12, 24); }
-      bar(ctx, bx, by + 10, bw, 6, B.hp / B.max, P.boss, P);
-      txt(g, up(P, g.t('b_' + B.key)), W / 2, by + 7, { size: 10, align: 'center', color: P.ink, weight: 800 }, P);
+      bar(ctx, bx, by + 10, bw, 6, B.hp / B.max, B.open === false ? P.muted : P.boss, P);
+      txt(g, up(P, g.t('b_' + B.key)) + (B.open === false ? ' · ' + up(P, g.t('shield')) : ''), W / 2, by + 7, { size: 10, align: 'center', color: P.ink, weight: 800 }, P);
     }
   }
 
@@ -117,8 +120,9 @@
     if (S.phase === 'clear') {
       panel(ctx, 50, 220, W - 100, 130, P, P.good);
       txt(g, up(P, g.t('clear')), W / 2, 258, { size: 24, align: 'center', color: P.good, weight: 900 }, P);
-      txt(g, g.t('rescued') + ': ' + S.rescued, W / 2, 290, { size: 14, align: 'center', color: P.ink, weight: 700 }, P);
+      txt(g, g.t('wagons') + ': ' + S.heroes.reduce(function (n, h) { return n + h.wag.length; }, 0), W / 2, 290, { size: 14, align: 'center', color: P.ink, weight: 700 }, P);
       txt(g, g.t('bonus') + ': ' + (3000 * S.stage), W / 2, 314, { size: 14, align: 'center', color: P.accent, weight: 700 }, P);
+      if (S.hold) txt(g, g.t('cardNext'), W / 2, 338, { size: 12, align: 'center', color: P.muted, weight: 600, shadow: false }, P);
     }
     if (S.phase === 'cont') {
       ctx.fillStyle = P.pixel ? 'rgba(0,0,0,.6)' : 'rgba(8,10,14,.6)'; ctx.fillRect(0, L.HUD, W, L.VIEW_H);
