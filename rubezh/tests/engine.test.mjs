@@ -6,7 +6,7 @@
    • меню движка → Enter → брифинг игры → Enter → бой; пауза P ↔ пауза игры; тема T/G ↔ графика игры,
      язык L ↔ язык игры (в обе стороны); звук M ↔ звук игры; «Как играть» из меню и Esc назад;
      Esc на брифинге → меню; пауза → «В меню»; тач-кнопка паузы; финал → экран движка и рекорд
-     arcade.best.rubezh; перенос старого рекорда contra.best; миграция ключей contra.* → rubezh.*;
+     arcade.best.rubezh; перенос рекорда rubezh.best → arcade.best.rubezh;
    • #gfx=retro|modern дают разные кадры; #shot= — без оболочки; 0 ошибок pageerror / console.error. */
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -66,19 +66,7 @@ try {
     await o.close(); ok(r.g && !r.host && mode === 'brief', JSON.stringify(r) + ' ' + mode);
   });
 
-  await test('миграция localStorage: старые ключи contra.* → rubezh.*, старые удалены, новые не затираются', async () => {
-    const o = await open('legacy.html', () => { try { if (sessionStorage.getItem('mig')) return; sessionStorage.setItem('mig', '1'); localStorage.clear();
-      localStorage.setItem('contra.best', '555'); localStorage.setItem('contra.lang', 'en'); localStorage.setItem('contra.gfx', 'modern');
-      localStorage.setItem('contra.muted', '1'); localStorage.setItem('rubezh.muted', '0'); } catch {} });
-    const r = await o.p.evaluate(() => ({ ls: Object.keys(localStorage).sort().map((k) => k + '=' + localStorage.getItem(k)), st: window.__RUBEZH_DBG.state() }));
-    await o.close();
-    const ls = r.ls.join(' ');
-    ok(!/contra\./.test(ls), 'старые ключи не удалены: ' + ls);
-    ok(/rubezh\.best=555/.test(ls) && /rubezh\.lang=en/.test(ls) && /rubezh\.gfx=modern/.test(ls), 'не перенесены: ' + ls);
-    ok(/rubezh\.muted=0/.test(ls), 'новый ключ затёрт старым: ' + ls);
-    ok(r.st.best === 555 && r.st.lang === 'en', 'игра не прочла перенесённое: ' + JSON.stringify(r.st));
-  });
-  const { p, close } = await open('', () => { try { localStorage.clear(); localStorage.setItem('contra.best', '777'); } catch {} });
+  const { p, close } = await open('', () => { try { localStorage.clear(); localStorage.setItem('rubezh.best', '777'); } catch {} });
   await test('старт: меню движка, игра в title, родной титул скрыт, тема modern, рекорд перенесён', async () => {
     const s = await st(p);
     ok(s.scene === 'title' && s.mode === 'title' && !s.screenShown, JSON.stringify(s));

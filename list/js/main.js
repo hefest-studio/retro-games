@@ -11,9 +11,12 @@
     modern: Object.assign({}, TH.modern, { bg: '#2b2420', panel: '#3a302a', ink: '#f6ecd6', muted: '#c9b99a', accent: '#d0402c', grid: '#4a3f34', good: '#7bd389', bad: '#ff6b5a', warn: '#ffd23a', font: 'Georgia, "Times New Roman", serif' }),
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#ff5555', muted: '#aaaaaa', ink: '#ffffff', good: '#55ff55', bad: '#ff5555', warn: '#ffff55' })
   };
-  var g = Arcade.createGame({ canvas: '#c', width: VW, height: VH, gameId: 'list', strings: LI.STR, theme: 'modern', lives: LG.K.LIVES, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: VW, height: VH, gameId: 'list', leaderboard: 'list', strings: LI.STR, theme: 'modern', lives: LG.K.LIVES, themes: themes });
   LI.g = g;
-  g.input.bindDpad(document.querySelector('.pad'));
+  var padEl = document.querySelector('.pad');
+  g.input.bindDpad(padEl);   // кнопка ● (data-d="A") — удар / выбор в меню
+  // тач-схема площадок: плавающий стик (←→ ход, ↑ прыжок, ↓ блок) + ● удар, ✊ захват, ★ предмет, ⇄ ячейка
+  var stick = global.ArcadeStick.create(padEl && padEl.querySelector('[data-stick]'), { radius: 46 });
 
   var game = null, banner = null, cam = { x: 0, y: 0 }, playSince = 0, pad = { grab: false, use: false, slot: false }, shake = 0, lastSel = 0;
   function S() { return game.state(); }
@@ -61,11 +64,11 @@
       case 'clean': break;
       case 'die': shake = 0.4; showBanner(g.t('d_' + (d.why || 'hurt')) || g.t('d_hurt'), (s.lives - 1) > 0 ? g.t('lifeLeft').replace('{n}', s.lives - 1) : g.t('noLives'), 1.6); break;
       case 'respawn': cam.snap = true; break;
-      case 'turn': showBanner(g.t('pageTurn'), '', 1.2); break;
+      case 'turn': pageBreak(); showBanner(g.t('pageTurn'), '', 1.2); break;
       case 'bossIn': g.setMusic(track('boss')); g.audio.music.play(true); showBanner(g.t('b_' + d.type), g.t('ch') + ' ' + s.ch, 1.8); break;
       case 'bossDown': FX.add(d.x, d.y - 20, { n: 40, sp: 200, c: inkC('#1d1915', E.k), r: 3, life: 1.2 }); FX.word(d.x, d.y - 40, ono('big'), { big: true, life: 1.2 }); shake = 0.5; break;
       case 'ending': showBanner(g.t('end' + d.v), g.t('ch') + ' ' + d.ch + ' · ' + g.t('ch' + d.ch), 4.2, R.wrap(g.ctx, g.t('end' + d.ch + d.v), 420, 11)); break;
-      case 'chapter': g.setMusic(track()); break;
+      case 'chapter': g.setMusic(track()); pageBreak(); break;
       case 'gameover': sync(); g.state.lives = 0; break;
       case 'win': sync(); break;
     }
@@ -76,6 +79,21 @@
 
   // ---------- стандартные экраны ----------
   g.useStandardScreens({ lives: LG.K.LIVES });
+  // ---------- Площадка (движок v2.8–2.10): таблица «list», «Без рекламы», реклама за награду, межстраничная между страницами ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «list», GamePush — числовое поле игрока «list» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/list/platform.json (arcade-full). На сайте (без площадки) пунктов нет.
+  var LB = 'list';
+  g.persist('arcade.best.list', 'max');
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
+  // «Ещё один шанс» (раз за партию): панель заново с полными чернилами и 1 листом; бонус в паузе — полные чернила и запасной лист
+  g.useRewardedContinue({ revive: function () { if (game && game.reviveAd()) { banner = null; cam.snap = true; sync(); } } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { return !!game && game.canBoost(); }, grant: function () { if (game) game.boost(); } });
+  // межстраничная — только в естественных паузах: листание страницы и конец главы (частоту режет адаптер площадки)
+  function pageBreak() { if (g.adReady && g.adReady()) g.adBreak(); }
   g.menu.addItem({ key: 'restart', scene: 'pause', before: 'menu', label: function () { return g.t('restart'); },
     onSelect: function () { if (game) game.restartPanel(); g.goto('play', { resume: true }); } });
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
@@ -91,6 +109,8 @@
     };
   });
 
+  // Меню вмещает пункты площадки («Лидеры», «Без рекламы»): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
   // ---------- титул ----------
   var title = g.scenes.title, menu = g.menu.get('title');
   var titleS = null;
@@ -136,7 +156,7 @@
     ctx.restore();
     var sub = R.wrap(ctx, this.t('subtitle'), 250, 11);
     sub.forEach(function (l, i) { g.text(l, cx, 102 + i * 13, { size: 11, align: 'center', color: rt ? E.k : '#3a2a1a', weight: 700 }); });
-    menu.draw(this, cx, 150, 26);
+    var mf = menuFit(menu, 150, 26, 120, 276); menu.draw(this, cx, mf[0], mf[1]);
     if (this.state.best) this.text(this.t('best') + ': ' + this.state.best, cx, VH - 66, { size: 12, align: 'center', color: rt ? E.d : '#6a5a4a', weight: 700 });
     R.wrap(ctx, this.t('sub2'), 240, 10).forEach(function (l, i) { g.text(l, cx, VH - 48 + i * 12, { size: 10, align: 'center', color: rt ? E.d : '#6a5a4a', weight: 600 }); });
     this.text(this.t('hint'), VW / 2, VH - 6, { size: rt ? 9 : 10, align: 'center', color: rt ? E.w : '#f6ecd6', weight: 600 });
@@ -183,7 +203,8 @@
       if (banner) { banner.a -= dt; if (banner.a <= 0) banner = null; }
       if (shake > 0) shake -= dt;
       var s = S(); if (s.msg) s.msg.t -= dt;
-      var dir = this.input.dir, live = g.time - playSince > 0.15, cd = this.input.codes;
+      var dir = this.input.dir; if (stick.active) dir = { x: Math.abs(stick.x) > 0.3 ? Math.sign(stick.x) : 0, y: stick.y < -0.5 ? -1 : stick.y > 0.5 ? 1 : 0 };
+      var live = g.time - playSince > 0.15, cd = this.input.codes;
       var sel = cd.Digit1 ? 1 : cd.Digit2 ? 2 : cd.Digit3 ? 3 : 0;
       game.setInput({
         x: dir.x,
@@ -243,5 +264,5 @@
   addEventListener('resize', fit); fit(); domSync();
 
   g.start('title');
-  LI.app = { g: g, game: function () { return game; }, cam: function () { return cam; } };   // для отладки/автотестов в браузере
+  LI.app = { g: g, game: function () { return game; }, cam: function () { return cam; }, clearBanner: function () { banner = null; } };   // для отладки/автотестов в браузере
 })(typeof window !== 'undefined' ? window : globalThis);

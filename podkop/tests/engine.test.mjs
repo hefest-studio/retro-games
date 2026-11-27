@@ -139,28 +139,6 @@ test('стража на каждом уровне просыпается и дв
   }
 });
 
-// ---------- Миграция рекорда из прежних ключей ----------
-{
-  const box2 = { console, Math, Array, Object, String, parseInt };
-  box2.window = box2; box2.globalThis = box2; vm.createContext(box2);
-  vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/store-migrate.js'), 'utf8'), box2, { filename: 'store-migrate.js' });
-  const M = box2.PODKOP;
-  function mem(init) { const m = new Map(Object.entries(init || {})); return { m, getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; }
-  const OLD = M.OLD_KEYS;
-  test('миграция: старый рекорд переносится в arcade.best.podkop, старые ключи удаляются', () => {
-    const s = mem({ [OLD[0]]: '4210', [OLD[1]]: 'retro', [OLD[2]]: 'en', [OLD[3]]: '1', [OLD[4]]: '1', 'arcade.lang': 'ru' });
-    eq(M.migrateStore(s), 4210); eq(s.getItem('arcade.best.podkop'), '4210');
-    OLD.forEach((k) => eq(s.getItem(k), null, 'остался ' + k)); eq(s.getItem('arcade.lang'), 'ru', 'чужой ключ тронут');
-  });
-  test('миграция: новый рекорд больше старого — не затирается; повторный запуск безопасен', () => {
-    const s = mem({ [OLD[0]]: '300', 'arcade.best.podkop': '900' }); eq(M.migrateStore(s), 900); eq(s.getItem('arcade.best.podkop'), '900');
-    eq(M.migrateStore(s), 900); eq(s.getItem(OLD[0]), null);
-  });
-  test('миграция: без хранилища / с исключением — не падает', () => {
-    eq(M.migrateStore(null), 0); eq(M.migrateStore({ getItem() { throw new Error('denied'); } }), 0);
-  });
-}
-
 // ---------- Оболочка v2 ----------
 {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
@@ -180,7 +158,7 @@ test('стража на каждом уровне просыпается и дв
   });
   test('v2: порядок скриптов, gameId, фавикон, «← Каталог», тач-кнопки копания', () => {
     const srcs = [...html.matchAll(/<script[^>]*\ssrc=["']([^"']+)["']/g)].map((m) => m[1].replace(/^\.\//, ''));
-    eq(srcs[0], 'engine.js'); eq(srcs[1], 'js/music.js'); eq(srcs[2], 'js/store-migrate.js', 'миграция до createGame');
+    eq(srcs[0], 'engine.js'); eq(srcs[1], 'js/music.js'); ok(!srcs.includes('js/store-migrate.js'), 'миграция удалена');
     ['js/levels.js', 'js/game.js', 'js/render.js'].forEach((s) => { ok(srcs.includes(s), 'нет ' + s); ok(fs.existsSync(path.join(ROOT, s)), 'нет файла ' + s); });
     ok(html.includes("gameId:'podkop'"), 'gameId'); ok(html.includes('rel="icon"') && html.includes('%23EA6A12'), 'фавикон студии');
     ok(/href="\.\.\/"[^>]*>← Каталог/.test(html), 'нет «← Каталог»'); ok(html.includes('id="bDigL"') && html.includes('id="bDigR"'), 'нет тач-копания');
@@ -198,15 +176,8 @@ test('стража на каждом уровне просыпается и дв
 }
 
 // ---------- Правило имён ----------
-// Полная grep-проверка по списку чужих названий делается вне репо (список сам по себе — чужие имена).
-test('правило имён: прежнего префикса ключей нет целиком ни в одном файле игры', () => {
-  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
-  const OLD = ['lode', 'runner'].join('');
-  for (const f of walk(ROOT)) {
-    ok(!path.basename(f).toLowerCase().includes('runner'), 'старое имя в имени файла ' + f);
-    if (/\.(html|js|mjs|md|json|css)$/.test(f)) ok(!fs.readFileSync(f, 'utf8').toLowerCase().includes(OLD), path.relative(ROOT, f));
-  }
-});
+// Полная grep-проверка по списку чужих названий — общим тестом каталога (стоп-лист в base64).
+
 
 console.log('\n' + (failed ? 'НЕУСПЕХ' : 'OK') + ' ' + passed + '/' + (passed + failed));
 process.exit(failed ? 1 : 0);

@@ -34,8 +34,6 @@
   var BULLET_CAP = 90, EBULLET_CAP = 120, PART_CAP = 420;
   var MODERN_W = 1440, MODERN_H = 810; // 3x backing store
   var STORE_PREFIX = 'rubezh.';
-  // Устаревший префикс ключей (до переименования игры) — только для однократной миграции.
-  var LEGACY_STORE_PREFIX = 'contra.';
   var STORE_KEYS = ['best', 'gfx', 'lang', 'muted'];
 
   /* --------------------------------------------------------------------------
@@ -85,18 +83,6 @@
     var v = parseFloat(loadStr(key, ''));
     return isFinite(v) ? v : fallback;
   }
-  // Миграция настроек/рекорда со старых ключей: старый → новый (если нового ещё нет) → удалить старый.
-  function migrateStore() {
-    try {
-      STORE_KEYS.forEach(function (key) {
-        var v = localStorage.getItem(LEGACY_STORE_PREFIX + key);
-        if (v == null) return;
-        if (localStorage.getItem(STORE_PREFIX + key) == null) localStorage.setItem(STORE_PREFIX + key, v);
-        localStorage.removeItem(LEGACY_STORE_PREFIX + key);
-      });
-    } catch (e) {}
-  }
-  migrateStore();
 
   /* --------------------------------------------------------------------------
      3. LOCALISATION

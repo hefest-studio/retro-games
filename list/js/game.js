@@ -719,6 +719,11 @@
       start: start, update: update, setInput: setInput,
       state: function () { return S; }, panel: function () { return P; }, spec: function () { return spec; },
       exitOpen: function (side) { return exitOpen(P, side); },
+      // реклама за награду (площадки): «ещё один шанс» после конца партии — панель заново с полными чернилами и 1 листом;
+      // бонус в паузе — полные чернила (+ запасной лист, если не полон), один раз за партию
+      reviveAd: function () { if (S.phase !== 'over') return false; S.lives = 1; S.phase = 'play'; S.phaseT = 0; respawnPanel(); emit('respawn', {}); return true; },
+      canBoost: function () { return S.phase === 'play' && (S.hero.hp < K.INK || S.lives < K.LIVES); },
+      boost: function () { if (!api.canBoost()) return false; S.hero.hp = K.INK; if (S.lives < K.LIVES) S.lives++; emit('heal', { x: S.hero.x, y: S.hero.y - 14, n: K.INK }); return true; },
       restartPanel: function () { if (S.phase === 'play') { S.hero.hp = 0; die('hurt'); } },
       // тест-хуки
       _spawn: function (t, x, drip) { return spawnEnemy(t, x, !!drip); },

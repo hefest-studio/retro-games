@@ -322,6 +322,29 @@ test('правило имён: в папке игры нет чужих назв
   ok(!BAD.test('Гефест') && !BAD.test('CONTRACT.md') && !BAD.test('комикс') && !BAD.test('лубок') && !BAD.test('Корректор'), 'стоп-лист без ложных срабатываний на наши слова');
 });
 
+test('площадки: 5 языков (ru/en/tr/es/pt) с одинаковыми ключами и ономатопеями; имя EN — INKPUNCH', () => {
+  const ru = Object.keys(LI.STR.ru).sort().join();
+  for (const l of ['en', 'tr', 'es', 'pt']) { eq(Object.keys(LI.STR[l]).sort().join(), ru, l); eq(Object.keys(LI.ONO[l]).sort().join(), Object.keys(LI.ONO.ru).sort().join(), 'ONO ' + l); }
+  for (const l of ['tr', 'es', 'pt']) for (const k of Object.keys(LI.STR.ru)) ok(LI.STR[l][k] && LI.STR[l][k].length > 0, l + ':' + k);
+  eq(LI.STR.en.title, 'INKPUNCH'); eq(LI.STR.ru.title, 'ЛИСТ');
+});
+test('реклама за награду: reviveAd только в конце партии (1 лист, панель заново); boost — полные чернила и лист', () => {
+  const game = LI.Game({ seed: 3, onEvent: () => {} }).start(); const S = game.state();
+  ok(!game.reviveAd(), 'в игре revive невозможен'); ok(!game.canBoost(), 'полные чернила и листы — бонус не нужен');
+  S.hero.hp = 20; S.lives = 1; ok(game.canBoost());
+  ok(game.boost()); eq(S.hero.hp, K.INK); eq(S.lives, 2); ok(!game.canBoost());
+  S.phase = 'over'; S.lives = 0; ok(game.reviveAd()); eq(S.phase, 'play'); eq(S.lives, 1); eq(S.hero.hp, K.INK);
+});
+test('площадка: main.js — persist, лидерборд list, no_ads, rewarded continue/bonus, adBreak между страницами, стик', () => {
+  const m = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
+  ok(/leaderboard: 'list'/.test(m) && /g\.persist\('arcade\.best\.list', 'max'\)/.test(m));
+  ok(/g\.useRewardedContinue\(/.test(m) && /g\.useRewardedBonus\(/.test(m) && /g\.adBreak\(\)/.test(m) && /menuFit\(/.test(m));
+  ok(/ArcadeStick\.create/.test(m) && fs.existsSync(path.join(ROOT, 'js/stick.js')));
+  const h = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'); ok(/data-stick/.test(h) && !/data-d="[ULRD]"/.test(h), 'дпад заменён стиком');
+});
+{ const { checkPlatformFeatures } = await import('../../tools/promo/platform-features.check.mjs');
+  checkPlatformFeatures({ ROOT, slug: 'list', boards: ['list'], test, ok }); }
+
 // ---------- партии бота (QUICK=1 — пропустить) ----------
 if (process.env.QUICK){ console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed) + ' (без бота)'); process.exit(failed ? 1 : 0); }
 test('исполнимость: бот без урона проходит все 6 страниц и боссов, на развилках — оба выхода', () => {

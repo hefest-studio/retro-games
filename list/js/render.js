@@ -416,8 +416,9 @@
     rect(ctx, 0, 0, LV.PAGE_W, LV.PAGE_H, PAL.paper());
     if (!retro) { var pt = pattern(ctx, 'paper', 'rgba(120,90,40,.10)', 5, 0.7); if (pt) { ctx.fillStyle = pt; ctx.fillRect(0, 0, LV.PAGE_W, LV.PAGE_H); } }
     // номер страницы и колонтитул
-    txt(ctx, '— ' + ((ch - 1) * 2 + pg) + ' —', LV.PAGE_W / 2, LV.PAGE_H - 2, 8, C('#6a5a4a', E.d), 'center', 700);
-    var view = opts.view;
+    var view = opts.view, pnx = LV.PAGE_W / 2;
+    // колонтитул рисуется только когда целиком в кадре (иначе строка торчала бы за холст)
+    if (!view || (view.x0 <= pnx - 22 && view.x1 >= pnx + 22 && view.y0 <= LV.PAGE_H - 12 && view.y1 >= LV.PAGE_H)) txt(ctx, '— ' + ((ch - 1) * 2 + pg) + ' —', pnx, LV.PAGE_H - 2, 8, C('#6a5a4a', E.d), 'center', 700);
     ids.forEach(function (id) {
       var sp = panelSpec(ch, pg, id).spec;
       if (view && (sp.x > view.x1 || sp.x + sp.w < view.x0 || sp.y > view.y1 || sp.y + sp.h < view.y0)) return;

@@ -6,13 +6,13 @@
 
 ## §0 · Порядок загрузки (`index.html`)
 
-`engine.js` → `js/music.js` → `js/store-migrate.js` → `js/levels.js` → `js/game.js` → `js/render.js` → инлайн-оболочка.
-`store-migrate.js` обязан идти до `Arcade.createGame` (движок читает рекорд при создании).
+`engine.js` → `js/music.js` → `js/levels.js` → `js/game.js` → `js/render.js` → инлайн-оболочка.
+Рекорд — `arcade.best.podkop` (движок читает его при создании).
 
 ## §1 · Пространство имён
 
 Классические `<script>`, общий объект `window.PODKOP`: `Game`, `Renderer`, `COLS` (28), `ROWS` (16),
-`migrateStore`, `OLD_KEYS`, `NEW_BEST`. Уровни — `window.PODKOP_LEVELS`.
+Уровни — `window.PODKOP_LEVELS`.
 
 ## §2 · `js/levels.js` — уровни
 
@@ -61,8 +61,7 @@
 ## §5 · Хранилище
 
 Рекорд — `arcade.best.podkop` (движок). Язык/тема/звук — общие ключи движка `arcade.*`.
-`js/store-migrate.js`: прежний рекорд (ключ старой страницы на том же домене) переносится в
-`arcade.best.podkop`, если больше; старые ключи (рекорд, тема, язык, звук) удаляются.
+Миграция прежнего ключа удалена (волна 51).
 
 ## §6 · Тесты
 
