@@ -1,45 +1,32 @@
-# ОСКОЛОК — контракт модулей
+# ОСКОЛОК (SHARDSWAP, слаг `oskolok`) — контракт модулей
 
-Игра аркады «Гефест» на фреймворке Гефест Arcade v2.2 (`engine.js`). Общий стандарт: офлайн, `file://`, без внешних
-URL/шрифтов/ассетов, RU/EN, темы modern/retro (меняют только отрисовку), WebAudio-звук, рекорд в `localStorage`.
-Права: название, сеттинг (осколок чужого мира, Звёздный Горн, мастерская), Вера, дрон-светляк, Стеклодувы, Тени-ловцы,
-Сердце осколка, эпизоды, арт, палитры, звуки и музыка — оригинальные; чужих имён нет (тест «правило имён»).
+Игра аркады «Гефест» на Гефест Arcade v2.10 (`engine.js`). Офлайн, `file://`, без внешних URL/шрифтов/ассетов, 5 языков (ru, en, tr, es, pt), темы modern/retro
+(меняют только отрисовку), WebAudio. Название, сеттинг (заброшенная стекловарня), подмастерье, осколок, враги, арт, звук и музыка — оригинальные; чужих имён нет (тест).
+Порядок подключения: `engine.js` → `js/music.js` → `js/i18n.js` → `js/levels.js` → `js/game.js` → `js/audio.js` → `js/render.js` → `js/stick.js` → `js/main.js`. Всё в `window.OSKOLOK`.
 
-## js/levels.js — `OSKOLOK.SCREENS[16]`, `OSKOLOK.CHAPTERS = 5`, `OSKOLOK.CUTS`
-Эпизод: `{ ch, ep, map[18 строк × 32], dark?, chase?, final? }`. Знаки карты: `.` пусто, `#` камень, `G` стекло (пробой),
-`C` осыпающаяся плита, `^` иглы, `V` подвесной кристалл (→ блок `K`), `L`/`l` рычаг группы 1/2, `B`/`b` дальняя кнопка,
-`D`/`d` дверь, `}` `{` излучатель луча, `/` `Z` зеркала, `R`/`r` приёмник, `g`/`h` Стеклодув (смотрит влево/вправо),
-`s` Тень-ловец, `*` дрон-светляк, `P` старт (подошвы на ряд ниже), `X` выход, `O` разлом (финал A), `Q` Сердце (финал B).
-`CUTS` — `{ c1..c5, drone, endA, endB }` → длительность, с.
+## js/levels.js — `OSKOLOK.LEVELS[6]`, `OSKOLOK.KEYS`, `OSKOLOK.Brush(W,H)`
+Зал: `{ key, W, H, map[H строк × W], zones[{x0,x1,k}] }` (zones — подсказки первого зала). Знаки: `.` пусто, `#` камень, `g` стекло (герой упирается, осколок проходит),
+`^` стекляшки, `P` старт, `X` дверь горна, `o` бусина, `h` сердечко, `k` лампа-отметка, `e` ползун, `b` мотылёк, `t`/`T` лампа-стрелок (влево/вправо).
+Кисть: `put fill frame ground pit dip ledge slab pane wall ceil spikes beads mob out`. Залы: yard, works, tower (36×40), hot, glasshouse, furnace.
 
-## js/game.js — `OSKOLOK.Game(opts)` (без DOM, детерминирована)
-`opts`: `{ idx | chapter, have (дрон с собой), elapsed, onEvent(type, data), sim (граф: без врагов, погони, обвала плит
-и кат-сцен; выход — `S.exited`), noCut, god, def (тестовая карта) }`.
-API: `start()` · `update(dt)` (шаг 1/60) · `setInput({ x:-1|0|1, jump, down, res, charge })` (удержания; фронты — внутри) ·
-`sendDrone(x, y)` · `recallDrone()` · `skip()` (кат-сцена) · `restartScreen()` · `state()` · `key()` (изменяемый мир строкой).
-Тестовые хуки: `_load(key)`, `_place(x, y, face)`, `_go(idx, o)`, `_die(why)`.
+## js/game.js — `OSKOLOK.Game(opts)` (без DOM, детерминирована), `OSKOLOK.logic`, `OSKOLOK.migrate(io)`
+`opts`: `{ onEvent, rng, start:{fi, score, lives}, calm (без врагов — для графа) }`. API: `start() update(dt) setInput({dx, dy, jump, act, recall}) state() continueGame() giveUp()
+reviveAd() canBoost() boost() saveData()`; хуки: `_level _place _spawn _hurt _die _clear _reset`. Ввод — удержания, фронты внутри.
+`S`: `phase ('play'|'dead'|'clear'|'won'|'cont'|'over'), fi, key, lv{W,H,t[]}, hero{x,y,vx,vy,face,ground,inv,kb}, shard{st:'hand'|'fly'|'plant'|'lost',x,y,kind:'floor'|'wall'|'ceil',dir},
+enemies[{k:'crawler'|'bat'|'turret',x,y,alive}], sparks, items, hp, lives, conts, score, cp, safe, cam`.
+Осколок: `act` при `hand` — бросок (вид по `dx,dy`: 0 прямо, 1 диагональ вверх, 2 вверх, 3 диагональ вниз, 4 вниз), при `plant` — обмен (`landing` подбирает свободное место
+не дальше 1 клетки, иначе `fizzle`); `recall` — в руку. События: `level throw plant swap fizzle recall lost kill pickup hurt respawnSafe die respawn checkpoint life clear continueQ continued
+revived boost gameover win spark jump land`.
+`logic`: `K, THROWS, parse, tile, solid, shardSolid, bodyFree, newHero, stepHero, hazard, overlapsTile, aimKind, newShard, stepShard, landing`.
+`migrate(io)` — разовая миграция записей (маркер `arcade.oskolok.v='2'`).
 
-Координаты — в клетках: `x` — центр Веры, `y` — подошвы; пол клетки ряда `r` — на высоте `y = r`.
-`S`: `phase ('cut'|'play'|'dead'|'won'), cut{id,t,dur}, idx, ch, ep, def, M{t[], open{}, tog{}, lit{}, crum{}, fall[], beams[]},
-hero{x,y,vx,vy,face,ground,energy,shield,chargeT,pulseT,breachT,…}, drone{have,st:'off'|'follow'|'fly'|'hover'|'ret',x,y},
-guards[{x,y,face,st:'patrol'|'wind'|'cool'|'look'|'stun',alive}], shards[], lurkers[{st:'patrol'|'hunt'|'burn'|'stun'}],
-chase{x,v,t,delay}, time, deaths, ending ('A'|'B')`.
-`O.logic`: `K` (константы), `stepHero(h, inp, M, dt, ev)` и `hazard(h, M)` — общая физика для игры, графа и бота;
-`parse`, `cellSolid`, `tile`, `grp`, `floorBounds`, `mulberry32`.
-
-События `onEvent`: `chapter, cut, screen, exit, jump, land, pulse, shield, charge, charged, breach, glass, droneGo, droneAt,
-dronePick, lever, button, door, mirror, crystal, crash, shake, crumble, alert, shard, reflect, shardBreak, shatter, stun,
-distract, burn, hunt, fade, chaseStart, die{why}, restart, ending, win{time, ending, deaths}`.
-
-## js/render.js — `OSKOLOK.R`
-`draw(g, ctx, S, ui{banner, hint, aim, shake})` — кадр (мир или кат-сцена + HUD); `cut(ctx, id, t, retro)`;
-фигуры `vera`, `drone`, `glassblower`, `shadowFig`; `titleArt`. Статический слой эпизода кэшируется по карте и теме.
+## js/render.js — `OSKOLOK.render(g, ctx, S, ui)`, `OSKOLOK.R` (`heroFig shardFig foeFig PAL`), `OSKOLOK.fx` (частицы, след обмена)
+Вид 32×16 клеток по 16 px (512×256) + панель 32 px; retro рисуется в буфере вдвое меньше. `ui`: `{ toasts, banner, msg, shake, contT, throwT }`.
 
 ## js/main.js
-Сцены движка (`useStandardScreens`): титул перерисован (+ «Продолжить»), пауза (+ «Эпизод заново»), win (финал, время,
-рекорд, финалы n/2); своя сцена `play` (в ней и кат-сцены). Прицел дрона замедляет время до 30 %.
-Хранилище: `arcade.save.oskolok` `{chapter, elapsed, deaths}`, `arcade.besttime.oskolok`, `arcade.endings.oskolok`.
+Сцены `useStandardScreens` + `card` («зал пройден» перед межстраничной) + `play`. Ввод: ←→ ход, Пробел/Z прыжок, X/J осколок, C/K вернуть, ↑↓ наклон; тач — стик + ● ✦ ↺ + II.
+Хранилище: `arcade.save.oskolok` `{v:2, fi, score, lives}`, `arcade.best.oskolok` (очки, облако), `arcade.oskolok.v / oldBest / notice`.
 
 ## tests/
-`engine.test.mjs` — логика, проходимость, бот; `bot.mjs` — `Nav` (граф эпизода по физике + поиск по «узел + ключ мира»),
-`playScreens` (человеческий бот: реакция 150–250 мс, ошибки ±2 кадра, щит по реакции, погоня по чтению сцены).
+`bot.mjs` — `makeNav(O, li, {noShard})` (граф по настоящей игре, ленивая раскрутка, Дейкстра) и `playGame(O, seed, opts)` («человеческий» бот).
+`engine.test.mjs` — логика, граф, боты, i18n, правило имён, платформенные хуки.
