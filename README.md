@@ -1,253 +1,214 @@
-# Зал ретро-игр · Retro Games
+**English** | [Русский](README.ru.md)
 
-Каталог из **77 оригинальных браузерных аркад и платформеров студии «Гефест»** в духе
-8- и 16-битной эпохи с единой стартовой страницей. Каталог умеет переключаться между
-**8-битным ретро-стилем** и **современным неоновым** — так же, как сами игры. Всё работает офлайн:
-чистый HTML/CSS/JS, без сборки, CDN, npm-зависимостей и внешних ассетов. Игры — на общем
-движке **Гефест Arcade v2** (`_shared/engine.js`, копия в каждой игре).
+<p align="center"><img src="docs/cover.png" alt="retro-games" width="100%"></p>
 
-- **Прод (Vercel):** <https://arcade.hefest.ru>
-- **GitHub:** <https://github.com/hefest-studio/retro-games> (публичный)
+[![Website](https://img.shields.io/website?url=https://arcade.hefest.ru&label=site&up_message=online&down_message=offline)](https://arcade.hefest.ru)
+![Deploy](https://img.shields.io/badge/deploy-Vercel-000000?logo=vercel)
+![Stack](https://img.shields.io/badge/HTML%20%C2%B7%20CSS%20%C2%B7%20JS-no%20build-E34F26?logo=html5&logoColor=white)
+[![Hefest](https://img.shields.io/badge/made%20by-Hefest%20AI%20studio-EA6A12)](https://hefest.ru)
 
-## Игры
+# Retro Games
 
-Порядок — как в каталоге (`assets/catalog/games.json`). Стили указаны так, как они называются
-в самих играх.
+A catalog of **77 original browser games** — arcades and platformers by the Hefest studio in
+the spirit of the 8- and 16-bit era, with one start page. The catalog switches between an
+**8-bit retro style** and a **modern neon** one — just like the games themselves. Everything works
+offline: plain HTML/CSS/JS, no build step, no CDN, no npm dependencies and no external assets. The
+games share the **Hefest Arcade v2** engine (`_shared/engine.js`, copied into every game).
 
-| # | Игра | Жанр | Стили |
+- **Live (Vercel):** <https://arcade.hefest.ru> · English catalog: <https://arcade.hefest.ru/en/>
+- **GitHub:** <https://github.com/hefest-studio/retro-games> (public)
+- **Roadmap:** [ROADMAP.md](ROADMAP.md)
+
+## Games
+
+Order as in the catalog (`assets/catalog/games.json`); names as in the English catalog.
+
+| # | Game | Genre | Styles |
 |---|---|---|---|
-| 01 | [КАТЫШ — Хомяк в шаре на гумне](hrum/) | Аркада | retro / modern |
-| 02 | [РУСЛО — Над рекой](ruslo/) | Shoot'em-up | retro / modern |
-| 03 | [МУРАВЕЙНИК — Колония змейкой по туннелям](krot/) | Аркада | retro / modern |
-| 04 | [СТАРАТЕЛЬ — Шлюзы и шурфы](staratel/) | Головоломка | retro / modern |
-| 05 | [ОБВАЛ — Крепильщик: крепи и цепной обвал](obval/) | Головоломка | retro / modern |
-| 06 | [КАСКАД — Головоломка](kaskad/) | Головоломка | retro / modern |
-| 07 | [РУБЕЖ — Неоновый рассвет](rubezh/) | Run-and-gun | retro / modern |
-| 08 | [ПРОРЫВ — Штурмовик](proryv/) | Run-and-gun | retro / modern |
-| 09 | [РУБИКОН — Робот ТАРАН-7](rubikon/) | Аркада | retro / modern |
-| 10 | [ВИХРЬ — Над полем боя](vihr/) | Shoot'em-up | retro / modern |
-| 11 | [СЕВЕРНАЯ САГА — Сага о трёх](saga/) | Платформер | retro / modern |
-| 12 | [НЕОН × ЯРОСТЬ — Neon Yarost](neon-yarost/) | Beat'em-up | retro / modern |
-| 13 | [СЕВЕРНАЯ САГА 2 — Северное сияние](saga-2/) | Платформер | retro / modern |
-| 14 | [БОЛТ — Побег со Шлак-9](bolt/) | Run-and-gun | retro / modern |
-| 15 | [КОЛОБОК — Приключение](kolobok/) | Головоломка | retro / modern |
-| 16 | [ПЛАЩ — Ночной мститель](plashch/) | Экшен-платформер | retro / modern |
-| 17 | [РЕДУТ — Оборона базы](redut/) | Аркада | retro / modern |
-| 18 | [ЗВЕРО-ОТРЯД — Старая Мастерская](zvero-otryad/) | Платформер | retro / modern |
-| 19 | [ЗВЕРО-ОТРЯД 2 — Новые уровни](zvero-otryad-2/) | Платформер | retro / modern |
-| 20 | [РОЙ — Захватчики](roy/) | Shoot'em-up | retro / modern |
-| 21 | [РАЗРЕЗ — Захват поля](razrez/) | Аркада | retro / modern |
-| 22 | [ПОДКОП — Сыпучий песок](podkop/) | Аркада | retro / modern |
-| 23 | [КЛАДКА — Разбей стену](kladka/) | Аркада | retro / modern |
-| 24 | [ЗАСЛОН — Скролл-шутер](zaslon/) | Shoot'em-up | retro / modern |
-| 25 | [ФИТИЛЬ — Лабиринт подрывника](fitil/) | Аркада | retro / modern |
-| 26 | [КАТАКОМБЫ — Зачистка подземелий](katakomby/) | Аркада | retro / modern |
-| 27 | [ЮЗ — Гонки на мини-машинках](yuz/) | Гонки | retro / modern |
-| 28 | [ПУЗЫРЬ — Стеклодувы мастерской](puzyr/) | Платформер | retro / modern |
-| 29 | [ПЕРЕПРАВА — Переход дороги и реки](pereprava/) | Аркада | retro / modern |
-| 30 | [ЗАСТАВА — Нашествие ржави](zastava/) | Shoot'em-up | retro / modern |
-| 31 | [СПУТНИК — Корабль и дрон-спутник](sputnik/) | Shoot'em-up | retro / modern |
-| 32 | [ЭСКАДРИЛЬЯ — Летучий отряд](eskadrilya/) | Shoot'em-up | retro / modern |
-| 33 | [НАЛЁТ — Run-and-gun на двоих](nalyot/) | Run-and-gun | retro / modern |
-| 34 | [ГЛУБЬ — Шахта Древнего Горна](glub/) | Платформер | retro / modern |
-| 35 | [ТАЙНИК — Лабиринт с верёвками](taynik/) | Платформер | retro / modern |
-| 36 | [ЖЕОДА — Рудознатка в пещерах](zheoda/) | Платформер | retro / modern |
-| 37 | [УДАЛЕЦ — Кубки Мастера в заброшенных цехах](udalets/) | Платформер | retro / modern |
-| 38 | [УГОЛЁК — Робот-кочегар в угольной шахте](ugolyok/) | Платформер | retro / modern |
-| 39 | [РАСКАТ — Бросок-молния и отложенный гром](grom/) | Run-and-gun | retro / modern |
-| 40 | [ДРУЖИНА — Дружина «Гефеста» против железной орды](druzhina/) | Beat'em-up | retro / modern |
-| 41 | [ЧЕРТОГ — Спасти мастера до рассвета](chertog/) | Платформер | retro / modern |
-| 42 | [ОБОЗ — Паровой тягач с вагонами-орудиями](dozor/) | Shoot'em-up | retro / modern |
-| 43 | [РИКОШЕТ — Наковальня против стен из руды](rikoshet/) | Аркада | retro / modern |
-| 44 | [ЛИВЕНЬ — Пулевой ад сквозь ливень заклёпок](liven/) | Shoot'em-up | retro / modern |
-| 45 | [ОРУЖЕЙНИК — Восемь цехов, восемь Мастеров, один наруч](oruzheynik/) | Экшен-платформер | retro / modern |
-| 46 | [ШУСТРИК — Хорёк-курьер против Ржавого Лиса](shustrik/) | Платформер | retro / modern |
-| 47 | [ПОДРЯД — Скролл-шутер с ангаром](podryad/) | Shoot'em-up | retro / modern |
-| 48 | [ДОСПЕХ — Кованый витязь против Ржавого Кощея](dospeh/) | Экшен-платформер | retro / modern |
-| 49 | [ЛЕДНИК — Искра и песец Бураш против Великой Стужи](lednik/) | Платформер | retro / modern |
-| 50 | [ГОРНИЛО — Аренный шутер на двоих](gornilo/) | Shoot'em-up | retro / modern |
-| 51 | [ЦЕПЬ — Звонарь в башне Остановленных Часов](tsep/) | Экшен-платформер | retro / modern |
-| 52 | [ТЕНЬ — Акробатика на стенах и крюке](ten/) | Экшен-платформер | retro / modern |
-| 53 | [СКОК — Прыжки, костюмы и карта Заплатных земель](skok/) | Платформер | retro / modern |
-| 54 | [ПОСОХ — Бабушка Ярослава и пять Ключей Звездочёта](posokh/) | Платформер | retro / modern |
-| 55 | [ЧАЙНИК — Заводной чайник против Сервиза](chaynik/) | Платформер | retro / modern |
-| 56 | [ЛИСТ — Печатник против клякс в недопечатанной книге](list/) | Beat'em-up | retro / modern |
-| 57 | [ТАРАН — Боевые гонки паровых самоходов](taran/) | Гонки | retro / modern |
-| 58 | [ВЗВОД — Отряд ремонтников против Ржавого Улья](vzvod/) | Аркада | retro / modern |
-| 59 | [ПАРОВИКИ — Стимпанк-экшен на двоих с ИИ-напарником](paroviki/) | Shoot'em-up | retro / modern |
-| 60 | [ОТСЕК — Коридорный шутер на двоих](otsek/) | Shoot'em-up | retro / modern |
-| 61 | [ШПУЛЬКА — Нитка-орбита на раскройном столе](sosedi/) | Аркада | retro / modern |
-| 62 | [ОСКОЛОК — Бросок осколка и обмен местами в стекловарне](oskolok/) | Экшен-платформер | retro / modern |
-| 63 | [ОПЕРАЦИЯ — Пошаговая тактика ремонтной бригады](operatsiya/) | Тактика | retro / modern |
-| 64 | [ЛАЗУТЧИК — Ночная вылазка в Ржавый Арсенал](lazutchik/) | Экшен | retro / modern |
-| 65 | [СБОРКА — Собери робота — отбей Долину Заводов](sborka/) | Стратегия | retro / modern |
-| 66 | [ПОДГОРЬЕ — Разожги пять Спящих Горнов](podgorye/) | Экшен-платформер | retro / modern |
-| 67 | [МАЯЧНИЦА — Демо: глава 1 «Погасший маяк»](kvest/) | Приключение | retro / modern |
-| 68 | [ЗАРЕВО — Огненный вал против частоколов и депо](desant/) | Run-and-gun | retro / modern |
-| 69 | [ОТБОЙНИК — Пинбол-оборона мастерской](otboynik/) | Pinball | retro / modern |
-| 70 | [ПРИИСК — Стратегия в реальном времени · Демо](priisk/) | RTS | retro / modern |
-| 71 | [ПОРУБЕЖЬЕ — Стратегия с асимметричными расами · Демо](porubezhye/) | RTS | retro / modern |
-| 72 | [ВОЛОК — Изба-мастерская на колёсах и на воде](volok/) | Приключение | retro / modern |
-| 73 | [ОТГОН — Стадо ветроногов через северные перевалы](otgon/) | Приключение | retro / modern |
-| 74 | [ПОЛУУСТАВ — Ученик переписчика внутри рукописи](poluustav/) | Пазл-платформер | retro / modern |
-| 75 | [КАМЕРТОН — Подмастерье будит заводных кукол в городе часовщиков](kamerton/) | Головоломка | retro / modern |
-| 76 | [КОРОМЫСЛО — Уравновесь чаши](koromyslo/) | Головоломка | retro / modern |
-| 77 | [КАЛЁНЫЙ ДВОР — Вышибалы в мастерских](kaleny/) | Спорт | retro / modern |
+| 01 | [SEEDGLIDE — Hamster in a ball](hrum/) | Arcade | retro / modern |
+| 02 | [RUSLO — Over the River](ruslo/) | Shoot'em-up | retro / modern |
+| 03 | [GALLERYTRAIL — Colony in the tunnels](krot/) | Arcade | retro / modern |
+| 04 | [GOLDFLUME — Gates and shafts](staratel/) | Puzzle | retro / modern |
+| 05 | [PITPROP — Props and chain collapse](obval/) | Puzzle | retro / modern |
+| 06 | [CASCADE — Puzzle](kaskad/) | Puzzle | retro / modern |
+| 07 | [RUBEZH — Neon Dawn](rubezh/) | Run-and-gun | retro / modern |
+| 08 | [PRORYV — Stormtrooper](proryv/) | Run-and-gun | retro / modern |
+| 09 | [DEEPRISE — Robot TARAN-7](rubikon/) | Arcade | retro / modern |
+| 10 | [VIHR — Above the Battlefield](vihr/) | Shoot'em-up | retro / modern |
+| 11 | [NORTHERN SAGA — A Tale of Three](saga/) | Platformer | retro / modern |
+| 12 | [NEON × YAROST — Neon Yarost](neon-yarost/) | Beat'em-up | retro / modern |
+| 13 | [NORTHERN SAGA 2 — Northern Lights](saga-2/) | Platformer | retro / modern |
+| 14 | [SLAGBREAK — Escape from Slag-9](bolt/) | Run-and-gun | retro / modern |
+| 15 | [KOLOBOK — Adventure](kolobok/) | Puzzle | retro / modern |
+| 16 | [PLASHCH — Night Avenger](plashch/) | Action platformer | retro / modern |
+| 17 | [REDUT — Base Defense](redut/) | Arcade | retro / modern |
+| 18 | [ZVERO-OTRYAD — The Old Workshop](zvero-otryad/) | Platformer | retro / modern |
+| 19 | [ZVERO-OTRYAD 2 — New Levels](zvero-otryad-2/) | Platformer | retro / modern |
+| 20 | [KINDLEBROOD — Fire Chain](roy/) | Shoot'em-up | retro / modern |
+| 21 | [SLICEWARD — Field Capture](razrez/) | Arcade | retro / modern |
+| 22 | [DRIFTSTAIR — Loose sand](podkop/) | Puzzle | retro / modern |
+| 23 | [MASONRY — Break the Wall](kladka/) | Arcade | retro / modern |
+| 24 | [SCRAPRAMPART — Scrolling Shooter](zaslon/) | Shoot'em-up | retro / modern |
+| 25 | [FUSEWICK — Sapper's Maze](fitil/) | Arcade | retro / modern |
+| 26 | [EMBERHOOP — Throw the Ember Hoop, Light the Dark](katakomby/) | Arcade | retro / modern |
+| 27 | [BENCHSKID — Micro-car Racing](yuz/) | Racing | retro / modern |
+| 28 | [GLASSGUST — Inflate, Pop, Gust Them into the Melt](puzyr/) | Platformer | retro / modern |
+| 29 | [BEETLEFORD — Road and River Crossing](pereprava/) | Arcade | retro / modern |
+| 30 | [ANVILWATCH — Rust Invasion](zastava/) | Shoot'em-up | retro / modern |
+| 31 | [EMBERSKIM — Skim the Glowing Rock, Vent the Heat as Steam](sputnik/) | Shoot'em-up | retro / modern |
+| 32 | [HAZEWING — Break the Enemy's Aim with a Smoke Screen](eskadrilya/) | Shoot'em-up | retro / modern |
+| 33 | [BOILERRAID — Two-player Run-and-gun](nalyot/) | Run-and-gun | retro / modern |
+| 34 | [LAMPDIVER — The Ancient Forge Mine](glub/) | Platformer | retro / modern |
+| 35 | [ROPEWARD — Rope Maze](taynik/) | Platformer | retro / modern |
+| 36 | [GEODELVE — Prospector in the Caves](zheoda/) | Platformer | retro / modern |
+| 37 | [BELLOWKIN — An Apprentice with Bellows Rekindles the Forges](udalets/) | Platformer | retro / modern |
+| 38 | [STOKELING — Stoker Robot in a Coal Mine](ugolyok/) | Platformer | retro / modern |
+| 39 | [CLAPBOLT — Lightning first, thunder after](grom/) | Run-and-gun | retro / modern |
+| 40 | [FORGEBAND — The Hefest War Band vs the Iron Horde](druzhina/) | Beat'em-up | retro / modern |
+| 41 | [CHERTOG — Save the Master Before Dawn](chertog/) | Platformer | retro / modern |
+| 42 | [BROADHAUL — A Tractor Towing Gun Wagons vs the Rust Artel](dozor/) | Shoot'em-up | retro / modern |
+| 43 | [RIKOSHET — Anvil vs Walls of Ore](rikoshet/) | Arcade | retro / modern |
+| 44 | [RIVETFALL — Bullet Hell Through a Rain of Rivets](liven/) | Shoot'em-up | retro / modern |
+| 45 | [CLANGBACK — The Hammer That Sends It All Back](oruzheynik/) | Action platformer | retro / modern |
+| 46 | [STEAMSCURRY — Courier Ferret vs the Rust Fox](shustrik/) | Platformer | retro / modern |
+| 47 | [SKYHIRE — Scrolling Shooter with a Hangar](podryad/) | Shoot'em-up | retro / modern |
+| 48 | [CINDER FLAIL — A chain ball vs the Rust Koschei](dospeh/) | Action platformer | retro / modern |
+| 49 | [RIMETRAIL — Iskra and Burash the Arctic Fox vs the Great Cold](lednik/) | Platformer | retro / modern |
+| 50 | [SMELTPAIR — Two-player Arena Shooter](gornilo/) | Shoot'em-up | retro / modern |
+| 51 | [TICKFLIP — Flip the Phase of the Clockwork Plant](tsep/) | Action platformer | retro / modern |
+| 52 | [DUSKHOOK — Acrobatics on Walls and Hooks](ten/) | Action platformer | retro / modern |
+| 53 | [KEYWINDER — A Wind-Up Key, Winches and the Great Clockwork](skok/) | Platformer | retro / modern |
+| 54 | [POLEMARK — Cartographer Yaroslava and her striped poles](posokh/) | Platformer | retro / modern |
+| 55 | [SPOUTWOUND — Wind-up Kettle vs the Tea Set](chaynik/) | Platformer | retro / modern |
+| 56 | [INKPUNCH — Printer vs Ink Blots in an Unfinished Book](list/) | Beat'em-up | retro / modern |
+| 57 | [YARDRAMMER — Steam-car Combat Racing](taran/) | Racing | retro / modern |
+| 58 | [HIVEWRENCH — Repair Squad vs the Rust Hive](vzvod/) | Arcade | retro / modern |
+| 59 | [VALVEWRIGHTS — Two-player Steampunk Action with an AI Partner](paroviki/) | Shoot'em-up | retro / modern |
+| 60 | [DECKSCOUR — Two-player Corridor Shooter](otsek/) | Shoot'em-up | retro / modern |
+| 61 | [SPOOLSWING — Thread and pins](sosedi/) | Arcade | retro / modern |
+| 62 | [SHARDSWAP — Throw the Shard, Take Its Place](oskolok/) | Action platformer | retro / modern |
+| 63 | [OPERATSIYA — Turn-based Tactics for a Repair Crew](operatsiya/) | Tactics | retro / modern |
+| 64 | [OWLSTEP — Night Raid on the Rust Arsenal](lazutchik/) | Action | retro / modern |
+| 65 | [SBORKA — Build a Robot — Win Back the Factory Valley](sborka/) | Strategy | retro / modern |
+| 66 | [HEARTHDEEP — Kindle the Five Sleeping Forges](podgorye/) | Action platformer | retro / modern |
+| 67 | [MAYACHNITSA — Demo: Chapter 1 “The Dark Lighthouse”](kvest/) | Adventure | retro / modern |
+| 68 | [CINDERFRONT — Fire wall and top-down action](desant/) | Run-and-gun | retro / modern |
+| 69 | [BUMPERWRIGHT — Workshop Pinball Defense](otboynik/) | Pinball | retro / modern |
+| 70 | [PRIISK — Real-time Strategy · Demo](priisk/) | RTS | retro / modern |
+| 71 | [PORUBEZHYE — Strategy with Asymmetric Factions · Demo](porubezhye/) | RTS | retro / modern |
+| 72 | [KETTLEWAKE — A Workshop Hut on Wheels — and on Water](volok/) | Adventure | retro / modern |
+| 73 | [WINDSHANKS — A Herd of Stilt-Legged Woollies Across the Northern Passes](otgon/) | Adventure | retro / modern |
+| 74 | [GALLWICK — A Scribe’s Apprentice Within the Manuscript](poluustav/) | Puzzle Platformer | retro / modern |
+| 75 | [BRASSHUSH — An Apprentice Wakes the Wind-up Dolls of the Clockmakers’ Town](kamerton/) | Puzzle | retro / modern |
+| 76 | [POISEWRIGHT — Balance the Pans](koromyslo/) | Puzzle | retro / modern |
+| 77 | [CINDER COURT — Dodgeball in the workshop yards](kaleny/) | Sports | retro / modern |
 
-Точные описания, управление и особенности каждой игры — в её `README.md`.
+Descriptions, controls and features of each game are in its own `README.md` (in Russian).
 
-## Быстрый старт
+## Quick start
 
 ```bash
-# из корня репозитория
+# from the repository root
 python3 -m http.server 8080
-# каталог:  http://127.0.0.1:8080/
-# игра:     http://127.0.0.1:8080/hrum/
+# catalog:  http://127.0.0.1:8080/
+# a game:   http://127.0.0.1:8080/hrum/
 ```
 
-Можно и просто открыть `index.html` двойным щелчком: каталог в этом режиме
-подставляет ссылки `<slug>/index.html`, игры открываются из `file://` без сервера.
-Каталог и игры рассчитаны на офлайн-работу.
+You can also just double-click `index.html`: in that mode the catalog links to
+`<slug>/index.html`, and the games open from `file://` without a server.
+The catalog and the games are built to work offline.
 
-## Каталог
+## Catalog
 
-- Карточки из `assets/catalog/games.json`: превью, название, подзаголовок,
-  год, жанр, разработчик, короткое описание.
-- Два полноценных стиля: **RETRO** (по умолчанию: CRT-сканлайны, пиксельные
-  рамки, янтарно-неоновая палитра, ступенчатые анимации) и **MODERN**
-  (градиенты, свечение, скругления, плавные переходы).
-- Переключение — кнопка в шапке или клавиша `G`; выбор сохраняется в
-  `localStorage` (`retro-games-catalog-theme`) и применяется до первой отрисовки.
-- При смене темы превью карточек меняются на соответствующий стиль игры
-  (вторая тема предзагружается, поэтому без мигания).
-- Фильтры по жанрам, поиск по названию/тегам, счётчик, «Случайная игра»,
-  клавиатурная навигация, `prefers-reduced-motion`.
-- Никаких внешних запросов: шрифты системные, иконки — inline SVG/data-URI,
-  превью — локальные `webp`.
+- Cards come from `assets/catalog/games.json`: preview, title, subtitle, year, genre,
+  developer, short description; Russian and English fields.
+- Two full styles: **RETRO** (default: CRT scanlines, pixel frames, amber-and-neon palette,
+  stepped animations) and **MODERN** (gradients, glow, rounded corners, smooth transitions).
+- Switch with the header button or the `G` key; the choice is saved in `localStorage`
+  (`retro-games-catalog-theme`) and applied before the first paint.
+- Switching the theme swaps card previews to the matching game style (the other theme
+  is preloaded, so there is no flicker).
+- Genre filters, search by title and tags, a counter, "Random game", paging,
+  keyboard navigation, `prefers-reduced-motion`.
+- No external requests: system fonts, inline SVG / data-URI icons, local `webp` previews.
 
-## Структура
+## Layout
 
 ```
 .
-├── index.html                    # стартовая страница-каталог (ретро/современный стиль)
-├── assets/catalog/               # CSS/JS каталога, games.json и превью (webp)
-├── _shared/                      # движок Гефест Arcade v2 (engine.js), общие тесты
-├── hrum/ ruslo/ krot/ …          # каждая игра — самодостаточная папка:
-│                                 #   index.html (движок v2) + js/ css/ tests/, иногда legacy.html
-├── build.sh                      # раскладывает _shared/engine.js по играм
-├── tools/                        # только для разработки (не деплоится): smoke, thumbs, qa
-├── docs/DEPLOY.md                # инструкция по деплою
-├── vercel.json                   # конфиг статического деплоя
-└── .vercelignore                 # что не нужно на Vercel
+├── index.html                    # start page and catalog (retro / modern style)
+├── en/                           # English catalog
+├── assets/catalog/               # catalog CSS/JS, games.json and previews (webp)
+├── _shared/                      # Hefest Arcade v2 engine (engine.js), shared tests
+├── hrum/ ruslo/ krot/ …          # every game is a self-contained folder:
+│                                 #   index.html (engine v2) + js/ css/ tests/, sometimes legacy.html
+├── build.sh                      # copies _shared/engine.js into the games
+├── tools/                        # development only (not deployed): smoke, thumbs, qa
+├── docs/DEPLOY.md                # deployment guide (in Russian)
+├── vercel.json                   # static deployment config
+└── .vercelignore                 # what Vercel does not need
 ```
 
-## Как это устроено
+## How it works
 
-- **Никакой сборки.** Каталог и игры — статические файлы. Vercel раздаёт их как есть
+- **No build.** The catalog and the games are static files. Vercel serves them as is
   (`framework: null`, `trailingSlash: true`).
-- **Стили.** Каталог хранит выбор в `localStorage`; у каждой игры свои два стиля
-  и своя кнопка/клавиша переключения.
-- **Офлайн.** Графика игр рисуется кодом на Canvas, звук синтезируется WebAudio,
-  превью каталога лежат локально в `webp`.
-- **Ссылки.** Каталог ссылается на игры относительными путями с завершающим слешем
-  (`hrum/`), поэтому одинаково работает локально и на Vercel; на `file://` —
-  на `<slug>/index.html`, чтобы браузер не показывал листинг каталога.
-- **Обратная навигация.** На каждой странице игры есть плашка «← Каталог»:
-  возвращает на стартовую страницу проекта и не мешает управлению. Плашка
-  адаптивная — проверяет интерактивные элементы и выбирает свободное место
-  (обычно слева по центру, на узких экранах уходит в свободный угол), поэтому
-  не перекрывает меню/HUD; в `index.html` её даёт движок v2, в старых
-  `legacy.html` — блок из `tools/add-catalog-back.mjs` (идемпотентно); на `file://` ведёт на
-  `../index.html`.
+- **Styles.** The catalog keeps the choice in `localStorage`; every game has its own two
+  styles and its own switch button and key.
+- **Offline.** Game graphics are drawn in code on Canvas, sound is synthesized with WebAudio,
+  catalog previews are local `webp` files.
+- **Languages.** Games read `?lang=en` / `?lang=ru`: opened from the English catalog they start in English.
+- **Links.** The catalog links to games with relative paths and a trailing slash (`hrum/`),
+  so it works the same locally and on Vercel; on `file://` it links to `<slug>/index.html`
+  so the browser does not show a folder listing.
+- **Way back.** Every game page has a "← Catalog" badge that returns to the start page and
+  does not get in the way of the controls. It is adaptive: it checks interactive elements and
+  picks a free spot (usually middle left; on narrow screens a free corner), so it never covers
+  menus or the HUD. In `index.html` the v2 engine provides it, in old `legacy.html` pages a block
+  from `tools/add-catalog-back.mjs` (idempotent); on `file://` it leads to `../index.html`.
 
-## Деплой
+## Deploy
 
-Подробности — в [docs/DEPLOY.md](docs/DEPLOY.md). Коротко:
+Details — [docs/DEPLOY.md](docs/DEPLOY.md). In short:
 
 ```bash
-npx vercel link      # привязать папку к проекту retro-games
-npx vercel --prod    # задеплоить статику из корня
+npx vercel link      # link the folder to the retro-games project
+npx vercel --prod    # deploy the static files from the root
 ```
 
-Vercel-проект привязан к GitHub-репозиторию (`Production Branch = main`):
-пуш в `main` запускает автодеплой на <https://arcade.hefest.ru>.
-Ручной деплой из CLI работает параллельно.
+The Vercel project is linked to the GitHub repository (`Production Branch = main`):
+a push to `main` deploys to <https://arcade.hefest.ru>. Manual CLI deploys work alongside.
 
-## Права
+## Rights
 
-Все игры — **оригинальные работы студии «Гефест»**: свои названия, герои, уровни, графика,
-музыка и звук (всё сгенерировано кодом). Жанровые механики (лабиринт, скролл-шутер,
-run-and-gun, «падающие блоки» и т.п.) общеупотребительны; чужих названий, персонажей,
-логотипов и ассетов в репозитории нет.
+All games are **original works of the Hefest studio**: their own names, heroes, levels, graphics,
+music and sound (all generated in code). Genre mechanics (maze, scrolling shooter, run-and-gun,
+falling blocks and so on) are common; there are no third-party titles, characters, logos or
+assets in the repository.
 
+## QA (visual audits)
+
+The audits in `tools/qa/*.mjs` run a headless browser, so they need Chrome:
+```bash
+export CHROME_BIN=/path/to/chrome   # or an installed Google Chrome / Chromium
+node tools/qa/audit-catalog.mjs     # catalog
+node tools/qa/audit-games.mjs       # games (list from games.json)
+node tools/qa/check-file-proto.mjs  # file:// mode (double-click)
+```
+Quick checks without Chrome: `node tools/smoke.mjs` (JS syntax of all games) and the game tests
+`node <slug>/tests/engine.test.mjs` (Playwright).
+
+## QA run
+
+A regular check of the whole catalog in one command (needs Playwright, like the game tests):
+```bash
+node tools/qa-run.mjs                       # everything: static + tests + catalog + browser + touch
+node tools/qa-run.mjs --only kaskad,bolt    # selected games
+node tools/qa-run.mjs --skip tests          # without game tests
+```
+It writes `qa-report/<date>.md` (summary, red, yellow, slowest tests, per-game table) and `.json`
+(all measurements); the folder is in `.gitignore`. Exit code 1 means there are red items.
+The full list of checks and options is in the [Russian README](README.ru.md#qa-прогон).
 
 ---
-*Работа студии «Гефест» · [works.hefest.ru](https://works.hefest.ru)*
-
-## QA (визуальные аудиты)
-
-Аудиты в `tools/qa/*.mjs` запускают headless-браузер, поэтому нужен Chrome:
-```bash
-export CHROME_BIN=/путь/к/chrome   # или установленный Google Chrome / Chromium
-node tools/qa/audit-catalog.mjs    # каталог
-node tools/qa/audit-games.mjs      # игры (список — из games.json)
-node tools/qa/check-file-proto.mjs # режим file:// (double-click)
-```
-Быстрые проверки без Chrome: `node tools/smoke.mjs` (синтаксис JS всех игр) и тесты игр
-`node <slug>/tests/engine.test.mjs` (Playwright).
-Без Chrome аудиты падают с `Chrome не найден. Задайте CHROME_BIN`.
-
-## QA-прогон
-
-Регулярная проверка всего каталога одной командой (нужен Playwright, как для тестов игр):
-```bash
-node tools/qa-run.mjs                       # всё: static + tests + catalog + browser
-node tools/qa-run.mjs --only kaskad,bolt    # выборка игр
-node tools/qa-run.mjs --skip tests          # без тестов игр (только браузер, каталог, статика, тач-проход)
-node tools/qa-run.mjs --skip tests,catalog,static --only kaskad,bolt   # браузер + тач-проход выборки
-```
-Параметры: `--port 8463` (свой сервер статики на 127.0.0.1), `--jobs N` (тесты параллельно, по умолчанию — число ядер),
-`--timeout 900` (таймаут файла тестов, с), `--slow 120` (порог «медленного» теста, с), `--input 10` (секунд случайного ввода),
-`--pages 2` (вкладок браузера одновременно), `--out qa-report`.
-
-Итог — `qa-report/<дата>.md` (сводка, красные, жёлтые, самые долгие тесты, таблица по играм) и `.json` (все замеры);
-папка в `.gitignore`. Код выхода 1 — есть красные. Статусы: **fail** (красный — чинить), **warn** (жёлтый — посмотреть), ok.
-
-Что проверяется:
-- **static** — `games.json` ↔ папки игр; `engine.js` каждой игры = `_shared/engine.js` (и версия), копии `host.js`/`mouse.js`/ядра кампаний/
-  `platform.js` там, где их пересинхронизирует `build.sh`; `sitemap.xml` (формат, `/`, `/en/`, все игры, без лишних и дублей, `lastmod`)
-  и `robots.txt`; счётчики «N игр / N games» в `index.html`, `en/index.html`, README; RU/EN-поля карточек; запрещённые слова
-  (`tools/lib/banned-words.mjs`, Яндекс 1.15/8.2.2) в файлах, которые попадают в сборку (без `tests/`, `*.md`).
-- **tests** — `<игра>/tests/*.test.mjs` и `_shared/tests/*.test.mjs`: параллельно, долгие — первыми (по прошлому отчёту), таймаут, медленные > 120 с — жёлтым.
-- **catalog** — `/` и `/en/` в 1280×720 и 390×844: 0 ошибок консоли и 4xx, все 75 карточек, счётчик, пейджинг (все страницы, «на странице: все»,
-  `?page=3`), фильтры по жанрам (число карточек = games.json), ссылки EN с `?lang=en`; все ссылки на игры и превью обеих тем — HTTP 200;
-  каждый адрес sitemap отдаётся; несуществующий адрес — 404.
-- **browser** — каждая игра в 390×844 (тач; игры «только ландшафт» с плашкой «поверните телефон» — в 844×390) и 1280×720:
-  загрузка, 0 ошибок консоли/страницы, 0 ответов 4xx/5xx, звук не стартует без жеста (перехват `AudioContext`/`start()`/`play()`),
-  старт Enter / тап по «Играть», потеря фокуса (blur + скрытая вкладка) → сон звука и автопауза, 10 с случайного ввода без исключений,
-  тексты холста не вылезают за края (проба `fillText`, как `tools/promo/i18n-overflow.mjs`, + EN-проход 390×844), макет не шире экрана,
-  холст не обрезан по бокам.
-- **touch** — тач-проход `tools/touch-sweep.browser.mjs` по тем же играм (после раздела browser, порт `--port` + 1): см. ниже.
-
-**Тач-проход** (движок v2.10, `Arcade.touchOk`) — отдельной командой или разделом `touch` в `qa-run`:
-```bash
-node tools/touch-sweep.browser.mjs                              # все игры каталога
-node tools/touch-sweep.browser.mjs kaskad bolt --port 8514      # выборка
-node tools/touch-sweep.browser.mjs --skip slug1,slug2 --shared  # без папок «в работе»; движок — из _shared (до build.sh)
-node tools/touch-sweep.browser.mjs --json /tmp/touch.json       # результаты в JSON
-```
-Телефон 390×844 (`isMobile`, `hasTouch`), один браузер на прогон, свой сервер статики. Игра стартует (тап по «Играть» → Enter), затем
-по каждой тач-цели — элементу с touch-слушателем кода игры, `button`, `[data-d]`, `[data-act]` — тапы на 3 px за четырьмя краями (Chrome
-шлёт такое касание неотменяемым, цель подбирает touch adjustment, следом идёт эмуляция мыши) и по центру. FAIL, если: в консоли
-«Ignored attempt to cancel a touch…» или `preventDefault` у неотменяемого касания (с виновником); двойное нажатие (на одно касание
-сработали touch- и mouse/click-слушатель игры, не отсеянный `Arcade.touchOk`; у `[data-d]` — больше одного нажатия); эффективный
-`touch-action` тач-цели не `none`; `pageerror`; страница прокрутилась или зумится. Игры без тач-целей — «нет тач-пульта», не провал.
-Код выхода 1 — есть FAIL. Время — ≈ 10 с на игру, ≈ 12 мин на каталог (2 ядра). Новой игре: обработчики касаний и пары
-`touchstart`+`mousedown` — через `Arcade.touchOk(e)` (см. `_shared/README.md`, «Касания»), своим кнопкам вне пульта (`#bPause` и т. п.) —
-`touch-action:none` в CSS.
-
-Сколько идёт (2 ядра, замер 21.11.2026): весь прогон — ≈ 42 мин (под нагрузкой соседних процессов — ≈ 65 мин): тесты — сумма ≈ 41 мин
-процессорного времени, по стене ≈ 21 мин (под нагрузкой ≈ 44 мин); браузер ≈ 30 с на игру, ≈ 20 мин на каталог при 2 вкладках;
-каталог ≈ 30 с, статика — секунды, тач-проход ≈ 12 мин. Без тестов (`--skip tests`) — ≈ 33 мин.
-Долгие тесты с ботами (ПЕРЕПРАВА, СКОК) считают партии в потоках по числу ядер (`BOT_THREADS=1` — подряд); замеры времени кадра в тестах
-(ЛИВЕНЬ, ОТСЕК, ПАРОВИКИ, СБОРКА, ГОРНИЛО, ДЕСАНТ, ПОДГОРЬЕ, ТАРАН, ОТБОЙНИК), ожидания в браузерном тесте САГИ — опросом состояния, а не фиксированной паузой; до 3 замеров, чтобы не падать от нагрузки машины.
+*A work of the Hefest studio · [works.hefest.ru](https://works.hefest.ru)*
