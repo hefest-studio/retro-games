@@ -1,5 +1,10 @@
 <p align="center"><img src="docs/cover.png" alt="retro-games" width="100%"></p>
 
+[![Website](https://img.shields.io/website?url=https://arcade.hefest.ru&label=site&up_message=online&down_message=offline)](https://arcade.hefest.ru)
+![Deploy](https://img.shields.io/badge/deploy-Vercel-000000?logo=vercel)
+![Stack](https://img.shields.io/badge/HTML%20%C2%B7%20CSS%20%C2%B7%20JS-no%20build-E34F26?logo=html5&logoColor=white)
+[![Hefest](https://img.shields.io/badge/made%20by-Hefest%20AI%20studio-EA6A12)](https://hefest.ru)
+
 # Зал ретро-игр · Retro Games
 
 Каталог из **77 оригинальных браузерных аркад и платформеров студии «Гефест»** в духе
