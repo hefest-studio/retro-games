@@ -1,94 +1,37 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>РЕДУТ · Оборона базы — HTML5</title>
-<meta name="description" content="РЕДУТ — оригинальный танковый бой студии «Гефест» на фреймворке Гефест Arcade: обороняй базу от волн танков, кооп на двоих за одной клавиатурой. Темы retro/modern, RU/EN, офлайн.">
-<meta name="theme-color" content="#12160f">
+<title>РЕДУТ · Луч-ограда против мглы — HTML5</title>
+<meta name="description" content="РЕДУТ — оригинальная ночная оборона маяка студии «Гефест»: Смотритель ходит по полю, а от маяка к нему натянут луч — луч жжёт всё, чего касается. Ставь опоры и строй из луча ограду, смахивай гасителей вспышкой, дойди до Пожирателя Света. Стик и две кнопки, темы retro/modern, RU/EN, офлайн.">
+<meta name="theme-color" content="#060a13">
 <link rel="canonical" href="https://arcade.hefest.ru/redut/">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23EA6A12'/%3E%3Cg transform='translate(9,9) scale(0.72)' fill='%2316181D'%3E%3Crect x='12' y='13' width='9' height='38' rx='4.5'/%3E%3Crect x='43' y='13' width='9' height='38' rx='4.5'/%3E%3Cpath d='M34 23 L24 35 H31 L28 45 L41 31 H34 Z'/%3E%3C/g%3E%3C/svg%3E">
 <meta property="og:type" content="website"><meta property="og:site_name" content="Гефест · Зал ретро-игр">
-<meta property="og:title" content="РЕДУТ · Оборона базы"><meta property="og:url" content="https://arcade.hefest.ru/redut/">
-<meta property="og:description" content="Оригинальный танковый бой студии «Гефест»: обороняй базу-редут от волн вражеских танков. Кооп на двоих, retro/modern, RU/EN, офлайн.">
+<meta property="og:title" content="РЕДУТ · Луч-ограда против мглы"><meta property="og:url" content="https://arcade.hefest.ru/redut/">
+<meta property="og:description" content="Ночная оборона маяка студии «Гефест»: луч от маяка к тебе жжёт мглу — ставь опоры, строй из луча ограду, лови вспышкой гасителей. Стик и две кнопки, retro/modern, RU/EN.">
 <meta property="og:image" content="https://arcade.hefest.ru/redut/og.png">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"РЕДУТ · Оборона базы","url":"https://arcade.hefest.ru/redut/","image":"https://arcade.hefest.ru/redut/og.png","description":"Оригинальный танковый бой студии «Гефест» на HTML5/Canvas: обороняй базу-редут от волн вражеских танков. Разрушаемый кирпич, сталь, вода и лес, усилители, кооп на двоих за одной клавиатурой. Темы retro и modern, RU/EN, офлайн.","genre":"Аркада","applicationCategory":"Game","operatingSystem":"Web","inLanguage":["ru","en"],"numberOfPlayers":"1-2","author":{"@type":"Organization","name":"Гефест"},"offers":{"@type":"Offer","price":"0","priceCurrency":"RUB"}}</script>
-<style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:#12160f;color:#eef2f8;font-family:Inter,system-ui,sans-serif;
-  display:flex;flex-direction:column;align-items:center;min-height:100dvh;user-select:none;overflow:hidden}
-.wrap{position:relative;width:min(96vw,620px);margin-top:10px}
-canvas{width:100%;display:block;border:1px solid #2a3520;border-radius:10px;background:#12160f}
-.pad{width:min(96vw,620px);margin:10px 0;display:grid;grid-template-columns:repeat(6,1fr);gap:7px;max-width:470px}
-.pad button{height:54px;background:#1a2014;border:1px solid #2a3520;border-radius:12px;color:#eef2f8;font-size:19px;font-weight:800}
-.pad button:active{background:#263020}
-.foot{color:#6f7d5c;font-size:11px;margin:2px 12px 16px;text-align:center;max-width:620px}
-a.back{position:fixed;z-index:60;left:10px;top:8px;color:#6f7d5c;font-size:12px;text-decoration:none}
-@media(min-width:760px){.pad{display:none}}
-</style></head><body>
-<a data-catalog-back="1" class="back" href="../" data-en="← Catalog">← Каталог</a>
-<div class="wrap"><canvas id="c" width="960" height="600" aria-label="РЕДУТ"></canvas></div>
+<link rel="stylesheet" href="./css/style.css">
+</head><body data-theme="modern">
+<a class="back" id="backLink" href="../" data-catalog-back="1" data-en="← Catalog">&larr; Каталог</a>
+<div class="wrap"><canvas id="c" width="480" height="640" aria-label="РЕДУТ"></canvas></div>
 <div class="pad">
-  <button data-d="L">◀</button><button data-d="U">▲</button><button data-d="D">▼</button><button data-d="R">▶</button>
-  <button data-d="A">●</button><button data-pause="1">II</button>
+  <div class="stick" data-stick="1" aria-label="Стик: ход"></div>
+  <button class="mini" data-pause="1" aria-label="Пауза">II</button>
+  <div class="acts">
+    <button id="bFlare" class="fl" type="button" aria-label="Вспышка"><span>✦</span></button>
+    <button class="pyl" data-d="A" type="button" aria-label="Опора">◈</button>
+  </div>
 </div>
-<div class="foot" data-en="&lt;b&gt;REDUT&lt;/b&gt; · P1: arrows + / (or space) — fire · P2: WASD + F — fire · 1/2 on the title screen — players · P/Esc pause · L language, T theme, M sound. Touch — P1 only."><b>РЕДУТ</b> · И1: стрелки + / (или пробел) — огонь · И2: WASD + F — огонь · 1/2 на заставке — игроки · P/Esc пауза · L язык, T тема, M звук. Тач — только И1.</div>
+<div class="foot" id="foot"><b>РЕДУТ</b> · стрелки или WASD — ход Смотрителя, луч тянется от маяка к нему · Пробел / Z — опора (у опоры ещё раз — снять) · X / Shift — вспышка · мгла гаснет от луча, гасителей берёт только вспышка · P / Esc пауза · L язык, T тема, M звук.</div>
 <script src="./engine.js"></script>
+<script src="./js/stick.js"></script>
 <script src="./js/music.js"></script>
 <script src="./js/i18n.js"></script>
 <script src="./js/game.js"></script>
-<script src="./js/classic.js"></script>
+<script src="./js/audio.js"></script>
 <script src="./js/modern.js"></script>
-<script>
-'use strict';
-var STR={
- ru:{play:'Играть',players:'Игроки',touch1p:'тач — 1 игрок',language:'Язык',theme:'Тема',sound:'Звук',on:'вкл',off:'выкл',score:'Счёт',level:'Волна',best:'Рекорд',win:'РУБЕЖ УДЕРЖАН!',gameover:'БАЗА ПАЛА',pause:'ПАУЗА',resume:'Продолжить',menu:'В меню',tapstart:'пробел / тап',title:'РЕДУТ',subtitle:'Оборона базы · танковый бой · 1–2 игрока'},
- en:{play:'Play',players:'Players',touch1p:'touch — 1 player',language:'Language',theme:'Theme',sound:'Sound',on:'on',off:'off',score:'Score',level:'Wave',best:'Best',win:'LINE HELD!',gameover:'BASE DESTROYED',pause:'PAUSE',resume:'Resume',menu:'Menu',tapstart:'space / tap',title:'REDUT',subtitle:'Base defense · tank battle · 1–2 players'}
-};
-// Подсказки HUD родных рендереров — под новую раскладку (И1 стрелки, И2 WASD).
-(function(S){ if(!S) return;
-  Object.assign(S.ru,{hudMove:'Стрелки / WASD — ход',hudFire:'Пробел или / — огонь',hudP1:'И1 Стрелки + /',hudP2:'И2 WASD + F'});
-  Object.assign(S.en,{hudMove:'Arrows / WASD — move',hudFire:'Space or / — fire',hudP1:'P1 Arrows + /',hudP2:'P2 WASD + F'});
-})(window.REDUT&&REDUT.i18n&&REDUT.i18n.strings);
-var g=Arcade.createGame({canvas:'#c',width:960,height:600,gameId:'redut',strings:STR,theme:'modern'});
-var pad=document.querySelector('.pad');
-g.input.bindDpad(pad);
-g.fit(620); addEventListener('resize',function(){g.fit(620);});
-g.useStandardScreens({title:'РЕДУТ',subtitle:STR.ru.subtitle,lives:0});
-// Кооп за одной клавиатурой — движок (g.usePlayers + g.input.player(i)): пункт «Игроки», 1/2, подсказка, тач — только И1.
-g.usePlayers({
-  bind:{ p1:{left:['ArrowLeft'],right:['ArrowRight'],up:['ArrowUp'],down:['ArrowDown'],fire:['Slash','NumpadDivide','Period','Space']},
-         p2:{left:['KeyA'],right:['KeyD'],up:['KeyW'],down:['KeyS'],fire:['KeyF','ShiftLeft']} },
-  actions:['fire'], repeat:['fire'], pad:pad, touch:{L:'left',R:'right',U:'up',D:'down',A:'fire'},
-  hint:{ ru:['И1 (зелёный): стрелки — ход, / или пробел — огонь','И2 (жёлтый): W A S D — ход, F — огонь · 1/2 — число игроков'],
-         en:['P1 (green): arrows — move, / or space — fire','P2 (yellow): W A S D — move, F — fire · 1/2 — player count'] }
-});
-var game=null, prev=[{},{}], DIRS=['up','down','left','right'];
-function bp(f,d,t,v){ g.audio.beep(f,d,t,v); }
-function mkGame(){ return REDUT.Game({hi:g.state.best,players:g.input.playerCount,onEvent:function(type){
-  if(type==='shoot') bp(880,.04,'square',.04);
-  else if(type==='brick') bp(240,.05,'square',.05);
-  else if(type==='steel') bp(1500,.04,'square',.04);
-  else if(type==='explode') bp(110,.16,'sawtooth',.08);
-  else if(type==='hit') bp(300,.08,'sawtooth',.06);
-  else if(type==='pickup') bp(1100,.07,'triangle');
-  else if(type==='life') bp(1320,.12,'triangle');
-  else if(type==='freeze') bp(1600,.1,'sine');
-  else if(type==='spawn') bp(420,.04,'triangle',.03);
-  else if(type==='gameover'){ if(game) g.state.score=game.state().score; g.gameover(); }
-  else if(type==='win'){ if(game) g.state.score=game.state().score; g.win(); }
-}}); }
-[0,1].forEach(function(pi){ g.input.player(pi).onPress(function(name){ if(game&&name==='fire') game.fire(pi); }); });
-function render(ctx){ var st=game?game.state():null; if(!st){ g.clear(); return; }
-  if(window.REDUT&&REDUT.i18n) REDUT.i18n.lang=g.i18n.lang;
-  (g.themeName==='retro'?REDUT.classic:REDUT.modern).draw(ctx,st); }
-g.scene('play',{realtime:true,
-  enter:function(d){ if(!(d&&d.resume)){ game=mkGame(); game.start(); prev=[{},{}]; } },
-  press:function(a){ if(a==='pause') this.pause(); },
-  update:function(dt){ if(!game) return;
-    // held — только по изменению: движок РЕДУТа запоминает lastDir по моменту нажатия.
-    for(var pi=0;pi<g.input.playerCount;pi++) for(var i=0;i<4;i++){ var d=DIRS[i], h=g.input.player(pi).pressed(d); if(h!==!!prev[pi][d]){ prev[pi][d]=h; game.setHeld(pi,d,h); } }
-    game.update(Math.min(dt,0.05)); if(game) g.state.score=game.state().score; },
-  draw:function(ctx){ render(ctx); }
-});
-window.__REDUT_V2={g:g,game:function(){return game;}};
-g.start('title');
-</script></body></html>
+<script src="./js/classic.js"></script>
+<script src="./js/render.js"></script>
+<script src="./js/ui.js"></script>
+<script src="./js/main.js"></script>
+</body></html>

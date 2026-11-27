@@ -1,191 +1,167 @@
-/* РЕДУТ · boot, цикл requestAnimationFrame, ввод (1–2 игрока), настройки, экраны. */
+/* РЕДУТ · сборка: фреймворк Гефест Arcade (engine.js) + логика (game.js) + общий рендер с палитрами retro/modern + звук.
+   Сцены title/pause/win/gameover — g.useStandardScreens. Ввод: стрелки/WASD (движок) — ход, Пробел/Z/J — опора (у последней опоры
+   ещё раз — снять), X/K/F/Shift — вспышка; тач (площадки): виртуальный стик (js/stick.js) + ◈ опора + ✦ вспышка (кольцо заряда) + II пауза.
+   Геймпад — движком: стик/крестовина — ход, A (Space) — опора, B (KeyX) и курки — вспышка. Площадка (v2.8–2.10): таблица «redut»,
+   «Без рекламы», ещё один шанс и +1 жизнь за ролик, межстраничная между волнами. Титул — живая демо-партия на фоне меню.
+   Сохранения: при первом запуске после переделки (2026-11) старый рекорд танковой версии сбрасывается (ключ arcade.redut.ver). */
 (function (global) {
   'use strict';
-  var R = global.REDUT;
-  if (!R) return;
+  var R = global.REDUT, L = R.logic;
+  // ---------- Переделка 2026-11: рекорд прежней игры (другая механика и очки) сбрасывается один раз, с уведомлением на титуле ----------
+  var VER_KEY = 'arcade.redut.ver', notice = false;
+  try {
+    var ls = global.localStorage;
+    if (ls.getItem(VER_KEY) !== '2') {
+      if (ls.getItem('arcade.best.redut') || ls.getItem('arcade.players.redut')) notice = true;
+      ls.removeItem('arcade.best.redut'); ls.removeItem('arcade.players.redut'); ls.setItem(VER_KEY, '2');
+    }
+  } catch (e) {}
+  var TH = Arcade.themes || {};
+  var themes = {
+    modern: Object.assign({}, TH.modern, { bg: '#060a13', panel: '#101a2c', ink: '#eef2fa', muted: '#97a3ba', accent: '#ffd86b', grid: '#182741' }),
+    retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#f8d858', muted: '#a8a8b8' })
+  };
+  var g = Arcade.createGame({ canvas: '#c', width: L.W, height: L.SCREEN_H, gameId: 'redut', leaderboard: 'redut', strings: R.STR, theme: 'modern', lives: L.K.LIVES, themes: themes });
+  R.g = g;
+  var pad = document.querySelector('.pad');
+  g.input.bindDpad(pad);
+  R.ui.init(g);
+  var stick = global.ArcadeStick.create(pad && pad.querySelector('[data-stick]'), {});
+  function pal() { return g.themeName === 'retro' ? R.classic : R.modern; }
+  g.useStandardScreens({ lives: L.K.LIVES });
 
-  var LS = { gfx: 'redut-gfx', lang: 'redut-lang', snd: 'redut-snd', hi: 'redut-hi', players: 'redut-players' };
-  function get(k, d) { try { var v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
-  function put(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
-
-  // Настройки. По требованию контракта графика при старте всегда ретро.
-  var gfx = 'retro';
-  var lang = get(LS.lang, 'ru');
-  var sound = get(LS.snd, '1') === '1';
-  var players = parseInt(get(LS.players, '1'), 10) === 2 ? 2 : 1;
-  var hi = parseInt(get(LS.hi, '0'), 10) || 0;
-
-  var canvas, ctx, game, last = 0, running = false;
-
-  function boot() {
-    canvas = document.getElementById('game');
-    ctx = canvas.getContext('2d');
-    R.i18n.lang = lang; R.audio.setSound(sound);
-    game = R.Game({ hi: hi, players: players, onEvent: onEvent });
-    R.ui.applyI18n(); R.ui.setMode(players); updateButtons(); R.ui.show('ovTitle');
-    bindUI(); bindKeys(); bindTouch();
-    exposeDebug();
-    requestAnimationFrame(loop);
-  }
-
+  // ---------- Игра ----------
+  var game = null, toasts = [], shakeT = 0, playSince = 0, wasReady = false;
+  function S() { return game.state(); }
+  function sync() { if (game) { var s = S(); g.state.score = s.score; g.state.lives = Math.max(0, s.lives); g.state.level = s.wave; } }
+  function toast(text, color, x, y, big) { toasts.push({ text: text, color: color, x: x, y: y, t: 1.3, big: big }); if (toasts.length > 8) toasts.shift(); }
+  function burst(x, y, color, n, speed, life, size) { g.particles.spawn(x, y + L.HUD, { color: color, count: n, speed: speed, life: life, size: size || (pal().pixel ? 4 : 3) }); }
   function onEvent(type, d) {
-    switch (type) {
-      case 'shoot': R.audio.sfx('shoot'); break;
-      case 'brick': R.audio.sfx('brick'); break;
-      case 'steel': R.audio.sfx('steel'); break;
-      case 'explode': R.audio.sfx('explode'); break;
-      case 'hit': R.audio.sfx('hit'); break;
-      case 'pickup': R.audio.sfx('pickup'); break;
-      case 'life': R.audio.sfx('life'); break;
-      case 'freeze': R.audio.sfx('freeze'); break;
-      case 'spawn': R.audio.sfx('spawn'); break;
-      case 'gameover':
-        R.audio.sfx('gameover'); R.audio.stopMusic(); running = false;
-        if (d.score > hi) { hi = d.score; put(LS.hi, hi); game.setHi(hi); }
-        R.ui.setOver(d.score, hi); R.ui.show('ovOver'); break;
-      case 'win':
-        R.audio.sfx('win'); R.audio.stopMusic(); running = false;
-        if (d.score > hi) { hi = d.score; put(LS.hi, hi); game.setHi(hi); }
-        R.ui.setWin(d.score, hi); R.ui.show('ovWin'); break;
-    }
+    R.sfx(g, type, d);
+    var P = pal(), s = game ? S() : null;
+    if (type === 'kill') {
+      burst(d.x, d.y, d.type === 'snuff' ? P.snuffRing : d.type === 'armor' ? P.shell : d.type === 'leap' ? P.leapEye : P.mistEdge, d.type === 'armor' ? 16 : 10, 110, 0.5);
+      toast('+' + d.pts, d.mult > 1 ? P.accent : P.ink, d.x, d.y - 8);
+    } else if (type === 'zap') burst(d.x, d.y, P.beam, 4, 70, 0.25, 2);
+    else if (type === 'bossHit') burst(d.x, d.y, P.beam, 5, 90, 0.3, 3);
+    else if (type === 'bossDie') { burst(d.x, d.y, P.maw, 70, 240, 1.3, 4); burst(d.x, d.y, P.eaterEdge, 40, 180, 1.0, 4); toast('+' + d.pts, P.accent, d.x, d.y - 30, true); shakeT = 1.2; }
+    else if (type === 'pylon') burst(d.x, d.y, P.pylon, 10, 80, 0.4, 2);
+    else if (type === 'unpylon') burst(d.x, d.y, P.pylon, 6, 60, 0.3, 2);
+    else if (type === 'pylonDie') { burst(d.x, d.y, P.pylonDim, 14, 100, 0.5); toast(g.t('pylonDie'), P.bad, d.x, d.y - 18); }
+    else if (type === 'noPlace') { if (s && s.hero) toast(g.t(d.why === 'max' ? 'noMax' : d.why === 'len' ? 'noLen' : 'noNear'), P.warn, s.hero.x, s.hero.y - 20); }
+    else if (type === 'flare') { burst(d.x, d.y, P.flare, 30, 200, 0.6); shakeT = Math.max(shakeT, 0.15); }
+    else if (type === 'hurt') { burst(d.x, d.y, P.hero, 22, 140, 0.8); shakeT = Math.max(shakeT, 0.3); }
+    else if (type === 'coreHit') { burst(d.x, d.y, P.bad, 14, 110, 0.5); toast(g.t('coreHit'), P.bad, L.CX, L.CY - 40, true); shakeT = Math.max(shakeT, 0.35); }
+    else if (type === 'splat') burst(d.x, d.y, P.mistEdge, 8, 80, 0.4);
+    else if (type === 'bossSpawn') toast(g.t('b_eater'), P.boss, L.CX, 120, true);
+    else if (type === 'wave') { toasts = []; wasReady = false; }
+    else if (type === 'clear') { if (g.adReady && g.adReady() && s.wave < s.maxWave) s.hold = true; }
+    else if (type === 'win') { sync(); setTimeout(function () { if (g._sceneName === 'play') g.win(); }, 900); }
+    else if (type === 'gameover') { sync(); setTimeout(function () { if (g._sceneName === 'play') g.gameover(); }, 700); }
+    sync();
+  }
+  function newGame(o) {
+    game = R.Game(Object.assign({ onEvent: onEvent, rng: L.mulberry32((Date.now() ^ 0x5bd1e995) >>> 0) }, o || {}));
+    R.current = game; toasts = []; shakeT = 0; wasReady = false; game.start(); sync();
   }
 
-  function startGame() {
-    R.ui.hideAll(); R.audio.unlock();
-    game = R.Game({ hi: hi, players: players, onEvent: onEvent });
-    game.start(); running = true;
-    if (sound) R.audio.startMusic();
+  // ---------- Титул: живая демо-партия ----------
+  var demo = null, demoT = 0;
+  function newDemo() { demo = R.Game({ rng: L.mulberry32(11), noHints: true, wave: 3 }); demo.start(); demo.state().introT = 0.1; }
+  function demoStep(dt) {
+    if (!demo || demo.state().phase === 'over') newDemo();
+    var s = demo.state(), h = s.hero; demoT += dt;
+    s.coreHp = s.coreMax; h.inv = 1; if (s.phase === 'clear') { s.clearT = 0; }
+    var a = demoT * 1.5, tx = L.CX + Math.cos(a) * 86, ty = L.CY + Math.sin(a) * 86;
+    demo.setDir(tx - h.x, ty - h.y); demo.update(Math.min(dt, 0.05));
+    if (s.phase === 'clear' || s.phase === 'won') newDemo();
   }
+  var title = g.scenes.title, menu = g.menu.get('title');
+  title.update = function (dt) { demoStep(dt); };
+  title.draw = function (ctx) {
+    var th = this.th(), P = pal(), W = this.W, H = this.H;
+    if (!demo) newDemo();
+    R.ui.render(this, ctx, demo.state(), P, { bare: true });
+    ctx.fillStyle = P.pixel ? 'rgba(0,0,0,.55)' : 'rgba(6,10,19,.5)'; ctx.fillRect(0, 0, W, 190); ctx.fillRect(0, 430, W, H - 430);
+    R.ui.txt(this, this.t('title'), W / 2, 96, { size: 62, align: 'center', color: P.accent, weight: 900 }, P);
+    R.ui.txt(this, this.t('subtitle'), W / 2, 134, { size: 12, align: 'center', color: th.muted, weight: 600, shadow: false, maxWidth: 430 }, P);
+    var mf = menuFit(menu, 456, 34, 446, H - 24); menu.draw(this, W / 2, mf[0], mf[1]);
+    if (this.state.best) R.ui.txt(this, this.t('best') + ': ' + this.state.best, W / 2, 168, { size: 13, align: 'center', color: th.ink, weight: 700, shadow: false }, P);
+    if (notice) R.ui.txt(this, this.t('migrated'), W / 2, H - 8, { size: 10, align: 'center', color: P.good, weight: 700, shadow: false, maxWidth: W - 20 }, P);
+    this.menu._drawHint('title');
+  };
+  // Финалы — поверх мира
+  var baseClear = Object.getPrototypeOf(g).clear;
+  g.clear = function (c) {
+    baseClear.call(this, c);
+    if (this._sceneName === 'win' || this._sceneName === 'gameover') R.ui.render(this, this.ctx, game ? game.state() : demo.state(), pal(), { bare: true });
+  };
+  g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
 
-  function loop(ts) {
-    if (!last) last = ts;
-    var dt = Math.min((ts - last) / 1000, 0.05); last = ts;
-    try {
-      if (running && !game.isPaused()) game.update(dt);
-      render();
-    } catch (err) { if (global.console) console.error('REDUT loop', err); }
-    requestAnimationFrame(loop);
+  // ---------- Площадка (движок v2.8–2.10): таблица «redut», «Без рекламы» (no_ads) в меню и паузе, реклама за награду ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «redut», GamePush — числовое поле игрока «redut» + лидерборд; товар no_ads
+  // (постоянный). Список — promo/redut/platform.json (arcade-full). На сайте (без площадки) пунктов нет.
+  var LB = 'redut';
+  g.persist('arcade.best.redut', 'max');
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });   // облако слито: рекорд с другого устройства — в таблицу
+  // «Ещё один шанс» (раз за партию): две жизни, маяк ≥ 3, вспышка вокруг маяка; бонус в паузе — +1 жизнь и +1 к маяку (до двух раз за партию)
+  g.useRewardedContinue({ revive: function () { if (game && game.reviveAd()) sync(); } });
+  g.useRewardedBonus({ key: 'rwLife', scene: 'pause', label: function () { return g.t('rwLife'); },
+    available: function () { return !!game && game.canBoost(); }, grant: function () { if (game) { game.boost(); sync(); } } });
+  // Меню вмещает пункты площадки («Лидеры», «Без рекламы»): если пунктов больше, чем помещается, шаг сжимается (не меньше 19)
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(19, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
+  // Конец волны: если площадка готова показать межстраничную — карточка «дальше», ролик по действию игрока
+  var holdGoing = false;
+  function holdGo() {
+    if (!game || !game.state().hold || holdGoing) return;
+    holdGoing = true; g.adBreak().then(function () { holdGoing = false; if (game) game.state().hold = false; });
   }
+  g.canvas.addEventListener('pointerdown', function () { if (g._sceneName === 'play') holdGo(); });
 
-  function render() {
-    try {
-      var st = game.state();
-      (gfx === 'modern' ? R.modern : R.classic).draw(ctx, st);
-    } catch (err) { if (global.console) console.error('REDUT render', err); }
-  }
+  // ---------- Ввод: доп. клавиши и тач-кнопка вспышки ----------
+  var PLACE = { KeyZ: 1, KeyJ: 1 }, FLARE = { KeyX: 1, KeyK: 1, KeyF: 1, ShiftLeft: 1, ShiftRight: 1 };
+  function inPlay() { return g._sceneName === 'play' && game && g.time - playSince > 0.15; }
+  function doPlace() { if (!inPlay()) return; if (S().hold) { holdGo(); return; } game.place(); }
+  function doFlare() { if (!inPlay()) return; if (S().hold) { holdGo(); return; } game.flare(); }
+  addEventListener('keydown', function (e) {
+    if (!(PLACE[e.code] || FLARE[e.code])) return;
+    if (g._sceneName === 'play') e.preventDefault();
+    if (e.repeat) return;
+    if (PLACE[e.code]) doPlace(); else doFlare();
+  });
+  (function () {
+    var b = document.getElementById('bFlare'); if (!b) return;
+    var on = function (e) { if (!Arcade.touchOk(e)) return; doFlare(); };
+    b.addEventListener('touchstart', on, { passive: false }); b.addEventListener('mousedown', on);
+  })();
 
-  function togglePause() {
-    if (!running) return;
-    game.pause();
-    if (game.isPaused()) { R.audio.stopMusic(); R.ui.show('ovPause'); }
-    else { R.ui.hideAll(); if (sound) R.audio.startMusic(); }
-  }
+  // ---------- Игровая сцена ----------
+  g.scene('play', {
+    realtime: true,
+    enter: function (d) { if (!(d && d.resume) || !game) newGame(); playSince = g.time; },
+    press: function (a) {
+      if (a === 'pause') this.pause();
+      else if (a === 'action' || a === 'start') doPlace();
+    },
+    update: function (dt) {
+      if (!game) return;
+      var d = this.input.dir, dx = d.x || 0, dy = d.y || 0;
+      if (stick.active) { dx = stick.x; dy = stick.y; }
+      game.setDir(inPlay() || g.time - playSince > 0.05 ? dx : 0, inPlay() || g.time - playSince > 0.05 ? dy : 0);
+      game.update(Math.min(dt, 0.05));
+      if (shakeT > 0) shakeT -= dt;
+      for (var i = 0; i < toasts.length; i++) toasts[i].t -= dt;
+      toasts = toasts.filter(function (o) { return o.t > 0; });
+      var s = S(), rd = s.charge >= L.K.CHARGE_MAX;
+      if (rd && !wasReady && s.phase === 'play') R.sfx(g, 'flareReady');
+      wasReady = rd; sync();
+    },
+    draw: function (ctx) { if (game) R.ui.render(this, ctx, game.state(), pal(), { toasts: toasts, shake: shakeT > 0 ? 5 * Math.min(1, shakeT * 3) : 0 }); else this.clear(); }
+  });
 
-  function updateButtons() {
-    var g = document.getElementById('valGfx'); if (g) g.textContent = R.t(gfx === 'modern' ? 'modern' : 'retro');
-    var s = document.getElementById('valSnd'); if (s) s.textContent = R.t(sound ? 'on' : 'off');
-    var l = document.getElementById('valLang'); if (l) l.textContent = lang.toUpperCase();
-    var pv = document.getElementById('valPlayers'); if (pv) pv.textContent = String(players);
-    document.documentElement.setAttribute('data-gfx', gfx);
-  }
-  function toggleGfx() { gfx = gfx === 'modern' ? 'retro' : 'modern'; put(LS.gfx, gfx); updateButtons(); }
-  function toggleSound() {
-    sound = !sound; put(LS.snd, sound ? '1' : '0'); R.audio.setSound(sound);
-    if (sound && running && !game.isPaused()) R.audio.startMusic(); else R.audio.stopMusic();
-    updateButtons();
-  }
-  function toggleLang() { lang = lang === 'ru' ? 'en' : 'ru'; put(LS.lang, lang); R.i18n.lang = lang; R.ui.applyI18n(); R.ui.setMode(players); updateButtons(); }
-  function togglePlayers() {
-    if (running) return; // менять число игроков только до старта
-    players = players === 2 ? 1 : 2; put(LS.players, players);
-    game.setPlayers(players); R.ui.setMode(players); updateButtons();
-  }
-
-  // Индекс игрока для стрелок/слэша: в одиночной игре — И1, в кооп — И2.
-  function arrowPlayer() { return players === 2 ? 1 : 0; }
-
-  function bindUI() {
-    var on = function (id, fn) { var e = document.getElementById(id); if (e) e.onclick = fn; };
-    on('btnStart', startGame); on('btnAgain', startGame); on('btnWinAgain', startGame); on('btnResume', togglePause);
-    on('btnGfx', toggleGfx); on('btnSnd', toggleSound); on('btnLang', toggleLang); on('btnPlayers', togglePlayers);
-    on('btnMode', togglePlayers); on('btnPause', togglePause);
-    on('btnHow', function () { var h = document.getElementById('helpBox'); if (h) h.style.display = h.style.display === 'none' ? 'block' : 'none'; });
-  }
-
-  function bindKeys() {
-    document.addEventListener('keydown', function (e) {
-      var c = e.code;
-      if (c === 'Enter' || c === 'NumpadEnter') {
-        if (!running) startGame();
-        else if (game.phase() === 'gameover' || game.phase() === 'win') startGame();
-        return;
-      }
-      if (c === 'KeyG') { toggleGfx(); return; }
-      if (c === 'KeyM') { toggleSound(); return; }
-      if (c === 'KeyL') { toggleLang(); return; }
-      if (c === 'Digit2') { togglePlayers(); return; }
-      if (c === 'KeyP') { togglePause(); e.preventDefault(); return; }
-      if (!running || game.isPaused()) return;
-      var ap = arrowPlayer();
-      switch (c) {
-        // Игрок 1 — WASD + Space
-        case 'KeyW': game.setHeld(0, 'up', true); e.preventDefault(); break;
-        case 'KeyS': game.setHeld(0, 'down', true); e.preventDefault(); break;
-        case 'KeyA': game.setHeld(0, 'left', true); e.preventDefault(); break;
-        case 'KeyD': game.setHeld(0, 'right', true); e.preventDefault(); break;
-        case 'Space': game.fire(0); e.preventDefault(); break;
-        // Стрелки — И2 (или И1 в одиночке) + Slash огонь
-        case 'ArrowUp': game.setHeld(ap, 'up', true); e.preventDefault(); break;
-        case 'ArrowDown': game.setHeld(ap, 'down', true); e.preventDefault(); break;
-        case 'ArrowLeft': game.setHeld(ap, 'left', true); e.preventDefault(); break;
-        case 'ArrowRight': game.setHeld(ap, 'right', true); e.preventDefault(); break;
-        case 'Slash': case 'NumpadDivide': game.fire(ap); e.preventDefault(); break;
-      }
-    });
-    document.addEventListener('keyup', function (e) {
-      if (!running) return;
-      var c = e.code, ap = arrowPlayer();
-      switch (c) {
-        case 'KeyW': game.setHeld(0, 'up', false); break;
-        case 'KeyS': game.setHeld(0, 'down', false); break;
-        case 'KeyA': game.setHeld(0, 'left', false); break;
-        case 'KeyD': game.setHeld(0, 'right', false); break;
-        case 'ArrowUp': game.setHeld(ap, 'up', false); break;
-        case 'ArrowDown': game.setHeld(ap, 'down', false); break;
-        case 'ArrowLeft': game.setHeld(ap, 'left', false); break;
-        case 'ArrowRight': game.setHeld(ap, 'right', false); break;
-      }
-    });
-  }
-
-  // Экранные кнопки (телефон) — управляют Игроком 1.
-  function bindTouch() {
-    function hold(id, dir) {
-      var el = document.getElementById(id); if (!el) return;
-      var set = function (v) { return function (ev) { if (!Arcade.touchOk(ev)) return; if (running && !game.isPaused()) game.setHeld(0, dir, v); }; };
-      el.addEventListener('touchstart', set(true), { passive: false });
-      el.addEventListener('touchend', set(false), { passive: false });
-      el.addEventListener('mousedown', set(true)); el.addEventListener('mouseup', set(false)); el.addEventListener('mouseleave', set(false));
-    }
-    hold('tUp', 'up'); hold('tDown', 'down'); hold('tLeft', 'left'); hold('tRight', 'right');
-    var f = document.getElementById('tFire');
-    if (f) {
-      var h = function (ev) { if (!Arcade.touchOk(ev)) return; if (!running) { startGame(); return; } if (!game.isPaused()) game.fire(0); };
-      f.addEventListener('touchstart', h, { passive: false }); f.addEventListener('mousedown', h);
-    }
-  }
-
-  // Отладочный хук для тестов.
-  function exposeDebug() {
-    global.__REDUT = {
-      startGame: startGame,
-      setGfx: function (g) { gfx = (g === 'modern') ? 'modern' : 'retro'; updateButtons(); },
-      setLang: function (l) { lang = (l === 'en') ? 'en' : 'ru'; R.i18n.lang = lang; R.ui.applyI18n(); updateButtons(); },
-      setPlayers: function (n) { players = n === 2 ? 2 : 1; game.setPlayers(players); R.ui.setMode(players); updateButtons(); },
-      tick: function (dt) { if (running && !game.isPaused()) game.update(dt || 0.016); render(); },
-      game: function () { return game; }
-    };
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
-})(window);
+  g.start('title');
+  R.app = { g: g, game: function () { return game; }, newGame: newGame };   // для отладки/автотестов в браузере (newGame({wave}))
+})(typeof window !== 'undefined' ? window : globalThis);

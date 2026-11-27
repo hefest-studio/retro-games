@@ -42,7 +42,7 @@
 | 14 | [БОЛТ — Побег со Шлак-9](bolt/) | Run-and-gun | retro / modern |
 | 15 | [КОЛОБОК — Приключение](kolobok/) | Головоломка | retro / modern |
 | 16 | [ПЛАЩ — Ночной мститель](plashch/) | Экшен-платформер | retro / modern |
-| 17 | [РЕДУТ — Оборона базы](redut/) | Аркада | retro / modern |
+| 17 | [РЕДУТ — Луч-ограда против мглы](redut/) | Аркада | retro / modern |
 | 18 | [ЗВЕРО-ОТРЯД — Старая Мастерская](zvero-otryad/) | Платформер | retro / modern |
 | 19 | [ЗВЕРО-ОТРЯД 2 — Новые уровни](zvero-otryad-2/) | Платформер | retro / modern |
 | 20 | [РОЙ — Захватчики](roy/) | Shoot'em-up | retro / modern |
