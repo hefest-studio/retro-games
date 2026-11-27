@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/cover.png" alt="retro-games" width="100%"></p>
+
 # Зал ретро-игр · Retro Games
 
 Каталог из **77 оригинальных браузерных аркад и платформеров студии «Гефест»** в духе
