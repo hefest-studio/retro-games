@@ -1,6 +1,6 @@
 /* ГРОМ · tests/bot.mjs — «человеческий» бот для проверки проходимости и баланса.
-   Карту уровня знает (как игрок, открывший мини-карту), но управляет только как человек: setInput({dx,dy,jump,fire,beam}),
-   wheel/setForm, thunder, cont — и те же макросы движения, по которым строится граф проходимости (logic.ACTS).
+   Карту уровня знает (как игрок, открывший мини-карту), но управляет только как человек: setInput({dx,dy,jump,fire}),
+   dash (бросок-молния), cont — и те же макросы движения, по которым строится граф проходимости (logic.ACTS).
    Человеческие ограничения:
    - реакция: каждое решение — через 150–250 мс (opts.react); между решениями держит прежние клавиши;
    - врагов замечает не всех (opts.miss — доля незамеченных при первом взгляде), видит только кадр камеры;
@@ -28,7 +28,7 @@ export function navFor(GR, n){
 export function playGrom(GR, seed, opts = {}){
   const L = GR.logic, brng = mulberry32(seed * 7919 + 31);
   const [r0, r1] = opts.react || [0.15, 0.25];
-  const missP = opts.miss == null ? 0.25 : opts.miss, slop = opts.slop == null ? 0.06 : opts.slop, dodgeP = opts.dodge == null ? 0.55 : opts.dodge;
+  const missP = opts.miss == null ? 0.25 : opts.miss, slop = opts.slop == null ? 0.06 : opts.slop, dodgeP = opts.dodge == null ? 0.55 : opts.dodge, dashP = opts.dash == null ? 0.35 : opts.dash, dodgeK = opts.dodgeK == null ? 0.6 : opts.dodgeK;
   const startLevel = opts.startLevel || 1, maxLevel = Math.min(L.LEVELS.length, startLevel + (opts.levels || L.LEVELS.length) - 1);
   const maxT = opts.maxT || 900;
   const res = { seed, cleared: 0, won: false, over: false, deaths: 0, conts: 0, why: {}, levelT: [], dl: {}, db: {}, stuck: false, stuckAt: null, score: 0, secrets: 0 };
@@ -43,12 +43,9 @@ export function playGrom(GR, seed, opts = {}){
   const seen = new WeakMap();
   const noticed = e => { if (!seen.has(e)) seen.set(e, brng() >= missP); return seen.get(e); };
   const react = () => r0 + brng() * (r1 - r0);
-  let wait = react(), macro = null, held = { dx: 0, dy: 0, jump: false, fire: false, beam: false }, engage = null, engageT = 0;
+  let wait = react(), macro = null, held = { dx: 0, dy: 0, jump: false, fire: false }, engage = null;
   let best = Infinity, bestT = 0, slopF = -1;
   const q8 = (dx, dy) => { const a = Math.atan2(dy, dx), o = Math.round(a / (Math.PI / 4)), ang = o * Math.PI / 4; return { x: Math.round(Math.cos(ang)), y: Math.round(Math.sin(ang)) }; };
-  // попадёт ли луч, направленный одним из 8 направлений, в цель (как видит игрок: «на одной линии»)
-  const beamHits = (H, e) => { const ox = H.x, oy = H.y - 1.05, tx = e.x - ox, ty = (e.y - e.hh / 2) - oy, d = q8(tx, ty), n = Math.hypot(d.x, d.y), ux = d.x / n, uy = d.y / n, along = tx * ux + ty * uy, perp = Math.abs(tx * uy - ty * ux);
-    return along > 0 && along < L.BEAM_LEN - 0.3 && perp < Math.max(e.hw, e.hh / 2) + 0.25 ? d : null; };
   const inView = (x, y) => x > S.cam.x - 0.5 && x < S.cam.x + L.VIEW_W + 0.5 && y > S.cam.y - 0.5 && y < S.cam.y + L.VIEW_H + 0.5;
 
   function fieldNow(){
@@ -62,10 +59,9 @@ export function playGrom(GR, seed, opts = {}){
   }
   // бой с боссом: держать дистанцию, целиться 8 направлениями, прыгать от волн/жернова/пуль, молния при низком здоровье
   function bossFight(){
-    const H = S.hero, b = S.boss, o = { dx: 0, dy: 0, jump: false, fire: true, beam: false };
+    const H = S.hero, b = S.boss, o = { dx: 0, dy: 0, jump: false, fire: true };
     if (!b || b.dead){ return o; }
     const floor = b.y0 + L.RH, hc = H.y - 1;
-    if (H.form === 'wheel') game.setForm('man');
     let want = b.x + (H.x < b.x ? -7 : 7);
     if (b.key === 'kite' || b.key === 'horn') want = b.x + (H.x < b.x ? -1.2 : 1.2);   // под целью: огонь вверх попадает
     want = Math.max(b.x0 + 3, Math.min(b.x0 + L.RW - 3, want));
@@ -78,18 +74,19 @@ export function playGrom(GR, seed, opts = {}){
     // пули
     for (const e of S.eb){
       const ex = H.x - e.x, ey = hc - e.y, v2 = e.vx * e.vx + e.vy * e.vy || 1, tt = (ex * e.vx + ey * e.vy) / v2;
-      if (tt > 0 && tt < 0.45){ const px = e.x + e.vx * tt - H.x, py = e.y + e.vy * tt - hc; if (Math.abs(px) < 0.8 && Math.abs(py) < 1.3 && brng() < dodgeP){ if (H.ground && py > -0.3) o.jump = true; else o.dx = px > 0 ? -1 : 1; break; } }
+      if (tt > 0 && tt < 0.45){ const px = e.x + e.vx * tt - H.x, py = e.y + e.vy * tt - hc; if (Math.abs(px) < 0.8 && Math.abs(py) < 1.3 && brng() < dodgeP){ if (H.charge >= 1 && H.dash <= 0 && tt < 0.3 && brng() < dodgeK + 0.2){ o.dash = true; o.dx = H.x < b.x ? -1 : 1; o.dy = 0; } else if (H.ground && py > -0.3) o.jump = true; else o.dx = px > 0 ? -1 : 1; break; } }
     }
     const a = q8(b.x - H.x, b.y - hc);
     const dist = Math.hypot(b.x - H.x, b.y - hc);
-    if (dist < 6 && !o.jump && H.ground && b.key !== 'millstone' && brng() < 0.5){ o.beam = true; o.dx = a.x; o.dy = a.y; o.fire = false; }
-    else if (a.y < 0){ o.dy = -1; if (a.x !== 0 && !o.dx) o.dx = a.x; }
-    if (flee){ o.dx = flee; o.beam = false; o.fire = true; }
-    if (H.hp <= 4 && S.thunder > 0 && brng() < 0.4) game.thunder();
+    if (a.y < 0){ o.dy = -1; if (a.x !== 0 && !o.dx) o.dx = a.x; }
+    if (flee){ o.dx = flee; o.fire = true; }
+    // бросок сквозь босса: ударить и оставить за спиной раскат
+    if (H.charge >= 1 && dist < 6 && !o.jump && brng() < (H.charge >= 2 ? 0.3 : 0.12)){ o.dash = true; o.dx = Math.sign(b.x - H.x) || H.face; o.dy = 0; }
     return o;
   }
 
   for (let step = 0; ; step++){
+    if (opts.trace && step % 1800 === 0) opts.trace(S, macro, held);
     if (S.phase === 'won'){ res.won = true; break; }
     if (S.phase === 'over'){ res.over = true; break; }
     if (S.level !== curLevel){ curLevel = S.level; lvT0 = S.time; best = Infinity; bestT = S.time; macro = null; engage = null; }
@@ -102,36 +99,34 @@ export function playGrom(GR, seed, opts = {}){
     if (S.bossActive && S.boss && !S.boss.dead){
       bestT = S.time;
       if (wait <= 0){ held = bossFight(); wait = react(); }
-      game.setInput(held); game.update(dt); continue;
+      game.setInput(held); if (held.dash){ game.dash(); held.dash = false; } game.update(dt); continue;
     }
     // --- исполнение макроса ---
     if (macro){
       const o = macro.input(H);
       if (slopF >= 0 && macro.f >= slopF) o.jump = false;
-      if (o.form) game.setForm(o.form);
       const th = wait <= 0 ? threats() : null;
+      if (th && H.charge >= 1 && H.dash <= 0 && !macro.air){   // бросок сквозь летящую пулю (неуязвимость на время броска)
+        for (const e of S.eb){
+          const ex = H.x - e.x, ey = (H.y - 1) - e.y, v2 = e.vx * e.vx + e.vy * e.vy || 1, tt = (ex * e.vx + ey * e.vy) / v2;
+          if (tt > 0.02 && tt < 0.4){ const px = e.x + e.vx * tt - H.x, py = e.y + e.vy * tt - (H.y - 1); if (Math.abs(px) < 0.9 && Math.abs(py) < 1.3 && brng() < dodgeP * dodgeK){ game.setInput({ dx: o.dx || H.face, dy: 0, fire: false }); game.dash(); for (let i = 0; i < 12; i++) game.update(dt); break; } }
+        }
+      }
       if (th){ wait = react(); held.fire = th.some(t => t.d < 14 && Math.abs(t.dy) < 1.3 && Math.sign(t.dx) === H.face); }
-      game.setInput({ dx: o.dx, dy: 0, jump: o.jump, fire: held.fire && H.form === 'man' || (H.form === 'wheel' && th && th.some(t => t.d < 2.5)), beam: false });
+      game.setInput({ dx: o.dx, dy: 0, jump: o.jump, fire: held.fire });
+      if (o.dash) game.dash();
       game.update(dt); macro.after(S.hero);
       if (macro.done || macro.fail || S.phase !== 'play'){ macro = null; slopF = -1; wait = react(); }
       continue;
     }
-    // --- удержание луча-кнута по цели ---
-    if (engage){
-      engageT -= dt;
-      if (engage.e.dead || engageT <= 0 || S.phase !== 'play'){ engage = null; wait = react(); game.setInput({}); game.update(dt); continue; }
-      if (wait <= 0){ const d = beamHits(H, engage.e); if (!d){ engage = null; continue; } held = { dx: d.x, dy: d.y, jump: false, fire: false, beam: true }; wait = react(); }
-      game.setInput(held); game.update(dt); continue;
-    }
-    if (wait > 0){ game.setInput({ dx: 0, dy: 0, jump: false, fire: held.fire, beam: false }); game.update(dt); continue; }
+    if (wait > 0){ game.setInput({ dx: 0, dy: 0, jump: false, fire: held.fire }); game.update(dt); continue; }
     // --- решение ---
     wait = react();
-    if (H.form === 'wheel'){ game.setForm('man'); }
     if (!H.ground){ game.setInput({}); game.update(dt); continue; }
     const th = threats();
-    if (H.hp <= 3 && S.thunder > 0 && th.filter(t => t.d < 9).length >= 2){ game.thunder(); }
-    const near = th.find(t => t.d < 7 && beamHits(H, t.e) && L.los(S, H.x, H.y - 1.05, t.e.x, t.e.y - t.e.hh / 2));
-    if (near){ const d = beamHits(H, near.e); engage = near; engageT = 1.6; held = { dx: d.x, dy: d.y, jump: false, fire: false, beam: true }; game.setInput(held); game.update(dt); continue; }
+    // бросок сквозь вплотную подошедшего врага (человек так «пробивает» путь)
+    const close = th.find(t => t.d < 2.6 && Math.abs(t.dy) < 1.4);
+    if (close && H.charge >= 1 && brng() < dashP){ game.setInput({ dx: Math.sign(close.dx) || H.face, dy: 0, fire: false }); game.dash(); for (let i = 0; i < 14; i++) game.update(dt); continue; }
     held.fire = th.some(t => t.d < 14 && Math.abs(t.dy) < 1.3);
     const F = fieldNow(), id = L.nodeOf(S, H);
     if (id < 0 || !F.has(id)){
@@ -151,7 +146,7 @@ export function playGrom(GR, seed, opts = {}){
     let pick = null, pv = Infinity;
     for (const e of es){ if (!F.has(e.to)) continue; const v = e.t + F.get(e.to); if (v < pv){ pv = v; pick = e; } }
     if (!pick){ game.setInput({ dx: brng() < 0.5 ? 1 : -1 }); for (let i = 0; i < 8; i++) game.update(dt); continue; }
-    if (L.ACTS[pick.a].k === 'roll' && H.charge < 2.6){ game.setInput({ fire: held.fire }); game.update(dt); wait = 0.3; continue; }
+    if (L.ACTS[pick.a].k === 'dash' && H.charge < 1.05){ game.setInput({ fire: held.fire }); game.update(dt); wait = 0.3; continue; }
     macro = new L.Macro(pick.a, id % S.W);
     slopF = (L.ACTS[pick.a].k !== 'walk' && brng() < slop) ? 6 + Math.floor(brng() * 10) : -1;
   }

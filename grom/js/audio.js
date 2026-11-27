@@ -8,7 +8,6 @@
   }
   var last = {};
   function rare(type, ms) { var n = Date.now(); if (n - (last[type] || 0) < ms) return false; last[type] = n; return true; }
-  var beamOsc = 0;
 
   GR.sfx = function (g, type, d) {
     if (!g.audio.enabled) return;
@@ -22,12 +21,10 @@
         else if (rare('shot', 70)) g.audio.beep(880, 0.03, 'square', 0.022);
         break;
       case 'bounce': if (rare('bounce', 60)) g.audio.beep(990, 0.02, 'triangle', 0.02); break;
-      case 'beam': if (d.on) seq(g, [220, 440], 30, 0.05, 'sawtooth', 0.03); break;
-      case 'mine': g.audio.beep(196, 0.05, 'square', 0.035); break;
+      case 'dash': seq(g, [1760, 1200, 800], 28, 0.07, 'sawtooth', 0.05); break;
+      case 'clap': seq(g, [150, 90, 60, 45], 45, 0.12, 'sawtooth', 0.075); break;
       case 'boom': if (rare('boom', 60)) seq(g, [98, 73, 55], 40, 0.1, 'sawtooth', 0.06); break;
-      case 'thunder': seq(g, [1760, 110, 1318, 82, 988, 65], 45, 0.12, 'sawtooth', 0.07); break;
-      case 'wheel': g.audio.beep(d.on ? 523 : 392, 0.05, 'triangle', 0.035); if (d.on) setTimeout(function () { g.audio.beep(784, 0.05, 'triangle', 0.03); }, 50); break;
-      case 'noWheel': g.audio.beep(140, 0.06, 'square', 0.03); break;
+      case 'noDash': if (rare('noDash', 150)) g.audio.beep(140, 0.06, 'square', 0.03); break;
       case 'hurt': seq(g, [392, 262, 196], 40, 0.06, 'sawtooth', 0.05); break;
       case 'die': seq(g, [523, 392, 311, 233, 175, 131], 85, 0.12, 'sawtooth', 0.06); break;
       case 'respawn': case 'continue': seq(g, [392, 523, 659, 784], 70, 0.08, 'triangle', 0.05); break;

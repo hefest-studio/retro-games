@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
   var GR = global.GROM = global.GROM || {};
-  var L = GR.logic, T = L.T, VW = L.VIEW_W, VH = L.VIEW_H, E = L.E, R = L.R, P_ = L.P, K = L.K, B = L.B, G = L.G;
+  var L = GR.logic, T = L.T, VW = L.VIEW_W, VH = L.VIEW_H, E = L.E, R = L.R, P_ = L.P, K = L.K, B = L.B, G = L.G, M_ = L.M;
 
   function makeRenderer(P) {
     var px = P.pixel;
@@ -77,6 +77,14 @@
           rect(ctx, x + 1, y + 1, T - 2, 2, P.bonusHi);
           if (!px) { ctx.globalAlpha = 0.25 + 0.35 * pulse; rect(ctx, x + 2, y + 2, T - 4, T - 4, '#fff3c0'); ctx.globalAlpha = 1; }
           bolt(ctx, x + 8, y + 8, 5, px ? '#000000' : '#3a1d06');
+        } else if (v === M_) {   // медная заслонка: проходит только бросок-молния
+          var pl = 0.5 + 0.5 * Math.sin(V.t * 5 + r);
+          rect(ctx, x, y, T, T, P.copperLo); rect(ctx, x + 1, y, T - 2, T, P.copper);
+          rect(ctx, x + 1, y, 3, T, P.copperHi);
+          rect(ctx, x + 3, y + 2, 2, 2, P.copperLo); rect(ctx, x + 11, y + 12, 2, 2, P.copperLo);
+          if (!px) { ctx.globalAlpha = 0.2 + 0.4 * pl; rect(ctx, x + 6, y + 1, 4, T - 2, P.wheel); ctx.globalAlpha = 1; }
+          else if (Math.floor(V.t * 4 + r) % 2) rect(ctx, x + 7, y + 3, 2, 10, P.wheel);
+          bolt(ctx, x + 8, y + 8, 4.5, px ? '#000000' : '#2a1608');
         } else if (v === G) {
           rect(ctx, x, y, T, T, P.gate);
           for (var q = 0; q < 4; q++) rect(ctx, x + q * 4, y, 2, T, P.gateHi);
@@ -104,12 +112,10 @@
         ctx.fillStyle = px ? '#000' : '#10131a'; ctx.font = '900 8px ' + (px ? 'monospace' : 'Inter, system-ui, sans-serif'); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText((GR.wLabel || {})[it.w] || it.w, x, y + 0.5); ctx.textBaseline = 'alphabetic';
       } else if (it.k === 'hp') {
         rect(ctx, x - 6, y - 5, 12, 10, P.good); rect(ctx, x - 1, y - 3, 2, 6, '#fff'); rect(ctx, x - 3, y - 1, 6, 2, '#fff');
-      } else if (it.k === 'thunder') {
-        circ(ctx, x, y, 6.5, P.wheel); bolt(ctx, x, y, 5, px ? '#000' : '#10131a');
+      } else if (it.k === 'charge') {
+        glow(ctx, true, P.wheel, 10); circ(ctx, x, y, 6.5, P.wheel); glow(ctx, false); bolt(ctx, x, y, 5, px ? '#000' : '#10131a');
       } else if (it.k === 'life') {
         glow(ctx, true, P.accent, 12); api.lifeIcon(ctx, x, y + 3, 1.5); glow(ctx, false);
-      } else if (it.k === 'charge') {
-        circ(ctx, x, y, 6, P.wheel); circ(ctx, x, y, 3, P.bg2); rect(ctx, x - 1, y - 6, 2, 12, P.wheel);
       } else if (it.k === 'beacon') {
         // громоотвод: мачта с шаром, горит, если активен
         var on = it.on, top = y - 14;
@@ -127,9 +133,18 @@
       }
       ctx.globalAlpha = 1; rect(ctx, x - 14, y - 2, 28, 2, P.ink);
     };
-    api.mine = function (ctx, x, y, m, t) {
-      circ(ctx, x, y - 4, 4, P.mineC); rect(ctx, x - 5, y - 2, 10, 2, P.mineC);
-      if (Math.floor(t * 8) % 2 === 0 || m.t > 2.4) rect(ctx, x - 1, y - 6, 2, 2, P.bad);
+    // отложенный раскат: кольцо радиуса удара, внутри копится заряд
+    api.clap = function (ctx, x, y, m, t) {
+      var p = Math.min(1, m.t / L.CLAP_T), r = L.CLAP_R * T;
+      glow(ctx, true, P.wheel, 10);
+      ctx.strokeStyle = P.wheel; ctx.lineWidth = px ? 2 : 1.5; ctx.globalAlpha = 0.45 + 0.4 * p;
+      if (px) { var q = Math.round(r * 0.7071); ctx.strokeRect(Math.round(x - q), Math.round(y - q), q * 2, q * 2); }
+      else { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.globalAlpha = 0.12 + 0.3 * p; ctx.fillStyle = P.wheel;
+      if (px) { var q2 = Math.round(r * 0.7071 * p); ctx.fillRect(Math.round(x - q2), Math.round(y - q2), q2 * 2, q2 * 2); }
+      else { ctx.beginPath(); ctx.arc(x, y, r * p, 0, Math.PI * 2); ctx.fill(); }
+      ctx.globalAlpha = 1; glow(ctx, false);
+      bolt(ctx, x, y, 3 + 3 * p, '#ffffff');
     };
 
     // ---------- Враги ----------
@@ -210,13 +225,16 @@
     // ---------- Герой ----------
     api.hero = function (ctx, h, x, y, t, S, scale) {
       var s = scale || 1;
-      if (h.form === 'wheel') {
-        var r = 7 * s, cy = y - r, rot = (h.x * 1.6) % (Math.PI * 2);
-        glow(ctx, true, P.wheel, 10); circ(ctx, x, cy, r, P.heroB); glow(ctx, false);
-        circ(ctx, x, cy, r - 2 * s, P.heroS);
-        for (var k = 0; k < 4; k++) { var a = rot + k * Math.PI / 2; rect(ctx, x + Math.cos(a) * 3.5 * s - 1.5, cy + Math.sin(a) * 3.5 * s - 1.5, 3, 3, P.heroB); }
-        circ(ctx, x, cy, 2 * s, P.wheel);
-        if (Math.floor(t * 20) % 3 === 0) rect(ctx, x - h.face * (r + 2), cy + r - 3, 2, 2, P.wheel);
+      if (h.dash > 0) {   // бросок-молния: яркий след назад по направлению броска и светящееся ядро
+        var cy = y - 16 * s, tl = 46 * s, tx = x - h.ddx * tl, ty = cy - h.ddy * tl, nx = -h.ddy, ny = h.ddx;
+        glow(ctx, true, P.wheel, 16);
+        for (var pass = 0; pass < 2; pass++) {
+          ctx.strokeStyle = pass ? '#ffffff' : P.wheel; ctx.lineWidth = pass ? 1.5 : (px ? 5 : 6); ctx.lineCap = px ? 'butt' : 'round';
+          ctx.beginPath(); ctx.moveTo(x, cy);
+          for (var i = 1; i <= 6; i++) { var j = i === 6 ? 0 : Math.sin(t * 60 + i * 2.1) * 4; ctx.lineTo(x + (tx - x) * i / 6 + nx * j, cy + (ty - cy) * i / 6 + ny * j); }
+          ctx.stroke();
+        }
+        circ(ctx, x, cy, 8 * s, P.wheel); circ(ctx, x, cy, 4 * s, '#ffffff'); glow(ctx, false);
         return;
       }
       var f = h.face, run = h.ground && h.vx ? Math.sin(h.runT * 16) : 0, air = !h.ground;
@@ -236,25 +254,12 @@
       R2(-4, -31, 9, 8, P.heroS); R2(-2, -33, 5, 2, P.heroB); R2(-1, -34, 3, 1, P.heroB);
       glow(ctx, true, P.visor, 6); R2(0, -28, 5, 2, P.visor); glow(ctx, false);
       // ствол по прицелу (8 сторон)
-      var a2 = h.beam.on ? { x: Math.cos(h.beam.ang), y: Math.sin(h.beam.ang) } : h.aim || { x: f, y: 0 };
+      var a2 = h.aim || { x: f, y: 0 };
       var ax = x + 3 * f * s, ay = y - 18 * s, len = 9 * s;
       ctx.strokeStyle = P.heroS; ctx.lineWidth = 4 * s; ctx.lineCap = px ? 'butt' : 'round';
       ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax + a2.x * len, ay + a2.y * len); ctx.stroke();
       ctx.strokeStyle = P.heroB; ctx.lineWidth = 2 * s; ctx.beginPath(); ctx.moveTo(ax + a2.x * len * 0.5, ay + a2.y * len * 0.5); ctx.lineTo(ax + a2.x * len, ay + a2.y * len); ctx.stroke();
       if (h.shotT > 0) { glow(ctx, true, P.accent, 10); circ(ctx, ax + a2.x * (len + 2), ay + a2.y * (len + 2), 2.5 * s, '#ffffff'); glow(ctx, false); }
-    };
-    // луч-кнут: дрожащая молния от ствола до точки упора
-    api.beam = function (ctx, x0, y0, x1, y1, t) {
-      var n = 8, dx = (x1 - x0) / n, dy = (y1 - y0) / n, nx = -dy, ny = dx, l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
-      glow(ctx, true, P.wheel, 14);
-      for (var pass = 0; pass < 2; pass++) {
-        ctx.strokeStyle = pass ? '#ffffff' : P.wheel; ctx.lineWidth = pass ? 1.5 : (px ? 4 : 4.5);
-        ctx.beginPath(); ctx.moveTo(x0, y0);
-        for (var i = 1; i <= n; i++) { var j = i === n ? 0 : Math.sin(t * 50 + i * 2.3) * 2.5; ctx.lineTo(x0 + dx * i + nx * j, y0 + dy * i + ny * j); }
-        ctx.stroke();
-      }
-      glow(ctx, false);
-      circ(ctx, x1, y1, 3 + Math.sin(t * 40), '#ffffff');
     };
     api.bullet = function (ctx, b, x, y) {
       if (b.k === 'L') {
@@ -303,7 +308,7 @@
     bg2: '#0d0f14', panel: '#151820', panelA: 'rgba(16,18,26,.92)', line: '#3a4152', ink: '#f1eee8', muted: '#9aa2b2',
     accent: '#ffb347', good: '#5fe08a', bad: '#ff5d5d', warn: '#ffcc4d', wheel: '#7ff6ff', flash: '#e8fbff',
     hudBg: '#0d0f14', hudLine: '#2a2f3c', barBg: '#2a2f3c', mapBg: 'rgba(0,0,0,.5)', mapRoom: '#6b7a92',
-    gem: '#ff7ae0', mast: '#8a93a6', mastOff: '#4a5164', mineC: '#c9792e',
+    gem: '#ff7ae0', mast: '#8a93a6', mastOff: '#4a5164', copper: '#b8692c', copperHi: '#e9a35a', copperLo: '#5e3114',
     bonus: '#d98a36', bonusHi: '#ffd08a', bonusLo: '#5a3410', gate: '#7a1f24', gateHi: '#d0443a',
     foe: '#b9c0cc', foeLo: '#5c6472', eye: '#ff5a3a', ebul: '#ff7a4a', boss: '#8f97a6', bossLo: '#4a505d', bossHi: '#d98a36',
     heroB: '#d4843a', heroS: '#7d8798', heroD: '#3b4252', visor: '#ffc23a',

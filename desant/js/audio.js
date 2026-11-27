@@ -1,4 +1,4 @@
-/* ДЕСАНТ · звук: оригинальные короткие SFX поверх g.audio.beep движка (WebAudio, без файлов).
+/* ЗАРЕВО · звук: оригинальные короткие SFX поверх g.audio.beep движка (WebAudio, без файлов).
    DESANT.sfx(g, type, data) — из main.js на события логики; частые звуки прорежены. */
 (function (global) {
   'use strict';
@@ -10,28 +10,24 @@
     if (!g.audio.enabled) return;
     d = d || {};
     switch (type) {
-      case 'shot': if (th('s' + d.pi, 70)) g.audio.beep(d.w === 'spread' ? 520 : d.w === 'rapid' ? 980 : d.pi ? 820 : 720, 0.03, 'square', 0.018); break;
-      case 'shell': g.audio.beep(110, 0.12, 'sawtooth', 0.05); break;
+      case 'shot': if (th('s' + d.pi, 70)) g.audio.beep(d.w === 'spread' ? 520 : d.w === 'rapid' ? 980 : 720, 0.03, 'square', 0.018); break;
       case 'eshot': if (th('es', 60)) g.audio.beep(d.mg ? 300 : 360, 0.035, 'square', 0.016); break;
       case 'aim': if (th('aim', 160)) g.audio.beep(1500, 0.02, 'sine', 0.012); break;
       case 'hit': if (th('hit', 45)) g.audio.beep(430, 0.02, 'square', 0.016); break;
       case 'armor': if (th('ar', 90)) g.audio.beep(1900, 0.02, 'triangle', 0.016); break;
       case 'wallHit': if (th('wh', 80)) g.audio.beep(1500, 0.01, 'triangle', 0.008); break;
       case 'kill': if (th('kl', 40)) g.audio.beep(d.type === 'car' || d.type === 'bunker' ? 70 : d.type === 'nest' ? 95 : 210 + Math.random() * 60, d.type === 'rifle' ? 0.06 : 0.22, 'sawtooth', 0.04); break;
+      case 'barStart': seq(g, [880, 660, 440, 330], 90, 0.14, 'sawtooth', 0.045); break;
+      case 'barEnd': g.audio.beep(180, 0.2, 'triangle', 0.03); break;
+      case 'burn': if (th('bu', 70)) g.audio.beep(110 + Math.random() * 60, 0.09, 'sawtooth', 0.03); break;
+      case 'noCharge': if (th('nc', 300)) seq(g, [300, 220], 60, 0.05, 'square', 0.03); break;
       case 'crush': g.audio.beep(90, 0.08, 'square', 0.04); break;
-      case 'nade': g.audio.beep(330, 0.05, 'triangle', 0.03); break;
       case 'lob': if (th('lob', 200)) g.audio.beep(260, 0.06, 'triangle', 0.025); break;
       case 'boom': if (th('bm', 60)) { g.audio.beep(d.enemy ? 90 : 70, 0.22, 'sawtooth', 0.06); g.audio.beep(45, 0.3, 'square', 0.03); } break;
       case 'crate': if (th('cr', 80)) g.audio.beep(160, 0.06, 'square', 0.03); break;
       case 'heroHurt': seq(g, [220, 150], 50, 0.07, 'square', 0.05); break;
       case 'heroDie': seq(g, [523, 392, 311, 233, 175], 80, 0.12, 'sawtooth', 0.06); break;
       case 'respawn': seq(g, [392, 523, 659], 60, 0.07, 'triangle', 0.05); break;
-      case 'tankHit': if (th('th', 90)) g.audio.beep(140, 0.05, 'square', 0.04); break;
-      case 'tankDie': seq(g, [120, 90, 70, 50], 110, 0.25, 'sawtooth', 0.08); break;
-      case 'board': seq(g, [196, 247, 294, 392], 60, 0.08, 'square', 0.04); break;
-      case 'exit': seq(g, [392, 294], 60, 0.06, 'square', 0.035); break;
-      case 'noFuel': if (th('nf', 900)) seq(g, [196, 165, 147], 90, 0.08, 'triangle', 0.04); break;
-      case 'noNade': if (th('nn', 300)) seq(g, [300, 220], 60, 0.05, 'square', 0.03); break;
       case 'pickup': seq(g, d.kind === 'spread' || d.kind === 'rapid' ? [659, 880, 1175] : [880, 1175], 45, 0.05, 'square', 0.035); break;
       case 'life': seq(g, [523, 659, 784, 1046, 1318], 70, 0.08, 'square', 0.05); break;
       case 'checkpoint': seq(g, [587, 740, 880], 80, 0.09, 'triangle', 0.05); break;

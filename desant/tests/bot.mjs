@@ -1,14 +1,14 @@
-/* ДЕСАНТ · tests/bot.mjs — «человеческий» бот для проверки баланса и проходимости.
-   Без читов: управляет только как игрок — setMove(pi, dx, dy) (8 направлений, как клавиши), setFire(pi, on), nade(pi),
+/* ЗАРЕВО (папка desant) · tests/bot.mjs — «человеческий» бот для проверки баланса и проходимости.
+   Без читов: управляет только как игрок — setMove(0, dx, dy) (8 направлений, как клавиши), setFire(0, on), bar() (кнопка «вал»),
    а на экране «Продолжить?» — cont(). Видит только то, что в кадре (как игрок на экране).
    - решения раз в 150–250 мс (реакция), между решениями держит прежние клавиши; поворот ствола — короткое касание
      направления (60–100 мс) с отпущенным огнём, дальше огонь зажат и бот стрейфует, выравниваясь на цель;
    - врага замечает не сразу: при каждом «взгляде» пропускает нового с вероятностью opts.miss (0.25);
    - уходит в сторону от летящих пуль, из-под меток навесных снарядов и с дорожек валунов;
-   - гранаты — по гнёздам, дзотам, броневикам, катерам и частям машин-боссов на дальности броска;
-   - садится в танкетку поблизости и выходит, когда кончилось топливо или броня на исходе;
-   - идёт вверх по кратчайшему пути внутри кадра (поиск по тайлам), подбирает припасы рядом.
-   opts: { startZone=1, maxZone, players=1, miss=0.25, missBullet=0.4, react:[0.15,0.25], maxT=2400, invuln=false, useCont=true } */
+   - огненный вал: пускает перед частоколом, перед толпой пехоты, перед гнёздами/дзотами/броневиками/катерами и против боссов (если хватает заряда),
+     идёт на безопасном расстоянии за полосой (в неё не заходит), сам отбивает вал, когда впереди пусто и заряд на исходе;
+   - идёт вверх по кратчайшему пути внутри кадра (поиск по тайлам; сжигаемые тайлы — «проходимые после вала»), подбирает припасы рядом.
+   opts: { startZone=1, maxZone, miss=0.25, missBullet=0.4, react:[0.15,0.25], maxT=2400, invuln=false, useCont=true } */
 
 export function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 
@@ -22,28 +22,28 @@ export function playDesant(DS, seed, opts = {}){
   const noticed = b => { if (!seenB.has(b)) seenB.set(b, brng() >= missB); return seenB.get(b); };
   const maxT = opts.maxT || 2400;
   const useCont = opts.useCont !== false;
-  const ev = { deaths: 0, why: {}, hits: {}, clears: [], boards: 0, nades: 0, conts: 0, cps: 0, zoneT: [] };
+  const ev = { deaths: 0, why: {}, hits: {}, clears: [], bars: 0, conts: 0, cps: 0, zoneT: [] };
   let tm = 0, zoneStart = 0;
-  const game = DS.Game({ rng: mulberry32(seed), seed, players: opts.players || 1, zone: opts.startZone || 1, maxZone: opts.maxZone,
+  const game = DS.Game({ rng: mulberry32(seed), seed, zone: opts.startZone || 1, maxZone: opts.maxZone,
     onEvent: (t, d) => {
       if (t === 'heroDie'){ ev.deaths++; ev.why[d.src] = (ev.why[d.src] || 0) + 1; if (game && game.state().boss && game.state().boss.active) ev.bossDeaths = (ev.bossDeaths || 0) + 1; }
       else if (t === 'clear'){ ev.clears.push(d.zone); ev.zoneT.push(+(tm - zoneStart).toFixed(1)); }
       else if (t === 'zone'){ if (!d.cp) zoneStart = tm; }
       else if (t === 'heroHurt') ev.hits[d.src] = (ev.hits[d.src] || 0) + 1;
-      else if (t === 'board') ev.boards++;
-      else if (t === 'nade') ev.nades++;
+      else if (t === 'barStart') ev.bars++;
       else if (t === 'continue') ev.conts++;
       else if (t === 'checkpoint') ev.cps++;
       else if (t === 'bossIntro') ev.bossAt = +(tm - zoneStart).toFixed(1);
     } }).start();
   const S = game.state(), dt = 1 / 60;
-  const ctl = S.heroes.map(() => ({ next: 0, mv: [0, 0], fire: false, tap: 0, want: [0, -1], seen: new Set(), skip: new Set() }));
+  const ctl = S.heroes.map(() => ({ next: 0, mv: [0, 0], fire: false, tap: 0, want: [0, -1], seen: new Set(), skip: new Set(), barAt: -99 }));
   let lastCam = S.camY, lastCamT = 0, stuck = false, contWait = 0;
 
   const walk = (tx, ty) => tx >= 0 && tx < COLS && ty >= 0 && ty < S.D.h && L.WALK[S.tiles[tx + ty * COLS]] === 1;
-  const tankWalk = (tx, ty) => tx > 0 && tx < COLS - 1 && ty >= 0 && ty < S.D.h && L.TANKOK[S.tiles[tx + ty * COLS]] === 1 && !game._circleHits(tx * T + T / 2, ty * T + T / 2, L.TANK.r - 1, L.TANKOK);
+  const burnable = (tx, ty) => tx > 0 && tx < COLS - 1 && ty >= 0 && ty < S.D.h && L.BURN[S.tiles[tx + ty * COLS]] === 1;
+  const plan = (tx, ty) => walk(tx, ty) || burnable(tx, ty);   // сжигаемое бот планирует «пройти после вала»
   function bfs(h, rowMin, rowMax){
-    const ok = h.tank ? tankWalk : walk;
+    const ok = plan;
     const sx = Math.floor(h.x / T), sy = Math.floor(h.y / T), N = COLS * S.D.h, dist = new Int16Array(N).fill(-1), prev = new Int32Array(N).fill(-1), q = [sx + sy * COLS];
     dist[q[0]] = 0;
     for (let i = 0; i < q.length; i++){ const c = q[i], x = c % COLS, y = (c - x) / COLS;
@@ -55,13 +55,12 @@ export function playDesant(DS, seed, opts = {}){
     const path = []; for (let k = goal; k >= 0 && k !== B.start; k = B.prev[k]) path.push(k); path.reverse();
     if (!path.length) return pt && Math.hypot(pt.x - h.x, pt.y - h.y) > 3 ? L.oct(pt.x - h.x, pt.y - h.y) : null;
     let idx = 0;
-    for (let i = Math.min(3, path.length - 1); i > 0; i--){ const k = path[i], x = (k % COLS) * T + T / 2, y = Math.floor(k / COLS) * T + T / 2; if (clearLineT(h, h.x, h.y, x, y)){ idx = i; break; } }
+    for (let i = Math.min(3, path.length - 1); i > 0; i--){ const k = path[i], x = (k % COLS) * T + T / 2, y = Math.floor(k / COLS) * T + T / 2; if (clearLine(h.x, h.y, x, y)){ idx = i; break; } }
     const k = path[idx], x = (k % COLS) * T + T / 2, y = Math.floor(k / COLS) * T + T / 2;
     return L.oct(x - h.x, y - h.y);
   }
   function clearLine(x0, y0, x1, y1){ const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 6); for (let i = 0; i <= n; i++){ const x = x0 + (x1 - x0) * i / n, y = y0 + (y1 - y0) * i / n; if (game._circleHits(x, y, L.HERO_R + 1, L.WALK)) return false; } return true; }
-  const clearLineT = (h, x0, y0, x1, y1) => { if (!h.tank) return clearLine(x0, y0, x1, y1); const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 6); for (let i = 0; i <= n; i++){ if (game._circleHits(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, L.TANK.r, L.TANKOK)) return false; } return true; };
-  function okDir(h, d){ const n = Math.hypot(d[0], d[1]) || 1; return h.tank ? !game._circleHits(h.x + d[0] / n * 8, h.y + d[1] / n * 8, L.TANK.r, L.TANKOK) : !game._circleHits(h.x + d[0] / n * 10, h.y + d[1] / n * 10, L.HERO_R, L.WALK); }
+  function okDir(h, d){ const n = Math.hypot(d[0], d[1]) || 1; return !game._circleHits(h.x + d[0] / n * 10, h.y + d[1] / n * 10, L.HERO_R, L.WALK); }
 
   function targets(h){
     const out = [], top = S.camY, bot = S.camY + VH;
@@ -72,7 +71,7 @@ export function playDesant(DS, seed, opts = {}){
       if (!C.seen.has(key)){ if (!C.skip.has(key) && brng() < miss){ C.skip.add(key); return; } C.seen.add(key); }
       let x = e.x;
       if (e.type === 'car' || e.type === 'boat'){ const fl = Math.hypot(e.x - h.x, e.y - h.y) / L.BULLET.speed; x = e.x + e.vx * L.ENEMIES[e.type].speed * fl; }   // упреждение, как у игрока
-      out.push({ id: 'e' + e.id, x, y: e.y, r: e.r, kind: e.type, heavy: e.type !== 'rifle' && e.type !== 'grenadier', bunker: e.type === 'bunker' });
+      out.push({ id: 'e' + e.id, x, y: e.y, r: e.r, kind: e.type, heavy: e.type !== 'rifle' && e.type !== 'grenadier', bunker: e.type === 'bunker', mob: e.type === 'rifle' || e.type === 'grenadier' });
     });
     if (S.boss && S.boss.active && !S.boss.dead && S.boss.intro <= 0) S.boss.parts.forEach(p => { if (!p.dead && game._vuln(p)) out.push({ id: 'p' + p.id, x: p.x, y: p.y, r: p.r, kind: 'part', heavy: true, boss: true }); });
     return out;
@@ -81,21 +80,15 @@ export function playDesant(DS, seed, opts = {}){
     const h = S.heroes[pi], c = ctl[pi];
     if (!h.alive || h.out){ c.mv = [0, 0]; c.fire = false; return; }
     const top = S.camY, bot = S.camY + VH, boss = S.boss && S.boss.active;
-    // танкетка: выйти, если пусто в баке или броня на исходе
-    if (h.tank){   // танкетка: выйти, если пусто в баке или машина упёрлась (узкий проход)
-      const moved = Math.hypot(h.x - (c.px || 0), h.y - (c.py || 0)) > 3; c.px = h.x; c.py = h.y;
-      c.stuckT = (c.mv[0] || c.mv[1]) && !moved ? (c.stuckT || 0) + (r0 + r1) / 2 : 0;
-      if (h.tank.fuel <= 0 || c.stuckT > 2.5){ c.stuckT = 0; game.nade(pi); c.mv = [0, 1]; c.noTank = tm + 25; return; }
-    }
     // 2) цель
     const ts = targets(h);
     let tgt = null, bd = 1e9;
     for (const t of ts){
-      if (t.bunker && (h.nades <= 0 || t.y > h.y - 60)) continue;
+      if (t.bunker) continue;   // дзот пулями не берётся — только валом
       if (c.ban && c.ban[t.id] > tm) continue;   // «надоела» — не попадаю, иду дальше
       const d = Math.hypot(t.x - h.x, t.y - h.y); if (d > (t.boss ? 600 : 420)) continue;
       const see = game._los(h.x, h.y, t.x, t.y, true);
-      if (!see && !(t.heavy && h.nades > 0 && d < 220)) continue;   // за укрытием — не тратить время (кроме цели для гранаты)
+      if (!see) continue;   // за укрытием — не тратить время
       const w = d * (t.boss ? 0.6 : t.heavy ? 1.15 : 1) * (see ? 1 : 1.8) * (t.id === c.tid ? 0.6 : 1);   // держится прежней цели
       if (w < bd){ bd = w; tgt = t; }
     }
@@ -105,11 +98,9 @@ export function playDesant(DS, seed, opts = {}){
     const rowMin = Math.max(0, Math.floor((top + 40) / T)), rowMax = Math.floor((bot - 14) / T);
     const B = bfs(h, rowMin, rowMax);
     let goal = -1, goalPt = null;
-    const tanks = S.tanks.filter(tk => !tk.dead && tk.pilot == null && tk.fuel > 0.15 && tk.armor > 4 && tk.y > top + 40 && tk.y < bot - 10 && Math.hypot(tk.x - h.x, tk.y - h.y) < 240);
-    const useful = it => !(it.kind === 'fuel' && !h.tank) && !(it.kind === 'nade' && h.nades >= 7) && !(it.kind === 'med' && h.hp >= L.HP);
+    const useful = it => !(it.kind === 'shell' && S.charge > 85) && !(it.kind === 'med' && h.hp >= L.HP);
     const items = S.items.filter(it => !it.taken && it.y > top + 40 && it.y < Math.min(bot - 10, h.y + 50) && Math.hypot(it.x - h.x, it.y - h.y) < 150 && useful(it))
       .sort((a, b) => (a === c.item ? -1 : b === c.item ? 1 : Math.hypot(a.x - h.x, a.y - h.y) - Math.hypot(b.x - h.x, b.y - h.y)));
-    if (!h.tank && tanks.length && !boss && !(c.noTank > tm)){ const tk = tanks[0]; goal = Math.floor(tk.x / T) + Math.floor(tk.y / T) * COLS; goalPt = tk; if (B.dist[goal] < 0) goal = -1; }
     if (goal < 0 && items.length){ const it = items[0], k = Math.floor(it.x / T) + Math.floor(it.y / T) * COLS; if (B.dist[k] >= 0 && B.dist[k] < 9){ goal = k; goalPt = it; c.item = it; } }
     if (goal < 0){
       // вверх: самая верхняя достижимая строка, ближе к выбранному x
@@ -139,6 +130,8 @@ export function playDesant(DS, seed, opts = {}){
       if (!aligned && (want[0] !== f[0] || want[1] !== f[1])){ c.tap = 0.06 + brng() * 0.04; c.want = want; c.fire = !tgt.bunker; }
       else {
         c.fire = !tgt.bunker;
+        c.misT = !aligned ? (c.misT || 0) + (r0 + r1) / 2 : 0;
+        if (c.misT > 2.5){ (c.ban = c.ban || {})[tgt.id] = tm + 8; c.misT = 0; }   // долго не выходит на линию огня — бросить цель
         if (!aligned){
           const side = L.oct(dx - f[0] * ahead / fl, dy - f[1] * ahead / fl);
           // стрейф поперёк ствола + продвижение по пути вдоль ствола (если по пути есть такая составляющая)
@@ -146,20 +139,42 @@ export function playDesant(DS, seed, opts = {}){
           if ((mix[0] || mix[1]) && okDir(h, mix)) move = mix; else if (okDir(h, side)) move = side;
         }
       }
-      // граната: дальность броска ≈ 150 по линии ствола
-      if (!h.tank && h.nades > 0 && tgt.heavy && Math.abs(ahead - L.NADE.range) < 36 && perp < 26 && h.nadeCd <= 0) game.nade(pi);
-      else if (!h.tank && tgt.heavy && h.nades > 0 && perp < 26 && ahead > 0 && !boss){
-        // подойти/отойти на дальность броска
-        const need = ahead - L.NADE.range, d2 = need > 0 ? [f[0], f[1]] : [-f[0], -f[1]];
-        if (Math.abs(need) > 30 && okDir(h, d2) && (tgt.bunker || tgt.kind === 'nest')) move = d2;
-      }
-    } else {
+    }
+    else {
       // никого: ствол вверх и «на всякий случай» огонь
       if (h.face[0] !== 0 || h.face[1] !== -1){ c.tap = 0.06 + brng() * 0.04; c.want = [0, -1]; c.fire = true; }
       else c.fire = true;
     }
+    // 4б) огненный вал: когда пускать, где держаться, когда отбить
+    {
+      const Bn = S.bar, active = Bn.st !== 'idle', cost = L.BAR;
+      let blk = null;   // ближайшая сжигаемая клетка на пути к цели (частокол/укрытия) выше бойца
+      if (goal >= 0 && B.dist[goal] >= 0){
+        const path = []; for (let k = goal; k >= 0 && k !== B.start; k = B.prev[k]) path.push(k); path.reverse();
+        for (const k of path){ const tx = k % COLS, ty = (k - tx) / COLS; if (!walk(tx, ty) && burnable(tx, ty)){ blk = { x: tx * T + T / 2, y: ty * T + T / 2 }; break; } }
+      }
+      const dBlk = blk ? h.y - (blk.y + T / 2) : 1e9;   // расстояние до нижней кромки преграды
+      const above = ts.filter(t => !t.boss && t.y < h.y - 40 && h.y - t.y < 330);
+      const crowd = above.filter(t => t.mob && h.y - t.y > 80 && game._los(h.x, h.y, t.x, t.y, true)).length;
+      const heavyAhead = above.some(t => t.heavy && h.y - t.y > 110 && h.y - t.y < 300);
+      const bossNear = boss && S.boss.parts.some(p => !p.dead && game._vuln(p) && h.y - p.y < 480);
+      if (!active){
+        let want = false;
+        if (blk && dBlk >= 40 && dBlk < 260 && S.charge >= cost.min + 25) want = true;
+        else if (blk && dBlk < 40 && dBlk > -30 && okDir(h, [0, 1])) move = [0, 1];   // отойти, чтобы вал стартовал ниже преграды
+        else if ((crowd >= 3 || heavyAhead) && S.charge >= 55 && !(blk && dBlk < 60)) want = true;
+        else if (bossNear && S.charge >= 45 && S.boss.intro <= 0) want = true;
+        if (want && tm - c.barAt > 3.5){ if (game.bar() === 'start') c.barAt = tm; }
+      } else {
+        const bd = h.y - Bn.y;
+        if (bd < 66){ if (move[1] < 0) move = [move[0], 0]; if (bd < 54) move = [move[0], 1]; }
+        // впереди пусто и заряда немного — отбить, чтобы сберечь остаток
+        const clearAhead = !above.some(t => t.y < Bn.y + 20) && !(blk && blk.y < Bn.y + 40) && !bossNear;
+        if (Bn.st === 'run' && clearAhead && S.charge < 60 && tm - c.barAt > 1.2){ game.bar(); c.barAt = tm; }
+      }
+    }
     // 5) угрозы: оценить 9 вариантов хода на 0.6 с вперёд (пули, метки навесного огня, валуны) и выбрать безопасный
-    const sp = h.tank ? L.TANK.speed : L.SPEED, R = h.tank ? L.TANK.r : L.HERO_R;
+    const sp = L.SPEED, R = L.HERO_R;
     function danger(m){
       const n = Math.hypot(m[0], m[1]) || 1, mx = m[0] / n * sp, my = m[1] / n * sp; let d = 0;
       for (let t = 0.1; t <= 0.61; t += 0.1){
@@ -191,7 +206,7 @@ export function playDesant(DS, seed, opts = {}){
       if (contWait > 1.2){ contWait = 0; if (useCont) game.cont(); else { while (S.phase === 'cont') game.update(0.5); break; } }
       game.update(dt); tm += dt; continue;
     }
-    if (opts.invuln) S.heroes.forEach(h => { h.inv = 1e9; if (h.tank) h.tank.armor = h.tank.max; });
+    if (opts.invuln) S.heroes.forEach(h => { h.inv = 1e9; });
     for (let pi = 0; pi < S.heroes.length; pi++){
       const c = ctl[pi];
       if (tm >= c.next){ decide(pi); c.next = tm + r0 + brng() * (r1 - r0); if (opts.trace) opts.trace(tm, S, c); }
@@ -203,5 +218,5 @@ export function playDesant(DS, seed, opts = {}){
     if (tm - lastCamT > 60){ stuck = true; if (opts.debug) opts.debug(S, game, ctl); break; }
   }
   return { seed, zone: S.zone, cleared: ev.clears.length, won: S.phase === 'won', score: S.score, deaths: ev.deaths, why: ev.why, hits: ev.hits, stuck, t: +tm.toFixed(1),
-    bossAt: ev.bossAt, bossDeaths: ev.bossDeaths || 0, boards: ev.boards, nades: ev.nades, conts: ev.conts, cps: ev.cps, zoneT: ev.zoneT, phase: S.phase, camY: Math.round(S.camY) };
+    bossAt: ev.bossAt, bossDeaths: ev.bossDeaths || 0, bars: ev.bars, conts: ev.conts, cps: ev.cps, zoneT: ev.zoneT, phase: S.phase, camY: Math.round(S.camY) };
 }

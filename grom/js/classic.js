@@ -8,7 +8,7 @@
     bg2: '#000000', panel: '#000000', panelA: '#000000', line: '#5555ff', ink: '#ffffff', muted: '#aaaaaa',
     accent: '#ffff55', good: '#55ff55', bad: '#ff5555', warn: '#ffff55', wheel: '#55ffff', flash: '#ffffff',
     hudBg: '#000000', hudLine: '#5555ff', barBg: '#555555', mapBg: '#000000', mapRoom: '#5555ff',
-    gem: '#ff55ff', mast: '#aaaaaa', mastOff: '#555555', mineC: '#aa5500',
+    gem: '#ff55ff', mast: '#aaaaaa', mastOff: '#555555', copper: '#aa5500', copperHi: '#ffaa55', copperLo: '#552200',
     bonus: '#aa5500', bonusHi: '#ffff55', bonusLo: '#000000', gate: '#aa0000', gateHi: '#ff5555',
     foe: '#aaaaaa', foeLo: '#555555', eye: '#ff5555', ebul: '#ff5555', boss: '#aaaaaa', bossLo: '#555555', bossHi: '#aa5500',
     heroB: '#aa5500', heroS: '#aaaaaa', heroD: '#555555', visor: '#ffff55',

@@ -1,8 +1,9 @@
-/* ГРОМ · сборка: фреймворк Гефест Arcade (engine.js) + логика (game.js) + рендеры retro/modern + звук.
+/* РАСКАТ (папка grom; EN — CLAPBOLT) · сборка: фреймворк Гефест Arcade (engine.js) + логика (game.js) + рендеры retro/modern + звук + площадка.
    Сцены title/pause/win/gameover — g.useStandardScreens; титул переопределён: панорама Литейного двора + меню движка.
-   Ввод — g.input.setPlayers (одна раскладка): ←→/AD бег, ↑↓/WS прицел и направление луча, Пробел/Z/K прыжок,
-   X/J огонь (в колесе — мина), C/U луч-кнут (держать), V/Shift колесо, B/Q молния.
-   Тач: крестовина, ● огонь, ⤒ прыжок, ≈ луч, ◎ колесо, ϟ молния, II пауза. */
+   Ввод — g.input.setPlayers (одна раскладка): ←→/AD бег, ↑↓/WS прицел и сторона броска, Пробел/K прыжок, X/J огонь,
+   Z/C/Shift бросок-молния; геймпад: A — прыжок, B — огонь, X — бросок.
+   Тач (площадки): плавающий стик (js/stick.js) + ● огонь + ⤒ прыжок + ϟ бросок + II пауза (стик + 3 кнопки).
+   Миграция: старый рекорд (очки) сохраняется; один раз показывается сообщение «игра обновлена» (ключ arcade.grom.v). */
 (function (global) {
   'use strict';
   var GR = global.GROM, L = GR.logic, UI = GR.ui;
@@ -12,19 +13,34 @@
     retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#ffff55', muted: '#aaaaaa', ink: '#ffffff' })
   };
   var W = L.VIEW_W * L.T, H = L.HUD + L.VIEW_H * L.T;
-  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'grom', strings: GR.STR, theme: 'modern', lives: L.LIVES, themes: themes });
+  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'grom', leaderboard: 'grom', strings: GR.STR, theme: 'modern', lives: L.LIVES, themes: themes });
   GR.g = g;
   var pad = document.querySelector('.pad');
-  g.input.bindDpad(pad);
+  var stick = global.ArcadeStick.create(pad && pad.querySelector('[data-stick]'));
+  // миграция: механика сменилась (колесо и луч → бросок-молния); рекорд в очках остаётся, игроку один раз сообщаем
+  var migrated = false;
+  try { if (localStorage.getItem('arcade.grom.v') !== '2') { migrated = !!localStorage.getItem('arcade.best.grom'); localStorage.setItem('arcade.grom.v', '2'); } } catch (e) {}
+  var migNote = migrated ? 3.5 : 0;
+  // ---------- Площадка: таблица лидеров «grom», «Без рекламы», реклама за награду; на сайте пунктов нет ----------
+  // Консоль: Яндекс — лидерборд с техническим именем «grom», GamePush — поле игрока «grom» + лидерборд; товар no_ads. Список — promo/grom/platform.json.
+  g.persist('arcade.best.grom', 'max');
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: 'grom' }); }
+  g.useLeaderboard({ boards: [{ id: 'grom', label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });
+  g.useRewardedContinue({ revive: function () { if (game) { game.revive(); sync(); } } });
+  g.useRewardedBonus({ key: 'rwHeal', scene: 'pause', label: function () { return g.t('rwHeal'); },
+    available: function () { return !!game && game.canBoost(); }, grant: function () { if (game) game.boost(); } });
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(17, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
   g.input.setPlayers({
     bind: { p1: { left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], up: ['ArrowUp', 'KeyW'], down: ['ArrowDown', 'KeyS'],
-      jump: ['Space', 'KeyZ', 'KeyK'], fire: ['KeyX', 'KeyJ'], beam: ['KeyC', 'KeyU'], wheel: ['KeyV', 'ShiftLeft', 'ShiftRight'], thunder: ['KeyB', 'KeyQ'] } },
-    actions: ['wheel', 'thunder', 'fire', 'jump'], touch: { L: 'left', R: 'right', U: 'up', D: 'down' }, count: 1
+      jump: ['Space', 'KeyK'], fire: ['KeyX', 'KeyJ'], dash: ['KeyZ', 'KeyC', 'ShiftLeft', 'ShiftRight'] } },
+    actions: ['jump', 'fire', 'dash'], count: 1
   });
   var P1 = g.input.player(0);
   function rnd() { return g.themeName === 'retro' ? GR.classic : GR.modern; }
 
-  var game = null, shakeT = 0, touch = { jump: false, fire: false, beam: false }, endT = null;
+  var game = null, shakeT = 0, touch = { jump: false, fire: false }, endT = null, adHold = false, tut = { a: false, b: false, c: false }, playT = 0;
   function sync() { if (!game) return; var S = game.state(); g.state.score = S.score; g.state.lives = S.lives; g.state.level = S.level; }
   function onEvent(type, d) {
     d = d || {};
@@ -46,16 +62,18 @@
       case 'beacon': UI.toast(g.t('beacon'), P.wheel, d.x, d.y - 2); UI.spawn(d.x, d.y - 1, { color: P.wheel, count: 14, speed: 5, life: 0.6, size: sz }); break;
       case 'secret': UI.toast(g.t('secret'), P.warn, d.x, d.y - 3, true); break;
       case 'extraLife': UI.toast(g.t('extraLife'), P.accent, S.hero.x, S.hero.y - 4, true); break;
-      case 'noWheel': UI.toast(g.t('noWheel'), P.muted, S.hero.x, S.hero.y - 3); break;
+      case 'noDash': UI.toast(g.t('noDash'), P.muted, S.hero.x, S.hero.y - 3); break;
+      case 'dash': UI.spawn(d.x, d.y, { color: P.wheel, count: 10, speed: 5, life: 0.3, size: 2 }); break;
+      case 'clap': shakeT = Math.max(shakeT, 0.3); UI.spawn(d.x, d.y, { color: P.wheel, count: 22, speed: 9, life: 0.5, size: sz }); UI.spawn(d.x, d.y, { color: '#ffffff', count: 8, speed: 6, life: 0.3, size: sz }); break;
       case 'deflect': UI.spawn(d.x, d.y, { color: P.wheel, count: 4, speed: 5, life: 0.2, size: 2 }); break;
       case 'stomp': shakeT = Math.max(shakeT, 0.3); UI.spawn(d.x, d.y - 0.2, { color: '#9b8a78', count: 16, speed: 6, life: 0.5, size: sz }); break;
       case 'strike': shakeT = Math.max(shakeT, 0.2); break;
-      case 'thunder': shakeT = Math.max(shakeT, 0.5); break;
       case 'phase': UI.toast(g.t('phase') + ' ' + (d.phase + 1), P.bad, d.x, d.y - 3, true); break;
       case 'bossDie': shakeT = 1.4; for (var k = 0; k < 4; k++) UI.spawn(d.x + (k - 1.5), d.y, { color: k % 2 ? P.warn : P.bad, count: 20, speed: 10, life: 1.2, size: sz + 1 }); break;
       case 'portal': UI.toast(g.t('portal'), P.wheel, d.x, d.y - 4, true); break;
       case 'timeLow': UI.toast(g.t('timeLow'), P.warn, S.hero.x, S.hero.y - 4, true); break;
       case 'level': UI.clearFx(); break;
+      case 'clear': adHold = false; if (g.adReady && g.adReady()) { adHold = true; setTimeout(function () { g.adBreak().then(function () { adHold = false; }, function () { adHold = false; }); }, 1600); } break;
       case 'win': endT = { at: g.time + 1.2, to: 'win' }; break;
       case 'gameover': endT = { at: g.time + 1.0, to: 'gameover' }; break;
     }
@@ -63,14 +81,13 @@
   }
   function newGame(o) {
     game = GR.Game(Object.assign({ onEvent: onEvent }, o || {}));
-    GR.current = game; UI.clearFx(); shakeT = 0; endT = null; game.start(); sync();
+    GR.current = game; UI.clearFx(); shakeT = 0; endT = null; adHold = false; playT = 0; tut = { a: false, b: false, c: false }; game.start(); sync();
   }
   function act(name) {
     if (g._sceneName !== 'play' || !game) return;
     var S = game.state();
     if (S.phase === 'cont') { if (name === 'fire' || name === 'jump' || name === 'start') game.cont(); return; }
-    if (name === 'wheel') game.wheel();
-    else if (name === 'thunder') game.thunder();
+    if (name === 'dash') game.dash();
   }
   P1.onPress(act);
   UI.init(g, {
@@ -114,9 +131,11 @@
     UI.txt(this, this.t('sub2'), Wc / 2, y0 + 101, { size: P.pixel ? 9 : 11, align: 'center', color: th.muted, weight: 600 }, P);
     var fake = L.newHero(0, 0); fake.ground = true; fake.vx = 1; fake.runT = demoT * 0.5; fake.aim = { x: 1, y: 0 };
     R.hero(ctx, fake, x0 + 46, y0 + 236, demoT, DS, 2);
-    var wh = L.newHero(0, 0); wh.form = 'wheel'; wh.x = demoT * 3; wh.face = -1;
+    var wh = L.newHero(0, 0); wh.dash = 1; wh.ddx = -1; wh.ddy = 0; wh.x = demoT * 3; wh.face = -1;
     R.hero(ctx, wh, x0 + pw - 46, y0 + 236, demoT, DS, 2);
-    menu.draw(this, Wc / 2, y0 + 134, 27);
+    var mf = menuFit(menu, y0 + 128, 26, y0 + 112, y0 + ph - 30);
+    menu.draw(this, Wc / 2, mf[0], mf[1]);
+    if (migNote > 0) UI.txt(this, this.t('migrated'), Wc / 2, Hc - 12, { size: 10, align: 'center', color: P.good, weight: 700, maxWidth: Wc - 24 }, P);
     if (this.state.best) UI.txt(this, this.t('best') + ': ' + this.state.best, Wc / 2, y0 + ph - 14, { size: 11, align: 'center', color: th.muted, weight: 600 }, P);
     this.menu._drawHint('title');
   };
@@ -129,13 +148,17 @@
     press: function (a) { if (a === 'pause') this.pause(); else if (a === 'start' || a === 'action') act('start'); },
     update: function (dt) {
       if (!game) return;
+      if (migNote > 0) migNote -= dt;
       var dir = P1.dir;
-      game.setInput({ dx: dir.x, dy: dir.y, jump: P1.pressed('jump') || touch.jump, fire: P1.pressed('fire') || touch.fire, beam: P1.pressed('beam') || touch.beam });
+      if (adHold) return;
+      var sd = stick.active ? stick.dir(0.4) : null, dx = dir.x || (sd ? (sd.right ? 1 : sd.left ? -1 : 0) : 0), dy = dir.y || (sd ? (sd.up ? -1 : sd.down ? 1 : 0) : 0);
+      game.setInput({ dx: dx, dy: dy, jump: P1.pressed('jump') || touch.jump, fire: P1.pressed('fire') || touch.fire });
+      tutorial(dt);
       var n = Math.max(1, Math.min(4, Math.round(Math.min(dt, 0.066) / STEP)));
       for (var k = 0; k < n; k++) game.update(STEP);
       UI.updFx(dt);
       if (shakeT > 0) shakeT -= dt;
-      if (endT && g.time >= endT.at) { var to = endT.to; endT = null; sync(); if (to === 'win') g.win(); else g.gameover(); }
+      if (endT && g.time >= endT.at) { var to = endT.to; endT = null; sync(); if (to === 'win') g.win(); else g.gameover(); lbBest(); }
       sync();
     },
     draw: function (ctx) {
@@ -144,6 +167,18 @@
     }
   });
 
+  // ---------- подсказки первого уровня (по месту) ----------
+  function tutorial(dt) {
+    var S = game.state(); if (S.level !== 1 || S.phase !== 'play') return;
+    var h = S.hero; playT += dt;
+    if (!tut.a && playT > 2.5) { tut.a = true; UI.toast(g.t('tutDash'), rnd().P.warn, S.cam.x + L.VIEW_W / 2, S.cam.y + 5, true); return; }
+    if (!tut.b && tut.a) {
+      var r0 = Math.floor(h.y) - 3, c0 = Math.floor(h.x) - 9, c1 = Math.floor(h.x) + 9, near = false;
+      for (var r = r0; r <= r0 + 3 && !near; r++) for (var c = c0; c <= c1; c++) if (c > 0 && c < S.W && r > 0 && r < S.H && S.t[r * S.W + c] === L.M) { near = true; break; }
+      if (near) { tut.b = true; UI.toast(g.t('tutPlate'), rnd().P.warn, S.cam.x + L.VIEW_W / 2, S.cam.y + 5, true); return; }
+    }
+    if (!tut.c && tut.a && playT > 14 && S.enemies.some(function (e) { return !e.dead && Math.abs(e.x - h.x) < 7 && Math.abs(e.y - h.y) < 3; })) { tut.c = true; UI.toast(g.t('tutClap'), rnd().P.warn, S.cam.x + L.VIEW_W / 2, S.cam.y + 5, true); }
+  }
   g.start('title');
   GR.app = { g: g, game: function () { return game; }, newGame: newGame };   // для отладки/автотестов в браузере: newGame({ level: 3 })
 })(typeof window !== 'undefined' ? window : globalThis);

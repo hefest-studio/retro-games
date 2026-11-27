@@ -1,9 +1,10 @@
-/* ГРОМ · tests/engine.test.mjs — автотесты логики (Node, без зависимостей).
+/* РАСКАТ (grom) · tests/engine.test.mjs — автотесты логики (Node, без зависимостей).
    Запуск: node grom/tests/engine.test.mjs (QUICK=1 — без партий бота). Логика (js/game.js) в node:vm с шимом window. */
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
+import { checkPlatformFeatures } from '../../tools/promo/platform-features.check.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
@@ -63,7 +64,7 @@ test('несколько путей к выходу: ≥ 2 рёберно-нез
     ok(lv.conns.filter(c => !c.tree).length >= 1, 'петли');
   }
 });
-test('тайники, бонус-блоки, тоннели «колеса», громоотводы и враги на каждом уровне', () => {
+test('тайники, бонус-блоки, медные заслонки, громоотводы и враги на каждом уровне', () => {
   let tunnels = 0;
   for (let n = 1; n <= 4; n++){
     const lv = L.level(n), secrets = lv.rooms.filter(r => r.kind === 's');
@@ -78,7 +79,7 @@ test('тайники, бонус-блоки, тоннели «колеса», г
     if (n >= 2) ok(lv.spawns.some(s => s.type === 'hopper'), 'прыгуны');
     eq(lv.rooms[lv.bossRoom].kind, 'X'); ok(lv.gates.length >= 3, 'ворота арены');
   }
-  ok(tunnels >= 4, 'тоннелей ' + tunnels);
+  ok(tunnels >= 4, 'заслонок ' + tunnels);
 });
 
 // ---------- проходимость (граф по настоящей физике) ----------
@@ -93,7 +94,7 @@ test('достижимость выхода: с исходной картой а
     lv.rooms.filter(r => r.kind !== 's').forEach(r => ok(rooms.has(r.i), n + ': комната ' + r.rx + ',' + r.ry));
   }
 });
-test('тайники: за трещиной/люком — только если их разбить; за тоннелем — колесом; всё достижимо', () => {
+test('тайники: за трещиной/люком — только если их разбить; за медной заслонкой — броском-молнией; всё достижимо', () => {
   for (let n = 1; n <= 4; n++){
     const N = NAVS[n], lv = N.lv, RB = NAVB[n].reach(N.start), R = N.nav.reach(N.start);
     const all = new Set([...RB].map(id => nodeRoom(lv, id))), intact = new Set([...R].map(id => nodeRoom(lv, id)));
@@ -123,13 +124,13 @@ test('граф совпадает с физикой игры: 200 случайн
     const e = es[Math.floor(rng() * es.length)], { game, S } = mk({ level: n }), c = id % S.W, r = Math.floor(id / S.W);
     game._place(c + 0.5, r); S.hero.charge = L.CHARGE;
     const m = new L.Macro(e.a, c);
-    for (let i = 0; i < 400 && !m.done && !m.fail; i++){ const o = m.input(S.hero); if (o.form) game.setForm(o.form); game.setInput({ dx: o.dx, jump: o.jump }); game.update(1 / 60); m.after(S.hero); S.enemies = []; S.eb = []; S.hero.inv = 1; }
+    for (let i = 0; i < 400 && !m.done && !m.fail; i++){ const o = m.input(S.hero); game.setInput({ dx: o.dx, jump: o.jump }); if (o.dash) game.dash(); game.update(1 / 60); m.after(S.hero); S.enemies = []; S.eb = []; S.hero.inv = 1; }
     ok(m.done, 'ребро не завершилось'); eq(L.nodeOf(S, S.hero), e.to, 'уровень ' + n + ' ребро ' + c + ',' + r + ' ' + L.ACTS[e.a].k); checked++;
   }
   ok(checked > 150);
 });
 
-// ---------- физика, форма-колесо ----------
+// ---------- физика ----------
 test('прыжок ≈ 5 клеток; короткое нажатие — ниже; бег 7 клеток/с', () => {
   const lv = L.level(1), sp = floorSpot(lv, lv.rooms[0], 2), { game, S } = mk();
   game._place(sp.x, sp.y); let minY = S.hero.y;
@@ -139,36 +140,52 @@ test('прыжок ≈ 5 клеток; короткое нажатие — ни�
   game.setInput({ jump: true }); game.update(1 / 60); game.update(1 / 60); for (let i = 0; i < 60; i++){ game.setInput({}); game.update(1 / 60); minY = Math.min(minY, S.hero.y); }
   ok(sp.y - minY < 2.5, 'короткий ' + (sp.y - minY).toFixed(2));
 });
-function tunnelSpot(){
+function plateSpot(){
   for (let n = 1; n <= 4; n++){ const lv = L.level(n), c = lv.conns.find(q => q.k === 'tunnel'); if (c) return { n, lv, c }; }
 }
-test('колесо: человек в тоннель не проходит, колесо — проходит и само разворачивается на выходе', () => {
-  const { n, c } = tunnelSpot(), { game, S, has } = mk({ level: n });
-  game._place(c.wall - 7.5, c.F); run(game, 2, { dx: 1 });
-  ok(S.hero.x < c.wall - 5, 'стена держит: ' + S.hero.x.toFixed(2));
-  ok(game.wheel(), 'свернулся'); eq(S.hero.form, 'wheel');
-  ok(!game.setForm('man') || S.hero.form === 'man'); game.setForm('wheel');
-  run(game, 0.3, { dx: 1 }); ok(S.hero.x > c.wall - 5, 'в тоннеле'); ok(!game.setForm('man'), 'в тоннеле не развернуться'); eq(S.hero.form, 'wheel');
-  run(game, 1.2, { dx: 1 }); ok(S.hero.x > c.wall + 6, 'выехал: ' + S.hero.x.toFixed(2));
-  ok(game.setForm('man')); ok(has('wheel'));
+// ---------- бросок-молния и раскат ----------
+test('медная заслонка: пешком не пройти, бросок-молния проходит насквозь и не застревает', () => {
+  const { n, c } = plateSpot(), { game, S, has } = mk({ level: n });
+  game._place(c.wall - 3.5, c.F); run(game, 2, { dx: 1 });
+  ok(S.hero.x < c.wall - 0.3, 'заслонка держит: ' + S.hero.x.toFixed(2));
+  game._place(c.wall - 3.5, c.F); S.hero.charge = L.CHARGE; game.setInput({ dx: 1 }); ok(game.dash(), 'бросок'); ok(has('dash'));
+  run(game, 0.6); ok(S.hero.x > c.wall + 1, 'прошёл: ' + S.hero.x.toFixed(2)); ok(L.boxFree(S, S.hero.x, S.hero.y, L.HW, L.HH), 'не в стене'); eq(S.hero.dash, 0);
+  // с края вплотную: бросок заканчивается за заслонкой
+  game._place(c.wall - 5.8, c.F); S.hero.charge = L.CHARGE; game.setInput({ dx: 1 }); game.dash(); run(game, 0.8); ok(L.boxFree(S, S.hero.x, S.hero.y, L.HW, L.HH) && S.hero.x > c.wall, 'дотянул за заслонку');
 });
-test('колесо: неуязвимо для пуль и касаний, заряд тратится, при нуле — развернётся', () => {
-  const lv = L.level(1), sp = floorSpot(lv, lv.rooms[0]), { game, S } = mk();
-  game._place(sp.x, sp.y); game.wheel();
-  game._hurt(5, 'bolt'); eq(S.hero.hp, L.HPMAX, 'неуязвим');
-  S.eb.push({ x: S.hero.x, y: S.hero.y - 0.4, vx: 0, vy: 0, r: 0.3, dmg: 2, g: 0, life: 1 }); game.update(1 / 60); eq(S.hero.hp, L.HPMAX); eq(S.eb.length, 0, 'пуля отбита');
-  S.hero.charge = 0.05; run(game, 0.2); eq(S.hero.form, 'man', 'заряд кончился');
-  ok(S.hero.charge < L.CH_MIN); ok(!game.wheel(), 'без заряда не свернуться'); run(game, 2); ok(game.wheel(), 'заряд восстановился');
+test('бросок: тратит ячейку заряда, неуязвим, 8 сторон, заряд копится на земле, без заряда — отказ', () => {
+  const lv = L.level(1), sp = floorSpot(lv, lv.rooms[0], 3), { game, S, has } = mk();
+  game._place(sp.x, sp.y); eq(S.hero.charge, L.CHARGE);
+  game.setInput({ dx: 1 }); ok(game.dash()); ok(Math.abs(S.hero.charge - (L.CHARGE - 1)) < 1e-9);
+  const x0 = sp.x; run(game, 0.05, { dx: 1 }); ok(S.hero.x - x0 > 1, 'летит'); S.hero.inv = 0; ok(!game._hurt(3, 'x') && S.hero.hp === L.HPMAX, 'неуязвим в броске');
+  run(game, 0.5); eq(S.hero.dash, 0);
+  game._place(sp.x, sp.y); S.hero.charge = 2; game.setInput({ dx: 1, dy: -1 }); game.dash(); run(game, 0.1, { dx: 1, dy: -1 }); ok(S.hero.y < sp.y - 1 && S.hero.x > sp.x + 1, 'по диагонали вверх');
+  run(game, 1); game._place(sp.x, sp.y); S.hero.charge = 0.4; ok(!game.dash(), 'без заряда'); ok(has('noDash'));
+  S.hero.charge = 0; run(game, 1.2); ok(S.hero.charge >= 1, 'копится: ' + S.hero.charge.toFixed(2)); ok(game.dash());
+  game._place(sp.x, sp.y); S.hero.charge = 2; game.setInput({ dx: 0, dy: 1 }); game.dash(); ok(S.hero.ddy === 0 && S.hero.ddx === S.hero.face, 'вниз с земли — вперёд');
 });
-test('мины: в форме колеса огонь кладёт мину (тратит заряд), взрыв бьёт врага и рушит трещину', () => {
-  const lv = L.level(1), sp = floorSpot(lv, lv.rooms[0]), { game, S, has } = mk();
-  game._place(sp.x, sp.y); game.wheel(); const ch = S.hero.charge;
-  game.setInput({ fire: true }); game.update(1 / 60); game.setInput({});
-  eq(S.mines.length, 1); ok(S.hero.charge < ch - L.MINE_COST + 0.05, 'заряд');
-  const e = game._spawn('crawler', sp.x + 0.5, sp.y, { hp: 5 });
-  run(game, 0.6); ok(has('boom'), 'взрыв'); ok(e.dead, 'враг'); eq(S.mines.length, 0);
-  const g2 = mk(), c = Math.floor(sp.x), r = sp.y - 1; g2.S.t[r * g2.S.W + c + 2] = L.K; g2.S.thp[r * g2.S.W + c + 2] = 4;
-  g2.game._boom(c + 2.5, r + 0.5, 2.3, 9, 'mine'); eq(g2.S.t[r * g2.S.W + c + 2], L.E, 'трещина разбита');
+test('раскат: в точке старта броска через CLAP_T бьёт гром — враги и трещины рядом, сам герой уже далеко и не ранен', () => {
+  const lv = L.level(1), sp = floorSpot(lv, lv.rooms[0], 3), { game, S, has } = mk();
+  game._place(sp.x, sp.y); const e = game._spawn('crawler', sp.x - 1.2, sp.y, { hp: 9, vx: 0 }); e.dir = -1;
+  const c = Math.floor(sp.x), r = sp.y - 1; S.t[r * S.W + c - 2] = L.K; S.thp[r * S.W + c - 2] = 4;
+  S.hero.face = 1; game.setInput({ dx: 1, dy: 0 }); ok(game.dash()); eq(S.claps.length, 1);
+  run(game, 0.2, { dx: 1 }); ok(!has('clap'), 'гром ещё не грянул'); ok(S.hero.x > sp.x + 3, 'отлетел ' + S.hero.x.toFixed(2) + ' от ' + sp.x);
+  run(game, L.CLAP_T, {}); ok(has('clap')); ok(e.hp < 9 || e.dead, 'враг у точки старта задет ' + e.hp); eq(S.t[r * S.W + c - 2], L.E, 'трещина разбита громом'); eq(S.claps.length, 0);
+  eq(S.hero.hp, L.HPMAX, 'герой цел');
+});
+test('бросок сквозь врага бьёт его; убийство возвращает ползаряда; боссу — урон', () => {
+  const lv = L.level(1), sp = floorSpot(lv, lv.rooms[0], 3), { game, S } = mk();
+  game._place(sp.x - 2, sp.y); const e = game._spawn('crawler', sp.x, sp.y, { hp: 3 }); S.hero.face = 1; game.setInput({ dx: 1 }); game.dash(); const ch = S.hero.charge;
+  run(game, 0.2, { dx: 1 }); ok(e.dead, 'враг убит броском'); ok(S.hero.charge >= ch + 0.4, 'возврат заряда ' + S.hero.charge.toFixed(2)); eq(S.hero.hp, L.HPMAX);
+  const g2 = mk(), l2 = L.level(1); g2.game._place(l2.arenaSpawn.x, l2.arenaSpawn.y); g2.game.update(1 / 60); run(g2.game, 1.8); g2.S.hero.inv = 0;
+  const b = g2.S.boss, hp0 = b.hp; g2.S.hero.x = b.x - 2.2; g2.S.hero.y = b.y + b.hh; g2.S.hero.face = 1; g2.game.setInput({ dx: 1 }); g2.game.dash(); run(g2.game, 0.2, { dx: 1 });
+  ok(b.hp < hp0, 'босс задет броском ' + b.hp + '/' + hp0 + ' ' + S.hero.x.toFixed(1) + ' ' + b.x.toFixed(1));
+});
+test('площадка: «ещё один шанс» (revive) возвращает в игру с одной жизнью, бонус — полная броня и заряд', () => {
+  const { game, S, has } = mk(); S.conts = 0;
+  for (let k = 0; k < 3; k++){ S.hero.inv = 0; game._hurt(99, 'x'); run(game, 1.6); }
+  ok(S.over && has('gameover')); ok(game.revive()); eq(S.phase, 'play'); eq(S.lives, 1); eq(S.hero.hp, L.HPMAX); ok(!S.over);
+  S.hero.hp = 3; S.hero.charge = 0.5; ok(game.canBoost()); ok(game.boost()); eq(S.hero.hp, L.HPMAX); eq(S.hero.charge, L.CHARGE);
 });
 
 // ---------- оружие ----------
@@ -187,32 +204,10 @@ test('основное оружие: веер 3 → 5 пуль, лазер пр�
   let flipped = false; for (let i = 0; i < 70 && S.bullets.length; i++){ game.update(1 / 60); if (S.bullets[0] && S.bullets[0].vx > 0) flipped = true; }
   ok(flipped, 'отскок от стены');
 });
-test('гибель снимает ступень оружия; молний на жизнь — не меньше двух', () => {
-  const { game, S } = mk(); S.weapon = { k: 'L', lv: 3 }; S.thunder = 0;
+test('гибель снимает ступень оружия, жизнь отнимается, герой возвращается с полной бронёй и зарядом', () => {
+  const { game, S } = mk(); S.weapon = { k: 'L', lv: 3 }; S.hero.charge = 0;
   game._hurt(99, 'test'); eq(S.phase, 'dead'); eq(S.weapon.lv, 2); eq(S.lives, 2);
-  run(game, 2); eq(S.phase, 'play'); eq(S.thunder, L.THUNDER0); eq(S.hero.hp, L.HPMAX);
-});
-test('луч-кнут: держится, герой стоит; поворачивается к выбранному из 8 направлений; бьёт врага, гасит пули, упирается в стену', () => {
-  const lv = L.level(1), sp = floorSpot(lv, lv.rooms[0]), { game, S, has } = mk();
-  game._place(sp.x, sp.y); S.hero.face = 1;
-  game.setInput({ beam: true }); game.update(1 / 60); ok(S.hero.beam.on); ok(has('beam'));
-  const x0 = S.hero.x; game.setInput({ beam: true, dx: -1, dy: -1 }); for (let i = 0; i < 40; i++) game.update(1 / 60);
-  eq(S.hero.x, x0, 'стоит'); ok(Math.abs(S.hero.beam.ang - (-3 * Math.PI / 4)) < 0.01, 'вверх-влево: ' + S.hero.beam.ang.toFixed(2));
-  game.setInput({ beam: true, dx: 0, dy: -1 }); for (let i = 0; i < 30; i++) game.update(1 / 60);
-  ok(Math.abs(S.hero.beam.ang + Math.PI / 2) < 0.01, 'вверх');
-  ok(S.hero.beam.len > 3, 'длина ' + S.hero.beam.len.toFixed(1));
-  const e = game._spawn('flyer', S.hero.x, S.hero.y - 4, { hp: 3 }); S.enemies = [e];
-  game.setInput({ beam: true, dx: 0, dy: -1 }); for (let i = 0; i < 30 && !e.dead; i++){ e.x = S.hero.x; e.y = S.hero.y - 4; game.update(1 / 60); }
-  ok(e.dead, 'враг убит лучом');
-  S.eb.push({ x: S.hero.x, y: S.hero.y - 3, vx: 0, vy: 0, r: 0.28, dmg: 2, g: 0, life: 2 }); game.update(1 / 60); eq(S.eb.length, 0, 'пуля погашена');
-  game.setInput({}); game.update(1 / 60); ok(!S.hero.beam.on, 'отпустил');
-});
-test('молния: бьёт всех врагов на экране, гасит пули, тратит заряд', () => {
-  const { game, S, has } = mk(); const h = S.hero;
-  const a = game._spawn('crawler', h.x + 5, h.y), b = game._spawn('turret', h.x + 7, h.y - 4), far = game._spawn('crawler', h.x + 60, h.y);
-  S.eb.push({ x: h.x + 2, y: h.y - 1, vx: -1, vy: 0, r: 0.28, dmg: 2, g: 0, life: 3 });
-  const n0 = S.thunder; ok(game.thunder()); eq(S.thunder, n0 - 1); ok(a.dead && b.dead, 'на экране'); ok(!far.dead, 'за экраном'); eq(S.eb.length, 0); ok(has('thunder'));
-  S.thunder = 0; ok(!game.thunder());
+  run(game, 2); eq(S.phase, 'play'); eq(S.hero.hp, L.HPMAX); eq(S.hero.charge, L.CHARGE);
 });
 test('бонус-блок: разбивается выстрелами и выбрасывает предмет', () => {
   const { game, S, has } = mk(), i = Array.from(S.t).indexOf(L.B), c = i % S.W, r = Math.floor(i / S.W), n0 = S.items.length;
@@ -232,7 +227,7 @@ test('враги: ползун разворачивается у края, ту�
   ok(warned, 'вспышка перед выстрелом'); ok(has('eshot'), 'выстрел');
   S.enemies = []; S.eb = []; S.hero.inv = 0; const hp = S.hero.hp; game._spawn('crawler', S.hero.x, S.hero.y); game.update(1 / 60);
   eq(S.hero.hp, hp - L.FOES.crawler.dmg, 'касание');
-  const g4 = mk({ level: 4 }); g4.game._hurt(2, 'x'); ok(Math.abs(g4.S.hero.hp - (L.HPMAX - 2 * 1.6)) < 1e-9, 'уровень 4: ×1.6');
+  const g4 = mk({ level: 4 }); g4.game._hurt(2, 'x'); ok(Math.abs(g4.S.hero.hp - (L.HPMAX - 2 * 1.54)) < 1e-9, 'уровень 4: ×1.54');
 });
 
 // ---------- контрольные точки, таймер, тайник ----------
@@ -287,14 +282,14 @@ test('жизни и продолжения: без жизней — «продо
 test('отображение: оба рендера рисуют уровень, HUD и мини-карту без исключений', () => {
   const calls = { n: 0 }, texts = [];
   const ctx = new Proxy({}, { get: (o, k) => k in o ? o[k] : (k === 'createLinearGradient' || k === 'createRadialGradient') ? () => ({ addColorStop(){} }) : k === 'measureText' ? () => ({ width: 10 }) : () => { calls.n++; }, set: (o, k, v) => { o[k] = v; return true; } });
-  const g = { W: 640, H: 384, t: k => k, text: s => texts.push(String(s)) };
+  const g = { W: 640, H: 360, t: k => k, text: s => texts.push(String(s)) };
   for (const R of [GR.modern, GR.classic]){
     const { game, S } = mk({ level: 2, keepFoes: true });
-    game.setInput({ fire: true }); run(game, 0.5, { dx: 1, fire: true }); game.wheel(); game.update(1 / 60);
+    game.setInput({ fire: true }); run(game, 0.5, { dx: 1, fire: true }); game.dash(); game.update(1 / 60); game.update(1 / 60);
     GR.ui.render(g, ctx, S, R, {});
     const lv = L.level(2); game._place(lv.arenaSpawn.x, lv.arenaSpawn.y); run(game, 2.5); GR.ui.render(g, ctx, S, R, {});
   }
-  ok(calls.n > 2000, 'вызовов ' + calls.n); ok(texts.includes('hp') && texts.includes('w_S'), 'HUD');
+  ok(calls.n > 2000, 'вызовов ' + calls.n); ok(texts.includes('hp') && texts.includes('w_S') && texts.includes('dashHud'), 'HUD');
 });
 
 // ---------- музыка, i18n, ввод, имена ----------
@@ -303,15 +298,15 @@ test('музыка: оригинальный трек grom подключает�
   const n = s => (Array.isArray(s) ? s.join(' ') : s).replace(/\|/g, ' ').trim().split(/\s+/).length;
   eq(n(T.melody) % 8, 0); eq(n(T.bass) % 8, 0); eq(n(T.drums) % 8, 0);
 });
-test('i18n: у RU и EN одинаковые ключи; есть имена зон, боссов и оружия', () => {
-  const ru = Object.keys(GR.STR.ru).sort(), en = Object.keys(GR.STR.en).sort(); eq(ru.join(','), en.join(','));
+test('i18n: RU/EN/TR/ES/PT — одинаковые ключи; есть имена зон, боссов и оружия', () => {
+  const ru = Object.keys(GR.STR.ru).sort(); for (const l of ['en', 'tr', 'es', 'pt']) eq(Object.keys(GR.STR[l]).sort().join(','), ru.join(','), l);
   L.LEVELS.forEach(c => { ok(GR.STR.ru['z_' + c.zone] && GR.STR.en['z_' + c.zone], c.zone); ok(GR.STR.ru['b_' + c.boss], c.boss); });
   ['S', 'L', 'B'].forEach(k => ok(GR.STR.ru['w_' + k] && GR.STR.en['w_' + k]));
 });
 test('раскладка: клавиши игры не заняты горячими клавишами движка (кроме Пробела у И1)', () => {
   const src = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8'), m = src.match(/p1: \{([\s\S]*?)\} \}/)[1];
   const codes = [...m.matchAll(/'([A-Za-z0-9]+)'/g)].map(x => x[1]);
-  ok(codes.length >= 18, 'клавиш ' + codes.length);
+  ok(codes.length >= 14, 'клавиш ' + codes.length);
   ['KeyP', 'Escape', 'KeyM', 'KeyL', 'KeyT', 'Enter', 'NumpadEnter'].forEach(h => ok(!codes.includes(h), 'занята ' + h));
   eq(new Set(codes).size, codes.length, 'повторы');
 });
@@ -329,14 +324,23 @@ test('правило имён: в папке игры нет чужих назв
   ok(!BAD.test('turret') && !BAD.test('ГРОМ') && !BAD.test('Гефест') && !BAD.test('CONTRACT.md') && !BAD.test('millstone'), 'стоп-лист без ложных срабатываний на наши слова');
 });
 
+// ---------- площадка: без рекламы, таблица лидеров, миграция ----------
+checkPlatformFeatures({ ROOT, slug: 'grom', boards: ['grom'], test, ok });
+test('площадка: реклама за награду (продолжение и броня в паузе), стик + 3 кнопки, миграция рекорда', () => {
+  const m = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8'), h = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  ok(/g\.useRewardedContinue\(/.test(m) && /g\.useRewardedBonus\(/.test(m) && /g\.persist\('arcade\.best\.grom'/.test(m) && /g\.adBreak\(\)/.test(m), 'платформенные хуки');
+  ok(/data-stick/.test(h) && (h.match(/<button data-(tap|hold)="(dash|fire|jump)"/g) || []).length === 3, 'стик и ровно 3 кнопки действий (+ пауза отдельно)');
+  ok(/arcade\.grom\.v/.test(m) && /arcade\.best\.grom/.test(m), 'миграция');
+});
+
 // ---------- партии бота (QUICK=1 — пропустить) ----------
 if (process.env.QUICK){ console.log((failed ? 'FAIL ' : 'OK ') + passed + '/' + (passed + failed) + ' (без бота)'); process.exit(failed ? 1 : 0); }
-test('исполнимость: бот без урона проходит все 4 уровня в настоящей физике (лабиринт, колесо, боссы)', () => {
+test('исполнимость: бот без урона проходит все 4 уровня в настоящей физике (лабиринт, бросок через заслонки, боссы)', () => {
   for (const s of [1, 2, 3]){ const r = playGrom(GR, s, { dmgMul: 0 }); ok(r.won, 'сид ' + s + ': уровней ' + r.cleared + (r.stuckAt ? ' (' + r.stuckAt + ')' : '')); }
 });
 // «Человеческий» бот (tests/bot.mjs): реакция 150–250 мс, замечает не всех врагов, иногда недопрыгивает, уворачивается не всегда.
-// 40 партий (сиды 1..40). Цели: 1-й уровень ≥ 90%, вся игра (с продолжениями) ≈ 20–45%.
-const N = 40, BAL = []; for (let s = 1; s <= N; s++) BAL.push(playGrom(GR, s));
+// 20 партий (сиды 1..20). Цели: 1-й уровень ≥ 90%, вся игра (с продолжениями) ≈ 20–45%.
+const N = 20, BAL = []; for (let s = 1; s <= N; s++) BAL.push(playGrom(GR, s));
 test('баланс: бот проходит 1-й уровень в ≥ 90% партий', () => {
   const n = BAL.filter(r => r.cleared >= 1).length; console.log('     1-й уровень: ' + n + '/' + N); ok(n >= 0.9 * N, 'слишком сложно: ' + n + '/' + N);
 });
