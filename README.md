@@ -29,7 +29,7 @@ Order as in the catalog (`assets/catalog/games.json`); names as in the English c
 | 02 | [RUSLO — Over the River](ruslo/) | Shoot'em-up | retro / modern |
 | 03 | [GALLERYTRAIL — Colony in the tunnels](krot/) | Arcade | retro / modern |
 | 04 | [GOLDFLUME — Gates and shafts](staratel/) | Puzzle | retro / modern |
-| 05 | [OBVAL — Gem Shaft](obval/) | Puzzle | retro / modern |
+| 05 | [PITPROP — Props and chain collapse](obval/) | Puzzle | retro / modern |
 | 06 | [CASCADE — Puzzle](kaskad/) | Puzzle | retro / modern |
 | 07 | [RUBEZH — Neon Dawn](rubezh/) | Run-and-gun | retro / modern |
 | 08 | [PRORYV — Stormtrooper](proryv/) | Run-and-gun | retro / modern |
@@ -46,7 +46,7 @@ Order as in the catalog (`assets/catalog/games.json`); names as in the English c
 | 19 | [ZVERO-OTRYAD 2 — New Levels](zvero-otryad-2/) | Platformer | retro / modern |
 | 20 | [KINDLEBROOD — Fire Chain](roy/) | Shoot'em-up | retro / modern |
 | 21 | [SLICEWARD — Field Capture](razrez/) | Arcade | retro / modern |
-| 22 | [PODKOP — Ladders and Pits](podkop/) | Arcade | retro / modern |
+| 22 | [DRIFTSTAIR — Loose sand](podkop/) | Puzzle | retro / modern |
 | 23 | [MASONRY — Break the Wall](kladka/) | Arcade | retro / modern |
 | 24 | [SCRAPRAMPART — Scrolling Shooter](zaslon/) | Shoot'em-up | retro / modern |
 | 25 | [FUSEWICK — Sapper's Maze](fitil/) | Arcade | retro / modern |

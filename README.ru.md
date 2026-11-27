@@ -30,7 +30,7 @@
 | 02 | [РУСЛО — Над рекой](ruslo/) | Shoot'em-up | retro / modern |
 | 03 | [МУРАВЕЙНИК — Колония змейкой по туннелям](krot/) | Аркада | retro / modern |
 | 04 | [СТАРАТЕЛЬ — Шлюзы и шурфы](staratel/) | Головоломка | retro / modern |
-| 05 | [ОБВАЛ — Шахта самоцветов](obval/) | Головоломка | retro / modern |
+| 05 | [ОБВАЛ — Крепильщик: крепи и цепной обвал](obval/) | Головоломка | retro / modern |
 | 06 | [КАСКАД — Головоломка](kaskad/) | Головоломка | retro / modern |
 | 07 | [РУБЕЖ — Неоновый рассвет](rubezh/) | Run-and-gun | retro / modern |
 | 08 | [ПРОРЫВ — Штурмовик](proryv/) | Run-and-gun | retro / modern |
@@ -47,7 +47,7 @@
 | 19 | [ЗВЕРО-ОТРЯД 2 — Новые уровни](zvero-otryad-2/) | Платформер | retro / modern |
 | 20 | [РОЙ — Захватчики](roy/) | Shoot'em-up | retro / modern |
 | 21 | [РАЗРЕЗ — Захват поля](razrez/) | Аркада | retro / modern |
-| 22 | [ПОДКОП — Лестницы и ямы](podkop/) | Аркада | retro / modern |
+| 22 | [ПОДКОП — Сыпучий песок](podkop/) | Головоломка | retro / modern |
 | 23 | [КЛАДКА — Разбей стену](kladka/) | Аркада | retro / modern |
 | 24 | [ЗАСЛОН — Скролл-шутер](zaslon/) | Shoot'em-up | retro / modern |
 | 25 | [ФИТИЛЬ — Лабиринт подрывника](fitil/) | Аркада | retro / modern |
