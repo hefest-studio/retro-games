@@ -1,197 +1,218 @@
-/* ЧЕРТОГ · сборка: фреймворк Гефест Arcade (engine.js) + логика (game.js, levels.js) + рендер обеих тем + звук.
-   Сцены title/pause/win/gameover — g.useStandardScreens; титул перерисован, в меню — «Продолжить» (сохранение уровня),
-   в паузе — «Заново уровень». Ввод: ←→/AD — бег; Shift + стрелка — осторожный шаг; ↑/W — прыжок; ↓/S — вниз/пить;
-   Пробел/X/J — выпад (вне боя — прыжок); тач: дпад, ● — выпад/прыжок, ⇧ — шаг (удерживать), II — пауза. */
+/* ЧЕРТОГ (GLOAMSTAGE) · сборка: фреймворк Гефест Arcade (engine.js) + логика (levels.js, game.js) + рендер обеих тем + звук + площадка.
+   Сцены title/pause/win — g.useStandardScreens (титул перерисован); пункты: «Продолжить» (сохранение в начале сцены), в паузе «Сцена заново».
+   Ввод: ←→/AD — шаг (удержание повторяет), ↑/W — прыжок через яму, Пробел/X — рычаг (или ждать), Z/Backspace — отмена хода, R — сцена заново;
+   геймпад: A — действие, B — отмена (раскладка движка); тач: стик (←→ шаг, ↑ прыжок) + ● действие + ↶ отмена + II пауза.
+   Миграция игроков сайта: механика сменилась — прежний рекорд и сохранение сбрасываются один раз (ключ arcade.chertog.ver). */
 (function (global) {
   'use strict';
-  var C = global.CHERTOG, L = C.logic, R = C.R, K = L.K;
-  var TH = Arcade.themes || {};
-  var themes = {
-    modern: Object.assign({}, TH.modern, { bg: '#0d0907', panel: '#1a120d', ink: '#f6ece2', muted: '#b39a86', accent: '#ffb347', grid: '#33241a' }),
-    retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#ffff55', muted: '#aaaaaa', ink: '#ffffff' })
-  };
-  var W = 640, H = 400;
-  var g = Arcade.createGame({ canvas: '#c', width: W, height: H, gameId: 'chertog', strings: C.STR, theme: 'modern', lives: K.HP0, themes: themes });
-  C.g = g;
-  g.input.bindDpad(document.querySelector('.pad'));
-  var Store = Arcade.Store, SAVE = 'arcade.save.chertog', TKEY = 'arcade.besttime.chertog';
-
-  var game = null, toasts = [], banner = null, hint = null, msg = null, playSince = 0, extra = { atk: false, shift: false, up: false }, shakeT = 0, lastTime = null, wantContinue = false, seen = {};
-  function S() { return game.state(); }
-  function P() { return g.themeName === 'retro' ? R.PR : R.PM; }
-  function sync() { if (!game) return; var s = S(); g.state.score = s.score; g.state.lives = Math.max(0, s.hp); g.state.level = s.level; }
-  function loadSave() { try { var o = JSON.parse(Store.get(SAVE, 'null')); return o && o.level >= 1 && o.level <= C.LEVELS.length && o.time > 0 ? o : null; } catch (e) { return null; } }
-  function writeSave(s) { Store.set(SAVE, JSON.stringify({ level: s.level, maxHp: s.maxHp, time: Math.round(s.timeLeft * 10) / 10, score: s.score, elapsed: Math.round(s.time * 10) / 10 })); }
-  function clearSave() { try { localStorage.removeItem(SAVE); } catch (e) {} }
-  function bestTime() { var v = parseFloat(Store.get(TKEY, '0')); return v > 0 ? v : null; }
-  function toast(text, color, x, y, big) {
-    for (var i = 0; i < toasts.length; i++) if (Math.abs(toasts[i].y - y) < 0.15 && toasts[i].t > toasts[i].life - 0.6) y -= 0.18;
-    var life = big ? 2 : 1.3; toasts.push({ text: text, color: color, x: x, y: y, t: life, life: life, big: !!big });
-  }
-  function showHint(key, once) { if (once && seen[key]) return; seen[key] = 1; hint = { text: g.t(key), a: 4.5, life: 4.5 }; }
-  function showMsg(text, sub, color, dur) { msg = { text: text, sub: sub, color: color, a: dur || 2.2 }; }
-  function burst(x, y, color, n, sp) {
-    var s = S(), rm = s.room, sc = g.themeName === 'retro' ? 1 : 1;
-    g.particles.spawn((x - rm.x * L.RW) * R.TW * sc, (y - rm.y * L.RH) * R.TH - 10, { color: color, count: n || 12, speed: sp || 90, life: 0.5, size: g.themeName === 'retro' ? 4 : 3 });
-  }
-
-  function onEvent(type, d) {
-    d = d || {};
-    C.sfx(g, type, d);
-    var Pc = P(), s = game ? S() : null;
-    switch (type) {
-      case 'level':
-        toasts = []; hint = null; msg = null;
-        banner = { title: (d.level >= C.LEVELS.length ? g.t('final') : g.t('level') + ' ' + d.level) + ' · ' + g.t('l' + d.level), sub: d.level === 1 ? g.t('intro1') : g.t('introN'), a: 3, life: 3 };
-        if (s) writeSave(s);
-        if (d.level === 4) setTimeout(function () { if (game && S().level === 4) showHint('h_door', true); }, 3200);
-        break;
-      case 'restart': toasts = []; if (d.death) showMsg(g.t('again'), '', Pc.muted, 1.6); break;
-      case 'spikes': if (s && !seen.h_step) showHint('h_step', true); break;
-      case 'grab': if (s && s.level === 1) showHint('h_climb', true); break;
-      case 'engage': showHint('h_fight', true); break;
-      case 'plate': showHint('h_plate', true); toast('⟲', Pc.accent, d.x, d.y - 0.4); break;
-      case 'chop': if (!seen.h_chop) showHint('h_chop', true); break;
-      case 'door': showMsg(g.t('doorOpen'), '', Pc.good, 2.2); break;
-      case 'slam': showMsg(g.t('slam'), '', Pc.bad, 1.8); shakeT = 0.25; break;
-      case 'drink':
-        if (d.kind === 'h') toast(g.t('heal'), Pc.good, d.x, d.y - 0.9);
-        else if (d.kind === 'H') { toast(g.t('maxUp'), Pc.good, d.x, d.y - 0.9, true); burst(d.x, d.y - 0.4, '#7bd389', 24, 120); }
-        else { toast(g.t('poison'), Pc.bad, d.x, d.y - 0.9, true); burst(d.x, d.y - 0.4, '#9a49c9', 16, 80); }
-        break;
-      case 'clang': burst(d.x, d.y - 0.42, '#ffffff', 8, 120); break;
-      case 'hit': burst(d.x, d.y - 0.45, Pc.bad, 10, 100); break;
-      case 'hurt': burst(s.hero.x, s.hero.y - 0.45, Pc.bad, 10, 90); shakeT = 0.18; break;
-      case 'kill': toast(g.t(d.k) + ' — ' + g.t('killed') + '  +' + d.pts, Pc.accent, d.x, d.y - 0.9, true); break;
-      case 'thud': shakeT = 0.2; break;
-      case 'smash': burst(d.x, d.y, g.themeName === 'retro' ? '#aaaaaa' : '#8c8090', 10, 70); break;
-      case 'crumble': shakeT = 0.08; break;
-      case 'die': shakeT = 0.3; showMsg(g.t('d_' + d.why, ''), g.t('again'), Pc.bad, 2.2); burst(d.x, d.y - 0.4, Pc.bad, 18, 110); break;
-      case 'boss': showMsg(g.t('bossDown'), '', Pc.accent, 3); break;
-      case 'twin': showHint('h_twin'); hint.a = hint.life = 6.5; break;
-      case 'twinDown': showMsg(g.t('twinDown'), '', Pc.good, 3); burst(d.x, d.y - 0.4, '#ffd2a0', 30, 160); shakeT = 0.3; setTimeout(function () { if (game && S().level === C.LEVELS.length) showHint('h_cage'); }, 1600); break;
-      case 'room': toasts = toasts.filter(function (q) { return q.big; }); break;
-      case 'clear': break;
-      case 'win': {
-        clearSave(); var bt = bestTime(); if (!bt || d.time < bt) Store.set(TKEY, String(Math.round(d.time)));
-        lastTime = d.time; sync(); setTimeout(function () { if (g._sceneName === 'play') g.win(); }, 1800); break;
-      }
-      case 'timeout': showMsg(g.t('timeup'), '', Pc.bad, 3); break;
-      case 'gameover': clearSave(); sync(); g.state.lives = 0; setTimeout(function () { if (g._sceneName === 'play') g.gameover(); }, 2200); break;
+  var C = global.CHERTOG, L = C.logic, R = C.R;
+  var VER_KEY = 'arcade.chertog.ver', notice = false;
+  try {
+    var ls = global.localStorage;
+    if (ls.getItem(VER_KEY) !== '2') {
+      if (ls.getItem('arcade.best.chertog') || ls.getItem('arcade.save.chertog')) notice = true;
+      ls.removeItem('arcade.best.chertog'); ls.removeItem('arcade.save.chertog'); ls.removeItem('arcade.besttime.chertog'); ls.setItem(VER_KEY, '2');
     }
-    sync();
+  } catch (e) {}
+  var TH = Arcade.themes || {}, Store = Arcade.Store, SAVE = 'arcade.save.chertog', LB = 'chertog';
+  var themes = {
+    modern: Object.assign({}, TH.modern, { bg: '#0e0820', panel: '#1c1233', ink: '#f6ecd8', muted: '#a698c8', accent: '#ffc94a', good: '#8cf0c0', bad: '#ff6a6a', warn: '#ffd36a', grid: '#2a1c4a' }),
+    retro: Object.assign({}, TH.retro, { bg: '#000000', panel: '#000000', accent: '#f8d838', muted: '#a8a8a8', ink: '#ffffff', good: '#58f8a8', bad: '#f85858', warn: '#f8d878' })
+  };
+  var g = Arcade.createGame({ canvas: '#c', width: R.W, height: R.H, gameId: 'chertog', leaderboard: 'chertog', strings: C.STR, theme: 'modern', lives: 1, themes: themes });
+  C.g = g;
+  var pad = document.querySelector('.pad');
+  g.input.bindDpad(pad);
+  var stick = global.ArcadeStick.create(pad && pad.querySelector('[data-stick]'));
+  var N = C.LEVELS.length, G = null, ui = { msg: null, banner: null, shake: 0 }, msgQ = [], pending = null, latch = { undo: false, restart: false, jump: false, tapX: 0, exp: 0 }, held = {}, prevUp = false, cool = 0;
+  function th() { return g.th(); }
+  function sync() { if (G) { g.state.score = G.score; g.state.level = G.fi + 1; } }
+  function loadSave() { try { var o = JSON.parse(Store.get(SAVE, 'null')); return o && o.v === 2 && o.fi >= 0 && o.fi < N ? o : null; } catch (e) { return null; } }
+  function writeSave(o) { Store.set(SAVE, JSON.stringify(Object.assign({ v: 2 }, o))); }
+  function clearSave() { try { localStorage.removeItem(SAVE); } catch (e) {} }
+
+  // ---------- Площадка: таблица «chertog», «Без рекламы» (no_ads), реклама за награду (подсказка ходов). Список для Консоли — promo/chertog/platform.json ----------
+  g.persist('arcade.best.chertog', 'max');
+  function lbBest() { var b = g.state.best; if (b > 0) g.leaderboard.submit(b, { board: LB }); }
+  g.useLeaderboard({ boards: [{ id: LB, label: function () { return g.t('best'); } }], after: 'end' });
+  g.useNoAds({ scene: ['title', 'pause'], after: 'end' });
+  g.onCloud(function (keys) { if (keys.length) lbBest(); });
+  g.useRewardedBonus({ key: 'rwHint', scene: 'pause', label: function () { return g.t('rwHint'); },
+    available: function () { return !!G && G.phase === 'play' && !G.s.dead; }, grant: function () { showHint(); } });
+  function menuFit(m, y0, base, yMin, yMax) { var n = m.items.length, need = base * (n - 1); if (n < 2 || y0 + need <= yMax) return [y0, base]; var st = Math.max(17, Math.min(base, (yMax - yMin) / (n - 1))); return [Math.max(yMin, yMax - st * (n - 1)), st]; }
+
+  // ---------- сцена-уровень ----------
+  function litTarget(G2) { return L.lit(G2.P, G2.s.lamps); }
+  function snapVis(G2) {
+    var s = G2.s, lit = litTarget(G2), i;
+    G2.hv = { x: s.hx, y: Math.min(s.hy, L.H - 1), arc: 0, moving: false, sx: s.hx, sy: s.hy, jump: false };
+    G2.gv = s.guards.map(function (q) { return { x: q[0], y: q[1], d: q[2], alive: q[3], dz: !!lit[q[1] * L.W + q[0]] }; });
+    G2.lampV = s.lamps.map(function (li, k) { var p = G2.P.lamps[k][li]; return { x: p[0], y: p[1] }; });
+    G2.litA = new Float32Array(lit.length); for (i = 0; i < lit.length; i++) G2.litA[i] = lit[i];
+    G2.deadT = 0;
   }
-  function newGame() {
-    var sv = wantContinue ? loadSave() : null; wantContinue = false;
-    if (!sv) clearSave();
-    game = C.Game({ onEvent: onEvent, level: sv ? sv.level : 1, maxHp: sv ? sv.maxHp : K.HP0, time: sv ? sv.time : K.TIME, score: sv ? sv.score : 0, rng: L.mulberry32((Date.now() & 0xffff) + 1) });
-    toasts = []; banner = null; hint = null; msg = null; seen = sv ? { h_step: 1, h_climb: 1, h_fight: 1, h_plate: 1, h_chop: 1 } : {}; lastTime = null;
-    game.start(); if (sv) game.state().time = sv.elapsed || 0;
-    C.current = game; sync();
+  function loadLevel(fi, score) {
+    var def = C.LEVELS[fi], P = L.parse(def);
+    G = { fi: fi, def: def, P: P, s: L.init(def), hist: [], undos: 0, score: score || 0, base: score || 0, phase: 'play', clearT: 0, hint: null, hv: null, gv: null, lampV: null, litA: null, deadT: 0 };
+    snapVis(G); ui.banner = { title: g.t('level').toUpperCase() + ' ' + (fi + 1) + ' · ' + g.t('f_' + def.id), a: 2.0 };
+    ui.msg = null; msgQ = [];
+    if (fi === 0) { msgQ.push(g.t('tutMove')); }
+    if (fi < 4) msgQ.push(g.t('tut' + (fi + 1)));
+    writeSave({ fi: fi, score: score || 0 }); sync();
+  }
+  function onEv(ev) { for (var i = 0; i < ev.length; i++) C.sfx(g, ev[i].t === 'die' ? 'die' : ev[i].t, ev[i]); }
+  function act(a) {
+    if (!G || G.phase !== 'play' || G.s.dead || G.s.won || busy()) return false;
+    var n = L.step(G.P, G.s, a); if (n === G.s) return false;
+    G.hist.push(G.s); if (G.hist.length > 400) G.hist.shift();
+    var prev = G.s; G.s = n; G.hint = null;
+    var ev = n.ev; onEv(ev);
+    var hv = G.hv; hv.sx = hv.x; hv.sy = hv.y; hv.jump = ev.some(function (e) { return e.t === 'jump'; });
+    if (n.dead) { G.deadT = 0; ui.shake = 0.4; }
+    if (n.won) { G.phase = 'clear'; G.clearT = 0; var bonus = 200 + 10 * Math.max(0, G.def.par + 4 - n.moves) + (G.undos === 0 ? 100 : 0); G.score = G.base + bonus; G.bonus = bonus; ui.banner = { title: g.t('clear'), a: 2.4 }; C.sfx(g, 'clear'); g.saveBest && 0; sync(); bestSave(); }
+    sync(); return true;
+  }
+  function bestSave() { g.state.score = G.score; if (g.saveBest) g.saveBest(); lbBest(); }
+  function undo() {
+    if (!G || G.phase !== 'play' || !G.hist.length) return;
+    G.s = G.hist.pop(); G.undos++; G.hint = null; C.sfx(g, 'undo'); G.deadT = 0;
+    var keepLit = G.litA; snapVis(G); G.litA = keepLit; G.hv.x = Math.min(G.hv.x, L.W); sync();
+  }
+  function restart() { if (!G) return; var fi = G.fi, sc = G.base; loadLevel(fi, sc); }
+  function showHint() {
+    if (!G || G.s.dead) return;
+    var sol = L.solve(G.def, { from: G.s, limit: 300000 }); C.sfx(g, 'hint');
+    if (sol) { G.hint = sol; ui.msg = { text: g.t('hintOn'), color: th().good, a: 2.2 }; } else ui.msg = { text: g.t('hintEmpty'), color: th().bad, a: 2.2 };
+  }
+  function busy() { if (!G) return false; if (G.hv.moving) return true; for (var i = 0; i < G.gv.length; i++) if (G.gv[i].moving) return true; return false; }
+  function approach(v, t, d) { return v < t ? Math.min(t, v + d) : Math.max(t, v - d); }
+  function stepVis(dt) {
+    var hv = G.hv, s = G.s, i, lit = litTarget(G), tx = s.hx, ty = Math.min(s.hy, L.H + 1);
+    var dx = tx - hv.x, dy = ty - hv.y;
+    hv.x = approach(hv.x, tx, dt * (hv.jump ? 9 : 11));
+    if (Math.abs(dx) < 0.001 || hv.y !== ty) { var vy = Math.abs(dy) > 0.01 ? (hv.vy || 0) + dt * 40 : 0; hv.vy = vy; hv.y = approach(hv.y, ty, Math.max(dt * 8, vy * dt)); } 
+    var total = Math.abs(tx - hv.sx), fr = total > 0.01 ? Math.abs(hv.x - hv.sx) / total : 1;
+    hv.arc = hv.jump && total > 0.01 ? Math.sin(Math.min(1, fr) * Math.PI) * 0.5 : 0;
+    var mv = Math.abs(tx - hv.x) > 0.02 || Math.abs(ty - hv.y) > 0.02; hv.moving = mv && !(s.dead === 'fall' && hv.y >= L.H - 0.01 && Math.abs(tx - hv.x) < 0.02); if (!mv) { hv.jump = false; hv.vy = 0; }
+    if (s.dead === 'fall' && hv.y >= L.H) hv.moving = false;
+    for (i = 0; i < G.gv.length; i++) { var q = s.guards[i], v = G.gv[i]; v.alive = q[3]; v.d = q[2]; v.dz = !!lit[q[1] * L.W + q[0]];
+      v.x = approach(v.x, q[0], dt * 6); v.y = approach(v.y, q[1], dt * 9); v.moving = Math.abs(v.x - q[0]) > 0.02 || Math.abs(v.y - q[1]) > 0.02; }
+    for (i = 0; i < G.lampV.length; i++) { var p = G.P.lamps[i][s.lamps[i]]; G.lampV[i].x = approach(G.lampV[i].x, p[0], dt * 10); G.lampV[i].y = approach(G.lampV[i].y, p[1], dt * 10); }
+    for (i = 0; i < lit.length; i++) G.litA[i] = approach(G.litA[i], lit[i], dt * 7);
+    if (s.dead) G.deadT += dt;
+  }
+  function advance() {
+    if (G.fi + 1 >= N) { sync(); clearSave(); g.state.score = G.score; g.win(); return; }
+    loadLevel(G.fi + 1, G.score);
   }
 
-  // ---------- Стандартные экраны ----------
-  g.useStandardScreens({ lives: K.HP0 });
-  g.menu.addItem({ key: 'continue', after: 'play', label: function () { var sv = loadSave(); return sv ? g.t('cont') + ' · ' + (sv.level >= C.LEVELS.length ? g.t('final') : g.t('level') + ' ' + sv.level) + ' · ' + R.clock(sv.time) : g.t('cont') + ' —'; },
-    onSelect: function () { if (!loadSave()) { g.audio.beep(200, 0.06); return; } wantContinue = true; g.state.score = 0; g.goto('play'); } });
-  g.menu.addItem({ key: 'restart', scene: 'pause', before: 'menu', label: function () { return g.t('restart'); },
-    onSelect: function () { if (game && game.state().phase === 'play') { game.restartLevel(false); sync(); } g.goto('play', { resume: true }); } });
+  // ---------- стандартные экраны ----------
+  g.useStandardScreens({ lives: 1 });
   g.scenes.pause.press = function (a) { if (a === 'pause') this.goto('play', { resume: true }); };
-  ['win', 'gameover'].forEach(function (name) {
-    var sc = g.scenes[name], baseDraw = sc.draw;
-    sc.draw = function (ctx) {
-      baseDraw.call(this, ctx);
-      var Pc = P(), bt = bestTime(), y = this.H / 2 + 46;
-      if (name === 'win') {
-        R.figure(ctx, this.W / 2 - 40, this.H / 2 - 64, 1, { p: R.POSE.cheer }, R.LOOK.hero[g.themeName === 'retro' ? 'r' : 'm'], 0.9, 'hero', { retro: g.themeName === 'retro', noSword: true });
-        R.figure(ctx, this.W / 2 + 40, this.H / 2 - 64, -1, { p: R.POSE.stand }, R.LOOK.master[g.themeName === 'retro' ? 'r' : 'm'], 0.9, 'master', { retro: g.themeName === 'retro', noSword: true });
-        if (lastTime != null) this.text(this.t('time') + ': ' + R.clock(lastTime) + (bt ? '   ' + this.t('bestTime') + ': ' + R.clock(bt) : ''), this.W / 2, y, { size: 14, align: 'center', color: Pc.accent, weight: 700 });
-      } else if (game) this.text(this.t('level') + ': ' + game.state().level + ' · ' + this.t('l' + game.state().level), this.W / 2, y, { size: 13, align: 'center', color: Pc.muted, weight: 700 });
-    };
-  });
-
-  // ---------- Титул ----------
-  var title = g.scenes.title, menu = g.menu.get('title'), demoLV = L.level(1), demoM = L.mapState(demoLV, {});
+  g.menu.addItem({ key: 'continue', after: 'play', label: function () { var sv = loadSave(); return sv ? g.t('cont') + ' · ' + g.t('level').toLowerCase() + ' ' + (sv.fi + 1) : g.t('cont') + ' —'; },
+    onSelect: function () { var sv = loadSave(); if (!sv) return; pending = sv; g.goto('play'); } });
+  g.menu.addItem({ key: 'restart', scene: 'pause', before: 'menu', label: function () { return g.t('restart'); }, onSelect: function () { restart(); g.goto('play', { resume: true }); } });
+  var title = g.scenes.title, menu = g.menu.get('title');
   title.draw = function (ctx) {
-    var isRetro = g.themeName === 'retro', Pc = P(), Wc = this.W, Hc = this.H, th = this.th(), lay = R.roomLayer(demoLV, 2, 0, isRetro, demoM);
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, Wc, Hc);
-    ctx.imageSmoothingEnabled = !isRetro; ctx.drawImage(lay.cv, 0, 0, 640, 360);
-    ctx.fillStyle = isRetro ? 'rgba(0,0,0,.72)' : 'rgba(10,6,4,.62)'; ctx.fillRect(0, 0, Wc, Hc);
-    var pw = 440, ph = 344, x0 = (Wc - pw) / 2, y0 = 26;
-    if (isRetro) { ctx.fillStyle = '#000'; ctx.fillRect(x0, y0, pw, ph); ctx.fillStyle = '#aa5500'; ctx.fillRect(x0, y0, pw, 3); ctx.fillRect(x0, y0 + ph - 3, pw, 3); ctx.fillRect(x0, y0, 3, ph); ctx.fillRect(x0 + pw - 3, y0, 3, ph); }
-    else { ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.6)'; ctx.shadowBlur = 26; ctx.fillStyle = 'rgba(26,18,13,.94)'; R.rr(ctx, x0, y0, pw, ph, 16); ctx.fill(); ctx.restore(); ctx.strokeStyle = '#5a3d2a'; ctx.lineWidth = 1.5; R.rr(ctx, x0 + 0.75, y0 + 0.75, pw - 1.5, ph - 1.5, 16); ctx.stroke(); }
-    this.text(this.t('title'), Wc / 2, y0 + 58, { size: isRetro ? 46 : 52, align: 'center', color: Pc.accent, weight: 900 });
-    this.text(this.t('subtitle'), Wc / 2, y0 + 86, { size: isRetro ? 11 : 13, align: 'center', color: th.ink, weight: 700 });
-    this.text(this.t('sub2'), Wc / 2, y0 + 105, { size: isRetro ? 10 : 11, align: 'center', color: th.muted, weight: 600 });
-    // дуэль на титуле: герой и страж в стойке, поочерёдные выпады
-    var tt = this.time % 2.4, hs = { st: tt < 0.6 ? 'lunge' : tt > 1.2 && tt < 1.6 ? 'parry' : 'en', t: tt < 0.6 ? tt : tt > 1.2 ? tt - 1.2 : tt };
-    var gs = { st: tt > 1.2 && tt < 1.8 ? 'lunge' : tt < 0.4 ? 'parry' : 'en', t: tt > 1.2 ? tt - 1.2 : tt, id: 0, k: 'g' };
-    var hp = R.heroPose({ st: hs.st, t: hs.t, x: 0, face: 1 }, { clock: this.time });
-    R.figure(ctx, x0 + 46, y0 + ph - 18, 1, hp, R.LOOK.hero[isRetro ? 'r' : 'm'], 1, 'hero', { retro: isRetro, time: this.time });
-    R.figure(ctx, x0 + pw - 46, y0 + ph - 18, -1, R.guardPose(gs, { clock: this.time }), R.LOOK.N[isRetro ? 'r' : 'm'], 1, 'N', { retro: isRetro, time: this.time });
-    menu.draw(this, Wc / 2, y0 + 146, 29);
-    var bt = bestTime(), line = [];
-    if (this.state.best) line.push(this.t('best') + ': ' + this.state.best);
-    if (bt) line.push(this.t('bestTime') + ': ' + R.clock(bt));
-    if (line.length) this.text(line.join(' · '), Wc / 2, y0 + ph - 16, { size: 11, align: 'center', color: th.muted, weight: 700 });
-    this.text(this.t('hint'), Wc / 2, Hc - 12, { size: isRetro ? 10 : 11, align: 'center', color: th.muted, weight: 600 });
+    var retro = g.themeName === 'retro', Wc = this.W, Hc = this.H, t = this.time, Pc = th(), P = R.PAL[retro ? 'retro' : 'modern'];
+    ctx.imageSmoothingEnabled = !retro;
+    if (retro) { ctx.fillStyle = '#000020'; ctx.fillRect(0, 0, Wc, Hc); } else { var gr = ctx.createLinearGradient(0, 0, 0, Hc); gr.addColorStop(0, '#2a1850'); gr.addColorStop(1, '#0e0820'); ctx.fillStyle = gr; ctx.fillRect(0, 0, Wc, Hc); }
+    // лампа качается, тень героя на стене растёт и уезжает
+    var lx = 110 + Math.sin(t * 0.9) * 70, ly = 60, hx = 110, hy = Hc - 56;
+    ctx.fillStyle = retro ? '#505090' : 'rgba(246,217,160,.30)'; ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(0, Hc); ctx.lineTo(240, Hc); ctx.closePath(); ctx.fill();
+    ctx.save(); var sc = 3.4, off = (hx - lx) * 1.8; ctx.translate(hx + off, Hc - 6); ctx.scale(sc, sc * 0.7); ctx.globalAlpha = 0.6; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, -19, 6.5, 0, 6.3); ctx.fill(); ctx.fillRect(-6, -15, 12, 15); ctx.restore(); ctx.globalAlpha = 1;
+    ctx.fillStyle = retro ? '#f8f8f8' : '#4a3a78'; ctx.fillRect(0, Hc - 6, 240, 6);
+    R.lamp(ctx, (lx - 16) / 32, (ly - 48) / 32 + 0.0 + 0.0, 0, retro, t);
+    R.hero(ctx, hx, Hc - 6, 1, { moving: false }, t, retro, P);
+    var cx = Wc / 2 + 120;
+    this.text(this.t('title'), cx, 56, { size: retro ? 34 : 38, align: 'center', color: Pc.accent, weight: 900, maxWidth: 250 });
+    this.text(this.t('subtitle'), cx, 80, { size: retro ? 9 : 10, align: 'center', color: Pc.ink, weight: 700, maxWidth: 270 });
+    this.text(this.t('sub2'), cx, 95, { size: retro ? 8 : 9, align: 'center', color: Pc.muted, weight: 600, maxWidth: 270 });
+    var mf = menuFit(menu, 116, 20, 108, Hc - 56);
+    menu.draw(this, cx, mf[0], mf[1]);
+    var foot = this.state.best ? this.t('best') + ': ' + this.state.best : '';
+    if (foot) this.text(foot, cx, Hc - 30, { size: 11, align: 'center', color: Pc.warn, weight: 800, maxWidth: 270 });
+    if (notice) this.text(this.t('migrated'), cx, Hc - 14, { size: 9, align: 'center', color: Pc.good, weight: 700, maxWidth: 270 });
   };
 
-  // ---------- Игровая сцена ----------
-  var STEP = 1 / 60, FENCE = { en: 1, lunge: 1, parry: 1, adv: 1, ret: 1, recoil: 1, hit: 1 };
+  // ---------- карточка «сцена пройдена» перед межстраничной ----------
+  var cardGoing = false;
+  function cardGo() { if (cardGoing || g._sceneName !== 'card') return; cardGoing = true; g.adBreak().then(function () { cardGoing = false; if (g._sceneName === 'card') g.goto('play', { resume: true }); }); }
+  g.scene('card', {
+    enter: function () { cardGoing = false; },
+    press: function (a) { if (a === 'action' || a === 'start') cardGo(); else if (a === 'pause') this.goto('play', { resume: true }); },
+    draw: function (ctx) {
+      var Pc = th(), retro = g.themeName === 'retro';
+      this.clear(); ctx.fillStyle = retro ? '#000020' : '#150c2a'; ctx.fillRect(0, 0, this.W, this.H);
+      this.text(this.t('cardClear'), this.W / 2, this.H / 2 - 20, { size: 28, align: 'center', color: Pc.accent, weight: 900, maxWidth: this.W - 40 });
+      this.text(this.t('level') + ' ' + (G ? G.fi + 1 + '/' + N + ' · ' + this.t('score') + ': ' + G.score : ''), this.W / 2, this.H / 2 + 10, { size: 14, align: 'center', color: Pc.ink, weight: 700, maxWidth: this.W - 40 });
+      this.text(this.t('cardNext'), this.W / 2, this.H / 2 + 40, { size: 12, align: 'center', color: Pc.muted, weight: 600, maxWidth: this.W - 40 });
+    }
+  });
+  g.canvas.addEventListener('pointerdown', function () { if (g._sceneName === 'card') cardGo(); });
+
+  // ---------- игровая сцена ----------
   g.scene('play', {
     realtime: true,
-    enter: function (d) { if (!(d && d.resume) || !game) newGame(); playSince = g.time; },
-    press: function (a) { if (a === 'pause') this.pause(); },
+    enter: function (d) {
+      if (!(d && d.resume) || !G) { var sv = pending; pending = null; notice = false; loadLevel(sv ? sv.fi : 0, sv ? sv.score : 0); g.resetRun && g.resetRun(); }
+      else if (G.phase === 'clear') advance();
+      cool = 0.15;
+    },
+    press: function (a) {
+      if (!G) return;
+      if (a === 'pause') { this.pause(); return; }
+      if (a === 'action') act('A');
+    },
     update: function (dt) {
-      if (!game) return;
-      var i;
-      for (i = 0; i < toasts.length; i++) toasts[i].t -= dt;
-      toasts = toasts.filter(function (q) { return q.t > 0; });
-      if (banner) { banner.a -= dt; if (banner.a <= 0) banner = null; }
-      if (hint) { hint.a -= dt; if (hint.a <= 0) hint = null; }
-      if (msg) { msg.a -= dt; if (msg.a <= 0) msg = null; }
-      if (shakeT > 0) shakeT -= dt;
-      var dir = this.input.dir, live = g.time - playSince > 0.15, s = S(), fight = !!FENCE[s.hero.st];
-      var act = live && (this.input.pressed('action') || extra.atk);
-      game.setInput({ x: live ? dir.x : 0, up: live && (dir.y < 0 || extra.up || (act && !fight)), down: live && dir.y > 0, shift: extra.shift || padShift, atk: act && fight });
-      var n = Math.max(1, Math.min(4, Math.round(Math.min(dt, 0.066) / STEP)));
-      for (var k = 0; k < n; k++) game.update(STEP);
+      if (!G) return;
+      var i, dir = this.input.dir, td = stick.active ? { x: Math.abs(stick.x) > 0.35 ? Math.sign(stick.x) : 0, y: stick.y < -0.55 ? -1 : 0 } : null;
+      var dx = td ? td.x : dir.x, up = td ? td.y < 0 : dir.y < 0;
+      latch.exp -= dt; if (latch.exp <= 0) { latch.tapX = 0; latch.jump = false; }
+      if (!dx && latch.tapX) dx = latch.tapX;   // короткое нажатие между кадрами не теряется
+      if (ui.msg) { ui.msg.a -= dt; if (ui.msg.a <= 0) ui.msg = null; }
+      if (!ui.msg && msgQ.length) ui.msg = { text: msgQ.shift(), color: th().warn, a: 5.5 };
+      if (ui.banner) { ui.banner.a -= dt; if (ui.banner.a <= 0) ui.banner = null; }
+      if (ui.shake > 0) ui.shake = Math.max(0, ui.shake - dt);
+      cool -= dt; stepVis(dt);
+      if (latch.undo) { latch.undo = false; undo(); }
+      if (latch.restart) { latch.restart = false; restart(); }
+      if (up && !prevUp) { latch.jump = true; latch.exp = Math.max(latch.exp, 0.35); }
+      if (G.phase === 'play' && !G.s.dead && cool <= 0 && !busy()) {
+        var jump = latch.jump, a = null;
+        if (jump) a = dx < 0 ? 'UL' : dx > 0 ? 'UR' : 'U'; else if (dx < 0) a = 'L'; else if (dx > 0) a = 'R';
+        if (a) { var did = act(a); latch.jump = false; if (did) { cool = 0.03; latch.tapX = 0; } }
+      }
+      prevUp = up;
+      if (G.phase === 'clear') { G.clearT += dt; if (G.clearT > 1.3 && !busy()) { G.phase = 'clearWait'; if (G.fi + 1 < N && g.adReady && g.adReady()) g.goto('card'); else if (g._sceneName === 'play') advance(); } }
       sync();
     },
     draw: function (ctx) {
-      if (!game) { this.clear(); return; }
-      C.render(this, ctx, S(), { toasts: toasts, banner: banner, hint: hint, msg: msg, shake: shakeT > 0 ? 5 : 0 });
+      if (!G) { this.clear(); return; }
+      C.render(g, ctx, { P: G.P, s: G.s, hv: G.hv, gv: G.gv, lampV: G.lampV, litA: G.litA, t: this.time, retro: g.themeName === 'retro', hint: G.hint, ui: ui, fi: G.fi, total: N, id: G.def.id, moves: G.s.moves, par: G.def.par, score: G.score, deadT: G.deadT });
     }
   });
 
-  // ---------- Доп. клавиши и тач-кнопки ----------
-  var ATK = { KeyX: 1, KeyJ: 1, KeyK: 1, ControlLeft: 1, ControlRight: 1 }, SHIFT = { ShiftLeft: 1, ShiftRight: 1, KeyZ: 1 }, held = {}, padShift = false;
-  function recompute() { extra.atk = !!(held.KeyX || held.KeyJ || held.KeyK || held.ControlLeft || held.ControlRight); extra.shift = !!(held.ShiftLeft || held.ShiftRight || held.KeyZ); }
+  // ---------- доп. клавиши и тач-кнопки ----------
   addEventListener('keydown', function (e) {
-    var ip = g._sceneName === 'play';
-    if (ATK[e.code] || SHIFT[e.code]) { held[e.code] = true; recompute(); if (ip) e.preventDefault(); }
+    if (g._sceneName !== 'play') return;
+    if (!e.repeat) {
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') { latch.tapX = -1; latch.exp = 0.35; } else if (e.code === 'ArrowRight' || e.code === 'KeyD') { latch.tapX = 1; latch.exp = 0.35; }
+      else if (e.code === 'ArrowUp' || e.code === 'KeyW') { latch.jump = true; latch.exp = 0.35; }
+    }
+    if (e.code === 'KeyZ' || e.code === 'Backspace' || e.code === 'KeyU') { if (!e.repeat) latch.undo = true; e.preventDefault(); }
+    else if (e.code === 'KeyR') { if (!e.repeat) latch.restart = true; }
+    else if (e.code === 'KeyX' || e.code === 'KeyJ') { if (!e.repeat) act('A'); e.preventDefault(); }
   });
-  addEventListener('keyup', function (e) { if (ATK[e.code] || SHIFT[e.code]) { held[e.code] = false; recompute(); } });
-  addEventListener('blur', function () { held = {}; recompute(); padShift = false; });
-  function hold(id, on, off) {
-    var b = document.getElementById(id); if (!b) return;
-    var h1 = function (e) { if (!Arcade.touchOk(e)) return; on(); b.classList.add('on'); }, h0 = function (e) { if (!Arcade.touchOk(e)) return; off(); b.classList.remove('on'); };
-    b.addEventListener('touchstart', h1, { passive: false }); b.addEventListener('touchend', h0, { passive: false }); b.addEventListener('touchcancel', h0, { passive: false });
-    b.addEventListener('mousedown', h1); b.addEventListener('mouseup', h0); b.addEventListener('mouseleave', function () { if (b.classList.contains('on')) { off(); b.classList.remove('on'); } });
-  }
-  hold('bStep', function () { padShift = true; }, function () { padShift = false; });
-  (function () {
-    var b = document.getElementById('bPause'); if (!b) return;
-    var h = function (e) { if (!Arcade.touchOk(e)) return; if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); };
-    b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h);
-  })();
+  function tap(id, fn) { var b = document.getElementById(id); if (!b) return; var h = function (e) { if (!Arcade.touchOk(e)) return; fn(); }; b.addEventListener('touchstart', h, { passive: false }); b.addEventListener('mousedown', h); }
+  tap('bUndo', function () { latch.undo = true; });
+  tap('bPause', function () { if (g._sceneName === 'play') g.pause(); else if (g._sceneName === 'pause') g.goto('play', { resume: true }); });
 
   // ---------- DOM: подгонка канвы, подписи, тема страницы ----------
   function fit() {
-    var c = g.canvas, wrap = c.parentElement, pad = document.querySelector('.pad');
-    var padFixed = pad && getComputedStyle(pad).position === 'fixed';
-    var padH = pad && !padFixed && getComputedStyle(pad).display !== 'none' ? pad.offsetHeight + 16 : 0;
+    var c = g.canvas, wrap = c.parentElement, padEl = document.querySelector('.pad');
+    var padFixed = padEl && getComputedStyle(padEl).position === 'fixed';
+    var padH = padEl && !padFixed && getComputedStyle(padEl).display !== 'none' ? padEl.offsetHeight + 16 : 0;
     var w = Math.min(1100, (wrap && wrap.clientWidth) || g.W, (innerHeight - padH - 64) * g.W / g.H);
     w = Math.max(240, Math.floor(w)); c.style.width = w + 'px'; c.style.height = Math.round(w * g.H / g.W) + 'px';
   }
@@ -200,13 +221,12 @@
     if (g.i18n.lang !== lastLang) {
       lastLang = g.i18n.lang; document.documentElement.lang = lastLang;
       var b = document.getElementById('backLink'); if (b) b.innerHTML = '&larr; ' + g.t('back');
-      var f = document.getElementById('foot'); if (f) f.innerHTML = g.t('foot');   // строки — наши, из i18n.js
+      var f = document.getElementById('foot'); if (f) f.innerHTML = g.t('foot');
     }
     if (g.themeName !== lastTheme) { lastTheme = g.themeName; document.body.setAttribute('data-theme', lastTheme); }
     requestAnimationFrame(domSync);
   }
   addEventListener('resize', fit); fit(); domSync();
-
   g.start('title');
-  C.app = { g: g, game: function () { return game; } };   // для отладки/автотестов в браузере
+  C.app = { g: g, game: function () { return G; }, ui: ui, load: loadLevel, act: act, undo: undo, busy: busy, step: stepVis, advance: advance, notice: function () { return notice; } };
 })(typeof window !== 'undefined' ? window : globalThis);

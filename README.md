@@ -65,7 +65,7 @@ Order as in the catalog (`assets/catalog/games.json`); names as in the English c
 | 38 | [STOKELING — Stoker Robot in a Coal Mine](ugolyok/) | Platformer | retro / modern |
 | 39 | [CLAPBOLT — Lightning first, thunder after](grom/) | Run-and-gun | retro / modern |
 | 40 | [FORGEBAND — The Hefest War Band vs the Iron Horde](druzhina/) | Beat'em-up | retro / modern |
-| 41 | [CHERTOG — Save the Master Before Dawn](chertog/) | Platformer | retro / modern |
+| 41 | [GLOAMSTAGE — Shadow Theatre: Move the Light, Walk the Shade](chertog/) | Puzzle | retro / modern |
 | 42 | [BROADHAUL — A Tractor Towing Gun Wagons vs the Rust Artel](dozor/) | Shoot'em-up | retro / modern |
 | 43 | [RIKOSHET — Anvil vs Walls of Ore](rikoshet/) | Arcade | retro / modern |
 | 44 | [RIVETFALL — Bullet Hell Through a Rain of Rivets](liven/) | Shoot'em-up | retro / modern |
